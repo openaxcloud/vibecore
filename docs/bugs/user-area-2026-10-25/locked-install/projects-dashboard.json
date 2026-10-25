@@ -1,0 +1,5241 @@
+{
+  "base": "http://127.0.0.1:6099",
+  "phase": "final",
+  "browser": "154.0.8037.57",
+  "synthetic": true,
+  "observations": [
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 194,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "0,00 €",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 234,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "0,00 €",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 264,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "0,00 €",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 262,
+            "scroll": 262,
+            "height": 140
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 405,
+            "width": 262,
+            "height": 44,
+            "top": 405,
+            "right": 291,
+            "bottom": 449,
+            "left": 29
+          },
+          "button": {
+            "x": 247,
+            "y": 405,
+            "width": 44,
+            "height": 44,
+            "top": 405,
+            "right": 291,
+            "bottom": 449,
+            "left": 247
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 302,
+            "scroll": 302,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 385,
+            "width": 302,
+            "height": 44,
+            "top": 385,
+            "right": 331,
+            "bottom": 429,
+            "left": 29
+          },
+          "button": {
+            "x": 287,
+            "y": 385,
+            "width": 44,
+            "height": 44,
+            "top": 385,
+            "right": 331,
+            "bottom": 429,
+            "left": 287
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 332,
+            "scroll": 332,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 332,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 317,
+            "y": 334,
+            "width": 44,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 317
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 355,
+            "scroll": 355,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 659.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 655,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 655
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 279,
+            "scroll": 279,
+            "height": 120
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 290.5,
+            "width": 583.5,
+            "height": 44,
+            "top": 290.5,
+            "right": 623,
+            "bottom": 334.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 579,
+            "y": 290.5,
+            "width": 44,
+            "height": 44,
+            "top": 290.5,
+            "right": 623,
+            "bottom": 334.5,
+            "left": 579
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 331,
+            "scroll": 331,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 635.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 631,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 631
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 479,
+            "scroll": 479,
+            "height": 80
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 95.5,
+            "y": 277.5,
+            "width": 783.5,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 95.5
+          },
+          "button": {
+            "x": 835,
+            "y": 277.5,
+            "width": 44,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 835
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 223.578125,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1012.578125,
+            "bottom": 304,
+            "left": 223.578125
+          },
+          "button": {
+            "x": 979.578125,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1012.578125,
+            "bottom": 304,
+            "left": 979.578125
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 344.046875,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1133.046875,
+            "bottom": 304,
+            "left": 344.046875
+          },
+          "button": {
+            "x": 1100.046875,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1133.046875,
+            "bottom": 304,
+            "left": 1100.046875
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 634,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1423,
+            "bottom": 304,
+            "left": 634
+          },
+          "button": {
+            "x": 1390,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1423,
+            "bottom": 304,
+            "left": 1390
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 954,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1743,
+            "bottom": 304,
+            "left": 954
+          },
+          "button": {
+            "x": 1710,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1743,
+            "bottom": 304,
+            "left": 1710
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 151,
+            "scroll": 151,
+            "height": 220
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 310.5,
+            "width": 455.5,
+            "height": 44,
+            "top": 310.5,
+            "right": 495,
+            "bottom": 354.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 451,
+            "y": 310.5,
+            "width": 44,
+            "height": 44,
+            "top": 310.5,
+            "right": 495,
+            "bottom": 354.5,
+            "left": 451
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 194,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "0,00 €",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 234,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "0,00 €",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 264,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "0,00 €",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "0,00 €",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Importer depuis GitHub",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Importer un fichier ZIP",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Créer à partir d’un prompt",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Utiliser un modèle",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 262,
+            "scroll": 262,
+            "height": 140
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 405,
+            "width": 262,
+            "height": 44,
+            "top": 405,
+            "right": 291,
+            "bottom": 449,
+            "left": 29
+          },
+          "button": {
+            "x": 247,
+            "y": 405,
+            "width": 44,
+            "height": 44,
+            "top": 405,
+            "right": 291,
+            "bottom": 449,
+            "left": 247
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 302,
+            "scroll": 302,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 385,
+            "width": 302,
+            "height": 44,
+            "top": 385,
+            "right": 331,
+            "bottom": 429,
+            "left": 29
+          },
+          "button": {
+            "x": 287,
+            "y": 385,
+            "width": 44,
+            "height": 44,
+            "top": 385,
+            "right": 331,
+            "bottom": 429,
+            "left": 287
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 332,
+            "scroll": 332,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 332,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 317,
+            "y": 334,
+            "width": 44,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 317
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 355,
+            "scroll": 355,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 659.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 655,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 655
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 279,
+            "scroll": 279,
+            "height": 120
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 290.5,
+            "width": 583.5,
+            "height": 44,
+            "top": 290.5,
+            "right": 623,
+            "bottom": 334.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 579,
+            "y": 290.5,
+            "width": 44,
+            "height": 44,
+            "top": 290.5,
+            "right": 623,
+            "bottom": 334.5,
+            "left": 579
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 331,
+            "scroll": 331,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 635.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 631,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 631
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 479,
+            "scroll": 479,
+            "height": 80
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 95.5,
+            "y": 277.5,
+            "width": 783.5,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 95.5
+          },
+          "button": {
+            "x": 835,
+            "y": 277.5,
+            "width": 44,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 835
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 229.828125,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1018.828125,
+            "bottom": 304,
+            "left": 229.828125
+          },
+          "button": {
+            "x": 985.828125,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1018.828125,
+            "bottom": 304,
+            "left": 985.828125
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 361.4375,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1150.4375,
+            "bottom": 304,
+            "left": 361.4375
+          },
+          "button": {
+            "x": 1117.4375,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1150.4375,
+            "bottom": 304,
+            "left": 1117.4375
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 634,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1423,
+            "bottom": 304,
+            "left": 634
+          },
+          "button": {
+            "x": 1390,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1423,
+            "bottom": 304,
+            "left": 1390
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 516,
+            "scroll": 516,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 954,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1743,
+            "bottom": 304,
+            "left": 954
+          },
+          "button": {
+            "x": 1710,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1743,
+            "bottom": 304,
+            "left": 1710
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 151,
+            "scroll": 151,
+            "height": 220
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 310.5,
+            "width": 455.5,
+            "height": 44,
+            "top": 310.5,
+            "right": 495,
+            "bottom": 354.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 451,
+            "y": 310.5,
+            "width": 44,
+            "height": 44,
+            "top": 310.5,
+            "right": 495,
+            "bottom": 354.5,
+            "left": 451
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 194,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "€0.00",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Import GitHub",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 234,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "€0.00",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Import GitHub",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 264,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "€0.00",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Import GitHub",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "light",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 262,
+            "scroll": 262,
+            "height": 140
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 262,
+            "height": 44,
+            "top": 334,
+            "right": 291,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 247.27532958984375,
+            "y": 334.27532958984375,
+            "width": 43.4493408203125,
+            "height": 43.4493408203125,
+            "top": 334.27532958984375,
+            "right": 290.72467041015625,
+            "bottom": 377.72467041015625,
+            "left": 247.27532958984375
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 302,
+            "scroll": 302,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 302,
+            "height": 44,
+            "top": 334,
+            "right": 331,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 287,
+            "y": 334,
+            "width": 44,
+            "height": 44,
+            "top": 334,
+            "right": 331,
+            "bottom": 378,
+            "left": 287
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 332,
+            "scroll": 332,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 332,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 317,
+            "y": 334,
+            "width": 44,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 317
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 372,
+            "scroll": 372,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 659.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 655,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 655
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 296,
+            "scroll": 296,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 583.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 623,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 579,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 623,
+            "bottom": 314.5,
+            "left": 579
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 348,
+            "scroll": 348,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 635.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 631,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 631
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 496,
+            "scroll": 496,
+            "height": 80
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 95.5,
+            "y": 277.5,
+            "width": 783.5,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 95.5
+          },
+          "button": {
+            "x": 835,
+            "y": 277.5,
+            "width": 44,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 835
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 229.828125,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1018.828125,
+            "bottom": 304,
+            "left": 229.828125
+          },
+          "button": {
+            "x": 985.828125,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1018.828125,
+            "bottom": 304,
+            "left": 985.828125
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 323.75,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1112.75,
+            "bottom": 304,
+            "left": 323.75
+          },
+          "button": {
+            "x": 1079.75,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1112.75,
+            "bottom": 304,
+            "left": 1079.75
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 621.328125,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1410.328125,
+            "bottom": 304,
+            "left": 621.328125
+          },
+          "button": {
+            "x": 1377.328125,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1410.328125,
+            "bottom": 304,
+            "left": 1377.328125
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 950.25,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1739.25,
+            "bottom": 304,
+            "left": 950.25
+          },
+          "button": {
+            "x": 1706.25,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1739.25,
+            "bottom": 304,
+            "left": 1706.25
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 168,
+            "scroll": 168,
+            "height": 200
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 290.5,
+            "width": 455.5,
+            "height": 44,
+            "top": 290.5,
+            "right": 495,
+            "bottom": 334.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 451,
+            "y": 290.5,
+            "width": 44,
+            "height": 44,
+            "top": 290.5,
+            "right": 495,
+            "bottom": 334.5,
+            "left": 451
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 194,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "€0.00",
+            "width": 248,
+            "scroll": 248,
+            "height": 32
+          },
+          {
+            "text": "Import GitHub",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 262,
+            "scroll": 262,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 234,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "€0.00",
+            "width": 288,
+            "scroll": 288,
+            "height": 32
+          },
+          {
+            "text": "Import GitHub",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 302,
+            "scroll": 302,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 264,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "0",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Pro",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "€0.00",
+            "width": 318,
+            "scroll": 318,
+            "height": 32
+          },
+          {
+            "text": "Import GitHub",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 332,
+            "scroll": 332,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 350,
+            "scroll": 350,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 364,
+            "scroll": 364,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 312,
+            "scroll": 312,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 326,
+            "scroll": 326,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 338,
+            "scroll": 338,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 352,
+            "scroll": 352,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 177,
+            "scroll": 177,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 191,
+            "scroll": 191,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 221,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 184,
+            "scroll": 184,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 196,
+            "scroll": 196,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 266,
+            "scroll": 882,
+            "height": 64
+          },
+          {
+            "text": "1",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "0",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Pro",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "€0.00",
+            "width": 554,
+            "scroll": 554,
+            "height": 36
+          },
+          {
+            "text": "Import GitHub",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Import ZIP",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Create from a prompt",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          },
+          {
+            "text": "Use a template",
+            "width": 568,
+            "scroll": 568,
+            "height": 20
+          }
+        ]
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "metrics": {
+        "viewport": 320,
+        "document": 320,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 262,
+            "scroll": 262,
+            "height": 140
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 262,
+            "height": 44,
+            "top": 334,
+            "right": 291,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 247,
+            "y": 334,
+            "width": 44,
+            "height": 44,
+            "top": 334,
+            "right": 291,
+            "bottom": 378,
+            "left": 247
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "metrics": {
+        "viewport": 360,
+        "document": 360,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 302,
+            "scroll": 302,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 302,
+            "height": 44,
+            "top": 334,
+            "right": 331,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 287,
+            "y": 334,
+            "width": 44,
+            "height": 44,
+            "top": 334,
+            "right": 331,
+            "bottom": 378,
+            "left": 287
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": 390,
+        "document": 390,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 332,
+            "scroll": 332,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 29,
+            "y": 334,
+            "width": 332,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 29
+          },
+          "button": {
+            "x": 317,
+            "y": 334,
+            "width": 44,
+            "height": 44,
+            "top": 334,
+            "right": 361,
+            "bottom": 378,
+            "left": 317
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "metrics": {
+        "viewport": 844,
+        "document": 844,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 372,
+            "scroll": 372,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 659.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 655,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 699,
+            "bottom": 314.5,
+            "left": 655
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": 768,
+        "document": 768,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 296,
+            "scroll": 296,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 583.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 623,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 579,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 623,
+            "bottom": 314.5,
+            "left": 579
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "metrics": {
+        "viewport": 820,
+        "document": 820,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 348,
+            "scroll": 348,
+            "height": 100
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 270.5,
+            "width": 635.5,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 631,
+            "y": 270.5,
+            "width": 44,
+            "height": 44,
+            "top": 270.5,
+            "right": 675,
+            "bottom": 314.5,
+            "left": 631
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": 1024,
+        "document": 1024,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 496,
+            "scroll": 496,
+            "height": 80
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 95.5,
+            "y": 277.5,
+            "width": 783.5,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 95.5
+          },
+          "button": {
+            "x": 835,
+            "y": 277.5,
+            "width": 44,
+            "height": 44,
+            "top": 277.5,
+            "right": 879,
+            "bottom": 321.5,
+            "left": 835
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "metrics": {
+        "viewport": 1280,
+        "document": 1280,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 223.578125,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1012.578125,
+            "bottom": 304,
+            "left": 223.578125
+          },
+          "button": {
+            "x": 979.578125,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1012.578125,
+            "bottom": 304,
+            "left": 979.578125
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": 1440,
+        "document": 1440,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 373.34375,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1162.34375,
+            "bottom": 304,
+            "left": 373.34375
+          },
+          "button": {
+            "x": 1129.34375,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1162.34375,
+            "bottom": 304,
+            "left": 1129.34375
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "metrics": {
+        "viewport": 1920,
+        "document": 1920,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 634,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1423,
+            "bottom": 304,
+            "left": 634
+          },
+          "button": {
+            "x": 1390,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1423,
+            "bottom": 304,
+            "left": 1390
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "metrics": {
+        "viewport": 2560,
+        "document": 2560,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 522,
+            "scroll": 522,
+            "height": 60
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 954,
+            "y": 260,
+            "width": 789,
+            "height": 44,
+            "top": 260,
+            "right": 1743,
+            "bottom": 304,
+            "left": 954
+          },
+          "button": {
+            "x": 1710,
+            "y": 260,
+            "width": 33,
+            "height": 44,
+            "top": 260,
+            "right": 1743,
+            "bottom": 304,
+            "left": 1710
+          },
+          "contained": true
+        }
+      }
+    },
+    {
+      "route": "projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 640,
+      "height": 400,
+      "metrics": {
+        "viewport": 640,
+        "document": 640,
+        "titles": [
+          {
+            "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+            "width": 168,
+            "scroll": 168,
+            "height": 200
+          }
+        ],
+        "clear": {
+          "field": {
+            "x": 39.5,
+            "y": 290.5,
+            "width": 455.5,
+            "height": 44,
+            "top": 290.5,
+            "right": 495,
+            "bottom": 334.5,
+            "left": 39.5
+          },
+          "button": {
+            "x": 451,
+            "y": 290.5,
+            "width": 44,
+            "height": 44,
+            "top": 290.5,
+            "right": 495,
+            "bottom": 334.5,
+            "left": 451
+          },
+          "contained": true
+        }
+      }
+    }
+  ],
+  "pageErrors": []
+}

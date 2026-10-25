@@ -1,0 +1,102 @@
+[
+  {
+    "route": "/billing",
+    "theme": "light",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 75,
+      "min": 5.178415705888697,
+      "below45": []
+    }
+  },
+  {
+    "route": "/account-settings/data",
+    "theme": "light",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 58,
+      "min": 5.1353745260598735,
+      "below45": []
+    }
+  },
+  {
+    "route": "/account-settings/connected",
+    "theme": "light",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 52,
+      "min": 5.178415705888697,
+      "below45": []
+    }
+  },
+  {
+    "route": "/projects",
+    "theme": "light",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 47,
+      "min": 5.178415705888697,
+      "below45": []
+    }
+  },
+  {
+    "route": "/dashboard",
+    "theme": "light",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 109,
+      "min": 4.86734917565594,
+      "below45": []
+    }
+  },
+  {
+    "route": "/billing",
+    "theme": "dark",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 75,
+      "min": 5.178415705888697,
+      "below45": []
+    }
+  },
+  {
+    "route": "/account-settings/data",
+    "theme": "dark",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 58,
+      "min": 4.978545168367476,
+      "below45": []
+    }
+  },
+  {
+    "route": "/account-settings/connected",
+    "theme": "dark",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 52,
+      "min": 5.178415705888697,
+      "below45": []
+    }
+  },
+  {
+    "route": "/projects",
+    "theme": "dark",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 47,
+      "min": 5.178415705888697,
+      "below45": []
+    }
+  },
+  {
+    "route": "/dashboard",
+    "theme": "dark",
+    "safeArea": "cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found",
+    "contrast": {
+      "count": 109,
+      "min": 5.178415705888697,
+      "below45": []
+    }
+  }
+]

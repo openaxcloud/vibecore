@@ -1,0 +1,142 @@
+{
+  "base": "http://127.0.0.1:6699",
+  "synthetic": true,
+  "checks": [
+    {
+      "lang": "fr",
+      "feedRetry": true
+    },
+    {
+      "lang": "fr",
+      "feedKeyboardBack": true
+    },
+    {
+      "lang": "fr",
+      "preferencesRollback": true,
+      "error": "Les préférences n’ont pas été enregistrées\n\nImpossible d’enregistrer les préférences de notification. Vos paramètres précédents restent actifs.\n\nRéessayer"
+    },
+    {
+      "lang": "fr",
+      "usageRetry": true
+    },
+    {
+      "lang": "fr",
+      "attempt": 1,
+      "usageSubmitFailure": {
+        "text": "Impossible de mettre à jour la limite du membre. Réessayez.",
+        "rect": {
+          "x": 32.5,
+          "y": 75.5625,
+          "width": 255,
+          "height": 48,
+          "top": 75.5625,
+          "right": 287.5,
+          "bottom": 123.5625,
+          "left": 32.5
+        },
+        "height": 200,
+        "focus": true
+      }
+    },
+    {
+      "lang": "fr",
+      "attempt": 2,
+      "usageSubmitFailure": {
+        "text": "Impossible de mettre à jour la limite du membre. Réessayez.",
+        "rect": {
+          "x": 32.5,
+          "y": 75.5625,
+          "width": 255,
+          "height": 48,
+          "top": 75.5625,
+          "right": 287.5,
+          "bottom": 123.5625,
+          "left": 32.5
+        },
+        "height": 200,
+        "focus": true
+      }
+    },
+    {
+      "lang": "en",
+      "feedRetry": true
+    },
+    {
+      "lang": "en",
+      "feedKeyboardBack": true
+    },
+    {
+      "lang": "en",
+      "preferencesRollback": true,
+      "error": "Preferences were not saved\n\nCould not save notification preferences. Your previous settings remain active.\n\nTry again"
+    },
+    {
+      "lang": "en",
+      "usageRetry": true
+    },
+    {
+      "lang": "en",
+      "attempt": 1,
+      "usageSubmitFailure": {
+        "text": "Could not update the member limit. Please try again.",
+        "rect": {
+          "x": 32.5,
+          "y": 75.5,
+          "width": 255,
+          "height": 48,
+          "top": 75.5,
+          "right": 287.5,
+          "bottom": 123.5,
+          "left": 32.5
+        },
+        "height": 200,
+        "focus": true
+      }
+    },
+    {
+      "lang": "en",
+      "attempt": 2,
+      "usageSubmitFailure": {
+        "text": "Could not update the member limit. Please try again.",
+        "rect": {
+          "x": 32.5,
+          "y": 75.5,
+          "width": 255,
+          "height": 48,
+          "top": 75.5,
+          "right": 287.5,
+          "bottom": 123.5,
+          "left": 32.5
+        },
+        "height": 200,
+        "focus": true
+      }
+    }
+  ],
+  "writes": [
+    {
+      "method": "PATCH",
+      "url": "http://127.0.0.1:6699/api/user/preferences"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:6699/usage.data?lang=fr"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:6699/usage.data?lang=fr"
+    },
+    {
+      "method": "PATCH",
+      "url": "http://127.0.0.1:6699/api/user/preferences"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:6699/usage.data?lang=en"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:6699/usage.data?lang=en"
+    }
+  ]
+}

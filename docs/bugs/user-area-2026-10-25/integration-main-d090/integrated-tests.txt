@@ -1,0 +1,57 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/routes/account-settings.data.i18n.spec.tsx (9 tests) 650ms
+ ✓ app/routes/billing.feedback.spec.tsx (2 tests) 621ms
+   ✓ billing action feedback accessibility > announces a submitted limit result (success=true)  521ms
+ ✓ app/routes/account-settings.data.focus.spec.tsx (2 tests) 347ms
+ ✓ app/lib/hooks/useKeybindings.dialog.spec.tsx (1 test) 87ms
+stdout | app/lib/i18n/catalogs/project-user-area.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/lib/i18n/catalogs/project-user-area.spec.tsx
+INFO Debug logger initialized
+
+ ✓ app/lib/i18n/catalogs/project-user-area.spec.tsx (6 tests) 177ms
+ ✓ app/components/ui/SharedUiResidual.i18n.spec.tsx (1 test) 137ms
+ ✓ app/routes/projects.search-navigation.spec.tsx (8 tests) 4742ms
+   ✓ restores the query on same-route navigation and Back/Forward  449ms
+   ✓ does not overwrite navigation with a pending typed query  314ms
+   ✓ does not let the debounce cancel a slower navigation that clears the query  996ms
+   ✓ keeps newer typing when an earlier debounced query finishes loading  987ms
+   ✓ keeps a pending draft when switching the local status filter  890ms
+   ✓ clears an uncommitted draft when a link navigates to the current unfiltered URL  366ms
+   ✓ distinguishes an explicit PUSH from a pending local write to the same query  539ms
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 36ms
+ ✓ app/routes/account-settings.shouldRethrow.spec.ts (5 tests) 7ms
+ ✓ app/lib/command-palette-focus.spec.ts (5 tests) 6ms
+ ✓ app/components/dashboard/recent-commands.spec.ts (3 tests) 4ms
+ ✓ app/components/dashboard/SaaSLayout.spec.ts (20 tests) 90ms
+ ✓ app/routes/billing.spec.ts (10 tests) 83ms
+ ✓ app/routes/billing.spend-usage.spec.ts (3 tests) 4ms
+
+ Test Files  14 passed (14)
+      Tests  81 passed (81)
+   Start at  21:47:24
+   Duration  12.83s (transform 5.14s, setup 483ms, collect 12.14s, tests 6.99s, environment 4.12s, prepare 1.40s)

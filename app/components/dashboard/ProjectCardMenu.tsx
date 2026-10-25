@@ -104,6 +104,7 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
   return (
     <>
       <Dropdown
+        modal={false}
         trigger={
           <button
             type="button"

@@ -1,0 +1,9 @@
+# Intégration de main après #791
+
+Base entrante `d09045d5a2fca53dbd7dbab61b4e505ad251d728`, parent propre `3084fcf74`. Fusion locale ordinaire ; seul conflit dans l’index généré, régénéré à493 fiches après conservation des sources docs. Le contexte #788 dans SaaSLayout est conservé : `/ide?panel=deployments` et `/ide?panel=domains`. La comparaison indépendante initiale confirme118/120 fichiers entrants identiques à main et262/264 fichiers propres identiques au parent ; exceptions : index et SaaSLayout combiné. Les mises à jour documentaires ultérieures enregistrent la fusion réelle de #791, sans modifier son code.
+
+Validation : **173 tests ciblés** (81 +58 +34), puis six gardes d’index rejouées après mise à jour des fiches. Build, typage web strict et lint passent ;52 avertissements existants, zéro erreur. Les logs normalisent seulement les espaces finaux. Les empreintes des11 fichiers produit propres figurent dans `validation.json`.
+
+Build compilé7099, API synthétique3199 : [Compte et Paiement](account-payment/README.md), [Menus et Facturation](menus-billing/README.md). Projets : Retour/Avancer avec requêtes.data retardées350ms, conservation de la frappe pendant réponse et resize390→320→1440. Palette :40 observations (2surfaces×5tailles×FR/EN×thèmes) et8groupes clavier rejoués avec le dernier espacement. Les scripts Projets réutilisés sont sous `../scripts`, avec PHASE=integration-d090, UI_BASE_URL locale et SLOW_DATA=1 pour la navigation ; le harness palette est sous `../palette/matrix.cjs`, seule destination d’archive changée.
+
+Pas de recette production authentifiée. Les matrices plus larges11formats/zoom natif sont archivées dans le dossier parent ; elles ne sont pas artificiellement recomptées comme exécutées sur7099. La nouvelle intégration doit encore passer sa CI et une fusion normale ; #791 est déjà fusionnée mais son déploiement est suivi séparément.

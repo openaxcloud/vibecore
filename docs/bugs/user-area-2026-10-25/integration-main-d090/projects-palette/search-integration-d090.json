@@ -1,0 +1,23 @@
+{
+  "base": "http://127.0.0.1:7099",
+  "phase": "integration-d090",
+  "synthetic": true,
+  "delayedData": true,
+  "delayedRequests": [
+    "http://127.0.0.1:7099/projects.data",
+    "http://127.0.0.1:7099/projects.data?q=Application&lang=fr",
+    "http://127.0.0.1:7099/projects.data"
+  ],
+  "afterNavigation": {
+    "query": "",
+    "url": "http://127.0.0.1:7099/projects"
+  },
+  "afterBack": {
+    "query": "Application",
+    "url": "http://127.0.0.1:7099/projects?q=Application&lang=fr"
+  },
+  "afterForward": {
+    "query": "",
+    "url": "http://127.0.0.1:7099/projects"
+  }
+}

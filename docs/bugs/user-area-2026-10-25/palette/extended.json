@@ -1,0 +1,3580 @@
+{
+  "base": "http://127.0.0.1:6899",
+  "phase": "after",
+  "synthetic": true,
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 340,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 340,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 904,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/dashboard",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 340,
+          "right": 1850.453125,
+          "parentRight": 1850.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 904,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/command-palette",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 904,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 340,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 340,
+          "right": 1482.0625,
+          "parentRight": 1482.0625,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 340,
+          "right": 1831.34375,
+          "parentRight": 1831.34375,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 904,
+          "right": 1121.578125,
+          "parentRight": 1121.578125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 904,
+          "right": 1524.703125,
+          "parentRight": 1524.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Créer un projetActionEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Ouvrir les projets récentsActionEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Importer un dépôt GitHubActionEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Afficher l’utilisationActionEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Inviter un membre de l’équipeActionEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Renouveler une clé APIActionEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Paramètres de l’espace de travailParamètresEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+          "width": 904,
+          "right": 1852,
+          "parentRight": 1852,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 340,
+          "right": 1127.828125,
+          "parentRight": 1127.828125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 340,
+          "right": 1499.453125,
+          "parentRight": 1499.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/dashboard",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 340,
+          "right": 1844.703125,
+          "parentRight": 1844.703125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 844,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 779,
+          "right": 811.5,
+          "parentRight": 811.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 768,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 703,
+          "right": 735.5,
+          "parentRight": 735.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 1024,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 903,
+          "right": 991.5,
+          "parentRight": 991.5,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 1280,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 904,
+          "right": 1120,
+          "parentRight": 1120,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 1920,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 904,
+          "right": 1461.765625,
+          "parentRight": 1461.765625,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/command-palette",
+      "width": 2560,
+      "rows": [
+        {
+          "text": "Create projectActionEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Open recent projectsActionEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Import GitHub repositoryActionEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "View usageActionEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Invite teammateActionEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Rotate API keyActionEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Workspace settingsSettingsEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        },
+        {
+          "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjectEnter",
+          "width": 904,
+          "right": 1819.453125,
+          "parentRight": 1819.453125,
+          "overflow": false,
+          "minWidth": "0px"
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/dashboard",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "route": "/command-palette",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/dashboard",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "route": "/command-palette",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/dashboard",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "route": "/command-palette",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/dashboard",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "route": "/command-palette",
+      "longNameFound": true,
+      "resizeDraftPreserved": true,
+      "escape": {
+        "query": "ResponsiveLongUnbroken",
+        "listVisible": true
+      },
+      "enterTarget": "http://127.0.0.1:6899/recent-projects"
+    }
+  ],
+  "blocked": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "errors": []
+}

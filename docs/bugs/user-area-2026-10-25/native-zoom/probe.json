@@ -1,0 +1,44 @@
+[
+  {
+    "factor": 1,
+    "profile": "/tmp/account-next/native-zoom/profile-JkXMaF",
+    "prefs": {
+      "partition": {
+        "default_zoom_level": {
+          "x": 0
+        }
+      }
+    },
+    "metrics": {
+      "innerWidth": 1280,
+      "innerHeight": 713,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "devicePixelRatio": 1,
+      "visualScale": 1,
+      "visualWidth": 1280,
+      "scroll": 1280
+    }
+  },
+  {
+    "factor": 2,
+    "profile": "/tmp/account-next/native-zoom/profile-moeBvB",
+    "prefs": {
+      "partition": {
+        "default_zoom_level": {
+          "x": 3.8017840169239308
+        }
+      }
+    },
+    "metrics": {
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "devicePixelRatio": 2,
+      "visualScale": 1,
+      "visualWidth": 640,
+      "scroll": 640
+    }
+  }
+]

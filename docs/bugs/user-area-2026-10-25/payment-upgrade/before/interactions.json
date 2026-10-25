@@ -1,0 +1,250 @@
+{
+  "base": "http://127.0.0.1:6199",
+  "synthetic": true,
+  "requests": [
+    {
+      "url": "http://127.0.0.1:6199/payment-method.data?lang=fr",
+      "method": "POST",
+      "body": "intent=billing-email&billingEmail=a%40b"
+    },
+    {
+      "url": "http://127.0.0.1:6199/payment-method.data?lang=fr",
+      "method": "POST",
+      "body": "intent=billing-email&billingEmail=draft%40example.test"
+    }
+  ],
+  "resizeDraft": "draft@example.test",
+  "invalid": {
+    "value": "a@b",
+    "active": "billingEmail",
+    "invalid": "true",
+    "text": "Aller au contenu\nMenu\nMoyen de paiement\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nMoyen de paiement\n\nMettez à jour les informations de facturation dans le portail client Stripe.\n\nGérer le moyen de paiement\nE-mail de facturation (copie)\n\nSaisissez une adresse e-mail de facturation valide, ou laissez le champ vide pour la supprimer.\n\nLes alertes de dépenses et notifications de facturation sont envoyées en copie à cette adresse. Laissez le champ vide pour la supprimer.\n\nEnregistrer l’e-mail de facturation"
+  },
+  "failure": {
+    "url": "http://127.0.0.1:6199/payment-method?lang=fr",
+    "text": "Aller au contenu\nMenu\nEspace de travail\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nEspace de travail\n\nCette page de l’espace de travail est temporairement indisponible.\n\nRetour au tableau de bord\nImpossible de charger Espace de travail\n\nLa dernière requête a échoué. Cette page reste masquée afin de ne pas afficher de données incomplètes. Aucune donnée n’a été modifiée.\n\nRéessayer\nChargement d’E-Code…",
+    "input": false,
+    "links": [
+      {
+        "text": "Aller au contenu",
+        "href": "#main-content"
+      },
+      {
+        "text": "Changer d’organisation",
+        "href": "/organization-switcher"
+      },
+      {
+        "text": "Créer un projet",
+        "href": "/projects/new"
+      },
+      {
+        "text": "Rechercher⌘K",
+        "href": "/command-palette"
+      },
+      {
+        "text": "Tableau de bord",
+        "href": "/dashboard"
+      },
+      {
+        "text": "Projets",
+        "href": "/projects"
+      },
+      {
+        "text": "Modèles",
+        "href": "/dashboard/templates"
+      },
+      {
+        "text": "Utilisation",
+        "href": "/usage"
+      },
+      {
+        "text": "Facturation",
+        "href": "/billing"
+      },
+      {
+        "text": "Équipe",
+        "href": "/organization-members"
+      },
+      {
+        "text": "Assistance",
+        "href": "/support"
+      },
+      {
+        "text": "Compte",
+        "href": "/account-settings"
+      },
+      {
+        "text": "Sécurité",
+        "href": "/security-settings"
+      },
+      {
+        "text": "Clés API",
+        "href": "/api-keys"
+      },
+      {
+        "text": "Comptes connectés",
+        "href": "/account-settings/connected"
+      },
+      {
+        "text": "Notifications",
+        "href": "/notifications"
+      },
+      {
+        "text": "Application de bureau",
+        "href": "/desktop-settings"
+      },
+      {
+        "text": "Paramètres de l’espace de travail",
+        "href": "/workspace-settings"
+      },
+      {
+        "text": "Données et confidentialité",
+        "href": "/account-settings/data"
+      },
+      {
+        "text": "",
+        "href": "/organization-switcher"
+      },
+      {
+        "text": "",
+        "href": "/projects/new"
+      },
+      {
+        "text": "",
+        "href": "/command-palette"
+      },
+      {
+        "text": "",
+        "href": "/dashboard"
+      },
+      {
+        "text": "",
+        "href": "/projects"
+      },
+      {
+        "text": "",
+        "href": "/dashboard/templates"
+      },
+      {
+        "text": "",
+        "href": "/usage"
+      },
+      {
+        "text": "",
+        "href": "/billing"
+      },
+      {
+        "text": "",
+        "href": "/organization-members"
+      },
+      {
+        "text": "",
+        "href": "/support"
+      },
+      {
+        "text": "",
+        "href": "/account-settings"
+      },
+      {
+        "text": "",
+        "href": "/security-settings"
+      },
+      {
+        "text": "",
+        "href": "/api-keys"
+      },
+      {
+        "text": "",
+        "href": "/account-settings/connected"
+      },
+      {
+        "text": "",
+        "href": "/notifications"
+      },
+      {
+        "text": "",
+        "href": "/desktop-settings"
+      },
+      {
+        "text": "",
+        "href": "/workspace-settings"
+      },
+      {
+        "text": "",
+        "href": "/account-settings/data"
+      },
+      {
+        "text": "Rechercher⌘K",
+        "href": "/command-palette"
+      },
+      {
+        "text": "Retour au tableau de bord",
+        "href": "/dashboard"
+      }
+    ]
+  },
+  "retry": {
+    "input": 1,
+    "value": "",
+    "text": "Aller au contenu\nMenu\nMoyen de paiement\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nMoyen de paiement\n\nMettez à jour les informations de facturation dans le portail client Stripe.\n\nGérer le moyen de paiement\nE-mail de facturation (copie)\n\nLes alertes de dépenses et notifications de facturation sont envoyées en copie à cette adresse. Laissez le champ vide pour la supprimer.\n\nEnregistrer l’e-mail de facturation\nChargement d’E-Code…"
+  },
+  "upgrade": {
+    "text": "Aller au contenu\nMenu\nChanger de formule\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nChanger de formule\n\nLes formules et les prix proviennent du catalogue de facturation actif, également utilisé par Stripe Checkout.\n\nLa souscription ouvre Stripe Checkout. Votre abonnement commence immédiatement au prix indiqué.\n\nPériode de facturation\nMensuelle\nAnnuelle — le montant annuel remisé est affiché dans Stripe Checkout\nGratuite\n\n0 € / mois\n\n1 projet\nAucune souscription nécessaire\nPro\nVotre formule\n\n240 € / an\n\n10 projets\nFormule actuelle\nTeam\n\n566,40 € / an\n\n5 membres de l’équipe\nChoisir la formule Team\nEnterprise\n\nSur devis\n\nQuotas personnalisés, SSO/SAML et assistance premium\nContacter l’équipe commerciale\n\nBesoin de la formule Enterprise (SSO/SAML, quotas personnalisés et assistance premium) ? Contacter l’équipe commerciale.",
+    "width": 320,
+    "scrollWidth": 320,
+    "buttons": [
+      {
+        "text": "",
+        "height": 0
+      },
+      {
+        "text": "CEMenu du compte",
+        "height": 0
+      },
+      {
+        "text": "",
+        "height": 800
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Menu",
+        "height": 44
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "EN",
+        "height": 0
+      },
+      {
+        "text": "FR",
+        "height": 0
+      },
+      {
+        "text": "",
+        "height": 44
+      },
+      {
+        "text": "Aucune souscription nécessaire",
+        "height": 56
+      },
+      {
+        "text": "Formule actuelle",
+        "height": 36
+      },
+      {
+        "text": "Choisir la formule Team",
+        "height": 34
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "before": {
+    "input": {
+      "x": 29,
+      "y": 405,
+      "width": 262,
+      "height": 44
+    },
+    "clear": {
+      "x": 247,
+      "y": 427,
+      "width": 44,
+      "height": 44
+    }
+  },
+  "after": {
+    "input": {
+      "x": 29,
+      "y": 405,
+      "width": 262,
+      "height": 44
+    },
+    "clear": {
+      "x": 247,
+      "y": 405,
+      "width": 44,
+      "height": 44
+    }
+  }
+}

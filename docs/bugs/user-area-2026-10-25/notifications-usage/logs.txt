@@ -1,0 +1,15 @@
+Local synthetic evidence only. No production traffic or real writes.
+Baseline app6299 API3299; compiled after app6699 API3299.
+Commands from repository root:
+node /tmp/ui-other/audit.cjs -> exit0,32 observations (diagnostic before fix)
+node node_modules/vitest/vitest.mjs run app/routes/usage.feedback.spec.tsx -> exit1,2 failures, missing alert
+First post-fix unit probe -> exit1: jsdom rectangle has no toJSON; corrected test mock, no product workaround
+node node_modules/vitest/vitest.mjs run app/routes/usage.feedback.spec.tsx app/routes/notifications.async-actions.spec.tsx -> exit0,6 passing
+node node_modules/eslint/bin/eslint.js app/routes/usage.tsx app/routes/notifications.tsx app/routes/usage.feedback.spec.tsx -> exit0,no errors
+node /tmp/ui-other/after/audit.cjs -> exit0,32 observations
+node /tmp/ui-other/after/interactions.cjs -> exit1,overstrict focus assertion when alert already visible; retained diagnostics/focus-probe-first.*
+node /tmp/ui-other/after/interactions-diagnostic.cjs -> exit0,visible alert preserves input focus
+node /tmp/ui-other/after/interactions-offscreen.cjs -> exit0,repeated failures focus offscreen alert
+node /tmp/ui-other/after/interactions-delayed.cjs -> exit0,350ms POST delay and scrollTo(0,0) before response
+No build or full-suite claim from these commands. Parent owns consolidated validation.
+node /tmp/ui-other/extended/audit.cjs -> exit0,56 additional observations,zero page errors; compiled6999,syntheticAPI3299; sources unchanged vs6699

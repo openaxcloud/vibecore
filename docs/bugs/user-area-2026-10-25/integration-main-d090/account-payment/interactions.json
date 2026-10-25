@@ -1,0 +1,61 @@
+{
+  "base": "http://127.0.0.1:7099",
+  "synthetic": true,
+  "requests": [
+    {
+      "url": "http://127.0.0.1:7099/payment-method.data?lang=fr",
+      "method": "POST",
+      "body": "intent=billing-email&billingEmail=draft%40example.test"
+    },
+    {
+      "url": "http://127.0.0.1:7099/payment-method.data?lang=fr",
+      "method": "POST",
+      "body": "intent=billing-email&billingEmail=draft%40example.test"
+    },
+    {
+      "url": "http://127.0.0.1:7099/payment-method.data?lang=en",
+      "method": "POST",
+      "body": "intent=billing-email&billingEmail=draft%40example.test"
+    },
+    {
+      "url": "http://127.0.0.1:7099/payment-method.data?lang=en",
+      "method": "POST",
+      "body": "intent=billing-email&billingEmail=draft%40example.test"
+    }
+  ],
+  "attempts": [
+    {
+      "lang": "fr",
+      "attempt": 1,
+      "status": 503,
+      "draft": "draft@example.test",
+      "alertFocused": true,
+      "tabOrderVerified": true
+    },
+    {
+      "lang": "fr",
+      "attempt": 2,
+      "status": 503,
+      "draft": "draft@example.test",
+      "alertFocused": true,
+      "tabOrderVerified": true
+    },
+    {
+      "lang": "en",
+      "attempt": 1,
+      "status": 503,
+      "draft": "draft@example.test",
+      "alertFocused": true,
+      "tabOrderVerified": true
+    },
+    {
+      "lang": "en",
+      "attempt": 2,
+      "status": 503,
+      "draft": "draft@example.test",
+      "alertFocused": true,
+      "tabOrderVerified": true
+    }
+  ],
+  "errors": []
+}

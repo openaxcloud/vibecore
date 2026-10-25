@@ -67,6 +67,7 @@ vi.mock('~/components/dashboard/SaaSLayout', () => ({
 vi.mock('~/components/ui/Dialog', () => ({
   Dialog: ({ children }: { children: ReactNode }) => <div role="dialog">{children}</div>,
   DialogTitle: ({ children }: { children: ReactNode }) => <>{children}</>,
+  DialogDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
 }));
 
 import AccountDataPage, { action, loader, meta } from './account-settings.data';

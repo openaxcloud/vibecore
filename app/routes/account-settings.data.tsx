@@ -7,7 +7,7 @@ import { Form, useActionData, useLoaderData, useNavigation, useRevalidator } fro
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { StatusPill } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
-import { Dialog, DialogTitle } from '~/components/ui/Dialog';
+import { Dialog, DialogDescription, DialogTitle } from '~/components/ui/Dialog';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import {
   formatAccountDataDate,
@@ -442,14 +442,16 @@ export default function AccountDataPage() {
        */}
       <RadixDialog.Root open={deleteOpen && !deletionScheduled} onOpenChange={setDeleteOpen}>
         {deleteOpen && !deletionScheduled ? (
-          <Dialog onClose={() => setDeleteOpen(false)} onBackdrop={() => setDeleteOpen(false)}>
+          <Dialog restoreOpenerFocus onClose={() => setDeleteOpen(false)} onBackdrop={() => setDeleteOpen(false)}>
             <div className="p-6">
               <DialogTitle asChild>
                 <h2 className="break-words text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
                   {copy.dialog.title}
                 </h2>
               </DialogTitle>
-              <p className="mt-1 break-words text-sm leading-5 text-bolt-elements-textSecondary">{dialogDescription}</p>
+              <DialogDescription className="mt-1 break-words text-sm leading-5 text-bolt-elements-textSecondary">
+                {dialogDescription}
+              </DialogDescription>
 
               {requestError ? (
                 <p
@@ -477,7 +479,6 @@ export default function AccountDataPage() {
                     name="confirm"
                     type="text"
                     autoComplete="off"
-                    autoFocus
                     value={confirmValue}
                     onChange={(event) => setConfirmValue(event.target.value)}
                     placeholder={email}

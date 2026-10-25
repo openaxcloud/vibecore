@@ -1,0 +1,11 @@
+--- a/app/components/dashboard/SaaSLayout.tsx
++++ b/app/components/dashboard/SaaSLayout.tsx
+@@ -2339,7 +2339,7 @@
+               onMouseEnter={() => setActiveIndex(index)}
+               onClick={() => rememberCommand(command.to)}
+               className={classNames(
+-                'flex min-h-[44px] items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
++                'flex min-h-[44px] min-w-0 items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
+                 index === activeIndex && 'bg-bolt-elements-background-depth-3',
+               )}
+             >

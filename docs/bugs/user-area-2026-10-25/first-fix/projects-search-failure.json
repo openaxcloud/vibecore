@@ -1,0 +1,17 @@
+{
+  "base": "http://127.0.0.1:5799",
+  "phase": "after",
+  "synthetic": true,
+  "afterNavigation": {
+    "query": "",
+    "url": "http://127.0.0.1:5799/projects"
+  },
+  "afterBack": {
+    "query": "Application",
+    "url": "http://127.0.0.1:5799/projects?q=Application&lang=fr"
+  },
+  "afterForward": {
+    "query": "Application",
+    "url": "http://127.0.0.1:5799/projects?q=Application&lang=fr"
+  }
+}

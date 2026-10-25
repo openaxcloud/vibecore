@@ -1,0 +1,215 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ❯ app/routes/payment-method.recovery-ui.spec.tsx (1 test | 1 failed) 1211ms
+   × payment email draft through the real route error boundary > retains the draft and focuses the error after 503, then retries the same value successfully 1210ms
+     → expected <input id="billingEmail" …(5)></input> to be <p role="alert" tabindex="-1" …(1)></p> // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full max-w-3xl"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"[39m
+              [33mrole[39m=[32m"alert"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mCould not update the billing email. Please try again.[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"space-y-8"[39m
+            [36m>[39m
+              [36m<form[39m
+                [33maction[39m=[32m"/payment-method"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mmethod[39m=[32m"post"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33mname[39m=[32m"intent"[39m
+                  [33mtype[39m=[32m"hidden"[39m
+                  [33mvalue[39m=[32m"portal"[39m
+                [36m/>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"min-h-[44px] rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"[39m
+                  [33mtype[39m=[32m"submit"[39m
+                [36m>[39m
+                  [0mManage payment method[0m
+                [36m</button>[39m
+              [36m</form>[39m
+              [36m<form[39m
+                [33maction[39m=[32m"/payment-method"[39m
+                [33mclass[39m=[32m"max-w-md space-y-3"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mmethod[39m=[32m"post"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33mname[39m=[32m"intent"[39m
+                  [33mtype[39m=[32m"hidden"[39m
+                  [33mvalue[39m=[32m"billing-email"[39m
+                [36m/>[39m
+                [36m<label[39m
+                  [33mclass[39m=[32m"grid gap-2 text-sm font-medium"[39m
+                [36m>[39m
+                  [0mBilling email (CC)[0m
+                  [36m<input[39m
+                    [33mclass[39m=[32m"h-11 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-[16px] outline-none focus:border-bolt-elements-focus sm:text-sm"[39m
+                    [33mid[39m=[32m"billingEmail"[39m
+                    [33mname[39m=[32m"billingEmail"[39m
+                    [33mplaceholder[39m=[32m"finance@company.com"[39m
+                    [33mtype[39m=[32m"email"[39m
+                    [33mvalue[39m=[32m"draft@example.test"[39m
+                  [36m/>[39m
+                [36m</label>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"text-xs text-bolt-elements-textSecondary"[39m
+                [36m>[39m
+                  [0mSpend alerts and billing notifications are copied to this address. Leave it blank to clear it.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"min-h-[44px] rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"[39m
+                  [33mtype[39m=[32m"submit"[39m
+                [36m>[39m
+                  [0mSave billing email[0m
+                [36m</button>[39m
+              [36m</form>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/payment-method.recovery-ui.spec.tsx > payment email draft through the real route error boundary > retains the draft and focuses the error after 503, then retries the same value successfully
+AssertionError: expected <input id="billingEmail" …(5)></input> to be <p role="alert" tabindex="-1" …(1)></p> // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full max-w-3xl"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"[39m
+              [33mrole[39m=[32m"alert"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mCould not update the billing email. Please try again.[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"space-y-8"[39m
+            [36m>[39m
+              [36m<form[39m
+                [33maction[39m=[32m"/payment-method"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mmethod[39m=[32m"post"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33mname[39m=[32m"intent"[39m
+                  [33mtype[39m=[32m"hidden"[39m
+                  [33mvalue[39m=[32m"portal"[39m
+                [36m/>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"min-h-[44px] rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"[39m
+                  [33mtype[39m=[32m"submit"[39m
+                [36m>[39m
+                  [0mManage payment method[0m
+                [36m</button>[39m
+              [36m</form>[39m
+              [36m<form[39m
+                [33maction[39m=[32m"/payment-method"[39m
+                [33mclass[39m=[32m"max-w-md space-y-3"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mmethod[39m=[32m"post"[39m
+              [36m>[39m
+                [36m<input[39m
+                  [33mname[39m=[32m"intent"[39m
+                  [33mtype[39m=[32m"hidden"[39m
+                  [33mvalue[39m=[32m"billing-email"[39m
+                [36m/>[39m
+                [36m<label[39m
+                  [33mclass[39m=[32m"grid gap-2 text-sm font-medium"[39m
+                [36m>[39m
+                  [0mBilling email (CC)[0m
+                  [36m<input[39m
+                    [33mclass[39m=[32m"h-11 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-[16px] outline-none focus:border-bolt-elements-focus sm:text-sm"[39m
+                    [33mid[39m=[32m"billingEmail"[39m
+                    [33mname[39m=[32m"billingEmail"[39m
+                    [33mplaceholder[39m=[32m"finance@company.com"[39m
+                    [33mtype[39m=[32m"email"[39m
+                    [33mvalue[39m=[32m"draft@example.test"[39m
+                  [36m/>[39m
+                [36m</label>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"text-xs text-bolt-elements-textSecondary"[39m
+                [36m>[39m
+                  [0mSpend alerts and billing notifications are copied to this address. Leave it blank to clear it.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"min-h-[44px] rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"[39m
+                  [33mtype[39m=[32m"submit"[39m
+                [36m>[39m
+                  [0mSave billing email[0m
+                [36m</button>[39m
+              [36m</form>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- <p
+-   class="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
+-   role="alert"
+-   tabindex="-1"
+- >
+-   Could not update the billing email. Please try again.
+- </p>
++ <input
++   class="h-11 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-[16px] outline-none focus:border-bolt-elements-focus sm:text-sm"
++   id="billingEmail"
++   name="billingEmail"
++   placeholder="finance@company.com"
++   type="email"
++   value="draft@example.test"
++ />
+
+ ❯ app/routes/payment-method.recovery-ui.spec.tsx:82:56
+     80|     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+     81|     await waitFor(() => expect(router.state.navigation.state).toBe('id…
+     82|     await waitFor(() => expect(document.activeElement).toBe(screen.get…
+       |                                                        ^
+     83|     expect((recoveredInput as HTMLInputElement).value).toBe('draft@exa…
+     84|     fireEvent.submit(recoveredInput.closest('form')!);
+ ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  21:27:27
+   Duration  4.22s (transform 1.33s, setup 25ms, collect 412ms, tests 1.21s, environment 326ms, prepare 57ms)
