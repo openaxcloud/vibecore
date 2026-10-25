@@ -69,3 +69,11 @@ Validation finale du complément : **148/148 tests agent**, **52/52 BFF/UI/réco
 `main d3adf5be9` est intégré par merge normal, sans rebase ni force-push. Git fusionne les textes sans conflit mais laisse le compteur de l'index à 485 pour 486 fiches : l'index est régénéré, union exacte des deux lots. Revue indépendante : deux branches AST Debugger, neuf helpers et 26 fichiers propres identiques à ad9946ff7 ; trois helpers BFF entrants, deux branches Packages et neuf fichiers entrants conservés exactement depuis main. Aucun écrasement identifié.
 
 Sur la combinaison : **112/112 tests ciblés** (Debugger, callbacks/UI, exécution, scanner, workflows, Packages et index), build et hook complet typage/lint réussis. Aucun nouveau test navigateur de cette combinaison n'est revendiqué : les captures et empreintes précédentes restent attachées aux sources ad9946ff7, dont les blocs Debugger sont inchangés. Nouvelle CI exacte requise après publication de ce merge.
+
+## Intégration de main #784
+
+`main c93d89f6f` rend la PR non fusionnable : conflit limité à l'index documentaire. Merge normal, index régénéré à **487 entrées uniques**. Revue indépendante : AST Debugger et composants hôtes identiques à c69820e52 ; Domaines/Déploiements et 24 fichiers entrants identiques à main ; 26 fichiers propres préservés. Aucun écrasement identifié.
+
+**78/78 tests** de combinaison (62 Debugger/Git/Deploy et 16 index), build web et hook complet typage/lint réussis, zéro erreur et 52 avertissements historiques. Une invocation initiale de l'index avec le runner Node échoue car le fichier utilise Vitest ; son exécution correcte réussit sans modification. Aucun nouveau parcours navigateur de cette combinaison revendiqué. Nouvelle CI exacte nécessaire.
+
+La tête précédente c69820e52 a passé Production CI, Security dont gitleaks, Quality, PR Validation, PostgreSQL, Desktop et E2E. La suite E2E comporte un retry réussi du focus du menu mobile après Escape sur panel=editor ; code générique inchangé, cause non établie. Les quatre formats français ont réussi, leur job de verdict était encore en attente à l'intégration. Ces résultats historiques ne certifient pas le nouveau SHA.
