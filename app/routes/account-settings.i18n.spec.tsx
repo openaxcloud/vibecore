@@ -5,6 +5,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const routeState = vi.hoisted(() => ({ language: 'fr' }));
@@ -14,30 +15,8 @@ vi.mock('react-router', async (importOriginal) => {
 
   return {
     ...actual,
-    NavLink: ({
-      children,
-      className,
-      to,
-    }: {
-      children: ReactNode;
-      className?: string | ((state: { isActive: boolean }) => string);
-      to: string;
-    }) => (
-      <a
-        href={to}
-        className={typeof className === 'function' ? className({ isActive: to.endsWith('/data') }) : className}
-      >
-        {children}
-      </a>
-    ),
     Outlet: () => <div data-testid="account-settings-outlet" />,
     useLoaderData: () => ({ language: routeState.language }),
-
-    /*
-     * L'onglet actif (aria-selected) est dérivé du pathname — cohérent avec le
-     * mock NavLink ci-dessus (isActive = /data).
-     */
-    useLocation: () => ({ pathname: '/account-settings/data' }),
   };
 });
 
@@ -59,7 +38,9 @@ function renderLayout() {
 
   render(
     <I18nextProvider i18n={i18n}>
-      <AccountSettingsLayout />
+      <MemoryRouter initialEntries={['/account-settings/data']}>
+        <AccountSettingsLayout />
+      </MemoryRouter>
     </I18nextProvider>,
   );
 
@@ -81,7 +62,7 @@ describe('account settings layout i18n', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Compte' })).toBeTruthy();
     expect(screen.getByText('Profil, comptes connectés, données et confidentialité de votre compte.')).toBeTruthy();
-    expect(screen.getByRole('tablist', { name: 'Paramètres du compte' })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Paramètres du compte' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Compte' }).getAttribute('href')).toBe('/account-settings');
     expect(screen.getByRole('link', { name: 'Comptes connectés' }).getAttribute('href')).toBe(
       '/account-settings/connected',
@@ -100,15 +81,18 @@ describe('account settings layout i18n', () => {
     expect(screen.getByRole('link', { name: 'Data & privacy' })).toBeTruthy();
   });
 
-  it('keeps long French tabs scrollable without truncation on narrow screens', () => {
+  it('keeps account destinations as native links that can wrap on narrow screens', () => {
     renderLayout();
 
-    const tablist = screen.getByRole('tablist', { name: 'Paramètres du compte' });
+    const tablist = screen.getByRole('navigation', { name: 'Paramètres du compte' });
     const dataTab = screen.getByRole('link', { name: 'Données et confidentialité' });
 
-    expect(tablist.className).toContain('overflow-x-auto');
-    expect(dataTab.className).toContain('shrink-0');
-    expect(dataTab.className).toContain('whitespace-nowrap');
+    expect(tablist.className).toContain('flex-wrap');
+    expect(dataTab.className).toContain('min-w-0');
+    expect(dataTab.className).toContain('whitespace-normal');
     expect(dataTab.className).not.toContain('truncate');
+    expect(dataTab.getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Compte' }).getAttribute('aria-current')).toBeNull();
+    expect(screen.queryByRole('tablist')).toBeNull();
   });
 });
