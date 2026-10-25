@@ -4,7 +4,7 @@
 
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { I18nextProvider } from 'react-i18next';
+import { I18nextProvider, useTranslation } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -21,8 +21,9 @@ import {
   projectUserAreaFr,
 } from './project-user-area';
 
+import { DeployPublishCard } from '~/components/deploy/DeployPublishCard';
+import { PanelToolTabs } from '~/components/project-ide/PanelPrimitives';
 import { createI18nInstance } from '~/lib/i18n/runtime';
-import ProjectDeploymentsPage from '~/routes/projects.$projectId.deployments';
 import NewProjectPage from '~/routes/projects.new';
 
 vi.mock('~/lib/stores/settings', async () => {
@@ -166,18 +167,45 @@ describe('project creation and deployment catalogs', () => {
     expect(html).not.toContain('Start from the existing catalog');
   });
 
-  it('renders French deployments and the localized trans-component sub-navigation', () => {
+  it('renders the canonical French publish form and shared panel navigation', () => {
+    function CanonicalPublishSurface() {
+      const { t } = useTranslation();
+      return (
+        <>
+          <PanelToolTabs
+            tabs={[
+              ['overview', t('baseChatAst.common.overview')],
+              ['logs', t('baseChatAst.common.logs')],
+              ['domains', t('baseChatAst.common.domains')],
+              ['manage', t('baseChatAst.common.manage')],
+            ]}
+            active="overview"
+            onSelect={vi.fn()}
+          />
+          <DeployPublishCard
+            projectId="project_1"
+            workspaceId="workspace_1"
+            busy={false}
+            building={false}
+            onSubmit={vi.fn()}
+          />
+        </>
+      );
+    }
+
     const html = renderRouteInFrench({
       id: 'project-deployments',
-      path: '/projects/:projectId/deployments',
-      node: <ProjectDeploymentsPage />,
+      path: '/projects/:projectId/ide',
+      node: <CanonicalPublishSurface />,
       loaderData: { project: { id: 'project_1' }, data: { deployments: [] } },
     });
 
-    expect(html).toContain('Déploiements');
+    expect(html).toContain('Publier');
     expect(html).toContain('Vue d’ensemble');
     expect(html).toContain('Domaines');
-    expect(html).toContain('Modifier les paramètres');
+    expect(html).toContain('Gérer');
+    expect(html).toContain('Avancé — remplacer le mode de déploiement');
+    expect(html).toContain('Environnement');
     expect(html).toContain('Détection du mode de déploiement');
     expect(html).not.toContain('Adjust settings');
     expect(html).not.toContain('Deployment views');

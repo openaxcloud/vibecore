@@ -11603,6 +11603,24 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
   return method === 'GET' || method === 'HEAD';
 }
 
+function ProjectDeploymentsServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  const { currentWorkspaceId } = useCurrentWorkspace();
+
+  const initialPayload =
+    !currentWorkspaceId || props.initialPayload?.data?.selectedWorkspaceId === currentWorkspaceId
+      ? props.initialPayload
+      : undefined;
+
+  return (
+    <ProjectIdeApiServicePanel
+      {...props}
+      key={`${props.projectId}:${currentWorkspaceId ?? ''}`}
+      requestedWorkspaceId={currentWorkspaceId}
+      initialPayload={initialPayload}
+    />
+  );
+}
+
 /*
  * BUG-IDE-013 — « Problèmes » n'est pas alimenté par `/ide-panel/:panel` mais
  * par le store `diagnostics`, côté client.
@@ -11615,21 +11633,8 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
  * l'enveloppe, donc aucun crochet n'est rendu conditionnel.
  */
 function ProjectIdeServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
-  const { currentWorkspaceId } = useCurrentWorkspace();
-
   if (props.panel === 'deployments') {
-    const initialPayload =
-      !currentWorkspaceId || props.initialPayload?.data?.selectedWorkspaceId === currentWorkspaceId
-        ? props.initialPayload
-        : undefined;
-    return (
-      <ProjectIdeApiServicePanel
-        {...props}
-        key={`${props.projectId}:${currentWorkspaceId ?? ''}`}
-        requestedWorkspaceId={currentWorkspaceId}
-        initialPayload={initialPayload}
-      />
-    );
+    return <ProjectDeploymentsServicePanel {...props} />;
   }
 
   if (props.panel === 'domains') {
