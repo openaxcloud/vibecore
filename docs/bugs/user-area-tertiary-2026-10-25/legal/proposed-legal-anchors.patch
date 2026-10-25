@@ -1,0 +1,62 @@
+--- a/app/routes/privacy.tsx
++++ b/app/routes/privacy.tsx
+@@ -4,6 +4,8 @@
+ import { getMarketingExactPrivacyTermsCopy } from '~/lib/i18n/catalogs/marketing-exact-privacy-terms';
+ import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+ import { socialMetaTags } from '~/utils/social-meta';
++
++export const handle = { serverRenderedMarketing: true } as const;
+
+ export function loader({ request }: LoaderFunctionArgs) {
+   return { language: resolveRequestLocale(request).language };
+--- a/app/components/marketing/ecode-exact/pages/Privacy.tsx
++++ b/app/components/marketing/ecode-exact/pages/Privacy.tsx
+@@ -36,7 +36,7 @@
+
+                 return (
+                   <section key={section.id} aria-labelledby={headingId}>
+-                    <h2 id={headingId} className="mt-8 mb-4 text-2xl font-semibold">
++                    <h2 id={headingId} className="mt-8 mb-4 scroll-mt-36 text-2xl font-semibold">
+                       {section.title}
+                     </h2>
+                     {section.paragraphs.map((paragraph) => (
+@@ -54,7 +54,7 @@
+               })}
+
+               <section aria-labelledby="privacy-contact">
+-                <h2 id="privacy-contact" className="mt-8 mb-4 text-2xl font-semibold">
++                <h2 id="privacy-contact" className="mt-8 mb-4 scroll-mt-36 text-2xl font-semibold">
+                   {copy.contact.title}
+                 </h2>
+                 <p>{copy.contact.description}</p>
+--- a/app/routes/terms.tsx
++++ b/app/routes/terms.tsx
+@@ -4,6 +4,8 @@
+ import { getMarketingExactPrivacyTermsCopy } from '~/lib/i18n/catalogs/marketing-exact-privacy-terms';
+ import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+ import { socialMetaTags } from '~/utils/social-meta';
++
++export const handle = { serverRenderedMarketing: true } as const;
+
+ export function loader({ request }: LoaderFunctionArgs) {
+   return { language: resolveRequestLocale(request).language };
+--- a/app/components/marketing/ecode-exact/pages/Terms.tsx
++++ b/app/components/marketing/ecode-exact/pages/Terms.tsx
+@@ -36,7 +36,7 @@
+
+                 return (
+                   <section key={section.id} aria-labelledby={headingId}>
+-                    <h2 id={headingId} className="mt-8 mb-4 text-2xl font-semibold">
++                    <h2 id={headingId} className="mt-8 mb-4 scroll-mt-36 text-2xl font-semibold">
+                       {section.title}
+                     </h2>
+                     {section.paragraphs.map((paragraph) => (
+@@ -54,7 +54,7 @@
+               })}
+
+               <section aria-labelledby="terms-contact">
+-                <h2 id="terms-contact" className="mt-8 mb-4 text-2xl font-semibold">
++                <h2 id="terms-contact" className="mt-8 mb-4 scroll-mt-36 text-2xl font-semibold">
+                   {copy.contact.title}
+                 </h2>
+                 <p>{copy.contact.description}</p>

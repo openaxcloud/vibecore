@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-495 entrées.
+498 entrées.
 
 ## Sans section
 
@@ -644,6 +644,9 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-PUBLIC-MENU-RESIZE-20261025](docs/bugs/BUG-PUBLIC-MENU-RESIZE-20261025.md) — Dans le chrome public Accueil/Tarifs, le bouton de menu déborde à320px (bord droit351,8px alors que le document reste à320px). Échap ferme le dialogue sans rest — 📤 Dispatché : Audit global UI/UX du25octobre2026, parcours publics isolés après la publication de #792. Les29PR ouvertes ont · 💻 Codé : Correctif local dans un worktree séparé : header mobile repliable, focus restauré et dialogue fermé au seuil d · ✅ Testé live : Non. Reproduction Chromium locale avec API synthétique ; aucun compte créé, authentification réelle ni mutatio
 - [BUG-USERAREA-SECONDARY-RESPONSIVE-20261025](docs/bugs/BUG-USERAREA-SECONDARY-RESPONSIVE-20261025.md) — À320/390px, un numéro de facture long reste coupé malgré `break-words` : conteneur800,8px pour255px disponibles. Un sujet Support non sécable déborde aussi à l’ — 📤 Dispatché : Mission UI/UX globale poursuivie en parallèle pendant CI #792. Factures, Support et Workspace modifiés uniquem · 💻 Codé : Correctifs locaux : conteneur Facture borné, élément texte flexible dans le lien Support, contexte de position · ✅ Testé live : Non. Fixtures synthétiques et navigateur local uniquement. Aucun achat, téléchargement de facture réelle, tick
+- [BUG-FEATURES-FILTER-STATE-20261025](docs/bugs/BUG-FEATURES-FILTER-STATE-20261025.md) — Filtre Features actif absent de l’état accessible. Les filtres fonctionnent et changent les cartes, mais aucun aria-pressed ou équivalent ne représente le bouto — 📤 Dispatché : Mission UI globale, complément isolé pendant CI/livraison #792 et #795. Périmètres concurrents inspectés et co · 💻 Codé : Correctif local uniquement, pas sur main : aria-pressed relié au même état activeTab, sans changer le filtrage · ✅ Testé live : Non. Navigateur local et fixtures synthétiques ; aucune mutation cliente, création d’accès, invitation ou envo
+- [BUG-ORGANIZATION-TEXT-TARGETS-20261025](docs/bugs/BUG-ORGANIZATION-TEXT-TARGETS-20261025.md) — Noms de rôles coupés et cibles locales trop petites. Quatre routes coupent les noms de rôles non sécables malgré un document contenu. Les labels de permissions  — 📤 Dispatché : Mission UI globale, complément isolé pendant CI/livraison #792 et #795. Périmètres concurrents inspectés et co · 💻 Codé : Correctif local uniquement, pas sur main : Wrapping local sur quatre routes et hauteur explicite44px sur les l · ✅ Testé live : Non. Navigateur local et fixtures synthétiques ; aucune mutation cliente, création d’accès, invitation ou envo
+- [BUG-PUBLIC-DEEP-LINKS-20261025](docs/bugs/BUG-PUBLIC-DEEP-LINKS-20261025.md) — Ancres légales ignorées au chargement ou masquées. Les cibles Privacy/Terms et CTA Support-policy sont absentes du HTML serveur, puis montent après le défilemen — 📤 Dispatché : Mission UI globale, complément isolé pendant CI/livraison #792 et #795. Périmètres concurrents inspectés et co · 💻 Codé : Correctif local uniquement, pas sur main : SSR existant activé uniquement sur les trois routes ; Support-polic · ✅ Testé live : Non. Navigateur local et fixtures synthétiques ; aucune mutation cliente, création d’accès, invitation ou envo
 
 ## Résidus non tabulaires — reportés mot pour mot
 

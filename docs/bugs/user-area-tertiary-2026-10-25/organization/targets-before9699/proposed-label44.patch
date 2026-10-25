@@ -1,0 +1,11 @@
+--- a/app/routes/roles-and-permissions.tsx
++++ b/app/routes/roles-and-permissions.tsx
+@@ -145,7 +145,7 @@
+             {permissions.map((permission) => (
+               <label
+                 key={permission}
+-                className="flex min-h-11 items-center gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textPrimary"
++                className="flex min-h-[44px] items-center gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textPrimary"
+               >
+                 <input
+                   type="checkbox"

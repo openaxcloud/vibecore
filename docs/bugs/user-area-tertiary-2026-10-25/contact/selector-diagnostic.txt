@@ -1,0 +1,12 @@
+/contact fr light 320 0
+/contact fr light 390 0
+/contact fr light 768 0
+/contact fr light 1440 0
+locator.click: Error: strict mode violation: locator('form button[type=submit]') resolved to 2 elements:
+    1) <button type="submit" data-testid="button-contact-submit" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-md text-sm font-medium text-[var(--ecode-accent-contrast)] min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none">…</button> aka getByTestId('button-contact-submit')
+    2) <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:brightness-110 h-10 px-4 py-2 md:h-10 min-h-[44px] md:min-h-0 replit-button-press w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]">S’inscrire</button> aka getByRole('button', { name: 'S’inscrire' })
+
+Call log:
+  - waiting for locator('form button[type=submit]')
+
+    at /tmp/ui-audit-next-public/audit.cjs:2:1958

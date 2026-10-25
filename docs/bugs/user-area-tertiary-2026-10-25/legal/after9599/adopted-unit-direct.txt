@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-org
+
+ ✓ app/lib/i18n/catalogs/marketing-exact-privacy-terms.spec.tsx (16 tests) 758ms
+   ✓ exact privacy, terms and legal marketing catalogs > leaves no hard-coded visible source copy in the three pages or routes  372ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  23:11:17
+   Duration  7.16s (transform 3.82s, setup 56ms, collect 2.82s, tests 758ms, environment 0ms, prepare 87ms)

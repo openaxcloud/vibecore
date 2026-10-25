@@ -1,0 +1,90 @@
+[
+  {
+    "route": "privacy",
+    "width": 320,
+    "direct": {
+      "top": 1961,
+      "headerBottom": 111,
+      "scrollY": 0,
+      "hash": "#privacy-contact"
+    },
+    "samePage": {
+      "top": 0,
+      "headerBottom": 111,
+      "scrollY": 1961,
+      "hash": "#privacy-contact"
+    },
+    "counterproof": {
+      "top": 127,
+      "headerBottom": 111,
+      "scrollY": 1834,
+      "hash": "#privacy-contact"
+    }
+  },
+  {
+    "route": "privacy",
+    "width": 1440,
+    "direct": {
+      "top": 1343.78125,
+      "headerBottom": 110,
+      "scrollY": 0,
+      "hash": "#privacy-contact"
+    },
+    "samePage": {
+      "top": -0.21875,
+      "headerBottom": 110,
+      "scrollY": 1344,
+      "hash": "#privacy-contact"
+    },
+    "counterproof": {
+      "top": 125.78125,
+      "headerBottom": 110,
+      "scrollY": 1218,
+      "hash": "#privacy-contact"
+    }
+  },
+  {
+    "route": "terms",
+    "width": 320,
+    "direct": {
+      "top": 2601.875,
+      "headerBottom": 111,
+      "scrollY": 0,
+      "hash": "#terms-contact"
+    },
+    "samePage": {
+      "top": -0.125,
+      "headerBottom": 111,
+      "scrollY": 2602,
+      "hash": "#terms-contact"
+    },
+    "counterproof": {
+      "top": 126.875,
+      "headerBottom": 111,
+      "scrollY": 2475,
+      "hash": "#terms-contact"
+    }
+  },
+  {
+    "route": "terms",
+    "width": 1440,
+    "direct": {
+      "top": 1536.8125,
+      "headerBottom": 110,
+      "scrollY": 0,
+      "hash": "#terms-contact"
+    },
+    "samePage": {
+      "top": -0.1875,
+      "headerBottom": 110,
+      "scrollY": 1537,
+      "hash": "#terms-contact"
+    },
+    "counterproof": {
+      "top": 125.8125,
+      "headerBottom": 110,
+      "scrollY": 1411,
+      "hash": "#terms-contact"
+    }
+  }
+]

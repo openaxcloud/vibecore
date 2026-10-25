@@ -1,0 +1,35 @@
+A [Error]: expect(locator).toBeVisible() failed
+
+Locator: getByRole('button', { name: /Réessayer/i })
+Expected: visible
+Timeout: 5000ms
+Error: element(s) not found
+
+Call log:
+  - Expect "to.be.visible" with timeout 5000ms
+  - waiting for getByRole('button', { name: /Réessayer/i })
+
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /tmp/ui-audit-next-org/interactions.cjs:5:431 {
+  matcherResult: {
+    message: 'expect(locator).toBeVisible() failed\n' +
+      '\n' +
+      "Locator: getByRole('button', { name: /Réessayer/i })\n" +
+      'Expected: visible\n' +
+      'Timeout: 5000ms\n' +
+      'Error: element(s) not found\n' +
+      '\n' +
+      'Call log:\n' +
+      '  - Expect "to.be.visible" with timeout 5000ms\n' +
+      "  - waiting for getByRole('button', { name: /Réessayer/i })\n",
+    pass: false,
+    actual: undefined,
+    name: 'toBeVisible',
+    expected: 'visible',
+    log: [
+      '  - Expect "to.be.visible" with timeout 5000ms',
+      "  - waiting for getByRole('button', { name: /Réessayer/i })"
+    ],
+    timeout: 5000
+  }
+}

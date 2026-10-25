@@ -36,7 +36,7 @@ export default function Privacy() {
 
                 return (
                   <section key={section.id} aria-labelledby={headingId}>
-                    <h2 id={headingId} className="mt-8 mb-4 text-2xl font-semibold">
+                    <h2 id={headingId} className="mt-8 mb-4 scroll-mt-36 text-2xl font-semibold">
                       {section.title}
                     </h2>
                     {section.paragraphs.map((paragraph) => (
@@ -54,7 +54,7 @@ export default function Privacy() {
               })}
 
               <section aria-labelledby="privacy-contact">
-                <h2 id="privacy-contact" className="mt-8 mb-4 text-2xl font-semibold">
+                <h2 id="privacy-contact" className="mt-8 mb-4 scroll-mt-36 text-2xl font-semibold">
                   {copy.contact.title}
                 </h2>
                 <p>{copy.contact.description}</p>
