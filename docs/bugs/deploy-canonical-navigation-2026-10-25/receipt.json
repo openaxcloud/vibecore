@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-25",
+  "scope": "isolated local API/PostgreSQL/Redis and compiled web; synthetic accounts/projects; no deployment or DNS mutation",
+  "baseline": {
+    "artifact": "existing #784 compiled build, read-only",
+    "sha256": "69a1efdc4706e7866398647c1df1c031d913186715086c9c5ad895e8fdb77fea  /workspace/vibecore/build/server/index.js",
+    "result": "expected failure",
+    "case": "?panel=domains mobile390 renders historical standalone Domains surface without canonical deployment host/tabs",
+    "timeoutMs": 60000,
+    "fixture": "real local API synthetic project",
+    "screenshot": "before-mobile-domains.png"
+  },
+  "final": {
+    "result": "passed",
+    "passed": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "retries": 0,
+    "durationMs": 115829.068,
+    "cases": [
+      "legacy domains URL mobile390 canonical host and Logs preserved on resize",
+      "legacy domains URL desktop1440 canonical host and Logs preserved on resize",
+      "standalone domains bookmark redirects after real project auth",
+      "legacy pane persisted through API restores identity and canonical host; Manage survives resize",
+      "Publish empty state leads to setup; advanced options retain values across collapse; no mutation attempted",
+      "legacy document POST invalid/path renders HTTP400 and actionable error; real domain list unchanged; recovery link canonical"
+    ],
+    "sourceSha256": {
+      "app/components/chat/BaseChat.tsx": "ab5a8b2a0925c52670951c25c316a88e3739368d3ba9c9a9f44eb43edf562a4e",
+      "app/components/dashboard/SaaSLayout.tsx": "5a4fd141d696967c350b4baaf5c8e14f7c54d652b5f721f1c4bfca0675b58089",
+      "app/components/deploy/publication.ts": "2f738af130b4e05b8c49072b1e1d2d8e5cc32f3fa86f3441514be2c039ec0900",
+      "app/lib/i18n/catalogs/base-chat-ast.ts": "af127e9e666f17682adb878f1c1114f70be79775cb6fe1c221ed6c613884747c",
+      "app/lib/stores/deploy-panel-view.ts": "50f3760e9686b86d98421002781e3327e33fc02a6a046da15aa8c9b1988ff84e",
+      "app/routes/projects.$projectId.domains.tsx": "f5439e43c7c2cc7c7567c03ff5096b876e06b8b21c1137fdab1222a61d1e0545"
+    },
+    "buildFileCount": 2305,
+    "buildManifestSha256": "d4b3c823179c6f8e79ce98fc63cc91bb5e145fd4334292fe94d541f72e6b5717",
+    "postRunSourceBuildMismatches": 0,
+    "qualification": "real API/PostgreSQL + compiled application, synthetic fixtures; cached legacy form created by test, genuine HTTP POST reaches app and API validation before mutation"
+  },
+  "setup": {
+    "migrationsSqlApplied": 102,
+    "prismaRunner": false,
+    "firstMigrationAttempt": "database not yet created; no SQL applied; rerun after readiness succeeded",
+    "seed": "passed"
+  },
+  "notExecuted": [
+    "actual deployment",
+    "DNS change",
+    "production",
+    "external providers",
+    "Safari/WebKit"
+  ],
+  "screenshots": {
+    "domains-url-1440.png": "f3ae5e393338053ef31c438c3f8d5e226b68279f66b35c6a6f99ca176792b992",
+    "publish-advanced-options.png": "6eefa200e51a38968e038c569f47a75aa14e1ecf784ae6e167cb987bbd157aaa",
+    "domains-persisted-pane.png": "6358b02bd18783f8da26a61ef70ab652c84bb2a39f5ef8c92473ae5530618e65",
+    "domains-bookmark.png": "5cebc5f56434141f621670e47734a8d00dc57383b6017a9c504d9257ffa25d63",
+    "legacy-post-validation-error.png": "05ef7faeaa7c791fe70309613360e4e34f88ada058dde98f93abdd6ad917aff5",
+    "after-mobile-domains.png": "7963bf6f9620e85725eba90b07b99dd987a2a5f024dbfe3241ace13f4071e384",
+    "before-mobile-domains.png": "0dbb97c728b41e4ec0011d2cf91f08a9a82420cdff062ccd0b19eb00e9e4b7c0"
+  },
+  "cleanup": {
+    "apiAndWeb": "stopped after final run",
+    "postgresAndRedis": "stopped and auto-removed; docker ps-a filtered empty",
+    "rawProofs": "retained privately /tmp/deploynav-qa",
+    "mainWorktree": "unchanged by QA; #784 proofs preserved"
+  }
+}

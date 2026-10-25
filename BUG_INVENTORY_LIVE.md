@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-486 entrées.
+487 entrées.
 
 ## Sans section
 
@@ -620,6 +620,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## IDE — exécution réelle
 
 - [BUG-PANEL-EXECUTION-EVIDENCE-001](docs/bugs/BUG-PANEL-EXECUTION-EVIDENCE-001.md) — 📤 Dispatché : 25 octobre 2026, reprise après #776–780 depuis main `941d7d7fc`. Périmètres scanner, inventaire et revue indép · 💻 Codé : Correctif local, pas encore fusionné. Terminal, Packages et Workflows exigent un code de sortie explicite égal · ✅ Testé live : Non. Commandes grep réelles sur fichiers temporaires synthétiques et contrats BFF avec exécuteur contrôlé ; au
+
+## Sans section
+
+- [BUG-DEPLOY-NAVIGATION-CANONICAL-20261025](docs/bugs/BUG-DEPLOY-NAVIGATION-CANONICAL-20261025.md) — La grille masque le doublon Domains, mais URL mobile, anciens layouts et page projet historique ouvrent encore une interface concurrente. — 📤 Dispatché : 25 octobre 2026 : delta séparé de #784, branche `fix/deploy-single-navigation-20261025`, base `66455751c`. Auc · 💻 Codé : Premier lot local commité `15dd78791`, non intégré à main : la page historique Domains redirige après autorisa · ✅ Testé live : Lot Domains : 6/6 recettes Chromium compilées passées, 115829 ms, sans retry/omission. Les trois portes histor
 
 ## Résidus non tabulaires — reportés mot pour mot
 
