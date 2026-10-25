@@ -337,6 +337,7 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { useProjectDomains } from '~/components/deploy/useProjectDomains';
 import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
 import {
   detailDeTacheDeReparation,
@@ -15092,66 +15093,17 @@ function ProjectDomainsPanel({
    *  - framework mode (data/onSubmit/busy from the panel host) — legacy path.
    */
   const selfMode = Boolean(projectId);
-  const [selfData, setSelfData] = useState<any>(null);
-  const [selfBusy, setSelfBusy] = useState(false);
+  const domainState = useProjectDomains(projectId);
+  const data = selfMode ? (domainState.data ?? {}) : (dataProp ?? {});
 
-  const loadDomains = useCallback(async () => {
-    if (!projectId) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}/ide-panel/domains`, {
-        headers: { accept: 'application/json' },
-      });
-
-      const envelope = (await response.json().catch(() => ({}))) as any;
-      setSelfData(envelope?.data ?? envelope ?? {});
-    } catch {
-      // Non-fatal: keep whatever we last had.
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    if (selfMode) {
-      void loadDomains();
-    }
-  }, [selfMode, loadDomains]);
-
-  const selfSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-
-      if (!projectId) {
-        return;
+  const onSubmit = selfMode
+    ? (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        void domainState.submit(new FormData(event.currentTarget));
       }
+    : onSubmitProp;
 
-      const form = new FormData(event.currentTarget);
-      setSelfBusy(true);
-
-      try {
-        const response = await fetch(`/api/projects/${projectId}/ide-panel/domains`, { method: 'POST', body: form });
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as { error?: string };
-          console.warn('Domain update request failed', { status: response.status, serverError: payload.error });
-          toast.error(t('baseChatAst.domain.updateFailedHttp', { status: response.status }));
-        }
-
-        await loadDomains();
-      } catch (error) {
-        console.error('Domain update request failed', error);
-        toast.error(t('baseChatAst.domain.updateFailed'));
-      } finally {
-        setSelfBusy(false);
-      }
-    },
-    [projectId, loadDomains, t],
-  );
-
-  const data = selfMode ? (selfData ?? {}) : (dataProp ?? {});
-  const onSubmit = selfMode ? selfSubmit : onSubmitProp;
-  const busy = selfMode ? selfBusy : Boolean(busyProp);
+  const busy = selfMode ? domainState.busy || domainState.loading : Boolean(busyProp);
 
   const domains = data.domains ?? [];
   const latestReadyDeployment = (data.deployments ?? []).find((deployment: any) => deployment.status === 'READY');
@@ -15160,6 +15112,18 @@ function ProjectDomainsPanel({
 
   return (
     <div className="bolt-project-domains-panel">
+      {selfMode && domainState.loading ? <p role="status">{t('baseChatAst.domain.loading')}</p> : null}
+      {selfMode && domainState.error ? (
+        <div role="alert">
+          <p>{t('baseChatAst.domain.requestFailed')}</p>
+          {domainState.status ? (
+            <p>{t('baseChatAst.domain.updateFailedHttp', { status: domainState.status })}</p>
+          ) : null}
+          <PanelButton type="button" disabled={busy} onClick={() => void domainState.load()}>
+            {t('baseChatAst.domain.retry')}
+          </PanelButton>
+        </div>
+      ) : null}
       <section className="bolt-project-domains-hero" aria-labelledby="domains-title">
         <div>
           <span className="bolt-project-domains-kicker">{t('chat.copy.domains_a0d641b3')}</span>
@@ -15214,13 +15178,13 @@ function ProjectDomainsPanel({
               />
             ))}
           </div>
-        ) : (
+        ) : !selfMode || (!domainState.loading && !domainState.error) ? (
           <PanelEmptyState
             icon="i-ph:globe"
             title={t('chat.copy.noCustomDomainsYet_d9c8b21d')}
             description={t('chat.copy.addADomainToGenerateOrganization_14f8de9b')}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -23904,6 +23868,7 @@ function ProjectDeploymentsPanel({
            * n'a pas d'équivalent chez Replit.
            */}
           <PublicationReplit
+            busy={busy}
             deployments={deployments}
             language={language}
             ilYA={(date) => ilYADepuis(date, language)}
@@ -24077,7 +24042,7 @@ function ProjectDeploymentsPanel({
                       intent="rollback"
                       deploymentId={deployment.id}
                       onSubmit={onSubmit}
-                      busy={busy}
+                      busy={busy || deployment.status !== 'READY' || Boolean(deployment.rollbackUnavailableReason)}
                     >
                       {t('chat.copy.rollback_f28daee2')}
                     </ProjectDeploymentAction>
@@ -24085,7 +24050,7 @@ function ProjectDeploymentsPanel({
                       intent="cancel"
                       deploymentId={deployment.id}
                       onSubmit={onSubmit}
-                      busy={busy}
+                      busy={busy || !['QUEUED', 'BUILDING'].includes(deployment.status)}
                     >
                       {t('chat.copy.cancel_77dfd213')}
                     </ProjectDeploymentAction>
