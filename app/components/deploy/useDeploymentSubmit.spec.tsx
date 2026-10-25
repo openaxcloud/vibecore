@@ -2,11 +2,19 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useDeploymentSubmit } from './useDeploymentSubmit';
+import { useKeybindings } from '~/lib/hooks/useKeybindings';
 
 afterEach(cleanup);
 
 function Harness({ onSubmit, scope = 'a' }: { onSubmit: (form: FormData) => void; scope?: string }) {
+  useKeybindings({
+    bindings: [{ combo: 'escape', action: 'overlay.close', label: 'Close overlay', description: '', category: 'Help' }],
+    getContext: () => ({}),
+    runAction: () => undefined,
+  });
+
   const { submit, confirmation } = useDeploymentSubmit(onSubmit, false, 'en', scope);
+
   return (
     <>
       {confirmation}
