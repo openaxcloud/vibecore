@@ -395,7 +395,7 @@ export function buildOnDemandBackupManifest(
     metadata: {
       name: onDemandBackupName(projectId, snapshotId, environment),
       namespace: DB_NAMESPACE,
-      labels: dbLabels(projectId),
+      labels: { ...dbLabels(projectId), 'vibecore.ai/snapshot-id': snapshotId },
     },
     spec: { cluster: { name: clusterName(projectId, environment) } },
   };
