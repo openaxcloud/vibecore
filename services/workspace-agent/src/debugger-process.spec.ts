@@ -325,7 +325,7 @@ describe('authenticated versioned session protocol', () => {
       expect((await app.inject({ method: 'GET', url: '/sessions/capabilities' })).statusCode).toBe(401);
       const authorized = await app.inject({ method: 'GET', url: '/sessions/capabilities', headers });
       expect(authorized.statusCode).toBe(200);
-      expect(authorized.json()).toEqual({ trackedSessions: 1 });
+      expect(authorized.json()).toEqual({ trackedSessions: 1, nodeDebugger: 1 });
     } finally {
       await app.close();
     }

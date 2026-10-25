@@ -1,0 +1,137 @@
+{
+  "scope": "Compiled web browser to real HTTP BFF, authenticated API and PostgreSQL, manager token signing and real Node workspace agent; local synthetic identities only",
+  "run": "/tmp/debugger-browser-run4.log",
+  "passed": 3,
+  "failed": 0,
+  "retries": 0,
+  "durationSeconds": 21.9,
+  "viewports": [
+    1440,
+    820,
+    390
+  ],
+  "node": "v24.19.0",
+  "browser": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "checks": [
+    "UI saves program, breakpoint and watch; Node CTA",
+    "entry pause line1; Continue breakpoint line6 and watch answer2",
+    "Step Into twice; Step Over line4 with doubled4 in both engine and visible UI",
+    "Step Out line7; Continue running; Stop via UI",
+    "authoritative stopped; no live process for identity; persistent callStack and variables empty",
+    "body scrollWidth <= viewport in paused state; zero page exceptions"
+  ],
+  "limitations": [
+    "Synthetic local PostgreSQL, local Node and Chromium only; not Kubernetes/production/Safari/physical devices",
+    "Workspace-manager logs/snapshot returns502 because no Kubernetes workload is present; other debugger routes exercised successfully",
+    "External browser requests intentionally blocked; six ERR_BLOCKED_BY_CLIENT console messages, no browser HTTP status >=400",
+    "First preparation attempt failed because expect.poll was used in beforeAll; corrected harness, red log retained",
+    "Desktop run2 succeeded before CTA correction; run3 succeeded all three formats before additional variables screenshots; final run4 is authoritative for final recipe"
+  ],
+  "pageErrors": 0,
+  "consoleBlockedResourceErrors": 6,
+  "blockedExternalRequests": [
+    "https://fonts.googleapis.com/css2",
+    "https://fonts.googleapis.com/css2",
+    "https://stackblitz.com/headless",
+    "https://fonts.googleapis.com/css2",
+    "https://fonts.googleapis.com/css2",
+    "https://stackblitz.com/headless",
+    "https://fonts.googleapis.com/css2",
+    "https://fonts.googleapis.com/css2",
+    "https://stackblitz.com/headless"
+  ],
+  "sources": [
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "7633330bd0e89e2cd8da7e8424d9822b73c4c531874adf755a959982df74a862"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/chat.ts",
+      "sha256": "9c87722ee2b64d3e40a98cb63a7d4ac6283c015385cf6efb8b2ce88260411a2b"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+      "sha256": "9e189ea0146b47b7d440b60f61a487f2d6d34dffb45c8f834938942d493eab9a"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "d6a05c0197e3b4e4572a406177ca5bcee05613aaad90fa282d4fac26848f76bf"
+    },
+    {
+      "path": "services/workspace-agent/src/app.ts",
+      "sha256": "58f414ac50d02a254aaf128c1a8d19fbe90967efa2361d8b16de6e2173d15971"
+    },
+    {
+      "path": "services/workspace-agent/src/debugger-engine.ts",
+      "sha256": "54e280c5ed3c268eae3682177ed49508b3a7b6f0ed1405c715c2571fba51158e"
+    },
+    {
+      "path": "services/workspace-agent/src/debugger-bootstrap.ts",
+      "sha256": "c7504c96a3252a996904528c329b03e4e958b9da8543dcf11d17fbd6fe6a66d0"
+    },
+    {
+      "path": "tests/runtime/debugger-browser.real.ts",
+      "sha256": "652203c91bb6dea23bbeb38c6281d189a4a3fcf6cfcfe29801afcf4f84cc439a"
+    },
+    {
+      "path": "vitest.debugger-browser.config.ts",
+      "sha256": "685313e409d77f6e516ec97e3b3115e5231ae8488a1f4324bcafd86736a8cdf4"
+    },
+    {
+      "path": "build/server/index.js",
+      "sha256": "05d478bad56824031a140563d83b5360585164550bee59e15dd078df2fb2d4f7"
+    }
+  ],
+  "provenanceManifest": {
+    "path": "/tmp/debugger-browser-provenance.json",
+    "sha256": "fca853e0053231d23f0f23e98186b7662540b884d0186631c438a260b080b399",
+    "buildFileCount": 2307
+  },
+  "screenshots": [
+    {
+      "path": "paused-1440.png",
+      "sha256": "dff6e7b51a23b98ef27b77b2902f4fdddf05df439880cd202d147c5927d5c820",
+      "modifiedUtc": "2026-10-25T13:58:10.320501+00:00"
+    },
+    {
+      "path": "paused-390.png",
+      "sha256": "8387a8659afcca6bd861b5a57912c99834f33cf9151e56c2a5371d782c47faf3",
+      "modifiedUtc": "2026-10-25T13:58:18.708654+00:00"
+    },
+    {
+      "path": "paused-820.png",
+      "sha256": "e667eb79b4c535ffee32596a193512c7e217f2379e415073e8ae8f9dd4cc037b",
+      "modifiedUtc": "2026-10-25T13:58:14.728582+00:00"
+    },
+    {
+      "path": "stopped-1440.png",
+      "sha256": "615f1d8f8c323b25a91aaac2519b6e54e6bff2d4971c60160abdd0ea9e9517f8",
+      "modifiedUtc": "2026-10-25T13:58:11.188517+00:00"
+    },
+    {
+      "path": "stopped-390.png",
+      "sha256": "0a2d0a4af94d2131888dad5c0304cb1d0bb32388a0d9caed4a7f4f609d17b9e7",
+      "modifiedUtc": "2026-10-25T13:58:19.436668+00:00"
+    },
+    {
+      "path": "stopped-820.png",
+      "sha256": "665b387ed2d96e2bd4f344249d78b18b34f0fff62df6ff2f3ddea179d019a248",
+      "modifiedUtc": "2026-10-25T13:58:15.512596+00:00"
+    },
+    {
+      "path": "variables-1440.png",
+      "sha256": "c6490c95820be6b8044411c2509d4d09cd3490395c33fb91df8bfb7e805560b8",
+      "modifiedUtc": "2026-10-25T13:58:10.448503+00:00"
+    },
+    {
+      "path": "variables-390.png",
+      "sha256": "169c4f56a93dedbbd93bface319a0ff535c1d40aa681235f2cefd0c8b77913f5",
+      "modifiedUtc": "2026-10-25T13:58:18.788656+00:00"
+    },
+    {
+      "path": "variables-820.png",
+      "sha256": "44c6119717abdcb0cd10be1aad73a551907719f5336452b7e32338e049021c4d",
+      "modifiedUtc": "2026-10-25T13:58:14.832584+00:00"
+    }
+  ]
+}
