@@ -387,5 +387,37 @@
     "managed-publish-mobile.png",
     "before-placeholder-dark.png",
     "before-placeholder-light.png"
-  ]
+  ],
+  "mobileVisualFollowup": {
+    "reason": "Initial combined-run screenshot caught a shell transition: retained DOM values alone did not establish on-screen visibility. Added viewport assertion before value checks and screenshot.",
+    "stats": {
+      "startTime": "2026-10-25T16:53:06.437Z",
+      "duration": 91560.69900000001,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "retries": 0,
+    "workers": 1,
+    "compiledProductCommit": "8b51f92ffebb1bb635d01bfc62601374f383cd5c",
+    "sourceTreeHeadAtFollowup": "e057fcb4e99a45e13791cdf8a667049e518b3ce5",
+    "testSha256": [
+      {
+        "path": "tests/e2e/publish-canonical-flow.spec.ts",
+        "sha256": "9ee1233308134dc78896b3dd680328fc50ecee88df72b5065c0a2da735f1c124"
+      }
+    ],
+    "assertionAdded": "Managed envVars textarea must be in viewport after resize390 before retained values are asserted and screenshot is taken",
+    "buildManifestSha256": "67dd9d66f4e9f9f31413b3f8deadce45187edf8b56baacdb5881f09792a367dc",
+    "buildMismatches": 0,
+    "unchangedClientSources": [
+      "app/components/chat/BaseChat.tsx",
+      "app/components/deploy/DeployPublishCard.tsx",
+      "app/styles/index.scss"
+    ],
+    "qualification": "Existing compiled8b51f92 web and already-running isolated API process from before subsequent main integration; this is not a compiled validation of the integrated source tree",
+    "screenshot": "managed-publish-mobile.png",
+    "visualInspection": "Publish/Manage visible at390px; staging and synthetic envVars retained; no cropped desktop shell"
+  }
 }

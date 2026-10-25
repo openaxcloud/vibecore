@@ -1,6 +1,6 @@
 ---
 id: BUG-DB-RESTORE-COMPLETION-001
-section: 'Reprise commerciale du 2026-10-19 — restauration DB'
+section: "Reprise commerciale du 2026-10-19 — restauration DB"
 ---
 
 ## Bug

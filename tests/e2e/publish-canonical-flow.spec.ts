@@ -203,6 +203,9 @@ test('real unavailable detection allows explicit mode override; double click sen
   expect(sent[2].provider).toBe('static');
   expect(sent[2]).not.toHaveProperty('machineSize');
   await page.setViewportSize({ width: 390, height: 844 });
+
+  // Wait for the mobile shell to render, not only for retained hidden form state.
+  await expect(managed.locator('textarea[name="envVars"]')).toBeInViewport();
   await expect(
     host.locator('.bolt-project-tool-tabs').getByRole('button', { name: /^(Manage|Gérer)$/ }),
   ).toHaveAttribute('aria-current', 'page');
