@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { consumeDeployPanelView, requestDeployPanelView, requestedDeployPanelView } from './deploy-panel-view';
+import {
+  consumeDeployPanelView,
+  requestDeployPanelView,
+  requestedDeployPanelView,
+  deployPanelSessions,
+  initializeLegacyDomainsSession,
+  updateDeployPanelSession,
+} from './deploy-panel-view';
 
 describe('deploy panel view request', () => {
   beforeEach(() => {
@@ -35,5 +42,16 @@ describe('deploy panel view request', () => {
 
     expect(consumeDeployPanelView()).toBe('manage');
     expect(consumeDeployPanelView()).toBeUndefined();
+  });
+});
+
+describe('legacy Domains pane restoration', () => {
+  it('initializes Domains once and preserves the selected subview on responsive remount', () => {
+    deployPanelSessions.set({});
+    initializeLegacyDomainsSession('project-a');
+    expect(deployPanelSessions.get()['project-a'].view).toBe('domains');
+    updateDeployPanelSession('project-a', { view: 'manage', domainDraft: 'app.example.com' });
+    initializeLegacyDomainsSession('project-a');
+    expect(deployPanelSessions.get()['project-a']).toEqual({ view: 'manage', domainDraft: 'app.example.com' });
   });
 });

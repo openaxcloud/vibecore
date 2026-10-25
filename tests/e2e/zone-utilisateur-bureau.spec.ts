@@ -12,8 +12,8 @@ import { expect, test, type Page } from '@playwright/test';
  *          l'onglet de la page courante (« Déploiements ») était caché, sans
  *          aucun signe qu'il en restait.
  *
- * Vraie API, vrai compte, vrai projet — aucun appel simulé. Bureau seulement :
- * sous 1024 px l'affichage est gelé sur la référence d'Avi.
+ * Vraie API, vrai compte, vrai projet — aucun appel simulé. La navigation
+ * du tableau de bord est mesurée sur Activité, puis mène au Publish canonique.
  */
 
 const API_BASE_URL =
@@ -94,7 +94,7 @@ for (const viewport of VIEWPORTS) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
       const projectId = await compteEtProjet(page, theme);
-      await page.goto(`/projects/${projectId}/deployments`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`/projects/${projectId}/activity`, { waitUntil: 'domcontentloaded' });
 
       /*
        * Ancré sur la navigation elle-même (son nom accessible), qui existe AVANT
@@ -133,6 +133,13 @@ for (const viewport of VIEWPORTS) {
       // UIB-03 — le pied de la barre latérale porte le nom du compte authentifié.
       const menuDuCompte = page.locator('aside').getByRole('button', { name: /Menu du compte|Account menu/ });
       await expect(menuDuCompte).toContainText(NOM_DU_CLIENT, { timeout: 30_000 });
+
+      // L’entrée de publication reste accessible depuis la navigation du projet.
+      await navigation.locator(`a[href="/projects/${projectId}/ide?panel=deployments"]`).click();
+      await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=deployments$`));
+      await expect(page.locator('.bolt-project-deploy-tool').getByTestId('publication-republier')).toBeVisible({
+        timeout: 60_000,
+      });
     });
   }
 }

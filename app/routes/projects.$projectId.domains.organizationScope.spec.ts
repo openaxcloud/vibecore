@@ -57,16 +57,6 @@ function formRequest(body: Record<string, string>): Request {
  * the assertions read the same either way — probed, not assumed: asserting on
  * the wrapper is how a body-shape test silently checks nothing.
  */
-async function payload<T>(result: unknown): Promise<T> {
-  if (result instanceof Response) {
-    return (await result.json()) as T;
-  }
-
-  const wrapper = result as { type?: string; data?: T };
-
-  return wrapper?.type === 'DataWithResponseInit' && wrapper.data !== undefined ? wrapper.data : (result as T);
-}
-
 /** Every `/orgs/:id/...` URL the route asked the API for. */
 function orgUrlsCalled(): string[] {
   return apiRequest.mock.calls.map((call) => String(call[1])).filter((url) => url.startsWith('/orgs/'));
@@ -79,7 +69,7 @@ describe('project domains — organization scope', () => {
     firstOrganizationOrNull.mockReset();
   });
 
-  it("lists the PROJECT's organization domains, not the caller's oldest organization", async () => {
+  it('authorizes the project before redirecting to its deployment domains', async () => {
     firstOrganization.mockResolvedValue({ id: OLDEST_MEMBERSHIP_ORG });
     firstOrganizationOrNull.mockResolvedValue({ id: OLDEST_MEMBERSHIP_ORG });
     apiRequest
@@ -87,9 +77,11 @@ describe('project domains — organization scope', () => {
       .mockResolvedValueOnce({ domains: [] });
 
     const { loader } = await import('./projects.$projectId.domains');
-    await loader({ request: request(), params: { projectId: 'p1' } } as any);
+    const result = await loader({ request: request(), params: { projectId: 'p1' } } as any);
 
-    expect(orgUrlsCalled()).toEqual([`/orgs/${PROJECT_ORG}/domains`]);
+    expect(apiRequest.mock.calls[0][1]).toBe('/projects/p1');
+    expect(result.headers.get('Location')).toBe('/projects/p1/ide?panel=domains');
+    expect(orgUrlsCalled()).toEqual([]);
     expect(orgUrlsCalled().join(' ')).not.toContain(OLDEST_MEMBERSHIP_ORG);
   });
 
@@ -98,6 +90,23 @@ describe('project domains — organization scope', () => {
    * wrong organization is persisted, audited under that organization, and
    * counts against its `@@unique([organizationId, domain])`.
    */
+  it.each([401, 403, 404])('does not redirect before a project access failure (%s)', async (status) => {
+    const denied = new Response(null, { status });
+    apiRequest.mockRejectedValueOnce(denied);
+
+    const { loader } = await import('./projects.$projectId.domains');
+    await expect(loader({ request: request(), params: { projectId: 'p1' } } as any)).rejects.toBe(denied);
+    expect(orgUrlsCalled()).toEqual([]);
+  });
+
+  it('preserves the session reauthentication redirect', async () => {
+    const login = new Response(null, { status: 302, headers: { Location: '/login?returnTo=domains' } });
+    apiRequest.mockRejectedValueOnce(login);
+
+    const { loader } = await import('./projects.$projectId.domains');
+    await expect(loader({ request: request(), params: { projectId: 'p1' } } as any)).rejects.toBe(login);
+  });
+
   it("creates the domain in the PROJECT's organization", async () => {
     firstOrganization.mockResolvedValue({ id: OLDEST_MEMBERSHIP_ORG });
     apiRequest
@@ -155,13 +164,40 @@ describe('project domains — organization scope', () => {
 
     const { loader } = await import('./projects.$projectId.domains');
 
-    const data = await payload<{ error?: string; domains: unknown[] }>(
-      await loader({ request: request(), params: { projectId: 'p1' } } as any),
-    );
-
+    await expect(loader({ request: request(), params: { projectId: 'p1' } } as any)).rejects.toMatchObject({
+      data: { error: expect.stringMatching(/not attached to an organization/i) },
+    });
     expect(orgUrlsCalled()).toEqual([]);
-    expect(data.domains).toEqual([]);
-    expect(data.error).toMatch(/not attached to an organization/i);
+  });
+
+  it.each(['text/html', 'application/json'])(
+    'preserves the failed legacy POST diagnostic for %s without replay',
+    async (accept) => {
+      apiRequest.mockResolvedValueOnce({ project: { id: 'p1', organizationId: PROJECT_ORG } });
+      apiRequest.mockRejectedValueOnce(new Response(null, { status: 422 }));
+
+      const { action } = await import('./projects.$projectId.domains');
+      const submitted = formRequest({ intent: 'verify', domain: 'pending.example.com' });
+      submitted.headers.set('accept', accept);
+      await expect(action({ request: submitted, params: { projectId: 'p1' } } as any)).rejects.toMatchObject({
+        data: { code: 'DOMAIN_ACTION_FAILED', error: expect.stringMatching(/verification/i) },
+        init: { status: 400 },
+      });
+      expect(apiRequest).toHaveBeenCalledTimes(2);
+      expect(orgUrlsCalled()).toEqual([`/orgs/${PROJECT_ORG}/domains/pending.example.com/verify`]);
+    },
+  );
+
+  it('preserves the legacy action login redirect without sending a domain mutation', async () => {
+    const login = new Response(null, { status: 302, headers: { Location: '/login' } });
+    apiRequest.mockRejectedValueOnce(login);
+
+    const { action } = await import('./projects.$projectId.domains');
+    await expect(
+      action({ request: formRequest({ domain: 'app.example.com' }), params: { projectId: 'p1' } } as any),
+    ).rejects.toBe(login);
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+    expect(orgUrlsCalled()).toEqual([]);
   });
 
   it('refuses to write when the project has no organization', async () => {
@@ -169,11 +205,12 @@ describe('project domains — organization scope', () => {
 
     const { action } = await import('./projects.$projectId.domains');
 
-    const data = await payload<{ error?: string }>(
-      await action({ request: formRequest({ domain: 'app.example.com' }), params: { projectId: 'p1' } } as any),
-    );
-
+    await expect(
+      action({ request: formRequest({ domain: 'app.example.com' }), params: { projectId: 'p1' } } as any),
+    ).rejects.toMatchObject({
+      data: { error: expect.stringMatching(/not attached to an organization/i), code: 'DOMAIN_ACTION_FAILED' },
+      init: { status: 400 },
+    });
     expect(orgUrlsCalled()).toEqual([]);
-    expect(data.error).toMatch(/not attached to an organization/i);
   });
 });

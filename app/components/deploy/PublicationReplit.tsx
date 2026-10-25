@@ -1,4 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { DomainValue } from './DeploymentOverview';
 
 import {
   avisDuDeploiement,
@@ -168,6 +170,7 @@ export const PublicationReplit = memo(
     };
 
     const pending = busy || actionPending;
+    const { t } = useTranslation();
     const copy = getPublicationCopy(language);
     const dernier = deployments[0];
     const rollbackTarget = previousRollbackTarget(deployments);
@@ -326,7 +329,7 @@ export const PublicationReplit = memo(
                     <button
                       type="button"
                       disabled={pending || !onAction}
-                      onClick={() => act(() => onAction?.('cancel', dernier.id!))}
+                      onClick={() => onAction?.('cancel', dernier.id!)}
                     >
                       <span className="i-ph:pause" aria-hidden />
                       {copy['publication.settings.cancelDeploy']}
@@ -352,7 +355,7 @@ export const PublicationReplit = memo(
                     <button
                       type="button"
                       disabled={pending || !onAction}
-                      onClick={() => act(() => onAction?.('rollback', rollbackTarget.id!))}
+                      onClick={() => onAction?.('rollback', rollbackTarget.id!)}
                     >
                       <span className="i-ph:arrow-counter-clockwise" aria-hidden />
                       {copy['publication.settings.rollback']}
@@ -377,7 +380,7 @@ export const PublicationReplit = memo(
                   ) : null}
                   <div className="bolt-publication-carte-actions">
                     {enCours && dernier.id && onAnnuler ? (
-                      <button type="button" disabled={pending} onClick={() => act(() => onAnnuler(dernier.id!))}>
+                      <button type="button" disabled={pending} onClick={() => onAnnuler(dernier.id!)}>
                         {copy['publication.cancel']}
                       </button>
                     ) : null}
@@ -502,11 +505,15 @@ export const PublicationReplit = memo(
             ) : null}
 
             {domaines[0] ? (
-              <a className="bolt-publication-voir" href={domaines[0]} target="_blank" rel="noreferrer noopener">
-                {copy['publication.viewApp']}
-                <span className="i-ph:arrow-square-out" aria-hidden />
-              </a>
+              <>
+                <a className="bolt-publication-voir" href={domaines[0]} target="_blank" rel="noreferrer noopener">
+                  {copy['publication.viewApp']}
+                  <span className="i-ph:arrow-square-out" aria-hidden />
+                </a>
+                <DomainValue url={domaines[0]} />
+              </>
             ) : null}
+            <a href="/usage">{t('idePanels.deployment.seeUsage')}</a>
 
             <Carte
               titre={copy['publication.currentStatus']}

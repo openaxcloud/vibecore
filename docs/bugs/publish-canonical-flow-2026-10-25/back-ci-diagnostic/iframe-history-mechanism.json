@@ -1,0 +1,199 @@
+{
+  "scope": "Synthetic standalone DOM diagnostic in a real local browser; not the application or deployed production",
+  "browser": "154.0.8037.57",
+  "date": "2026-10-25",
+  "fixtures": "Intercepted fixture.invalid document and inert srcdoc HTML; no API, project, DNS or external service mutation",
+  "observed": [
+    {
+      "variant": "same-node-srcdoc-update",
+      "browser": "154.0.8037.57",
+      "events": [
+        {
+          "event": "initial",
+          "url": "/ide?panel=preview",
+          "length": 2,
+          "idx": 0
+        },
+        {
+          "event": "frame-loaded",
+          "url": "/ide?panel=preview",
+          "length": 2,
+          "idx": 0
+        },
+        {
+          "event": "deploy",
+          "url": "/ide?panel=deployments",
+          "length": 3,
+          "idx": 1
+        },
+        {
+          "event": "frame-loaded",
+          "url": "/ide?panel=deployments",
+          "length": 4,
+          "idx": 1
+        },
+        {
+          "event": "cancel-preview",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 2
+        },
+        {
+          "event": "popstate",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 1
+        },
+        {
+          "event": "after-back1",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 1
+        },
+        {
+          "event": "after-back2",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 1
+        }
+      ],
+      "frames": [
+        "https://fixture.invalid/ide?panel=deployments",
+        "about:srcdoc"
+      ]
+    },
+    {
+      "variant": "new-node-per-document",
+      "browser": "154.0.8037.57",
+      "events": [
+        {
+          "event": "initial",
+          "url": "/ide?panel=preview",
+          "length": 2,
+          "idx": 0
+        },
+        {
+          "event": "frame-loaded",
+          "url": "/ide?panel=preview",
+          "length": 2,
+          "idx": 0
+        },
+        {
+          "event": "deploy",
+          "url": "/ide?panel=deployments",
+          "length": 3,
+          "idx": 1
+        },
+        {
+          "event": "frame-loaded",
+          "url": "/ide?panel=deployments",
+          "length": 3,
+          "idx": 1
+        },
+        {
+          "event": "cancel-preview",
+          "url": "/ide?panel=deployments",
+          "length": 4,
+          "idx": 2
+        },
+        {
+          "event": "popstate",
+          "url": "/ide?panel=deployments",
+          "length": 4,
+          "idx": 1
+        },
+        {
+          "event": "after-back1",
+          "url": "/ide?panel=deployments",
+          "length": 4,
+          "idx": 1
+        },
+        {
+          "event": "popstate",
+          "url": "/ide?panel=preview",
+          "length": 4,
+          "idx": 0
+        },
+        {
+          "event": "after-back2",
+          "url": "/ide?panel=preview",
+          "length": 4,
+          "idx": 0
+        }
+      ],
+      "frames": [
+        "https://fixture.invalid/ide?panel=preview",
+        "about:blank"
+      ]
+    },
+    {
+      "variant": "same-node-identical-srcdoc",
+      "browser": "154.0.8037.57",
+      "events": [
+        {
+          "event": "initial",
+          "url": "/ide?panel=preview",
+          "length": 2,
+          "idx": 0
+        },
+        {
+          "event": "frame-loaded",
+          "url": "/ide?panel=preview",
+          "length": 2,
+          "idx": 0
+        },
+        {
+          "event": "deploy",
+          "url": "/ide?panel=deployments",
+          "length": 3,
+          "idx": 1
+        },
+        {
+          "event": "frame-loaded",
+          "url": "/ide?panel=deployments",
+          "length": 4,
+          "idx": 1
+        },
+        {
+          "event": "cancel-preview",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 2
+        },
+        {
+          "event": "popstate",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 1
+        },
+        {
+          "event": "after-back1",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 1
+        },
+        {
+          "event": "after-back2",
+          "url": "/ide?panel=deployments",
+          "length": 5,
+          "idx": 1
+        }
+      ],
+      "frames": [
+        "https://fixture.invalid/ide?panel=deployments",
+        "about:srcdoc"
+      ]
+    }
+  ],
+  "limitations": [
+    "CI uses Chromium147; this standalone used installed Chromium154.",
+    "The earlier initial diagnostic timed out waiting for top-level DOMContentLoaded on child-only traversal. The recorded probe catches a 1000ms wait timeout only to capture resulting state; no application E2E assertion was changed.",
+    "The mechanism is reproduced, but application attribution is not established: three subsequent observations of compiled application334 passed without a later srcdoc assignment."
+  ],
+  "sourceSha256": [
+    {
+      "path": "iframe-history-probe.cjs",
+      "sha256": "020dd93db117a623abe027fe43da9e4bf13ea316c6d9c3cf618d46b0918b6e43"
+    }
+  ]
+}

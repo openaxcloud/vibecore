@@ -119,6 +119,22 @@ describe('French live-audit heuristics', () => {
     ]);
   });
 
+  it.each([
+    'Aucun protocole, chemin ou port. Exemple : app.example.com.',
+    'Entrez un domaine valide tel que app.example.com',
+  ])('accepts the exact reserved domain token within French prose: %s', (text) => {
+    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+  });
+
+  it.each([
+    'Consultez app.example.com pour les deployments.',
+    'Enter your domain app.example.com',
+    'Exemple : app.example.com.evil.test',
+    'Exemple : other-app.example.com',
+  ])('still audits English or a different domain next to the reserved token: %s', (text) => {
+    expect(findFrenchAuditResidue([], [entry(text)])).toHaveLength(1);
+  });
+
   it('rejects raw catalog keys but accepts domains, filenames and prose references', () => {
     expect(findFrenchAuditResidue([], [entry('settings.workspace.title')])).toEqual([
       expect.objectContaining({ reason: 'raw-key' }),

@@ -38,7 +38,7 @@ describe('BUG-CI-010 — invariant de bascule adapté à la largeur', () => {
   });
 
   it("l'attente morte de 15 s est supprimée là où la visibilité ne vient jamais", () => {
-    const attente = spec.match(/if \(basculeRepliee\(page, path\)\) \{[\s\S]{0,700}?\n  \}/)![0];
+    const attente = spec.match(/if \(basculeRepliee\(page\)\) \{[\s\S]{0,700}?\n  \}/)![0];
     expect(attente).toMatch(/not\.toHaveCount\(0/);
     expect(attente).not.toMatch(/toBeVisible/);
   });

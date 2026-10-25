@@ -63,10 +63,12 @@ function args(body?: Record<string, string>) {
 }
 
 describe('AUDX-169 domains are scoped to the project organization', () => {
-  it('lists domains for the PROJECT organization, not the user first one', async () => {
-    await loader(args());
+  it('redirects to deployment domains after checking project access', async () => {
+    const result = await loader(args());
 
-    expect(orgIdsTouched()).toContain(PROJECT_ORG);
+    expect(result.headers.get('Location')).toBe('/projects/p1/ide?panel=domains');
+    expect(apiRequest.mock.calls[0][1]).toBe('/projects/p1');
+    expect(orgIdsTouched()).toEqual([]);
     expect(orgIdsTouched()).not.toContain(USER_FIRST_ORG);
   });
 
@@ -98,8 +100,9 @@ describe('AUDX-169 domains are scoped to the project organization', () => {
       return { domains: [] };
     });
 
-    await loader(args());
+    const result = await loader(args());
 
-    expect(orgIdsTouched()).toContain(USER_FIRST_ORG);
+    expect(result.headers.get('Location')).toBe('/projects/p1/ide?panel=domains');
+    expect(orgIdsTouched()).toEqual([]);
   });
 });

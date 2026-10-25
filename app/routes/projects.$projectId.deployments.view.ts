@@ -1,3 +1,5 @@
+import { getProjectDeploymentsCopy } from '~/lib/i18n/catalogs/project-user-area';
+
 /**
  * Pure view helpers for the project deployments panel.
  *
@@ -113,4 +115,38 @@ export function shouldPollDeployments(deployments: ReadonlyArray<{ status: strin
   }
 
   return deployments.some((deployment) => isActiveDeploymentStatus(deployment.status));
+}
+
+/** Preserve workspace and a recognized section when following a historical deployment link. */
+export function canonicalDeploymentHref(projectId: string, search: URLSearchParams): string {
+  const view = search.get('view');
+  const query = new URLSearchParams({ panel: view === 'domains' ? 'domains' : 'deployments' });
+  const workspace = search.get('workspace');
+
+  if (workspace) {
+    query.set('workspace', workspace);
+  }
+
+  if (view && ['overview', 'logs', 'manage'].includes(view)) {
+    query.set('deployView', view);
+  }
+
+  return `/projects/${encodeURIComponent(projectId)}/ide?${query}`;
+}
+
+/** Deployment-specific statuses preserve the legacy translated fallback. */
+export function deploymentStatusLabel(status: string, language: string) {
+  const labels = getProjectDeploymentsCopy(language).statuses;
+  const normalized = status.trim().toLowerCase();
+
+  const key =
+    normalized === 'in_progress'
+      ? 'deploying'
+      : normalized === 'error'
+        ? 'failed'
+        : normalized === 'cancelled'
+          ? 'canceled'
+          : normalized;
+
+  return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key as keyof typeof labels] : labels.unknown;
 }
