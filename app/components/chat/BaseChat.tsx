@@ -22986,6 +22986,12 @@ function ProjectDebuggerPanel({
   const language = resolvedBaseChatLanguage(i18n);
   const state = data.debuggerState ?? {};
   const launchConfigs = state.launchConfigs ?? [];
+  const [selectedConfigId, setSelectedConfigId] = useState('');
+  const selectedConfig = launchConfigs.find((config: any) => config.id === selectedConfigId) ?? launchConfigs[0];
+
+  const selectedIsNodeDebugger =
+    selectedConfig?.type === 'node' && Boolean(selectedConfig.program) && !selectedConfig.command;
+
   const breakpoints = state.breakpoints ?? [];
   const watches = state.watches ?? [];
   const sessions = state.sessions ?? [];
@@ -23218,6 +23224,8 @@ function ProjectDebuggerPanel({
               {t('chat.copy.launchConfiguration_a3b98e4e')}
               <select
                 name="configId"
+                value={selectedConfig?.id ?? ''}
+                onChange={(event) => setSelectedConfigId(event.target.value)}
                 className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
               >
                 {launchConfigs.map((config: any) => (
@@ -23227,7 +23235,9 @@ function ProjectDebuggerPanel({
                 ))}
               </select>
             </label>
-            <PanelButton disabled={busy || !launchConfigs.length}>{t('chat.copy.startDebugging_94a77e4e')}</PanelButton>
+            <PanelButton disabled={busy || !launchConfigs.length}>
+              {t(selectedIsNodeDebugger ? 'chat.debugger.startNode' : 'chat.copy.startDebugging_94a77e4e')}
+            </PanelButton>
           </form>
 
           <form

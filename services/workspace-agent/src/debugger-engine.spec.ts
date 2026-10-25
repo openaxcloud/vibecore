@@ -318,3 +318,30 @@ test('the port guard detects a real listening socket owned by the debugged child
     )
     .toEqual([{ port, processId: id }]);
 });
+
+test('duplicate breakpoints and in-workspace symlink aliases share one persistent inspector breakpoint', async () => {
+  await writeFile(
+    join(root, 'entry.cjs'),
+    'function twice(value) { return value * 2; }\nconsole.log(twice(2));\nconsole.log(twice(3));',
+  );
+  await symlink(join(root, 'entry.cjs'), join(root, 'alias.cjs'));
+  const id = randomUUID();
+  const launch = await request('/debugger/v1/start', {
+    operationId: id,
+    program: 'entry.cjs',
+    breakpoints: [
+      { file: 'entry.cjs', line: 1 },
+      { file: 'entry.cjs', line: 1 },
+      { file: 'alias.cjs', line: 1 },
+    ],
+  });
+  expect(launch.statusCode, launch.body).toBe(200);
+  await expect.poll(async () => (await status(id)).status).toBe('paused');
+  expect((await status(id)).callStack[0]).toMatchObject({ file: 'entry.cjs', line: 1 });
+  await command(id, 'continue');
+  await expect.poll(async () => (await status(id)).output).toContain('4');
+  await expect.poll(async () => (await status(id)).status).toBe('paused');
+  await command(id, 'continue');
+  await expect.poll(async () => (await status(id)).status).toBe('exited');
+  expect((await status(id)).output.trim()).toBe('4\n6');
+});

@@ -1,4 +1,5 @@
 export const chatEn = {
+  'chat.debugger.startNode': 'Start Node debugging',
   'chat.debugger.nodeHelp':
     'For step debugging, enter a Node.js .js, .mjs or .cjs program and leave Command empty. Other commands run without step debugging.',
   'chat.debugger.nextLaunch':
@@ -1579,6 +1580,7 @@ export const chatEn = {
 } as const;
 
 export const chatFr = {
+  'chat.debugger.startNode': 'Démarrer le débogage Node',
   'chat.debugger.nodeHelp':
     'Pour le débogage pas-à-pas, indiquez un programme Node.js .js, .mjs ou .cjs et laissez Commande vide. Les autres commandes s’exécutent sans pas-à-pas.',
   'chat.debugger.nextLaunch':

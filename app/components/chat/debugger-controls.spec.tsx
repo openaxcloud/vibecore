@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,6 +19,7 @@ const panel = tree.statements.find(
 const bindings = {
   React,
   useEffect,
+  useState,
   useTranslation: () => ({ t: (key: string) => key, i18n: {} }),
   resolvedBaseChatLanguage: () => 'en',
   formatBaseChatAstNumber: (_language: string, value: number) => String(value),
@@ -80,6 +81,27 @@ function mount(status: string, adapter = 'node-inspector', reload?: (options?: {
 }
 
 describe('Actual debugger panel with controlled data', () => {
+  it('labels the selected Node program as debugging and command configurations as ordinary processes', () => {
+    render(
+      <Panel
+        busy={false}
+        onSubmit={() => undefined}
+        data={{
+          debuggerState: {
+            launchConfigs: [
+              { id: 'node', name: 'Node program', type: 'node', program: 'server.js', command: '' },
+              { id: 'command', name: 'Command', type: 'node', command: 'npm run dev' },
+            ],
+          },
+        }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'chat.debugger.startNode' })).toBeTruthy();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'command' } });
+    expect(screen.getByRole('button', { name: 'chat.copy.startDebugging_94a77e4e' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'chat.debugger.startNode' })).toBeNull();
+  });
+
   it('submits step and Stop for a paused Node session and renders real snapshot rows', () => {
     const submit = mount('paused');
     const step = screen.getByRole('button', { name: 'baseChatAst.debugger.stepOver' }) as HTMLButtonElement;

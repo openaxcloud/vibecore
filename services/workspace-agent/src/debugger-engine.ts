@@ -119,9 +119,13 @@ export function registerDebuggerEngine(app: FastifyInstance, options: Options) {
     if (!['.js', '.mjs', '.cjs'].includes(extname(program)) || !(await stat(program)).isFile())
       throw failure('DEBUGGER_NODE_PROGRAM_REQUIRED', 400);
     if (!(await stat(cwd)).isDirectory()) throw failure('DEBUGGER_CWD_REQUIRED', 400);
-    const breakpoints = await Promise.all(
+    const resolvedBreakpoints = await Promise.all(
       body.breakpoints.map(async (bp) => ({ url: pathToFileURL(await inside(bp.file)).href, line: bp.line })),
     );
+    // Multiple persisted UI entries (or symlink aliases) may name the same
+    // source location. Inspector rejects duplicate setBreakpointByUrl calls.
+    // Canonicalize first, then deduplicate without removing a user breakpoint.
+    const breakpoints = [...new Map(resolvedBreakpoints.map((bp) => [JSON.stringify([bp.url, bp.line]), bp])).values()];
 
     // Check after asynchronous path resolution: parallel launches share this quota.
     if (options.processes.size >= options.maxProcesses) throw failure('DEBUGGER_PROCESS_LIMIT', 429);
