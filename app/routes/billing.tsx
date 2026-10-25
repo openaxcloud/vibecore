@@ -544,12 +544,12 @@ export default function BillingPage() {
       title={t('billing.page.title')}
       description={t('billing.page.description')}
       actions={
-        <>
+        <div className="flex flex-wrap gap-2 sm:flex-col lg:flex-row">
           <LinkButton to="/upgrade">{t('billing.page.upgrade')}</LinkButton>
           <LinkButton to="/payment-method" variant="outline">
             {t('billing.page.paymentMethod')}
           </LinkButton>
-        </>
+        </div>
       }
     >
       <div className="grid gap-6">

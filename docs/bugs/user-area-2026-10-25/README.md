@@ -11,6 +11,7 @@ Complément local préparé à partir de #791, dans un worktree distinct. Aucune
 | Recherche Projets et historique | Navigation/Retour/Avancer réécrivent ancien filtre ; réponse A efface frappe AB | Écritures inutiles supprimées, attente navigation, distinction réponse locale/navigation externe, frappe ultérieure conservée |
 | Nom de projet en liste mobile | Seulement 79,3 px pour le titre, « Applicati… » | Bloc texte pleine largeur mobile, nom complet et mots longs à la ligne |
 | Effacement recherche | Champ y=405, hauteur 44, bouton y=427, hauteur 44, déborde de 22 px | Bouton contenu dans le champ ; Framer ne remplace plus la translation nécessaire à son placement |
+| Titre Facturation comprimé à 640 px et zoom 200 % | Quatre lignes, bloc de 314 px | Actions empilées localement : deux lignes, bloc de 194 px ; liens et traitements inchangés |
 | Menu projet mobile | Ouverture clavier scrollY114→0, ouvreur hors écran, menuhidden/focus sur body | Mode non modal limité à ProjectCardMenu ; scroll conservé, menu visible, clavier/Échap/retour du focus/extérieur fonctionnels |
 
 La preuve rouge du premier correctif recherche est conservée dans `first-fix/`. Les réponses retardées et la collision d'un lien PUSH avec une recherche locale ont été ajoutées à la contre-épreuve. Aucun test rouge n'a été transformé en skip.
@@ -25,7 +26,7 @@ La preuve rouge du premier correctif recherche est conservée dans `first-fix/`.
 | Facturation |11 tailles de 320→2560×FR/EN×clair/sombre +4 groupes d’interactions |48 observations : géométrie contrôles, valeurs conservées,HTTP 503 répété visible/focalisé ; reflow 640, hauteur réduite320, pinch 200 % |
 | Menus Projets |320/390/820/1440×FR/EN×clair/sombre |16 parcours : scroll préservé, menu contenu, clavier/extérieur, renommage/brouillonresize/Échap, confirmation suppression annulée ; zéro POST |
 | Contraste |5 routes (/billing,/account-settings/data,/account-settings/connected,/projects,/dashboard), FR,390px, clair/sombre |682 éléments textuels sur fonds simples évalués ; minimum 4,87:1, aucun sous 4,5:1. Dégradés/opacité et contrôles désactivés exclus ; pas un audit de tous les états |
-| Zoom |Reflow 640×400 et pinch Chromium 200 % |Pinch mesuré : visualViewport.scale=2, largeur 195 px pour viewport 390. Pas de preuve du réglage natif de zoom desktop : Ctrl+ et préférence locale n'ont pas modifié la largeur/DPR ; extension locale non chargée |
+| Zoom |Desktop natif 200 %, reflow 640×400 et pinch Chromium 200 % |[20 cas natifs et 12 groupes d’interactions](native-zoom/README.md), cinq pages × FR/EN × clair/sombre : fenêtre1280 → CSS640, DPR2, échellevisuelle1. Redimensionnement physique pendant saisie vérifié ; zoom réglé au démarrage, pas basculé pendant saisie. Connexions exclue de cette matrice native. Pinch distinct mesuré à échelle2 |
 | Safe areas/clavier virtuel |Hauteur de fenêtre réduite et maintien de saisie vérifiés |Pas de clavier OS réel ni encoche. Emulation.setSafeAreaInsets indisponible dans ce Chromium ; aucune validation matérielle revendiquée |
 | Autres routes/panneaux, Safari, voix réelle |—|Non validés par ce lot |
 
@@ -62,3 +63,7 @@ Après détachement des 21 liens de dépendances dans le seul worktree de ce lot
 Après installation corrigée, build, typage strict et lint (0 erreur / 52 avertissements) passent. Les parcours existants ont été rejoués sur le nouveau build servi au port 6099 : 88 observations Compte, 96 Dashboard/Projets, 48 Facturation, 16 menus, navigation Retour/Avancer retardée et saisie pendant chargement. Les reçus sont conservés dans `locked-install/`, séparés des premières mesures. Les fichiers produit sont identiques au commit `6312f78c2` ; les fusions locales préservent Fleet #789 et CI #790.
 
 La revue documentaire indépendante confirme les comptes et limites. Les sorties complètes des contre-tests et du lint, ainsi que les extraits horodatés de la suite initiale et du build avec empreintes des journaux bruts, sont archivés dans `locked-install/`. Le contraste remesuré sur 6099 reste à 682 textes, minimum 4,87:1, aucun sous 4,5:1 dans le périmètre défini.
+
+## Dernier correctif visuel : actions Facturation
+
+L’inspection des captures à zoom natif a révélé un titre comprimé malgré des contrôles de débordement verts. [Correction et contre-épreuves](billing-heading/README.md) : un wrapper local, aucune modification du shell #788. Sur le build final 6199 : 36 mesures de l’en-tête, 48 observations Facturation, et les 20 cas / 12 interactions de zoom natif rejoués. Build, typage strict, 67 tests ciblés et lint ciblé verts. Les autres sources produit restent identiques au lot mesuré sur 6099.

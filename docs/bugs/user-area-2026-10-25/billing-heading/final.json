@@ -1,0 +1,942 @@
+{
+  "base": "http://127.0.0.1:6199",
+  "synthetic": true,
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "geometry": {
+        "titleWidth": 255,
+        "titleHeight": 72,
+        "lines": 2,
+        "heroHeight": 308,
+        "scrollWidth": 320,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 192.90625,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 32.5,
+            "right": 193.53125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 360,
+      "geometry": {
+        "titleWidth": 295,
+        "titleHeight": 72,
+        "lines": 2,
+        "heroHeight": 308,
+        "scrollWidth": 360,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 192.90625,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 32.5,
+            "right": 193.53125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "geometry": {
+        "titleWidth": 325,
+        "titleHeight": 72,
+        "lines": 2,
+        "heroHeight": 288,
+        "scrollWidth": 390,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 192.90625,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 32.5,
+            "right": 193.53125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 640,
+      "geometry": {
+        "titleWidth": 378.96875,
+        "titleHeight": 80,
+        "lines": 2,
+        "heroHeight": 194,
+        "scrollWidth": 640,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 435.96875,
+            "right": 597,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 435.96875,
+            "right": 597,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "geometry": {
+        "titleWidth": 506.96875,
+        "titleHeight": 80,
+        "lines": 2,
+        "heroHeight": 194,
+        "scrollWidth": 768,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 563.96875,
+            "right": 725,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 563.96875,
+            "right": 725,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "geometry": {
+        "titleWidth": 558.96875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 820,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 615.96875,
+            "right": 777,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 615.96875,
+            "right": 777,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "geometry": {
+        "titleWidth": 539.5625,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 1024,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 652.5625,
+            "right": 812.96875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 819.96875,
+            "right": 981,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1280,
+      "geometry": {
+        "titleWidth": 554.5625,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1280,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 791.5625,
+            "right": 947.96875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 953.96875,
+            "right": 1111,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "geometry": {
+        "titleWidth": 554.5625,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1440,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 893.3125,
+            "right": 1049.71875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 1055.71875,
+            "right": 1212.75,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "geometry": {
+        "titleWidth": 255,
+        "titleHeight": 72,
+        "lines": 2,
+        "heroHeight": 308,
+        "scrollWidth": 320,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 192.90625,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 32.5,
+            "right": 193.53125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 360,
+      "geometry": {
+        "titleWidth": 295,
+        "titleHeight": 72,
+        "lines": 2,
+        "heroHeight": 308,
+        "scrollWidth": 360,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 192.90625,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 32.5,
+            "right": 193.53125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "geometry": {
+        "titleWidth": 325,
+        "titleHeight": 72,
+        "lines": 2,
+        "heroHeight": 288,
+        "scrollWidth": 390,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 192.90625,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 32.5,
+            "right": 193.53125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 640,
+      "geometry": {
+        "titleWidth": 378.96875,
+        "titleHeight": 80,
+        "lines": 2,
+        "heroHeight": 194,
+        "scrollWidth": 640,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 435.96875,
+            "right": 597,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 435.96875,
+            "right": 597,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "geometry": {
+        "titleWidth": 506.96875,
+        "titleHeight": 80,
+        "lines": 2,
+        "heroHeight": 194,
+        "scrollWidth": 768,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 563.96875,
+            "right": 725,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 563.96875,
+            "right": 725,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "geometry": {
+        "titleWidth": 558.96875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 820,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 615.96875,
+            "right": 777,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 615.96875,
+            "right": 777,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "geometry": {
+        "titleWidth": 539.5625,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 1024,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 652.5625,
+            "right": 812.96875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 819.96875,
+            "right": 981,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1280,
+      "geometry": {
+        "titleWidth": 554.5625,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1280,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 791.5625,
+            "right": 947.96875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 953.96875,
+            "right": 1111,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "geometry": {
+        "titleWidth": 554.5625,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1440,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 893.3125,
+            "right": 1049.71875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 1055.71875,
+            "right": 1212.75,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "geometry": {
+        "titleWidth": 255,
+        "titleHeight": 36,
+        "lines": 1,
+        "heroHeight": 221,
+        "scrollWidth": 320,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 117.828125,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 124.828125,
+            "right": 268.40625,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 360,
+      "geometry": {
+        "titleWidth": 295,
+        "titleHeight": 36,
+        "lines": 1,
+        "heroHeight": 221,
+        "scrollWidth": 360,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 117.828125,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 124.828125,
+            "right": 268.40625,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "geometry": {
+        "titleWidth": 325,
+        "titleHeight": 36,
+        "lines": 1,
+        "heroHeight": 201,
+        "scrollWidth": 390,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 117.828125,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 124.828125,
+            "right": 268.40625,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 640,
+      "geometry": {
+        "titleWidth": 396.421875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 640,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 453.421875,
+            "right": 597,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 453.421875,
+            "right": 597,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "geometry": {
+        "titleWidth": 524.421875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 768,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 581.421875,
+            "right": 725,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 581.421875,
+            "right": 725,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "geometry": {
+        "titleWidth": 576.421875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 820,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 633.421875,
+            "right": 777,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 633.421875,
+            "right": 777,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "geometry": {
+        "titleWidth": 596.28125,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 134,
+        "scrollWidth": 1024,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 745.09375,
+            "right": 830.421875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 837.421875,
+            "right": 981,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1280,
+      "geometry": {
+        "titleWidth": 576,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1280,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 884.09375,
+            "right": 965.421875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 971.421875,
+            "right": 1111,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "geometry": {
+        "titleWidth": 576,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1440,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 971.921875,
+            "right": 1053.25,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 1059.25,
+            "right": 1198.828125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "geometry": {
+        "titleWidth": 255,
+        "titleHeight": 36,
+        "lines": 1,
+        "heroHeight": 221,
+        "scrollWidth": 320,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 117.828125,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 124.828125,
+            "right": 268.40625,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 360,
+      "geometry": {
+        "titleWidth": 295,
+        "titleHeight": 36,
+        "lines": 1,
+        "heroHeight": 221,
+        "scrollWidth": 360,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 117.828125,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 124.828125,
+            "right": 268.40625,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "geometry": {
+        "titleWidth": 325,
+        "titleHeight": 36,
+        "lines": 1,
+        "heroHeight": 201,
+        "scrollWidth": 390,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 32.5,
+            "right": 117.828125,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 124.828125,
+            "right": 268.40625,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 640,
+      "geometry": {
+        "titleWidth": 396.421875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 640,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 453.421875,
+            "right": 597,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 453.421875,
+            "right": 597,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "geometry": {
+        "titleWidth": 524.421875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 768,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 581.421875,
+            "right": 725,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 581.421875,
+            "right": 725,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "geometry": {
+        "titleWidth": 576.421875,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 154,
+        "scrollWidth": 820,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 633.421875,
+            "right": 777,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 633.421875,
+            "right": 777,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "geometry": {
+        "titleWidth": 596.28125,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 134,
+        "scrollWidth": 1024,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 745.09375,
+            "right": 830.421875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 837.421875,
+            "right": 981,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1280,
+      "geometry": {
+        "titleWidth": 576,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1280,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 884.09375,
+            "right": 965.421875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 971.421875,
+            "right": 1111,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "geometry": {
+        "titleWidth": 576,
+        "titleHeight": 40,
+        "lines": 1,
+        "heroHeight": 146,
+        "scrollWidth": 1440,
+        "links": [
+          {
+            "href": "/upgrade",
+            "left": 985.84375,
+            "right": 1067.171875,
+            "height": 44
+          },
+          {
+            "href": "/payment-method",
+            "left": 1073.171875,
+            "right": 1212.75,
+            "height": 44
+          }
+        ]
+      }
+    }
+  ]
+}

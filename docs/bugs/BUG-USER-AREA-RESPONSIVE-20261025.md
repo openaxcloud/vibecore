@@ -4,7 +4,7 @@ id: BUG-USER-AREA-RESPONSIVE-20261025
 
 ## Bug
 
-Lot utilisateur après #791 : fenêtre de suppression du compte sans retour du focus et sans description ARIA ; erreur de limite Facturation hors écran après soumission ; recherche Projets désynchronisée avec navigation, Retour/Avancer et réponses lentes ; noms illisibles en liste mobile ; bouton d'effacement sous le champ à cause d'un conflit de transform animé ; ouverture du menu Projet mobile qui remonte le document et masque les actions.
+Lot utilisateur après #791 : fenêtre de suppression du compte sans retour du focus et sans description ARIA ; erreur de limite Facturation hors écran après soumission ; recherche Projets désynchronisée avec navigation, Retour/Avancer et réponses lentes ; noms illisibles en liste mobile ; bouton d'effacement sous le champ à cause d'un conflit de transform animé ; ouverture du menu Projet mobile qui remonte le document et masque les actions ; titre Facturation comprimé sur quatre lignes à 640 px CSS.
 
 ## 📤 Dispatché
 
@@ -12,7 +12,7 @@ Lot utilisateur après #791 : fenêtre de suppression du compte sans retour du f
 
 ## 💻 Codé
 
-Correctifs validés localement, pas sur main. Dialog réutilise restauration du focus et description existantes ; erreur Facturation reçoit le focus après réponse ; recherche distingue réponse locale, frappe plus récente et navigation externe, sans écrire pendant navigation ; liste mobile affiche le nom ; SearchInput positionne son bouton indépendamment du transform Framer ; ProjectCardMenu évite le verrouillage modal responsable du saut de scroll, sans changer les autres Dropdown.
+Correctifs validés localement, pas sur main. Dialog réutilise restauration du focus et description existantes ; erreur Facturation reçoit le focus après réponse ; recherche distingue réponse locale, frappe plus récente et navigation externe, sans écrire pendant navigation ; liste mobile affiche le nom ; SearchInput positionne son bouton indépendamment du transform Framer ; ProjectCardMenu évite le verrouillage modal responsable du saut de scroll, sans changer les autres Dropdown ; actions Facturation empilées localement aux largeurs intermédiaires pour rendre le titre lisible.
 
 ## ✅ Testé live
 
