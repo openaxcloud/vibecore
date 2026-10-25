@@ -1,0 +1,1454 @@
+{
+  "cases": [
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "PROPULSÉ PAR E-CODE AGENT 2.0Agent IA v2Créez des applications en langage naturelDécrivez votre idée",
+          "class": "text-center lg:text-left",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "PROPULSÉ PAR E-CODE AGENT 2.0",
+          "class": "inline-flex items-center rounded-full border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)] border-transparent bg-primary hover:bg-primary/80 mb-6 text-[13px] px-5 py-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground",
+          "left": 35.203125,
+          "right": 323.453125
+        },
+        {
+          "tag": "H1",
+          "text": "Agent IA v2Créez des applications en langage naturel",
+          "class": "mkt-h1 tracking-tight mb-6",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "SPAN",
+          "text": "Créez des applications en langage naturel",
+          "class": "block mkt-h2 mt-2 bg-gradient-to-r from-[#F26207] to-[#F99D25] bg-clip-text text-transparent",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "P",
+          "text": "Décrivez votre idée. Regardez-la prendre vie. Déployez-la instantanément. Aucun code requis : notre ",
+          "class": "mkt-lead text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "Ouvrir le studio de l’agentVoir la démonstration en direct",
+          "class": "flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Ouvrir le studio de l’agent",
+          "class": "inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:brightness-110 rounded-md min-h-[44px] md:min-h-0 replit-button-press text-[15px] px-8 h-14 shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-primary to-primary/90",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "A",
+          "text": "Voir la démonstration en direct",
+          "class": "inline-flex items-center justify-center whitespace-nowrap font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 border border-border bg-surface-solid hover:bg-surface-hover-solid hover:text-foreground rounded-md min-h-[44px] md:min-h-0 replit-button-press text-[15px] px-8 h-14",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "Aucune carte bancaire requisePlus de 100 langages pris en chargeDéploiement en un clic",
+          "class": "flex flex-wrap gap-6 justify-center lg:justify-start text-[13px] text-muted-foreground",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "app.e-code.aiAgent et éditeur, capturés en directExécutez et publiez depuis une seule barre",
+          "class": "relative",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "FIGURE",
+          "text": "app.e-code.aiAgent et éditeur, capturés en directExécutez et publiez depuis une seule barre",
+          "class": "relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "app.e-code.ai",
+          "class": "flex items-center gap-2 border-b border-white/10 bg-slate-950/80 px-4 py-3",
+          "left": 17,
+          "right": 341.671875
+        },
+        {
+          "tag": "IMG",
+          "text": "",
+          "class": "block w-full h-auto",
+          "left": 17,
+          "right": 341.671875
+        },
+        {
+          "tag": "FIGCAPTION",
+          "text": "Agent et éditeur, capturés en directExécutez et publiez depuis une seule barre",
+          "class": "absolute bottom-4 left-4 right-4 flex flex-wrap gap-2 text-[11px] text-white",
+          "left": 33,
+          "right": 325.671875
+        },
+        {
+          "tag": "SPAN",
+          "text": "Exécutez et publiez depuis une seule barre",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 backdrop-blur",
+          "left": 33,
+          "right": 325.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 126.671875,
+          "right": 382.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 158,
+          "right": 414
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 528,
+          "right": 784
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -16,
+          "right": 240
+        }
+      ],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "PROPULSÉ PAR E-CODE AGENT 2.0Agent IA v2Créez des applications en langage naturelDécrivez votre idée",
+          "class": "text-center lg:text-left",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "PROPULSÉ PAR E-CODE AGENT 2.0",
+          "class": "inline-flex items-center rounded-full border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)] border-transparent bg-primary hover:bg-primary/80 mb-6 text-[13px] px-5 py-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground",
+          "left": 35.203125,
+          "right": 323.453125
+        },
+        {
+          "tag": "H1",
+          "text": "Agent IA v2Créez des applications en langage naturel",
+          "class": "mkt-h1 tracking-tight mb-6",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "SPAN",
+          "text": "Créez des applications en langage naturel",
+          "class": "block mkt-h2 mt-2 bg-gradient-to-r from-[#F26207] to-[#F99D25] bg-clip-text text-transparent",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "P",
+          "text": "Décrivez votre idée. Regardez-la prendre vie. Déployez-la instantanément. Aucun code requis : notre ",
+          "class": "mkt-lead text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "Ouvrir le studio de l’agentVoir la démonstration en direct",
+          "class": "flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Ouvrir le studio de l’agent",
+          "class": "inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:brightness-110 rounded-md min-h-[44px] md:min-h-0 replit-button-press text-[15px] px-8 h-14 shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-primary to-primary/90",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "A",
+          "text": "Voir la démonstration en direct",
+          "class": "inline-flex items-center justify-center whitespace-nowrap font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 border border-border bg-surface-solid hover:bg-surface-hover-solid hover:text-foreground rounded-md min-h-[44px] md:min-h-0 replit-button-press text-[15px] px-8 h-14",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "Aucune carte bancaire requisePlus de 100 langages pris en chargeDéploiement en un clic",
+          "class": "flex flex-wrap gap-6 justify-center lg:justify-start text-[13px] text-muted-foreground",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "app.e-code.aiAgent et éditeur, capturés en directExécutez et publiez depuis une seule barre",
+          "class": "relative",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "FIGURE",
+          "text": "app.e-code.aiAgent et éditeur, capturés en directExécutez et publiez depuis une seule barre",
+          "class": "relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900",
+          "left": 16,
+          "right": 342.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "app.e-code.ai",
+          "class": "flex items-center gap-2 border-b border-white/10 bg-slate-950/80 px-4 py-3",
+          "left": 17,
+          "right": 341.671875
+        },
+        {
+          "tag": "IMG",
+          "text": "",
+          "class": "block w-full h-auto",
+          "left": 17,
+          "right": 341.671875
+        },
+        {
+          "tag": "FIGCAPTION",
+          "text": "Agent et éditeur, capturés en directExécutez et publiez depuis une seule barre",
+          "class": "absolute bottom-4 left-4 right-4 flex flex-wrap gap-2 text-[11px] text-white",
+          "left": 33,
+          "right": 325.671875
+        },
+        {
+          "tag": "SPAN",
+          "text": "Exécutez et publiez depuis une seule barre",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 backdrop-blur",
+          "left": 33,
+          "right": 325.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 126.671875,
+          "right": 382.671875
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 158,
+          "right": 414
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 528,
+          "right": 784
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -16,
+          "right": 240
+        }
+      ],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Agent IA v2Créez des applications en langage naturel",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Voir la démonstration en direct",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "Voir le flux Git",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 88,
+          "right": 344
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 158,
+          "right": 414
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 528,
+          "right": 784
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -16,
+          "right": 240
+        }
+      ],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 88,
+          "right": 344
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 158,
+          "right": 414
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -24,
+          "right": 232
+        }
+      ],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": 528,
+          "right": 784
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "class": "absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+          "left": -16,
+          "right": 240
+        }
+      ],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "AI Agent v2Build Apps with Natural Language",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Watch Live Demo",
+          "href": "#agent-demo"
+        },
+        {
+          "text": "See the Git workflow",
+          "href": "#agent-demo"
+        }
+      ],
+      "ids": [
+        "agent-demo",
+        "radix-:r3:-trigger-overview",
+        "radix-:r3:-trigger-capabilities",
+        "radix-:r3:-trigger-examples",
+        "radix-:r3:-trigger-comparison",
+        "radix-:r3:-content-overview",
+        "radix-:r3:-content-capabilities",
+        "radix-:r3:-content-examples",
+        "radix-:r3:-content-comparison"
+      ]
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Enterprise",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        },
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "Contact sales",
+          "href": "/contact-sales"
+        }
+      ],
+      "ids": []
+    }
+  ],
+  "interactions": [
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "light",
+      "focus": {
+        "text": "Voir la démonstration en direct",
+        "href": "#agent-demo",
+        "top": 421.8125,
+        "bottom": 477.8125,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.063) 0px 0px 0px 0.350247px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/ai-agent?lang=fr"
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "light",
+      "focus": {
+        "text": "Commencer à créer",
+        "href": "/signup",
+        "top": 498.375,
+        "bottom": 542.375,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.063) 0px 0px 0px 0.350113px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/enterprise?lang=fr"
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "fr",
+      "theme": "dark",
+      "focus": {
+        "text": "Voir la démonstration en direct",
+        "href": "#agent-demo",
+        "top": 421.8125,
+        "bottom": 477.8125,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.184) 0px 0px 0px 0.914503px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/ai-agent?lang=fr"
+    },
+    {
+      "route": "/enterprise",
+      "lang": "fr",
+      "theme": "dark",
+      "focus": {
+        "text": "Commencer à créer",
+        "href": "/signup",
+        "top": 498.375,
+        "bottom": 542.375,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.07) 0px 0px 0px 0.350247px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/enterprise?lang=fr"
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "light",
+      "focus": {
+        "text": "Watch Live Demo",
+        "href": "#agent-demo",
+        "top": 422,
+        "bottom": 478,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.063) 0px 0px 0px 0.350247px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/ai-agent?lang=en"
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "light",
+      "focus": {
+        "text": "Start building",
+        "href": "/signup",
+        "top": 444,
+        "bottom": 488,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.063) 0px 0px 0px 0.350247px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/enterprise?lang=en"
+    },
+    {
+      "route": "/ai-agent",
+      "lang": "en",
+      "theme": "dark",
+      "focus": {
+        "text": "Watch Live Demo",
+        "href": "#agent-demo",
+        "top": 422,
+        "bottom": 478,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.184) 0px 0px 0px 0.914503px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/ai-agent?lang=en"
+    },
+    {
+      "route": "/enterprise",
+      "lang": "en",
+      "theme": "dark",
+      "focus": {
+        "text": "Start building",
+        "href": "/signup",
+        "top": 444,
+        "bottom": 488,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.07) 0px 0px 0px 0.350247px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9999/enterprise?lang=en"
+    }
+  ],
+  "errors": [],
+  "mutations": []
+}

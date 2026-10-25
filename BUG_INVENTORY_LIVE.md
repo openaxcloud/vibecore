@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-498 entrées.
+499 entrées.
 
 ## Sans section
 
@@ -647,6 +647,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-FEATURES-FILTER-STATE-20261025](docs/bugs/BUG-FEATURES-FILTER-STATE-20261025.md) — Filtre Features actif absent de l’état accessible. Les filtres fonctionnent et changent les cartes, mais aucun aria-pressed ou équivalent ne représente le bouto — 📤 Dispatché : Mission UI globale, complément isolé pendant CI/livraison #792 et #795. Périmètres concurrents inspectés et co · 💻 Codé : Correctif local uniquement, pas sur main : aria-pressed relié au même état activeTab, sans changer le filtrage · ✅ Testé live : Non. Navigateur local et fixtures synthétiques ; aucune mutation cliente, création d’accès, invitation ou envo
 - [BUG-ORGANIZATION-TEXT-TARGETS-20261025](docs/bugs/BUG-ORGANIZATION-TEXT-TARGETS-20261025.md) — Noms de rôles coupés et cibles locales trop petites. Quatre routes coupent les noms de rôles non sécables malgré un document contenu. Les labels de permissions  — 📤 Dispatché : Mission UI globale, complément isolé pendant CI/livraison #792 et #795. Périmètres concurrents inspectés et co · 💻 Codé : Correctif local uniquement, pas sur main : Wrapping local sur quatre routes et hauteur explicite44px sur les l · ✅ Testé live : Non. Navigateur local et fixtures synthétiques ; aucune mutation cliente, création d’accès, invitation ou envo
 - [BUG-PUBLIC-DEEP-LINKS-20261025](docs/bugs/BUG-PUBLIC-DEEP-LINKS-20261025.md) — Ancres légales ignorées au chargement ou masquées. Les cibles Privacy/Terms et CTA Support-policy sont absentes du HTML serveur, puis montent après le défilemen — 📤 Dispatché : Mission UI globale, complément isolé pendant CI/livraison #792 et #795. Périmètres concurrents inspectés et co · 💻 Codé : Correctif local uniquement, pas sur main : SSR existant activé uniquement sur les trois routes ; Support-polic · ✅ Testé live : Non. Navigateur local et fixtures synthétiques ; aucune mutation cliente, création d’accès, invitation ou envo
+- [BUG-AI-AGENT-HERO-320-20261025](docs/bugs/BUG-AI-AGENT-HERO-320-20261025.md) — Sur /ai-agent en français à320px, clair et sombre, la colonne du hero et ses actions dépassent de x16 à342,67px. Le document reste à320px : contrôler uniquement — 📤 Dispatché : Mission UI globale, audit complémentaire de deux routes marketing ; fichier AIAgent.tsx comparé aux31PR ouvert · 💻 Codé : Local, pas sur main : grille une colonne explicitement contrainte, libellés CTA repliables et hauteur automati · ✅ Testé live : Non. Chromium local et fixtures synthétiques. Aucun achat, compte, mutation cliente ou production authentifiée
 
 ## Résidus non tabulaires — reportés mot pour mot
 
