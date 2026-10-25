@@ -56,7 +56,7 @@ function ToggleRow({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <label className="flex min-w-0 cursor-pointer items-start justify-between gap-3 text-[13px] text-bolt-elements-textPrimary sm:items-center">
+    <label className="flex min-h-[44px] min-w-0 cursor-pointer items-start justify-between gap-3 text-[13px] text-bolt-elements-textPrimary sm:items-center">
       <span className="min-w-0 break-words leading-5">{label}</span>
       <input
         type="checkbox"
@@ -99,7 +99,7 @@ export function WorkspaceSettings({ language }: { language?: string }) {
               type="button"
               aria-label={copy.editor.decreaseFontSize}
               onClick={() => patch({ fontSize: editor.fontSize - 1 })}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
+              className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
             >
               <Minus className="h-3.5 w-3.5" aria-hidden />
             </button>
@@ -112,7 +112,7 @@ export function WorkspaceSettings({ language }: { language?: string }) {
               type="button"
               aria-label={copy.editor.increaseFontSize}
               onClick={() => patch({ fontSize: editor.fontSize + 1 })}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
+              className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden />
             </button>
@@ -124,7 +124,7 @@ export function WorkspaceSettings({ language }: { language?: string }) {
           <select
             value={editor.tabSize}
             onChange={(e) => patch({ tabSize: Number(e.target.value) })}
-            className="min-h-9 max-w-full self-end rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-[13px] sm:self-auto"
+            className="min-h-[44px] max-w-full self-end rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-[13px] sm:self-auto"
           >
             <option value={2}>{formatWorkspaceSpaces(resolvedLanguage, 2)}</option>
             <option value={4}>{formatWorkspaceSpaces(resolvedLanguage, 4)}</option>
@@ -143,7 +143,7 @@ export function WorkspaceSettings({ language }: { language?: string }) {
         <button
           type="button"
           onClick={() => resetEditorSettings()}
-          className="w-fit text-[12px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:underline"
+          className="min-h-[44px] w-fit max-w-full text-left text-[12px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:underline"
         >
           {copy.editor.reset}
         </button>
@@ -152,7 +152,10 @@ export function WorkspaceSettings({ language }: { language?: string }) {
       <Section title={copy.appearance.title} description={copy.appearance.description}>
         <div className="flex min-w-0 flex-col items-start justify-between gap-2 text-[13px] text-bolt-elements-textPrimary sm:flex-row sm:items-center sm:gap-3">
           <span className="break-words">{copy.appearance.theme}</span>
-          <ThemePreferenceControl language={resolvedLanguage} className="w-full justify-center sm:w-auto" />
+          <ThemePreferenceControl
+            language={resolvedLanguage}
+            className="w-full justify-center sm:w-auto [&_button]:min-h-[44px]"
+          />
         </div>
       </Section>
 
@@ -182,7 +185,7 @@ export function WorkspaceSettings({ language }: { language?: string }) {
         </p>
         <a
           href="/settings"
-          className="w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline"
+          className="w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent-text)] hover:underline"
         >
           {copy.agent.openSettings}
         </a>

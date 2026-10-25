@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ✓ app/routes/user-area-async-states.spec.ts (9 tests) 9ms
+ ✓ app/routes/user-area-copy.spec.ts (6 tests) 19ms
+ ✓ app/routes/plan-comparison.checkout-error.spec.ts (5 tests) 6ms
+ ✓ app/routes/user-area-async-boundary.guard.spec.ts (2 tests) 5ms
+
+ Test Files  4 passed (4)
+      Tests  22 passed (22)
+   Start at  21:57:10
+   Duration  3.49s (transform 1.92s, setup 139ms, collect 74ms, tests 38ms, environment 1ms, prepare 250ms)

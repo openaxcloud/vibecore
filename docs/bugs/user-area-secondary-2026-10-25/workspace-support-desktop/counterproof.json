@@ -1,0 +1,181 @@
+{
+  "base": "http://127.0.0.1:7399",
+  "synthetic": true,
+  "domCounterproofOnly": true,
+  "before": {
+    "ticket": {
+      "client": 224,
+      "scroll": 1576,
+      "width": 223.5,
+      "height": 44
+    },
+    "button": {
+      "height": 36,
+      "minHeight": "36px",
+      "style": null,
+      "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4 py-2 min-h-[44px] w-full whitespace-normal sm:w-auto"
+    }
+  },
+  "after": {
+    "ticket": {
+      "client": 224,
+      "scroll": 224,
+      "width": 223.5,
+      "height": 159
+    },
+    "button": {
+      "height": 44,
+      "minHeight": "44px",
+      "style": "min-height: 44px !important;",
+      "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4 py-2 min-h-[44px] w-full whitespace-normal sm:w-auto"
+    }
+  },
+  "workspaceBefore": [
+    {
+      "tag": "BUTTON",
+      "label": "Réduire la taille de police",
+      "height": 31.5,
+      "width": 31.5
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Augmenter la taille de police",
+      "height": 31.5,
+      "width": 31.5
+    },
+    {
+      "tag": "SELECT",
+      "label": "2 espaces4 espaces8 espaces",
+      "height": 33,
+      "width": 110
+    },
+    {
+      "tag": "LABEL",
+      "label": "Retour automatique à la ligne",
+      "height": 19.875,
+      "width": 264
+    },
+    {
+      "tag": "LABEL",
+      "label": "Mode Vim",
+      "height": 19.875,
+      "width": 264
+    },
+    {
+      "tag": "LABEL",
+      "label": "Formater lors de l’enregistrement",
+      "height": 19.875,
+      "width": 264
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Réinitialiser les paramètres de l’éditeur",
+      "height": 19.875,
+      "width": 254.578125
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Clair",
+      "height": 26.875,
+      "width": 68.46875
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Sombre",
+      "height": 26.875,
+      "width": 90.015625
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Système",
+      "height": 26.875,
+      "width": 94.21875
+    },
+    {
+      "tag": "LABEL",
+      "label": "Sortie du terminal adaptée aux lecteurs d’écran",
+      "height": 39.75,
+      "width": 264
+    },
+    {
+      "tag": "LABEL",
+      "label": "Exiger la validation des modifications de l’IA",
+      "height": 39.75,
+      "width": 264
+    }
+  ],
+  "workspaceAfter": [
+    {
+      "tag": "BUTTON",
+      "label": "Réduire la taille de police",
+      "height": 44,
+      "width": 44
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Augmenter la taille de police",
+      "height": 44,
+      "width": 44
+    },
+    {
+      "tag": "SELECT",
+      "label": "2 espaces4 espaces8 espaces",
+      "height": 44,
+      "width": 110
+    },
+    {
+      "tag": "LABEL",
+      "label": "Retour automatique à la ligne",
+      "height": 44,
+      "width": 264
+    },
+    {
+      "tag": "LABEL",
+      "label": "Mode Vim",
+      "height": 44,
+      "width": 264
+    },
+    {
+      "tag": "LABEL",
+      "label": "Formater lors de l’enregistrement",
+      "height": 44,
+      "width": 264
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Réinitialiser les paramètres de l’éditeur",
+      "height": 44,
+      "width": 254.578125
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Clair",
+      "height": 44,
+      "width": 68.46875
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Sombre",
+      "height": 44,
+      "width": 90.015625
+    },
+    {
+      "tag": "BUTTON",
+      "label": "Système",
+      "height": 44,
+      "width": 94.21875
+    },
+    {
+      "tag": "LABEL",
+      "label": "Sortie du terminal adaptée aux lecteurs d’écran",
+      "height": 44,
+      "width": 264
+    },
+    {
+      "tag": "LABEL",
+      "label": "Exiger la validation des modifications de l’IA",
+      "height": 44,
+      "width": 264
+    }
+  ]
+}

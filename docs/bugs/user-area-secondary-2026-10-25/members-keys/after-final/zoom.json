@@ -1,0 +1,134 @@
+[
+  {
+    "route": "/organization-members",
+    "lang": "fr",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/api-keys",
+    "lang": "fr",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      0
+    ]
+  },
+  {
+    "route": "/organization-members",
+    "lang": "fr",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/api-keys",
+    "lang": "fr",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      0
+    ]
+  },
+  {
+    "route": "/organization-members",
+    "lang": "en",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/api-keys",
+    "lang": "en",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      0
+    ]
+  },
+  {
+    "route": "/organization-members",
+    "lang": "en",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44,
+      44,
+      44,
+      44,
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/api-keys",
+    "lang": "en",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      0
+    ]
+  }
+]

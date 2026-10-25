@@ -1,0 +1,1281 @@
+{
+  "base": "http://127.0.0.1:8699",
+  "synthetic": true,
+  "observations": [
+    {
+      "variant": "support",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Assistance",
+          "client": 522,
+          "scroll": 522
+        },
+        {
+          "text": "Vos demandes en cours",
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "text": "Délais de réponse",
+          "client": 554,
+          "scroll": 554
+        }
+      ],
+      "targets": [
+        {
+          "text": "",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Environnement d’exécution et espaces de travailFacturation e",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Ouvrir une demande",
+          "height": 44,
+          "width": 554
+        }
+      ],
+      "ticket": {
+        "client": 459,
+        "scroll": 459
+      },
+      "proxyInput": null
+    },
+    {
+      "variant": "workspace-settings",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Paramètres de l’espace de travail",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Éditeur",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Apparence",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Disposition",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Terminal accessible",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "IA et agent",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Exécution et flux de travail",
+          "client": 553,
+          "scroll": 553
+        }
+      ],
+      "targets": [
+        {
+          "text": "Réduire la taille de police",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Augmenter la taille de police",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "2 espaces4 espaces8 espaces",
+          "height": 44,
+          "width": 109.5
+        },
+        {
+          "text": "Retour automatique à la ligne",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Mode Vim",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Formater lors de l’enregistrement",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Réinitialiser les paramètres de l’éditeur",
+          "height": 44,
+          "width": 254.578125
+        },
+        {
+          "text": "Clair",
+          "height": 44,
+          "width": 68.4609375
+        },
+        {
+          "text": "Sombre",
+          "height": 44,
+          "width": 90.0078125
+        },
+        {
+          "text": "Système",
+          "height": 44,
+          "width": 94.21875
+        },
+        {
+          "text": "Sortie du terminal adaptée aux lecteurs d’écran",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Exiger la validation des modifications de l’IA",
+          "height": 44,
+          "width": 553
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-settings",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Paramètres de l’application de bureau",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Disponible dans l’application de bureau E-Code",
+          "client": 349,
+          "scroll": 349
+        }
+      ],
+      "targets": [
+        {
+          "text": "Obtenir l’application de bureau",
+          "height": 44,
+          "width": 231.296875
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-ready",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Paramètres de l’application de bureau",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Connectée",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Limité",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Non stockée",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Proxy",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Fonctionnalités natives",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Gestion de l’appareil",
+          "client": 568,
+          "scroll": 568
+        }
+      ],
+      "targets": [
+        {
+          "text": "Fermer la navigation",
+          "height": 356.5,
+          "width": 640
+        },
+        {
+          "text": "Fermer la navigation",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Menu du compte",
+          "height": 44,
+          "width": 237
+        },
+        {
+          "text": "SystèmeDirectManuel",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "Activer la zone de notification",
+          "height": 44,
+          "width": 216.8359375
+        },
+        {
+          "text": "Tester la notification",
+          "height": 44,
+          "width": 156.46875
+        },
+        {
+          "text": "Ouvrir un dossier local",
+          "height": 44,
+          "width": 171.15625
+        }
+      ],
+      "ticket": null,
+      "proxyInput": {
+        "client": 566,
+        "scroll": 2563,
+        "valueLength": 336
+      }
+    },
+    {
+      "variant": "support",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Assistance",
+          "client": 522,
+          "scroll": 522
+        },
+        {
+          "text": "Vos demandes en cours",
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "text": "Délais de réponse",
+          "client": 554,
+          "scroll": 554
+        }
+      ],
+      "targets": [
+        {
+          "text": "",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Environnement d’exécution et espaces de travailFacturation e",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Ouvrir une demande",
+          "height": 44,
+          "width": 554
+        }
+      ],
+      "ticket": {
+        "client": 459,
+        "scroll": 459
+      },
+      "proxyInput": null
+    },
+    {
+      "variant": "workspace-settings",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Paramètres de l’espace de travail",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Éditeur",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Apparence",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Disposition",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Terminal accessible",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "IA et agent",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Exécution et flux de travail",
+          "client": 553,
+          "scroll": 553
+        }
+      ],
+      "targets": [
+        {
+          "text": "Réduire la taille de police",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Augmenter la taille de police",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "2 espaces4 espaces8 espaces",
+          "height": 44,
+          "width": 109.5
+        },
+        {
+          "text": "Retour automatique à la ligne",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Mode Vim",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Formater lors de l’enregistrement",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Réinitialiser les paramètres de l’éditeur",
+          "height": 44,
+          "width": 254.578125
+        },
+        {
+          "text": "Clair",
+          "height": 44,
+          "width": 68.4609375
+        },
+        {
+          "text": "Sombre",
+          "height": 44,
+          "width": 90.0078125
+        },
+        {
+          "text": "Système",
+          "height": 44,
+          "width": 94.21875
+        },
+        {
+          "text": "Sortie du terminal adaptée aux lecteurs d’écran",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Exiger la validation des modifications de l’IA",
+          "height": 44,
+          "width": 553
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-settings",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Paramètres de l’application de bureau",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Disponible dans l’application de bureau E-Code",
+          "client": 349,
+          "scroll": 349
+        }
+      ],
+      "targets": [
+        {
+          "text": "Obtenir l’application de bureau",
+          "height": 44,
+          "width": 231.296875
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-ready",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Paramètres de l’application de bureau",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Connectée",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Limité",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Non stockée",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Proxy",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Fonctionnalités natives",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Gestion de l’appareil",
+          "client": 568,
+          "scroll": 568
+        }
+      ],
+      "targets": [
+        {
+          "text": "Fermer la navigation",
+          "height": 356.5,
+          "width": 640
+        },
+        {
+          "text": "Fermer la navigation",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Menu du compte",
+          "height": 44,
+          "width": 237
+        },
+        {
+          "text": "SystèmeDirectManuel",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "Activer la zone de notification",
+          "height": 44,
+          "width": 216.8359375
+        },
+        {
+          "text": "Tester la notification",
+          "height": 44,
+          "width": 156.46875
+        },
+        {
+          "text": "Ouvrir un dossier local",
+          "height": 44,
+          "width": 171.15625
+        }
+      ],
+      "ticket": null,
+      "proxyInput": {
+        "client": 566,
+        "scroll": 2563,
+        "valueLength": 336
+      }
+    },
+    {
+      "variant": "support",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Support",
+          "client": 387,
+          "scroll": 387
+        },
+        {
+          "text": "Your open tickets",
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "text": "Response times",
+          "client": 554,
+          "scroll": 554
+        }
+      ],
+      "targets": [
+        {
+          "text": "",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Runtime and workspacesBilling and plansSecurityAccount and a",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Open ticket",
+          "height": 44,
+          "width": 554
+        }
+      ],
+      "ticket": {
+        "client": 474,
+        "scroll": 474
+      },
+      "proxyInput": null
+    },
+    {
+      "variant": "workspace-settings",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Workspace settings",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Editor",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Appearance",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Layout",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Accessible terminal",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "AI & agent",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Run & workflows",
+          "client": 553,
+          "scroll": 553
+        }
+      ],
+      "targets": [
+        {
+          "text": "Decrease font size",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Increase font size",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "2 spaces4 spaces8 spaces",
+          "height": 44,
+          "width": 100.5
+        },
+        {
+          "text": "Word wrap",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Vim mode",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Format on save",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Reset editor settings",
+          "height": 44,
+          "width": 135.2578125
+        },
+        {
+          "text": "Light",
+          "height": 44,
+          "width": 72.015625
+        },
+        {
+          "text": "Dark",
+          "height": 44,
+          "width": 70.0859375
+        },
+        {
+          "text": "System",
+          "height": 44,
+          "width": 86.328125
+        },
+        {
+          "text": "Screen-reader-friendly terminal output",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Require review of AI changes",
+          "height": 44,
+          "width": 553
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-settings",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Desktop settings",
+          "client": 359,
+          "scroll": 359
+        },
+        {
+          "text": "Available in the E-Code desktop app",
+          "client": 267,
+          "scroll": 267
+        }
+      ],
+      "targets": [
+        {
+          "text": "Get the desktop app",
+          "height": 44,
+          "width": 161.5625
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-ready",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Desktop settings",
+          "client": 359,
+          "scroll": 359
+        },
+        {
+          "text": "Connected",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Limited",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Not stored",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Proxy",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Native features",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Device management",
+          "client": 568,
+          "scroll": 568
+        }
+      ],
+      "targets": [
+        {
+          "text": "Close navigation",
+          "height": 356.5,
+          "width": 640
+        },
+        {
+          "text": "Close navigation",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Account menu",
+          "height": 44,
+          "width": 237
+        },
+        {
+          "text": "SystemDirectManual",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "Enable tray",
+          "height": 44,
+          "width": 96.6015625
+        },
+        {
+          "text": "Test notification",
+          "height": 44,
+          "width": 127.6796875
+        },
+        {
+          "text": "Open local folder",
+          "height": 44,
+          "width": 135.828125
+        }
+      ],
+      "ticket": null,
+      "proxyInput": {
+        "client": 566,
+        "scroll": 2563,
+        "valueLength": 336
+      }
+    },
+    {
+      "variant": "support",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Support",
+          "client": 387,
+          "scroll": 387
+        },
+        {
+          "text": "Your open tickets",
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "text": "Response times",
+          "client": 554,
+          "scroll": 554
+        }
+      ],
+      "targets": [
+        {
+          "text": "",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Runtime and workspacesBilling and plansSecurityAccount and a",
+          "height": 44,
+          "width": 554
+        },
+        {
+          "text": "Open ticket",
+          "height": 44,
+          "width": 554
+        }
+      ],
+      "ticket": {
+        "client": 474,
+        "scroll": 474
+      },
+      "proxyInput": null
+    },
+    {
+      "variant": "workspace-settings",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Workspace settings",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Editor",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Appearance",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Layout",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Accessible terminal",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "AI & agent",
+          "client": 553,
+          "scroll": 553
+        },
+        {
+          "text": "Run & workflows",
+          "client": 553,
+          "scroll": 553
+        }
+      ],
+      "targets": [
+        {
+          "text": "Decrease font size",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Increase font size",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "2 spaces4 spaces8 spaces",
+          "height": 44,
+          "width": 100.5
+        },
+        {
+          "text": "Word wrap",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Vim mode",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Format on save",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Reset editor settings",
+          "height": 44,
+          "width": 135.2578125
+        },
+        {
+          "text": "Light",
+          "height": 44,
+          "width": 72.015625
+        },
+        {
+          "text": "Dark",
+          "height": 44,
+          "width": 70.0859375
+        },
+        {
+          "text": "System",
+          "height": 44,
+          "width": 86.328125
+        },
+        {
+          "text": "Screen-reader-friendly terminal output",
+          "height": 44,
+          "width": 553
+        },
+        {
+          "text": "Require review of AI changes",
+          "height": 44,
+          "width": 553
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-settings",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Desktop settings",
+          "client": 359,
+          "scroll": 359
+        },
+        {
+          "text": "Available in the E-Code desktop app",
+          "client": 267,
+          "scroll": 267
+        }
+      ],
+      "targets": [
+        {
+          "text": "Get the desktop app",
+          "height": 44,
+          "width": 161.5625
+        }
+      ],
+      "ticket": null,
+      "proxyInput": null
+    },
+    {
+      "variant": "desktop-ready",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 640,
+      "titles": [
+        {
+          "text": "Desktop settings",
+          "client": 359,
+          "scroll": 359
+        },
+        {
+          "text": "Connected",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Limited",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Not stored",
+          "client": 554,
+          "scroll": 554
+        },
+        {
+          "text": "Proxy",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Native features",
+          "client": 568,
+          "scroll": 568
+        },
+        {
+          "text": "Device management",
+          "client": 568,
+          "scroll": 568
+        }
+      ],
+      "targets": [
+        {
+          "text": "Close navigation",
+          "height": 356.5,
+          "width": 640
+        },
+        {
+          "text": "Close navigation",
+          "height": 44,
+          "width": 44
+        },
+        {
+          "text": "Account menu",
+          "height": 44,
+          "width": 237
+        },
+        {
+          "text": "SystemDirectManual",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "",
+          "height": 44,
+          "width": 568
+        },
+        {
+          "text": "Enable tray",
+          "height": 44,
+          "width": 96.6015625
+        },
+        {
+          "text": "Test notification",
+          "height": 44,
+          "width": 127.6796875
+        },
+        {
+          "text": "Open local folder",
+          "height": 44,
+          "width": 135.828125
+        }
+      ],
+      "ticket": null,
+      "proxyInput": {
+        "client": 566,
+        "scroll": 2563,
+        "valueLength": 336
+      }
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    }
+  ]
+}

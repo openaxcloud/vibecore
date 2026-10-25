@@ -1,0 +1,22 @@
+{
+  base: 'http://127.0.0.1:8199',
+  domCounterproof: true,
+  titleBefore: { client: 194, scroll: 3962, height: 42, clamp: '2' },
+  titleAfter: { client: 194, scroll: 194, height: 64, clamp: '2' },
+  ctaBefore: [
+    { height: 36, minHeight: '36px' },
+    { height: 36, minHeight: '36px' },
+    { height: 36, minHeight: '36px' },
+    { height: 36, minHeight: '36px' },
+    { height: 36, minHeight: '36px' },
+    { height: 36, minHeight: '36px' }
+  ],
+  ctaAfter: [
+    { height: 44, minHeight: '44px' },
+    { height: 44, minHeight: '44px' },
+    { height: 44, minHeight: '44px' },
+    { height: 44, minHeight: '44px' },
+    { height: 44, minHeight: '44px' },
+    { height: 44, minHeight: '44px' }
+  ]
+}

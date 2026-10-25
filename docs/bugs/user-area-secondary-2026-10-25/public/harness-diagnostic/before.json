@@ -1,0 +1,107 @@
+{
+  "base": "http://127.0.0.1:7499",
+  "mutations": [
+    "http://127.0.0.1:7499/api/user/preferences"
+  ],
+  "errors": [],
+  "menus": [
+    {
+      "lang": "fr",
+      "first": "Fermer le menu mobile",
+      "escape": {
+        "tag": "BODY",
+        "label": null
+      },
+      "desktop": {
+        "bodyPointerEvents": "none",
+        "locked": true,
+        "dialogs": [
+          {
+            "display": "none",
+            "state": "open"
+          }
+        ],
+        "focus": "BODY",
+        "hiddenBodyChildren": 5,
+        "clickError": "locator.click: Timeout 1200ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('link-login')\u001b[22m\n\u001b[2m    - locator resolved to <button data-testid=\"link-login\" aria-label=\"Se connecter\" class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:bg-surface-hover-solid h-10 py-2 md:h-10 min-h-[44px] md:min-h-0 replit-button-press text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white !m…>…</button>\u001b[22m\n\u001b[2m  - attempting click action (trial run)\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m"
+      },
+      "clickable": false
+    },
+    {
+      "lang": "en",
+      "first": "Close mobile menu",
+      "escape": {
+        "tag": "BODY",
+        "label": null
+      },
+      "desktop": {
+        "bodyPointerEvents": "none",
+        "locked": true,
+        "dialogs": [
+          {
+            "display": "none",
+            "state": "open"
+          }
+        ],
+        "focus": "BODY",
+        "hiddenBodyChildren": 5,
+        "clickError": "locator.click: Timeout 1200ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('link-login')\u001b[22m\n\u001b[2m    - locator resolved to <button aria-label=\"Log in\" data-testid=\"link-login\" class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:bg-surface-hover-solid h-10 py-2 md:h-10 min-h-[44px] md:min-h-0 replit-button-press text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white !min-h-1…>…</button>\u001b[22m\n\u001b[2m  - attempting click action (trial run)\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m"
+      },
+      "clickable": false
+    }
+  ],
+  "forms": [
+    {
+      "lang": "fr",
+      "route": "/login",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    },
+    {
+      "lang": "fr",
+      "route": "/signup",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    },
+    {
+      "lang": "en",
+      "route": "/login",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    },
+    {
+      "lang": "en",
+      "route": "/signup",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    }
+  ],
+  "navigation": [
+    {
+      "lang": "fr",
+      "pricingToggle": true,
+      "homeAndBack": true
+    },
+    {
+      "lang": "en",
+      "pricingToggle": true,
+      "homeAndBack": true
+    }
+  ]
+}

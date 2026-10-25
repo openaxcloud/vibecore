@@ -1,0 +1,97 @@
+{
+  "base": "http://127.0.0.1:7799",
+  "mutations": [],
+  "errors": [],
+  "menus": [
+    {
+      "lang": "fr",
+      "first": "Fermer le menu mobile",
+      "escape": {
+        "tag": "BUTTON",
+        "label": "Ouvrir le menu mobile"
+      },
+      "desktop": {
+        "bodyPointerEvents": "auto",
+        "locked": false,
+        "dialogs": [],
+        "focus": "BUTTON",
+        "hiddenBodyChildren": 1
+      },
+      "clickable": true,
+      "breakpoint1279To1280": true,
+      "closeButtonFocus": true
+    },
+    {
+      "lang": "en",
+      "first": "Close mobile menu",
+      "escape": {
+        "tag": "BUTTON",
+        "label": "Open mobile menu"
+      },
+      "desktop": {
+        "bodyPointerEvents": "auto",
+        "locked": false,
+        "dialogs": [],
+        "focus": "BUTTON",
+        "hiddenBodyChildren": 1
+      },
+      "clickable": true,
+      "breakpoint1279To1280": true,
+      "closeButtonFocus": true
+    }
+  ],
+  "forms": [
+    {
+      "lang": "fr",
+      "route": "/login",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    },
+    {
+      "lang": "fr",
+      "route": "/signup",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    },
+    {
+      "lang": "en",
+      "route": "/login",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    },
+    {
+      "lang": "en",
+      "route": "/signup",
+      "resizeDraftPreserved": true,
+      "validity": {
+        "valid": false,
+        "typeMismatch": true,
+        "focused": true
+      }
+    }
+  ],
+  "navigation": [
+    {
+      "lang": "fr",
+      "pricingToggle": true,
+      "homeAndBack": true
+    },
+    {
+      "lang": "en",
+      "pricingToggle": true,
+      "homeAndBack": true
+    }
+  ]
+}

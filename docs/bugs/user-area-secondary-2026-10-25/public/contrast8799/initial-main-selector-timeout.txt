@@ -1,0 +1,7 @@
+locator.evaluate: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('main')[22m
+
+    at /tmp/ui-public-contrast/contrast.cjs:25:48 {
+  name: 'TimeoutError'
+}

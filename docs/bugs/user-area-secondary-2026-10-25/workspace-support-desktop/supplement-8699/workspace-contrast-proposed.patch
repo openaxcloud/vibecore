@@ -1,0 +1,11 @@
+--- a/app/components/settings/WorkspaceSettings.tsx
++++ b/app/components/settings/WorkspaceSettings.tsx
+@@ -185,7 +185,7 @@
+         </p>
+         <a
+           href="/settings"
+-          className="w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline"
++          className="w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent-text)] hover:underline"
+         >
+           {copy.agent.openSettings}
+         </a>

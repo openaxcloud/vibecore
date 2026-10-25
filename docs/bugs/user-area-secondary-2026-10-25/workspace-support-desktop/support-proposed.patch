@@ -1,0 +1,20 @@
+--- a/app/routes/support.tsx
++++ b/app/routes/support.tsx
+@@ -259,7 +259,7 @@
+             to={`/support/${ticket.id}`}
+             className="inline-flex min-h-[44px] max-w-full items-center break-words text-sm font-medium hover:underline focus:underline focus:outline-none"
+           >
+-            {ticket.subject}
++            <span className="min-w-0 break-words">{ticket.subject}</span>
+           </Link>
+           <p className="mt-1 break-words text-sm text-bolt-elements-textSecondary">
+             {category} ·{' '}
+@@ -389,7 +389,7 @@
+               {copy['support.form.securityNotice']}
+             </p>
+             <Button
+-              className="min-h-[44px] w-full whitespace-normal sm:w-auto"
++              className="!min-h-[44px] w-full whitespace-normal sm:w-auto"
+               type="submit"
+               disabled={openingTicket}
+               aria-busy={openingTicket}

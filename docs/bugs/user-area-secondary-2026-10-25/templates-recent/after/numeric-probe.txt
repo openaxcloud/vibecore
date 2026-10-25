@@ -1,0 +1,126 @@
+{
+  cases: 24,
+  errors: [],
+  truncated: [
+    {
+      lang: 'fr',
+      count: 0,
+      width: 320,
+      client: 100,
+      scroll: 129,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'fr',
+      count: 2,
+      width: 320,
+      client: 100,
+      scroll: 102,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'fr',
+      count: 1000000,
+      width: 320,
+      client: 100,
+      scroll: 150,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'fr',
+      count: 1000000,
+      width: 1440,
+      client: 116,
+      scroll: 128,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'fr',
+      count: 1000001,
+      width: 320,
+      client: 100,
+      scroll: 150,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'fr',
+      count: 1000001,
+      width: 1440,
+      client: 116,
+      scroll: 128,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'fr',
+      count: 1000000000,
+      width: 320,
+      client: 100,
+      scroll: 174,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'fr',
+      count: 1000000000,
+      width: 1440,
+      client: 116,
+      scroll: 149,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'en',
+      count: 0,
+      width: 320,
+      client: 100,
+      scroll: 108,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'en',
+      count: 1000000,
+      width: 320,
+      client: 100,
+      scroll: 145,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'en',
+      count: 1000000,
+      width: 1440,
+      client: 116,
+      scroll: 124,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'en',
+      count: 1000001,
+      width: 320,
+      client: 100,
+      scroll: 145,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'en',
+      count: 1000001,
+      width: 1440,
+      client: 116,
+      scroll: 124,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'en',
+      count: 1000000000,
+      width: 320,
+      client: 100,
+      scroll: 169,
+      textOverflow: 'ellipsis'
+    },
+    {
+      lang: 'en',
+      count: 1000000000,
+      width: 1440,
+      client: 116,
+      scroll: 145,
+      textOverflow: 'ellipsis'
+    }
+  ]
+}

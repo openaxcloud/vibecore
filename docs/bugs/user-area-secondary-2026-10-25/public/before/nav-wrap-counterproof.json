@@ -1,0 +1,350 @@
+[
+  {
+    "lang": "fr",
+    "theme": "light",
+    "before": {
+      "height": 65,
+      "controls": [
+        {
+          "name": "Accueil E-Code",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Clair. Passer au thème sombre",
+          "width": 44,
+          "height": 44,
+          "right": 149.796875
+        },
+        {
+          "name": "Anglais",
+          "width": 44,
+          "height": 44,
+          "right": 202.796875
+        },
+        {
+          "name": "Langue actuelle : Français",
+          "width": 44,
+          "height": 44,
+          "right": 246.796875
+        },
+        {
+          "name": "Se connecter",
+          "width": 44,
+          "height": 44,
+          "right": 299.796875
+        },
+        {
+          "name": "Ouvrir le menu mobile",
+          "width": 44,
+          "height": 44,
+          "right": 351.796875
+        }
+      ]
+    },
+    "after": {
+      "height": 111,
+      "controls": [
+        {
+          "name": "Accueil E-Code",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Clair. Passer au thème sombre",
+          "width": 44,
+          "height": 44,
+          "right": 102
+        },
+        {
+          "name": "Anglais",
+          "width": 44,
+          "height": 44,
+          "right": 155
+        },
+        {
+          "name": "Langue actuelle : Français",
+          "width": 44,
+          "height": 44,
+          "right": 199
+        },
+        {
+          "name": "Se connecter",
+          "width": 44,
+          "height": 44,
+          "right": 252
+        },
+        {
+          "name": "Ouvrir le menu mobile",
+          "width": 44,
+          "height": 44,
+          "right": 304
+        }
+      ]
+    },
+    "kind": "temporary DOM CSS counterproof, not compiled product"
+  },
+  {
+    "lang": "fr",
+    "theme": "dark",
+    "before": {
+      "height": 65,
+      "controls": [
+        {
+          "name": "Accueil E-Code",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Sombre. Passer au thème clair",
+          "width": 44,
+          "height": 44,
+          "right": 149.796875
+        },
+        {
+          "name": "Anglais",
+          "width": 44,
+          "height": 44,
+          "right": 202.796875
+        },
+        {
+          "name": "Langue actuelle : Français",
+          "width": 44,
+          "height": 44,
+          "right": 246.796875
+        },
+        {
+          "name": "Se connecter",
+          "width": 44,
+          "height": 44,
+          "right": 299.796875
+        },
+        {
+          "name": "Ouvrir le menu mobile",
+          "width": 44,
+          "height": 44,
+          "right": 351.796875
+        }
+      ]
+    },
+    "after": {
+      "height": 111,
+      "controls": [
+        {
+          "name": "Accueil E-Code",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Sombre. Passer au thème clair",
+          "width": 44,
+          "height": 44,
+          "right": 102
+        },
+        {
+          "name": "Anglais",
+          "width": 44,
+          "height": 44,
+          "right": 155
+        },
+        {
+          "name": "Langue actuelle : Français",
+          "width": 44,
+          "height": 44,
+          "right": 199
+        },
+        {
+          "name": "Se connecter",
+          "width": 44,
+          "height": 44,
+          "right": 252
+        },
+        {
+          "name": "Ouvrir le menu mobile",
+          "width": 44,
+          "height": 44,
+          "right": 304
+        }
+      ]
+    },
+    "kind": "temporary DOM CSS counterproof, not compiled product"
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "before": {
+      "height": 65,
+      "controls": [
+        {
+          "name": "E-Code home",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Light. Switch to dark theme",
+          "width": 44,
+          "height": 44,
+          "right": 149.796875
+        },
+        {
+          "name": "Current language: English",
+          "width": 44,
+          "height": 44,
+          "right": 202.796875
+        },
+        {
+          "name": "French",
+          "width": 44,
+          "height": 44,
+          "right": 246.796875
+        },
+        {
+          "name": "Log in",
+          "width": 44,
+          "height": 44,
+          "right": 299.796875
+        },
+        {
+          "name": "Open mobile menu",
+          "width": 44,
+          "height": 44,
+          "right": 351.796875
+        }
+      ]
+    },
+    "after": {
+      "height": 111,
+      "controls": [
+        {
+          "name": "E-Code home",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Light. Switch to dark theme",
+          "width": 44,
+          "height": 44,
+          "right": 102
+        },
+        {
+          "name": "Current language: English",
+          "width": 44,
+          "height": 44,
+          "right": 155
+        },
+        {
+          "name": "French",
+          "width": 44,
+          "height": 44,
+          "right": 199
+        },
+        {
+          "name": "Log in",
+          "width": 44,
+          "height": 44,
+          "right": 252
+        },
+        {
+          "name": "Open mobile menu",
+          "width": 44,
+          "height": 44,
+          "right": 304
+        }
+      ]
+    },
+    "kind": "temporary DOM CSS counterproof, not compiled product"
+  },
+  {
+    "lang": "en",
+    "theme": "dark",
+    "before": {
+      "height": 65,
+      "controls": [
+        {
+          "name": "E-Code home",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Dark. Switch to light theme",
+          "width": 44,
+          "height": 44,
+          "right": 149.796875
+        },
+        {
+          "name": "Current language: English",
+          "width": 44,
+          "height": 44,
+          "right": 202.796875
+        },
+        {
+          "name": "French",
+          "width": 44,
+          "height": 44,
+          "right": 246.796875
+        },
+        {
+          "name": "Log in",
+          "width": 44,
+          "height": 44,
+          "right": 299.796875
+        },
+        {
+          "name": "Open mobile menu",
+          "width": 44,
+          "height": 44,
+          "right": 351.796875
+        }
+      ]
+    },
+    "after": {
+      "height": 111,
+      "controls": [
+        {
+          "name": "E-Code home",
+          "width": 89.796875,
+          "height": 44,
+          "right": 105.796875
+        },
+        {
+          "name": "Dark. Switch to light theme",
+          "width": 44,
+          "height": 44,
+          "right": 102
+        },
+        {
+          "name": "Current language: English",
+          "width": 44,
+          "height": 44,
+          "right": 155
+        },
+        {
+          "name": "French",
+          "width": 44,
+          "height": 44,
+          "right": 199
+        },
+        {
+          "name": "Log in",
+          "width": 44,
+          "height": 44,
+          "right": 252
+        },
+        {
+          "name": "Open mobile menu",
+          "width": 44,
+          "height": 44,
+          "right": 304
+        }
+      ]
+    },
+    "kind": "temporary DOM CSS counterproof, not compiled product"
+  }
+]

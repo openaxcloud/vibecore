@@ -346,7 +346,7 @@ export default function ApiKeysPage() {
               </ul>
 
               <div
-                className="hidden max-w-full overflow-x-auto overscroll-x-contain xl:block"
+                className="relative hidden max-w-full overflow-x-auto overscroll-x-contain xl:block"
                 role="region"
                 aria-label={copy.fields.tableAria}
                 tabIndex={0}
