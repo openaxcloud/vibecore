@@ -99,6 +99,9 @@ const TECHNICAL_PATH_IN_PROSE = /\b(?:[\w@.+~-]+\/)+[\w@.+~-]+(?:\.[A-Za-z0-9]+)
 
 const SLASH_COMMAND_IN_PROSE = /(^|[\s(])\/[a-z][\w-]*/giu;
 const APPROVED_PRODUCT_TERM_IN_PROSE = /\bCloud Monitoring\b/gu;
+
+// The domain example is technical data, while all surrounding prose remains audited.
+const RESERVED_DOMAIN_EXAMPLE_IN_PROSE = /(?<![\p{L}\p{N}_.-])app\.example\.com(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}_-])/gu;
 const FRENCH_QUEUE_IN_PROSE = /\bfile\s+d[’']attente\b/giu;
 
 /*
@@ -143,7 +146,7 @@ const ENGLISH_GRAMMAR = new Set([
 ]);
 
 const ENGLISH_UI_PHRASE =
-  /\b(?:failed to|get started|learn more|log in|no results|sign in|try again)\b|^(?:add|back|cancel|close|continue|create|delete|edit|next|open|previous|remove|save|search|view)(?:\s|$)/iu;
+  /\b(?:failed to|get started|learn more|log in|no results|sign in|try again)\b|^(?:add|back|cancel|close|continue|create|delete|edit|enter|next|open|previous|remove|save|search|view)(?:\s|$)/iu;
 
 const RAW_KEY = /^(?:[a-z][a-z0-9_-]*\.)+[a-z][a-z0-9_-]*$/u;
 
@@ -222,7 +225,8 @@ export function findFrenchAuditResidue(
       .replace(TECHNICAL_FILENAME_IN_PROSE, '')
       .replace(SLASH_COMMAND_IN_PROSE, '$1')
       .replace(APPROVED_PRODUCT_TERM_IN_PROSE, '')
-      .replace(FRENCH_QUEUE_IN_PROSE, '');
+      .replace(FRENCH_QUEUE_IN_PROSE, '')
+      .replace(RESERVED_DOMAIN_EXAMPLE_IN_PROSE, '');
 
     const reason = RAW_KEY.test(text)
       ? 'raw-key'

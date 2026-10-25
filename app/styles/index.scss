@@ -4547,13 +4547,16 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
  * plus clair. D'où un jeton dédié, encore conforme AA (≥ 4,5:1).
  *
  * À partir de 1024 px seulement : l'affichage mobile est gelé sur la référence
- * d'Avi. Hors zone utilisateur (IDE, authentification) : non concerné.
+ * d'Avi. Le formulaire Publish déplacé dans l'IDE conserve cette distinction ;
+ * les autres surfaces IDE et l'authentification ne sont pas concernées.
  */
-.vc-user-area-shell {
+.vc-user-area-shell,
+.vc-managed-publish-form {
   --vc-user-area-placeholder: #7d8796;
 }
 
-:root[data-theme='light'] .vc-user-area-shell {
+:root[data-theme='light'] .vc-user-area-shell,
+:root[data-theme='light'] .vc-managed-publish-form {
   --vc-user-area-placeholder: #6b7280;
 }
 
@@ -4562,7 +4565,8 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
  * dépend du format) ; seule son APPLICATION est réservée au bureau.
  */
 @media (min-width: 1024px) {
-  .vc-user-area-shell :is(input, textarea)::placeholder {
+  .vc-user-area-shell :is(input, textarea)::placeholder,
+  .vc-managed-publish-form :is(input, textarea)::placeholder {
     color: var(--vc-user-area-placeholder) !important;
     opacity: 1;
   }

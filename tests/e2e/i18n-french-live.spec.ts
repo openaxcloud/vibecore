@@ -66,8 +66,8 @@ const PUBLIC_ERROR_PATHS = ['/__i18n-audit-missing-page__', '/__i18n-audit__/mis
  */
 const LARGEUR_REPLI_BASCULE = 768;
 
-function basculeRepliee(page: Page, path: string): boolean {
-  if (isIdeShellPath(path)) {
+function basculeRepliee(page: Page): boolean {
+  if (isIdeShellPath(page.url())) {
     return false;
   }
 
@@ -339,7 +339,7 @@ async function waitForApplicationReady(page: Page, path: string, language: 'en' 
 
   await expect.soft(bootSplash, `${path} ${language} boot splash dismissed`).toHaveCount(0, { timeout: 15_000 });
 
-  if (isIdeShellPath(path)) {
+  if (isIdeShellPath(page.url())) {
     /*
      * La coque IDE n'a plus de bascule : attendre qu'elle apparaisse ne finirait
      * jamais. Mais rendre la main tout de suite fait auditer une page à moitié
@@ -356,7 +356,7 @@ async function waitForApplicationReady(page: Page, path: string, language: 'en' 
     return;
   }
 
-  if (basculeRepliee(page, path)) {
+  if (basculeRepliee(page)) {
     /*
      * Repliée dans le menu : attendre sa VISIBILITÉ coûterait 15 s pour rien,
      * à chaque route et à chaque langue. On attend sa présence, qui est
@@ -593,6 +593,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
     viewport: testInfo.project.use.viewport,
     baseUrl: APP_BASE_URL,
     path,
+    finalUrl: page.url(),
     theme,
     responseStatus: { en: englishResponse?.status(), fr: frenchResponse?.status() },
     documentLanguage: { en: englishDocumentLanguage, fr: frenchDocumentLanguage },
@@ -614,11 +615,11 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   expect.soft(layout.bodyTextLength, `${path} (${theme}) non-blank visible text`).toBeGreaterThan(0);
   expect.soft(french.length, `${path} (${theme}) semantic entries scanned`).toBeGreaterThan(0);
 
-  if (isIdeShellPath(path)) {
+  if (isIdeShellPath(page.url())) {
     expect
       .soft(languageSwitchCount, `${path} (${theme}) la coque IDE ne remonte PAS de bascule de langue globale`)
       .toBe(0);
-  } else if (basculeRepliee(page, path)) {
+  } else if (basculeRepliee(page)) {
     // Sous 768 px : repliée dans le menu, donc présente mais pas visible.
     expect
       .soft(languageSwitchDomCount, `${path} (${theme}) bascule repliée dans le menu : doit rester PRÉSENTE`)

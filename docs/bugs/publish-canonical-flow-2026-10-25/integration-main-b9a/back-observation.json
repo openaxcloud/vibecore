@@ -1,0 +1,285 @@
+{
+  "schema": 1,
+  "test": "interrupted-move-browser-back",
+  "browserVersion": "154.0.8037.57",
+  "navigationApi": true,
+  "historySource": "Native events; phase history fields are the latest observed event, timestamped explicitly",
+  "events": [
+    {
+      "timeMs": 189,
+      "event": "initial",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": null,
+      "key": null,
+      "length": 2
+    },
+    {
+      "timeMs": 334,
+      "event": "navigate:replace",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": null,
+      "key": null,
+      "length": 2,
+      "destination": "/projects/:projectId/ide?panel=preview",
+      "destinationIndex": -1
+    },
+    {
+      "timeMs": 343,
+      "event": "currententrychange",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": null,
+      "key": "K1",
+      "length": 2
+    },
+    {
+      "timeMs": 1482,
+      "event": "navigate:replace",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": null,
+      "key": "K1",
+      "length": 2,
+      "destination": "/projects/:projectId/ide?panel=preview",
+      "destinationIndex": -1
+    },
+    {
+      "timeMs": 1482,
+      "event": "currententrychange",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": 0,
+      "key": "K1",
+      "length": 2
+    },
+    {
+      "timeMs": 4070,
+      "event": "navigate:push",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": 0,
+      "key": "K1",
+      "length": 2,
+      "destination": "/projects/:projectId/ide?panel=deployments",
+      "destinationIndex": -1
+    },
+    {
+      "timeMs": 4070,
+      "event": "currententrychange",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 3
+    },
+    {
+      "timeMs": 5960,
+      "event": "before-move",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 3,
+      "historyObservedAtMs": 4070
+    },
+    {
+      "timeMs": 6724,
+      "event": "after-move",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 3,
+      "historyObservedAtMs": 4070
+    },
+    {
+      "timeMs": 6724,
+      "event": "preview-request-observed",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 3,
+      "historyObservedAtMs": 4070
+    },
+    {
+      "timeMs": 6724,
+      "event": "before-cancel-preview",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 3,
+      "historyObservedAtMs": 4070
+    },
+    {
+      "timeMs": 7025,
+      "event": "navigate:push",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 3,
+      "destination": "/projects/:projectId/ide?panel=deployments",
+      "destinationIndex": -1
+    },
+    {
+      "timeMs": 7025,
+      "event": "currententrychange",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 2,
+      "key": "K3",
+      "length": 4
+    },
+    {
+      "timeMs": 7043,
+      "event": "after-cancel-preview",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 2,
+      "key": "K3",
+      "length": 4,
+      "historyObservedAtMs": 7025
+    },
+    {
+      "timeMs": 7162,
+      "event": "preview-request-aborted",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 2,
+      "key": "K3",
+      "length": 4,
+      "historyObservedAtMs": 7025
+    },
+    {
+      "timeMs": 7186,
+      "event": "before-back-1",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 2,
+      "key": "K3",
+      "length": 4,
+      "historyObservedAtMs": 7025
+    },
+    {
+      "timeMs": 7198,
+      "event": "navigate:traverse",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 2,
+      "key": "K3",
+      "length": 4,
+      "destination": "/projects/:projectId/ide?panel=deployments",
+      "destinationIndex": 1
+    },
+    {
+      "timeMs": 7198,
+      "event": "currententrychange",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4
+    },
+    {
+      "timeMs": 7199,
+      "event": "popstate",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4
+    },
+    {
+      "timeMs": 7216,
+      "event": "after-back-1",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4,
+      "historyObservedAtMs": 7199
+    },
+    {
+      "timeMs": 7216,
+      "event": "before-back-2",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4,
+      "historyObservedAtMs": 7199
+    },
+    {
+      "timeMs": 7229,
+      "event": "navigate:traverse",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4,
+      "destination": "/projects/:projectId/ide?panel=preview",
+      "destinationIndex": 0
+    },
+    {
+      "timeMs": 7230,
+      "event": "currententrychange",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": 0,
+      "key": "K1",
+      "length": 4
+    },
+    {
+      "timeMs": 7230,
+      "event": "popstate",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": 0,
+      "key": "K1",
+      "length": 4
+    },
+    {
+      "timeMs": 7258,
+      "event": "after-back-2",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": 0,
+      "key": "K1",
+      "length": 4,
+      "historyObservedAtMs": 7230
+    },
+    {
+      "timeMs": 7520,
+      "event": "before-forward",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": 0,
+      "key": "K1",
+      "length": 4,
+      "historyObservedAtMs": 7230
+    },
+    {
+      "timeMs": 7539,
+      "event": "navigate:traverse",
+      "url": "/projects/:projectId/ide?panel=preview",
+      "idx": 0,
+      "key": "K1",
+      "length": 4,
+      "destination": "/projects/:projectId/ide?panel=deployments",
+      "destinationIndex": 1
+    },
+    {
+      "timeMs": 7540,
+      "event": "currententrychange",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4
+    },
+    {
+      "timeMs": 7540,
+      "event": "popstate",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4
+    },
+    {
+      "timeMs": 7574,
+      "event": "after-forward",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4,
+      "historyObservedAtMs": 7540
+    },
+    {
+      "timeMs": 7736,
+      "event": "finally",
+      "url": "/projects/:projectId/ide?panel=deployments",
+      "idx": 1,
+      "key": "K2",
+      "length": 4,
+      "historyObservedAtMs": 7540
+    }
+  ],
+  "publicNormalization": "Opaque keys normalized K1,K2 preserving equality and order; raw observation stays private in /tmp."
+}

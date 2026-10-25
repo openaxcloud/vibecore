@@ -8,7 +8,7 @@ Dashboard 320px avec nom de projet long : listbox 269px, chaque résultat 1317,6
 
 ## 📤 Dispatché
 
-25 octobre 2026 : diagnostic transmis au parent. Correction préparée seulement après fusion #788, sans relance de sa CI. L’intégration sémantique de main reste à faire avant publication du lot ; elle doit conserver les routes `/ide?panel=deployments` et `/ide?panel=domains` de #788.
+25 octobre 2026 : diagnostic transmis au parent. Correction préparée seulement après fusion #788, sans relance de sa CI. Intégration sémantique locale de main `d09045d5a` après #791 : routes `/ide?panel=deployments` et `/ide?panel=domains` de #788 conservées. La comparaison indépendante avec main ne montre que les deux ajustements de classes attendus.
 
 ## 💻 Codé
 

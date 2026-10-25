@@ -2935,6 +2935,8 @@ export const Preview = memo(
             {activePreview || staticPreviewHtml ? (
               <>
                 {/*
+                 * Each frame mode has its own key: recycling a loaded srcdoc frame as
+                 * the boot placeholder adds iframe history entries that consume browser Back.
                  * Static-preview iframe sandbox deliberately omits allow-same-origin:
                  * srcDoc loads project-controlled HTML first-party, so granting it the
                  * IDE's own origin would expose our cookies/localStorage/IndexedDB and
@@ -2943,6 +2945,7 @@ export const Preview = memo(
                  */}
                 {staticPreviewHtml && !activePreview ? (
                   <iframe
+                    key="static-preview"
                     ref={iframeRef}
                     title={t('idePanels.preview.iframeTitle')}
                     className="border-none w-full h-full bg-white"
@@ -3019,6 +3022,7 @@ export const Preview = memo(
                       />
 
                       <iframe
+                        key="device-runtime-preview"
                         ref={iframeRef}
                         title={t('idePanels.preview.iframeTitle')}
                         style={{
@@ -3039,6 +3043,7 @@ export const Preview = memo(
                   </div>
                 ) : (
                   <iframe
+                    key="runtime-preview"
                     ref={iframeRef}
                     title={t('idePanels.preview.iframeTitle')}
                     className="border-none w-full h-full bg-bolt-elements-background-depth-1"
@@ -3112,6 +3117,7 @@ export const Preview = memo(
                   <>
                     {shouldShowPreviewStartupOverlay ? (
                       <iframe
+                        key="boot-preview"
                         title={t('idePanels.preview.iframeTitle')}
                         data-testid="preview-iframe"
                         className="bolt-preview-iframe bolt-preview-iframe--booting"

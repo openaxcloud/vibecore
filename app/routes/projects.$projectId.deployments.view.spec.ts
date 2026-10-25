@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deploymentStatusLabel,
   DEPLOY_POLL_INTERVAL_MS,
   DEPLOY_REQUEST_TIMEOUT_MS,
   deploymentsRedirectQuery,
@@ -143,5 +144,13 @@ describe('formatDeploymentDuration', () => {
   it('returns null for malformed or negative ranges instead of fabricating a duration', () => {
     expect(formatDeploymentDuration('not a date', '2026-07-03T10:00:42Z')).toBeNull();
     expect(formatDeploymentDuration('2026-07-03T10:00:42Z', '2026-07-03T10:00:00Z')).toBeNull();
+  });
+});
+
+describe('deployment status localization', () => {
+  it('preserves deploy progress aliases and unknown fallback', () => {
+    expect(deploymentStatusLabel('DEPLOYING', 'en')).toBe('Deploying');
+    expect(deploymentStatusLabel('IN_PROGRESS', 'en')).toBe('Deploying');
+    expect(deploymentStatusLabel('provider-internal-status', 'fr')).toBe('Inconnu');
   });
 });

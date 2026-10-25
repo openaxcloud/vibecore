@@ -16382,12 +16382,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Read a project's deploy manifest (package.json + top-level file names) from
    * its live workspace pod. This is the input to detectDeployTarget/detectServerRuntime,
    * so the Deploy panel's "detected mode" and the deploy handler's routing agree.
-   * Never throws — an unreachable workspace comes back as { ok:false }.
+   * An unreachable workspace returns { ok:false }; an explicit foreign workspace
+   * is rejected before any agent token or filesystem request.
    */
   const readWorkspaceDeployManifest = async (
     request: any,
     project: ProjectRecord,
     timeoutSeconds: number,
+    requestedWorkspaceId?: string,
   ): Promise<
     | { ok: true; packageJson: string | null; topLevelFiles: string[]; declaredRun: string | null }
     | { ok: false; reason: string }
@@ -16395,11 +16397,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const userId = request.currentUser?.id;
     const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
 
+    const defaultWorkspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
+    let workspaceId = defaultWorkspaceId;
+
+    if (requestedWorkspaceId && requestedWorkspaceId !== defaultWorkspaceId) {
+      const workspace = await store.getWorkspace(requestedWorkspaceId);
+
+      if (!workspace || workspace.projectId !== project.id) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 404,
+          code: 'WORKSPACE_NOT_FOUND',
+        });
+      }
+
+      workspaceId = workspace.id;
+    }
+
     if (!userId || !WebSocketCtor) {
       return { ok: false, reason: 'Open the project workspace before deploying.' };
     }
 
-    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     try {
@@ -35876,7 +35893,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const manifest = await readWorkspaceDeployManifest(request, project, 60);
+    const query = parse(z.object({ workspaceId: workspaceIdField }), request.query ?? {});
+    const manifest = await readWorkspaceDeployManifest(request, project, 60, query.workspaceId);
 
     if (!manifest.ok) {
       // Workspace not reachable yet — tell the panel to retry rather than guess.

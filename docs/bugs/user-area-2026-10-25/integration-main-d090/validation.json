@@ -1,0 +1,35 @@
+{
+  "base": "d09045d5a2fca53dbd7dbab61b4e505ad251d728",
+  "ownParent": "3084fcf74",
+  "server": "http://127.0.0.1:7099",
+  "syntheticAPI": "http://127.0.0.1:3199",
+  "tests": {
+    "groups": [
+      81,
+      58,
+      34
+    ],
+    "uniqueTotal": 173,
+    "index6RecheckedAfterDocUpdate": true
+  },
+  "build": 0,
+  "typecheck": 0,
+  "lint": {
+    "exit": 0,
+    "errors": 0,
+    "existingWarnings": 52
+  },
+  "sourceSHA256": {
+    "app/components/dashboard/SaaSLayout.tsx": "9c0e509ad2f1e000de512ba7d1653bca505a887d30a821eb5966a6edcf94a320",
+    "app/components/dashboard/ProjectCardMenu.tsx": "6f5f72d23472bee9ced339f5f4338bbd270f08fe344be2464d634ba7eab5531a",
+    "app/components/ui/Dropdown.tsx": "5eab3f53b0955ef23c77ebaafb731899991e7cbe61c740178026b487efab6883",
+    "app/components/ui/SearchInput.tsx": "7282cb1fcc34b72c58c275912339722349d3641c3e4e8610c309cdefae3c8959",
+    "app/routes/account-settings.data.tsx": "8051033e53daf9bd72520fe70d47cdc9c9e79a741c3986efe7133decd1d0fb5b",
+    "app/routes/billing.tsx": "9810532f787c23391aa1084992eb08305799945808f4298750194119b3d8f945",
+    "app/routes/notifications.tsx": "ec92fb1dfc9d4c45ff04009a222cdc6e8725aa24ff8197a2ca17eff325e77eab",
+    "app/routes/payment-method.tsx": "2362dfedcf128f51debd7fe60e8868c26adb6b87810c49430ec1e13fc91dbc82",
+    "app/routes/projects._index.tsx": "c5c2daeb5ca4820fe7f0dd8a8ad6a719a798266be74606acbf9aa26bc913268a",
+    "app/routes/upgrade.tsx": "73fb4da2fe58d7fa7474455f13d1782a440cdf6c735d5a1c8ccf11f52e534d1f",
+    "app/routes/usage.tsx": "04ca809aba23a0aff7c005e88b15f55afc924f181d626dbace5e31986ed9dfcc"
+  }
+}

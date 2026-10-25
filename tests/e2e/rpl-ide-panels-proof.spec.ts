@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
+import { installPanelHistoryDiagnostics } from './helpers/panel-history-diagnostics';
 
 /**
  * RPL-IDE-001.4 → .8 — live proof.
@@ -410,6 +411,7 @@ test('interrupted move navigation cannot swallow a later browser Back', async ({
 
   const auth = await authenticate(page);
   const projectId = await seedProject(page, auth, 'light');
+  const historyDiagnostic = await installPanelHistoryDiagnostics(page);
   await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
   await expect(
     page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"][aria-selected="true"]'),
@@ -463,37 +465,55 @@ test('interrupted move navigation cannot swallow a later browser Back', async ({
 
   try {
     await openOptionsMenu(page, 0);
+    historyDiagnostic.mark('before-move');
     await page.locator('[data-testid="tab-options-move-to-pane-0"]').click();
+    historyDiagnostic.mark('after-move');
     await seen;
+    historyDiagnostic.mark('preview-request-observed');
 
     const deployment = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="deployments"]');
+    historyDiagnostic.mark('before-cancel-preview');
     await deployment.locator('.bolt-project-tab-main').click();
+    historyDiagnostic.mark('after-cancel-preview');
     await expect(deployment).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(/panel=deployments/);
     await expect
       .poll(() => failed.length, { message: 'preview navigation must actually be aborted' })
       .toBeGreaterThan(0);
+    historyDiagnostic.mark('preview-request-aborted');
     release();
     await page.unrouteAll({ behavior: 'wait' });
     await testInfo.attach('interruption.json', {
       body: JSON.stringify({ before, after: await paneTabPanels(page), failed, previewId }),
       contentType: 'application/json',
     });
+    historyDiagnostic.mark('before-back-1');
     await page.goBack({ waitUntil: 'domcontentloaded' });
+    historyDiagnostic.mark('after-back-1');
 
     if (new URL(page.url()).searchParams.get('panel') === 'deployments') {
+      historyDiagnostic.mark('before-back-2');
       await page.goBack({ waitUntil: 'domcontentloaded' });
+      historyDiagnostic.mark('after-back-2');
     }
 
     await expect(page).toHaveURL(/panel=preview/);
     await expect(page.locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
     await shot(page, 'interrupted-back-preview');
+    historyDiagnostic.mark('before-forward');
     await page.goForward({ waitUntil: 'domcontentloaded' });
+    historyDiagnostic.mark('after-forward');
     await expect(page).toHaveURL(/panel=deployments/);
     await expect(deployment).toHaveAttribute('aria-selected', 'true');
   } finally {
     release();
-    await page.unrouteAll({ behavior: 'wait' });
+
+    try {
+      await page.unrouteAll({ behavior: 'wait' });
+    } finally {
+      historyDiagnostic.mark('finally');
+      await historyDiagnostic.flush(testInfo);
+    }
   }
 });
 
@@ -886,6 +906,7 @@ test('an interrupted Back move cannot swallow a later Back to the same history e
   const seen = new Promise<void>((resolve) => {
     observed = resolve;
   });
+
   const failed: string[] = [];
   page.on('requestfailed', (request) => {
     if (request.url().includes('.data') && new URL(request.url()).searchParams.get('panel') === 'preview') {

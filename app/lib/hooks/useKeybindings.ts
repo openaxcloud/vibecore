@@ -118,6 +118,20 @@ export function useKeybindings({
         return;
       }
 
+      /*
+       * Radix dialogs own Escape dismissal (including nested layers). Window
+       * capture must not consume it before their content/document listeners.
+       * Other shortcuts and custom IDE overlays retain their existing routing.
+       */
+      if (
+        event.key === 'Escape' &&
+        binding.action === 'overlay.close' &&
+        event.target instanceof Element &&
+        event.target.closest('[role="dialog"]')?.getAttribute('data-state') === 'open'
+      ) {
+        return;
+      }
+
       const commandLike = event.metaKey || event.ctrlKey || event.altKey;
 
       const disposition = resolveEditableTargetDisposition({

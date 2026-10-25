@@ -48,7 +48,7 @@ Le navigateur bloque les requêtes tierces. Les erreurs de démarrage Vite/serve
 
 104 tests ciblés verts, lint global : 0 erreur / 52 avertissements préexistants, typage web strict et build verts. Les gardes source obsolètes sur aria-selected et titre tronqué ont été migrées vers les exigences actuelles, avec contre-épreuves rouges conservées et revue indépendante. Les autres menus Dropdown gardent leur comportement modal par défaut.
 
-Reste avant intégration : revue/CI requise, intégration de main courant, fusion normale puis vérification de la livraison autorisée. Le lot ne doit pas être décrit comme livré tant que ces étapes n'ont pas abouti.
+Main d09045d5a (#791) intégré localement avec revue sémantique indépendante. Restent CI requise, fusion normale puis vérification de la livraison autorisée. Le lot ne doit pas être décrit comme livré tant que ces étapes n'ont pas abouti.
 
 ## Distinction avec le menu IDE de #788
 
@@ -79,3 +79,7 @@ L’inspection des captures à zoom natif a révélé un titre comprimé malgré
 La récupération Paiement conserve les erreurs serveur dans la frontière de route avec leur statut HTTP ; aucun stockage persistant du brouillon ajouté. Le succès après retry est vérifié par routeur mémoire, pas par backend réel. Revue croisée indépendante des modifications de Paiement et Usage. Les journaux build/typecheck/lint du build 6799 sont dans `palette/` ; lint global : zéro erreur, 52 avertissements existants. Les recettes distinguent les builds exacts, la modification ultérieure d’espacement de palette et les données synthétiques.
 
 [Complément Profil Compte](profile/README.md) : textes longs, fuseau, cinq redimensionnements et HTTP503 en FR/EN. Brouillon conservé et erreur visible ; focus BODY constaté après soumission, sans parcours de navigation incorrect démontré. Pas de correction spéculative.
+
+## Intégration finale de main #791
+
+[Preuves, revue sémantique et 173 tests](integration-main-d090/README.md). Build, typage strict et lint verts ; parcours sensibles rejoués sur7099. La CI de ce lot reste à exécuter avant fusion normale. #791 est fusionnée dans main d09045d5a ; sa livraison est vérifiée séparément.

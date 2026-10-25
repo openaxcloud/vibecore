@@ -1,6 +1,6 @@
 # Palette : largeur des résultats
 
-Après libération de `SaaSLayout.tsx` par la fusion #788, ajout local de `min-w-0` et `gap-2` au seul lien résultat, avec `shrink-0` sur l’indication Entrée. Le delta local ne change aucune route. Cette branche attend encore l’intégration de main : les routes #788 seront conservées pendant cette fusion. À 320 px, les résultats occupaient 1 317,656 px pour une listbox de 269 px ; ils sont désormais contenus dans 269 px.
+Après libération de `SaaSLayout.tsx` par la fusion #788, ajout local de `min-w-0` et `gap-2` au seul lien résultat, avec `shrink-0` sur l’indication Entrée. Le delta local ne change aucune route. Main d09045d5a est maintenant intégré localement : routes #788 conservées, confirmé par comparaison indépendante. À 320 px, les résultats occupaient 1 317,656 px pour une listbox de 269 px ; ils sont désormais contenus dans 269 px.
 
 Avant : build local 6199, fixtures synthétiques. Après : build final 6899, même API synthétique 3199. Matrice : 40 observations (Dashboard et page Palette × 320/360/390/820/1440 × FR/EN × clair/sombre), aucun résultat débordant et aucune erreur JavaScript. Huit groupes clavier : recherche longue, redimensionnement à 320, ArrowDown puis Entrée vers Projets récents. Échap conserve la recherche et la palette inline ; aucune fermeture modale n’est revendiquée. Les appels tiers, mutations et ouverture IDE sont bloqués par le harness.
 

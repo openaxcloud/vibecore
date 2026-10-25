@@ -76,3 +76,13 @@ Les archives de logs GitHub ont répondu HTTP403 et n'ont pas été retentées. 
 ## Intégration de main après #789
 
 Main `a370d3cf6` ajoute le correctif Fleet #789. GitHub a alors signalé un conflit sur l'inventaire généré. Fusion normale, sans rebase ni modification produit : index régénéré à 490 fiches, conservant Fleet et Compte. Les trois blobs entrants (workflow, fiche Fleet, test Fleet) sont identiques à origin/main ; `git diff HEAD -- app` est vide avant commit de fusion. Les 65 tests index/Fleet/audit/navigation sont verts. Aucun changement du workflow inventé par cette session.
+
+## Intégration de main après #788 et #790
+
+Main `bb9e72c4b` contient #788. Fusion locale sans conflit de code, sans réécrire son correctif Retour : 111/112 fichiers entrants sont identiques à main, et 15/16 fichiers propres à #791 sont identiques à `fa68461a9`. Seule exception : l’index combiné. Sa fusion automatique annonçait 490 pour 491 fiches ; garde reproduite rouge (1 échec/5 succès), puis régénération nécessaire à 491.
+
+Revue indépendante favorable ; 69 tests ciblés, typage web strict et build verts ; lint 0 erreur / 52 avertissements. La recette du résultat compilé sur 6499 reprend 48 observations synthétiques, captures et reçu dans `integration-main-bb9/`. Aucun test production.
+
+L’ancienne CI `fa68461a9` a quatre jobs de tranches réussis mais une garde d’agrégation rouge : 497 tests rapportés, un échec non dérogé (`rpl-ide-panels-proof.spec.ts`, Retour après navigation interrompue), déjà attribué au correctif #788. Deux tests ont réussi après retry : sélecteur d’onglets mobile 390 et outils desktop 1280 de l’IDE, distincts de ProjectCardMenu. Extrait exact archivé ; aucune dérogation ni garde modifiée. Les transferts locaux des quatre archives JSON ont été refusés HTTP403 ; le diagnostic provient du journal du job distinct obtenu via le connecteur GitHub.
+
+La nouvelle tête devra passer ses contrôles ; fusion conditionnée aussi à la validation du correctif #788 sur main. Aucun déploiement de #791 encore effectué.

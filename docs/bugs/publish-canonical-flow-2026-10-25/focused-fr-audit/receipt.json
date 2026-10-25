@@ -1,0 +1,380 @@
+{
+  "date": "2026-10-25",
+  "overallResult": "failed: external Google Fonts DNS errors; assertions preserved",
+  "compiledProduct": "663d9d36de23799cb2b441c48ac286d1d86a1ba3",
+  "browser": "System Chromium154.0.8037.57",
+  "scope": {
+    "routes": [
+      "deployments",
+      "domains"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "widths": [
+      1440,
+      390
+    ],
+    "languagePairs": [
+      "en",
+      "fr"
+    ],
+    "routeThemeViewportObservations": 8,
+    "notFullAudit": true,
+    "excluded": [
+      "marketing",
+      "admin",
+      "other user routes",
+      "1024px",
+      "768px"
+    ]
+  },
+  "stats": {
+    "startTime": "2026-10-25T18:19:57.920Z",
+    "duration": 297783.307,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "retries": 0,
+  "workers": 1,
+  "findingsTotal": 0,
+  "pageErrorsTotal": 0,
+  "consoleErrorTotal": 16,
+  "observations": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "route": "deployments",
+      "theme": "dark",
+      "finalPanel": "deployments",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "dark",
+        "fr": "dark"
+      },
+      "scannedEntries": 263,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "route": "domains",
+      "theme": "dark",
+      "finalPanel": "domains",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "dark",
+        "fr": "dark"
+      },
+      "scannedEntries": 253,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "route": "deployments",
+      "theme": "light",
+      "finalPanel": "deployments",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "light",
+        "fr": "light"
+      },
+      "scannedEntries": 263,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "route": "domains",
+      "theme": "light",
+      "finalPanel": "domains",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "light",
+        "fr": "light"
+      },
+      "scannedEntries": 253,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "deployments",
+      "theme": "dark",
+      "finalPanel": "deployments",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "dark",
+        "fr": "dark"
+      },
+      "scannedEntries": 67,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "domains",
+      "theme": "dark",
+      "finalPanel": "domains",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "dark",
+        "fr": "dark"
+      },
+      "scannedEntries": 57,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "deployments",
+      "theme": "light",
+      "finalPanel": "deployments",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "light",
+        "fr": "light"
+      },
+      "scannedEntries": 67,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "route": "domains",
+      "theme": "light",
+      "finalPanel": "domains",
+      "responseStatus": {
+        "en": 200,
+        "fr": 200
+      },
+      "documentLanguage": {
+        "en": "en",
+        "fr": "fr"
+      },
+      "documentTheme": {
+        "en": "light",
+        "fr": "light"
+      },
+      "scannedEntries": 57,
+      "findingsCount": 0,
+      "languageSwitchCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [
+        {
+          "language": "en",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        },
+        {
+          "language": "fr",
+          "host": "fonts.googleapis.com",
+          "error": "ERR_NAME_NOT_RESOLVED"
+        }
+      ]
+    }
+  ],
+  "testSourceSha256": [
+    {
+      "path": "app/lib/i18n/catalogs/live-audit-heuristics.ts",
+      "sha256": "ec2688c4d7b4ce232ad24284e716e0215c864652807265e1f23b55839f29f692"
+    },
+    {
+      "path": "tests/e2e/i18n-french-live.spec.ts",
+      "sha256": "e918a0dea845c57afa15b83e9c5b218c6e08a659b3357ebc806d3be68ba6f021"
+    },
+    {
+      "path": "tests/i18n/audit-shell-path.ts",
+      "sha256": "89a332e00ff868d2afd8757559c0a72a8a43fa6f9f92c4ef9fc86b99f13bf8c6"
+    },
+    {
+      "path": "tests/i18n/audit-shell-path.spec.ts",
+      "sha256": "6f6bcbd20d33431431723437bc7a853505b8c535875fb3d175093be7cd05dcaa"
+    },
+    {
+      "path": "tests/i18n/live-audit-heuristics.spec.ts",
+      "sha256": "69ee3846632f3dbca8e0c44aa86a433513e969e4209ed9bc4722fecc215424bb"
+    }
+  ],
+  "buildManifestSha256": "3d1ccbb5261af65038ac2b76749896c317225ca0b889101bd767b532175afad2",
+  "buildMismatches": 0,
+  "qualification": [
+    "Real isolated local API and compiled web, unique synthetic account/project per viewport",
+    "Harness changes loaded from working tree; production bundle not rebuilt or patched",
+    "No font mock, whitelist, download or weakened assertion",
+    "Global audit remains red despite zero translation residues",
+    "Screenshots use fallback fonts due DNS failure, not proof of production font metrics",
+    "CI and production verdicts remain pending"
+  ],
+  "artifacts": [
+    "desktop-fr-deployments-dark.png",
+    "mobile-fr-domains-light.png"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "compiledProduct": "334f9821a76b7fc844b14f488d08069c2677c1b7",
+  "method": "Controlled diagnostic copy invokes the enabled qa-ready mobile rollback button synchronously after viewport1440, before debounced layout commit. Not a failure of the unchanged original testcase. No product or timing change. Final original-test assertions retained in proposed desktop-readiness correction.",
+  "observations": [
+    {
+      "timeMs": 0,
+      "width": 390,
+      "dialogs": 0,
+      "mobile": 1,
+      "desktop": 0
+    },
+    {
+      "timeMs": 95,
+      "width": 1440,
+      "dialogs": 0,
+      "mobile": 1,
+      "desktop": 0,
+      "event": "rollback-click",
+      "mobileClick": true
+    },
+    {
+      "timeMs": 129,
+      "width": 1440,
+      "dialogs": 1,
+      "mobile": 1,
+      "desktop": 0
+    },
+    {
+      "timeMs": 255,
+      "width": 1440,
+      "dialogs": 0,
+      "mobile": 0,
+      "desktop": 1
+    }
+  ],
+  "mutationCount": 1,
+  "mutationQualification": "Only earlier cancel503 was intercepted. No rollback request sent.",
+  "nonProbativeAttempts": [
+    "First copy selected disabled BUILDING rollback, no click occurred",
+    "Second copy asserted disabledfalse and failed because selector still picked BUILDING; corrected to qa-ready for final counterproof"
+  ],
+  "attempts": 3,
+  "result": "Dialog opened in outgoing mobile tree and disappeared when desktop replaced it; confirms readiness requirement after resize",
+  "fix": "Wait for visible desktop deployment host before reopening confirmation, then require heading visible before screenshot. No timeout increase."
+}

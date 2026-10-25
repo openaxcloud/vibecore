@@ -12,7 +12,7 @@ id: BUG-ACCOUNT-NAVIGATION-20261025
 
 ## 💻 Codé
 
-Correctif local : navigation nommée native, liens NavLink avec aria-current, retour à la ligne sans couper les libellés. Pas encore intégré à main. Aucune fonction supprimée.
+Fusion normale #791 le 25 octobre 2026 : main `d09045d5a2fca53dbd7dbab61b4e505ad251d728`. Navigation nommée native, liens NavLink avec aria-current, retour à la ligne sans couper les libellés. Tous les contrôles de tête `9aa0eb4` sont passés ; déploiement et recette production restent distincts. Aucune fonction supprimée.
 
 ## ✅ Testé live
 
