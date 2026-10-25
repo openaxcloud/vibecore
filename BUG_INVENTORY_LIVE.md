@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-487 entrées.
+488 entrées.
 
 ## Sans section
 
@@ -624,6 +624,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-GIT-DEPLOY-WORKFLOW-20261025](docs/bugs/BUG-GIT-DEPLOY-WORKFLOW-20261025.md) — Des requêtes tardives et doubles clics rendent les panneaux Git et Déploiement incohérents ; une erreur Domains peut apparaître comme une liste vide. — 📤 Dispatché : 25 octobre 2026 : audit parallèle Git et Déploiement, base main `941d7d7fc`. PR ouvertes vérifiées avant modif · 💻 Codé : Correctifs locaux sur `fix/git-deploy-workflow-20261025`, pas intégré à main. Domains est déjà un alias de nav · ✅ Testé live : Production non certifiée ; QA production déconnectée. Recette locale compilée finale 1/1 passée en 22,9 s, san
+
+## Livraison — production
+
+- [BUG-FLEET-MEMBERSHIP-LOCATION-001](docs/bugs/BUG-FLEET-MEMBERSHIP-LOCATION-001.md) — 📤 Dispatché : 25 octobre 2026, diagnostic du déploiement #784, run 40205758137, job 121219777586. Propriétaire unique du cor · 💻 Codé : Correctif préparé : les deux appels `gcloud container fleet memberships get-credentials` de deploy-main sélect · ✅ Testé live : Non pour le correctif. La panne réelle précédente est attestée par le log GitHub : étape 12 Connect Gateway, a
 
 ## Résidus non tabulaires — reportés mot pour mot
 
