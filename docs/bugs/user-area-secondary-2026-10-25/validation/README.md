@@ -11,3 +11,5 @@ Les matrices sont associées à leurs builds successifs et aux fichiers exercés
 Navigateur Chromium local et API synthétiques seulement. Aucune recette backend réel ou production authentifiée ; aucune opération financière, création de compte, invitation, révocation ou mutation client réelle. Voir la cartographie pour les pages non couvertes et les limites matérielles.
 
 Les journaux texte archivés sont normalisés uniquement pour supprimer les espaces de fin de ligne et les lignes vides finales ; contenu et verdicts conservés.
+
+Correction documentaire après CI #795 : Gitleaks8.21.2 a signalé une empreinte SHA-256 sur la ligne du chemin api-keys.tsx dans source-sha256.json. Le format sépare maintenant path et sha256 ; les onze empreintes sont identiques et vérifiées contre les fichiers. Aucun secret réel ni règle/exception Gitleaks ajoutée. La détection initiale et le résultat après correction restent distingués.

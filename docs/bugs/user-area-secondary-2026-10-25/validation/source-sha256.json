@@ -1,13 +1,48 @@
 {
-  "app/components/dashboard/SaaSLayout.spec.ts": "787b9b57576bb44649ecbfd6226e982aae166776feb8fc6fe72e7e3bdfae005f",
-  "app/components/dashboard/SaaSLayout.tsx": "576c5a052d26163a65b10e53bcdc4b892362c3a8bac603ab0471d107f3f03d56",
-  "app/components/marketing/ecode-exact/EcodeExactShell.tsx": "d87d899dd60be31bde31d5c49c7e7ec0fc469c377186301e882075c7cc77fbc2",
-  "app/components/settings/WorkspaceSettings.tsx": "c70a54385d4206b5507d2c20d6548e9c960835df6e2425ccb891046009049d3b",
-  "app/lib/i18n/catalogs/user-area.spec.ts": "83140133a327313261b6c77ea3bcd3e4aa139e3f202f3eaa45cf045f331e494f",
-  "app/lib/i18n/catalogs/user-area.ts": "f1447326d914aab8da68184daab7757a9b2d80a168fa1487c76c81363d07772b",
-  "app/routes/api-keys.tsx": "3db4bc007453b3e9409202a40c595158c86099ad243ea016681951fd26827acd",
-  "app/routes/invoices.tsx": "e1db76c70a47b7c017d686d548d5d79e26a398461b79cf48dbbaed312c6df709",
-  "app/routes/organization-members.tsx": "286b667f4c422113fb28e6d0e7bb3f3cc729b470dfe6a204e02f4931c329ca4e",
-  "app/routes/support.tsx": "f3ac67d5db854d363c1463595bc8b3b2e31b0922c4044a5017e6ed869804fe00",
-  "app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx": "3e18d30b0d47274c642c04d6b9af64231f521ce003a1b08888a1b77bf00cff86"
+  "files": [
+    {
+      "path": "app/components/dashboard/SaaSLayout.spec.ts",
+      "sha256": "787b9b57576bb44649ecbfd6226e982aae166776feb8fc6fe72e7e3bdfae005f"
+    },
+    {
+      "path": "app/components/dashboard/SaaSLayout.tsx",
+      "sha256": "576c5a052d26163a65b10e53bcdc4b892362c3a8bac603ab0471d107f3f03d56"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+      "sha256": "d87d899dd60be31bde31d5c49c7e7ec0fc469c377186301e882075c7cc77fbc2"
+    },
+    {
+      "path": "app/components/settings/WorkspaceSettings.tsx",
+      "sha256": "c70a54385d4206b5507d2c20d6548e9c960835df6e2425ccb891046009049d3b"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/user-area.spec.ts",
+      "sha256": "83140133a327313261b6c77ea3bcd3e4aa139e3f202f3eaa45cf045f331e494f"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/user-area.ts",
+      "sha256": "f1447326d914aab8da68184daab7757a9b2d80a168fa1487c76c81363d07772b"
+    },
+    {
+      "path": "app/routes/api-keys.tsx",
+      "sha256": "3db4bc007453b3e9409202a40c595158c86099ad243ea016681951fd26827acd"
+    },
+    {
+      "path": "app/routes/invoices.tsx",
+      "sha256": "e1db76c70a47b7c017d686d548d5d79e26a398461b79cf48dbbaed312c6df709"
+    },
+    {
+      "path": "app/routes/organization-members.tsx",
+      "sha256": "286b667f4c422113fb28e6d0e7bb3f3cc729b470dfe6a204e02f4931c329ca4e"
+    },
+    {
+      "path": "app/routes/support.tsx",
+      "sha256": "f3ac67d5db854d363c1463595bc8b3b2e31b0922c4044a5017e6ed869804fe00"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx",
+      "sha256": "3e18d30b0d47274c642c04d6b9af64231f521ce003a1b08888a1b77bf00cff86"
+    }
+  ]
 }
