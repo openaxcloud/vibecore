@@ -19,6 +19,8 @@ import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
 import { messageDEchecDInstallation } from '~/lib/ide/message-echec-installation';
 import { objectStorageResultOrDisabled } from '~/lib/ide/panneau-stockage-objets';
 import {
+  buildSecurityGrepCommand,
+  isSuccessfulNpmAudit,
   extractGrepMatchLines,
   isGrepMatchLine,
   isSecurityScheduleDue,
@@ -2809,7 +2811,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
      * diagnostiquer. Et le message porte la fin de la sortie — la cause réelle
      * (module introuvable, registre injoignable…), pas un « échec » nu.
      */
-    if (run.exitCode !== 0) {
+    if (run.exitCode !== 0 || run.status !== 'succeeded') {
       throw json(
         {
           error: messageDEchecDInstallation(run, language),
@@ -5153,8 +5155,8 @@ async function runTerminalCommand(
       id: randomUUID(),
       name,
       script: command,
-      exitCode: result.exitCode ?? 0,
-      status: result.exitCode && result.exitCode !== 0 ? 'failed' : 'succeeded',
+      exitCode: Number.isInteger(result.exitCode) ? result.exitCode! : -1,
+      status: result.exitCode === 0 ? 'succeeded' : 'failed',
       output: result.output ?? '',
       startedAt,
       finishedAt,
@@ -5224,8 +5226,8 @@ async function runPackageInstall(
       id: randomUUID(),
       name: input.name,
       script: result.command ?? `${input.packageManager} install`,
-      exitCode: result.exitCode ?? 0,
-      status: result.success === false || (result.exitCode && result.exitCode !== 0) ? 'failed' : 'succeeded',
+      exitCode: Number.isInteger(result.exitCode) ? result.exitCode! : -1,
+      status: result.success !== false && result.exitCode === 0 ? 'succeeded' : 'failed',
       output: result.output ?? '',
       startedAt: input.startedAt,
       finishedAt: finishedAt(),
@@ -5263,35 +5265,36 @@ async function runSecurityScan(
   const runSecretScan = state.settings.secretScanEnabled && ['workspace-runtime', 'secrets'].includes(scannerProfile);
   const runSastScan = state.settings.sastEnabled && ['workspace-runtime', 'sast'].includes(scannerProfile);
 
-  const auditCommand = runDependencyAudit ? 'npm audit --json || true' : 'node -e "console.log(\\"{}\\")"';
+  const commandRuns: Awaited<ReturnType<typeof runTerminalCommand>>[] = [];
+  const findings: ReturnType<typeof vulnerabilitiesFromAuditOutput> = [];
 
-  const auditRun = await runTerminalCommand(
-    request,
-    workspaceId,
-    auditCommand,
-    copy['apiRuntime.panel.securityDependencyAudit'],
-    now,
-    language,
-  );
+  if (runDependencyAudit) {
+    const auditRun = await runTerminalCommand(
+      request,
+      workspaceId,
+      'npm audit --json',
+      copy['apiRuntime.panel.securityDependencyAudit'],
+      now,
+      language,
+    );
 
-  const commandRuns = [auditRun];
+    /*
+     * npm exits 1 for findings as well as some operational errors. Only a valid
+     * report distinguishes those outcomes; missing/invalid JSON is never clean.
+     */
+    auditRun.status = isSuccessfulNpmAudit(auditRun.exitCode, auditRun.output) ? 'succeeded' : 'failed';
+    commandRuns.push(auditRun);
 
-  const findings =
-    auditRun.status === 'succeeded' ? vulnerabilitiesFromAuditOutput(auditRun.output, now, language) : [];
+    if (auditRun.status === 'succeeded') {
+      findings.push(...vulnerabilitiesFromAuditOutput(auditRun.output, now, language));
+    }
+  }
 
-  /*
-   * BUG-SEC-SCANNER-PHANTOM-FINDING: `2>/dev/null` keeps grep's own error/usage
-   * text (unsupported option on BusyBox grep, permission errors, …) out of the
-   * captured output — the runtime merges stdout+stderr — so tool noise can never
-   * be parsed into findings. A failed sub-command is logged and skipped instead
-   * of being reported as vulnerabilities (extractGrepMatchLines is the second
-   * line of defence for anything that still slips through on stdout).
-   */
   if (runSecretScan) {
     const secretRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null | head -50 || true",
+      buildSecurityGrepCommand('secrets'),
       copy['apiRuntime.panel.securitySecretScan'],
       now,
       language,
@@ -5318,7 +5321,7 @@ async function runSecurityScan(
     const sastRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build 2>/dev/null | head -80 || true",
+      buildSecurityGrepCommand('sast'),
       copy['apiRuntime.panel.securityStaticScan'],
       now,
       language,
@@ -5337,20 +5340,21 @@ async function runSecurityScan(
 
   const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
   const failedRun = commandRuns.find((run) => run.status !== 'succeeded');
+  const incomplete = Boolean(failedRun) || commandRuns.length === 0;
   const refreshed = findings.map((finding) => ({ ...(existingById.get(finding.id) ?? {}), ...finding }));
 
   // An incomplete scan must not erase previous findings or look like a clean scan.
-  state.vulnerabilities = failedRun
+  state.vulnerabilities = incomplete
     ? Array.from(new Map([...state.vulnerabilities, ...refreshed].map((finding) => [finding.id, finding])).values())
     : refreshed;
   state.scans.unshift({
     id: randomUUID(),
     scanType: 'full',
     scanner: scannerProfile,
-    status: failedRun ? 'failed' : 'completed',
+    status: incomplete ? 'failed' : 'completed',
     startedAt: now,
     completedAt: new Date().toISOString(),
-    summary: failedRun
+    summary: incomplete
       ? copy['apiRuntime.panel.executionFailed']
       : formatApiRuntimeRoutesCopy(
           copy[
@@ -5360,7 +5364,7 @@ async function runSecurityScan(
           ],
           { count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(findings.length) },
         ),
-    exitCode: failedRun?.exitCode ?? auditRun.exitCode,
+    exitCode: failedRun?.exitCode ?? (incomplete ? -1 : 0),
     commands: commandRuns.map(({ name, status, exitCode }) => ({ name, status, exitCode })),
     counts: securitySeverityCounts(state.vulnerabilities),
     sources: securitySourceCounts(state.vulnerabilities),

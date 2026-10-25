@@ -13,7 +13,7 @@ Oui — complément borné du lot d’honnêteté des intégrations du 20 octobr
 
 ## 💻 Codé
 
-Correctif local validé sur le périmètre ci-dessous, non fusionné : `create-webhook` n’enregistre plus de taux. Le GET expose `webhookDeliveryMetrics.available=false` ; les anciennes valeurs ne sont pas réécrites. Le panneau indique en français/anglais que les mesures de livraison sont indisponibles, sans interpréter un ancien taux ou son absence. La configuration enregistrée est explicitement distinguée d’une livraison vérifiée. Les chemins de configuration, d’activation, de suppression, de secrets et de permissions sont conservés.
+Correctif présent sur main `941d7d7fc`, vérifié le 25 octobre 2026 (commit `c98845221`) : `create-webhook` n’enregistre plus de taux. Le GET expose `webhookDeliveryMetrics.available=false` ; les anciennes valeurs ne sont pas réécrites. Le panneau indique en français/anglais que les mesures de livraison sont indisponibles, sans interpréter un ancien taux ou son absence. La configuration enregistrée est explicitement distinguée d’une livraison vérifiée. Les chemins de configuration, d’activation, de suppression, de secrets et de permissions sont conservés.
 
 ## ✅ Testé live
 

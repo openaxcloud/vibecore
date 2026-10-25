@@ -15,7 +15,7 @@ Oui — tranche bornée du 20 octobre 2026, branche `codex/integration-sync-hone
 
 ## 💻 Codé
 
-Correctif local validé sur le périmètre ci-dessous, non fusionné : le POST garde la lecture autorisée du projet, puis refuse `503 INTEGRATION_SYNC_UNAVAILABLE` sans écrire l’état ni les secrets. Le GET expose une capacité `available=false`. Les boutons Sync restent désactivés avec explication EN/FR ; l’historique enregistré est qualifié « non vérifié », sans migration ni réécriture. Connect ne génère plus de date de synchronisation.
+Correctif présent sur main `941d7d7fc`, vérifié le 25 octobre 2026 (commit `c98845221`) : le POST garde la lecture autorisée du projet, puis refuse `503 INTEGRATION_SYNC_UNAVAILABLE` sans écrire l’état ni les secrets. Le GET expose une capacité `available=false`. Les boutons Sync restent désactivés avec explication EN/FR ; l’historique enregistré est qualifié « non vérifié », sans migration ni réécriture. Connect ne génère plus de date de synchronisation.
 
 ## ✅ Testé live
 

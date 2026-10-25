@@ -118,3 +118,61 @@ export function isSecurityScheduleDue(state: any, now: Date): boolean {
 
   return !Number.isNaN(nextRunAt.getTime()) && nextRunAt.getTime() <= now.getTime();
 }
+
+/** Stream a bounded prefix while draining grep; preserve its actual exit code. */
+export function buildSecurityGrepCommand(kind: 'secrets' | 'sast'): string {
+  const pattern =
+    kind === 'secrets'
+      ? '(api[_-]?key|secret|password|token)[[:space:]]*[:=]'
+      : '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML[[:space:]]*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)';
+  const args = [
+    '-RInE',
+    pattern,
+    '.',
+    '--exclude-dir=node_modules',
+    '--exclude-dir=.git',
+    ...(kind === 'sast' ? ['--exclude-dir=dist', '--exclude-dir=build'] : []),
+  ];
+
+  /*
+   * No temporary file containing source credentials. Output is bounded even for
+   * a single huge matching line, while grep errors remain visible as failures.
+   */
+  const script = `const {spawn}=require('node:child_process');
+const child=spawn('grep',${JSON.stringify(args)},{stdio:['ignore','pipe','ignore']});
+let lines=0, bytes=0;
+child.stdout.on('data',chunk=>{
+  let end=0;
+  while(end<chunk.length && lines<${kind === 'secrets' ? 50 : 80} && bytes<65536) {
+    if(chunk[end]===10) lines++;
+    end++; bytes++;
+  }
+  if(end) process.stdout.write(chunk.subarray(0,end));
+});
+child.on('error',()=>{process.exitCode=2;});
+child.on('close',code=>{process.exitCode=(code===0||code===1)?0:(code||2);});`;
+
+  return `node -e '${script.replace(/'/g, "'\\''")}'`;
+}
+
+/** npm audit exit 1 is usable only when it contains a supported audit report. */
+export function isSuccessfulNpmAudit(exitCode: number, output: string): boolean {
+  if (exitCode !== 0 && exitCode !== 1) {
+    return false;
+  }
+
+  try {
+    const report = JSON.parse(output);
+    return (
+      report !== null &&
+      typeof report === 'object' &&
+      !report.error &&
+      report.auditReportVersion === 2 &&
+      report.vulnerabilities !== null &&
+      typeof report.vulnerabilities === 'object' &&
+      !Array.isArray(report.vulnerabilities)
+    );
+  } catch {
+    return false;
+  }
+}
