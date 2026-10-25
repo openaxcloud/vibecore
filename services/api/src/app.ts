@@ -1652,6 +1652,30 @@ const runtimeCommandSchema = z.object({
   args: z.array(z.string()).optional(),
   timeoutMs: z.number().int().positive().optional(),
 });
+
+// Structured debugger requests cannot select an inspector method or a network target.
+const runtimeDebuggerStartSchema = z
+  .object({
+    operationId: z.string().uuid(),
+    stopOnEntry: z.boolean().optional(),
+    program: z.string().min(1).max(4096),
+    args: z.array(z.string().max(4096)).max(100).optional(),
+    cwd: z.string().max(4096).optional(),
+    breakpoints: z
+      .array(z.object({ file: z.string().min(1).max(4096), line: z.number().int().positive() }).strict())
+      .max(100)
+      .optional(),
+    watches: z.array(z.string().min(1).max(1024)).max(32).optional(),
+  })
+  .strict();
+const runtimeDebuggerControlSchema = z
+  .object({
+    action: z.enum(['continue', 'pause', 'step-over', 'step-into', 'step-out']),
+  })
+  .strict();
+
+const runtimeDebuggerParams = workspaceParams.extend({ id: z.string().uuid() });
+
 const packagesInstallSchema = z.object({
   // Zero packages runs a plain lockfile install; otherwise these get added.
   packages: z.array(z.string().trim().min(1)).max(50).optional(),
@@ -15391,6 +15415,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     path: string,
     init: RequestInit = {},
     contexteRequete?: any,
+    maxAttempts = AGENT_REQUEST_ATTEMPTS,
   ) => {
     const token = await agentToken(workspaceId);
     const headers = new Headers(init.headers);
@@ -15406,7 +15431,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let lastError: unknown;
 
-    for (let attempt = 1; attempt <= AGENT_REQUEST_ATTEMPTS; attempt++) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       // Never retry once the caller (client) has disconnected.
       if (init.signal?.aborted) {
         throw Object.assign(new Error(appPublicEnglish('STREAM_ABORTED')), {
@@ -15439,7 +15464,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
         }
 
-        if (shouldRetryAgentHop({ kind: 'connection', method, attempt, maxAttempts: AGENT_REQUEST_ATTEMPTS })) {
+        if (shouldRetryAgentHop({ kind: 'connection', method, attempt, maxAttempts })) {
           await agentSleep(agentRetryDelay(attempt));
           continue;
         }
@@ -15514,7 +15539,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             status: response.status,
             method,
             attempt,
-            maxAttempts: AGENT_REQUEST_ATTEMPTS,
+            maxAttempts,
           })
         ) {
           await response.body?.cancel().catch(() => undefined);
@@ -19463,6 +19488,79 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/api/runtime/workspaces/:workspaceId/sessions/v1/start', async (request) => {
     parse(runtimeCommandSchema.extend({ background: z.literal(true), operationId: z.string().uuid() }), request.body);
     return runRuntimeCommand(request);
+  });
+
+  const authorizeDebugger = async (request: FastifyRequest) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    if (await isTerminalAccessRevoked(authorized, request)) {
+      throw Object.assign(new Error(appPublicEnglish('TERMINAL_ACCESS_DENIED')), {
+        statusCode: 403,
+        code: 'TERMINAL_ACCESS_DENIED',
+      });
+    }
+
+    return authorized;
+  };
+  app.post('/api/runtime/workspaces/:workspaceId/debugger/v1/start', async (request) => {
+    const authorized = await authorizeDebugger(request);
+    const body = parse(runtimeDebuggerStartSchema, request.body);
+
+    let compatible = false;
+
+    try {
+      const capabilities = await agentRequest<{ nodeDebugger?: unknown }>(
+        authorized.workspaceId,
+        '/sessions/capabilities',
+      );
+      compatible = capabilities?.nodeDebugger === 1;
+    } catch {
+      // A legacy/unreachable agent must never fall back to ordinary execution.
+    }
+
+    if (!compatible) {
+      throw Object.assign(new Error(), { statusCode: 503, code: 'DEBUG_AGENT_INCOMPATIBLE' });
+    }
+
+    return agentRequest(authorized.workspaceId, '/debugger/v1/start', { method: 'POST', body: JSON.stringify(body) });
+  });
+  app.get('/api/runtime/workspaces/:workspaceId/debugger/v1/:id', async (request) => {
+    const authorized = await authorizeDebugger(request);
+    const { id } = parse(runtimeDebuggerParams, request.params);
+
+    return agentRequest(authorized.workspaceId, `/debugger/v1/${id}`);
+  });
+  app.post('/api/runtime/workspaces/:workspaceId/debugger/v1/:id/control', async (request) => {
+    const authorized = await authorizeDebugger(request);
+    const { id } = parse(runtimeDebuggerParams, request.params);
+    const body = parse(runtimeDebuggerControlSchema, request.body);
+
+    // A lost response may follow a completed step. Never retry and advance twice.
+    return agentRequest(
+      authorized.workspaceId,
+      `/debugger/v1/${id}/control`,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+      undefined,
+      1,
+    );
+  });
+  app.post('/api/runtime/workspaces/:workspaceId/debugger/v1/:id/stop', async (request, reply) => {
+    const { workspaceId, id } = parse(runtimeDebuggerParams, request.params);
+
+    // Revoking terminal access must not prevent termination of an existing child.
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    const result = await agentRequest<{ killed?: boolean; terminated?: boolean }>(
+      authorized.workspaceId,
+      `/debugger/v1/${id}/stop`,
+      { method: 'POST' },
+    );
+
+    return reply.code(result.killed === true || result.terminated === true ? 200 : 409).send(result);
   });
   app.get('/api/runtime/workspaces/:workspaceId/processes', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);

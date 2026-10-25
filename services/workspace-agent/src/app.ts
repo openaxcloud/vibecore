@@ -15,6 +15,7 @@ import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
+import { registerDebuggerEngine } from './debugger-engine.js';
 import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
 import {
   localizedWorkspaceAgentError,
@@ -57,6 +58,8 @@ export interface ProcessRecord {
   expiresAt?: string;
   stopRequested?: boolean;
   timedOut?: boolean;
+  /** Debugger-only opt-in: paused JavaScript cannot service SIGTERM handlers. */
+  forceStopAfterMs?: number;
 }
 
 interface TerminalProcessResult {
@@ -1236,7 +1239,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   app.post('/commands/run', executeCommand);
   // Authenticated by the same agent-token hook as commands; never inferred
   // from image tags or liveness. Versioned launch cannot execute on old agents.
-  app.get('/sessions/capabilities', async () => ({ trackedSessions: 1 }));
+  app.get('/sessions/capabilities', async () => ({ trackedSessions: 1, nodeDebugger: 1 }));
   app.post('/sessions/v1/start', async (request) => {
     commandSchema.extend({ background: z.literal(true), operationId: z.string().uuid() }).parse(request.body);
     return executeCommand(request);
@@ -1281,8 +1284,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return terminal ?? reply.code(404).send({ id, code: 'PROCESS_NOT_FOUND' });
   });
 
-  app.post('/processes/:id/kill', async (request) => {
-    const id = (request.params as { id: string }).id;
+  const stopProcess = async (id: string) => {
     const pending = pendingStops.get(id);
     if (pending) return pending;
     const previous = terminalResult(id);
@@ -1298,6 +1300,18 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     } finally {
       pendingStops.delete(id);
     }
+  };
+  app.post('/processes/:id/kill', async (request) => stopProcess((request.params as { id: string }).id));
+  registerDebuggerEngine(app, {
+    root,
+    processes,
+    maxProcesses,
+    timeoutMs: streamTimeoutMs,
+    maxOutputBytes,
+    env: sanitizedChildEnv(),
+    rememberTerminal,
+    terminalResult,
+    stop: stopProcess,
   });
 
   app.get('/ports', async () => {
@@ -2374,8 +2388,10 @@ export async function stopTrackedProcess(record: ProcessRecord | undefined, id: 
   if (!record?.process.pid) return { killed: false, id, code: 'PROCESS_NOT_FOUND' };
   const child = record.process;
   return new Promise<{ killed: boolean; id: string; code?: string }>((resolve) => {
+    let forceStopTimer: ReturnType<typeof setTimeout> | undefined;
     const finish = (killed: boolean, code?: string) => {
       clearTimeout(timer);
+      clearTimeout(forceStopTimer);
       child.removeListener('close', closed);
       resolve({ killed, id, ...(code ? { code } : {}) });
     };
@@ -2386,6 +2402,16 @@ export async function stopTrackedProcess(record: ProcessRecord | undefined, id: 
     try {
       record.stopRequested = true;
       process.kill(-child.pid!, 'SIGTERM');
+      if (record.forceStopAfterMs !== undefined) {
+        forceStopTimer = setTimeout(() => {
+          if (child.exitCode !== null || child.signalCode !== null) return;
+          try {
+            process.kill(-child.pid!, 'SIGKILL');
+          } catch {
+            finish(false, 'PROCESS_SIGNAL_FAILED');
+          }
+        }, record.forceStopAfterMs);
+      }
     } catch {
       record.stopRequested = false;
       finish(false, 'PROCESS_SIGNAL_FAILED');

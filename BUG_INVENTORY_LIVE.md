@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-488 entrées.
+489 entrées.
 
 ## Sans section
 
@@ -615,15 +615,19 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DEBUGGER-TRACKED-STOP-001](docs/bugs/BUG-DEBUGGER-TRACKED-STOP-001.md) — 📤 Dispatché : 23 octobre 2026, préparation locale distincte de #778, base c988c2af60d058971afe72f057c6fa82a178fb21. Aucun pu · 💻 Codé : Le lancement demande un processus enregistré à l’agent par le chemin de commande existant et mémorise son iden · ✅ Testé live : Preuves réelles et contrôlées séparées, dans `/workspace/ux-artifacts/debugger-tracked/` :
 - [BUG-SECURITY-SCAN-OPERATION-001](docs/bugs/BUG-SECURITY-SCAN-OPERATION-001.md) — 📤 Dispatché : 23 octobre 2026. Suivi local distinct de #777, basé sur `4b06e77e7c42409ffbb5bffe5503933e8f67065e`. Préparé lo · 💻 Codé : Le timer, la réponse et le catch du scan vérifient l’identité du contrôleur courant avant de modifier l’état. · ✅ Testé live : Pas de nouvelle recette navigateur ou scanner réel revendiquée. Le test `app/components/chat/security-scan-ope
 - [BUG-DEBUGGER-STATE-CONCURRENCY-001](docs/bugs/BUG-DEBUGGER-STATE-CONCURRENCY-001.md) — Deux opérations lisent le même état puis remplacent le blob entier : un historique/configuration peut disparaître malgré deux réponses de succès. — 📤 Dispatché : Lot autorisé le 23 octobre, branche distincte `fix/debugger-state-cas-local`, publié en PR brouillon #780, san · 💻 Codé : Correctif proposé en PR #780, pas livré. La route versionnée `/projects/:projectId/debugger-state/v1` exige la · ✅ Testé live : - Recette complète locale réelle : 11/11, sans omission/retry. Inclut la contre-épreuve initiale rouge, puis c
+- [BUG-DEBUGGER-NODE-STEPPING-001](docs/bugs/BUG-DEBUGGER-NODE-STEPPING-001.md) — Les commandes pas-à-pas restent désactivées et aucun moteur ne fournit les pauses, la pile et les variables. — 📤 Dispatché : 25 octobre 2026, lot distinct `feat/node-step-debugger`, base main `941d7d7fc`. Moteur agent, transport API et · 💻 Codé : Correctif local validé, non fusionné. Adaptateur Node pour fichiers JavaScript locaux ; transport Inspector pr · ✅ Testé live : Non exécuté en production. Les tests isolés utilisent exclusivement des fichiers et processus synthétiques ; r
 
 ## IDE — exécution réelle
 
 - [BUG-PANEL-EXECUTION-EVIDENCE-001](docs/bugs/BUG-PANEL-EXECUTION-EVIDENCE-001.md) — 📤 Dispatché : 25 octobre 2026, reprise après #776–780 depuis main `941d7d7fc`. Périmètres scanner, inventaire et revue indép · 💻 Codé : Correctif fusionné sur main par [#781](https://github.com/openaxcloud/vibecore/pull/781), commit `d3adf5be9`, · ✅ Testé live : Non. Commandes grep réelles sur fichiers temporaires synthétiques et contrats BFF avec exécuteur contrôlé ; au
-- [BUG-PACKAGES-SCAN-SCOPE-001](docs/bugs/BUG-PACKAGES-SCAN-SCOPE-001.md) — 📤 Dispatché : 25 octobre 2026. Lot distinct après #781, basé sur son merge main `d3adf5be9`. Git, Publish/Déploiement, Domai · 💻 Codé : Correctif local, pas encore fusionné. Packages ne neutralise plus les erreurs audit/outdated avec `|| true`. U · ✅ Testé live : Non. Tests locaux sur fichiers synthétiques et handlers avec transport contrôlé. Aucun fournisseur, donnée uti
 
 ## Sans section
 
 - [BUG-GIT-DEPLOY-WORKFLOW-20261025](docs/bugs/BUG-GIT-DEPLOY-WORKFLOW-20261025.md) — Des requêtes tardives et doubles clics rendent les panneaux Git et Déploiement incohérents ; une erreur Domains peut apparaître comme une liste vide. — 📤 Dispatché : 25 octobre 2026 : audit parallèle Git et Déploiement, base main `941d7d7fc`. PR ouvertes vérifiées avant modif · 💻 Codé : Correctifs locaux sur `fix/git-deploy-workflow-20261025`, pas intégré à main. Domains est déjà un alias de nav · ✅ Testé live : Production non certifiée ; QA production déconnectée. Recette locale compilée finale 1/1 passée en 22,9 s, san
+
+## IDE — exécution réelle
+
+- [BUG-PACKAGES-SCAN-SCOPE-001](docs/bugs/BUG-PACKAGES-SCAN-SCOPE-001.md) — 📤 Dispatché : 25 octobre 2026. Lot distinct après #781, basé sur son merge main `d3adf5be9`. Git, Publish/Déploiement, Domai · 💻 Codé : Correctif local, pas encore fusionné. Packages ne neutralise plus les erreurs audit/outdated avec `|| true`. U · ✅ Testé live : Non. Tests locaux sur fichiers synthétiques et handlers avec transport contrôlé. Aucun fournisseur, donnée uti
 
 ## Livraison — production
 
