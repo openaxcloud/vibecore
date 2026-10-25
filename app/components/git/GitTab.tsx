@@ -530,6 +530,7 @@ export function GitTab({ projectId }: GitTabProps) {
     files: Array<{ status: string; path: string }>;
     diff: string;
     loading: boolean;
+    error?: string;
   } | null>(null);
 
   const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
@@ -540,6 +541,9 @@ export function GitTab({ projectId }: GitTabProps) {
   const commitRequestRef = useRef(0);
   const mergeRequestRef = useRef(0);
   const loadRequestRef = useRef(0);
+  const hasLoadedRef = useRef(false);
+  const scopeRef = useRef({ active: true, mutationInFlight: false });
+
   const inspectionRequestRef = useRef(0);
 
   // Last working-tree file signature we triggered a silent git reload for.
@@ -600,8 +604,9 @@ export function GitTab({ projectId }: GitTabProps) {
       }
 
       const requestId = ++loadRequestRef.current;
+      const silent = Boolean(options?.silent && hasLoadedRef.current);
 
-      if (!options?.silent) {
+      if (!silent) {
         setLoading(true);
       }
 
@@ -640,7 +645,7 @@ export function GitTab({ projectId }: GitTabProps) {
            * workspace git endpoint can transiently 5xx/lock mid-generation.
            * Preserve the previously loaded state and try again on the next tick.
            */
-          if (shouldSurfaceLoadError(options?.silent)) {
+          if (shouldSurfaceLoadError(silent)) {
             throw new Error();
           }
 
@@ -665,7 +670,7 @@ export function GitTab({ projectId }: GitTabProps) {
          * would collapse `changedFiles` to [] and re-render "No changed files",
          * wiping the live working-tree list.
          */
-        if (shouldApplyEnvelopeForLoad(options?.silent, isErrorEnvelope, degraded)) {
+        if (shouldApplyEnvelopeForLoad(silent, isErrorEnvelope, degraded)) {
           setEnvelope(payload);
         }
 
@@ -676,11 +681,12 @@ export function GitTab({ projectId }: GitTabProps) {
          * would tell the user a stale/placeholder list is fresh ("just now").
          */
         if (shouldAdvanceLastFetched(isErrorEnvelope, degraded)) {
+          hasLoadedRef.current = true;
           setLastLoadedAt(new Date().toISOString());
         }
 
         if (isErrorEnvelope) {
-          if (shouldSurfaceLoadError(options?.silent)) {
+          if (shouldSurfaceLoadError(silent)) {
             setError(t('idePanels.git.loadFailed'));
           }
         } else {
@@ -702,11 +708,11 @@ export function GitTab({ projectId }: GitTabProps) {
           return;
         }
 
-        if (shouldSurfaceLoadError(options?.silent)) {
+        if (shouldSurfaceLoadError(silent)) {
           setError(t('idePanels.git.loadFailed'));
         }
       } finally {
-        if (!options?.silent && requestId === loadRequestRef.current) {
+        if (requestId === loadRequestRef.current) {
           setLoading(false);
         }
       }
@@ -719,6 +725,17 @@ export function GitTab({ projectId }: GitTabProps) {
      * Reset per-file inspection state when the IDE-wide workspace changes; the
      * staged paths/blame/diff belong to the previous workspace's working tree.
      */
+    const scope = { active: true, mutationInFlight: false };
+    scopeRef.current = scope;
+    setBusy(false);
+    loadRequestRef.current += 1;
+    hasLoadedRef.current = false;
+    setEnvelope(undefined);
+    setLastLoadedAt(undefined);
+    setError(undefined);
+    setDegradedNotice(undefined);
+    setDiscardConfirm(null);
+    setConfirmDisconnectRemote(false);
     inspectionRequestRef.current += 1;
     commitRequestRef.current += 1;
     mergeRequestRef.current += 1;
@@ -729,10 +746,21 @@ export function GitTab({ projectId }: GitTabProps) {
     setRestoreConfirm(null);
     setMergeFile(null);
     setMergeContent(null);
-  }, [currentWorkspaceId]);
+
+    return () => {
+      scope.active = false;
+    };
+  }, [projectId, currentWorkspaceId]);
 
   useEffect(() => {
     void loadPanel();
+
+    return () => {
+      loadRequestRef.current += 1;
+      commitRequestRef.current += 1;
+      mergeRequestRef.current += 1;
+      inspectionRequestRef.current += 1;
+    };
   }, [loadPanel]);
 
   /*
@@ -751,8 +779,12 @@ export function GitTab({ projectId }: GitTabProps) {
     // Seed the baseline so the first emission after mount does not double-fetch.
     filesSignatureRef.current = computeWorkspaceFilesSignature(workbenchStore.files.get());
 
+    let active = true;
+
     const reloadSilently = debounce(() => {
-      void loadPanel({ silent: true });
+      if (active) {
+        void loadPanel({ silent: true });
+      }
     }, 800);
 
     const handleFilesChange = () => {
@@ -777,6 +809,7 @@ export function GitTab({ projectId }: GitTabProps) {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
+      active = false;
       unsubscribeFiles();
       window.removeEventListener('focus', handleVisibility);
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -832,6 +865,13 @@ export function GitTab({ projectId }: GitTabProps) {
         formData.delete('workspaceId');
       }
 
+      const scope = scopeRef.current;
+
+      if (!scope.active || scope.mutationInFlight) {
+        return;
+      }
+
+      scope.mutationInFlight = true;
       setBusy(true);
       setError(undefined);
 
@@ -845,16 +885,28 @@ export function GitTab({ projectId }: GitTabProps) {
           throw new Error();
         }
 
+        if (!scope.active || scope !== scopeRef.current) {
+          return;
+        }
+
         form.reset();
         setStaged(new Set());
         toast.success(t('idePanels.git.actionCompleted'));
         await loadPanel({ silent: true });
       } catch {
+        if (!scope.active || scope !== scopeRef.current) {
+          return;
+        }
+
         const message = t('idePanels.git.actionFailed');
         setError(message);
         toast.error(message);
       } finally {
-        setBusy(false);
+        scope.mutationInFlight = false;
+
+        if (scope.active && scope === scopeRef.current) {
+          setBusy(false);
+        }
       }
     },
     [loadPanel, projectId, resolvedWorkspaceId, stagedFiles, t],
@@ -881,6 +933,13 @@ export function GitTab({ projectId }: GitTabProps) {
         formData.set('workspaceId', resolvedWorkspaceId);
       }
 
+      const scope = scopeRef.current;
+
+      if (!scope.active || scope.mutationInFlight) {
+        return;
+      }
+
+      scope.mutationInFlight = true;
       setBusy(true);
       setError(undefined);
 
@@ -894,15 +953,27 @@ export function GitTab({ projectId }: GitTabProps) {
           throw new Error();
         }
 
+        if (!scope.active || scope !== scopeRef.current) {
+          return;
+        }
+
         setStaged(new Set());
         toast.success(t('idePanels.git.actionCompleted'));
         await loadPanel({ silent: true });
       } catch {
+        if (!scope.active || scope !== scopeRef.current) {
+          return;
+        }
+
         const message = t('idePanels.git.actionFailed');
         setError(message);
         toast.error(message);
       } finally {
-        setBusy(false);
+        scope.mutationInFlight = false;
+
+        if (scope.active && scope === scopeRef.current) {
+          setBusy(false);
+        }
       }
     },
     [loadPanel, projectId, resolvedWorkspaceId, t],
@@ -935,6 +1006,11 @@ export function GitTab({ projectId }: GitTabProps) {
         }
 
         const payload = (await response.json()) as Envelope;
+
+        if (payload.status === 'error' || payload.data?.gitLoadError) {
+          throw new Error();
+        }
+
         const fileData = payload.data ?? {};
 
         if (requestId !== inspectionRequestRef.current) {
@@ -994,6 +1070,10 @@ export function GitTab({ projectId }: GitTabProps) {
         const payload = (await response.json()) as Envelope;
         const detail = ((payload.data ?? {}) as any).commitDetail;
 
+        if (payload.status === 'error' || !detail) {
+          throw new Error();
+        }
+
         if (requestId !== commitRequestRef.current) {
           return;
         }
@@ -1009,10 +1089,10 @@ export function GitTab({ projectId }: GitTabProps) {
           return;
         }
 
-        setCommitDetail({ sha, files: [], diff: '', loading: false });
+        setCommitDetail({ sha, files: [], diff: '', loading: false, error: t('idePanels.git.inspectionFailed') });
       }
     },
-    [astCopy, projectId, resolvedWorkspaceId],
+    [astCopy, projectId, resolvedWorkspaceId, t],
   );
 
   /*
@@ -1113,6 +1193,17 @@ export function GitTab({ projectId }: GitTabProps) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textSecondary">
         {t('idePanels.git.loadingStatus')}
+      </div>
+    );
+  }
+
+  if (!envelope && error) {
+    return (
+      <div role="alert" className="grid gap-3 p-4 text-sm text-bolt-elements-textSecondary">
+        <p>{error}</p>
+        <PanelButton type="button" variant="outline" onClick={() => void loadPanel()}>
+          {t('idePanels.git.refreshStatus')}
+        </PanelButton>
       </div>
     );
   }
@@ -1418,118 +1509,60 @@ export function GitTab({ projectId }: GitTabProps) {
           variant="destructive"
         />
 
-        {discardConfirm ? (
-          <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
-            role="dialog"
-            aria-modal="true"
-            data-testid="git-discard-confirm"
-            onClick={() => setDiscardConfirm(null)}
-          >
-            <div
-              className="w-[min(420px,100%)] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <h3 className="flex items-center gap-2 text-[13px] font-semibold text-bolt-elements-textPrimary">
-                <span className="i-ph:warning-circle text-base text-red-500" aria-hidden />
-                {t('idePanels.git.discardTitle')}
-              </h3>
-              <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                {discardConfirm.all
-                  ? t('idePanels.git.discardAllBody', { count: changedFiles.length })
-                  : t('idePanels.git.discardFileBody', { path: discardConfirm.path })}
-              </p>
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  type="button"
-                  className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                  onClick={() => setDiscardConfirm(null)}
-                >
-                  {t('idePanels.common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  data-testid="git-discard-confirm-button"
-                  disabled={busy}
-                  className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"
-                  onClick={() => {
-                    const target = discardConfirm;
+        <ConfirmationDialog
+          isOpen={Boolean(discardConfirm)}
+          onClose={() => setDiscardConfirm(null)}
+          onConfirm={() => {
+            const target = discardConfirm;
 
-                    /*
-                     * The action route parses `filePaths` with `split(',')`, so a single
-                     * path containing a comma would be mis-split into bogus paths: the
-                     * real changed file is never discarded yet the user still sees a
-                     * success toast. Refuse rather than revert the wrong files. (The
-                     * commit path has the same guard via findUnserializableStagedFiles.)
-                     */
-                    if (!target.all && target.path && pathBreaksCommaSerialization(target.path)) {
-                      const message = t('idePanels.git.commaDiscardError', { path: target.path });
-                      setDiscardConfirm(null);
-                      setError(message);
-                      toast.error(message);
+            if (!target) {
+              return;
+            }
 
-                      return;
-                    }
+            // Keep the comma-path guard: the backend still splits filePaths on commas.
+            if (!target.all && target.path && pathBreaksCommaSerialization(target.path)) {
+              const message = t('idePanels.git.commaDiscardError', { path: target.path });
+              setDiscardConfirm(null);
+              setError(message);
+              toast.error(message);
 
-                    setDiscardConfirm(null);
-                    void runIntent('discard', target.all || !target.path ? {} : { filePaths: target.path });
-                  }}
-                >
-                  {discardConfirm.all ? t('idePanels.git.discardAll') : t('idePanels.git.discardFile')}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
+              return;
+            }
 
-        {restoreConfirm ? (
-          <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
-            role="dialog"
-            aria-modal="true"
-            data-testid="git-restore-confirm"
-            onClick={() => setRestoreConfirm(null)}
-          >
-            <div
-              className="w-[min(440px,100%)] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <h3 className="flex items-center gap-2 text-[13px] font-semibold text-bolt-elements-textPrimary">
-                <span
-                  className="i-ph:clock-counter-clockwise text-base text-bolt-elements-item-contentAccent"
-                  aria-hidden
-                />
-                {t('idePanels.git.restoreTitle')}
-              </h3>
-              <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                {t('idePanels.git.restoreBody', { sha: restoreConfirm.slice(0, 8) })}
-              </p>
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  type="button"
-                  className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                  onClick={() => setRestoreConfirm(null)}
-                >
-                  {t('idePanels.common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  data-testid="git-restore-confirm-button"
-                  disabled={busy}
-                  className="rounded-md bg-bolt-elements-item-contentAccent px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
-                  onClick={() => {
-                    const sha = restoreConfirm;
-                    setRestoreConfirm(null);
-                    setCommitDetail(null);
-                    void runIntent('restore', { sha });
-                  }}
-                >
-                  {t('idePanels.git.restoreAll')}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
+            setDiscardConfirm(null);
+            void runIntent('discard', target.all || !target.path ? {} : { filePaths: target.path });
+          }}
+          title={t('idePanels.git.discardTitle')}
+          description={
+            discardConfirm?.all
+              ? t('idePanels.git.discardAllBody', { count: changedFiles.length })
+              : t('idePanels.git.discardFileBody', { path: discardConfirm?.path })
+          }
+          confirmLabel={discardConfirm?.all ? t('idePanels.git.discardAll') : t('idePanels.git.discardFile')}
+          cancelLabel={t('idePanels.common.cancel')}
+          variant="destructive"
+          isLoading={busy}
+        />
+
+        <ConfirmationDialog
+          isOpen={Boolean(restoreConfirm)}
+          onClose={() => setRestoreConfirm(null)}
+          onConfirm={() => {
+            if (!restoreConfirm) {
+              return;
+            }
+
+            const sha = restoreConfirm;
+            setRestoreConfirm(null);
+            setCommitDetail(null);
+            void runIntent('restore', { sha });
+          }}
+          title={t('idePanels.git.restoreTitle')}
+          description={t('idePanels.git.restoreBody', { sha: restoreConfirm?.slice(0, 8) })}
+          confirmLabel={t('idePanels.git.restoreAll')}
+          cancelLabel={t('idePanels.common.cancel')}
+          isLoading={busy}
+        />
 
         <div className="mx-auto grid w-full max-w-3xl gap-4">
           {hasRemote ? (
@@ -1933,7 +1966,7 @@ export function GitTab({ projectId }: GitTabProps) {
                     <button
                       type="button"
                       data-testid="git-restore-commit"
-                      disabled={busy || commitDetail.loading}
+                      disabled={busy || commitDetail.loading || Boolean(commitDetail.error)}
                       className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
                       onClick={() => setRestoreConfirm(commitDetail.sha)}
                     >
@@ -1943,10 +1976,21 @@ export function GitTab({ projectId }: GitTabProps) {
                       type="button"
                       aria-label={t('idePanels.git.closeCommitDetail')}
                       className="i-ph:x text-base text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                      onClick={() => setCommitDetail(null)}
+                      onClick={() => {
+                        commitRequestRef.current += 1;
+                        setCommitDetail(null);
+                      }}
                     />
                   </div>
                 </div>
+                {commitDetail.error ? (
+                  <div role="alert" className="mb-2 text-sm text-bolt-elements-textSecondary">
+                    <p>{commitDetail.error}</p>
+                    <PanelButton type="button" variant="outline" onClick={() => void loadCommit(commitDetail.sha)}>
+                      {t('idePanels.git.refreshStatus')}
+                    </PanelButton>
+                  </div>
+                ) : null}
                 {commitDetail.files.length ? (
                   <div className="mb-2 grid gap-1">
                     {commitDetail.files.map((file) => (

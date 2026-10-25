@@ -39,3 +39,20 @@ export function consumeDeployPanelView(): DeployPanelView | undefined {
 
   return view;
 }
+
+export interface DeployPanelSession {
+  view: DeployPanelView;
+  domainDraft: string;
+}
+
+// Session-only UI state: no browser storage, credentials or deployment payloads.
+export const deployPanelSessions = atom<Record<string, DeployPanelSession>>({});
+
+export function updateDeployPanelSession(projectId: string, patch: Partial<DeployPanelSession>) {
+  const sessions = deployPanelSessions.get();
+  const previous = sessions[projectId] ?? { view: 'overview', domainDraft: '' };
+  deployPanelSessions.set({
+    ...sessions,
+    [projectId]: { ...previous, ...patch },
+  });
+}
