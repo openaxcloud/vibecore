@@ -158,7 +158,7 @@ run('durable consumer registry — isolated PostgreSQL schema, no cloud', () => 
     const rows = await registry.freeze(scope);
     const row = rows.find((r) => r.id === actual.id)!;
     try {
-      await expect(second.drain(scope, row)).rejects.toThrow('RESTORE_CONSUMER_HANDLE_MISMATCH');
+      await expect(second.drain(scope, row)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_HANDLE_MISMATCH', statusCode: 409 });
       expect((await first.query(actual.id, 'SELECT 1 AS value')).rows).toEqual([{ value: 1 }]);
       await expect(registry.assertRegisteredConsumersDrained(scope)).rejects.toMatchObject({
         code: 'RESTORE_CONSUMERS_NOT_DRAINED',

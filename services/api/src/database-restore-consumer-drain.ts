@@ -1,4 +1,4 @@
-import type { RestoreScope } from './database-restore-contract.js';
+import { DatabaseRestoreError, type RestoreScope } from './database-restore-contract.js';
 import { PostgresRestoreConsumer } from './database-restore-consumer.js';
 import type { RegisteredRestoreConsumer, RestoreConsumerRegistry } from './database-restore-consumer-registry.js';
 
@@ -35,7 +35,7 @@ export class RegisteredApiConsumerHost {
     try {
       await handle.pool;
       await this.registry.assertCanServe(scope, row);
-      if (handle.closing) throw new Error('RESTORE_APPLICATION_QUIESCED');
+      if (handle.closing) throw new DatabaseRestoreError('RESTORE_APPLICATION_QUIESCED');
       handle.serving = true;
       return { ...row };
     } catch (error) {
@@ -50,9 +50,9 @@ export class RegisteredApiConsumerHost {
 
   async query(id: string, text: string, values?: unknown[]) {
     const handle = this.handles.get(id);
-    if (!handle) throw new Error('RESTORE_CONSUMER_HANDLE_MISMATCH');
+    if (!handle) throw new DatabaseRestoreError('RESTORE_CONSUMER_HANDLE_MISMATCH');
     const pool = await handle.pool;
-    if (!handle.serving || handle.closing) throw new Error('RESTORE_APPLICATION_QUIESCED');
+    if (!handle.serving || handle.closing) throw new DatabaseRestoreError('RESTORE_APPLICATION_QUIESCED');
     return pool.query(text, values);
   }
 
@@ -69,7 +69,7 @@ export class RegisteredApiConsumerHost {
       handle.scope.organizationId !== scope.organizationId ||
       handle.scope.environment !== scope.environment
     ) {
-      throw new Error('RESTORE_CONSUMER_HANDLE_MISMATCH');
+      throw new DatabaseRestoreError('RESTORE_CONSUMER_HANDLE_MISMATCH');
     }
     await this.registry.assertDrainRequested(scope, row);
     handle.serving = false;
@@ -114,7 +114,7 @@ export async function drainRegisteredWorkload(
     row.drainRestoreId !== scope.operationId ||
     row.drainAttemptToken !== scope.attemptToken
   )
-    throw new Error('RESTORE_CONSUMER_DRAIN_MISMATCH');
+    throw new DatabaseRestoreError('RESTORE_CONSUMER_DRAIN_MISMATCH');
   await registry.assertDrainRequested(scope, row);
   const fence = await driver.excludeStarts(row.uid, row.generation, { ...scope });
   if (
@@ -128,11 +128,11 @@ export async function drainRegisteredWorkload(
     fence.environment !== scope.environment ||
     fence.startsExcluded !== true
   )
-    throw new Error('RESTORE_WORKLOAD_START_FENCE_UNCONFIRMED');
+    throw new DatabaseRestoreError('RESTORE_WORKLOAD_START_FENCE_UNCONFIRMED');
   const before = await driver.observe(row.uid, row.generation);
-  if (before === 'unknown') throw new Error('RESTORE_WORKLOAD_STOP_UNCONFIRMED');
+  if (before === 'unknown') throw new DatabaseRestoreError('RESTORE_WORKLOAD_STOP_UNCONFIRMED');
   if (before === 'running') await driver.stop(row.uid, row.generation, { ...scope });
   if ((await driver.observe(row.uid, row.generation)) !== 'terminated')
-    throw new Error('RESTORE_WORKLOAD_STOP_UNCONFIRMED');
+    throw new DatabaseRestoreError('RESTORE_WORKLOAD_STOP_UNCONFIRMED');
   await registry.confirmDrained(scope, row);
 }
