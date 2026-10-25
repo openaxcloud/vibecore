@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-491 entrées.
+492 entrées.
 
 ## Sans section
 
@@ -633,7 +633,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-ACCOUNT-NAVIGATION-20261025](docs/bugs/BUG-ACCOUNT-NAVIGATION-20261025.md) — À 320px en français, la navigation Compte cache la destination « Données et confidentialité » : largeur visible 292px, largeur défilante 424px, bord droit du de — 📤 Dispatché : 25 octobre 2026 : mission UI/UX globale, lot isolé Compte. Main a18c7defb et PR ouvertes inspectés avant éditi · 💻 Codé : Correctif local : navigation nommée native, liens NavLink avec aria-current, retour à la ligne sans couper les · ✅ Testé live : Non. Pas de session production disponible. Aucune recette production ni version déployée revendiquée.
 - [BUG-DASHBOARD-PALETTE-WIDTH-20261025](docs/bugs/BUG-DASHBOARD-PALETTE-WIDTH-20261025.md) — Dashboard 320px avec nom de projet long : listbox 269px, chaque résultat 1317,656px, bord droit 1343,156px. Le débordement est masqué par la coquille ; intitulé — 📤 Dispatché : 25 octobre 2026 : diagnostic transmis au parent ; `app/components/dashboard/SaaSLayout.tsx` est réservé à la s · 💻 Codé : Non. Proposition locale séparée : ajouter `min-w-0` aux liens des résultats, autour de la ligne 2342 sur base · ✅ Testé live : Non. Contre-épreuve CSS temporaire dans Chromium local avec fixture synthétique : résultats ramenés à 269px, b
-- [BUG-USER-AREA-RESPONSIVE-20261025](docs/bugs/BUG-USER-AREA-RESPONSIVE-20261025.md) — Lot utilisateur après #791 : fenêtre de suppression du compte sans retour du focus et sans description ARIA ; erreur de limite Facturation hors écran après soum — 📤 Dispatché : 25 octobre 2026, mission UI/UX globale poursuivie en parallèle : Compte, Projets, Facturation. Branche locale · 💻 Codé : Correctifs locaux en validation, pas sur main. Dialog réutilise restauration du focus et description existante · ✅ Testé live : Non. Pas de production ni d'opération financière. Fixtures API synthétiques locales ; tests routeurs mémoire e
+- [BUG-USER-AREA-RESPONSIVE-20261025](docs/bugs/BUG-USER-AREA-RESPONSIVE-20261025.md) — Lot utilisateur après #791 : fenêtre de suppression du compte sans retour du focus et sans description ARIA ; erreur de limite Facturation hors écran après soum — 📤 Dispatché : 25 octobre 2026, mission UI/UX globale poursuivie en parallèle : Compte, Projets, Facturation. Branche locale · 💻 Codé : Correctifs validés localement, pas sur main. Dialog réutilise restauration du focus et description existantes · ✅ Testé live : Non. Pas de production ni d'opération financière. Fixtures API synthétiques locales ; tests routeurs mémoire e
+
+## Livraison — production
+
+- [BUG-FLEET-MEMBERSHIP-LOCATION-001](docs/bugs/BUG-FLEET-MEMBERSHIP-LOCATION-001.md) — 📤 Dispatché : 25 octobre 2026, diagnostic du déploiement #784, run 40205758137, job 121219777586. Propriétaire unique du cor · 💻 Codé : Correctif préparé : les deux appels `gcloud container fleet memberships get-credentials` de deploy-main sélect · ✅ Testé live : Non pour le correctif. La panne réelle précédente est attestée par le log GitHub : étape 12 Connect Gateway, a
 
 ## Résidus non tabulaires — reportés mot pour mot
 

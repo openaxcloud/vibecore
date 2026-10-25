@@ -72,3 +72,7 @@ Build final vert ; recette compilée finale sur port5399 : 48 observations verte
 La tête `5ee605bf3` a échoué dans `userarea-ux-audit.spec.ts` : une garde source exigeait encore `aria-selected` sur l'ancienne navigation en onglets. Reproduction locale : 1 échec sur 50. La garde migre vers le rendu réel des trois routes Compte, avec trois liens natifs, une seule destination active `aria-current="page"`, et aucun faux tab/tablist. Les 49 autres gardes restent conservées. Validation : 54 tests verts avec la suite navigation i18n ; revue indépendante favorable et 52 gardes rejouées indépendamment. Aucun changement produit dans ce suivi.
 
 Les archives de logs GitHub ont répondu HTTP403 et n'ont pas été retentées. Les métadonnées des jobs et annotations autorisées ont fourni la cause exacte. `Quality Gates` échoue par dépendance à ce contrôle unitaire, pas à un déploiement. Les annotations négatives émises par les tests de garde sont distinguées du véritable échec Vitest.
+
+## Intégration de main après #789
+
+Main `a370d3cf6` ajoute le correctif Fleet #789. GitHub a alors signalé un conflit sur l'inventaire généré. Fusion normale, sans rebase ni modification produit : index régénéré à 490 fiches, conservant Fleet et Compte. Les trois blobs entrants (workflow, fiche Fleet, test Fleet) sont identiques à origin/main ; `git diff HEAD -- app` est vide avant commit de fusion. Les 65 tests index/Fleet/audit/navigation sont verts. Aucun changement du workflow inventé par cette session.
