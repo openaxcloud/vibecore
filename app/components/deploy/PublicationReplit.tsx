@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   avisDuDeploiement,
@@ -12,6 +12,7 @@ import {
   invitePourReparerLaPublication,
   lignesDeJournal,
   publicationEnCours,
+  previousRollbackTarget,
   resumeDesEchecs,
   revisionCourte,
   type CarteTarifaire,
@@ -50,6 +51,7 @@ export interface DemandeDeReparation {
 
 export interface PublicationReplitProps {
   deployments: readonly Deploiement[];
+  busy?: boolean;
   language?: string | null;
   carteTarifaire?: CarteTarifaire | null;
   onOuvrirLesSecrets?: () => void;
@@ -133,6 +135,7 @@ function Carte({ titre, action, children }: { titre: string; action?: React.Reac
 export const PublicationReplit = memo(
   ({
     deployments,
+    busy = false,
     language,
     carteTarifaire,
     onOuvrirLesSecrets,
@@ -145,8 +148,29 @@ export const PublicationReplit = memo(
     onAjouterUnDomaine,
     ilYA,
   }: PublicationReplitProps) => {
+    const actionLocked = useRef(false);
+    const [actionPending, setActionPending] = useState(false);
+    useEffect(() => {
+      if (!busy) {
+        actionLocked.current = false;
+        setActionPending(false);
+      }
+    }, [busy, deployments]);
+
+    const act = (callback: () => void) => {
+      if (busy || actionLocked.current) {
+        return;
+      }
+
+      actionLocked.current = true;
+      setActionPending(true);
+      callback();
+    };
+
+    const pending = busy || actionPending;
     const copy = getPublicationCopy(language);
     const dernier = deployments[0];
+    const rollbackTarget = previousRollbackTarget(deployments);
 
     // Même règle que le bouton principal (`intentionDeRepublication`) : « Re- » seulement s'il y a un déploiement à rejouer.
     const dejaPublie = deployments.length > 0;
@@ -299,7 +323,11 @@ export const PublicationReplit = memo(
               <ul className="bolt-publication-gestes" data-testid="publication-gestes">
                 {enCours && dernier?.id ? (
                   <li>
-                    <button type="button" onClick={() => onAction?.('cancel', dernier.id!)}>
+                    <button
+                      type="button"
+                      disabled={pending || !onAction}
+                      onClick={() => act(() => onAction?.('cancel', dernier.id!))}
+                    >
                       <span className="i-ph:pause" aria-hidden />
                       {copy['publication.settings.cancelDeploy']}
                     </button>
@@ -308,16 +336,24 @@ export const PublicationReplit = memo(
                 ) : null}
                 {dernier?.id ? (
                   <li>
-                    <button type="button" onClick={() => onAction?.('redeploy', dernier.id!)}>
+                    <button
+                      type="button"
+                      disabled={pending || !onAction}
+                      onClick={() => act(() => onAction?.('redeploy', dernier.id!))}
+                    >
                       <span className="i-ph:rocket-launch" aria-hidden />
                       {copy['publication.settings.redeploy']}
                     </button>
                     <p>{copy['publication.settings.redeployDetail']}</p>
                   </li>
                 ) : null}
-                {dernier?.id && deployments.some((d) => d.status === 'READY') ? (
+                {rollbackTarget?.id ? (
                   <li>
-                    <button type="button" onClick={() => onAction?.('rollback', dernier.id!)}>
+                    <button
+                      type="button"
+                      disabled={pending || !onAction}
+                      onClick={() => act(() => onAction?.('rollback', rollbackTarget.id!))}
+                    >
                       <span className="i-ph:arrow-counter-clockwise" aria-hidden />
                       {copy['publication.settings.rollback']}
                     </button>
@@ -341,7 +377,7 @@ export const PublicationReplit = memo(
                   ) : null}
                   <div className="bolt-publication-carte-actions">
                     {enCours && dernier.id && onAnnuler ? (
-                      <button type="button" onClick={() => onAnnuler(dernier.id!)}>
+                      <button type="button" disabled={pending} onClick={() => act(() => onAnnuler(dernier.id!))}>
                         {copy['publication.cancel']}
                       </button>
                     ) : null}
@@ -580,8 +616,14 @@ export const PublicationReplit = memo(
             type="button"
             className="bolt-publication-republier"
             data-testid="publication-republier"
-            disabled={enCours}
-            onClick={onRepublier}
+            disabled={enCours || pending || !onRepublier}
+            onClick={() => {
+              if (!dejaPublie) {
+                onRepublier?.();
+              } else {
+                act(() => onRepublier?.());
+              }
+            }}
           >
             <span className="i-ph:rocket-launch" aria-hidden />
             {dejaPublie ? copy['publication.republish'] : copy['publication.publish']}

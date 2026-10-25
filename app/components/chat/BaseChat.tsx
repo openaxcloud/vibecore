@@ -337,6 +337,8 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { useDeployPanelSession } from '~/components/deploy/useDeployPanelSession';
+import { useProjectDomains } from '~/components/deploy/useProjectDomains';
 import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
 import {
   detailDeTacheDeReparation,
@@ -15092,66 +15094,18 @@ function ProjectDomainsPanel({
    *  - framework mode (data/onSubmit/busy from the panel host) — legacy path.
    */
   const selfMode = Boolean(projectId);
-  const [selfData, setSelfData] = useState<any>(null);
-  const [selfBusy, setSelfBusy] = useState(false);
+  const domainState = useProjectDomains(projectId);
+  const { session: deploySession, update: updateDeploySession } = useDeployPanelSession(projectId);
+  const data = selfMode ? (domainState.data ?? {}) : (dataProp ?? {});
 
-  const loadDomains = useCallback(async () => {
-    if (!projectId) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}/ide-panel/domains`, {
-        headers: { accept: 'application/json' },
-      });
-
-      const envelope = (await response.json().catch(() => ({}))) as any;
-      setSelfData(envelope?.data ?? envelope ?? {});
-    } catch {
-      // Non-fatal: keep whatever we last had.
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    if (selfMode) {
-      void loadDomains();
-    }
-  }, [selfMode, loadDomains]);
-
-  const selfSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-
-      if (!projectId) {
-        return;
+  const onSubmit = selfMode
+    ? (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        void domainState.submit(new FormData(event.currentTarget));
       }
+    : onSubmitProp;
 
-      const form = new FormData(event.currentTarget);
-      setSelfBusy(true);
-
-      try {
-        const response = await fetch(`/api/projects/${projectId}/ide-panel/domains`, { method: 'POST', body: form });
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as { error?: string };
-          console.warn('Domain update request failed', { status: response.status, serverError: payload.error });
-          toast.error(t('baseChatAst.domain.updateFailedHttp', { status: response.status }));
-        }
-
-        await loadDomains();
-      } catch (error) {
-        console.error('Domain update request failed', error);
-        toast.error(t('baseChatAst.domain.updateFailed'));
-      } finally {
-        setSelfBusy(false);
-      }
-    },
-    [projectId, loadDomains, t],
-  );
-
-  const data = selfMode ? (selfData ?? {}) : (dataProp ?? {});
-  const onSubmit = selfMode ? selfSubmit : onSubmitProp;
-  const busy = selfMode ? selfBusy : Boolean(busyProp);
+  const busy = selfMode ? domainState.busy || domainState.loading : Boolean(busyProp);
 
   const domains = data.domains ?? [];
   const latestReadyDeployment = (data.deployments ?? []).find((deployment: any) => deployment.status === 'READY');
@@ -15160,6 +15114,18 @@ function ProjectDomainsPanel({
 
   return (
     <div className="bolt-project-domains-panel">
+      {selfMode && domainState.loading ? <p role="status">{t('baseChatAst.domain.loading')}</p> : null}
+      {selfMode && domainState.error ? (
+        <div role="alert">
+          <p>{t('baseChatAst.domain.requestFailed')}</p>
+          {domainState.status ? (
+            <p>{t('baseChatAst.domain.updateFailedHttp', { status: domainState.status })}</p>
+          ) : null}
+          <PanelButton type="button" disabled={busy} onClick={() => void domainState.load()}>
+            {t('baseChatAst.domain.retry')}
+          </PanelButton>
+        </div>
+      ) : null}
       <section className="bolt-project-domains-hero" aria-labelledby="domains-title">
         <div>
           <span className="bolt-project-domains-kicker">{t('chat.copy.domains_a0d641b3')}</span>
@@ -15188,6 +15154,8 @@ function ProjectDomainsPanel({
               {t('chat.copy.domain_9b10914d')}
               <PanelInput
                 name="domain"
+                value={deploySession.domainDraft}
+                onChange={(event) => updateDeploySession({ domainDraft: event.currentTarget.value })}
                 inputMode="url"
                 autoComplete="off"
                 placeholder={codeExample('app.example.com')}
@@ -15214,13 +15182,13 @@ function ProjectDomainsPanel({
               />
             ))}
           </div>
-        ) : (
+        ) : !selfMode || (!domainState.loading && !domainState.error) ? (
           <PanelEmptyState
             icon="i-ph:globe"
             title={t('chat.copy.noCustomDomainsYet_d9c8b21d')}
             description={t('chat.copy.addADomainToGenerateOrganization_14f8de9b')}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -23798,14 +23766,16 @@ function ProjectDeploymentsPanel({
     outputDirectory: latestDeployment?.outputDirectory,
   });
 
-  const [tab, setTab] = useState<DeployPanelView>(() => consumeDeployPanelView() ?? 'overview');
+  const { session: deploySession, update: updateDeploySession } = useDeployPanelSession(projectId);
+  const tab = deploySession.view;
+  const setTab = useCallback((view: DeployPanelView) => updateDeploySession({ view }), [updateDeploySession]);
 
   /*
    * A door that opened the aliased `domains` tool asks for the Domains tab
-   * (see `~/lib/stores/deploy-panel-view`). The initial state above covers the
-   * mount case; this covers the panel already being open when the request comes
-   * in. The request is consumed once, so the user's own tab clicks afterwards
-   * are never overridden.
+   * (see `~/lib/stores/deploy-panel-view`). Consume only after commit so an
+   * abandoned render cannot lose the request. The project-scoped session keeps
+   * the selected view when responsive shells remount; later manual tab clicks
+   * are never overridden by an already-consumed request.
    */
   const pendingDeployView = useStore(requestedDeployPanelView);
 
@@ -23819,7 +23789,7 @@ function ProjectDeploymentsPanel({
     if (requested) {
       setTab(requested);
     }
-  }, [pendingDeployView]);
+  }, [pendingDeployView, setTab]);
 
   /*
    * RP-PUBLISH-05 — « Réparer avec l'agent ». On réutilise l'événement
@@ -23904,6 +23874,7 @@ function ProjectDeploymentsPanel({
            * n'a pas d'équivalent chez Replit.
            */}
           <PublicationReplit
+            busy={busy}
             deployments={deployments}
             language={language}
             ilYA={(date) => ilYADepuis(date, language)}
@@ -24077,7 +24048,7 @@ function ProjectDeploymentsPanel({
                       intent="rollback"
                       deploymentId={deployment.id}
                       onSubmit={onSubmit}
-                      busy={busy}
+                      busy={busy || deployment.status !== 'READY' || Boolean(deployment.rollbackUnavailableReason)}
                     >
                       {t('chat.copy.rollback_f28daee2')}
                     </ProjectDeploymentAction>
@@ -24085,7 +24056,7 @@ function ProjectDeploymentsPanel({
                       intent="cancel"
                       deploymentId={deployment.id}
                       onSubmit={onSubmit}
-                      busy={busy}
+                      busy={busy || !['QUEUED', 'BUILDING'].includes(deployment.status)}
                     >
                       {t('chat.copy.cancel_77dfd213')}
                     </ProjectDeploymentAction>

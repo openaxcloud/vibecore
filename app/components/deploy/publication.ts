@@ -27,11 +27,28 @@ export interface Deploiement {
   branch?: string | null;
   framework?: string | null;
   machineSize?: string | null;
+  rollbackUnavailableReason?: string | null;
   logs?: unknown;
   createdAt?: string | null;
   updatedAt?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
+}
+
+/** The rollback endpoint takes the successful target release, not the failed release. */
+export function previousRollbackTarget(deployments: readonly Deploiement[]): Deploiement | undefined {
+  const current = deployments[0];
+
+  return deployments
+    .slice(1)
+    .find(
+      (deployment) =>
+        Boolean(deployment.id) &&
+        deployment.status === 'READY' &&
+        !deployment.rollbackUnavailableReason &&
+        deployment.provider === current?.provider &&
+        deployment.environment === current?.environment,
+    );
 }
 
 export interface Etape {
