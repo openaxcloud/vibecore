@@ -1,0 +1,21 @@
+{
+  "physicalBackupVerified": true,
+  "tamperedBackupRejected": true,
+  "walRecoveryVerified": true,
+  "postTargetWriteExcluded": true,
+  "targetRestartVerified": true,
+  "networkListeners": false,
+  "postgresVersion": "160015",
+  "manifestSha256": "37ad4a89 852ada1e 68a972ad d30fdb9d cdc6da2a 0573bc3a 5c5adf4c 03dc9b58",
+  "recipe": "independent temporary Unix-socket clusters inside existing synthetic PostgreSQL container",
+  "historicalPinnedImageReplayed": false,
+  "cloudTested": false,
+  "applicationCutoverTested": false,
+  "newContainers": 0,
+  "newVolumes": 0,
+  "cleanupVerified": true,
+  "imageId": "sha256:f1447071e6c8449dcf4056aa0994c81d3566ce5ee232de36b04dc25696a116dd",
+  "repoDigests": [
+    "pgvector/pgvector@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a"
+  ]
+}
