@@ -59,44 +59,152 @@
       }
     ],
     "retries": 0,
-    "sourceSha256": {
-      "app/components/chat/BaseChat.tsx": "291055870078df199bfaa00c7be5989ecc84285ea648dbc1a22214bf1b960af9",
-      "app/components/chat/panel-single-flight.spec.ts": "1fa1e865368c6b93697a9ed90435b6791822488fd06c8feaa0356fe9df0473ad",
-      "app/components/dashboard/SaaSLayout.tsx": "4ffa47675e209d4bbdd50ccfa56d00582c635e22be9b11a9cc48311b8820fee3",
-      "app/components/deploy/DeployPublishCard.spec.tsx": "2d98561cf7563de1f2f5302b86a7e36124b5cae51e8d5a8257def569a9986a51",
-      "app/components/deploy/DeployPublishCard.tsx": "313de396663282d734561a3af788bd4ae9018c0d4c2ee5ad471026cda50e3625",
-      "app/components/deploy/DeploymentHistoryDetails.spec.tsx": "096c9edf1cef649db1dde07988cb01a794fa0a813528b1b514f407169da6ad51",
-      "app/components/deploy/DeploymentHistoryDetails.tsx": "f203f55c948f40b56901178c86d31993f649cc7a32133c74d5f86a793d8f5899",
-      "app/components/deploy/DeploymentOverview.tsx": "b67e61326117283390904ea1e05895be6d37e98c92b9b195c819b11b88ebba5e",
-      "app/components/deploy/PublicationReplit.tsx": "c0b5be2a6af402af2d5cffbabe99cf45add05f6a413b44b09ed8de775b23d09f",
-      "app/components/deploy/publication-republier.spec.ts": "802a4d65e428ddcb02cf6226adc4ae75fd235d000c6079fdf9b1bd9a827376e8",
-      "app/components/deploy/publication.spec.ts": "cb3de3643fd1e65082a2cc8fc1fea4c7db1b4ed033e9d6d416837ae6c27e9bad",
-      "app/components/deploy/publication.ts": "2f738af130b4e05b8c49072b1e1d2d8e5cc32f3fa86f3441514be2c039ec0900",
-      "app/components/deploy/useDeploymentSubmit.spec.tsx": "8043a3b14e5f72985d4343179ce37288598b21f81e5ecdace18860a4c53eb172",
-      "app/components/deploy/useDeploymentSubmit.tsx": "c2b9ee3898236da3a775883d00bb0c439a35edd2b80048a86f87568c933afc4b",
-      "app/lib/hooks/useKeybindings.dialog.spec.tsx": "8aec685f0c6559d26d5c33cb6613be9599650560642dc39d57d3510fa4fa9ef9",
-      "app/lib/hooks/useKeybindings.ts": "4c85e361a24b0572b949ec3c394883a72d548caa65a220598bd21503c98a0f24",
-      "app/lib/i18n/catalogs/base-chat-ast.ts": "6c15a2f99ed0b5d44c1ea9cac5c32d36019b2dc0561646ff6deb884b3073c9f0",
-      "app/lib/stores/deploy-panel-view.spec.ts": "3b2ea8607c14322775fc6c0bb67dae5a1a7d4b304f00b34547bb1659e39ef161",
-      "app/lib/stores/deploy-panel-view.ts": "50f3760e9686b86d98421002781e3327e33fc02a6a046da15aa8c9b1988ff84e",
-      "app/routes/api.projects.$projectId.ide-panel.$panel.ts": "456df6808c7f507e7ddb8410378408ba97a2e90c54b86cb6353083c1fbcb3066",
-      "app/routes/api.projects.$projectId.ide-panel.deployments-transport.spec.ts": "6459bbe4bc7cd7d4569e5ee0603e8f48be2d6bbe94cf379c2cfb4c8705c0249c",
-      "app/routes/projects.$projectId.deployments.canonical.spec.ts": "d358182905bcb8a89a15bac73abba7b19711e50881274f3ca78586275b70e8eb",
-      "app/routes/projects.$projectId.deployments.detect-workspace.spec.ts": "9999a04165d86a22a095a0842a362189c768bece743bcf649789518cc945e1e3",
-      "app/routes/projects.$projectId.deployments.error.spec.tsx": "62c37a210201130e4d25e2970b8c96a1b91d24d85285f82184a7b046416ecea0",
-      "app/routes/projects.$projectId.deployments.tsx": "7d20c5bb656d73d4d00095a9c032ba2be7803a685a5af06034667fd83b44f894",
-      "app/routes/projects.$projectId.deployments.view.spec.ts": "7093b74a7b814a657e0137e97495101f675a52f81d388b3f3bb1b0769c90bb08",
-      "app/routes/projects.$projectId.deployments.view.ts": "0bdbde00f59179c5ff585b4ff7673f46e6a42bac23d9bae487970bd216a881bc",
-      "app/routes/projects.$projectId.domains.error.spec.tsx": "94ea2aac43f8abc8d8d0d2ecca46b943b79eb742541278db4a6906fa91ddb424",
-      "app/routes/projects.$projectId.domains.orgScope.spec.ts": "c5786c4fcf8f3f2fbaa19d24f3844e38cebe9283574473b6e4a31965564cf613",
-      "app/routes/projects.$projectId.domains.organizationScope.spec.ts": "e6ea69c8831ebe296d1df0a567ccbb32906e7e4d4b812fe5e51b497d863de57f",
-      "app/routes/projects.$projectId.domains.tsx": "f5439e43c7c2cc7c7567c03ff5096b876e06b8b21c1137fdab1222a61d1e0545",
-      "app/routes/projects.$projectId.ide.tsx": "7991699a6a29c59fefa2ed7ff5b2eea955914a26df123080873b408616374c4b",
-      "app/routes/user-area-async-boundary.guard.spec.ts": "0485064d1832be67110c46442c3c272cef7992362cd251e0cf3dbac90f46f464",
-      "app/routes/user-area-copy.spec.ts": "6a3162b9e245f17bffc3821d90aec557b9fb6be22df6aa306b8cececc07b8628",
-      "services/api/src/app.ts": "7a0a7615cb5d7406cf6e4d30ac909904e8806e5651875512580cd86de19a673d",
-      "services/api/src/tests/deploy-detect-workspace.spec.ts": "aa5ff284b8aa34131d8714af3e59ae06cced7c208ce3ef87042cec0567702687"
-    },
+    "sourceSha256": [
+      {
+        "path": "app/components/chat/BaseChat.tsx",
+        "sha256": "291055870078df199bfaa00c7be5989ecc84285ea648dbc1a22214bf1b960af9"
+      },
+      {
+        "path": "app/components/chat/panel-single-flight.spec.ts",
+        "sha256": "1fa1e865368c6b93697a9ed90435b6791822488fd06c8feaa0356fe9df0473ad"
+      },
+      {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "sha256": "4ffa47675e209d4bbdd50ccfa56d00582c635e22be9b11a9cc48311b8820fee3"
+      },
+      {
+        "path": "app/components/deploy/DeployPublishCard.spec.tsx",
+        "sha256": "2d98561cf7563de1f2f5302b86a7e36124b5cae51e8d5a8257def569a9986a51"
+      },
+      {
+        "path": "app/components/deploy/DeployPublishCard.tsx",
+        "sha256": "313de396663282d734561a3af788bd4ae9018c0d4c2ee5ad471026cda50e3625"
+      },
+      {
+        "path": "app/components/deploy/DeploymentHistoryDetails.spec.tsx",
+        "sha256": "096c9edf1cef649db1dde07988cb01a794fa0a813528b1b514f407169da6ad51"
+      },
+      {
+        "path": "app/components/deploy/DeploymentHistoryDetails.tsx",
+        "sha256": "f203f55c948f40b56901178c86d31993f649cc7a32133c74d5f86a793d8f5899"
+      },
+      {
+        "path": "app/components/deploy/DeploymentOverview.tsx",
+        "sha256": "b67e61326117283390904ea1e05895be6d37e98c92b9b195c819b11b88ebba5e"
+      },
+      {
+        "path": "app/components/deploy/PublicationReplit.tsx",
+        "sha256": "c0b5be2a6af402af2d5cffbabe99cf45add05f6a413b44b09ed8de775b23d09f"
+      },
+      {
+        "path": "app/components/deploy/publication-republier.spec.ts",
+        "sha256": "802a4d65e428ddcb02cf6226adc4ae75fd235d000c6079fdf9b1bd9a827376e8"
+      },
+      {
+        "path": "app/components/deploy/publication.spec.ts",
+        "sha256": "cb3de3643fd1e65082a2cc8fc1fea4c7db1b4ed033e9d6d416837ae6c27e9bad"
+      },
+      {
+        "path": "app/components/deploy/publication.ts",
+        "sha256": "2f738af130b4e05b8c49072b1e1d2d8e5cc32f3fa86f3441514be2c039ec0900"
+      },
+      {
+        "path": "app/components/deploy/useDeploymentSubmit.spec.tsx",
+        "sha256": "8043a3b14e5f72985d4343179ce37288598b21f81e5ecdace18860a4c53eb172"
+      },
+      {
+        "path": "app/components/deploy/useDeploymentSubmit.tsx",
+        "sha256": "c2b9ee3898236da3a775883d00bb0c439a35edd2b80048a86f87568c933afc4b"
+      },
+      {
+        "path": "app/lib/hooks/useKeybindings.dialog.spec.tsx",
+        "sha256": "8aec685f0c6559d26d5c33cb6613be9599650560642dc39d57d3510fa4fa9ef9"
+      },
+      {
+        "path": "app/lib/hooks/useKeybindings.ts",
+        "sha256": "4c85e361a24b0572b949ec3c394883a72d548caa65a220598bd21503c98a0f24"
+      },
+      {
+        "path": "app/lib/i18n/catalogs/base-chat-ast.ts",
+        "sha256": "6c15a2f99ed0b5d44c1ea9cac5c32d36019b2dc0561646ff6deb884b3073c9f0"
+      },
+      {
+        "path": "app/lib/stores/deploy-panel-view.spec.ts",
+        "sha256": "3b2ea8607c14322775fc6c0bb67dae5a1a7d4b304f00b34547bb1659e39ef161"
+      },
+      {
+        "path": "app/lib/stores/deploy-panel-view.ts",
+        "sha256": "50f3760e9686b86d98421002781e3327e33fc02a6a046da15aa8c9b1988ff84e"
+      },
+      {
+        "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+        "sha256": "456df6808c7f507e7ddb8410378408ba97a2e90c54b86cb6353083c1fbcb3066"
+      },
+      {
+        "path": "app/routes/api.projects.$projectId.ide-panel.deployments-transport.spec.ts",
+        "sha256": "6459bbe4bc7cd7d4569e5ee0603e8f48be2d6bbe94cf379c2cfb4c8705c0249c"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.canonical.spec.ts",
+        "sha256": "d358182905bcb8a89a15bac73abba7b19711e50881274f3ca78586275b70e8eb"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.detect-workspace.spec.ts",
+        "sha256": "9999a04165d86a22a095a0842a362189c768bece743bcf649789518cc945e1e3"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.error.spec.tsx",
+        "sha256": "62c37a210201130e4d25e2970b8c96a1b91d24d85285f82184a7b046416ecea0"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.tsx",
+        "sha256": "7d20c5bb656d73d4d00095a9c032ba2be7803a685a5af06034667fd83b44f894"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.view.spec.ts",
+        "sha256": "7093b74a7b814a657e0137e97495101f675a52f81d388b3f3bb1b0769c90bb08"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.view.ts",
+        "sha256": "0bdbde00f59179c5ff585b4ff7673f46e6a42bac23d9bae487970bd216a881bc"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.error.spec.tsx",
+        "sha256": "94ea2aac43f8abc8d8d0d2ecca46b943b79eb742541278db4a6906fa91ddb424"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.orgScope.spec.ts",
+        "sha256": "c5786c4fcf8f3f2fbaa19d24f3844e38cebe9283574473b6e4a31965564cf613"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.organizationScope.spec.ts",
+        "sha256": "e6ea69c8831ebe296d1df0a567ccbb32906e7e4d4b812fe5e51b497d863de57f"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.tsx",
+        "sha256": "f5439e43c7c2cc7c7567c03ff5096b876e06b8b21c1137fdab1222a61d1e0545"
+      },
+      {
+        "path": "app/routes/projects.$projectId.ide.tsx",
+        "sha256": "7991699a6a29c59fefa2ed7ff5b2eea955914a26df123080873b408616374c4b"
+      },
+      {
+        "path": "app/routes/user-area-async-boundary.guard.spec.ts",
+        "sha256": "0485064d1832be67110c46442c3c272cef7992362cd251e0cf3dbac90f46f464"
+      },
+      {
+        "path": "app/routes/user-area-copy.spec.ts",
+        "sha256": "6a3162b9e245f17bffc3821d90aec557b9fb6be22df6aa306b8cececc07b8628"
+      },
+      {
+        "path": "services/api/src/app.ts",
+        "sha256": "7a0a7615cb5d7406cf6e4d30ac909904e8806e5651875512580cd86de19a673d"
+      },
+      {
+        "path": "services/api/src/tests/deploy-detect-workspace.spec.ts",
+        "sha256": "aa5ff284b8aa34131d8714af3e59ae06cced7c208ce3ef87042cec0567702687"
+      }
+    ],
     "buildFileCount": 2307,
     "buildManifestSha256": "d2948a671e5184f95b94b749cc19dc26d7a1e39062164fd10c9b73f63b34bb74",
     "postRunSourceBuildMismatches": 0
