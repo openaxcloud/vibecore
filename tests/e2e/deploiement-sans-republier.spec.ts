@@ -8,8 +8,8 @@ import { expect, test, type Page } from '@playwright/test';
  * publié » — un client à son premier déploiement lit qu'il y a déjà quelque
  * chose à republier.
  *
- * Bureau seulement : sous 1024 px l'affichage est gelé, le bouton y reste.
- * Ancré sur le NOM du bouton, qui existe avant et après le correctif.
+ * Le parcours canonique doit proposer « Publier », sans « Republier »,
+ * sur bureau, tablette et mobile avant la première publication.
  */
 
 test.use({ locale: 'fr-FR' });
@@ -43,9 +43,23 @@ async function compteEtProjet(page: Page, theme: 'light' | 'dark') {
   await page.context().addCookies([
     { name: 'vc_session', value: auth.token, url: APP_BASE_URL, httpOnly: true, sameSite: 'Lax' },
     { name: 'ecode_theme', value: theme, url: APP_BASE_URL, sameSite: 'Lax' },
+    { name: 'vibecore-lang', value: 'fr', url: APP_BASE_URL, sameSite: 'Lax' },
   ]);
 
   return ((await creation.json()) as { project: { id: string } }).project.id;
+}
+
+async function verifierPremierePublication(page: Page, projectId: string, theme: 'light' | 'dark') {
+  await page.goto(`/projects/${projectId}/deployments`, { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=deployments$`));
+
+  const host = page.locator('.bolt-project-deploy-tool');
+  await expect(host).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+  await expect(host.getByText('Rien n’a encore été publié.', { exact: true }).first()).toBeVisible();
+  await expect(host.getByRole('button', { name: 'Publier', exact: true })).toBeVisible();
+  await expect(host.getByRole('button', { name: 'Publier', exact: true })).toBeEnabled();
+  await expect(host.getByRole('button', { name: 'Republier', exact: true })).toHaveCount(0);
 }
 
 for (const theme of ['light', 'dark'] as const) {
@@ -54,23 +68,16 @@ for (const theme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width: 1440, height: 900 });
 
     const projectId = await compteEtProjet(page, theme);
-    await page.goto(`/projects/${projectId}/deployments`, { waitUntil: 'domcontentloaded' });
-
-    // La page est chargée : l'état vide « Pas encore publié » est là.
-    await expect(page.getByText('Pas encore publié')).toBeVisible({ timeout: 60_000 });
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-
-    await expect(page.locator('main').getByRole('button', { name: 'Republier' })).toBeHidden();
+    await verifierPremierePublication(page, projectId, theme);
   });
 }
 
-test('tablette 768 : inchangé, le bouton reste (affichage gelé sous 1024 px)', async ({ page }) => {
-  test.setTimeout(120_000);
-  await page.setViewportSize({ width: 768, height: 1024 });
+for (const width of [768, 390]) {
+  test(`écran ${width} : première publication, « Publier » sans « Republier »`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width, height: 1024 });
 
-  const projectId = await compteEtProjet(page, 'light');
-  await page.goto(`/projects/${projectId}/deployments`, { waitUntil: 'domcontentloaded' });
-
-  await expect(page.getByText('Pas encore publié')).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('main').getByRole('button', { name: 'Republier' })).toBeVisible();
-});
+    const projectId = await compteEtProjet(page, 'light');
+    await verifierPremierePublication(page, projectId, 'light');
+  });
+}

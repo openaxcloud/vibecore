@@ -1,0 +1,391 @@
+{
+  "date": "2026-10-25",
+  "productCommit": "8b51f92ffebb1bb635d01bfc62601374f383cd5c",
+  "purpose": "Restore three legacy E2E contracts after canonical Publish navigation; fix genuine managed-form placeholder contrast regression without weakening thresholds",
+  "ciInclusion": {
+    "workflow": ".github/workflows/e2e.yml",
+    "command": "playwright test tests/e2e --project=chromium --grep-invert @runtime",
+    "config": "playwright.config.ts",
+    "finding": "All three legacy specs included; no exclusions; tests count as code in PR scope gate"
+  },
+  "baseline": {
+    "product": "7e21b2987092adcfb874f094decc4babb7f19320",
+    "unadaptedTests": {
+      "startTime": "2026-10-25T16:36:09.245Z",
+      "duration": 90697.473,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 3,
+      "flaky": 0
+    },
+    "unadaptedFailures": [
+      "Old dashboard navigation expected after deployment route redirected to IDE",
+      "Inputs expected before entering Manage",
+      "Old unpublished empty text expected"
+    ],
+    "migratedTests": {
+      "startTime": "2026-10-25T16:38:26.589Z",
+      "duration": 160704.139,
+      "expected": 8,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "contrastRegression": {
+      "light": {
+        "customDomain": 7.12,
+        "envVars": 7.12
+      },
+      "dark": {
+        "customDomain": 6.89,
+        "envVars": 6.89
+      }
+    },
+    "preservedThresholds": {
+      "placeholderMin": 4.5,
+      "placeholderMax": 6,
+      "actualValueMinFactor": 2
+    }
+  },
+  "final": {
+    "stats": {
+      "startTime": "2026-10-25T16:46:40.258Z",
+      "duration": 298237.178,
+      "expected": 19,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "bureau 1440 \u2014 light : projet jamais publi\u00e9, pas de \u00ab Republier \u00bb",
+        "status": "expected",
+        "durationMs": 24391
+      },
+      {
+        "title": "bureau 1440 \u2014 dark : projet jamais publi\u00e9, pas de \u00ab Republier \u00bb",
+        "status": "expected",
+        "durationMs": 17920
+      },
+      {
+        "title": "\u00e9cran 768 : premi\u00e8re publication, \u00ab Publier \u00bb sans \u00ab Republier \u00bb",
+        "status": "expected",
+        "durationMs": 29638
+      },
+      {
+        "title": "\u00e9cran 390 : premi\u00e8re publication, \u00ab Publier \u00bb sans \u00ab Republier \u00bb",
+        "status": "expected",
+        "durationMs": 17405
+      },
+      {
+        "title": "legacy domains URL opens canonical deployment domains at 390px",
+        "status": "expected",
+        "durationMs": 20067
+      },
+      {
+        "title": "legacy domains URL opens canonical deployment domains at 1440px",
+        "status": "expected",
+        "durationMs": 29484
+      },
+      {
+        "title": "standalone domains bookmark redirects to the canonical deployment section",
+        "status": "expected",
+        "durationMs": 23552
+      },
+      {
+        "title": "persisted legacy domains pane retains its identity inside the canonical deployment host",
+        "status": "expected",
+        "durationMs": 14815
+      },
+      {
+        "title": "Publish leads to setup and advanced options retain values when collapsed",
+        "status": "expected",
+        "durationMs": 17796
+      },
+      {
+        "title": "legacy document POST shows its validation error before returning to canonical domains",
+        "status": "expected",
+        "durationMs": 42610
+      },
+      {
+        "title": "bureau 1440 \u2014 light : les exemples de champ sont en retrait d'une vraie valeur",
+        "status": "expected",
+        "durationMs": 22404,
+        "contrastMeasurements": [
+          {
+            "champ": "customDomain",
+            "exemple": 4.54,
+            "valeur": 16.67
+          },
+          {
+            "champ": "envVars",
+            "exemple": 4.54,
+            "valeur": 16.67
+          }
+        ]
+      },
+      {
+        "title": "bureau 1440 \u2014 dark : les exemples de champ sont en retrait d'une vraie valeur",
+        "status": "expected",
+        "durationMs": 14186,
+        "contrastMeasurements": [
+          {
+            "champ": "customDomain",
+            "exemple": 5.26,
+            "valeur": 18.07
+          },
+          {
+            "champ": "envVars",
+            "exemple": 5.26,
+            "valeur": 18.07
+          }
+        ]
+      },
+      {
+        "title": "top Publish, dashboard navigation and legacy bookmark open the same publish host",
+        "status": "expected",
+        "durationMs": 60658
+      },
+      {
+        "title": "real unavailable detection allows explicit mode override; double click sends one payload and error can be retried",
+        "status": "expected",
+        "durationMs": 93562
+      },
+      {
+        "title": "cancel and rollback require confirmation; Escape and Cancel send nothing",
+        "status": "expected",
+        "durationMs": 16941
+      },
+      {
+        "title": "bureau 1440 \u2014 light : nom du client et onglet courant visibles",
+        "status": "expected",
+        "durationMs": 20830
+      },
+      {
+        "title": "bureau 1440 \u2014 dark : nom du client et onglet courant visibles",
+        "status": "expected",
+        "durationMs": 24959
+      },
+      {
+        "title": "bureau 1280 \u2014 light : nom du client et onglet courant visibles",
+        "status": "expected",
+        "durationMs": 23312
+      },
+      {
+        "title": "bureau 1280 \u2014 dark : nom du client et onglet courant visibles",
+        "status": "expected",
+        "durationMs": 14181
+      }
+    ],
+    "retries": 0,
+    "workers": 2,
+    "testSha256": [
+      {
+        "path": "tests/e2e/zone-utilisateur-bureau.spec.ts",
+        "sha256": "41c19d7bce8bc111b2edcf5446efb944a4aacadc1db97ca8324cae75d72bc174"
+      },
+      {
+        "path": "tests/e2e/exemples-de-champ-bureau.spec.ts",
+        "sha256": "e0d5d41667687ddba7423abb9cc13ada9e0d8fcd630fc3f0cd5b80f5a6a5a1ee"
+      },
+      {
+        "path": "tests/e2e/deploiement-sans-republier.spec.ts",
+        "sha256": "a649a2bee0f9ade77db4fbc672173ae0128dc037d77b8193b556b3a3ecdf343f"
+      },
+      {
+        "path": "tests/e2e/deploy-canonical-navigation.spec.ts",
+        "sha256": "ef93cdded03ca94cb5b66b59a361696a18fa80be082d01c5471869c4e4af337d"
+      },
+      {
+        "path": "tests/e2e/publish-canonical-flow.spec.ts",
+        "sha256": "9b66dee3ddf741c8b4eeb57997aee70c9c3944eabac52373662224eabca9c270"
+      }
+    ],
+    "sourceSha256": [
+      {
+        "path": "app/components/chat/BaseChat.tsx",
+        "sha256": "7fd384fb602e5be1de1cb0b9fb5681b4d702749cac4ac6bcc5fbd536781ec200"
+      },
+      {
+        "path": "app/components/chat/panel-single-flight.spec.ts",
+        "sha256": "1fa1e865368c6b93697a9ed90435b6791822488fd06c8feaa0356fe9df0473ad"
+      },
+      {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "sha256": "4ffa47675e209d4bbdd50ccfa56d00582c635e22be9b11a9cc48311b8820fee3"
+      },
+      {
+        "path": "app/components/deploy/DeployPublishCard.spec.tsx",
+        "sha256": "2d98561cf7563de1f2f5302b86a7e36124b5cae51e8d5a8257def569a9986a51"
+      },
+      {
+        "path": "app/components/deploy/DeployPublishCard.tsx",
+        "sha256": "6cd5e4491d995b3bafd8d5e1c309aa3631b04411fe61af04113670eef80f848c"
+      },
+      {
+        "path": "app/components/deploy/DeploymentHistoryDetails.spec.tsx",
+        "sha256": "096c9edf1cef649db1dde07988cb01a794fa0a813528b1b514f407169da6ad51"
+      },
+      {
+        "path": "app/components/deploy/DeploymentHistoryDetails.tsx",
+        "sha256": "f203f55c948f40b56901178c86d31993f649cc7a32133c74d5f86a793d8f5899"
+      },
+      {
+        "path": "app/components/deploy/DeploymentOverview.tsx",
+        "sha256": "b67e61326117283390904ea1e05895be6d37e98c92b9b195c819b11b88ebba5e"
+      },
+      {
+        "path": "app/components/deploy/PublicationReplit.tsx",
+        "sha256": "c0b5be2a6af402af2d5cffbabe99cf45add05f6a413b44b09ed8de775b23d09f"
+      },
+      {
+        "path": "app/components/deploy/publication-republier.spec.ts",
+        "sha256": "802a4d65e428ddcb02cf6226adc4ae75fd235d000c6079fdf9b1bd9a827376e8"
+      },
+      {
+        "path": "app/components/deploy/publication.spec.ts",
+        "sha256": "cb3de3643fd1e65082a2cc8fc1fea4c7db1b4ed033e9d6d416837ae6c27e9bad"
+      },
+      {
+        "path": "app/components/deploy/publication.ts",
+        "sha256": "2f738af130b4e05b8c49072b1e1d2d8e5cc32f3fa86f3441514be2c039ec0900"
+      },
+      {
+        "path": "app/components/deploy/useDeploymentSubmit.spec.tsx",
+        "sha256": "8043a3b14e5f72985d4343179ce37288598b21f81e5ecdace18860a4c53eb172"
+      },
+      {
+        "path": "app/components/deploy/useDeploymentSubmit.tsx",
+        "sha256": "c2b9ee3898236da3a775883d00bb0c439a35edd2b80048a86f87568c933afc4b"
+      },
+      {
+        "path": "app/lib/hooks/useKeybindings.dialog.spec.tsx",
+        "sha256": "8aec685f0c6559d26d5c33cb6613be9599650560642dc39d57d3510fa4fa9ef9"
+      },
+      {
+        "path": "app/lib/hooks/useKeybindings.ts",
+        "sha256": "4c85e361a24b0572b949ec3c394883a72d548caa65a220598bd21503c98a0f24"
+      },
+      {
+        "path": "app/lib/i18n/catalogs/base-chat-ast.ts",
+        "sha256": "6c15a2f99ed0b5d44c1ea9cac5c32d36019b2dc0561646ff6deb884b3073c9f0"
+      },
+      {
+        "path": "app/lib/i18n/catalogs/project-user-area.spec.tsx",
+        "sha256": "627118958e1b3e9b74224b794cda227b977731bf58abc9b2243c970283a28ac4"
+      },
+      {
+        "path": "app/lib/stores/deploy-panel-view.spec.ts",
+        "sha256": "3b2ea8607c14322775fc6c0bb67dae5a1a7d4b304f00b34547bb1659e39ef161"
+      },
+      {
+        "path": "app/lib/stores/deploy-panel-view.ts",
+        "sha256": "50f3760e9686b86d98421002781e3327e33fc02a6a046da15aa8c9b1988ff84e"
+      },
+      {
+        "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+        "sha256": "456df6808c7f507e7ddb8410378408ba97a2e90c54b86cb6353083c1fbcb3066"
+      },
+      {
+        "path": "app/routes/api.projects.$projectId.ide-panel.deployments-transport.spec.ts",
+        "sha256": "6459bbe4bc7cd7d4569e5ee0603e8f48be2d6bbe94cf379c2cfb4c8705c0249c"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.canonical.spec.ts",
+        "sha256": "d358182905bcb8a89a15bac73abba7b19711e50881274f3ca78586275b70e8eb"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.detect-workspace.spec.ts",
+        "sha256": "9999a04165d86a22a095a0842a362189c768bece743bcf649789518cc945e1e3"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.error.spec.tsx",
+        "sha256": "62c37a210201130e4d25e2970b8c96a1b91d24d85285f82184a7b046416ecea0"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.tsx",
+        "sha256": "7d20c5bb656d73d4d00095a9c032ba2be7803a685a5af06034667fd83b44f894"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.view.spec.ts",
+        "sha256": "7093b74a7b814a657e0137e97495101f675a52f81d388b3f3bb1b0769c90bb08"
+      },
+      {
+        "path": "app/routes/projects.$projectId.deployments.view.ts",
+        "sha256": "0bdbde00f59179c5ff585b4ff7673f46e6a42bac23d9bae487970bd216a881bc"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.error.spec.tsx",
+        "sha256": "94ea2aac43f8abc8d8d0d2ecca46b943b79eb742541278db4a6906fa91ddb424"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.orgScope.spec.ts",
+        "sha256": "c5786c4fcf8f3f2fbaa19d24f3844e38cebe9283574473b6e4a31965564cf613"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.organizationScope.spec.ts",
+        "sha256": "e6ea69c8831ebe296d1df0a567ccbb32906e7e4d4b812fe5e51b497d863de57f"
+      },
+      {
+        "path": "app/routes/projects.$projectId.domains.tsx",
+        "sha256": "f5439e43c7c2cc7c7567c03ff5096b876e06b8b21c1137fdab1222a61d1e0545"
+      },
+      {
+        "path": "app/routes/projects.$projectId.ide.tsx",
+        "sha256": "7991699a6a29c59fefa2ed7ff5b2eea955914a26df123080873b408616374c4b"
+      },
+      {
+        "path": "app/routes/user-area-async-boundary.guard.spec.ts",
+        "sha256": "0485064d1832be67110c46442c3c272cef7992362cd251e0cf3dbac90f46f464"
+      },
+      {
+        "path": "app/routes/user-area-copy.spec.ts",
+        "sha256": "6a3162b9e245f17bffc3821d90aec557b9fb6be22df6aa306b8cececc07b8628"
+      },
+      {
+        "path": "app/styles/index.scss",
+        "sha256": "cf715fc0aae204aa57beea6780c8af43483eefa8e73df9634024508e1663be67"
+      },
+      {
+        "path": "services/api/src/app.ts",
+        "sha256": "7a0a7615cb5d7406cf6e4d30ac909904e8806e5651875512580cd86de19a673d"
+      },
+      {
+        "path": "services/api/src/tests/deploy-detect-workspace.spec.ts",
+        "sha256": "aa5ff284b8aa34131d8714af3e59ae06cced7c208ce3ef87042cec0567702687"
+      }
+    ],
+    "deletedSources": [
+      "app/components/deploy/DeploySubNav.spec.tsx",
+      "app/components/deploy/DeploySubNav.tsx"
+    ],
+    "buildFileCount": 2307,
+    "buildManifestSha256": "67dd9d66f4e9f9f31413b3f8deadce45187edf8b56baacdb5881f09792a367dc",
+    "postRunSourceBuildMismatches": 0
+  },
+  "qualification": {
+    "real": [
+      "Fresh local auth/project/workspace APIs,PostgreSQL/Redis",
+      "Desktop1440/1280 themes,tablet768,mobile390",
+      "Computed placeholder contrast with original thresholds",
+      "Legacy pane persistence and invalid DomainsPOST400",
+      "Unavailable detection/redetect and actual ratecard"
+    ],
+    "controlled": [
+      "Publication mutation503 intercepted beforeAPI",
+      "Synthetic BUILDING/READY history and cancel/rollbackPOSTs intercepted"
+    ],
+    "notExecuted": [
+      "External publication or DNS changes",
+      "Production QA disconnected",
+      "Successful live framework detection or real provider rollback"
+    ]
+  },
+  "artifacts": [
+    "placeholder-contrast-light.png",
+    "placeholder-contrast-dark.png",
+    "managed-publish-mobile.png",
+    "before-placeholder-dark.png",
+    "before-placeholder-light.png"
+  ]
+}
