@@ -140,7 +140,7 @@ export function buildSecurityGrepCommand(kind: 'secrets' | 'sast'): string {
    */
   const script = `const {spawn}=require('node:child_process');
 const child=spawn('grep',${JSON.stringify(args)},{stdio:['ignore','pipe','ignore']});
-let lines=0, bytes=0;
+let lines=0, bytes=0, truncated=false;
 child.stdout.on('data',chunk=>{
   let end=0;
   while(end<chunk.length && lines<${kind === 'secrets' ? 50 : 80} && bytes<65536) {
@@ -148,9 +148,13 @@ child.stdout.on('data',chunk=>{
     end++; bytes++;
   }
   if(end) process.stdout.write(chunk.subarray(0,end));
+  if(end<chunk.length) truncated=true;
 });
 child.on('error',()=>{process.exitCode=2;});
-child.on('close',code=>{process.exitCode=(code===0||code===1)?0:(code||2);});`;
+child.on('close',code=>{
+  process.exitCode=(code===0||code===1)?0:(code||2);
+  if(process.exitCode===0) process.stdout.write('\\n__VIBECORE_GREP_SCAN_V1__:'+JSON.stringify({complete:!truncated})+'\\n');
+});`;
 
   return `node -e '${script.replace(/'/g, "'\\''")}'`;
 }
@@ -175,4 +179,109 @@ export function isSuccessfulNpmAudit(exitCode: number, output: string): boolean 
   } catch {
     return false;
   }
+}
+
+/** A missing footer cannot certify completeness (old runtime or transport truncation). */
+export function readSecurityGrepOutput(output: string): { output: string; complete: boolean } {
+  const footer = output.match(/\n__VIBECORE_GREP_SCAN_V1__:(\{"complete":(?:true|false)\})\n$/);
+
+  return footer
+    ? { output: output.slice(0, footer.index), complete: JSON.parse(footer[1]).complete === true }
+    : { output, complete: false };
+}
+
+export interface SecurityScanCoverage {
+  source: 'npm-audit' | 'secret-scan' | 'sast';
+  completeness: 'complete' | 'unknown' | 'failed';
+}
+
+interface StoredSecurityFinding {
+  id: string;
+  source?: string;
+  status?: string;
+  hidden?: boolean;
+  createdAt?: string;
+  details?: string;
+}
+
+/** Old grep IDs include output order; order must not own a user's triage. */
+function findingIdentity(finding: StoredSecurityFinding): string {
+  const id =
+    finding.source === 'secret-scan' && /^secret:\d+:[a-f0-9]{16}$/.test(finding.id)
+      ? finding.id.replace(/^secret:\d+:/, 'secret:')
+      : finding.source === 'sast' && finding.details && isGrepMatchLine(finding.details)
+        ? `sast:${createHash('sha256').update(finding.details).digest('hex')}`
+        : finding.id;
+
+  return JSON.stringify([finding.source ?? '', id]);
+}
+
+/** Only an authoritative result can remove old findings, and only for its own source. */
+export function reconcileSecurityFindings<T extends StoredSecurityFinding>(
+  previous: T[],
+  findings: T[],
+  coverage: SecurityScanCoverage[],
+): T[] {
+  const authoritativeSources = new Set(
+    coverage.filter((item) => item.completeness === 'complete').map((item) => item.source),
+  );
+
+  const counts = (items: T[]) =>
+    items.reduce((result, item) => {
+      const identity = findingIdentity(item);
+      result.set(identity, (result.get(identity) ?? 0) + 1);
+
+      return result;
+    }, new Map<string, number>());
+
+  const previousCounts = counts(previous);
+  const nextCounts = counts(findings);
+
+  const identityFor = (finding: T) => {
+    const identity = findingIdentity(finding);
+    return (previousCounts.get(identity) ?? 0) <= 1 && (nextCounts.get(identity) ?? 0) <= 1
+      ? identity
+      : JSON.stringify([finding.source ?? '', finding.id]);
+  };
+
+  const previousByIdentity = new Map(previous.map((finding) => [identityFor(finding), finding]));
+
+  const reconciled = new Map(
+    previous
+      .filter(
+        (finding) =>
+          !authoritativeSources.has(finding.source as SecurityScanCoverage['source']) ||
+          finding.hidden ||
+          finding.status === 'ignored' ||
+          finding.status === 'fixed',
+      )
+      .map((finding) => [identityFor(finding), finding]),
+  );
+
+  for (const finding of findings) {
+    const identity = identityFor(finding);
+    const existing = previousByIdentity.get(identity);
+    reconciled.set(
+      identity,
+      existing
+        ? {
+            ...existing,
+            ...finding,
+            id: existing.id,
+            status: existing.status ?? finding.status,
+            hidden: existing.hidden ?? finding.hidden,
+            createdAt: existing.createdAt ?? finding.createdAt,
+          }
+        : {
+            ...finding,
+            id:
+              (finding.source === 'secret-scan' || finding.source === 'sast') &&
+              (nextCounts.get(findingIdentity(finding)) ?? 0) === 1
+                ? (JSON.parse(findingIdentity(finding))[1] as string)
+                : finding.id,
+          },
+    );
+  }
+
+  return [...reconciled.values()];
 }

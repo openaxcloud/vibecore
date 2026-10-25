@@ -18,8 +18,12 @@ import {
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
 import { messageDEchecDInstallation } from '~/lib/ide/message-echec-installation';
+import { packageDiagnosticCommand, packageDiagnosticSucceeded } from '~/lib/ide/package-diagnostics';
 import { objectStorageResultOrDisabled } from '~/lib/ide/panneau-stockage-objets';
 import {
+  readSecurityGrepOutput,
+  reconcileSecurityFindings,
+  type SecurityScanCoverage,
   buildSecurityGrepCommand,
   isSuccessfulNpmAudit,
   extractGrepMatchLines,
@@ -2686,6 +2690,10 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           language,
         );
 
+    if (intent === 'audit' || intent === 'outdated') {
+      run.status = packageDiagnosticSucceeded(packageManager, intent, run) ? 'succeeded' : 'failed';
+    }
+
     state.runs.unshift({
       ...run,
       output: run.output ? run.output.slice(-4000) : '',
@@ -2720,7 +2728,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
      * diagnostiquer. Et le message porte la fin de la sortie — la cause réelle
      * (module introuvable, registre injoignable…), pas un « échec » nu.
      */
-    if (run.exitCode !== 0 || run.status !== 'succeeded') {
+    if ((isInstall && run.exitCode !== 0) || run.status !== 'succeeded') {
       throw json(
         {
           error: messageDEchecDInstallation(run, language),
@@ -4506,36 +4514,8 @@ function packagePanelCommand(
   const copy = getApiRuntimeRoutesCopy(language);
   const quotedPackages = input.packages.map(shellQuote).join(' ');
 
-  if (input.intent === 'audit') {
-    if (input.packageManager === 'pnpm') {
-      return 'pnpm audit --json || true';
-    }
-
-    if (input.packageManager === 'yarn') {
-      return 'yarn npm audit --json || yarn audit --json || true';
-    }
-
-    if (input.packageManager === 'bun') {
-      return 'bun audit || true';
-    }
-
-    return 'npm audit --json || true';
-  }
-
-  if (input.intent === 'outdated') {
-    if (input.packageManager === 'pnpm') {
-      return 'pnpm outdated --format json || true';
-    }
-
-    if (input.packageManager === 'yarn') {
-      return 'yarn outdated --json || true';
-    }
-
-    if (input.packageManager === 'bun') {
-      return 'bun outdated || true';
-    }
-
-    return 'npm outdated --json || true';
+  if (input.intent === 'audit' || input.intent === 'outdated') {
+    return packageDiagnosticCommand(input.packageManager, input.intent);
   }
 
   if (input.intent === 'install-package') {
@@ -5174,6 +5154,7 @@ async function runSecurityScan(
 
   const commandRuns: Awaited<ReturnType<typeof runTerminalCommand>>[] = [];
   const findings: ReturnType<typeof vulnerabilitiesFromAuditOutput> = [];
+  const coverage: SecurityScanCoverage[] = [];
 
   if (runDependencyAudit) {
     const auditRun = await runTerminalCommand(
@@ -5191,6 +5172,7 @@ async function runSecurityScan(
      */
     auditRun.status = isSuccessfulNpmAudit(auditRun.exitCode, auditRun.output) ? 'succeeded' : 'failed';
     commandRuns.push(auditRun);
+    coverage.push({ source: 'npm-audit', completeness: auditRun.status === 'succeeded' ? 'complete' : 'failed' });
 
     if (auditRun.status === 'succeeded') {
       findings.push(...vulnerabilitiesFromAuditOutput(auditRun.output, now, language));
@@ -5209,13 +5191,19 @@ async function runSecurityScan(
 
     commandRuns.push(secretRun);
 
+    const secretOutput = readSecurityGrepOutput(secretRun.output);
+    coverage.push({
+      source: 'secret-scan',
+      completeness: secretRun.status !== 'succeeded' ? 'failed' : secretOutput.complete ? 'complete' : 'unknown',
+    });
+
     if (secretRun.status !== 'succeeded') {
       console.error(
         `Security secret scan command failed (exit ${secretRun.exitCode}); output ignored, not reported as findings`,
       );
     } else {
       findings.push(
-        ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
+        ...vulnerabilitiesFromSecretScan(secretOutput.output, now).map((finding) => ({
           ...finding,
           title: copy['apiRuntime.panel.securitySecretFinding'],
           recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
@@ -5236,28 +5224,36 @@ async function runSecurityScan(
 
     commandRuns.push(sastRun);
 
+    const sastOutput = readSecurityGrepOutput(sastRun.output);
+    coverage.push({
+      source: 'sast',
+      completeness: sastRun.status !== 'succeeded' ? 'failed' : sastOutput.complete ? 'complete' : 'unknown',
+    });
+
     if (sastRun.status !== 'succeeded') {
       console.error(
         `Security static scan command failed (exit ${sastRun.exitCode}); output ignored, not reported as findings`,
       );
     } else {
-      findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+      findings.push(...vulnerabilitiesFromSastOutput(sastOutput.output, now, language));
     }
   }
 
-  const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
   const failedRun = commandRuns.find((run) => run.status !== 'succeeded');
-  const incomplete = Boolean(failedRun) || commandRuns.length === 0;
-  const refreshed = findings.map((finding) => ({ ...(existingById.get(finding.id) ?? {}), ...finding }));
 
-  // An incomplete scan must not erase previous findings or look like a clean scan.
-  state.vulnerabilities = incomplete
-    ? Array.from(new Map([...state.vulnerabilities, ...refreshed].map((finding) => [finding.id, finding])).values())
-    : refreshed;
+  const incomplete =
+    Boolean(failedRun) || commandRuns.length === 0 || coverage.some((item) => item.completeness !== 'complete');
+
+  /*
+   * Only a complete successful result can remove old findings from its source.
+   * Bounded/legacy grep output remains additive when completeness is unknown.
+   */
+  state.vulnerabilities = reconcileSecurityFindings(state.vulnerabilities, findings, coverage);
   state.scans.unshift({
     id: randomUUID(),
     scanType: 'full',
     scanner: scannerProfile,
+    coverage,
     status: incomplete ? 'failed' : 'completed',
     startedAt: now,
     completedAt: new Date().toISOString(),
@@ -5358,6 +5354,14 @@ function normalizeSecurityState(input: any, language?: string | null) {
           id: String(scan.id || randomUUID()),
           scanType: String(scan.scanType || 'full'),
           scanner: String(scan.scanner || 'workspace-runtime'),
+          coverage: Array.isArray(scan.coverage)
+            ? scan.coverage
+                .filter((item: any) => ['npm-audit', 'secret-scan', 'sast'].includes(item?.source))
+                .map((item: any) => ({
+                  source: item.source,
+                  completeness: ['complete', 'failed'].includes(item.completeness) ? item.completeness : 'unknown',
+                }))
+            : undefined,
           status: ['queued', 'running', 'completed', 'failed'].includes(scan.status) ? scan.status : 'completed',
           startedAt: scan.startedAt ? String(scan.startedAt) : undefined,
           completedAt: scan.completedAt ? String(scan.completedAt) : undefined,

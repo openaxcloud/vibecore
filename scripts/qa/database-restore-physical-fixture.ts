@@ -86,9 +86,7 @@ export class PhysicalRestoreFixture {
     });
     const address = server.address();
     assert.ok(address && typeof address !== 'string');
-    await new Promise<void>((resolve, reject) =>
-      server.close((error) => (error ? reject(error) : resolve())),
-    );
+    await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
     // Docker must bind this explicit port or fail. An automatically assigned
     // port can change on restart and invalidate the persisted connection URI.
     return address.port;
@@ -410,14 +408,21 @@ export class PhysicalRestoreFixture {
     readbackVerified: true;
     observedReadbackSha256: string;
   }> {
-    const result = await this.appCommand({ action: 'connect', connectionUri: this.targetUri, bindingVersion });
+    const result = await this.appCommand({
+      action: 'connect',
+      connectionUri: this.targetUri,
+      bindingVersion,
+      targetId: this.restoredTargetId,
+      systemIdentifier: this.sourceSystemIdentifier,
+      expectedReadbackSha256: this.expectedReadbackSha256,
+    });
     assert.equal(result.previousPoolClosed, true);
     assert.equal(result.newConnection, true);
     assert.equal(result.systemIdentifier, this.sourceSystemIdentifier);
     const response = await fetch(`${this.appUrl}/restore-readback`);
     assert.equal(response.status, 200);
-    const actual = (await response.json()) as { rows: unknown; bindingVersion: number };
-    assert.deepEqual(actual.rows, expectedRows);
+    const actual = (await response.json()) as { observedReadbackSha256: string; bindingVersion: number };
+    assert.equal(actual.observedReadbackSha256, this.expectedReadbackSha256);
     assert.equal(actual.bindingVersion, bindingVersion);
     assert.equal((await fetch(`${this.appUrl}/value`)).status, 503);
     this.evidence.applicationReadback = actual;
@@ -430,7 +435,7 @@ export class PhysicalRestoreFixture {
       previousPoolClosed: true,
       newConnection: true,
       readbackVerified: true,
-      observedReadbackSha256: createHash('sha256').update(JSON.stringify(actual.rows)).digest('hex'),
+      observedReadbackSha256: actual.observedReadbackSha256,
     };
   }
 
@@ -446,7 +451,7 @@ export class PhysicalRestoreFixture {
   }
 
   async verifyDurableTarget(): Promise<void> {
-    await this.appCommand({ action: 'quiesce' });
+    await this.appCommand({ action: 'suspend' });
     await this.docker(['restart', this.targetName]);
     assert.equal(await this.connectionUri(this.targetName), this.targetUri);
     this.evidence.targetEndpointUnchangedAfterRestart = true;
