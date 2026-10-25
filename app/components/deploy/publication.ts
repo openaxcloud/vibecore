@@ -208,7 +208,11 @@ export function domainesConnectes(deploiements: readonly Deploiement[] | undefin
   const vus = new Set<string>();
 
   for (const deploiement of deploiements ?? []) {
-    const url = deploiement?.url;
+    if (deploiement.status !== 'READY') {
+      continue;
+    }
+
+    const url = deploiement.url;
 
     if (typeof url === 'string' && /^https?:\/\//u.test(url.trim())) {
       vus.add(url.trim());

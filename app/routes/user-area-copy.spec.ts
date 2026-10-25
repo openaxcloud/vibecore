@@ -94,7 +94,7 @@ describe('user-area product vocabulary', () => {
     const projects = source('app/routes/projects._index.tsx');
     const recentProjects = source('app/routes/recent-projects.tsx');
     const database = source('app/routes/projects.$projectId.database.tsx');
-    const deployments = source('app/routes/projects.$projectId.deployments.tsx');
+    const deployments = source('app/components/chat/BaseChat.tsx');
 
     expect(projectCards).toContain('localizedProjectStatus(project, t)');
     expect(projects).toContain('<ProjectStatusPill project={project} />');
@@ -103,7 +103,7 @@ describe('user-area product vocabulary', () => {
     expect(projects).not.toContain('stack: project.gitRepositoryUrl ?? project.sourceType');
     expect(recentProjects).not.toContain('stack: project.gitRepositoryUrl ?? project.sourceType');
     expect(database).toContain('databaseRestoreStatusLabel(status, copy)');
-    expect(deployments).toContain('copy.statuses.unknown');
+    expect(deployments).toContain('deploymentStatusLabel(deployment.status, language)');
   });
 
   it('does not render audit identifiers or OAuth query details as customer copy', () => {

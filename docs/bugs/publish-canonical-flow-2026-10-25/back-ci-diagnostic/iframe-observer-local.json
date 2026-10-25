@@ -1,0 +1,41 @@
+{
+  "compiledProduct": "334f9821a76b7fc844b14f488d08069c2677c1b7",
+  "sourceSha256": [
+    {
+      "path": "tests/e2e/helpers/panel-history-diagnostics.ts",
+      "sha256": "2dc56ebfa63f3c5835160563648ec2c64f2b4b82479dc87bb83ca40d02c8d6ad"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-10-25T18:56:33.734Z",
+    "duration": 6832.722,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "retries": 0,
+  "consoleBytes": 10466,
+  "frameEvents": 39,
+  "omittedFrameEvents": 0,
+  "checks": {
+    "eslint": "pass",
+    "strictTypescript": "pass",
+    "prettier": "pass",
+    "gitleaksScopedHelper": "pass",
+    "gitDiffCheck": "pass"
+  },
+  "qualification": "Observation-only helper validation on Chromium154; unchanged assertions; CI147 causality unresolved; no product edits",
+  "preliminaryDiagnostic": {
+    "attempts": 3,
+    "durationMs": 22484.89,
+    "passed": 3,
+    "scope": "Separate temporary copy of original test plus passive iframe observation before CI helper integration; no failure reproduced; each maxHistoryLength4, one initial srcdoc assignment, no repeated srcdoc assignment observed"
+  },
+  "limits": [
+    "Chromium154 differs from CI Chromium147; denied browser download not retried",
+    "No application attribution of standalone iframe-history mechanism",
+    "No actual external deployment, DNS change or production QA",
+    "Raw logs and opaque history keys remain private; this receipt contains no history keys"
+  ]
+}

@@ -48,14 +48,26 @@ async function compteEtProjet(page: Page, theme: 'light' | 'dark') {
 }
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`bureau 1440 — ${theme} : les exemples de champ sont en retrait d'une vraie valeur`, async ({ page }) => {
+  test(`bureau 1440 — ${theme} : les exemples de champ sont en retrait d'une vraie valeur`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     const projectId = await compteEtProjet(page, theme);
     await page.goto(`/projects/${projectId}/deployments`, { waitUntil: 'domcontentloaded' });
 
-    const champs = page.locator('main input[name="customDomain"], main textarea[name="envVars"]');
+    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=deployments$`));
+
+    const host = page.locator('.bolt-project-deploy-tool');
+    await expect(host).toBeVisible({ timeout: 60_000 });
+    await host
+      .locator('.bolt-project-tool-tabs')
+      .getByRole('button', { name: /^(Manage|Gérer)$/ })
+      .click();
+
+    const formulaire = host.locator('form').filter({ has: page.locator('input[type="hidden"][name="provider"]') });
+    const champs = formulaire.locator('input[name="customDomain"], textarea[name="envVars"]');
     await expect(champs.first()).toBeVisible({ timeout: 60_000 });
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
@@ -106,6 +118,9 @@ for (const theme of ['light', 'dark'] as const) {
         };
       });
     });
+
+    await testInfo.attach('placeholder-contrast', { body: JSON.stringify(mesures), contentType: 'application/json' });
+    await page.screenshot({ path: testInfo.outputPath(`placeholder-contrast-${theme}.png`) });
 
     expect(mesures).toHaveLength(2);
 

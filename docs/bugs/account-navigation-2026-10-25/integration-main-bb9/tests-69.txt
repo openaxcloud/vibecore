@@ -1,0 +1,42 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui
+
+ ✓ app/routes/account-settings.i18n.spec.tsx (2 tests) 270ms
+ ✓ app/routes/billing.feedback.spec.tsx (2 tests) 680ms
+   ✓ billing action feedback accessibility > announces a submitted limit result (success=true)  524ms
+ ✓ app/routes/userarea-ux-audit.spec.ts (52 tests) 134ms
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 22ms
+ ✓ app/lib/hooks/useKeybindings.dialog.spec.tsx (1 test) 135ms
+stdout | app/lib/i18n/catalogs/project-user-area.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/lib/i18n/catalogs/project-user-area.spec.tsx
+INFO Debug logger initialized
+
+ ✓ app/lib/i18n/catalogs/project-user-area.spec.tsx (6 tests) 147ms
+
+ Test Files  6 passed (6)
+      Tests  69 passed (69)
+   Start at  21:11:03
+   Duration  7.54s (transform 4.01s, setup 222ms, collect 5.77s, tests 1.39s, environment 2.71s, prepare 498ms)
