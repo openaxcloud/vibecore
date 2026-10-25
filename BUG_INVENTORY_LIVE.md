@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-489 entrées.
+490 entrées.
 
 ## Sans section
 
@@ -629,6 +629,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## IDE — exécution réelle
 
 - [BUG-PACKAGES-SCAN-SCOPE-001](docs/bugs/BUG-PACKAGES-SCAN-SCOPE-001.md) — 📤 Dispatché : 25 octobre 2026. Lot distinct après #781, basé sur son merge main `d3adf5be9`. Git, Publish/Déploiement, Domai · 💻 Codé : Correctif local, pas encore fusionné. Packages ne neutralise plus les erreurs audit/outdated avec `|| true`. U · ✅ Testé live : Non. Tests locaux sur fichiers synthétiques et handlers avec transport contrôlé. Aucun fournisseur, donnée uti
+
+## Livraison — production
+
+- [BUG-FLEET-MEMBERSHIP-LOCATION-001](docs/bugs/BUG-FLEET-MEMBERSHIP-LOCATION-001.md) — 📤 Dispatché : 25 octobre 2026, diagnostic du déploiement #784, run 40205758137, job 121219777586. Propriétaire unique du cor · 💻 Codé : Correctif préparé : les deux appels `gcloud container fleet memberships get-credentials` de deploy-main sélect · ✅ Testé live : Non pour le correctif. La panne réelle précédente est attestée par le log GitHub : étape 12 Connect Gateway, a
 
 ## Résidus non tabulaires — reportés mot pour mot
 

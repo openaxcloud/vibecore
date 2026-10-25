@@ -109,8 +109,17 @@ runs:
 
   - name: Install Playwright browsers
     shell: bash
+    env:
+      PLAYWRIGHT_BROWSERS: ${{ inputs.navigateurs }}
     run: |
       echo "cache des navigateurs : succes=${{ steps.cache_navigateurs.outputs.cache-hit == 'true' }} cle=${{ steps.cache_navigateurs.outputs.cache-primary-key }}"
+      # Ne pas payer les dépendances GTK/GStreamer de WebKit sur les tranches
+      # Chromium. Le canari conserve les deux ensembles, sans changer ses tests.
+      case "$PLAYWRIGHT_BROWSERS" in
+        chromium) browser_deps=(chromium) ;;
+        chromium,webkit) browser_deps=(chromium webkit) ;;
+        *) echo '::error::ensemble de navigateurs Playwright non pris en charge'; exit 1 ;;
+      esac
       # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
       # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
       # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
@@ -124,7 +133,7 @@ runs:
       # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
       # dont on lit le résultat.
       for attempt in 1 2 3; do
-        if pnpm exec playwright install-deps chromium webkit; then break; fi
+        if pnpm exec playwright install-deps "${browser_deps[@]}"; then break; fi
         echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
         if [ "$attempt" = "3" ]; then exit 1; fi
         sudo rm -rf /var/lib/apt/lists/*
@@ -136,7 +145,7 @@ runs:
       # WebKit UNIQUEMENT si l'appelant le demande. La suite bloquante n'en a
       # pas besoin : l'installer pour rien remettrait du temps sur le chemin
       # critique, ce que ce découpage existe précisément pour enlever.
-      if [ "${{ inputs.navigateurs }}" = "chromium,webkit" ]; then
+      if [ "$PLAYWRIGHT_BROWSERS" = "chromium,webkit" ]; then
 
         # Sans faire échouer l'étape : une indisponibilité amont du binaire ne
         # doit pas fermer la porte E2E de tout le monde.
