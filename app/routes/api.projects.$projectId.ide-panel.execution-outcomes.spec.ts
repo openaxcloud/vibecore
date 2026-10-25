@@ -17,14 +17,14 @@ const workflow = {
 };
 
 let stored: Record<string, any>;
-let result: { exitCode: number; output: string } | Error;
+let result: { exitCode?: number; output: string } | Error;
 let commandIndex: number;
 let failureIndex: number;
 beforeEach(() => {
   apiRequest.mockReset();
   commandIndex = 0;
   failureIndex = 0;
-  result = { exitCode: 0, output: '{}' };
+  result = { exitCode: 0, output: '{"auditReportVersion":2,"vulnerabilities":{}}' };
   stored = {
     VIBECORE_WORKFLOWS_STATE: { workflows: [workflow], runs: [] },
     VIBECORE_SECURITY_STATE: {
@@ -49,11 +49,15 @@ beforeEach(() => {
       return { envVars: Object.entries(stored).map(([key, value]) => ({ key, value: JSON.stringify(value) })) };
     }
 
-    if (path.endsWith('/commands')) {
+    if (path.endsWith('/packages')) {
+      return { packageManager: 'npm', workspace: { id: 'fixture-workspace' } };
+    }
+
+    if (path.endsWith('/commands') || path.endsWith('/packages/install')) {
       const index = commandIndex++;
 
       if (failureIndex >= 0 && index !== failureIndex) {
-        return { exitCode: 0, output: '{}' };
+        return { exitCode: 0, output: '{"auditReportVersion":2,"vulnerabilities":{}}' };
       }
 
       if (result instanceof Error) {
@@ -76,7 +80,14 @@ async function execute(panel: string) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          intent: panel === 'terminal' ? 'run-script' : panel === 'workflows' ? 'run-workflow' : 'scan',
+          intent:
+            panel === 'terminal'
+              ? 'run-script'
+              : panel === 'workflows'
+                ? 'run-workflow'
+                : panel === 'packages'
+                  ? 'install-all'
+                  : 'scan',
           script: 'fixture-only',
           workflowId: '42',
         }),
@@ -97,12 +108,14 @@ for (const panel of ['terminal', 'workflows', 'security']) {
       expect((body.run ?? body.scan).status).toBe(panel === 'security' ? 'completed' : 'succeeded');
     });
 
-    for (const failure of ['exit', 'timeout'] as const) {
+    for (const failure of ['exit', 'timeout', 'missing-exit'] as const) {
       it(`does not report success after ${failure}`, async () => {
         result =
           failure === 'exit'
             ? { exitCode: 7, output: 'fixture execution error' }
-            : new Error('fixture upstream timeout');
+            : failure === 'missing-exit'
+              ? { output: '{"auditReportVersion":2,"vulnerabilities":{}}' }
+              : new Error('fixture upstream timeout');
 
         const { status, body } = await execute(panel);
 
@@ -139,5 +152,65 @@ for (const index of [1, 2]) {
     expect(status).toBe(422);
     expect(stored.VIBECORE_SECURITY_STATE.scans[0].status).toBe('failed');
     expect(stored.VIBECORE_SECURITY_STATE.vulnerabilities.some((item: any) => item.id === 'existing')).toBe(true);
+  });
+}
+
+it('accepts npm findings exit 1 only with a valid audit report', async () => {
+  result = {
+    exitCode: 1,
+    output: JSON.stringify({ auditReportVersion: 2, vulnerabilities: { example: { severity: 'high', via: [] } } }),
+  };
+
+  const { status, body } = await execute('security');
+  expect(status).toBe(200);
+  expect(body.ok).toBe(true);
+  expect(stored.VIBECORE_SECURITY_STATE.vulnerabilities[0].id).toBe('npm:example');
+});
+
+for (const output of ['{}', '', 'registry unavailable', '{"error":{"code":"ENOAUDIT"}}']) {
+  it(`rejects an unusable npm audit report: ${output}`, async () => {
+    result = { exitCode: 0, output };
+
+    const { status } = await execute('security');
+    expect(status).toBe(422);
+    expect(stored.VIBECORE_SECURITY_STATE.vulnerabilities.some((item: any) => item.id === 'existing')).toBe(true);
+  });
+}
+
+it('does not claim package install success without its exit status', async () => {
+  result = { output: 'fixture incomplete response' };
+  await expect(execute('packages')).rejects.toMatchObject({
+    init: { status: 422 },
+    data: { code: 'PACKAGE_RUN_FAILED', run: { status: 'failed', exitCode: -1 } },
+  });
+  expect(stored.VIBECORE_PACKAGES_STATE.runs[0].status).toBe('failed');
+  expect(stored.VIBECORE_PACKAGES_STATE.runs[0].exitCode).toBe(-1);
+});
+
+it('rejects a scan with no enabled scanner without deleting prior findings', async () => {
+  stored.VIBECORE_SECURITY_STATE.settings = { scannerProfile: 'sca', dependencyAuditEnabled: false };
+
+  const { status, body } = await execute('security');
+  expect(status).toBe(422);
+  expect(body.ok).toBe(false);
+  expect(commandIndex).toBe(0);
+  expect(stored.VIBECORE_SECURITY_STATE.vulnerabilities[0].id).toBe('existing');
+});
+
+it('rejects a package response explicitly marked unsuccessful even with exit zero', async () => {
+  result = { exitCode: 0, output: 'fixture unsuccessful', success: false } as typeof result;
+  await expect(execute('packages')).rejects.toMatchObject({ init: { status: 422 } });
+  expect(stored.VIBECORE_PACKAGES_STATE.runs[0].status).toBe('failed');
+});
+
+for (const panel of ['terminal', 'workflows', 'security', 'packages']) {
+  it(`rejects null exit status for ${panel}`, async () => {
+    result = { exitCode: null, output: '{"auditReportVersion":2,"vulnerabilities":{}}' } as unknown as typeof result;
+
+    if (panel === 'packages') {
+      await expect(execute(panel)).rejects.toMatchObject({ init: { status: 422 } });
+    } else {
+      expect((await execute(panel)).status).toBe(422);
+    }
   });
 }

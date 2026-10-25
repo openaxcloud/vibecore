@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-484 entrées.
+485 entrées.
 
 ## Sans section
 
@@ -546,8 +546,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Intégrations — contrat fonctionnel
 
-- [BUG-INTEGRATIONS-SYNC-FALSE-SUCCESS-001](docs/bugs/BUG-INTEGRATIONS-SYNC-FALSE-SUCCESS-001.md) — Le panneau Intégrations présente une synchronisation réussie sans opération fournisseur. Sur `e40edf3e04217e2d0e96ea1385c0420e18374bac`, le POST `intent=sync` l — 📤 Dispatché : Oui — tranche bornée du 20 octobre 2026, branche `codex/integration-sync-honesty-20261020`. · 💻 Codé : Correctif local validé sur le périmètre ci-dessous, non fusionné : le POST garde la lecture autorisée du proje · ✅ Testé live : Non. Aucun fournisseur, OAuth réel, paiement, secret ou donnée client touché. Aucun nouveau connecteur impléme
-- [BUG-INTEGRATIONS-WEBHOOK-UNMEASURED-001](docs/bugs/BUG-INTEGRATIONS-WEBHOOK-UNMEASURED-001.md) — Défaut source distinct vérifié sur `e40edf3e04217e2d0e96ea1385c0420e18374bac` : dans `app/routes/api.projects.$projectId.ide-panel.$panel.ts`, l’action `create- — 📤 Dispatché : Oui — complément borné du lot d’honnêteté des intégrations du 20 octobre 2026, branche `codex/integration-sync · 💻 Codé : Correctif local validé sur le périmètre ci-dessous, non fusionné : `create-webhook` n’enregistre plus de taux. · ✅ Testé live : Non. Aucun webhook fournisseur créé/envoyé, aucun secret, ressource ou donnée client modifié. Aucun transport
+- [BUG-INTEGRATIONS-SYNC-FALSE-SUCCESS-001](docs/bugs/BUG-INTEGRATIONS-SYNC-FALSE-SUCCESS-001.md) — Le panneau Intégrations présente une synchronisation réussie sans opération fournisseur. Sur `e40edf3e04217e2d0e96ea1385c0420e18374bac`, le POST `intent=sync` l — 📤 Dispatché : Oui — tranche bornée du 20 octobre 2026, branche `codex/integration-sync-honesty-20261020`. · 💻 Codé : Correctif présent sur main `941d7d7fc`, vérifié le 25 octobre 2026 (commit `c98845221`) : le POST garde la lec · ✅ Testé live : Non. Aucun fournisseur, OAuth réel, paiement, secret ou donnée client touché. Aucun nouveau connecteur impléme
+- [BUG-INTEGRATIONS-WEBHOOK-UNMEASURED-001](docs/bugs/BUG-INTEGRATIONS-WEBHOOK-UNMEASURED-001.md) — Défaut source distinct vérifié sur `e40edf3e04217e2d0e96ea1385c0420e18374bac` : dans `app/routes/api.projects.$projectId.ide-panel.$panel.ts`, l’action `create- — 📤 Dispatché : Oui — complément borné du lot d’honnêteté des intégrations du 20 octobre 2026, branche `codex/integration-sync · 💻 Codé : Correctif présent sur main `941d7d7fc`, vérifié le 25 octobre 2026 (commit `c98845221`) : `create-webhook` n’e · ✅ Testé live : Non. Aucun webhook fournisseur créé/envoyé, aucun secret, ressource ou donnée client modifié. Aucun transport
 
 ## Reprise commerciale du 2026-10-20 — restauration de checkpoint
 
@@ -615,6 +615,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DEBUGGER-TRACKED-STOP-001](docs/bugs/BUG-DEBUGGER-TRACKED-STOP-001.md) — 📤 Dispatché : 23 octobre 2026, préparation locale distincte de #778, base c988c2af60d058971afe72f057c6fa82a178fb21. Aucun pu · 💻 Codé : Le lancement demande un processus enregistré à l’agent par le chemin de commande existant et mémorise son iden · ✅ Testé live : Preuves réelles et contrôlées séparées, dans `/workspace/ux-artifacts/debugger-tracked/` :
 - [BUG-SECURITY-SCAN-OPERATION-001](docs/bugs/BUG-SECURITY-SCAN-OPERATION-001.md) — 📤 Dispatché : 23 octobre 2026. Suivi local distinct de #777, basé sur `4b06e77e7c42409ffbb5bffe5503933e8f67065e`. Préparé lo · 💻 Codé : Le timer, la réponse et le catch du scan vérifient l’identité du contrôleur courant avant de modifier l’état. · ✅ Testé live : Pas de nouvelle recette navigateur ou scanner réel revendiquée. Le test `app/components/chat/security-scan-ope
 - [BUG-DEBUGGER-STATE-CONCURRENCY-001](docs/bugs/BUG-DEBUGGER-STATE-CONCURRENCY-001.md) — Deux opérations lisent le même état puis remplacent le blob entier : un historique/configuration peut disparaître malgré deux réponses de succès. — 📤 Dispatché : Lot autorisé le 23 octobre, branche distincte `fix/debugger-state-cas-local`, publié en PR brouillon #780, san · 💻 Codé : Correctif proposé en PR #780, pas livré. La route versionnée `/projects/:projectId/debugger-state/v1` exige la · ✅ Testé live : - Recette complète locale réelle : 11/11, sans omission/retry. Inclut la contre-épreuve initiale rouge, puis c
+
+## IDE — exécution réelle
+
+- [BUG-PANEL-EXECUTION-EVIDENCE-001](docs/bugs/BUG-PANEL-EXECUTION-EVIDENCE-001.md) — 📤 Dispatché : 25 octobre 2026, reprise après #776–780 depuis main `941d7d7fc`. Périmètres scanner, inventaire et revue indép · 💻 Codé : Correctif local, pas encore fusionné. Terminal, Packages et Workflows exigent un code de sortie explicite égal · ✅ Testé live : Non. Commandes grep réelles sur fichiers temporaires synthétiques et contrats BFF avec exécuteur contrôlé ; au
 
 ## Résidus non tabulaires — reportés mot pour mot
 
