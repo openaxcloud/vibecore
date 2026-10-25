@@ -1,0 +1,14 @@
+Excerpt only: failure identities and final Vitest totals from /tmp/ui-next/full-unit.log. Full log SHA-256: 6282ff1f05f6e09feb25c9e074a84e1e3997c7dc46283397709458a0232c2566
+ FAIL  scripts/compression-close-security.spec.mjs > checks native compression cleanup with real HTTP clients and zlib streams
+ FAIL  scripts/shell-quote-security.spec.mjs > shell-quote resolved by concurrently (GHSA-pqg4-j6r4-53mv) > rejects a line terminator after a comment: "\n"
+ FAIL  scripts/shell-quote-security.spec.mjs > shell-quote resolved by concurrently (GHSA-pqg4-j6r4-53mv) > rejects a line terminator after a comment: "\r"
+ FAIL  scripts/shell-quote-security.spec.mjs > shell-quote resolved by concurrently (GHSA-pqg4-j6r4-53mv) > rejects a line terminator after a comment: "
+ FAIL  scripts/shell-quote-security.spec.mjs > shell-quote resolved by concurrently (GHSA-pqg4-j6r4-53mv) > rejects a line terminator after a comment: "
+ FAIL  scripts/tinypool-security.spec.mjs > runs both prototype-pollution regressions with real Tinypool workers
+ FAIL  scripts/ws-fragment-security.spec.mjs > enforces fragment limits with real WebSocket peers
+ FAIL  tests/guards/admin-dependances-production.spec.ts > l’installation de production réelle de l’admin retire le moteur de test
+ FAIL  app/lib/runtime/vite-hmr-config.compilation.spec.ts > actual generated HMR config compilation > builds a coherent module graph and rejects a missing export
+ Test Files  6 failed | 1314 passed | 2 skipped (1322)
+      Tests  9 failed | 10282 passed | 7 skipped (10298)
+   Start at  20:27:21
+   Duration  285.19s (transform 40.10s, setup 18.69s, collect 243.29s, tests 215.33s, environment 105.94s, prepare 82.56s)

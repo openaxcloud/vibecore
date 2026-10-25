@@ -1,0 +1,7 @@
+Build log SHA-256: 1496e6e6bf2c82afd6886ee0a72544b95699aeaed74d30744089715195b6bb93
+> vibecore@1.0.0 build /workspace/vibecore-ui-next
+> VITE_CJS_IGNORE_WARNING=1 NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=8192} react-router build
+vite v5.4.21 building for production...
+✓ built in 1m 38s
+vite v5.4.21 building SSR bundle for production...
+✓ built in 22.44s
