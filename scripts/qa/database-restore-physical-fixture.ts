@@ -4,6 +4,7 @@
  * production. All owned resources are removed by close().
  */
 import assert from 'node:assert/strict';
+import { verifyPostgresBaseBackup } from '../../services/api/src/database-restore-archive.js';
 import { execFile, fork, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -234,11 +235,18 @@ export class PhysicalRestoreFixture {
   }
 
   async verifyArchive(): Promise<void> {
-    await this.pgExec(['/usr/lib/postgresql/16/bin/pg_verifybackup', '/backup']);
-    const digest = (await this.pgExec(['sha256sum', '/backup/backup_manifest'])).split(/\s+/)[0];
-    assert.equal(digest, this.manifestSha256);
-    const control = await this.pgExec(['env', 'LC_ALL=C', '/usr/lib/postgresql/16/bin/pg_controldata', '/backup']);
-    assert.equal(control.match(/Database system identifier:\s+(\d+)/)?.[1], this.sourceSystemIdentifier);
+    const verified = await verifyPostgresBaseBackup(
+      {
+        readManifest: async () =>
+          Buffer.from(await this.pgExec(['base64', '-w0', '/backup/backup_manifest']), 'base64'),
+        verifyBackup: async () => {
+          await this.pgExec(['/usr/lib/postgresql/16/bin/pg_verifybackup', '/backup']);
+        },
+        readControlData: () => this.pgExec(['env', 'LC_ALL=C', '/usr/lib/postgresql/16/bin/pg_controldata', '/backup']),
+      },
+      { manifestSha256: this.manifestSha256, systemIdentifier: this.sourceSystemIdentifier },
+    );
+    assert.equal(verified.baseBackupVerified, true);
     this.evidence.archiveSourceIdentityVerified = true;
   }
 
