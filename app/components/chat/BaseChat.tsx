@@ -337,6 +337,7 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { useDeployPanelSession } from '~/components/deploy/useDeployPanelSession';
 import { useProjectDomains } from '~/components/deploy/useProjectDomains';
 import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
 import {
@@ -15094,6 +15095,7 @@ function ProjectDomainsPanel({
    */
   const selfMode = Boolean(projectId);
   const domainState = useProjectDomains(projectId);
+  const { session: deploySession, update: updateDeploySession } = useDeployPanelSession(projectId);
   const data = selfMode ? (domainState.data ?? {}) : (dataProp ?? {});
 
   const onSubmit = selfMode
@@ -15152,6 +15154,8 @@ function ProjectDomainsPanel({
               {t('chat.copy.domain_9b10914d')}
               <PanelInput
                 name="domain"
+                value={deploySession.domainDraft}
+                onChange={(event) => updateDeploySession({ domainDraft: event.currentTarget.value })}
                 inputMode="url"
                 autoComplete="off"
                 placeholder={codeExample('app.example.com')}
@@ -23762,14 +23766,16 @@ function ProjectDeploymentsPanel({
     outputDirectory: latestDeployment?.outputDirectory,
   });
 
-  const [tab, setTab] = useState<DeployPanelView>(() => consumeDeployPanelView() ?? 'overview');
+  const { session: deploySession, update: updateDeploySession } = useDeployPanelSession(projectId);
+  const tab = deploySession.view;
+  const setTab = useCallback((view: DeployPanelView) => updateDeploySession({ view }), [updateDeploySession]);
 
   /*
    * A door that opened the aliased `domains` tool asks for the Domains tab
-   * (see `~/lib/stores/deploy-panel-view`). The initial state above covers the
-   * mount case; this covers the panel already being open when the request comes
-   * in. The request is consumed once, so the user's own tab clicks afterwards
-   * are never overridden.
+   * (see `~/lib/stores/deploy-panel-view`). Consume only after commit so an
+   * abandoned render cannot lose the request. The project-scoped session keeps
+   * the selected view when responsive shells remount; later manual tab clicks
+   * are never overridden by an already-consumed request.
    */
   const pendingDeployView = useStore(requestedDeployPanelView);
 
@@ -23783,7 +23789,7 @@ function ProjectDeploymentsPanel({
     if (requested) {
       setTab(requested);
     }
-  }, [pendingDeployView]);
+  }, [pendingDeployView, setTab]);
 
   /*
    * RP-PUBLISH-05 — « Réparer avec l'agent ». On réutilise l'événement
