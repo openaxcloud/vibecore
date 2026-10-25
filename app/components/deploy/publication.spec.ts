@@ -116,9 +116,12 @@ describe('domaines et révision', () => {
   it('ne retient que des URL réelles, sans doublon', () => {
     expect(
       domainesConnectes([
-        { url: 'https://a.exemple' },
-        { url: 'https://a.exemple' },
-        { url: 'pas-une-url' },
+        { status: 'READY', url: 'https://a.exemple' },
+        { status: 'READY', url: 'https://a.exemple' },
+        { status: 'READY', url: 'pas-une-url' },
+        { status: 'FAILED', url: 'https://failed.example' },
+        { status: 'CANCELED', url: 'https://canceled.example' },
+        { status: 'BUILDING', url: 'https://building.example' },
         { url: null },
         {},
       ]),

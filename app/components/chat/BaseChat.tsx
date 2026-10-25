@@ -128,6 +128,7 @@ import {
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   consumeDeployPanelView,
+  initializeLegacyDomainsSession,
   requestDeployPanelView,
   requestedDeployPanelView,
   type DeployPanelView,
@@ -6417,6 +6418,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [panelNavigation.state, appliedPanelNavigationId]);
 
+    const appliedDeployAliasRef = useRef<string>();
+
     useEffect(() => {
       if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
         return;
@@ -6467,14 +6470,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       if (isIdeWorkspacePanel(activeProjectPanel)) {
+        const opening = resolveProjectEditorToolOpen(activeProjectPanel as never);
+        const aliasNavigation = `${projectId}:${currentWorkspaceId}:${appliedPanelNavigationId}:${activeProjectPanel}`;
+
+        if (opening.deployView && appliedDeployAliasRef.current !== aliasNavigation) {
+          appliedDeployAliasRef.current = aliasNavigation;
+          requestDeployPanelView(opening.deployView as DeployPanelView);
+        }
+
         if (useMobileIde) {
-          const target = ideMobileTarget(activeProjectPanel);
+          const target = ideMobileTarget(opening.panel as never);
           setMobileIdePanel(target.surface, { activeTabId: target.tabId });
 
           return;
         }
 
-        openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
+        openWorkspacePanel(opening.panel as IdeWorkspacePanel, { replaceUrl: false });
       }
     }, [
       activeProjectPanel,
@@ -11587,11 +11598,26 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
  * l'enveloppe, donc aucun crochet n'est rendu conditionnel.
  */
 function ProjectIdeServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  if (props.panel === 'domains') {
+    return <LegacyDomainsServicePanel projectId={props.projectId} />;
+  }
+
   if (props.panel === 'problems') {
     return <ProjectProblemsPanel />;
   }
 
   return <ProjectIdeApiServicePanel {...props} />;
+}
+
+/** Persisted panes keep their identity while rendering the canonical deployment host. */
+function LegacyDomainsServicePanel({ projectId }: { projectId?: string }) {
+  useEffect(() => {
+    if (projectId) {
+      initializeLegacyDomainsSession(projectId);
+    }
+  }, [projectId]);
+
+  return <ProjectIdeApiServicePanel projectId={projectId} panel="deployments" />;
 }
 
 function ProjectIdeApiServicePanel({
@@ -15044,7 +15070,7 @@ function ProjectIdePanelContent({
    * Deploy tab does, so such a tab is stale, never divergent.
    */
   if (panel === 'domains') {
-    return <ProjectDomainsPanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <LegacyDomainsServicePanel projectId={projectId} />;
   }
 
   if (panel === 'git') {
@@ -15131,6 +15157,7 @@ function ProjectDomainsPanel({
           <span className="bolt-project-domains-kicker">{t('chat.copy.domains_a0d641b3')}</span>
           <h3 id="domains-title">{t('chat.copy.productionRoutingDnsVerificationAndManaged_f5631fc2')}</h3>
           <p>{t('chat.copy.addAHostnamePublishTheDns_c1a019dd')}</p>
+          <p data-testid="project-domains-scope-notice">{t('projectDomains.scope.notice')}</p>
         </div>
         <div className="bolt-project-domain-target-card">
           <span>{t('chat.copy.deploymentTarget_aa5c28e3')}</span>
@@ -15265,9 +15292,11 @@ function DomainVerificationCard({
         <div>
           <span>{t('chat.copy.autoTls_b277ddf3')}</span>
           <strong>
-            {domain.sslStatus === 'dns_verified'
-              ? t('chat.copy.readyForCertificateProvisioning_e45d337a')
-              : t('chat.copy.waitingForDns_882e37ec')}
+            {domain.sslStatus === 'failed'
+              ? t('projectDomains.tls.failed')
+              : domain.sslStatus === 'dns_verified'
+                ? t('chat.copy.readyForCertificateProvisioning_e45d337a')
+                : t('chat.copy.waitingForDns_882e37ec')}
           </strong>
         </div>
         <div>
@@ -24104,79 +24133,84 @@ function ProjectDeploymentsPanel({
                 <option value="production">{t('chat.copy.production_df70fc79')}</option>
               </select>
             </label>
-            <label title={t('chat.copy.commandExecutedBeforeDeploymentToGenerate_87b85f3b')}>
-              <span>{t('chat.copy.buildCommand_2740bf0b')}</span>
-              <PanelInput
-                name="buildCommand"
-                defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND}
-                aria-label={t('chat.copy.buildCommand_2740bf0b')}
-              />
-              <small>{t('chat.copy.exampleNpmRunBuildPnpmBuild_cf3d34a0')}</small>
-            </label>
-            <label title={t('chat.copy.directoryContainingTheBuiltStaticAssets_26607c07')}>
-              <span>{t('chat.copy.outputDirectory_ba9028f4')}</span>
-              <PanelInput
-                name="outputDirectory"
-                defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
-                aria-label={t('chat.copy.outputDirectory_ba9028f4')}
-              />
-              <small>{t('chat.copy.forViteThisIsUsuallyDist_03b25ded')}</small>
-            </label>
-            <label title={t('chat.copy.detectedFrameworkUsedToChooseProvider_4dd054b6')}>
-              <span>{t('chat.copy.frameworkDetected_7a55cf59')}</span>
-              <PanelInput
-                name="framework"
-                placeholder={t('chat.copy.autoValue0_eef47a46', { value0: inferredFramework })}
-                aria-label={t('chat.copy.frameworkDetected_7a55cf59')}
-              />
-              <small>{t('chat.copy.leaveBlankToLetECode_d7db4b95')}</small>
-            </label>
-            <label title={t('chat.copy.gitBranchOrWorkspaceBranchUsed_90c55da3')}>
-              <span>{t('chat.copy.branch_1627510b')}</span>
-              <PanelInput
-                name="branch"
-                placeholder={project.gitDefaultBranch ?? t('chat.copy.main_b28b7af6')}
-                aria-label={t('chat.copy.deploymentBranch_1e947167')}
-              />
-              <small>{t('chat.copy.defaultsToTheProjectBranchWhen_3964715b')}</small>
-            </label>
-            <label title={t('chat.copy.optionalGitRemoteUrlUsedBy_d9896847')}>
-              <span>{t('chat.copy.repositoryUrl_ca38850c')}</span>
-              <PanelInput
-                name="repositoryUrl"
-                defaultValue={project.gitRepositoryUrl ?? ''}
-                aria-label={t('chat.copy.repositoryUrl_ca38850c')}
-              />
-            </label>
-            <label title={t('chat.copy.optionalDomainToAttachToThe_839fb219')}>
-              <span>{t('chat.copy.customDomain_0354c889')}</span>
-              <PanelInput
-                name="customDomain"
-                aria-label={t('chat.copy.customDomain_0354c889')}
-                placeholder={codeExample('app.example.com')}
-              />
-            </label>
-            <label title={t('chat.copy.plainEnvironmentVariablesAddedForThis_0d76b791')}>
-              <span>{t('chat.copy.environmentVariables_1173b2e1')}</span>
-              <textarea
-                name="envVars"
-                placeholder={t('chat.copy.keyValueAnotherKeyValue_36d39107')}
-                aria-label={t('chat.copy.environmentVariables_1173b2e1')}
-              />
-              <small>{t('chat.copy.useKeyValuePairsOnePer_0a98c277')}</small>
-            </label>
-            <label title={t('chat.copy.commaSeparatedNamesOfExistingProject_93f64262')}>
-              <span>{t('chat.copy.secretsToInject_5712dba7')}</span>
-              <PanelInput
-                name="injectSecrets"
-                placeholder={t('chat.copy.databaseUrlStripeSecretKey_42eb88dc')}
-                aria-label={t('chat.copy.secretsToInject_5712dba7')}
-              />
-            </label>
-            <label className="bolt-project-checkbox-row">
-              <input name="previewDeployment" type="checkbox" defaultChecked />
-              {t('chat.copy.createPreviewUrlForNonProduction_9d087457')}
-            </label>
+            <details className="col-span-full">
+              <summary className="cursor-pointer py-2">{t('baseChatAst.deployment.advancedSettings')}</summary>
+              <div className="grid gap-3">
+                <label title={t('chat.copy.commandExecutedBeforeDeploymentToGenerate_87b85f3b')}>
+                  <span>{t('chat.copy.buildCommand_2740bf0b')}</span>
+                  <PanelInput
+                    name="buildCommand"
+                    defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND}
+                    aria-label={t('chat.copy.buildCommand_2740bf0b')}
+                  />
+                  <small>{t('chat.copy.exampleNpmRunBuildPnpmBuild_cf3d34a0')}</small>
+                </label>
+                <label title={t('chat.copy.directoryContainingTheBuiltStaticAssets_26607c07')}>
+                  <span>{t('chat.copy.outputDirectory_ba9028f4')}</span>
+                  <PanelInput
+                    name="outputDirectory"
+                    defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
+                    aria-label={t('chat.copy.outputDirectory_ba9028f4')}
+                  />
+                  <small>{t('chat.copy.forViteThisIsUsuallyDist_03b25ded')}</small>
+                </label>
+                <label title={t('chat.copy.detectedFrameworkUsedToChooseProvider_4dd054b6')}>
+                  <span>{t('chat.copy.frameworkDetected_7a55cf59')}</span>
+                  <PanelInput
+                    name="framework"
+                    placeholder={t('chat.copy.autoValue0_eef47a46', { value0: inferredFramework })}
+                    aria-label={t('chat.copy.frameworkDetected_7a55cf59')}
+                  />
+                  <small>{t('chat.copy.leaveBlankToLetECode_d7db4b95')}</small>
+                </label>
+                <label title={t('chat.copy.gitBranchOrWorkspaceBranchUsed_90c55da3')}>
+                  <span>{t('chat.copy.branch_1627510b')}</span>
+                  <PanelInput
+                    name="branch"
+                    placeholder={project.gitDefaultBranch ?? t('chat.copy.main_b28b7af6')}
+                    aria-label={t('chat.copy.deploymentBranch_1e947167')}
+                  />
+                  <small>{t('chat.copy.defaultsToTheProjectBranchWhen_3964715b')}</small>
+                </label>
+                <label title={t('chat.copy.optionalGitRemoteUrlUsedBy_d9896847')}>
+                  <span>{t('chat.copy.repositoryUrl_ca38850c')}</span>
+                  <PanelInput
+                    name="repositoryUrl"
+                    defaultValue={project.gitRepositoryUrl ?? ''}
+                    aria-label={t('chat.copy.repositoryUrl_ca38850c')}
+                  />
+                </label>
+                <label title={t('chat.copy.optionalDomainToAttachToThe_839fb219')}>
+                  <span>{t('chat.copy.customDomain_0354c889')}</span>
+                  <PanelInput
+                    name="customDomain"
+                    aria-label={t('chat.copy.customDomain_0354c889')}
+                    placeholder={codeExample('app.example.com')}
+                  />
+                </label>
+                <label title={t('chat.copy.plainEnvironmentVariablesAddedForThis_0d76b791')}>
+                  <span>{t('chat.copy.environmentVariables_1173b2e1')}</span>
+                  <textarea
+                    name="envVars"
+                    placeholder={t('chat.copy.keyValueAnotherKeyValue_36d39107')}
+                    aria-label={t('chat.copy.environmentVariables_1173b2e1')}
+                  />
+                  <small>{t('chat.copy.useKeyValuePairsOnePer_0a98c277')}</small>
+                </label>
+                <label title={t('chat.copy.commaSeparatedNamesOfExistingProject_93f64262')}>
+                  <span>{t('chat.copy.secretsToInject_5712dba7')}</span>
+                  <PanelInput
+                    name="injectSecrets"
+                    placeholder={t('chat.copy.databaseUrlStripeSecretKey_42eb88dc')}
+                    aria-label={t('chat.copy.secretsToInject_5712dba7')}
+                  />
+                </label>
+                <label className="bolt-project-checkbox-row">
+                  <input name="previewDeployment" type="checkbox" defaultChecked />
+                  {t('chat.copy.createPreviewUrlForNonProduction_9d087457')}
+                </label>
+              </div>
+            </details>
             <PanelButton disabled={busy}>{t('chat.copy.deployProject_9e37b103')}</PanelButton>
           </form>
         </>

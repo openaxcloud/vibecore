@@ -36,9 +36,21 @@ describe('user-area async route recovery guard', () => {
     for (const route of [...CRITICAL_USER_AREA_ROUTES, ...PROJECT_PANEL_ROUTES]) {
       const source = readFileSync(join(process.cwd(), 'app/routes', route), 'utf8');
 
-      expect(source, route).toContain(
-        "export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';",
-      );
+      if (route === 'projects.$projectId.domains.tsx') {
+        /*
+         * This legacy route retains the generic recovery boundary and additionally
+         * renders failed legacy POST diagnostics before its canonical GET redirect.
+         */
+        expect(source, route).toContain('export function ErrorBoundary()');
+        expect(source, route).toContain(
+          "import { UserAreaRouteErrorBoundary } from '~/components/dashboard/UserAreaRouteError';",
+        );
+        expect(source, route).toContain('return <UserAreaRouteErrorBoundary />;');
+      } else {
+        expect(source, route).toContain(
+          "export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';",
+        );
+      }
     }
   });
 

@@ -56,3 +56,10 @@ export function updateDeployPanelSession(projectId: string, patch: Partial<Deplo
     [projectId]: { ...previous, ...patch },
   });
 }
+
+/** Restore a historical Domains pane without overwriting choices made in this session. */
+export function initializeLegacyDomainsSession(projectId: string) {
+  if (!deployPanelSessions.get()[projectId]) {
+    updateDeployPanelSession(projectId, { view: 'domains' });
+  }
+}
