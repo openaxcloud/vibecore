@@ -1,4 +1,10 @@
 export const chatEn = {
+  'chat.debugger.nodeHelp':
+    'For step debugging, enter a Node.js .js, .mjs or .cjs program and leave Command empty. Other commands run without step debugging.',
+  'chat.debugger.nextLaunch':
+    'Breakpoints and watches apply to the next launch. Node debugging does not support custom environment variables, conditional breakpoints, hit counts or logpoints yet.',
+  'chat.debugger.pause': 'Pause',
+  'chat.debugger.connected': 'Node debugger connected. Pause execution to inspect the call stack and variables.',
   'chat.debugger.sessionDeadline':
     'Runtime session expires at {deadline}, with a stop grace period of up to 5 seconds.',
   'chat.debugger.persistencePending':
@@ -1573,6 +1579,12 @@ export const chatEn = {
 } as const;
 
 export const chatFr = {
+  'chat.debugger.nodeHelp':
+    'Pour le débogage pas-à-pas, indiquez un programme Node.js .js, .mjs ou .cjs et laissez Commande vide. Les autres commandes s’exécutent sans pas-à-pas.',
+  'chat.debugger.nextLaunch':
+    'Les points d’arrêt et expressions surveillées s’appliquent au prochain lancement. Le débogage Node ne prend pas encore en charge les variables d’environnement personnalisées, les conditions, les compteurs de passages ou les points de journalisation.',
+  'chat.debugger.pause': 'Suspendre',
+  'chat.debugger.connected': 'Débogueur Node connecté. Suspendez l’exécution pour inspecter la pile et les variables.',
   'chat.debugger.sessionDeadline':
     'Expiration de la session d’exécution : {deadline}, avec un délai de grâce d’arrêt maximal de 5 secondes.',
   'chat.debugger.persistencePending':

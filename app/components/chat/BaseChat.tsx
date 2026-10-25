@@ -11715,7 +11715,7 @@ function ProjectIdeApiServicePanel({
        * A background database retry must not erase the only recovery action
        * while its replacement response is still pending.
        */
-      if (panel !== 'database' || !options?.silent) {
+      if (!['database', 'debugger'].includes(panel) || !options?.silent) {
         setError(undefined);
       }
 
@@ -12020,6 +12020,14 @@ function ProjectIdeApiServicePanel({
       window.dispatchEvent(
         new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: false, error: message } }),
       );
+
+      if (
+        panel === 'debugger' &&
+        ['continue', 'pause', 'step-over', 'step-into', 'step-out', 'stop-session', 'start-session'].includes(intent)
+      ) {
+        await loadPanel({ silent: true });
+        setError(message);
+      }
     } finally {
       setBusy(false);
     }
@@ -14549,7 +14557,7 @@ function ProjectIdePanelContent({
   projectId?: string;
   onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
-  reload?: () => void | Promise<void>;
+  reload?: (options?: { silent?: boolean }) => void | Promise<void>;
   lastLoadedAt?: string;
 }) {
   const { t, i18n } = useTranslation();
@@ -22972,7 +22980,7 @@ function ProjectDebuggerPanel({
   data: any;
   onSubmit: any;
   busy: boolean;
-  reload?: () => void | Promise<void>;
+  reload?: (options?: { silent?: boolean }) => void | Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
   const language = resolvedBaseChatLanguage(i18n);
@@ -22984,6 +22992,22 @@ function ProjectDebuggerPanel({
   const activeSession = sessions.find((session: any) => session.status === 'paused') ?? sessions[0];
   const processes = data.runtimeProcesses?.processes ?? data.runtimeProcesses ?? [];
   const logs = data.runtimeLogs?.logs ?? [];
+
+  const hasLiveDebugger = sessions.some(
+    (session: any) =>
+      session.adapter === 'node-inspector' && ['starting', 'running', 'paused', 'unknown'].includes(session.status),
+  );
+  useEffect(() => {
+    if (!hasLiveDebugger || !reload || busy) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      void reload({ silent: true });
+    }, 2000);
+
+    return () => window.clearInterval(timer);
+  }, [hasLiveDebugger, reload, busy]);
 
   return (
     <div className="grid gap-4">
@@ -23044,7 +23068,11 @@ function ProjectDebuggerPanel({
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                      {t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
+                      {t(
+                        session.adapter === 'node-inspector'
+                          ? 'chat.debugger.connected'
+                          : 'chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3',
+                      )}
                     </p>
                     {session.expiresAt && (
                       <p className="mt-2 text-sm text-bolt-elements-textSecondary">
@@ -23067,22 +23095,28 @@ function ProjectDebuggerPanel({
                       {(
                         [
                           ['continue', t('baseChatAst.debugger.continue')],
+                          ['pause', t('chat.debugger.pause')],
                           ['step-over', t('baseChatAst.debugger.stepOver')],
                           ['step-into', t('baseChatAst.debugger.stepInto')],
                           ['step-out', t('baseChatAst.debugger.stepOut')],
                         ] as const
                       ).map(([action, label]) => (
-                        <button
-                          key={action}
-                          type="button"
-                          disabled
-                          className="h-8 rounded border border-bolt-elements-borderColor px-2 text-xs text-bolt-elements-textSecondary disabled:opacity-50"
-                          title={t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
-                        >
-                          {label}
-                        </button>
+                        <form key={action} onSubmit={onSubmit}>
+                          <input name="intent" value={action} type="hidden" />
+                          <input name="sessionId" value={session.id} type="hidden" />
+                          <PanelButton
+                            variant="outline"
+                            disabled={
+                              busy ||
+                              session.adapter !== 'node-inspector' ||
+                              (action === 'pause' ? session.status !== 'running' : session.status !== 'paused')
+                            }
+                          >
+                            {label}
+                          </PanelButton>
+                        </form>
                       ))}
-                      {['starting', 'running', 'unknown'].includes(session.status) && (
+                      {['starting', 'running', 'paused', 'unknown'].includes(session.status) && (
                         <form onSubmit={onSubmit}>
                           <input name="intent" value="stop-session" type="hidden" />
                           <input name="sessionId" value={session.id} type="hidden" />
@@ -23153,8 +23187,17 @@ function ProjectDebuggerPanel({
               <PanelSectionTitle>{t('chat.copy.callStackAndVariables_6820d7cf')}</PanelSectionTitle>
               {activeSession?.status === 'paused' ? (
                 <div className="mt-3 grid gap-2">
-                  <PanelRows rows={activeSession.callStack ?? []} empty={t('baseChatAst.debugger.noFrames')} />
-                  <PanelRows rows={activeSession.variables ?? []} empty={t('baseChatAst.debugger.noVariables')} />
+                  <PanelRows
+                    rows={(activeSession.callStack ?? []).map((frame: any) => [
+                      frame.name,
+                      `${frame.file}:${frame.line}:${frame.column}`,
+                    ])}
+                    empty={t('baseChatAst.debugger.noFrames')}
+                  />
+                  <PanelRows
+                    rows={(activeSession.variables ?? []).map((variable: any) => [variable.name, variable.value])}
+                    empty={t('baseChatAst.debugger.noVariables')}
+                  />
                 </div>
               ) : (
                 <div className="mt-3 rounded-md border border-dashed border-bolt-elements-borderColor p-4 text-sm text-bolt-elements-textSecondary">
@@ -23193,9 +23236,10 @@ function ProjectDebuggerPanel({
           >
             <input name="intent" value="save-config" type="hidden" />
             <PanelSectionTitle>{t('chat.copy.launchJsonConfig_018615eb')}</PanelSectionTitle>
+            <p className="text-xs text-bolt-elements-textSecondary">{t('chat.debugger.nodeHelp')}</p>
             <PanelInput name="name" placeholder={t('chat.copy.nodeInspectorApp_25e2551a')} required />
             <PanelInput name="command" placeholder={t('chat.copy.npmRunDev_4eedebe9')} />
-            <PanelInput name="program" placeholder={t('chat.copy.srcServerTs_bcc09dcb')} />
+            <PanelInput name="program" placeholder={codeExample('server.js')} />
             <PanelInput name="args" placeholder={t('chat.copy.port3000_ec45ac33')} />
             <PanelInput name="env" placeholder={t('chat.copy.debugApp_61e65435')} />
             <label className="flex min-h-11 items-center gap-2 text-xs text-bolt-elements-textSecondary">
@@ -23210,8 +23254,9 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="add-breakpoint" type="hidden" />
-            <PanelSectionTitle>{t('chat.copy.conditionalBreakpoint_af2996c8')}</PanelSectionTitle>
-            <PanelInput name="filePath" placeholder={t('chat.copy.srcAppTsx_835da56f')} required />
+            <PanelSectionTitle>{t('chat.copy.breakpoints_21a8752f')}</PanelSectionTitle>
+            <p className="text-xs text-bolt-elements-textSecondary">{t('chat.debugger.nextLaunch')}</p>
+            <PanelInput name="filePath" placeholder={codeExample('server.js')} required />
             <PanelInput name="line" type="number" min="1" placeholder="42" required />
             <PanelInput name="condition" placeholder={t('chat.copy.userIdTargetid_cecbcb16')} />
             <PanelInput name="hitCondition" placeholder=">= 5" />
@@ -23235,7 +23280,16 @@ function ProjectDebuggerPanel({
               <div className="mt-3 grid gap-2">
                 {watches.map((watch: any) => (
                   <div key={watch.id} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="truncate font-mono text-bolt-elements-textPrimary">{watch.expression}</span>
+                    <span className="truncate font-mono text-bolt-elements-textPrimary">
+                      {watch.expression}
+                      {activeSession?.status === 'paused' &&
+                        (() => {
+                          const value = activeSession.watchValues?.find(
+                            (candidate: any) => candidate.expression === watch.expression,
+                          );
+                          return value ? ` = ${value.error ?? value.value}` : '';
+                        })()}
+                    </span>
                     <form onSubmit={onSubmit}>
                       <input name="intent" value="delete-watch" type="hidden" />
                       <input name="watchId" value={watch.id} type="hidden" />

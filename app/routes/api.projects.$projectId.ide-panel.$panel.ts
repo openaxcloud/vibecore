@@ -837,7 +837,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        */
       debuggerState.sessions = await Promise.all(
         (debuggerState.sessions ?? []).map(async (session: any) => {
-          if (session.adapter !== 'tracked-runtime-command') {
+          if (!['tracked-runtime-command', 'node-inspector'].includes(session.adapter)) {
             return reconcileDebugSessions([session], runtimeProcesses, workspaceId)[0];
           }
 
@@ -850,14 +850,23 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           }
 
           try {
-            const result = await apiRequest<{ id: string; status: string; finishedAt?: string; expiresAt?: string }>(
+            const result = await apiRequest<{
+              id: string;
+              status: string;
+              finishedAt?: string;
+              expiresAt?: string;
+              callStack?: unknown[];
+              variables?: unknown[];
+              watches?: unknown[];
+            }>(
               request,
-              `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/processes/${encodeURIComponent(session.processId)}`,
+              `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/${session.adapter === 'node-inspector' ? 'debugger/v1' : 'processes'}/${encodeURIComponent(session.processId)}`,
             );
 
             if (
               result.id !== session.processId ||
-              !['running', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status)
+              (!['running', 'paused', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status) &&
+                !(session.adapter === 'node-inspector' && result.status === 'unknown'))
             ) {
               return session;
             }
@@ -865,6 +874,9 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
             return {
               ...session,
               status: result.status,
+              callStack: result.status === 'paused' ? (result.callStack ?? []) : [],
+              variables: result.status === 'paused' ? (result.variables ?? []) : [],
+              watchValues: result.status === 'paused' ? (result.watches ?? []) : [],
               stoppedAt: result.finishedAt,
               expiresAt: result.expiresAt,
               persistencePending: session.status !== result.status || session.expiresAt !== result.expiresAt,
@@ -1873,10 +1885,26 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         );
       }
 
-      if (config.request === 'attach' || config.stopOnEntry) {
+      const isNodeDebugger = config.type === 'node' && Boolean(config.program) && !config.command;
+
+      if (config.request === 'attach' || (!isNodeDebugger && config.stopOnEntry)) {
         throw json(
           { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_ADAPTER_UNAVAILABLE' },
           { status: 409 },
+        );
+      }
+
+      if (
+        isNodeDebugger &&
+        (Object.keys(config.env).length ||
+          state.breakpoints.some(
+            (breakpoint: any) =>
+              breakpoint.enabled && (breakpoint.condition || breakpoint.hitCondition || breakpoint.logMessage),
+          ))
+      ) {
+        throw json(
+          { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_CONFIGURATION_UNSUPPORTED' },
+          { status: 400 },
         );
       }
 
@@ -1892,7 +1920,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         configId: config.id,
         name: config.name,
         status: 'starting',
-        adapter: 'tracked-runtime-command',
+        adapter: isNodeDebugger ? 'node-inspector' : 'tracked-runtime-command',
         command,
         workspaceId,
         processId: sessionId,
@@ -1917,18 +1945,32 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       launched = { processId: sessionId, workspaceId };
 
       try {
-        const result = await apiRequest<{ processId?: string; status?: string; expiresAt?: string }>(
+        const result = await apiRequest<{ id?: string; processId?: string; status?: string; expiresAt?: string }>(
           request,
-          `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/sessions/v1/start`,
+          `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/${isNodeDebugger ? 'debugger' : 'sessions'}/v1/start`,
           {
             method: 'POST',
-            body: JSON.stringify({ command: 'sh', args: ['-lc', command], background: true, operationId: sessionId }),
+            body: JSON.stringify(
+              isNodeDebugger
+                ? {
+                    operationId: sessionId,
+                    program: config.program,
+                    args: config.args,
+                    cwd: config.cwd,
+                    stopOnEntry: config.stopOnEntry,
+                    breakpoints: state.breakpoints
+                      .filter((breakpoint: any) => breakpoint.enabled)
+                      .map((breakpoint: any) => ({ file: breakpoint.filePath, line: breakpoint.line })),
+                    watches: state.watches.filter((watch: any) => watch.enabled).map((watch: any) => watch.expression),
+                  }
+                : { command: 'sh', args: ['-lc', command], background: true, operationId: sessionId },
+            ),
           },
         );
 
         if (
-          result.processId !== sessionId ||
-          !['running', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status ?? '')
+          (isNodeDebugger ? result.id : result.processId) !== sessionId ||
+          !['running', 'paused', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status ?? '')
         ) {
           throw json(
             { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_START_UNCONFIRMED' },
@@ -1970,12 +2012,64 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           { status: 502 },
         );
       }
+    } else if (['continue', 'pause', 'step-over', 'step-into', 'step-out'].includes(intent)) {
+      const session = state.sessions.find((candidate: any) => candidate.id === body.sessionId);
+
+      if (
+        session?.adapter !== 'node-inspector' ||
+        !session.processId ||
+        !workspace.workspaceList.some((candidate) => candidate.id === session.workspaceId)
+      ) {
+        throw json(
+          { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_PROCESS_UNAVAILABLE' },
+          { status: 409 },
+        );
+      }
+
+      let result: { id: string; status: string };
+
+      try {
+        result = await apiRequest<{ id: string; status: string }>(
+          request,
+          `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/debugger/v1/${encodeURIComponent(session.processId)}/control`,
+          { method: 'POST', body: JSON.stringify({ action: intent }) },
+        );
+      } catch {
+        return json(
+          {
+            ok: false,
+            error: copy['apiRuntime.panel.executionFailed'],
+            code: 'DEBUG_CONTROL_RECONCILIATION_REQUIRED',
+            session: { id: session.id, status: 'unknown', persistencePending: true },
+          },
+          { status: 502 },
+        );
+      }
+
+      if (
+        result.id !== session.processId ||
+        !['running', 'paused', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status)
+      ) {
+        throw json(
+          {
+            error: copy['apiRuntime.panel.executionFailed'],
+            code: 'DEBUG_CONTROL_UNCONFIRMED',
+            session: { id: session.id, status: 'unknown', persistencePending: true },
+          },
+          { status: 502 },
+        );
+      }
+
+      session.status = result.status;
+      session.updatedAt = now;
+      session.lastAction = intent;
+      confirmedSession = { id: session.id, status: result.status };
     } else if (intent === 'stop-session' || intent === 'reconcile-session') {
       const session = state.sessions.find((candidate: any) => candidate.id === body.sessionId);
 
       if (
         !session?.processId ||
-        session.adapter !== 'tracked-runtime-command' ||
+        !['tracked-runtime-command', 'node-inspector'].includes(session.adapter) ||
         !session.workspaceId ||
         !workspace.workspaceList.some((candidate) => candidate.id === session.workspaceId)
       ) {
@@ -1994,13 +2088,14 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         expiresAt?: string;
       }>(
         request,
-        `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/processes/${encodeURIComponent(session.processId)}${intent === 'stop-session' ? '/kill' : ''}`,
+        `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/${intent === 'reconcile-session' && session.adapter === 'node-inspector' ? 'debugger/v1' : 'processes'}/${encodeURIComponent(session.processId)}${intent === 'stop-session' ? '/kill' : ''}`,
         { method: intent === 'stop-session' ? 'POST' : 'GET' },
       );
 
       if (
         result.id !== session.processId ||
-        !['running', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status ?? '') ||
+        (!['running', 'paused', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status ?? '') &&
+          !(intent === 'reconcile-session' && session.adapter === 'node-inspector' && result.status === 'unknown')) ||
         (intent === 'stop-session' && result.terminated !== true)
       ) {
         throw json(
@@ -4422,8 +4517,10 @@ function normalizeDebugSession(input: any, language?: string | null) {
     updatedAt: input?.updatedAt ? String(input.updatedAt) : undefined,
     lastAction: input?.lastAction ? String(input.lastAction) : undefined,
     lastOutput: input?.lastOutput ? String(input.lastOutput).slice(0, 4000) : '',
-    callStack: Array.isArray(input?.callStack) ? input.callStack.slice(0, 100) : [],
-    variables: Array.isArray(input?.variables) ? input.variables.slice(0, 200) : [],
+    callStack:
+      input?.adapter !== 'node-inspector' && Array.isArray(input?.callStack) ? input.callStack.slice(0, 100) : [],
+    variables:
+      input?.adapter !== 'node-inspector' && Array.isArray(input?.variables) ? input.variables.slice(0, 200) : [],
   };
 }
 
