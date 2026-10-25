@@ -196,7 +196,7 @@ export function DeployPublishCard({
             setPending(false);
           }
         }}
-        className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
+        className="vc-managed-publish-form grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
       >
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="provider" value={provider} />
