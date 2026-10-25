@@ -1,0 +1,16 @@
+A [Error]: expect(received).toMatch(expected)
+
+Expected pattern: /Aucun déploiement/
+Received string:  "Brouillon"
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /tmp/ui-templates-recent/count-probe-after.cjs:2:1877
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:502:9) {
+  matcherResult: {
+    message: 'expect(received).toMatch(expected)\n' +
+      '\n' +
+      'Expected pattern: /Aucun déploiement/\n' +
+      'Received string:  "Brouillon"',
+    pass: false
+  }
+}

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-493 entrées.
+495 entrées.
 
 ## Sans section
 
@@ -639,6 +639,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Livraison — production
 
 - [BUG-FLEET-MEMBERSHIP-LOCATION-001](docs/bugs/BUG-FLEET-MEMBERSHIP-LOCATION-001.md) — 📤 Dispatché : 25 octobre 2026, diagnostic du déploiement #784, run 40205758137, job 121219777586. Propriétaire unique du cor · 💻 Codé : Correctif préparé : les deux appels `gcloud container fleet memberships get-credentials` de deploy-main sélect · ✅ Testé live : Non pour le correctif. La panne réelle précédente est attestée par le log GitHub : étape 12 Connect Gateway, a
+
+## Sans section
+
+- [BUG-PUBLIC-MENU-RESIZE-20261025](docs/bugs/BUG-PUBLIC-MENU-RESIZE-20261025.md) — Dans le chrome public Accueil/Tarifs, le bouton de menu déborde à320px (bord droit351,8px alors que le document reste à320px). Échap ferme le dialogue sans rest — 📤 Dispatché : Audit global UI/UX du25octobre2026, parcours publics isolés après la publication de #792. Les29PR ouvertes ont · 💻 Codé : Correctif local dans un worktree séparé : header mobile repliable, focus restauré et dialogue fermé au seuil d · ✅ Testé live : Non. Reproduction Chromium locale avec API synthétique ; aucun compte créé, authentification réelle ni mutatio
+- [BUG-USERAREA-SECONDARY-RESPONSIVE-20261025](docs/bugs/BUG-USERAREA-SECONDARY-RESPONSIVE-20261025.md) — À320/390px, un numéro de facture long reste coupé malgré `break-words` : conteneur800,8px pour255px disponibles. Un sujet Support non sécable déborde aussi à l’ — 📤 Dispatché : Mission UI/UX globale poursuivie en parallèle pendant CI #792. Factures, Support et Workspace modifiés uniquem · 💻 Codé : Correctifs locaux : conteneur Facture borné, élément texte flexible dans le lien Support, contexte de position · ✅ Testé live : Non. Fixtures synthétiques et navigateur local uniquement. Aucun achat, téléchargement de facture réelle, tick
 
 ## Résidus non tabulaires — reportés mot pour mot
 

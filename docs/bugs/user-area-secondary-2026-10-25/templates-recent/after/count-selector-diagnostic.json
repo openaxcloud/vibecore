@@ -1,0 +1,21 @@
+{
+  "base": "http://127.0.0.1:8499",
+  "synthetic": true,
+  "observations": [
+    {
+      "lang": "fr",
+      "count": 0,
+      "width": 74.90625,
+      "text": "Brouillon",
+      "client": 75,
+      "scroll": 75,
+      "left": 218.59375,
+      "right": 293.5,
+      "overflow": "visible",
+      "textOverflow": "clip",
+      "documentWidth": 320,
+      "viewport": 320
+    }
+  ],
+  "errors": []
+}

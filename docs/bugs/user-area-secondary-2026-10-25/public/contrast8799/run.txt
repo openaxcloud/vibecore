@@ -1,0 +1,16 @@
+/ light 320 measured 6 excluded 14 failures 0
+/pricing light 320 measured 136 excluded 18 failures 0
+/login light 320 measured 6 excluded 33 failures 0
+/signup light 320 measured 5 excluded 43 failures 0
+/ light 1440 measured 6 excluded 14 failures 0
+/pricing light 1440 measured 136 excluded 18 failures 0
+/login light 1440 measured 6 excluded 33 failures 0
+/signup light 1440 measured 5 excluded 43 failures 0
+/ dark 320 measured 6 excluded 14 failures 0
+/pricing dark 320 measured 136 excluded 18 failures 0
+/login dark 320 measured 6 excluded 33 failures 0
+/signup dark 320 measured 5 excluded 43 failures 0
+/ dark 1440 measured 6 excluded 14 failures 0
+/pricing dark 1440 measured 136 excluded 18 failures 0
+/login dark 1440 measured 6 excluded 33 failures 0
+/signup dark 1440 measured 5 excluded 43 failures 0

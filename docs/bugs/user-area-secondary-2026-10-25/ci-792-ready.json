@@ -1,0 +1,209 @@
+{
+  "head": "71d080c9c32af00af83075051a5e3caab5a54564",
+  "pr": "https://github.com/openaxcloud/vibecore/pull/792",
+  "state": "validated, held for d09045d5 rollout, not merged",
+  "checks": [
+    {
+      "name": "Release Validation",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519045/job/121308909509"
+    },
+    {
+      "name": "Playwright local stack",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518815/job/121308645199"
+    },
+    {
+      "name": "Audit français — verdict",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519066/job/121308252379"
+    },
+    {
+      "name": "Draft desktop release",
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518913/job/121307309517"
+    },
+    {
+      "name": "Playwright desktop-1024",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519066/job/121302352192"
+    },
+    {
+      "name": "Playwright mobile-390",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519066/job/121302352186"
+    },
+    {
+      "name": "Playwright desktop-1440",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519066/job/121302352173"
+    },
+    {
+      "name": "Playwright tablet-768",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519066/job/121302352170"
+    },
+    {
+      "name": "E2E tranche 3/4",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518815/job/121302224318"
+    },
+    {
+      "name": "E2E tranche 2/4",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518815/job/121302224290"
+    },
+    {
+      "name": "E2E tranche 1/4",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518815/job/121302224248"
+    },
+    {
+      "name": "Canari iOS WebKit (non bloquant)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518815/job/121302224229"
+    },
+    {
+      "name": "E2E tranche 4/4",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518815/job/121302224227"
+    },
+    {
+      "name": "Security Review Required",
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519045/job/121302133392"
+    },
+    {
+      "name": "Validate PR Title",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518949/job/121302133130"
+    },
+    {
+      "name": "PR Size Check",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519039/job/121302132971"
+    },
+    {
+      "name": "Performance Audit",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519039/job/121302132850"
+    },
+    {
+      "name": "Install, test, build, scan",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519181/job/121302132833"
+    },
+    {
+      "name": "Accessibility Tests",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519039/job/121302132798"
+    },
+    {
+      "name": "Audit français — pertinence",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519066/job/121302132676"
+    },
+    {
+      "name": "Quality Analysis",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519039/job/121302132582"
+    },
+    {
+      "name": "windows desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518913/job/121302132403"
+    },
+    {
+      "name": "macos desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518913/job/121302132356"
+    },
+    {
+      "name": "Quality Gates",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519045/job/121302132319"
+    },
+    {
+      "name": "Scheduled task PostgreSQL (7 real scenarios, no skips)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237519009/job/121302132294"
+    },
+    {
+      "name": "linux desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518913/job/121302132164"
+    },
+    {
+      "name": "Perimetre des changements",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518815/job/121302131813"
+    },
+    {
+      "name": "CodeQL Analysis (typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518833/job/121302131794"
+    },
+    {
+      "name": "Dependency Vulnerability Scan",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518833/job/121302131757"
+    },
+    {
+      "name": "CodeQL Analysis (javascript)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518833/job/121302131745"
+    },
+    {
+      "name": "Secret scan (gitleaks, blocking)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518833/job/121302131692"
+    },
+    {
+      "name": "Secrets Detection",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/40237518833/job/121302131542"
+    }
+  ],
+  "e2e": {
+    "run": 40237518815,
+    "job": 121308645199,
+    "specsExpected": 87,
+    "specsSeen": 87,
+    "tests": 507,
+    "failures": 0,
+    "waivedFailures": 0,
+    "retries": 0
+  }
+}

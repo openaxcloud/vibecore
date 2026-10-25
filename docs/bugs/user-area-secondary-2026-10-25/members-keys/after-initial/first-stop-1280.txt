@@ -1,0 +1,14 @@
+A [Error]: expect(received).toBeLessThanOrEqual(expected)
+
+Expected: <= 1281
+Received:    1741
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /workspace/vibecore-ui-followup/docs/bugs/user-area-secondary-2026-10-25/members-keys/harness/audit.cjs:2:2551 {
+  matcherResult: {
+    message: 'expect(received).toBeLessThanOrEqual(expected)\n' +
+      '\n' +
+      'Expected: <= 1281\n' +
+      'Received:    1741',
+    pass: false
+  }
+}

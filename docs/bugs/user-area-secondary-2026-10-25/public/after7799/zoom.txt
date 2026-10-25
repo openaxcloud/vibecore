@@ -1,0 +1,178 @@
+[
+  {
+    route: '/',
+    lang: 'fr',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/pricing',
+    lang: 'fr',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/login',
+    lang: 'fr',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44 ]
+  },
+  {
+    route: '/signup',
+    lang: 'fr',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44, 44, 44 ]
+  },
+  {
+    route: '/',
+    lang: 'fr',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/pricing',
+    lang: 'fr',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/login',
+    lang: 'fr',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44 ]
+  },
+  {
+    route: '/signup',
+    lang: 'fr',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44, 44, 44 ]
+  },
+  {
+    route: '/',
+    lang: 'en',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/pricing',
+    lang: 'en',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/login',
+    lang: 'en',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44 ]
+  },
+  {
+    route: '/signup',
+    lang: 'en',
+    theme: 'light',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44, 44, 44 ]
+  },
+  {
+    route: '/',
+    lang: 'en',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/pricing',
+    lang: 'en',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: []
+  },
+  {
+    route: '/login',
+    lang: 'en',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44 ]
+  },
+  {
+    route: '/signup',
+    lang: 'en',
+    theme: 'dark',
+    innerWidth: 640,
+    outerWidth: 1280,
+    dpr: 2,
+    visualScale: 1,
+    scrollWidth: 640,
+    buttonHeights: [ 44, 44, 44, 44 ]
+  }
+]

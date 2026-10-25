@@ -1,0 +1,119 @@
+{
+  "base": "http://127.0.0.1:7699",
+  "synthetic": true,
+  "groups": [
+    {
+      "lang": "fr",
+      "route": "support",
+      "draftResize": true,
+      "tabToCategory": true,
+      "escape": true,
+      "submitted": false
+    },
+    {
+      "lang": "fr",
+      "route": "support",
+      "get503": true,
+      "retryRestoredTicket": true
+    },
+    {
+      "lang": "fr",
+      "route": "workspace-settings",
+      "focused": {
+        "tag": "BUTTON",
+        "label": "Augmenter la taille de police"
+      },
+      "sidebarSupportThenBack": true,
+      "localWrapToggleSpaceResizeRestore": true
+    },
+    {
+      "lang": "fr",
+      "route": "desktop-settings",
+      "syntheticBridgeReadError": true,
+      "retryReady": true,
+      "realElectron": false
+    },
+    {
+      "lang": "en",
+      "route": "support",
+      "draftResize": true,
+      "tabToCategory": true,
+      "escape": true,
+      "submitted": false
+    },
+    {
+      "lang": "en",
+      "route": "support",
+      "get503": true,
+      "retryRestoredTicket": true
+    },
+    {
+      "lang": "en",
+      "route": "workspace-settings",
+      "focused": {
+        "tag": "BUTTON",
+        "label": "Increase font size"
+      },
+      "sidebarSupportThenBack": true,
+      "localWrapToggleSpaceResizeRestore": true
+    },
+    {
+      "lang": "en",
+      "route": "desktop-settings",
+      "syntheticBridgeReadError": true,
+      "retryReady": true,
+      "realElectron": false
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    }
+  ]
+}

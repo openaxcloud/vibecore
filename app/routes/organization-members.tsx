@@ -405,8 +405,8 @@ export default function OrganizationMembersPage() {
                 className="grid gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_auto]"
               >
                 <div className="min-w-0">
-                  <div className="truncate font-medium text-bolt-elements-textPrimary">{displayName}</div>
-                  <div className="truncate text-xs text-bolt-elements-textSecondary">
+                  <div className="break-words font-medium text-bolt-elements-textPrimary">{displayName}</div>
+                  <div className="break-words text-xs text-bolt-elements-textSecondary">
                     {hasName && member.userEmail ? `${member.userEmail} · ` : ''}
                     {memberRoleLabel}
                   </div>

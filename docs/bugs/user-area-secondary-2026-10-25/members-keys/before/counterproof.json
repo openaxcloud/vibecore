@@ -1,0 +1,222 @@
+[
+  {
+    "width": 320,
+    "before": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 262,
+        "scroll": 1305,
+        "height": 20
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 262,
+        "scroll": 431,
+        "height": 16
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 262,
+        "scroll": 456,
+        "height": 20
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 262,
+        "scroll": 306,
+        "height": 16
+      }
+    ],
+    "after": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 262,
+        "scroll": 262,
+        "height": 119
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 262,
+        "scroll": 262,
+        "height": 32
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 262,
+        "scroll": 262,
+        "height": 40
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 262,
+        "scroll": 262,
+        "height": 32
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "before": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 332,
+        "scroll": 1305,
+        "height": 20
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 332,
+        "scroll": 431,
+        "height": 16
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 332,
+        "scroll": 456,
+        "height": 20
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 332,
+        "scroll": 332,
+        "height": 16
+      }
+    ],
+    "after": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 332,
+        "scroll": 332,
+        "height": 80
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 332,
+        "scroll": 332,
+        "height": 32
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 332,
+        "scroll": 332,
+        "height": 40
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 332,
+        "scroll": 332,
+        "height": 16
+      }
+    ]
+  },
+  {
+    "width": 820,
+    "before": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 446,
+        "scroll": 1305,
+        "height": 20
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 446,
+        "scroll": 446,
+        "height": 16
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 289,
+        "scroll": 456,
+        "height": 20
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 289,
+        "scroll": 306,
+        "height": 16
+      }
+    ],
+    "after": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 446,
+        "scroll": 446,
+        "height": 60
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 446,
+        "scroll": 446,
+        "height": 16
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 289,
+        "scroll": 289,
+        "height": 40
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 289,
+        "scroll": 289,
+        "height": 32
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "before": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 602,
+        "scroll": 1119,
+        "height": 17
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 602,
+        "scroll": 602,
+        "height": 16
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 449,
+        "scroll": 449,
+        "height": 17
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 449,
+        "scroll": 449,
+        "height": 16
+      }
+    ],
+    "after": [
+      {
+        "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789",
+        "client": 602,
+        "scroll": 602,
+        "height": 34
+      },
+      {
+        "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire",
+        "client": 602,
+        "scroll": 602,
+        "height": 16
+      },
+      {
+        "text": "Membre synthétique avec un très long nom pour recette uniquement",
+        "client": 449,
+        "scroll": 449,
+        "height": 17
+      },
+      {
+        "text": "second.long.member.address@example.test · Membre",
+        "client": 449,
+        "scroll": 449,
+        "height": 16
+      }
+    ]
+  }
+]

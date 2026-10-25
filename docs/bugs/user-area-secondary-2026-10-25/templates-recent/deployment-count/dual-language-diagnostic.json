@@ -1,0 +1,170 @@
+[
+  {
+    "patch": false,
+    "lng": "fr",
+    "count": 0,
+    "category": "one",
+    "text": "Aucun déploiement"
+  },
+  {
+    "patch": false,
+    "lng": "fr",
+    "count": 1,
+    "category": "one",
+    "text": "1 déploiement"
+  },
+  {
+    "patch": false,
+    "lng": "fr",
+    "count": 2,
+    "category": "other",
+    "text": "2 déploiements"
+  },
+  {
+    "patch": false,
+    "lng": "fr",
+    "count": 1000000,
+    "category": "many",
+    "text": "1000000 deployments"
+  },
+  {
+    "patch": false,
+    "lng": "fr",
+    "count": 1000001,
+    "category": "other",
+    "text": "1000001 déploiements"
+  },
+  {
+    "patch": false,
+    "lng": "fr",
+    "count": 1000000000,
+    "category": "many",
+    "text": "1000000000 deployments"
+  },
+  {
+    "patch": false,
+    "lng": "en",
+    "count": 0,
+    "category": "other",
+    "text": "No deployments"
+  },
+  {
+    "patch": false,
+    "lng": "en",
+    "count": 1,
+    "category": "one",
+    "text": "1 deployment"
+  },
+  {
+    "patch": false,
+    "lng": "en",
+    "count": 2,
+    "category": "other",
+    "text": "2 deployments"
+  },
+  {
+    "patch": false,
+    "lng": "en",
+    "count": 1000000,
+    "category": "other",
+    "text": "1000000 deployments"
+  },
+  {
+    "patch": false,
+    "lng": "en",
+    "count": 1000001,
+    "category": "other",
+    "text": "1000001 deployments"
+  },
+  {
+    "patch": false,
+    "lng": "en",
+    "count": 1000000000,
+    "category": "other",
+    "text": "1000000000 deployments"
+  },
+  {
+    "patch": true,
+    "lng": "fr",
+    "count": 0,
+    "category": "one",
+    "text": "Aucun déploiement"
+  },
+  {
+    "patch": true,
+    "lng": "fr",
+    "count": 1,
+    "category": "one",
+    "text": "1 déploiement"
+  },
+  {
+    "patch": true,
+    "lng": "fr",
+    "count": 2,
+    "category": "other",
+    "text": "2 déploiements"
+  },
+  {
+    "patch": true,
+    "lng": "fr",
+    "count": 1000000,
+    "category": "many",
+    "text": "1000000 déploiements"
+  },
+  {
+    "patch": true,
+    "lng": "fr",
+    "count": 1000001,
+    "category": "other",
+    "text": "1000001 déploiements"
+  },
+  {
+    "patch": true,
+    "lng": "fr",
+    "count": 1000000000,
+    "category": "many",
+    "text": "1000000000 déploiements"
+  },
+  {
+    "patch": true,
+    "lng": "en",
+    "count": 0,
+    "category": "other",
+    "text": "No deployments"
+  },
+  {
+    "patch": true,
+    "lng": "en",
+    "count": 1,
+    "category": "one",
+    "text": "1 deployment"
+  },
+  {
+    "patch": true,
+    "lng": "en",
+    "count": 2,
+    "category": "other",
+    "text": "2 deployments"
+  },
+  {
+    "patch": true,
+    "lng": "en",
+    "count": 1000000,
+    "category": "other",
+    "text": "1000000 deployments"
+  },
+  {
+    "patch": true,
+    "lng": "en",
+    "count": 1000001,
+    "category": "other",
+    "text": "1000001 deployments"
+  },
+  {
+    "patch": true,
+    "lng": "en",
+    "count": 1000000000,
+    "category": "other",
+    "text": "1000000000 deployments"
+  }
+]

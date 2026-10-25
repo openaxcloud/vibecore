@@ -138,7 +138,7 @@ export default function InvoicesPage() {
                 key={invoice.id}
                 className="flex flex-col items-start justify-between gap-3 py-3 text-sm sm:flex-row sm:items-center sm:gap-4"
               >
-                <div className="min-w-0 break-words">
+                <div className="min-w-0 max-w-full break-words">
                   <p className="font-medium text-bolt-elements-textPrimary">
                     {invoice.number ?? invoice.id}
                     {invoice.status ? (

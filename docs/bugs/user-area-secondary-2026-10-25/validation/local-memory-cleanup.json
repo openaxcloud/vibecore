@@ -1,0 +1,6 @@
+{
+  "oldAppProcessesStillRunning": [],
+  "memoryCurrentBytes": 1299075072,
+  "memoryLimitBytes": 17179869184,
+  "oomEvents": "low 0\nhigh 0\nmax 30846\noom 1\noom_kill 1\noom_group_kill 0\n"
+}

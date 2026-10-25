@@ -1,0 +1,54 @@
+[
+  {
+    "lang": "fr",
+    "position": "relative",
+    "role": "region",
+    "label": "Tableau des clés API",
+    "tabIndex": 0,
+    "headers": [
+      "Nom",
+      "Clé",
+      "Autorisations",
+      "Dernière utilisation",
+      "Création",
+      "Actions"
+    ],
+    "columns": 6,
+    "hiddenHeader": {
+      "text": "Actions",
+      "offsetParent": true
+    },
+    "docWidth": 1280,
+    "viewport": 1280,
+    "scrollWidth": 1638,
+    "clientWidth": 922,
+    "keyboardScroll": 36,
+    "lastColumnVisibleAfterScrolling": true
+  },
+  {
+    "lang": "en",
+    "position": "relative",
+    "role": "region",
+    "label": "API keys table",
+    "tabIndex": 0,
+    "headers": [
+      "Name",
+      "Key",
+      "Scopes",
+      "Last used",
+      "Created",
+      "Actions"
+    ],
+    "columns": 6,
+    "hiddenHeader": {
+      "text": "Actions",
+      "offsetParent": true
+    },
+    "docWidth": 1280,
+    "viewport": 1280,
+    "scrollWidth": 1540,
+    "clientWidth": 922,
+    "keyboardScroll": 37,
+    "lastColumnVisibleAfterScrolling": true
+  }
+]

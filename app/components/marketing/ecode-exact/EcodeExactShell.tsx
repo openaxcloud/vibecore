@@ -267,6 +267,28 @@ export function EcodeExactPublicNavbar({
   const copy = copyOverride ?? MARKETING_SHELL_COPY[language];
   const navigate = useMarketingNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const desktopNavigationRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      return undefined;
+    }
+
+    const desktopViewport = window.matchMedia('(min-width: 1280px)');
+
+    const closeAtDesktop = () => {
+      if (desktopViewport.matches) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    closeAtDesktop();
+    desktopViewport.addEventListener('change', closeAtDesktop);
+
+    return () => desktopViewport.removeEventListener('change', closeAtDesktop);
+  }, [mobileMenuOpen]);
+
   const productItems = createMenuItems(copy, 'product');
   const solutionsItems = createMenuItems(copy, 'solutions');
   const resourcesItems = createMenuItems(copy, 'resources');
@@ -370,7 +392,7 @@ export function EcodeExactPublicNavbar({
       >
         <div className="absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none" aria-hidden />
         <div className="container-responsive-nav relative overflow-visible">
-          <div className="flex h-16 items-center justify-between overflow-visible">
+          <div className="flex min-h-16 flex-wrap items-center justify-between gap-y-1 overflow-visible py-2 sm:h-16 sm:flex-nowrap sm:py-0">
             <div className="flex items-center gap-6 overflow-visible">
               <Link
                 href={MARKETING_SHELL_LINKS.home.href}
@@ -415,13 +437,14 @@ export function EcodeExactPublicNavbar({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="ms-auto flex items-center gap-2 sm:gap-4">
               <ThemeSwitcher copy={copy} />
               <LanguageSwitch />
               <Button
                 variant="ghost"
                 className="text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white !min-h-11 px-3 sm:px-4"
                 onClick={() => navigate(MARKETING_SHELL_LINKS.login.href)}
+                ref={desktopNavigationRef}
                 data-testid="link-login"
                 aria-label={copy.navigation.logIn}
               >
@@ -438,7 +461,10 @@ export function EcodeExactPublicNavbar({
               <Button
                 variant="ghost"
                 size="icon"
+                ref={mobileMenuTriggerRef}
                 aria-label={copy.a11y.openMobileMenu}
+                aria-haspopup="dialog"
+                aria-expanded={mobileMenuOpen}
                 className="!h-11 !w-11 !min-h-11 !min-w-11 xl:hidden text-[var(--ecode-text)] dark:text-slate-100"
                 onClick={() => setMobileMenuOpen(true)}
               >
@@ -454,6 +480,14 @@ export function EcodeExactPublicNavbar({
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 xl:hidden" />
           <Dialog.Content
             dir={direction}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+
+              const target = window.matchMedia('(min-width: 1280px)').matches
+                ? desktopNavigationRef.current
+                : mobileMenuTriggerRef.current;
+              target?.focus();
+            }}
             className={cn(
               'fixed z-50 flex h-dvh max-h-dvh flex-col overflow-hidden shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 sm:max-w-sm w-full sm:w-[380px] p-0 border-border bg-background xl:hidden',
               language === 'ar'
@@ -843,7 +877,7 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
             </div>
             <FooterColumn title={copy.footer.columnLabels.company} links={companyLinks} />
             <FooterColumn title={copy.footer.columnLabels.legal} links={legalLinks} />
-            <div className="sm:col-span-2 lg:col-span-4">
+            <div className="col-span-2 lg:col-span-4">
               <div className="mt-6 rounded-2xl border border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] dark:border-border dark:bg-surface-solid p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>

@@ -1,0 +1,374 @@
+{
+  "fr": [
+    {
+      "href": "/ai-agent",
+      "label": "Agent IA"
+    },
+    {
+      "href": "/features",
+      "label": "IDE"
+    },
+    {
+      "href": "/features#multiplayer",
+      "label": "Multijoueur"
+    },
+    {
+      "href": "/mobile",
+      "label": "Application mobile"
+    },
+    {
+      "href": "/desktop",
+      "label": "Application de bureau"
+    },
+    {
+      "href": "/collaboration",
+      "label": "Collaboration"
+    },
+    {
+      "href": "/mcp",
+      "label": "Intégrations MCP"
+    },
+    {
+      "href": "/polyglot",
+      "label": "Services applicatifs polyglottes"
+    },
+    {
+      "href": "/marketing/teams",
+      "label": "Équipes"
+    },
+    {
+      "href": "/marketing/deployments",
+      "label": "Déploiements"
+    },
+    {
+      "href": "/pricing",
+      "label": "Tarifs"
+    },
+    {
+      "href": "/marketing/bounties",
+      "label": "Missions"
+    },
+    {
+      "href": "/ai",
+      "label": "Plateforme IA"
+    },
+    {
+      "href": "/docs",
+      "label": "Documentation"
+    },
+    {
+      "href": "/blog",
+      "label": "Blog"
+    },
+    {
+      "href": "/community",
+      "label": "Communauté"
+    },
+    {
+      "href": "/templates",
+      "label": "Modèles"
+    },
+    {
+      "href": "/marketplace",
+      "label": "Place de marché"
+    },
+    {
+      "href": "/templates/languages",
+      "label": "Langages"
+    },
+    {
+      "href": "/status",
+      "label": "État des services"
+    },
+    {
+      "href": "/forum",
+      "label": "Forum"
+    },
+    {
+      "href": "/about",
+      "label": "À propos"
+    },
+    {
+      "href": "/careers",
+      "label": "Carrières"
+    },
+    {
+      "href": "/press",
+      "label": "Presse"
+    },
+    {
+      "href": "/partners",
+      "label": "Partenaires"
+    },
+    {
+      "href": "/contact-sales",
+      "label": "Contacter l’équipe commerciale"
+    },
+    {
+      "href": "/terms",
+      "label": "Conditions d’utilisation"
+    },
+    {
+      "href": "/privacy",
+      "label": "Confidentialité"
+    },
+    {
+      "href": "/subprocessors",
+      "label": "Sous-traitants"
+    },
+    {
+      "href": "/dpa",
+      "label": "DPA"
+    },
+    {
+      "href": "/student-dpa",
+      "label": "DPA pour les étudiants aux États-Unis"
+    },
+    {
+      "href": "/security",
+      "label": "Sécurité"
+    },
+    {
+      "href": "/trust-and-safety",
+      "label": "Confiance et sécurité"
+    },
+    {
+      "href": "/acceptable-use",
+      "label": "Utilisation acceptable"
+    },
+    {
+      "href": "/report-abuse",
+      "label": "Signaler un abus"
+    },
+    {
+      "href": "/strike-system",
+      "label": "Système d’avertissements"
+    },
+    {
+      "href": "/usage-limits",
+      "label": "Utilisation et limites"
+    },
+    {
+      "href": "/support-policy",
+      "label": "Politique d’assistance"
+    },
+    {
+      "href": "/licensing",
+      "label": "Licences"
+    },
+    {
+      "href": "/account-inactivity",
+      "label": "Inactivité du compte"
+    },
+    {
+      "href": "/deleting-your-data",
+      "label": "Suppression de vos données"
+    },
+    {
+      "href": "/compare/github-codespaces",
+      "label": "E-Code face à GitHub Codespaces"
+    },
+    {
+      "href": "/compare/glitch",
+      "label": "E-Code face à Glitch"
+    },
+    {
+      "href": "/compare/heroku",
+      "label": "E-Code face à Heroku"
+    },
+    {
+      "href": "/compare/codesandbox",
+      "label": "E-Code face à CodeSandbox"
+    },
+    {
+      "href": "/compare/aws-cloud9",
+      "label": "E-Code face à AWS Cloud9"
+    }
+  ],
+  "en": [
+    {
+      "href": "/ai-agent",
+      "label": "AI Agent"
+    },
+    {
+      "href": "/features",
+      "label": "IDE"
+    },
+    {
+      "href": "/features#multiplayer",
+      "label": "Multiplayer"
+    },
+    {
+      "href": "/mobile",
+      "label": "Mobile App"
+    },
+    {
+      "href": "/desktop",
+      "label": "Desktop App"
+    },
+    {
+      "href": "/collaboration",
+      "label": "Collaboration"
+    },
+    {
+      "href": "/mcp",
+      "label": "MCP Integrations"
+    },
+    {
+      "href": "/polyglot",
+      "label": "Polyglot Backends"
+    },
+    {
+      "href": "/marketing/teams",
+      "label": "Teams"
+    },
+    {
+      "href": "/marketing/deployments",
+      "label": "Deployments"
+    },
+    {
+      "href": "/pricing",
+      "label": "Pricing"
+    },
+    {
+      "href": "/marketing/bounties",
+      "label": "Bounties"
+    },
+    {
+      "href": "/ai",
+      "label": "AI Platform"
+    },
+    {
+      "href": "/docs",
+      "label": "Docs"
+    },
+    {
+      "href": "/blog",
+      "label": "Blog"
+    },
+    {
+      "href": "/community",
+      "label": "Community"
+    },
+    {
+      "href": "/templates",
+      "label": "Templates"
+    },
+    {
+      "href": "/marketplace",
+      "label": "Marketplace"
+    },
+    {
+      "href": "/templates/languages",
+      "label": "Languages"
+    },
+    {
+      "href": "/status",
+      "label": "Status"
+    },
+    {
+      "href": "/forum",
+      "label": "Forum"
+    },
+    {
+      "href": "/about",
+      "label": "About"
+    },
+    {
+      "href": "/careers",
+      "label": "Careers"
+    },
+    {
+      "href": "/press",
+      "label": "Press"
+    },
+    {
+      "href": "/partners",
+      "label": "Partners"
+    },
+    {
+      "href": "/contact-sales",
+      "label": "Contact Sales"
+    },
+    {
+      "href": "/terms",
+      "label": "Terms"
+    },
+    {
+      "href": "/privacy",
+      "label": "Privacy"
+    },
+    {
+      "href": "/subprocessors",
+      "label": "Subprocessors"
+    },
+    {
+      "href": "/dpa",
+      "label": "DPA"
+    },
+    {
+      "href": "/student-dpa",
+      "label": "US Student DPA"
+    },
+    {
+      "href": "/security",
+      "label": "Security"
+    },
+    {
+      "href": "/trust-and-safety",
+      "label": "Trust & Safety"
+    },
+    {
+      "href": "/acceptable-use",
+      "label": "Acceptable Use"
+    },
+    {
+      "href": "/report-abuse",
+      "label": "Report Abuse"
+    },
+    {
+      "href": "/strike-system",
+      "label": "Strike System"
+    },
+    {
+      "href": "/usage-limits",
+      "label": "Usage & Limits"
+    },
+    {
+      "href": "/support-policy",
+      "label": "Support Policy"
+    },
+    {
+      "href": "/licensing",
+      "label": "Licensing"
+    },
+    {
+      "href": "/account-inactivity",
+      "label": "Account Inactivity"
+    },
+    {
+      "href": "/deleting-your-data",
+      "label": "Deleting Your Data"
+    },
+    {
+      "href": "/compare/github-codespaces",
+      "label": "E-Code vs GitHub Codespaces"
+    },
+    {
+      "href": "/compare/glitch",
+      "label": "E-Code vs Glitch"
+    },
+    {
+      "href": "/compare/heroku",
+      "label": "E-Code vs Heroku"
+    },
+    {
+      "href": "/compare/codesandbox",
+      "label": "E-Code vs CodeSandbox"
+    },
+    {
+      "href": "/compare/aws-cloud9",
+      "label": "E-Code vs AWS Cloud9"
+    }
+  ]
+}
