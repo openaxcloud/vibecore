@@ -793,7 +793,14 @@ function NotificationRow({
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className={classNames('text-sm', isRead ? 'font-medium' : 'font-semibold')}>{notification.title}</h3>
+              <h3
+                className={classNames(
+                  'min-w-0 max-w-full break-words text-sm',
+                  isRead ? 'font-medium' : 'font-semibold',
+                )}
+              >
+                {notification.title}
+              </h3>
               {!isRead ? (
                 <span
                   className="h-2 w-2 shrink-0 rounded-full bg-bolt-elements-item-contentAccent"
@@ -802,7 +809,7 @@ function NotificationRow({
               ) : null}
             </div>
             {notification.body ? (
-              <p className="mt-1 text-sm leading-6 text-bolt-elements-textSecondary">{notification.body}</p>
+              <p className="mt-1 break-words text-sm leading-6 text-bolt-elements-textSecondary">{notification.body}</p>
             ) : null}
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textTertiary">
               <time dateTime={notification.createdAt}>

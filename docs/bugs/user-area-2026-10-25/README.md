@@ -21,7 +21,7 @@ La preuve rouge du premier correctif recherche est conservée dans `first-fix/`.
 | Surface | Tailles/modes | Résultat et portée |
 | --- | --- | --- |
 | Données/dialogue et Connexions | 320,360,390, paysage844×390,768,820,1024,1280,1440,1920,2560 ; FR/EN×clair/sombre |88 observations, 8 groupes d’interactions : saisie/resize, focus initial, 5 Tab confinés, Échap/Annuler, réouverture, Connexions→Retour. Aucune mutation |
-| Dashboard et liste Projets |12 tailles incluant 640×400 de reflow,320→2560 ; FR/EN×clair/sombre |96 observations ciblées : largeur document ; titres de la liste Projets et bouton d’effacement contenus ; effacement fonctionnel. Ne valide pas toute la palette dashboard : défaut ouvert ci-dessous |
+| Dashboard et liste Projets |12 tailles incluant 640×400 de reflow,320→2560 ; FR/EN×clair/sombre |96 observations ciblées : largeur document ; titres de la liste Projets et bouton d’effacement contenus ; effacement fonctionnel. Palette couverte séparément ci-dessous |
 | Recherche Projets |Chromium compilé, requêtes.data retardées de 350 ms, resize390→320→1440 |Navigation/Retour/Avancer et frappe pendant chargement verts ; détails dans les deux reçus dédiés |
 | Facturation |11 tailles de 320→2560×FR/EN×clair/sombre +4 groupes d’interactions |48 observations : géométrie contrôles, valeurs conservées,HTTP 503 répété visible/focalisé ; reflow 640, hauteur réduite320, pinch 200 % |
 | Menus Projets |320/390/820/1440×FR/EN×clair/sombre |16 parcours : scroll préservé, menu contenu, clavier/extérieur, renommage/brouillonresize/Échap, confirmation suppression annulée ; zéro POST |
@@ -32,9 +32,9 @@ La preuve rouge du premier correctif recherche est conservée dans `first-fix/`.
 
 Chromium 154.0.8037.57. Données/Facturation/Projets vérifiés sur port 5899 ; menus sur build consolidé, port 5999. Les sources des surfaces inchangées ont été contrôlées par empreinte entre les builds. Les reçus gardent leurs URL exactes. Les services backend réels et la version déployée ne sont pas couverts.
 
-## Défaut partagé conservé, non corrigé ici
+## Palette : correction après libération du périmètre #788
 
-Palette Dashboard 320 : options 1317,656 px dans listbox 269 px ; contenu coupé malgré absence de débordement du document. `SaaSLayout.tsx` réservé à #788. Contre-épreuve CSS temporaire : min-width:0 ramène les options à 269 px. Voir `deferred/` et `BUG-DASHBOARD-PALETTE-WIDTH-20261025.md`. Le patch proposé contient uniquement le lien résultat mesuré ; il n'est pas appliqué. Vérifier et intégrer après #788, sans relancer sa CI pour ce défaut indépendant.
+Palette Dashboard 320 : options 1317,656 px dans listbox 269 px ; contenu coupé malgré absence de débordement du document. Après fusion #788, le correctif local contient les résultats et sépare l’indication Entrée. [Matrice et captures avant/après](palette/README.md). Le patch sous `deferred/` est la proposition historique, conservée comme preuve ; le produit est maintenant corrigé localement, pas encore intégré dans main.
 
 Le statut des menus, de la palette, des titres et du reflow est distinct : aucun verdict global « toute la plateforme validée » n'est tiré des captures.
 
@@ -67,3 +67,15 @@ La revue documentaire indépendante confirme les comptes et limites. Les sorties
 ## Dernier correctif visuel : actions Facturation
 
 L’inspection des captures à zoom natif a révélé un titre comprimé malgré des contrôles de débordement verts. [Correction et contre-épreuves](billing-heading/README.md) : un wrapper local, aucune modification du shell #788. Sur le build final 6199 : 36 mesures de l’en-tête, 48 observations Facturation, et les 20 cas / 12 interactions de zoom natif rejoués. Build, typage strict, 67 tests ciblés et lint ciblé verts. Les autres sources produit restent identiques au lot mesuré sur 6099.
+
+## Extension du même lot : Notifications, Usage, Paiement, Offres
+
+| Surface | Matrice locale | Résultat et limite |
+| --- | --- | --- |
+| Notifications / Usage | 88 cas : 11 formats de 320 à 2560, paysage inclus × FR/EN × clair/sombre | Textes longs, motifs et quotas contenus. Retry GET, Retour, rollback de préférence PATCH503 ; deux erreurs de limite Usage, visibles puis hors écran, avec réponse retardée et brouillon conservé. [Preuves](notifications-usage/README.md) |
+| Paiement / Offres | 88 cas sur 11 formats, FR/EN × clair/sombre ; 8 cas natifs à 200 % | Brouillon email récupérable après statut503 ; aucun achat ni portail externe ouvert. [Preuves](payment-upgrade/README.md) |
+| Palette inline Dashboard et page Palette | 88 observations et 8 groupes clavier | 11 formats de 320 à 2560, paysage inclus × FR/EN × clair/sombre ; recherche longue et resize, ArrowDown/Entrée. Échap ne ferme pas cette palette inline. [Preuves](palette/README.md) |
+
+La récupération Paiement conserve les erreurs serveur dans la frontière de route avec leur statut HTTP ; aucun stockage persistant du brouillon ajouté. Le succès après retry est vérifié par routeur mémoire, pas par backend réel. Revue croisée indépendante des modifications de Paiement et Usage. Les journaux build/typecheck/lint du build 6799 sont dans `palette/` ; lint global : zéro erreur, 52 avertissements existants. Les recettes distinguent les builds exacts, la modification ultérieure d’espacement de palette et les données synthétiques.
+
+[Complément Profil Compte](profile/README.md) : textes longs, fuseau, cinq redimensionnements et HTTP503 en FR/EN. Brouillon conservé et erreur visible ; focus BODY constaté après soumission, sans parcours de navigation incorrect démontré. Pas de correction spéculative.

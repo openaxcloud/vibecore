@@ -1,0 +1,137 @@
+{
+  "base": "http://127.0.0.1:6899",
+  "synthetic": true,
+  "observations": [
+    {
+      "lang": "fr",
+      "width": 320,
+      "scrollWidth": 320,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "D\u00e9tect\u00e9\u00a0: America/Catamarca"
+    },
+    {
+      "lang": "fr",
+      "width": 820,
+      "scrollWidth": 820,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "D\u00e9tect\u00e9\u00a0: America/Catamarca"
+    },
+    {
+      "lang": "fr",
+      "width": 390,
+      "scrollWidth": 390,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "D\u00e9tect\u00e9\u00a0: America/Catamarca"
+    },
+    {
+      "lang": "fr",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "D\u00e9tect\u00e9\u00a0: America/Catamarca"
+    },
+    {
+      "lang": "fr",
+      "width": 320,
+      "scrollWidth": 320,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "D\u00e9tect\u00e9\u00a0: America/Catamarca"
+    },
+    {
+      "lang": "fr",
+      "failure": {
+        "alertTop": 155,
+        "alertBottom": 211,
+        "height": 568,
+        "scrollY": 216,
+        "activeTag": "BODY",
+        "activeName": null,
+        "draft": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+        "timezone": "Europe/Paris",
+        "text": "Impossible d\u2019enregistrer les param\u00e8tres du compte. R\u00e9essayez.",
+        "tabAfter": {
+          "tag": "BODY",
+          "name": null,
+          "text": null,
+          "href": null
+        }
+      }
+    },
+    {
+      "lang": "en",
+      "width": 320,
+      "scrollWidth": 320,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "Detected: America/Catamarca"
+    },
+    {
+      "lang": "en",
+      "width": 820,
+      "scrollWidth": 820,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "Detected: America/Catamarca"
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "scrollWidth": 390,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "Detected: America/Catamarca"
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "Detected: America/Catamarca"
+    },
+    {
+      "lang": "en",
+      "width": 320,
+      "scrollWidth": 320,
+      "name": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+      "timezone": "America/Argentina/ComodRivadavia",
+      "timezoneHint": "Detected: America/Catamarca"
+    },
+    {
+      "lang": "en",
+      "failure": {
+        "alertTop": 155,
+        "alertBottom": 211,
+        "height": 568,
+        "scrollY": 216,
+        "activeTag": "BODY",
+        "activeName": null,
+        "draft": "NomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsiveNomDeProfilTr\u00e8sLongSansEspacePourV\u00e9rifierLeResponsive",
+        "timezone": "Europe/Paris",
+        "text": "Account settings could not be saved. Try again.",
+        "tabAfter": {
+          "tag": "BODY",
+          "name": null,
+          "text": null,
+          "href": null
+        }
+      }
+    }
+  ],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:6899/account-settings.data?index&lang=fr",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:6899/account-settings.data?index&lang=en",
+      "method": "POST"
+    }
+  ],
+  "errors": []
+}

@@ -2339,7 +2339,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => rememberCommand(command.to)}
               className={classNames(
-                'flex min-h-[44px] items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
+                'flex min-h-[44px] min-w-0 items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
                 index === activeIndex && 'bg-bolt-elements-background-depth-3',
               )}
             >
@@ -2349,7 +2349,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
                   <span className="shrink-0 text-xs text-bolt-elements-textTertiary">{command.hint}</span>
                 ) : null}
               </span>
-              <span className="text-xs text-bolt-elements-textTertiary">{t('userArea.command.enter')}</span>
+              <span className="shrink-0 text-xs text-bolt-elements-textTertiary">{t('userArea.command.enter')}</span>
             </Link>
           ))
         )}

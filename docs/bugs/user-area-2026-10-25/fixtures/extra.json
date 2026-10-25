@@ -1,6 +1,62 @@
 {
-"/orgs/synthetic-org/projects":{"projects":[{"id":"synthetic-project","name":"Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789","slug":"synthetic-project","updatedAt":"2026-10-24T14:00:00Z","sourceType":"template","deploymentCount":0,"status":"active"}]},
-"/orgs/synthetic-org/ai/cost-summary":{"totals":{"costCents":0}},
-"/projects/synthetic-project/deployments":{"deployments":[]},
-"/orgs/synthetic-org/invitations":{"invitations":[]}
+  "/orgs/synthetic-org/projects": {
+    "projects": [
+      {
+        "id": "synthetic-project",
+        "name": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+        "slug": "synthetic-project",
+        "updatedAt": "2026-10-24T14:00:00Z",
+        "sourceType": "template",
+        "deploymentCount": 0,
+        "status": "active"
+      }
+    ]
+  },
+  "/orgs/synthetic-org/ai/cost-summary": {
+    "totals": {
+      "costCents": 0
+    }
+  },
+  "/projects/synthetic-project/deployments": {
+    "deployments": []
+  },
+  "/orgs/synthetic-org/invitations": {
+    "invitations": []
+  },
+  "/billing/synthetic-org": {
+    "plans": [
+      {
+        "key": "free",
+        "name": "Free",
+        "monthlyCents": 0,
+        "limits": {
+          "projects.count": 1
+        }
+      },
+      {
+        "key": "pro",
+        "name": "Pro",
+        "monthlyCents": 2500,
+        "limits": {
+          "projects.count": 10
+        },
+        "stripePriceAnnualId": "price_synthetic_annual"
+      },
+      {
+        "key": "team",
+        "name": "Team",
+        "monthlyCents": 5900,
+        "limits": {
+          "team.members": 5
+        },
+        "stripePriceAnnualId": "price_synthetic_team_annual"
+      },
+      {
+        "key": "enterprise",
+        "name": "Enterprise",
+        "monthlyCents": 0,
+        "limits": {}
+      }
+    ]
+  }
 }

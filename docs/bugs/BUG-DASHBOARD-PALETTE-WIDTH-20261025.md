@@ -8,16 +8,18 @@ Dashboard 320px avec nom de projet long : listbox 269px, chaque résultat 1317,6
 
 ## 📤 Dispatché
 
-25 octobre 2026 : diagnostic transmis au parent ; `app/components/dashboard/SaaSLayout.tsx` est réservé à la session #788. Aucune modification appliquée à ce fichier ni relance CI #788.
+25 octobre 2026 : diagnostic transmis au parent. Correction préparée seulement après fusion #788, sans relance de sa CI. L’intégration sémantique de main reste à faire avant publication du lot ; elle doit conserver les routes `/ide?panel=deployments` et `/ide?panel=domains` de #788.
 
 ## 💻 Codé
 
-Non. Proposition locale séparée : ajouter `min-w-0` aux liens des résultats, autour de la ligne 2342 sur base `5ee605bf3`. Ne pas appliquer aveuglément après #788 : recontrôler son contexte. Les récents utilisent une structure similaire mais ne sont pas corrigés par cette proposition minimale.
+Pas sur main. Correction locale : `min-w-0` sur les liens résultats, espacement explicite entre type et indication Entrée ; indication non rétrécie. Le contexte a été comparé avec main après #788. Aucun changement de navigation commune.
 
 ## ✅ Testé live
 
-Non. Contre-épreuve CSS temporaire dans Chromium local avec fixture synthétique : résultats ramenés à 269px, bord droit 294,5px, scrollWidth269. Ce n'est pas un correctif produit ni une recette production.
+Non. Contre-épreuve CSS temporaire dans Chromium local avec fixture synthétique : résultats ramenés à 269px, bord droit 294,5px, scrollWidth269. Les recettes du correctif produit compilé sont archivées séparément ; aucune recette production.
 
 ## Preuves
 
 [Avant](user-area-2026-10-25/deferred/palette-before320.png), [contre-épreuve](user-area-2026-10-25/deferred/palette-proposed320.png), [mesures](user-area-2026-10-25/deferred/palette-before.json), [patch proposé non appliqué](user-area-2026-10-25/deferred/palette-min-width-proposed.patch).
+
+[Correctif compilé, captures et matrice locale](user-area-2026-10-25/palette/README.md).

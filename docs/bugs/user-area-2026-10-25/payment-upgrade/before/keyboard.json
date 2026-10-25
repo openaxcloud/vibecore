@@ -1,0 +1,12 @@
+{
+  "base": "http://127.0.0.1:6199",
+  "synthetic": true,
+  "radioArrowSelection": true,
+  "resizeSelectionPreserved": true,
+  "escapeSelectionPreserved": true,
+  "nextKeyboardTarget": {
+    "text": "Choisir la formule Team",
+    "tag": "BUTTON"
+  },
+  "backPaymentVisible": true
+}

@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/components/dashboard/recent-commands.spec.ts (3 tests) 3ms
+ ✓ app/lib/command-palette-focus.spec.ts (5 tests) 5ms
+ ✓ app/components/dashboard/SaaSLayout.spec.ts (20 tests) 23ms
+
+ Test Files  3 passed (3)
+      Tests  28 passed (28)
+   Start at  21:38:32
+   Duration  2.89s (transform 1.42s, setup 104ms, collect 1.02s, tests 31ms, environment 0ms, prepare 169ms)

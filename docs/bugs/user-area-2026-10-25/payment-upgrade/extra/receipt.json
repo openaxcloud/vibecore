@@ -1,0 +1,1240 @@
+{
+  "base": "http://127.0.0.1:6899",
+  "synthetic": true,
+  "observations": [
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Moyen de paiement",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Gérer le moyen de paiement",
+          "height": 44
+        },
+        {
+          "text": "Enregistrer l’e-mail de facturation",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Changer de formule",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Aucune souscription nécessaire",
+          "height": 44
+        },
+        {
+          "text": "Formule actuelle",
+          "height": 44
+        },
+        {
+          "text": "Choisir la formule Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/payment-method",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Payment method",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "Manage payment method",
+          "height": 44
+        },
+        {
+          "text": "Save billing email",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "/upgrade",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Upgrade",
+      "overflow": [],
+      "buttons": [
+        {
+          "text": "No checkout needed",
+          "height": 44
+        },
+        {
+          "text": "Current plan",
+          "height": 44
+        },
+        {
+          "text": "Upgrade to Team",
+          "height": 44
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "writes": []
+}
