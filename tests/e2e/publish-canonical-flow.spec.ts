@@ -293,6 +293,7 @@ test('cancel and rollback require confirmation; Escape and Cancel send nothing',
   await expect(dialog).toHaveCount(0);
   expect(sent).toHaveLength(1);
   await page.setViewportSize({ width: 1440, height: 900 });
+
   // Responsive layout commits after the viewport changes; do not reopen the outgoing mobile dialog.
   await expect(page.locator('.bolt-project-pane-leaf .bolt-project-deploy-tool')).toBeVisible();
   await rollback.click();
