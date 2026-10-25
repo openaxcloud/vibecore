@@ -21,6 +21,11 @@ SYSTEM=$("${SQL[@]}" -c "SELECT system_identifier::text FROM pg_control_system()
 "$B/pg_basebackup" -h "$ROOT/socket-source" -p 55444 -D "$ROOT/backup" -Fp -X stream --checkpoint=fast --manifest-checksums=SHA256
 "$B/pg_verifybackup" "$ROOT/backup" > "$ROOT/verify.log"
 MANIFEST=$(sha256sum "$ROOT/backup/backup_manifest" | cut -d' ' -f1)
+if [ "${VIBECORE_ARCHIVE_HANDSHAKE:-}" = 1 ]; then
+  printf '{"archiveReady":true,"root":"%s","manifestSha256":"%s","systemIdentifier":"%s"}\n' "$ROOT" "$MANIFEST" "$SYSTEM"
+  read -r -t 30 ACK
+  [ "$ACK" = continue ]
+fi
 "${SQL[@]}" -c "INSERT INTO restore_probe VALUES ('target','included')" >/dev/null
 TARGET=$("${SQL[@]}" -c "SELECT clock_timestamp()::text")
 "${SQL[@]}" -c "INSERT INTO restore_probe VALUES ('post','must be excluded')" >/dev/null
