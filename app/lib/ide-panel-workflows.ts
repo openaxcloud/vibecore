@@ -203,7 +203,7 @@ export async function runWorkflowSteps(options: {
     run.logs.push({ level: 'info', message: `$ ${command}`, timestamp: stepStartedAt });
 
     const result = await execCommand(command);
-    const exitCode = typeof result.exitCode === 'number' ? result.exitCode : 0;
+    const exitCode = Number.isInteger(result.exitCode) ? result.exitCode! : -1;
     const outputTail = tail(result.output);
 
     base.exitCode = exitCode;
