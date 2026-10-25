@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-490 entrées.
+491 entrées.
 
 ## Sans section
 
@@ -629,6 +629,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## IDE — exécution réelle
 
 - [BUG-PACKAGES-SCAN-SCOPE-001](docs/bugs/BUG-PACKAGES-SCAN-SCOPE-001.md) — 📤 Dispatché : 25 octobre 2026. Lot distinct après #781, basé sur son merge main `d3adf5be9`. Git, Publish/Déploiement, Domai · 💻 Codé : Correctif local, pas encore fusionné. Packages ne neutralise plus les erreurs audit/outdated avec `|| true`. U · ✅ Testé live : Non. Tests locaux sur fichiers synthétiques et handlers avec transport contrôlé. Aucun fournisseur, donnée uti
+
+## Sans section
+
+- [BUG-ACCOUNT-NAVIGATION-20261025](docs/bugs/BUG-ACCOUNT-NAVIGATION-20261025.md) — À 320px en français, la navigation Compte cache la destination « Données et confidentialité » : largeur visible 292px, largeur défilante 424px, bord droit du de — 📤 Dispatché : 25 octobre 2026 : mission UI/UX globale, lot isolé Compte. Main a18c7defb et PR ouvertes inspectés avant éditi · 💻 Codé : Correctif local : navigation nommée native, liens NavLink avec aria-current, retour à la ligne sans couper les · ✅ Testé live : Non. Pas de session production disponible. Aucune recette production ni version déployée revendiquée.
 
 ## Livraison — production
 

@@ -660,11 +660,13 @@ export default function BillingPage() {
                   thresholds={credits.spendAlertThresholds ?? [50, 80, 100]}
                   language={language}
                 />
-                {actionSuccess ? (
-                  <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">
-                    {actionSuccess}
-                  </div>
-                ) : null}
+                <div role="status" aria-live="polite">
+                  {actionSuccess ? (
+                    <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">
+                      {actionSuccess}
+                    </div>
+                  ) : null}
+                </div>
                 <Form method="post" className="flex flex-wrap items-center gap-2">
                   <input type="hidden" name="intent" value="set-limits" />
                   <span className="text-sm text-bolt-elements-textSecondary">€</span>

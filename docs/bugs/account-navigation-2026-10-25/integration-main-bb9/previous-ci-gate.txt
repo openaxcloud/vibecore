@@ -1,0 +1,13 @@
+2026-10-25T21:12:27.2424122Z HEAD is now at 847af6c Merge fa68461a96c3b3df2c988235b0503b4a5be1faae into 155c9278c28cce4fb55ce292d8b3b12cfe4d516f
+2026-10-25T21:12:30.9103686Z total : 4
+2026-10-25T21:12:30.9721907Z   fichiers de specs attendus : 85
+2026-10-25T21:12:30.9723234Z   fichiers de specs vus      : 85
+2026-10-25T21:12:30.9727928Z E2E gate — waiver expires 2026-11-04 (11 day(s) left)
+2026-10-25T21:12:30.9728258Z   tests reported : 497
+2026-10-25T21:12:30.9728524Z   failing        : 1
+2026-10-25T21:12:30.9729418Z   flaky (passed on retry): 2
+2026-10-25T21:12:30.9730074Z ⚠ passed only after a retry — real instability, worth diagnosing:
+2026-10-25T21:12:30.9730811Z     - ide-panel-visibility.spec.ts › panel visibility 390px › tabs closes with Escape and restores focus
+2026-10-25T21:12:30.9731476Z     - ide-panel-visibility.spec.ts › desktop 1280px › desktop panel tools remain usable without mobile sheets
+2026-10-25T21:12:30.9732355Z ✖ failing tests that are NOT waived:
+2026-10-25T21:12:30.9732912Z     - rpl-ide-panels-proof.spec.ts › interrupted move navigation cannot swallow a later browser Back

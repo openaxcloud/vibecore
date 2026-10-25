@@ -1,0 +1,30 @@
+{
+  "previousHead": "fa68461a96c3b3df2c988235b0503b4a5be1faae",
+  "integratedMain": "bb9e72c4b4e521e454e4748d13df6fbef8017dd0",
+  "indexBefore": 490,
+  "indexActual": 491,
+  "indexRedTests": {
+    "passed": 5,
+    "failed": 1
+  },
+  "integrationTestsPassed": 69,
+  "typecheckExit": 0,
+  "buildExit": 0,
+  "lintErrors": 0,
+  "lintWarnings": 52,
+  "browserObservations": 48,
+  "browserBase": "http://127.0.0.1:6499",
+  "syntheticAPI": "http://127.0.0.1:3199",
+  "productionTested": false,
+  "independentReview": {
+    "incomingFilesIdenticalToMain": 111,
+    "incomingFilesTotal": 112,
+    "ownFilesIdenticalToPreviousHead": 15,
+    "ownFilesTotal": 16,
+    "onlyException": "combined generated bug index"
+  },
+  "productSha256": {
+    "app/routes/account-settings.tsx": "a4f7d55bfd64b397f4ae32d011454fb1436b19f289df4457f0cedc6739654b48",
+    "app/routes/billing.tsx": "f647ca6ea89086bf8d81cdeddd82f7d462143de60c1fb2375b8ed7dbb2b2c53d"
+  }
+}

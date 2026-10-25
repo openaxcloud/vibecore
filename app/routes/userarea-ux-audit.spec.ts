@@ -1,7 +1,19 @@
+/** @vitest-environment jsdom */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
+import { MemoryRouter } from 'react-router';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import AccountSettingsLayout from './account-settings';
+import { createI18nInstance } from '~/lib/i18n/runtime';
+
+vi.mock('~/components/dashboard/SaaSLayout', () => ({
+  AppShell: ({ children }: { children: ReactNode }) => createElement('main', null, children),
+}));
+afterEach(cleanup);
 
 /*
  * Audit UX/UI de la zone utilisateur (chore/userarea-ux-audit) — garde-fous de
@@ -159,10 +171,30 @@ describe('/api-keys', () => {
 });
 
 describe('/account-settings (3 onglets)', () => {
-  it('les onglets annoncent aria-selected (role=tab sans état avant)', () => {
-    const source = read('app/routes/account-settings.tsx');
-    expect(source).toContain('aria-selected={end ? location.pathname === to : location.pathname.startsWith(to)}');
-  });
+  it.each(['/account-settings', '/account-settings/connected', '/account-settings/data'])(
+    'la navigation native annonce uniquement la destination active %s',
+    (pathname) => {
+      render(
+        createElement(
+          I18nextProvider,
+          { i18n: createI18nInstance('fr') },
+          createElement(MemoryRouter, { initialEntries: [pathname] }, createElement(AccountSettingsLayout)),
+        ),
+      );
+
+      const navigation = screen.getByRole('navigation', { name: 'Paramètres du compte' });
+      const links = navigation.querySelectorAll('a');
+      expect(links).toHaveLength(3);
+      expect(navigation.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+
+      for (const link of links) {
+        expect(link.getAttribute('aria-current')).toBe(link.getAttribute('href') === pathname ? 'page' : null);
+      }
+
+      expect(screen.queryByRole('tablist')).toBeNull();
+      expect(screen.queryByRole('tab')).toBeNull();
+    },
+  );
 
   it('les bandeaux profil utilisent les tokens success/error (gris neutre et icon-error avant)', () => {
     const source = read('app/routes/account-settings._index.tsx');
