@@ -1,3 +1,4 @@
+import { RestoreArchiveVerificationError } from './database-restore-archive.js';
 import { createHash } from 'node:crypto';
 import { requiredWalSegments } from './database-restore-wal.js';
 
@@ -18,7 +19,7 @@ export async function verifyWalObjectInventory(
   readObject: (expected: ObjectReceipt) => Promise<Uint8Array>,
 ) {
   const required = requiredWalSegments(interval);
-  if (inventory.length !== required.length) throw new Error('RESTORE_WAL_INVENTORY_INVALID');
+  if (inventory.length !== required.length) throw new RestoreArchiveVerificationError('RESTORE_WAL_INVENTORY_INVALID');
   // Copy before the first await: caller mutation cannot change an admitted plan.
   const entries = inventory.map(({ segment, object }) => ({
     segment,
@@ -42,7 +43,7 @@ export async function verifyWalObjectInventory(
         !/^[a-f0-9]{64}$/.test(object.sha256),
     )
   )
-    throw new Error('RESTORE_WAL_INVENTORY_INVALID');
+    throw new RestoreArchiveVerificationError('RESTORE_WAL_INVENTORY_INVALID');
 
   const verified = [];
   for (const segment of required) {
@@ -51,10 +52,10 @@ export async function verifyWalObjectInventory(
     try {
       bytes = await readObject({ ...expected });
     } catch {
-      throw new Error('RESTORE_WAL_OBJECT_READ_FAILED');
+      throw new RestoreArchiveVerificationError('RESTORE_WAL_OBJECT_READ_FAILED');
     }
     if (bytes.byteLength !== expected.size || createHash('sha256').update(bytes).digest('hex') !== expected.sha256) {
-      throw new Error('RESTORE_WAL_OBJECT_MISMATCH');
+      throw new RestoreArchiveVerificationError('RESTORE_WAL_OBJECT_MISMATCH');
     }
     verified.push({ segment, ...expected });
   }

@@ -26,3 +26,10 @@ describe('same-timeline WAL interval planning, not timestamp coverage', () => {
     expect(() => requiredWalSegments({ ...base, endLsn: 'FFFFFFFF/FFFFFFFF' })).toThrow('RESTORE_WAL_RANGE_TOO_LARGE');
   });
 });
+
+// Internal validation failures retain a machine-readable code for the coordinator.
+it('returns a typed archive failure with the WAL code', () => {
+  expect(() =>
+    requiredWalSegments({ timeline: 0, startLsn: '0/0', endLsn: '0/1', segmentBytes: 16 * 1024 * 1024 }),
+  ).toThrowError(expect.objectContaining({ code: 'RESTORE_WAL_GEOMETRY_INVALID' }));
+});
