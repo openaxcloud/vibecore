@@ -2274,6 +2274,7 @@ model DatabaseInstance {
   project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
   snapshots      DatabaseSnapshot[]
   restores       DatabaseRestore[]
+  restoreConsumers DatabaseRestoreConsumer[]
 
   @@unique([projectId, environment])
   @@index([organizationId])
@@ -2330,6 +2331,26 @@ model DatabaseRestore {
   @@index([status])
   // "restores requested by user" lookups; was a full-scan (no FK on this column).
   @@index([requestedByUserId])
+}
+
+/// Cooperative managed consumers only; expired leases never prove drainage.
+model DatabaseRestoreConsumer {
+  id String @id
+  instanceId String
+  bindingVersion Int
+  kind String
+  uid String
+  generation String
+  state String @default("ACTIVE")
+  leaseUntil DateTime
+  drainRestoreId String?
+  drainAttemptToken String?
+  drainedAt DateTime?
+  createdAt DateTime @default(now())
+  instance DatabaseInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@unique([instanceId, kind, uid])
+  @@index([instanceId, state])
 }
 
 /// Durable restore journal. Credentials remain encrypted and are never projected
