@@ -31,3 +31,9 @@ Ces résultats ne certifient pas encore l'unification des deux parcours Publish.
 - Un ancien formulaire ouvert avant mise à jour conserve son diagnostic d'erreur POST.
 - Les champs avancés repliés restent inclus dans FormData ; leur masquage visuel ne supprime aucune configuration.
 - Le brouillon complet de l'assistant et les fournisseurs externes ne sont pas couverts par la seule conservation du brouillon Domains.
+
+## Requalification après CI de #788
+
+Le scanner a signalé un faux positif sur une empreinte SHA-256 associée au chemin `useKeybindings.ts` dans le reçu. Représentation corrigée sans changer les 36 chemins/empreintes, revue indépendante et scan Gitleaks 8.21.2 exact verts ; aucune exception ajoutée.
+
+La CI suivante a révélé trois gardes restantes : ancien composant DeploySubNav devenu orphelin, contrat du wrapper commun sans hook, et ancien test français de la route désormais redirigée. Contre-épreuve locale : 3 échecs ; correctif `7e21b2987` : 179 tests/30 fichiers verts (incluant 23 tests des gardes), typage web/lint/i18n verts et revue indépendante favorable. La navigation canonique est conservée et le hook workspace est isolé dans le composant Deploy. Nouvelle compilation réussie et recette navigateur **9/9 verte en 222,9 s**, zéro retry/skip/flaky, sur `7e21b2987`. 37 sources, 2 suppressions et 2308 fichiers compilés inchangés après la recette. [Requalification après CI](publish-canonical-flow-2026-10-25/ci-followup/README.md).
