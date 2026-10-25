@@ -1,0 +1,13 @@
+# Canonical Publish local browser QA — 2026-10-25
+
+Final product source: `c154a7baf837eaa8e4956d066d082e9ce4f965f7`; initial counter-test source: `2ae6d39d32c42a72f46bf5783b41341a771123b1`. This receipt extends the separately preserved Domains navigation evidence and does not replace #784 evidence.
+
+The compiled application runs against a real local API, PostgreSQL and Redis, with newly registered synthetic accounts and projects. The database uses 102 SQL migrations plus the repository seed. Chromium uses isolated browser contexts. No production data, deployment provider or DNS mutation is involved.
+
+Six Domains regression cases exercise legacy URLs, persisted pane identity, responsive navigation, advanced options and an invalid legacy document POST. Three Publish cases exercise the top button/dashboard/legacy bookmark, actual unavailable detection and explicit server/static override with the real rate card, and cancellation/rollback confirmations.
+
+Publication POSTs are intercepted before reaching the API and return controlled HTTP 503 errors. Cancel/rollback history and mutation responses are controlled fixtures. These checks establish UI request payloads, duplicate-submit prevention and recovery, not successful external publication or rollback. The selected workspace is one real local database record, not a live workspace agent or proof of two-workspace isolation. Successful framework auto-detection is not claimed. Production QA remains disconnected and unvalidated.
+
+Reproduction: install repository dependencies and Chromium; provision ephemeral local PostgreSQL/Redis and a fresh database, apply migrations and seed, start the API bound to loopback with isolated storage directories, build once, then serve `build/server/index.js` with `SAAS_API_URL` pointing to that API. Run the two listed Playwright specs with `PLAYWRIGHT_BASE_URL` and `SAAS_API_URL` set to the isolated services, one worker and zero retries. The receipt contains exact result counts and artifact hashes; raw traces, session cookies, API logs and account tokens are deliberately excluded.
+
+The first full run found a real Escape regression: the IDE's global capture-phase key handler consumed Escape before the focused confirmation could receive it. A focused-dialog counter-test reproduced it; the subsequent product fix lets an open dialog own Escape. The first Publish test attempts also exposed test synchronization defects: slug navigation was still loading, and the real unavailable workspace detection returned after its 30-second timeout. Tests now explicitly await navigation and the actual detection response before asserting the UI. Neither failure was hidden by automatic retries.

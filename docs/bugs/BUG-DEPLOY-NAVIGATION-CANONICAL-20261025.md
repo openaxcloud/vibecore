@@ -2,7 +2,7 @@
 id: BUG-DEPLOY-NAVIGATION-CANONICAL-20261025
 ---
 
-# Domaines : achever le parcours unique de déploiement
+# Publish et Domaines : achever le parcours unique de déploiement
 
 ## Bug
 
@@ -16,7 +16,7 @@ id: BUG-DEPLOY-NAVIGATION-CANONICAL-20261025
 
 Premier lot local commité `15dd78791`, non intégré à main : la page historique Domains redirige après autorisation, ses opérations métier restent identiques et ses erreurs POST sont rendues explicitement (HTTP400). Les entrées IDE historiques affichent le même hôte Déploiement, sans migration destructrice des layouts ni suppression backend. Notice organisation et diagnostic TLS conservés. Réglages avancés disponibles dans le formulaire ; URLs des déploiements non READY exclues des liens présentés comme publiés.
 
-L'audit complémentaire révèle une autre divergence : le bouton Publish principal et la navigation dashboard ouvrent encore la page Déploiements autonome. Celle-ci possède détection serveur/statique, choix de machine et délai de build de 610 secondes, absents du panneau IDE. Une simple redirection perdrait ces capacités. Leur partage et la consolidation de ces portes sont préparés dans un complément distinct du lot Domains déjà testé ; ils ne sont pas déclarés terminés ici.
+L'audit complémentaire révèle une autre divergence : le bouton Publish principal et la navigation dashboard ouvrent encore la page Déploiements autonome. Celle-ci possède détection serveur/statique, choix de machine et délai de build de 610 secondes, absents du panneau IDE. Une simple redirection perdrait ces capacités. Leur partage et la consolidation de ces portes sont implémentés dans un complément distinct du lot Domains déjà testé, commité `2ae6d39d3`, revu indépendamment et validé en recette navigateur locale. Le formulaire partagé conserve la détection, les modes explicites, la taille de machine et les fournisseurs avancés ; le transport IDE conserve le délai de 610 secondes pour publication et republication. Historique détaillé, logs horodatés et confirmations sont portés. La détection respecte le workspace choisi et refuse une sélection étrangère au projet avant toute lecture. Les quatre réserves de revue sont levées : workspace du bouton Publish, clé de reprise, QR/lien Usage et libellés traduits. Les brouillons restent en mémoire par projet/workspace, sans stockage persistant des variables. Les preuves navigateur définitives sont jointes ci-dessous ; la CI et la livraison GitHub restent distinctes de cette validation locale.
 
 ## ✅ Testé live
 

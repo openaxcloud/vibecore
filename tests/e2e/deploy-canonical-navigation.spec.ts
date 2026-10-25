@@ -149,6 +149,9 @@ test('Publish leads to setup and advanced options retain values when collapsed',
   await expect(host.getByTestId('publication-republier')).toBeVisible({ timeout: 60_000 });
   await host.getByTestId('publication-republier').click();
 
+  const otherProviders = host.locator('details').filter({ has: page.locator('.bolt-project-deploy-wizard') });
+  await otherProviders.locator(':scope > summary').click();
+
   const wizard = host.locator('.bolt-project-deploy-wizard');
   await expect(wizard).toBeVisible();
   await expect(wizard.getByTestId('deploy-provider-select')).toBeVisible();
