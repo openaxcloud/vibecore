@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-25",
+  "environment": "isolated local cloud execution; PostgreSQL 16 + Redis 7, API source, Chromium system, compiled web",
+  "fixture": "synthetic accounts/projects only",
+  "databaseSetup": {
+    "trackedSqlMigrationsApplied": 102,
+    "seed": "passed",
+    "prismaRunner": "not validated: schema-engine download DNS EAI_AGAIN"
+  },
+  "realApi": {
+    "scope": "isolated local API PostgreSQL Git, synthetic fixture",
+    "checks": [
+      "real ZIP import visible in git status",
+      "real commit SHA appears in graph",
+      "real branch creation and listing",
+      "real file diff shows added content"
+    ],
+    "commitSha": "1dff15d0eb875db922f31c90ab7bc91a681cd014",
+    "notExecuted": [
+      "external push/pull",
+      "publication",
+      "DNS",
+      "production"
+    ]
+  },
+  "realGitTransport": {
+    "checks": [
+      "push updates bare ref",
+      "pull updates real file",
+      "conflicting pull returns 409 GIT_MERGE_CONFLICT with proof.txt"
+    ],
+    "remote": "temporary local bare repository; no external provider"
+  },
+  "existingGitCliProviderTests": {
+    "passed": 6,
+    "qualification": "real Git; TestApiStore for some route tests"
+  },
+  "browserBeforeResizeFix": {
+    "result": "failed",
+    "succeeded": [
+      "UI stages and commits actual file; commit verified in API graph",
+      "Publish and Domains desktop navigation",
+      "invalid domain form validity",
+      "1440 and 1024 views"
+    ],
+    "failure": "resize to 390 remounts Publish at Overview and loses Domains draft",
+    "pageErrors": []
+  },
+  "browserAfterResizeFix": {
+    "result": "passed",
+    "tests": 1,
+    "retries": 0,
+    "skipped": 0,
+    "testSeconds": 22.9,
+    "totalSeconds": 23.9,
+    "viewports": [
+      "1440x900",
+      "1024x768",
+      "390x844",
+      "1440x900"
+    ],
+    "realAssertions": [
+      "stage and commit through browser, SHA verified in real API graph",
+      "Publish and Domains navigation",
+      "invalid hostname validation",
+      "draft invalid/path and Domains subview preserved across responsive shell remount",
+      "draft preserved Logs to Domains",
+      "Git navigation and browser Back to Publish"
+    ],
+    "controlledFailureAssertions": [
+      "GET Domains fulfilled503 by Playwright",
+      "actionable error rendered",
+      "Refresh domains fetches real API and clears error"
+    ],
+    "qualification": "single Chromium engine; synthetic project; compiled local app, not production"
+  },
+  "notValidated": [
+    "production",
+    "external provider authentication/push/pull",
+    "real publication",
+    "DNS changes",
+    "browser conflict editor",
+    "Safari/WebKit"
+  ],
+  "sourceAndBuildBeforeResize": [
+    "b640d79fc69b696ae94d909353af2b3402e94e7aeeb5c16efa78ee37f8036eaa  build/server/index.js",
+    "0f325a4b1f1e541ce5770a728aebf83ea49aacf2784e4a0221eae0c6c1e8f8d4  app/components/git/GitTab.tsx",
+    "9e60c46809dcc472935d6a67ad473b5e3a09906055abeba58a99280c44a39adb  app/components/deploy/PublicationReplit.tsx",
+    "ed623d7fac77936dbf0a3b6bee6e6b093c29c6c2482fe19b10a9d1e5f97b2234  app/components/deploy/useProjectDomains.ts",
+    "84ccbb77f0d9281000be586a8cd18e827dec1962cc86eba830a6e2e7e6aff8f1  app/components/chat/BaseChat.tsx"
+  ],
+  "intermediateHarnessRuns": [
+    {
+      "result": "failed before browser product interaction",
+      "reason": "compiled server started during rebuild, server/index.js temporarily absent"
+    },
+    {
+      "result": "interrupted",
+      "reason": "test expected Retry but current localized button is Refresh domains; selector corrected from catalogue, no product/assertion/timeout change"
+    }
+  ],
+  "sourceAndBuildFinal": [
+    "69a1efdc4706e7866398647c1df1c031d913186715086c9c5ad895e8fdb77fea  build/server/index.js",
+    "0f325a4b1f1e541ce5770a728aebf83ea49aacf2784e4a0221eae0c6c1e8f8d4  app/components/git/GitTab.tsx",
+    "9e60c46809dcc472935d6a67ad473b5e3a09906055abeba58a99280c44a39adb  app/components/deploy/PublicationReplit.tsx",
+    "ed623d7fac77936dbf0a3b6bee6e6b093c29c6c2482fe19b10a9d1e5f97b2234  app/components/deploy/useProjectDomains.ts",
+    "f16d3b87604dcf7005d7aa7c4fc1fd923160e0a24b1d2bee410de6a7f13dc45b  app/components/deploy/useDeployPanelSession.ts",
+    "90079de040e80635d409a9c5b382b17b307a7b9f6e78dccc5e17e7479ddacba4  app/lib/stores/deploy-panel-view.ts",
+    "1f420d28d8dec4f843c3bcf3fd1b9d03350baeeb3855a84f7a0ffa884402cb02  app/components/chat/BaseChat.tsx"
+  ],
+  "screenshotSha256": {
+    "after-mobile-resize-retained.png": "90bfa7c1223bc1a08091c44c4e9ba0828f4213bbd20c742c420330f8b921bbeb",
+    "git-commit-desktop.png": "d1325304739c1d6803b961737e7fb0bc8d8c8eabe25c33199ea9380233b6f55e",
+    "before-mobile-resize-reset.png": "8bcdc82fe24a087b497fe593dbabf484d5bda4070be67c8e59aa7097ee2d401d",
+    "after-tablet-resize-retained.png": "b98636c982bb51c71e45fc3da27aa666bfca8ea9af9924a1080819608f18fce2",
+    "domains-desktop.png": "11c200af67e31fa99681f3bfb0edf8fe50f8d2e227e77d04058353e3a53fbccb",
+    "domains-actionable-error.png": "6e71065640a42b91d418c3b83c47d6882684cc8d94cf67131e15f25a6de1da8c"
+  }
+}
