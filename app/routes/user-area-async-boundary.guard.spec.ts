@@ -36,7 +36,7 @@ describe('user-area async route recovery guard', () => {
     for (const route of [...CRITICAL_USER_AREA_ROUTES, ...PROJECT_PANEL_ROUTES]) {
       const source = readFileSync(join(process.cwd(), 'app/routes', route), 'utf8');
 
-      if (route === 'projects.$projectId.domains.tsx') {
+      if (route === 'projects.$projectId.domains.tsx' || route === 'projects.$projectId.deployments.tsx') {
         /*
          * This legacy route retains the generic recovery boundary and additionally
          * renders failed legacy POST diagnostics before its canonical GET redirect.

@@ -173,7 +173,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function DomainValue({ url }: { url: string }) {
+export function DomainValue({ url }: { url: string }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);

@@ -528,7 +528,7 @@ export const projectNav = [
   { labelKey: 'userArea.navigation.secrets', suffix: '/secrets', icon: Lock },
   { labelKey: 'userArea.navigation.collaborators', suffix: '/collaborators', icon: Users },
   { labelKey: 'userArea.navigation.snapshots', suffix: '/snapshots', icon: Layers },
-  { labelKey: 'userArea.navigation.deployments', suffix: '/deployments', icon: Rocket },
+  { labelKey: 'userArea.navigation.deployments', suffix: '/ide?panel=deployments', icon: Rocket },
   { labelKey: 'userArea.navigation.customDomains', suffix: '/ide?panel=domains', icon: Globe2 },
   { labelKey: 'userArea.navigation.logs', suffix: '/logs', icon: Terminal },
   { labelKey: 'userArea.navigation.activity', suffix: '/activity', icon: Activity },

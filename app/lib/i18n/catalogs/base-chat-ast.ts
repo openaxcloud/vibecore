@@ -84,6 +84,7 @@ export const baseChatAstEn = {
   'baseChatAst.terminal.valueCopied': '{label} copied.',
   'baseChatAst.terminal.revealFailed': 'The secret could not be revealed.',
   'baseChatAst.domain.updateFailedHttp': 'The domain could not be updated (HTTP {status}).',
+  'baseChatAst.deployment.otherProviders': 'Other providers and custom build settings',
   'baseChatAst.deployment.advancedSettings': 'Advanced deployment settings',
   'baseChatAst.domain.loading': 'Loading domains…',
   'baseChatAst.domain.requestFailed':
@@ -819,6 +820,7 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.terminal.valueCopied': '{label} copié.',
   'baseChatAst.terminal.revealFailed': 'Impossible de révéler le secret.',
   'baseChatAst.domain.updateFailedHttp': 'Impossible de mettre à jour le domaine (HTTP {status}).',
+  'baseChatAst.deployment.otherProviders': 'Autres hébergeurs et réglages de compilation',
   'baseChatAst.deployment.advancedSettings': 'Paramètres avancés du déploiement',
   'baseChatAst.domain.loading': 'Chargement des domaines…',
   'baseChatAst.domain.requestFailed':

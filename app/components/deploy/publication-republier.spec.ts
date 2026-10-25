@@ -48,6 +48,7 @@ describe('le panneau Déploiements applique la règle', () => {
     expect(corps).toContain('intentionDeRepublication(deployments)');
     expect(corps).toContain("donnees.set('intent', 'redeploy')");
     expect(corps).toContain("donnees.set('deploymentId', intention.deploymentId)");
-    expect(corps).toContain('onSubmit(donnees)');
+    expect(corps).toContain('submitDeployment(donnees)');
+    expect(/useDeploymentSubmit\(\s*onSubmit,\s*busy,\s*language,/.test(source)).toBe(true);
   });
 });
