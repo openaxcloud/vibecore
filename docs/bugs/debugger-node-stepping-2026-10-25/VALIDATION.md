@@ -18,7 +18,7 @@ Aucun résultat historique #779/#780 n'est transféré à ce nouveau moteur. Auc
 - BFF : 26/26 ; UI/callback conflits : 7/7.
 - Réconciliation des sessions : 12/12 ; index documentaire : 6/6.
 
-Moteur final : 13/13 tests réels isolés ; régressions de cycle de vie 12/12. Dix répétitions du parcours pas-à-pas réussies, sans retry. Le point d’arrêt d’entrée est temporaire ; le point utilisateur à la même ligne reste actif. Inspection et commandes sont sérialisées pour éviter les évaluations de frame pendant un pas.
+Moteur final : 14/14 tests réels isolés ; régressions de cycle de vie 12/12. Dix répétitions du parcours pas-à-pas réussies, sans retry. Le point d’arrêt d’entrée est temporaire ; le point utilisateur à la même ligne reste actif. Inspection et commandes sont sérialisées pour éviter les évaluations de frame pendant un pas.
 
 ## Échecs conservés
 
@@ -39,3 +39,11 @@ Les valeurs d'inspection sont obtenues sous permission d'écriture et accès ter
 ## Réponse de contrôle incertaine
 
 Une perte de livraison du canal est injectée après un vrai resume sur un vrai enfant : délai dépassé, état unknown, second pas refusé et arrêt confirmé. Un accusé de réception ne réaffiche plus l’ancienne pause. Le loader et le panneau conservent unknown, vident les cadres hors pause et autorisent l’arrêt avec relecture silencieuse.
+
+## Suite finale et revue indépendante
+
+Suite complète workspace-agent : **147/147 tests, 13 fichiers, zéro omission/retry**, dont 14 tests du nouveau moteur. Le premier run complet final avait 145 succès et un échec de fixture : la garde comparait les ports de toute la machine, affectés par des serveurs de suites concurrentes. Elle cible désormais l'UUID du processus débogué ; un témoin positif sur le même enfant prouve absence de port pendant la pause puis détection d'un vrai serveur HTTP loopback après reprise. Aucun code produit modifié pour cette correction.
+
+Revue indépendante favorable : 25/25 moteur + cycle de vie avant témoin ports, 30 passages ciblés (10 répétitions de trois scénarios, sans retry), 26 BFF et 18 API ; relecture et **14/14 moteur** après témoin ports. Aucun défaut bloquant restant identifié, sans prétendre prouver la cause exacte de l'intermittence historique.
+
+Le checkout n'installait pas automatiquement les hooks Git : `.husky/pre-commit` a été exécuté explicitement après le commit local. Gitleaks n'est pas installé localement ; son contrôle CI reste nécessaire. Aucun hook ou contrôle du dépôt n'a été désactivé.

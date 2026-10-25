@@ -49,7 +49,6 @@ test('real Node pauses, steps into/over/out, reads locals/watches and exits with
       'console.log("answer=" + answer);',
     ].join('\n'),
   );
-  const baselinePorts = (await request('/ports')).json().ports;
   const id = randomUUID();
   const response = await request('/debugger/v1/start', {
     operationId: id,
@@ -64,7 +63,9 @@ test('real Node pauses, steps into/over/out, reads locals/watches and exits with
   // Inspector uses only the inherited pipe, not --inspect or a bound TCP socket.
   expect(processes.get(id)!.process.spawnargs.join(' ')).not.toContain('--inspect');
   const ports = (await request('/ports')).json().ports;
-  expect(ports).toEqual(baselinePorts);
+  // Other test workers may open servers concurrently in the same network
+  // namespace. Only this tracked child can establish inspector exposure.
+  expect(ports.filter((port: { processId: string }) => port.processId === id)).toEqual([]);
   await command(id, 'continue');
   await expect.poll(async () => (await status(id)).callStack[0]?.line).toBe(6);
   await expect.poll(async () => (await status(id)).watches).toContainEqual({ expression: 'answer', value: '2' });
@@ -290,3 +291,30 @@ test('a controlled lost response reports unknown and forbids another step until 
   }
   expect((await request(`/debugger/v1/${id}/stop`, {})).json()).toMatchObject({ status: 'stopped', terminated: true });
 }, 10000);
+
+test('the port guard detects a real listening socket owned by the debugged child', async () => {
+  await writeFile(
+    join(root, 'server.cjs'),
+    [
+      "const server = require('node:http').createServer((_request, response) => response.end('synthetic-listener'));",
+      "server.listen(0, '127.0.0.1', () => console.log('PORT=' + server.address().port));",
+    ].join('\n'),
+  );
+  const id = randomUUID();
+  expect((await request('/debugger/v1/start', { operationId: id, program: 'server.cjs' })).statusCode).toBe(200);
+  await expect.poll(async () => (await status(id)).status).toBe('paused');
+  expect(
+    (await request('/ports')).json().ports.filter((entry: { processId: string }) => entry.processId === id),
+  ).toEqual([]);
+  await command(id, 'continue');
+  await expect.poll(async () => (await status(id)).output).toMatch(/PORT=\d+/);
+  const port = Number((await status(id)).output.match(/PORT=(\d+)/)[1]);
+  expect(await (await fetch(`http://127.0.0.1:${port}`)).text()).toBe('synthetic-listener');
+  // PORT= is deliberately not a URL/output heuristic: this assertion requires
+  // the real socket ownership lookup used by /ports in the Linux workspace.
+  await expect
+    .poll(async () =>
+      (await request('/ports')).json().ports.filter((entry: { processId: string }) => entry.processId === id),
+    )
+    .toEqual([{ port, processId: id }]);
+});
