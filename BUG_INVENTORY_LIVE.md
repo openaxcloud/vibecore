@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-489 entrées.
+490 entrées.
 
 ## Sans section
 
@@ -632,6 +632,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-ACCOUNT-NAVIGATION-20261025](docs/bugs/BUG-ACCOUNT-NAVIGATION-20261025.md) — À 320px en français, la navigation Compte cache la destination « Données et confidentialité » : largeur visible 292px, largeur défilante 424px, bord droit du de — 📤 Dispatché : 25 octobre 2026 : mission UI/UX globale, lot isolé Compte. Main a18c7defb et PR ouvertes inspectés avant éditi · 💻 Codé : Correctif local : navigation nommée native, liens NavLink avec aria-current, retour à la ligne sans couper les · ✅ Testé live : Non. Pas de session production disponible. Aucune recette production ni version déployée revendiquée.
+
+## Livraison — production
+
+- [BUG-FLEET-MEMBERSHIP-LOCATION-001](docs/bugs/BUG-FLEET-MEMBERSHIP-LOCATION-001.md) — 📤 Dispatché : 25 octobre 2026, diagnostic du déploiement #784, run 40205758137, job 121219777586. Propriétaire unique du cor · 💻 Codé : Correctif préparé : les deux appels `gcloud container fleet memberships get-credentials` de deploy-main sélect · ✅ Testé live : Non pour le correctif. La panne réelle précédente est attestée par le log GitHub : étape 12 Connect Gateway, a
 
 ## Résidus non tabulaires — reportés mot pour mot
 
