@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-485 entrées.
+486 entrées.
 
 ## Sans section
 
@@ -618,7 +618,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## IDE — exécution réelle
 
-- [BUG-PANEL-EXECUTION-EVIDENCE-001](docs/bugs/BUG-PANEL-EXECUTION-EVIDENCE-001.md) — 📤 Dispatché : 25 octobre 2026, reprise après #776–780 depuis main `941d7d7fc`. Périmètres scanner, inventaire et revue indép · 💻 Codé : Correctif local, pas encore fusionné. Terminal, Packages et Workflows exigent un code de sortie explicite égal · ✅ Testé live : Non. Commandes grep réelles sur fichiers temporaires synthétiques et contrats BFF avec exécuteur contrôlé ; au
+- [BUG-PANEL-EXECUTION-EVIDENCE-001](docs/bugs/BUG-PANEL-EXECUTION-EVIDENCE-001.md) — 📤 Dispatché : 25 octobre 2026, reprise après #776–780 depuis main `941d7d7fc`. Périmètres scanner, inventaire et revue indép · 💻 Codé : Correctif fusionné sur main par [#781](https://github.com/openaxcloud/vibecore/pull/781), commit `d3adf5be9`, · ✅ Testé live : Non. Commandes grep réelles sur fichiers temporaires synthétiques et contrats BFF avec exécuteur contrôlé ; au
+- [BUG-PACKAGES-SCAN-SCOPE-001](docs/bugs/BUG-PACKAGES-SCAN-SCOPE-001.md) — 📤 Dispatché : 25 octobre 2026. Lot distinct après #781, basé sur son merge main `d3adf5be9`. Git, Publish/Déploiement, Domai · 💻 Codé : Correctif local, pas encore fusionné. Packages ne neutralise plus les erreurs audit/outdated avec `|| true`. U · ✅ Testé live : Non. Tests locaux sur fichiers synthétiques et handlers avec transport contrôlé. Aucun fournisseur, donnée uti
 
 ## Résidus non tabulaires — reportés mot pour mot
 

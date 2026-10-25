@@ -57,7 +57,13 @@ beforeEach(() => {
       const index = commandIndex++;
 
       if (failureIndex >= 0 && index !== failureIndex) {
-        return { exitCode: 0, output: '{"auditReportVersion":2,"vulnerabilities":{}}' };
+        return {
+          exitCode: 0,
+          output:
+            JSON.parse(options.body).args?.[1] === 'npm audit --json'
+              ? '{"auditReportVersion":2,"vulnerabilities":{}}'
+              : '\n__VIBECORE_GREP_SCAN_V1__:{"complete":true}\n',
+        };
       }
 
       if (result instanceof Error) {
@@ -164,7 +170,8 @@ it('accepts npm findings exit 1 only with a valid audit report', async () => {
   const { status, body } = await execute('security');
   expect(status).toBe(200);
   expect(body.ok).toBe(true);
-  expect(stored.VIBECORE_SECURITY_STATE.vulnerabilities[0].id).toBe('npm:example');
+  expect(stored.VIBECORE_SECURITY_STATE.vulnerabilities.some((item: any) => item.id === 'npm:example')).toBe(true);
+  expect(stored.VIBECORE_SECURITY_STATE.vulnerabilities.some((item: any) => item.id === 'existing')).toBe(true);
 });
 
 for (const output of ['{}', '', 'registry unavailable', '{"error":{"code":"ENOAUDIT"}}']) {
