@@ -110,8 +110,18 @@ describe('/projects (liste)', () => {
     expect(source()).not.toContain('h-7 max-w-xs');
   });
 
-  it('les lignes de la vue liste sont des h3 sous le h2 de section (h1→h2→h3 dans les deux vues)', () => {
-    expect(source()).toContain('<h3 className="min-w-0 truncate text-sm font-semibold" title={project.name}>');
+  it('les titres complets de la vue liste se replient en h3 sous le h2 de section', () => {
+    const route = source();
+    const heading = route.match(/<h3 className="([^"]+)" title=\{project.name\}>\s*\{project.name\}\s*<\/h3>/);
+    expect(heading).not.toBeNull();
+
+    const classes = heading![1].split(/\s+/);
+    expect(classes).toEqual(
+      expect.arrayContaining(['min-w-0', 'max-w-full', 'break-words', 'text-sm', 'font-semibold']),
+    );
+    expect(classes).not.toContain('truncate');
+    expect(classes).not.toContain('whitespace-nowrap');
+    expect(route).toContain('<h2 className="sr-only">{t(\'projects.listHeading\')}</h2>');
   });
 
   it('la barre outils suit la convention de carte (shadow-sm + palier sm)', () => {

@@ -1,4 +1,5 @@
 import { CreditCard, FileText, TrendingUp } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
@@ -400,6 +401,14 @@ export default function BillingPage() {
   const revalidator = useRevalidator();
   const retryingCredits = revalidator.state !== 'idle';
   const actionError = actionData?.errorKey ? t(actionData.errorKey) : undefined;
+  const actionErrorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (actionError) {
+      actionErrorRef.current?.focus();
+    }
+  }, [actionData, actionError]);
+
   const actionSuccess = actionData?.successKey ? t(actionData.successKey) : undefined;
   const money = (cents: number) => formatEuro(cents, language);
   const date = (value: string) => formatBillingDate(value, language);
@@ -576,6 +585,8 @@ export default function BillingPage() {
         */}
         {actionError ? (
           <div
+            ref={actionErrorRef}
+            tabIndex={-1}
             role="alert"
             className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)]"
           >

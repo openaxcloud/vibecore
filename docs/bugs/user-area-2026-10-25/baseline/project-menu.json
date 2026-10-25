@@ -1,0 +1,48 @@
+{
+  "base": "http://127.0.0.1:5699",
+  "phase": "baseline-menu",
+  "synthetic": true,
+  "writes": [],
+  "checks": [],
+  "beforeOpen": {
+    "scrollY": 114,
+    "scrollHeight": 854,
+    "innerHeight": 740
+  },
+  "afterOpen": {
+    "scrollY": 0,
+    "active": "BODY",
+    "trigger": [
+      {
+        "expanded": "true",
+        "rect": {
+          "x": 29,
+          "y": 774,
+          "width": 44,
+          "height": 44,
+          "top": 774,
+          "right": 73,
+          "bottom": 818,
+          "left": 29
+        }
+      }
+    ],
+    "menus": [
+      {
+        "parentStyle": "position: fixed; left: 0px; top: 0px; transform: translate(12px, 569px); min-width: max-content; z-index: 10010; --radix-popper-available-width: 296px; --radix-popper-available-height: 716px; --radix-popper-anchor-width: 44px; --radix-popper-anchor-height: 44px; --radix-popper-transform-origin: 100% 200px; visibility: hidden; pointer-events: none;",
+        "rect": {
+          "x": 12,
+          "y": 569,
+          "width": 220,
+          "height": 200,
+          "top": 569,
+          "right": 232,
+          "bottom": 769,
+          "left": 12
+        },
+        "visibility": "hidden",
+        "display": "block"
+      }
+    ]
+  }
+}
