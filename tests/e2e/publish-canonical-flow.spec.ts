@@ -293,7 +293,10 @@ test('cancel and rollback require confirmation; Escape and Cancel send nothing',
   await expect(dialog).toHaveCount(0);
   expect(sent).toHaveLength(1);
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Responsive layout commits after the viewport changes; do not reopen the outgoing mobile dialog.
+  await expect(page.locator('.bolt-project-pane-leaf .bolt-project-deploy-tool')).toBeVisible();
   await rollback.click();
+  await expect(dialog.getByRole('heading', { name: 'Roll back to this deployment?' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('rollback-confirmation.png') });
   await dialog.getByRole('button', { name: 'Roll back', exact: true }).click();
   await expect.poll(() => sent.length).toBe(2);
