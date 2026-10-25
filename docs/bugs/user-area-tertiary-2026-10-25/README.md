@@ -1,6 +1,6 @@
 # Complément UI : organisation et liens profonds légaux
 
-Lot local isolé, non publié ; base produit #795, qui reste une PR distincte en CI. Aucun état « codé sur main » ni « testé live production » attribué à ce complément.
+Lot consolidé préparé pour une PR distincte ; base produit #795, fusionnée normalement sur main5b09bf65b après livraison#792. La livraison#795 reste suivie séparément. Aucun état « codé sur main » ni « testé live production » attribué à ce complément.
 
 | Périmètre | Avant | Après correctif compilé | Limites |
 | --- | --- | --- | --- |
@@ -10,7 +10,7 @@ Lot local isolé, non publié ; base produit #795, qui reste une PR distincte en
 
 Dix fichiers produit locaux : quatre routes organisation (wrapping et cible44px), quatre fichiers Privacy/Terms (SSR et marges), une route Support-policy et un composant Features. Aucun routage commun, moteur, workflow ou composant métier Intégrations modifié. Fichiers comparés aux31PR ouvertes, aucun chevauchement. 33tests organisation +16tests catalogue légal +14tests Support/Features verts, lint ciblé11fichiers zéro erreur, typage web strict et build consolidé verts, revues indépendantes favorables. Les matrices sont liées à leurs builds respectifs ; géométrie organisation vérifiée sur9499 ; la hauteur du label roles-and-permissions a ensuite changé et ses cibles ont été vérifiées sur9899.
 
-Les corrections sont préparées localement pendant la CI/livraison #792 et #795. Pas de nouvelle PR ni d'index commun publié à ce stade. Aucun achat, secret, accès externe ou mutation cliente réelle. Les anciennes opérations refusées ne sont pas retentées.
+Les corrections ont été préparées localement pendant la CI/livraison #792 et #795. Publication en PR distincte après intégration de main5b09bf65b, sans fusion avant livraison#795. Aucun achat, secret, accès externe ou mutation cliente réelle. Les anciennes opérations refusées ne sont pas retentées.
 
 Clavier virtuel OS, safe areas physiques, Safari/Firefox complets, backend réel et production authentifiée restent non validés. Pas de certification globale de plateforme.
 
@@ -21,3 +21,9 @@ Recettes finales réussies : Support CTA16cas etFeatures4groupes/24activationscl
 Les propositions .patch archivées sont des diagnostics, avec espaces de fin de ligne normalisés pour le contrôle Git ; les empreintes des sources produit finales (validation/source-sha256.json) font foi pour le code livré localement.
 
 Suivi livraison : le snapshot delivery-pending.json conserve le retard de clôture GitHub observé après les sept jobs E2E réussis. Le contrôle de livraison a ensuite passé à23:29UTC et le préflight a démarré ; ce retard est résolu, le rollout reste distinct/non confirmé dans ce snapshot.
+
+## Consolidation après #795
+
+Le lot inclut désormais aussi le [hero Agent IA](../ai-agent-hero-2026-10-25/after10099/README.md), soit11fichiers produit et1adaptation de mock de test. Les arbres Git a12623f6d et154770244 sont identiques après intégration de main5b09bf65b ; les huit fichiers produit de#795 sont conservés exactement. Revue indépendante favorable,12empreintes sources vérifiées.67tests ciblés uniques (33organisation+16Privacy/Terms+14Support/Features+4Agent), plus6tests gardeindex499. Le build final Agent inclut tous les changements, typage strictvert et recettes liées à leurs sources. Gitleakscomplet8.21.2 vert sans modification deconfiguration. Les résultats du lintglobal final sont archivés dans validation/consolidated-lint.txt.
+
+#792 livrée sur ef65c1e68, workflow40242629544 entièrement réussi avec vérificationrollout/imageIDs. #795 fusionnée sur5b09bf65b :31contrôlesPRréussis,2skipsprévus,507testsE2E sanséchec/waiver/retry ; CI main/déploiement distincts, pas encore revendiquéslivrés dans cetinstantané. Aucun point ne passe « testé live production ».
