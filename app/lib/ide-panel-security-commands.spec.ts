@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildSecurityGrepCommand } from './ide-panel-security';
+import { buildSecurityGrepCommand, readSecurityGrepOutput } from './ide-panel-security';
 
 // Real local shell/grep processes on disposable synthetic files, not a runtime E2E.
 const directories: string[] = [];
@@ -24,7 +24,7 @@ for (const kind of ['secrets', 'sast'] as const) {
 
       const result = spawnSync('sh', ['-c', buildSecurityGrepCommand(kind)], { cwd, encoding: 'utf8' });
       expect(result.status).toBe(0);
-      expect(result.stdout.trim()).toBe('');
+      expect(readSecurityGrepOutput(result.stdout)).toEqual({ output: '', complete: true });
     });
     it('returns real matches and excludes dependencies', () => {
       const cwd = fixture();
@@ -35,7 +35,7 @@ for (const kind of ['secrets', 'sast'] as const) {
 
       const result = spawnSync('sh', ['-c', buildSecurityGrepCommand(kind)], { cwd, encoding: 'utf8' });
       expect(result.status).toBe(0);
-      expect(result.stdout.trim()).toBe(`./source.txt:1:${source}`);
+      expect(readSecurityGrepOutput(result.stdout)).toEqual({ output: `./source.txt:1:${source}\n`, complete: true });
     });
     it('preserves a real grep option error instead of head masking it', () => {
       const cwd = fixture();
@@ -67,6 +67,28 @@ it('drains a large real grep result while bounding returned output', () => {
 
   const result = spawnSync('sh', ['-c', buildSecurityGrepCommand('secrets')], { cwd, encoding: 'utf8' });
   expect(result.status).toBe(0);
-  expect(result.stdout.trim().split('\n')).toHaveLength(50);
-  expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(65536);
+
+  const parsed = readSecurityGrepOutput(result.stdout);
+  expect(parsed.output.trim().split('\n')).toHaveLength(50);
+  expect(Buffer.byteLength(parsed.output)).toBeLessThanOrEqual(65536);
+  expect(parsed.complete).toBe(false);
+});
+
+it('marks byte-truncated grep output incomplete', () => {
+  const cwd = fixture();
+  writeFileSync(join(cwd, 'huge.txt'), 'token=' + 'x'.repeat(100_000));
+
+  const result = spawnSync('sh', ['-c', buildSecurityGrepCommand('secrets')], { cwd, encoding: 'utf8' });
+  expect(result.status).toBe(0);
+  expect(readSecurityGrepOutput(result.stdout).complete).toBe(false);
+  expect(Buffer.byteLength(readSecurityGrepOutput(result.stdout).output)).toBe(65536);
+});
+
+it('recognizes exactly the line limit as complete when grep has no remaining output', () => {
+  const cwd = fixture();
+  writeFileSync(join(cwd, 'exact.txt'), 'token=fixture\n'.repeat(50));
+
+  const result = spawnSync('sh', ['-c', buildSecurityGrepCommand('secrets')], { cwd, encoding: 'utf8' });
+  expect(result.status).toBe(0);
+  expect(readSecurityGrepOutput(result.stdout).complete).toBe(true);
 });
