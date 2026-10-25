@@ -66,3 +66,9 @@ Revue finale indépendante : favorable après correction de la région live, dé
 Installation locale : le worktree réutilise les dépendances déjà installées, avec liens workspace isolés vers ses propres packages. Les premiers essais de typage global ont révélé des dépendances racine absentes puis deux identités Prisma issues de copies différentes ; liens corrigés sans changer les sources ni les exigences de validation.
 
 Build final vert ; recette compilée finale sur port5399 : 48 observations vertes. Typage web, scripts Node, helpers navigateur IDE et Electron main/preload verts. Le binaire pnpm11 global a échoué avant les packages (tentative automatique d’installation dans un HOME absent) ; contrôle packages relancé avec pnpm9.14.4 épinglé par le dépôt via Corepack local. Aucun changement de package.json, lockfile ou pipeline.
+
+## Suivi CI du premier lot
+
+La tête `5ee605bf3` a échoué dans `userarea-ux-audit.spec.ts` : une garde source exigeait encore `aria-selected` sur l'ancienne navigation en onglets. Reproduction locale : 1 échec sur 50. La garde migre vers le rendu réel des trois routes Compte, avec trois liens natifs, une seule destination active `aria-current="page"`, et aucun faux tab/tablist. Les 49 autres gardes restent conservées. Validation : 54 tests verts avec la suite navigation i18n ; revue indépendante favorable et 52 gardes rejouées indépendamment. Aucun changement produit dans ce suivi.
+
+Les archives de logs GitHub ont répondu HTTP403 et n'ont pas été retentées. Les métadonnées des jobs et annotations autorisées ont fourni la cause exacte. `Quality Gates` échoue par dépendance à ce contrôle unitaire, pas à un déploiement. Les annotations négatives émises par les tests de garde sont distinguées du véritable échec Vitest.
