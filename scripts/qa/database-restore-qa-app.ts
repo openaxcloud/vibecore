@@ -3,17 +3,24 @@
  * Connection strings travel over parent/child IPC and are never logged.
  */
 import { createServer } from 'node:http';
-import { Pool } from 'pg';
+import { PostgresRestoreConsumer } from '../../services/api/src/database-restore-consumer.js';
 
 type Command = {
   id: number;
-  action: 'connect' | 'quiesce' | 'release' | 'stop';
+  action: 'connect' | 'quiesce' | 'release' | 'stop' | 'suspend';
   connectionUri?: string;
   bindingVersion?: number;
   activate?: boolean;
+  targetId?: string;
+  systemIdentifier?: string;
+  expectedReadbackSha256?: string;
 };
 
-let pool: Pool | undefined;
+let consumer: PostgresRestoreConsumer | undefined;
+const attempt = { operationId: 'isolated-physical-drill', attemptToken: 'single-process-attempt' };
+let verified:
+  | { observedReadbackSha256: string; systemIdentifier: string; targetId: string; bindingVersion: number }
+  | undefined;
 let acceptingRequests = false;
 let previousPoolClosed = false;
 let bindingVersion = 0;
@@ -25,14 +32,20 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if ((!acceptingRequests && !verification) || !pool) {
+  if ((!acceptingRequests && !verification) || !consumer) {
     response.writeHead(503, { 'content-type': 'application/json' });
     response.end(JSON.stringify({ code: 'RESTORE_APPLICATION_QUIESCED' }));
     return;
   }
 
   try {
-    const rows = await pool.query<{ id: string; value: string }>('SELECT id, value FROM restore_probe ORDER BY id');
+    if (verification) {
+      if (!verified) throw new Error('Verification not completed');
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(verified));
+      return;
+    }
+    const rows = await consumer.query<{ id: string; value: string }>('SELECT id, value FROM restore_probe ORDER BY id');
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify({ rows: rows.rows, bindingVersion }));
   } catch {
@@ -51,16 +64,19 @@ process.on('message', (command: Command) => {
   pending = pending.then(async () => {
     try {
       if (command.action === 'release') {
-        if (!pool || bindingVersion !== command.bindingVersion) throw new Error('Unexpected application binding');
+        if (!consumer || !verified || bindingVersion !== command.bindingVersion)
+          throw new Error('Unexpected application binding');
+        await consumer.release(attempt, verified);
         acceptingRequests = true;
         process.send?.({ id: command.id, result: { acceptingRequests, bindingVersion } });
         return;
       }
-      if (command.action === 'quiesce' || command.action === 'stop') {
+      if (command.action === 'quiesce' || command.action === 'stop' || command.action === 'suspend') {
         acceptingRequests = false;
-        if (pool) {
-          await pool.end();
-          pool = undefined;
+        if (consumer) {
+          if (command.action === 'stop') await consumer.close();
+          else if (command.action === 'suspend') await consumer.pauseVerified(attempt);
+          else await consumer.quiesce(attempt);
           previousPoolClosed = true;
         }
 
@@ -74,29 +90,44 @@ process.on('message', (command: Command) => {
       if (endpoint.hostname !== '127.0.0.1' || endpoint.protocol !== 'postgresql:') {
         throw new Error('Only the isolated loopback database is permitted');
       }
-      if (pool || acceptingRequests) throw new Error('Quiesce the previous application pool first');
-      const next = new Pool({ connectionString: command.connectionUri, max: 2, connectionTimeoutMillis: 5000 });
-      try {
-        const result = await next.query<{ pid: number; system_identifier: string }>(
-          'SELECT pg_backend_pid() AS pid, system_identifier::text FROM pg_control_system()',
-        );
-        pool = next;
-        bindingVersion = command.bindingVersion ?? 0;
-        acceptingRequests = command.activate === true;
-        process.send?.({
-          id: command.id,
-          result: {
-            newConnection: result.rowCount === 1,
-            previousPoolClosed,
-            backendPid: result.rows[0]?.pid,
-            systemIdentifier: result.rows[0]?.system_identifier,
-            bindingVersion,
-          },
+      if (command.activate === true && !consumer) {
+        consumer = await PostgresRestoreConsumer.connect(command.connectionUri, {
+          targetId: 'source',
+          bindingVersion: 0,
         });
-      } catch {
-        await next.end();
-        throw new Error('New application database connection failed');
+        acceptingRequests = true;
+        process.send?.({ id: command.id, result: { acceptingRequests, bindingVersion } });
+        return;
       }
+      if (
+        !consumer ||
+        acceptingRequests ||
+        !previousPoolClosed ||
+        !command.targetId ||
+        !command.systemIdentifier ||
+        !command.expectedReadbackSha256
+      ) {
+        throw new Error('Quiesce and supply a verification contract first');
+      }
+      verified = await (verified ? consumer.reconnectVerified.bind(consumer) : consumer.verify.bind(consumer))({
+        ...attempt,
+        connectionUri: command.connectionUri,
+        targetId: command.targetId,
+        bindingVersion: command.bindingVersion!,
+        systemIdentifier: command.systemIdentifier,
+        expectedReadbackSha256: command.expectedReadbackSha256,
+        readback: { text: 'SELECT id, value FROM restore_probe ORDER BY id' },
+      });
+      bindingVersion = verified.bindingVersion;
+      process.send?.({
+        id: command.id,
+        result: {
+          newConnection: true,
+          previousPoolClosed,
+          bindingVersion,
+          systemIdentifier: verified.systemIdentifier,
+        },
+      });
     } catch {
       process.send?.({ id: command.id, error: 'QA_APPLICATION_COMMAND_FAILED' });
     }
@@ -105,6 +136,6 @@ process.on('message', (command: Command) => {
 
 process.on('disconnect', () => {
   acceptingRequests = false;
-  void pool?.end().finally(() => server.close(() => process.exit(0)));
-  if (!pool) server.close(() => process.exit(0));
+  void consumer?.close().finally(() => server.close(() => process.exit(0)));
+  if (!consumer) server.close(() => process.exit(0));
 });

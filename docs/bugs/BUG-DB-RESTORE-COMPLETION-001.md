@@ -1,6 +1,6 @@
 ---
 id: BUG-DB-RESTORE-COMPLETION-001
-section: "Reprise commerciale du 2026-10-19 — restauration DB"
+section: 'Reprise commerciale du 2026-10-19 — restauration DB'
 ---
 
 ## Bug
@@ -48,7 +48,6 @@ GitHub et ne constitue pas une nouvelle garde CI. La future correction devra
 versionner une reproduction propre sans secret et ses tests de non-régression,
 avec le correctif ; ne pas ajouter un test connu rouge à main sans résolution.
 
-
 ## Relevé historique du 20 octobre avant fusion
 
 Correctif candidat dans la branche `codex/restore-completion-integrity-20261019`,
@@ -64,3 +63,7 @@ fonctionnelle et ne clôt pas ce P1 commercial.
 [Preuve #743 et contrôles du SHA exact](../reprise/mesures/2026-10-20-pr743-result.json).
 La fusion est acquise ; livraison du nouveau main en cours, origine HTTPS inaccessible
 depuis ce workspace. Aucun succès live déduit de cette fusion.
+
+## Complément du 25 octobre — consommateur participant
+
+Un composant réel de drainage/reconnexion/relecture est proposé séparément, utilisé par l’application QA existante. Neuf tests locaux PostgreSQL et HTTP/IPC passent ; aucune restauration physique ou cloud n’en est déduite. La capacité reste indisponible et cette fiche reste ouverte. [Périmètre, contre-épreuve et limites](../reprise/2026-10-25-restore-consumer.md).
