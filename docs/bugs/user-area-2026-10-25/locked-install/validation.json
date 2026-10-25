@@ -1,0 +1,44 @@
+{
+  "sourceCommit": "af50f94d6a7136e8d133be9481974d898df584b4",
+  "baseMain": "155c9278c28cce4fb55ce292d8b3b12cfe4d516f",
+  "baseURL": "http://127.0.0.1:6099",
+  "api": "synthetic localhost:3199; mutations rejected with HTTP503",
+  "packageManager": "pnpm@9.14.4",
+  "initialFullSuite": {
+    "filesPassed": 1314,
+    "filesFailed": 6,
+    "filesSkipped": 2,
+    "testsPassed": 10282,
+    "testsFailed": 9,
+    "testsSkipped": 7,
+    "durationSeconds": 285.19,
+    "failures": [
+      "scripts/shell-quote-security.spec.mjs (4)",
+      "scripts/compression-close-security.spec.mjs (1)",
+      "scripts/tinypool-security.spec.mjs (1)",
+      "scripts/ws-fragment-security.spec.mjs (1)",
+      "tests/guards/admin-dependances-production.spec.ts (1)",
+      "app/lib/runtime/vite-hmr-config.compilation.spec.ts (1)"
+    ]
+  },
+  "recheck": {
+    "testsPassed": 138,
+    "testsFailed": 0,
+    "fullSuiteRepeated": false,
+    "strictWebTypecheckExit": 0,
+    "buildExit": 0,
+    "lintErrors": 0,
+    "lintWarnings": 52
+  },
+  "lockedDependencyVersions": {
+    "shell-quote": "1.11.0",
+    "compression": "1.8.2",
+    "ws": "8.22.0",
+    "tinypool": "2.1.2"
+  },
+  "sha256": {
+    "package.json": "cdc51211a381b9d689ac7c8a1a028742c9877bfe0d1dcda41d36f0afc86e189b",
+    "pnpm-lock.yaml": "bda486d70c2e75e236ff1df57db28293aae4d14120b88cc44a731a2e1451f5db",
+    "build/server/index.js": "de99c76922efc8c4bb681bf0876a095f3ea0df93bb36fe9880cdc39db9246ca4"
+  }
+}

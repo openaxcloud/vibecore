@@ -39,7 +39,7 @@ Le statut des menus, de la palette, des titres et du reflow est distinct : aucun
 
 ## Reproduction locale
 
-Dépendances du dépôt installées et Chromium disponible. Les scripts sous `scripts/` sont les sondes utilisées, avec import Playwright rendu relatif au dépôt ; ils écrivent dans `/tmp/account-next`, `/tmp/projects-ui`, `/tmp/ui-next`. Créer ces dossiers. Copier `fixtures/extra.json` vers `/tmp/ui-next/extra.json`, puis lancer `node fixtures/fixture.cjs` depuis ce dossier de preuves. Servir le build **depuis la racine du worktree qui possède build/client**, avec `SAAS_API_URL=http://127.0.0.1:3199`, HOST 127.0.0.1 et PORT local. Passer `UI_BASE_URL` aux scripts qui le proposent ; `contrast.cjs` conserve le port 5899 de sa mesure, à ajuster pour une nouvelle exécution. Aucun script de fixture n'est importé par le produit.
+Dépendances du dépôt installées et Chromium disponible. Les scripts sous `scripts/` sont les sondes utilisées, avec import Playwright rendu relatif au dépôt ; ils écrivent dans `/tmp/account-next`, `/tmp/projects-ui`, `/tmp/ui-next`. Créer ces dossiers. Copier `fixtures/extra.json` vers `/tmp/ui-next/extra.json`, puis lancer `node fixtures/fixture.cjs` depuis ce dossier de preuves. Servir le build **depuis la racine du worktree qui possède build/client**, avec `SAAS_API_URL=http://127.0.0.1:3199`, HOST 127.0.0.1 et PORT local. Passer `UI_BASE_URL` aux scripts qui le proposent ; `contrast.cjs` exige désormais également `UI_BASE_URL` local explicite. Aucun script de fixture n'est importé par le produit.
 
 Le navigateur bloque les requêtes tierces. Les erreurs de démarrage Vite/serveur statique rencontrées au début ont été distinguées des défauts produit ; elles ne sont pas des verdicts UI.
 
@@ -52,3 +52,13 @@ Reste avant intégration : revue/CI requise, intégration de main courant, fusio
 ## Distinction avec le menu IDE de #788
 
 `tests/e2e/ide-panel-visibility.spec.ts:62` vérifie les variantes `panels` et `tabs` à 390 px : `BaseChat.tsx`, `mobile-more-menu-sheet` et `mobile-tab-switcher`. Ces composants ne sont pas le `ProjectCardMenu` corrigé ici. Les 16 parcours Projets incluent quatre cas à 390 px, avec scroll 107 → 107 et `escapeFocus=true`. Le retry CI signalé sur #788 ne prouve pas que notre correctif traite son problème ; aucun changement des composants IDE dans ce lot.
+
+## Contre-vérification de l’installation locale
+
+La suite complète sur les dépendances initialement partagées a terminé avec 10 282 succès, 9 échecs et 7 skips existants (1 322 fichiers). Les neuf échecs concernent six fichiers : gardes shell-quote, compression, ws et Tinypool installés à des versions anciennes ; compilation HMR et installation admin appelant pnpm global 11 au lieu du 9.14.4 épinglé. Ce résultat rouge est conservé, pas requalifié en succès.
+
+Après détachement des 21 liens de dépendances dans le seul worktree de ce lot, installation pnpm 9.14.4 avec lockfile gelé : shell-quote 1.11.0, compression 1.8.2, ws 8.22.0 et Tinypool 2.1.2. Aucun manifeste ni lockfile modifié ; aucun arbre partagé modifié. Les six fichiers précédemment en échec, les 104 tests UI/inventaire et les huit gardes CI #790 ont été rejoués : 138 tests verts (124 + 14), sans skip ajouté. La suite complète n’a pas été répétée après installation.
+
+Après installation corrigée, build, typage strict et lint (0 erreur / 52 avertissements) passent. Les parcours existants ont été rejoués sur le nouveau build servi au port 6099 : 88 observations Compte, 96 Dashboard/Projets, 48 Facturation, 16 menus, navigation Retour/Avancer retardée et saisie pendant chargement. Les reçus sont conservés dans `locked-install/`, séparés des premières mesures. Les fichiers produit sont identiques au commit `6312f78c2` ; les fusions locales préservent Fleet #789 et CI #790.
+
+La revue documentaire indépendante confirme les comptes et limites. Les sorties complètes des contre-tests et du lint, ainsi que les extraits horodatés de la suite initiale et du build avec empreintes des journaux bruts, sont archivés dans `locked-install/`. Le contraste remesuré sur 6099 reste à 682 textes, minimum 4,87:1, aucun sous 4,5:1 dans le périmètre défini.
