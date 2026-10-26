@@ -27,3 +27,7 @@ Buildinitial exit137/Killed conservé. Aprèslibérationmémoire d'anciensproces
 Nonexercés : vraiemail, POSTsignalement, compte/backendréel, navigateurautreChromium, zoom200%, clavierphysiquevirtuel, contrastequantitatif, validationdocumentjuridique. Les15routesstatiques ne sont paspromues en15routesnavigateur.
 
 Les copies archivées des logs ont leurs espaces de fin de ligne normalisés pour passer diff-check ; les originaux bruts restent dans /tmp/ui-legal-p2-static.
+
+## Recette finale du build commun
+
+Le dernier repli est désormais vérifié sur le build commun P2 : [résultats après12699](after12699/README.md). Les étapes12499 et contrepreuves DOM ci-dessus restent historiques, distinctes de cette validation compilée. Aucun push, fusion ou recette production revendiqués.
