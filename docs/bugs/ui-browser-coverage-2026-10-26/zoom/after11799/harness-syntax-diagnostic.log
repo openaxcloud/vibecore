@@ -1,0 +1,15 @@
+/tmp/ui-browser-zoom-next/after11799/audit.cjs:3
+for(const route of['/support/synthetic-ticket','/quota-exceeded','/downgrade']){await p.goto(`${base}${route}?lang=${lang}`,{waitUntil:'networkidle'});await expect(p.locator('#main-content h1')).toBeVisible();for(const physicalWidth of[1440,390,640,1280]){await resize(physicalWidth);const m=await metrics(p);expect(m.dpr).toBe(2);expect(m.scale).toBe(1);const card=p.locator(route.startsWith('/support')?'#main-content':'#main-content div.w-full.max-w-3xl');const geometry=await card.evaluate(e=>({overflow:[...e.querySelectorAll('*')].filter(n=>{const r=n.getBoundingClientRect(),s=getComputedStyle(n);return n.namespaceURI==='http://www.w3.org/1999/xhtml'&&r.width&&r.height&&s.visibility!=='hidden'&&s.clip==='auto'&&(r.left< -1||r.right>innerWidth+1)}).map(n=>({tag:n.tagName,text:n.textContent.slice(0,100),left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right}))}));const controls=route.startsWith('/support')?p.locator('#main-content #ticket-reply,#main-content form button[type=submit]'):card.locator('a,button,select');const boxes=await controls.evaluateAll(es=>es.map(e=>({tag:e.tagName,text:e.textContent.slice(0,80),left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right,height:e.getBoundingClientRect().height})));for(const box of boxes){if(box.height<44||box.left<0||box.right>m.innerWidth+1)out.violations.push({route,lang,theme,physicalWidth,innerWidth:m.innerWidth,kind:'control',box})}if(geometry.overflow.length)out.violations.push({route,lang,theme,physicalWidth,innerWidth:m.innerWidth,kind:'overflow',elements:geometry.overflow})await controls.last().scrollIntoViewIfNeeded();await expect(controls.last()).toBeInViewport();out.cases.push({route,lang,theme,url:p.url(),physicalWidth,...m,...geometry,controls:boxes,lastControlReachable:true});console.log(route,lang,theme,physicalWidth,m.innerWidth,'overflow',geometry.overflow.length);if(physicalWidth===390||physicalWidth===640||lang==='fr')await p.screenshot({path:`${dir}/${route.replaceAll('/','_')}-${lang}-${theme}-${physicalWidth}-200.png`});}}
+
+
+SyntaxError: Unexpected reserved word
+    at wrapSafe (node:internal/modules/cjs/loader:1804:18)
+    at Module._compile (node:internal/modules/cjs/loader:1846:20)
+    at Object..js (node:internal/modules/cjs/loader:2003:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.19.0

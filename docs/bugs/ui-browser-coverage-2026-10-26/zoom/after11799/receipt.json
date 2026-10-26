@@ -1,0 +1,1750 @@
+{
+  "cases": [
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 42.5,
+          "right": 677.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 517.390625,
+          "right": 677.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 166,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 29,
+          "right": 189.109375,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 39.5,
+          "right": 600.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 440.390625,
+          "right": 600.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 43,
+          "right": 172.65625,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 183.15625,
+          "right": 342.9140625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 56
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 43,
+          "right": 172.65625,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 183.15625,
+          "right": 342.9140625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 43,
+          "right": 324.421875,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 60
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 43,
+          "right": 324.421875,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 42.5,
+          "right": 677.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 517.390625,
+          "right": 677.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 166,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 29,
+          "right": 189.109375,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=fr",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 39.5,
+          "right": 600.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Envoyer le message",
+          "left": 440.390625,
+          "right": 600.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 43,
+          "right": 172.65625,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 183.15625,
+          "right": 342.9140625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 56
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=fr",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Changer d’offre",
+          "left": 43,
+          "right": 172.65625,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Comparer les offres",
+          "left": 183.15625,
+          "right": 342.9140625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 43,
+          "right": 324.421875,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 60
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "fr",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=fr",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — 29 €/moisGratuite — Gratuite",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Planifier le changement dans le portail",
+          "left": 43,
+          "right": 324.421875,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 42.5,
+          "right": 677.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 552.25,
+          "right": 677.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 166,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 29,
+          "right": 166,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 39.5,
+          "right": 600.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 475.25,
+          "right": 600.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 43,
+          "right": 160.6875,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 171.1875,
+          "right": 300.5390625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 43,
+          "right": 160.6875,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 171.1875,
+          "right": 300.5390625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 43,
+          "right": 285.640625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 60
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 32.5,
+          "right": 275.140625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "light",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 43,
+          "right": 285.640625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 42.5,
+          "right": 677.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 552.25,
+          "right": 677.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 166,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 29,
+          "right": 166,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/support/synthetic-ticket?lang=en",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "left": 39.5,
+          "right": 600.5,
+          "height": 123
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send message",
+          "left": 475.25,
+          "right": 600.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 43,
+          "right": 160.6875,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 171.1875,
+          "right": 300.5390625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/quota-exceeded",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/quota-exceeded?lang=en",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "A",
+          "text": "Upgrade plan",
+          "left": 43,
+          "right": 160.6875,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Compare plans",
+          "left": 171.1875,
+          "right": 300.5390625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 720,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 43,
+          "right": 285.640625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 390,
+      "innerWidth": 195,
+      "innerHeight": 406,
+      "outerWidth": 500,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 195,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 32.5,
+          "right": 162.5,
+          "height": 60
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 320,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 32.5,
+          "right": 275.140625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    },
+    {
+      "route": "/downgrade",
+      "lang": "en",
+      "theme": "dark",
+      "url": "http://127.0.0.1:11799/downgrade?lang=en",
+      "physicalWidth": 1280,
+      "innerWidth": 640,
+      "innerHeight": 406,
+      "outerWidth": 1280,
+      "outerHeight": 900,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "overflow": [],
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Pro — €29/moFree — Free",
+          "left": 43,
+          "right": 323,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Schedule change in billing portal",
+          "left": 43,
+          "right": 285.640625,
+          "height": 44
+        }
+      ],
+      "lastControlReachable": true
+    }
+  ],
+  "violations": [],
+  "interactions": [
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "light",
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 720
+      },
+      "resizePhysicalWidths": [
+        640,
+        1280,
+        1440
+      ],
+      "draftPreserved": true,
+      "focusDuringResize": true,
+      "guardEscapePreserved": true,
+      "dialogBox": {
+        "x": 12,
+        "y": 93.9609375,
+        "width": 296,
+        "height": 218.578125
+      }
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "dark",
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 720
+      },
+      "resizePhysicalWidths": [
+        640,
+        1280,
+        1440
+      ],
+      "draftPreserved": true,
+      "focusDuringResize": true,
+      "guardEscapePreserved": true,
+      "dialogBox": {
+        "x": 12,
+        "y": 93.9609375,
+        "width": 296,
+        "height": 218.578125
+      }
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "light",
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 720
+      },
+      "resizePhysicalWidths": [
+        640,
+        1280,
+        1440
+      ],
+      "draftPreserved": true,
+      "focusDuringResize": true,
+      "guardEscapePreserved": true,
+      "dialogBox": {
+        "x": 12,
+        "y": 125.3984375,
+        "width": 296,
+        "height": 155.703125
+      }
+    },
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "en",
+      "theme": "dark",
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 720
+      },
+      "resizePhysicalWidths": [
+        640,
+        1280,
+        1440
+      ],
+      "draftPreserved": true,
+      "focusDuringResize": true,
+      "guardEscapePreserved": true,
+      "dialogBox": {
+        "x": 12,
+        "y": 125.3984375,
+        "width": 296,
+        "height": 155.703125
+      }
+    }
+  ],
+  "writes": [],
+  "thirdParty": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "errors": [],
+  "processes": [
+    {
+      "pid": 171860,
+      "startTicks": "2420317",
+      "startedAt": "2026-10-26T02:08:43.376Z"
+    },
+    {
+      "pid": 172034,
+      "startTicks": "2421164",
+      "startedAt": "2026-10-26T02:08:51.822Z"
+    },
+    {
+      "pid": 172194,
+      "startTicks": "2422008",
+      "startedAt": "2026-10-26T02:09:00.265Z"
+    },
+    {
+      "pid": 172371,
+      "startTicks": "2422852",
+      "startedAt": "2026-10-26T02:09:08.764Z"
+    }
+  ],
+  "nativeZoomMethod": "Chromium settingsPrivate.setDefaultZoom(2), ephemeral profile; DPR2 and visualViewport.scale1 asserted"
+}

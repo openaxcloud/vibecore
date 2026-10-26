@@ -1,0 +1,60 @@
+{
+  "base": "http://127.0.0.1:11699",
+  "synthetic": true,
+  "cases": [
+    {
+      "route": "data",
+      "lang": "fr",
+      "key": "/account/deletion",
+      "status": 503,
+      "before": {
+        "responseStatus": 200,
+        "text": "Menu\nCompte\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nCompte\n\nProfil, comptes connectés, données et confidentialité de votre compte.\n\nCompte\nComptes connectés\nDonnées et confidentialité\nImpossible de charger les paramètres de données et de confidentialité\n\nL’état du compte, les exports et les commandes de suppression sont masqués, car la dernière requête a échoué. Aucune donnée du compte n’a été modifiée.\n\nRéessayer",
+        "focused": true
+      },
+      "recovery": "focused retry Enter after resize",
+      "recovered": true
+    },
+    {
+      "route": "connected",
+      "lang": "fr",
+      "key": "/api/account/connections",
+      "status": 503,
+      "before": {
+        "responseStatus": 200,
+        "text": "Menu\nCompte\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nCompte\n\nProfil, comptes connectés, données et confidentialité de votre compte.\n\nCompte\nComptes connectés\nDonnées et confidentialité\nComptes connectés\n\nGérez les intégrations utilisées par l’agent et les fournisseurs d’identité utilisés pour vous connecter à votre compte.\n\nImpossible de charger les connexions aux intégrations\n\nL’état actuel des intégrations est indisponible. Aucune connexion n’a été modifiée. Rechargez cette section pour réessayer.\n\nRecharger les comptes connectés\nGitHub\n\nConnecté pour importer des dépôts, effectuer des push et créer des pull requests.\n\nIndisponible\nGitHub (connexion)\n\nUtilisez GitHub pour vous connecter à ce compte.\n\nNon connecté\nAssocier\nGoogle\n\nConnectez-vous avec Google et vérifiez les domaines de l’entreprise.\n\nNon connecté\nAssocier\nMicrosoft Entra ID\n\nLa configuration OIDC peut être activée dans les paramètres SSO de l’entreprise.\n\nNon connecté",
+        "focused": true
+      },
+      "recovery": "focused retry Enter after resize",
+      "recovered": true
+    },
+    {
+      "route": "data",
+      "lang": "en",
+      "key": "/account/deletion",
+      "status": 503,
+      "before": {
+        "responseStatus": 200,
+        "text": "Menu\nAccount\n\nWORKSPACE CONSOLE\n\nAccount\n\nProfile, connected accounts, data and privacy settings for your account.\n\nAccount\nConnected accounts\nData & privacy\nData and privacy settings could not load\n\nAccount status, exports and deletion controls are hidden because the latest request failed. No account data was changed.\n\nTry again",
+        "focused": true
+      },
+      "recovery": "focused retry Enter after resize",
+      "recovered": true
+    },
+    {
+      "route": "connected",
+      "lang": "en",
+      "key": "/api/account/connections",
+      "status": 503,
+      "before": {
+        "responseStatus": 200,
+        "text": "Menu\nAccount\n\nWORKSPACE CONSOLE\n\nAccount\n\nProfile, connected accounts, data and privacy settings for your account.\n\nAccount\nConnected accounts\nData & privacy\nConnected accounts\n\nManage integrations used by the agent and identity providers used to sign in to your account.\n\nIntegration connections could not load\n\nCurrent integration status is unavailable. No connection was changed. Reload this section to try again.\n\nReload connected accounts\nGitHub\n\nConnected for repository import, push and pull request creation.\n\nUnavailable\nGitHub (sign-in)\n\nUse GitHub to sign in to this account.\n\nNot connected\nLink\nGoogle\n\nSign in with Google and verify enterprise domains.\n\nNot connected\nLink\nMicrosoft Entra ID\n\nOIDC configuration can be enabled from enterprise SSO settings.\n\nNot connected",
+        "focused": true
+      },
+      "recovery": "focused retry Enter after resize",
+      "recovered": true
+    }
+  ],
+  "errors": [],
+  "blockedMutations": []
+}
