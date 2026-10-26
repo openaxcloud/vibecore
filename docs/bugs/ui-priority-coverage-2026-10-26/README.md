@@ -85,3 +85,7 @@ Aucun nouveau build/test/navigateur exécuté pour cette consolidation. Contrôl
 [Galerie13099](../ui-discovery-2026-10-26/after13099/receipt.json) :20observations intrinsèques titre/tag et4parcours Enter vers détail puis Back. Contenu complet conservé, bornes dans la carte, scrollWidth≤clientWidth+2, zéro erreur JS. La capture carte seule recouvre le haut avec le header ; la capture page depuis le haut fournit la preuve visuelle complémentaire. Pas de replay280observations Discovery. Les deux routes source/build comparées ont la même empreinte documentée dans l’archive.
 
 Les totaux restent94/103/5/155 et43transitions. Recettes locales synthétiques uniquement ; main/live demeurent faux. Aucun changement des archives historiques ou du code par cette mise à jour documentaire.
+
+## Complément de zoom natif
+
+Le [complément Chromium 200 %](../ui-priority-zoom-2026-10-26/README.md) ajoute 12 observations et 6 transitions sur trois IDs déjà partiels : reset-password, teams.$id.settings et gallery._index. Fenêtres 640/1440, largeurs CSS 320/720, FR clair et EN sombre. Les totaux restent 94/103/5/155 ; les limites sans zoom ci-dessus décrivent les phases précédentes, pas ce complément ciblé. Aucun autre viewport, navigateur ou état métier promu.

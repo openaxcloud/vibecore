@@ -25,3 +25,7 @@ Les journaux archivés normalisent seulement les espaces finaux et les lignes vi
 La [matrice](../ui-priority-coverage-2026-10-26/README.md) couvre partiellement94 IDs sur357 ;103 restent non exercés,5 réservés historiques et155 hors UI. Ni les observations ni les parcours ne sont additionnés comme des pages entièrement validées. WebKit indisponible, pas de Firefox/Safari, lecteur d'écran ou appareil physique certifié. Polices externes bloquées pendant ces recettes, rendu local de repli. Pas d'authentification production, d'achat, de compte/invitation réels, de connexion OAuth réelle ou de mutation cliente.
 
 La PR #800 et la livraison précédente restent suivies séparément. Ce lot local ne doit pas remplacer leurs versions en validation ou en file de livraison. Avant sa publication future : intégrer le main coordonné, préserver l'union des fiches et valider l'index exact, puis ouvrir une PR brouillon avec ces limites.
+
+## Complément zoom navigateur réel
+
+[Recette Chromium à 200 %](../ui-priority-zoom-2026-10-26/README.md) : 12 observations et 6 transitions sur Reset, TeamSettings et Galerie, deux modes et deux largeurs CSS. Aucun nouvel ID ajouté ; limites des phases historiques conservées. Complément documentaire seulement, produit identique au build commun. Scan du nouveau dossier réussi après restructuration d’une empreinte SHA-256 faussement reconnue comme clé ; aucune exclusion ajoutée.

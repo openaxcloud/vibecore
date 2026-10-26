@@ -32,3 +32,5 @@ Seulement FRclair etENsombre, pas les4combinaisons ; deux largeurs CSS320/720, p
 Scripts exacts dans audit.cjs, gallery-target.cjs, fixture.cjs, fetch-guard.cjs et launch.py. Profils/caches Chromium volontairement exclus de l’archive. Deux profils de matrice et un profil de capture ciblée fermés via context.close dans finally ; [browser-origins.json](browser-origins.json) conserve les PID enfants de la matrice.
 
 Serveur13599 PID188380 et fixture6799 PID188379 identifiés par fichiers d’origine et startTicks avant SIGTERM ; [cleanup.json](cleanup.json) confirme ports refusés111. Aucun autre processus arrêté. Logs copiés avec espaces/fins de lignes terminaux normalisés ; originaux /tmp/ui-priority-nativezoom conservés. Aucun test produit/build supplémentaire ni publication.
+
+Revue de consolidation : captures Reset et Équipe inspectées séparément ; métriques et mécanisme de zoom relus. Le scan a initialement reconnu à tort une empreinte SHA-256 après le chemin AuthScreen comme clé. Les empreintes ont été vérifiées sur les fichiers puis structurées en champs path/sha256 distincts, sans exception au scanner.
