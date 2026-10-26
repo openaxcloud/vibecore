@@ -1,7 +1,8 @@
 # Contrats d'observation de la livraison de l'agent
 
-État : préparé et validé localement, sans publication ni recette production.
-Le raccordement de l'interface doit être coordonné avant livraison.
+État de preuve : validations locales, sans recette production. Une PR ou une
+CI verte ne vaut pas déploiement. Le raccordement de l'interface doit être
+coordonné avant livraison.
 
 ## Fichiers
 
