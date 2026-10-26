@@ -1,0 +1,41 @@
+{
+  "sampleCount": 9,
+  "headerAAndContentB": 0,
+  "contentBAfterBindA": 0,
+  "wrongSelectionWritesToBInRecordedRequests": 0,
+  "writeRequestsToB": [
+    {
+      "ms": 16909,
+      "phase": "setup",
+      "kind": "request",
+      "path": "/api/projects/cmvosqva10061qqnkyqe1wt3w/ide-state",
+      "selectedFile": "/home/project/project-b.txt",
+      "route": "project-state",
+      "method": "PUT",
+      "redirected": false
+    },
+    {
+      "ms": 26653,
+      "phase": "setup",
+      "kind": "request",
+      "path": "/api/projects/cmvosqva10061qqnkyqe1wt3w/ide-state",
+      "selectedFile": "/home/project/project-b.txt",
+      "route": "project-state",
+      "method": "PUT",
+      "redirected": false
+    }
+  ],
+  "databaseSelections": [
+    {
+      "projectId": "cmvosqva10061qqnkyqe1wt3w",
+      "selectedFile": "/home/project/project-b.txt",
+      "version": 4
+    },
+    {
+      "projectId": "cmvosqn9j004zqqnkch6nj45w",
+      "selectedFile": "/home/project/README.md",
+      "version": 6
+    }
+  ],
+  "qualification": "Observed RAF/MutationObserver samples only; no claim original CI cause established. RouterA idle/headerB transitional sample was before configureA."
+}

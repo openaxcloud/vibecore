@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-509 entrées.
+511 entrées.
 
 ## Sans section
 
@@ -658,6 +658,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-TAB-SEARCH-HANDOFF-20261026](docs/bugs/BUG-IDE-TAB-SEARCH-HANDOFF-20261026.md) — Le remplacement réel de PendingComposerShell par ChatImpl conserve le menu et son focus après #799, mais perd la recherche saisie : `Webview` devient une chaîne — 📤 Dispatché : 26/10/2026 — correction locale distincte demandée après audit IDE ; #799 reste stable. · 💻 Codé : ☐ — local seulement, publication interdite avant coordination. L'état de recherche est porté par le contexte p · ✅ Testé live : ☐ — aucune production authentifiée. Reproduction rouge navigateur locale confirmée ; 13 tests focus/recherche
 - [BUG-IDE-MONACO-STARTUP-FOCUS-20261026](docs/bugs/BUG-IDE-MONACO-STARTUP-FOCUS-20261026.md) — Pendant le démarrage, un éditeur Monaco focalisé peut être remplacé par une instance non focalisée avant le premier Tab. La trace locale initiale établit le pas — 📤 Dispatché : 26/10/2026 — investigation et correction locales autorisées, sans publication avant coordination. Préserver le · 💻 Codé : ☐ — correctif local validé, sans publication : transmettre uniquement l’intention de focus lors du démontage d · ✅ Testé live : ☐ — aucune validation production ou Safari matériel. 51 tests du package et 20 tests app/garde AST passent ; t
 - [BUG-IDE-COMPOSITION-HANDOFF-20261026](docs/bugs/BUG-IDE-COMPOSITION-HANDOFF-20261026.md) — Sur le build local 62a072e97, la saisie continue ordinaire à 80 ms puis 20 ms conserve le texte exact malgré le remplacement initial. Aucun buffer de touches n' — 📤 Dispatché : 26/10/2026 — audit de la limite de saisie demandé. Travail isolé sur fix/ide-composition-handoff-20261026, iss · 💻 Codé : ☐ — local seulement. Signal de composition natif Monaco, par éditeur et par portée. Le passage de PendingCompo · ✅ Testé live : ☐ — aucune validation production. 54 tests package et 33 tests app/catalogues/garde AST passent ; typecheck et
+- [BUG-IDE-PROJECT-SWITCH-CI-20261026](docs/bugs/BUG-IDE-PROJECT-SWITCH-CI-20261026.md) — Signal CI #802, tête 279440d2f, run 40269242521 : après Retour de B vers A à 390 px, l'assertion README lit trois fois PROJECT-B-DOCUMENT puis ne trouve plus d' — 📤 Dispatché : 26/10/2026 — diagnostic local avec réponses réelles retardées ; #799 et les lots locaux précédents préservés. · 💻 Codé : ☐ — aucun correctif produit ou test de dépôt appliqué : cause exacte de l'échec CI non établie. Le contretest · ✅ Testé live : ☐ — aucune production. Sur le build local 6f270b9bc : test exact à 390 px et contrôle d'archive retenue à 390
+- [BUG-IDE-SETTINGS-SHELL-CI-20261026](docs/bugs/BUG-IDE-SETTINGS-SHELL-CI-20261026.md) — Signal CI #802, run 40269242521 : le test de lisibilité claire n'obtient pas le shell IDE pour Settings après deux navigations et 60 secondes. La mesure de coul — 📤 Dispatché : 26/10/2026 — lecture des journaux officiels et reproduction locale ciblée, sans mutation GitHub ou production. · 💻 Codé : ☐ — aucun correctif spéculatif : absence du shell non reproduite localement, cause CI encore indéterminée. · ✅ Testé live : ☐ — aucune production. Le test exact des vingt panneaux réussit localement en 55,2 secondes, sans retry automa
 
 ## Résidus non tabulaires — reportés mot pour mot
 
