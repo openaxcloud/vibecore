@@ -1,0 +1,14 @@
+{
+  "pid": 221556,
+  "startTicks": "3391137",
+  "port": 14499,
+  "at": "2026-10-26T04:50:31Z",
+  "sourceHead": "3031e1e700fb3530e88d855f44527a143a433795",
+  "cwd": "/workspace/vibecore-ui-admin-users-next",
+  "buildSHA256": "5d5da08cce5cc19ec77f58f266a3d176c162bf54422d676686dc02ff2434d862",
+  "args": [
+    "react-router-serve",
+    "./build/server/index.js"
+  ],
+  "apiPID": 221555
+}

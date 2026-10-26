@@ -23,3 +23,7 @@ Les boutons de tri et le déclencheur de menu d’AdminUsers sont actifs mais tr
 [Diagnostic et contrepreuve](ui-admin-users-targets-2026-10-26/README.md) :64cibles dans16contextes avant/après DOM ;16parcours tri GET/menu Entrée/Escape/focus réussis. Espacement recalculé en excluant un backdrop non interactif ; distance minimale19px entre rectangles, aucune collision affirmée.10tests existants, lint et Prettier verts. Le seuil44px est une convention demandée, pas une conclusion WCAG automatique.
 
 Compilation et recette réelle du correctif source encore attendues ; vérifier table/scroll, menu/viewport et zones internes des cibles. Thèmes demandés non enregistrés comme computedtheme dans le reçu initial : limite explicite à compléter lors de la recette compilée. Main/live restent faux.
+
+## Recette compilée finale
+
+[Après14499](ui-admin-users-targets-2026-10-26/after14499/README.md), source3031e1e7 :16contextes,64cibles d’au moins44px,320points internes atteignables et16parcours triGET/menu/Escape/focus réussis. Thèmes calculés vérifiés, table défilée et menu horizontalement contenu. Zéro JS/échec/mutation. Les bornes verticales du menu ne sont pas explicitement assertées. Aucune injection DOM. Correction localement validée sur build ; main/live restent faux et aucune couverture globale ajoutée.

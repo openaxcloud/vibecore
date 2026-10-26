@@ -1,0 +1,4593 @@
+{
+  "createdUTC": "2026-10-26T04:48:05.129630+00:00",
+  "contexts": [
+    {
+      "route": "/dpa",
+      "lang": "fr",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 1,
+      "controls": [],
+      "overflowElements": [
+        {
+          "tag": "A",
+          "text": "e-code.ai/subprocessors",
+          "left": 49,
+          "right": 196.6640625,
+          "top": -951.5,
+          "bottom": -912.625,
+          "width": 147.6640625,
+          "height": 38.875
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "low",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/student-dpa",
+      "lang": "fr",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 12,
+      "controls": [
+        {
+          "text": "Demander l’accord complet",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": -8086,
+            "bottom": -8042,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 11.4453125,
+              "right": 191.5625,
+              "top": -8073.5,
+              "bottom": -8054.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Contacter l’équipe Éducation",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": -8026,
+            "bottom": -7982,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 7.7421875,
+              "right": 195.265625,
+              "top": -8013.5,
+              "bottom": -7994.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Écrire à l’équipe Éducation",
+          "box": {
+            "left": 41,
+            "right": 246.984375,
+            "top": 4816.515625,
+            "bottom": 4860.515625,
+            "width": 205.984375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 58,
+              "right": 229.984375,
+              "top": 4829.015625,
+              "bottom": 4848.015625
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Planifier un rendez-vous",
+          "box": {
+            "left": 41,
+            "right": 246.984375,
+            "top": 5095.5546875,
+            "bottom": 5139.5546875,
+            "width": 205.984375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 64.3203125,
+              "right": 223.65625,
+              "top": 5108.0546875,
+              "bottom": 5127.0546875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Voir les ressources",
+          "box": {
+            "left": 41,
+            "right": 246.984375,
+            "top": 5374.59375,
+            "bottom": 5418.59375,
+            "width": 205.984375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 82.8671875,
+              "right": 205.109375,
+              "top": 5387.09375,
+              "bottom": 5406.09375
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Droits des élèves",
+          "left": 41,
+          "right": 223.8359375,
+          "top": 956.484375,
+          "bottom": 1020.484375,
+          "width": 182.8359375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Droits des parents ou tuteurs",
+          "left": 41,
+          "right": 223.8359375,
+          "top": 1355.484375,
+          "bottom": 1451.484375,
+          "width": 182.8359375,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "Droits des établissements",
+          "left": 41,
+          "right": 223.8359375,
+          "top": 1806.359375,
+          "bottom": 1870.359375,
+          "width": 182.8359375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Écrivez-nous",
+          "left": 41,
+          "right": 246.984375,
+          "top": 4735.4765625,
+          "bottom": 4752.515625,
+          "width": 205.984375,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Pour toute question ou signature du DPA",
+          "left": 41,
+          "right": 246.984375,
+          "top": 4760.515625,
+          "bottom": 4800.515625,
+          "width": 205.984375,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Écrire à l’équipe Éducation",
+          "left": 41,
+          "right": 246.984375,
+          "top": 4816.515625,
+          "bottom": 4860.515625,
+          "width": 205.984375,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Planifier un appel",
+          "left": 41,
+          "right": 246.984375,
+          "top": 5014.515625,
+          "bottom": 5031.5546875,
+          "width": 205.984375,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Échangez sur les besoins de votre établissement",
+          "left": 41,
+          "right": 246.984375,
+          "top": 5039.5546875,
+          "bottom": 5079.5546875,
+          "width": 205.984375,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Planifier un rendez-vous",
+          "left": 41,
+          "right": 246.984375,
+          "top": 5095.5546875,
+          "bottom": 5139.5546875,
+          "width": 205.984375,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Ressources",
+          "left": 41,
+          "right": 246.984375,
+          "top": 5293.5546875,
+          "bottom": 5310.59375,
+          "width": 205.984375,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Guides de confidentialité et bonnes pratiques",
+          "left": 41,
+          "right": 246.984375,
+          "top": 5318.59375,
+          "bottom": 5358.59375,
+          "width": 205.984375,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Voir les ressources",
+          "left": 41,
+          "right": 246.984375,
+          "top": 5374.59375,
+          "bottom": 5418.59375,
+          "width": 205.984375,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 60,
+      "controls": [
+        {
+          "text": "Parler à un expert",
+          "box": {
+            "left": 24,
+            "right": 205.84375,
+            "top": 343.3203125,
+            "bottom": 387.3203125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 56,
+              "right": 173.84375,
+              "top": 355.8203125,
+              "bottom": 374.8203125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Consulter la documentation des déploiements",
+          "box": {
+            "left": 24,
+            "right": 266.8984375,
+            "top": 403.3203125,
+            "bottom": 465.3203125,
+            "width": 242.8984375,
+            "height": 62
+          },
+          "ranges": [
+            {
+              "left": 57,
+              "right": 135.78125,
+              "top": 404.8203125,
+              "bottom": 423.8203125
+            },
+            {
+              "left": 57,
+              "right": 184.640625,
+              "top": 424.8203125,
+              "bottom": 443.8203125
+            },
+            {
+              "left": 57,
+              "right": 147.109375,
+              "top": 444.8203125,
+              "bottom": 463.8203125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Réserver une consultation",
+          "box": {
+            "left": -20.3828125,
+            "right": 215.390625,
+            "top": 16630.96875,
+            "bottom": 16674.96875,
+            "width": 235.7734375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 11.6171875,
+              "right": 183.390625,
+              "top": 16643.46875,
+              "bottom": 16662.46875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Consulter les intégrations API",
+          "box": {
+            "left": -32.8203125,
+            "right": 227.828125,
+            "top": 16690.96875,
+            "bottom": 16734.96875,
+            "width": 260.6484375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 0.1796875,
+              "right": 194.828125,
+              "top": 16703.46875,
+              "bottom": 16722.46875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H1",
+          "text": "Lancez des applications de production directement depuis votre espace de travail",
+          "left": 24,
+          "right": 266.8984375,
+          "top": -275.5,
+          "bottom": 42.5625,
+          "width": 242.8984375,
+          "height": 318.0625
+        },
+        {
+          "tag": "P",
+          "text": "E-Code Deployments associe la simplicité d’un IDE dans le navigateur à la rigueur d’une plateforme c",
+          "left": 24,
+          "right": 266.8984375,
+          "top": 66.5625,
+          "bottom": 311.3203125,
+          "width": 242.8984375,
+          "height": 244.7578125
+        },
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "left": 24,
+          "right": 205.84375,
+          "top": 343.3203125,
+          "bottom": 387.3203125,
+          "width": 181.84375,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "left": 24,
+          "right": 266.8984375,
+          "top": 403.3203125,
+          "bottom": 465.3203125,
+          "width": 242.8984375,
+          "height": 62
+        },
+        {
+          "tag": "H3",
+          "text": "Un push, un déploiement partout",
+          "left": 49,
+          "right": 241.8984375,
+          "top": 584.3203125,
+          "bottom": 680.3203125,
+          "width": 192.8984375,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "Workflows assistés par l’IA",
+          "left": 49,
+          "right": 241.8984375,
+          "top": 887.515625,
+          "bottom": 951.515625,
+          "width": 192.8984375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Prêt pour l’entreprise",
+          "left": 49,
+          "right": 241.8984375,
+          "top": 1185.109375,
+          "bottom": 1249.109375,
+          "width": 192.8984375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Secondes",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5105.84375,
+          "bottom": 5145.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Du build à l’URL en ligne",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5153.84375,
+          "bottom": 5174.84375,
+          "width": 167.515625,
+          "height": 21
+        },
+        {
+          "tag": "P",
+          "text": "HTTPS",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5256.84375,
+          "bottom": 5296.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "TLS géré sur chaque déploiement",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5304.84375,
+          "bottom": 5346.84375,
+          "width": 167.515625,
+          "height": 42
+        },
+        {
+          "tag": "P",
+          "text": "1 clic",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5428.84375,
+          "bottom": 5468.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Publication depuis l’éditeur",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5476.84375,
+          "bottom": 5518.84375,
+          "width": 167.515625,
+          "height": 42
+        },
+        {
+          "tag": "P",
+          "text": "Direct",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5600.84375,
+          "bottom": 5640.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Journaux de build et état",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5648.84375,
+          "bottom": 5669.84375,
+          "width": 167.515625,
+          "height": 21
+        },
+        {
+          "tag": "H2",
+          "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 5888.84375,
+          "bottom": 6068.84375,
+          "width": 320.5234375,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Passez du build à la mise en ligne sans changer de contexte. Surveillez l’usage, gérez les ressource",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 6084.84375,
+          "bottom": 6204.84375,
+          "width": 320.5234375,
+          "height": 120
+        },
+        {
+          "tag": "H3",
+          "text": "Poste de contrôle de la production",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6333.84375,
+          "bottom": 6389.84375,
+          "width": 270.5234375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Une vue unifiée du CPU, de la mémoire et des requêtes, enrichie par la détection d’anomalies.",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6397.84375,
+          "bottom": 6457.46875,
+          "width": 270.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Les métriques en direct alimentent le panneau avec une détection des anomalies et des corrections su",
+          "left": 70,
+          "right": 298.5234375,
+          "top": 6502.46875,
+          "bottom": 6601.84375,
+          "width": 228.5234375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Intelligence de l’audience mondiale",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6888.34375,
+          "bottom": 6944.34375,
+          "width": 270.5234375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Identifiez l’origine des requêtes et les flux de trafic grâce à une carte géographique en temps réel",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6952.34375,
+          "bottom": 7011.96875,
+          "width": 270.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Les métriques en direct alimentent le panneau avec une détection des anomalies et des corrections su",
+          "left": 70,
+          "right": 298.5234375,
+          "top": 7056.96875,
+          "bottom": 7156.34375,
+          "width": 228.5234375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Actions opérationnelles",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 7442.84375,
+          "bottom": 7470.84375,
+          "width": 270.5234375,
+          "height": 28
+        },
+        {
+          "tag": "P",
+          "text": "Mettez en pause, adaptez la capacité, gérez les domaines et actualisez le SSL sans quitter le pannea",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 7478.84375,
+          "bottom": 7538.46875,
+          "width": 270.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Les métriques en direct alimentent le panneau avec une détection des anomalies et des corrections su",
+          "left": 70,
+          "right": 298.5234375,
+          "top": 7583.46875,
+          "bottom": 7682.84375,
+          "width": 228.5234375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": " Les performances en un coup d’œil",
+          "left": 48,
+          "right": 320.5234375,
+          "top": 7944.34375,
+          "bottom": 8008.34375,
+          "width": 272.5234375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Suivez le CPU et la mémoire en temps réel, repérez les heures de pointe et analysez la latence des r",
+          "left": 48,
+          "right": 320.5234375,
+          "top": 8032.34375,
+          "bottom": 8111.84375,
+          "width": 272.5234375,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Exportez les métriques ou diffusez-les vers votre solution d’observabilité au moyen de webhooks sécu",
+          "left": 48,
+          "right": 320.5234375,
+          "top": 8127.84375,
+          "bottom": 8187.46875,
+          "width": 272.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "H3",
+          "text": " Mise à l’échelle intelligente",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8260.46875,
+          "bottom": 8324.46875,
+          "width": 270.5234375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Les politiques apprennent du trafic historique afin de préchauffer les instances avant les lancement",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8348.46875,
+          "bottom": 8427.96875,
+          "width": 270.5234375,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "La capacité réservée garantit des ressources dédiées aux API critiques.",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8439.96875,
+          "bottom": 8479.71875,
+          "width": 270.5234375,
+          "height": 39.75
+        },
+        {
+          "tag": "H3",
+          "text": " Des informations utiles à la direction",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8553.71875,
+          "bottom": 8617.71875,
+          "width": 270.5234375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Les synthèses transforment les performances de l’infrastructure en rapports exploitables par les équ",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8641.71875,
+          "bottom": 8721.21875,
+          "width": 270.5234375,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Partagez des tableaux de bord en direct avec des autorisations de lien précises.",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8733.21875,
+          "bottom": 8772.96875,
+          "width": 270.5234375,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "État",
+          "left": 153.4921875,
+          "right": 215.6875,
+          "top": 11227.84375,
+          "bottom": 11243.84375,
+          "width": 62.1953125,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Connecté",
+          "left": 153.4921875,
+          "right": 215.6875,
+          "top": 11243.84375,
+          "bottom": 11263.71875,
+          "width": 62.1953125,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "État",
+          "left": 168.2265625,
+          "right": 215.6875,
+          "top": 11321.59375,
+          "bottom": 11337.59375,
+          "width": 47.4609375,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "DNS en attente",
+          "left": 168.2265625,
+          "right": 215.6875,
+          "top": 11337.59375,
+          "bottom": 11397.21875,
+          "width": 47.4609375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "État",
+          "left": 140.671875,
+          "right": 215.6875,
+          "top": 11445.15625,
+          "bottom": 11461.15625,
+          "width": 75.015625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Génération en cours",
+          "left": 140.671875,
+          "right": 215.6875,
+          "top": 11461.15625,
+          "bottom": 11500.90625,
+          "width": 75.015625,
+          "height": 39.75
+        },
+        {
+          "tag": "H2",
+          "text": "Sécurité, conformité et gouvernance intégrées à chaque version",
+          "left": 24,
+          "right": 317.2734375,
+          "top": 11744.84375,
+          "bottom": 11924.84375,
+          "width": 293.2734375,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Exécutez vos charges critiques avec des protections intégrées. Secrets par déploiement, accès par rô",
+          "left": 24,
+          "right": 317.2734375,
+          "top": 11940.84375,
+          "bottom": 12084.84375,
+          "width": 293.2734375,
+          "height": 144
+        },
+        {
+          "tag": "H3",
+          "text": "Sécurisé par défaut",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12195.84375,
+          "bottom": 12219.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Versions gouvernées",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12423.84375,
+          "bottom": 12447.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Données résilientes",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12651.84375,
+          "bottom": 12675.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Observabilité continue",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12879.84375,
+          "bottom": 12903.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "P",
+          "text": "Chronologie des versions",
+          "left": 57,
+          "right": 211.015625,
+          "top": 13093.84375,
+          "bottom": 13133.84375,
+          "width": 154.015625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Approbation",
+          "left": 179.984375,
+          "right": 267.2734375,
+          "top": 13178.71875,
+          "bottom": 13194.71875,
+          "width": 87.2890625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Terminée",
+          "left": 179.984375,
+          "right": 267.2734375,
+          "top": 13194.71875,
+          "bottom": 13214.59375,
+          "width": 87.2890625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "v2.17.1",
+          "left": 74,
+          "right": 197.265625,
+          "top": 13276.46875,
+          "bottom": 13296.34375,
+          "width": 123.265625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Version canari active",
+          "left": 74,
+          "right": 197.265625,
+          "top": 13296.34375,
+          "bottom": 13336.09375,
+          "width": 123.265625,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Rollback",
+          "left": 197.265625,
+          "right": 267.2734375,
+          "top": 13288.34375,
+          "bottom": 13304.34375,
+          "width": 70.0078125,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Disponible",
+          "left": 197.265625,
+          "right": 267.2734375,
+          "top": 13304.34375,
+          "bottom": 13324.21875,
+          "width": 70.0078125,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Événement",
+          "left": 193.984375,
+          "right": 267.2734375,
+          "top": 13397.96875,
+          "bottom": 13413.96875,
+          "width": 73.2890625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Journalisé",
+          "left": 193.984375,
+          "right": 267.2734375,
+          "top": 13413.96875,
+          "bottom": 13433.84375,
+          "width": 73.2890625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": " Le même pipeline que celui d’E-Code",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 13544.71875,
+          "bottom": 13584.46875,
+          "width": 243.2734375,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Chaque déploiement client emprunte le même parcours de build, smoke test et rollback qu’E-Code pour ",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 13596.46875,
+          "bottom": 13735.59375,
+          "width": 243.2734375,
+          "height": 139.125
+        },
+        {
+          "tag": "A",
+          "text": "Réserver une consultation",
+          "left": -20.3828125,
+          "right": 215.390625,
+          "top": 16630.96875,
+          "bottom": 16674.96875,
+          "width": 235.7734375,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Consulter les intégrations API",
+          "left": -32.8203125,
+          "right": 227.828125,
+          "top": 16690.96875,
+          "bottom": 16734.96875,
+          "width": 260.6484375,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 16,
+      "controls": [
+        {
+          "text": "Collaborer gratuitement",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 708.75,
+            "bottom": 752.75,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 6.515625,
+              "right": 188.484375,
+              "top": 719.75,
+              "bottom": 741.25
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 768.75,
+            "bottom": 812.75,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": -20.5390625,
+              "right": 215.546875,
+              "top": 779.75,
+              "bottom": 801.25
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Commencer l’essai gratuit",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 6288.625,
+            "bottom": 6332.625,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 0.3203125,
+              "right": 194.6796875,
+              "top": 6299.625,
+              "bottom": 6321.125
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Collaboration en temps réel",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1309.75,
+          "bottom": 1365.75,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Voyez les curseurs, sélections et modifications de vos collègues en direct, comme si vous étiez dans",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1373.75,
+          "bottom": 1493,
+          "width": 164.203125,
+          "height": 119.25
+        },
+        {
+          "tag": "H3",
+          "text": "Gestion de versions avancée",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1639,
+          "bottom": 1723,
+          "width": 164.203125,
+          "height": 84
+        },
+        {
+          "tag": "P",
+          "text": "Git est intégré avec une représentation visuelle des branches, la résolution des conflits de fusion ",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1731,
+          "bottom": 1850.25,
+          "width": 164.203125,
+          "height": 119.25
+        },
+        {
+          "tag": "H3",
+          "text": "Communication intégrée",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1996.25,
+          "bottom": 2052.25,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Échangez par audio, visioconférence et discussions thématiques directement dans votre espace de trav",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2060.25,
+          "bottom": 2159.625,
+          "width": 164.203125,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Sécurité pour les entreprises",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2305.625,
+          "bottom": 2361.625,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "SSO, authentification à deux facteurs, journaux d’audit et autorisations granulaires protègent votre",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2369.625,
+          "bottom": 2469,
+          "width": 164.203125,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Environnements instantanés",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2615,
+          "bottom": 2671,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Créez en quelques secondes un environnement de développement identique pour chaque membre de l’équip",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2679,
+          "bottom": 2798.25,
+          "width": 164.203125,
+          "height": 119.25
+        },
+        {
+          "tag": "H3",
+          "text": "Performances mondiales",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2944.25,
+          "bottom": 3000.25,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Collaborez avec une faible latence depuis n’importe où grâce à notre réseau périphérique mondial.",
+          "left": 41,
+          "right": 205.203125,
+          "top": 3008.25,
+          "bottom": 3107.625,
+          "width": 164.203125,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Équipes distribuées",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3500.625,
+          "bottom": 3564.625,
+          "width": 191.421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Réduisez les distances grâce à une collaboration en temps réel qui rapproche les équipes. Partagez v",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3580.625,
+          "bottom": 3739.625,
+          "width": 191.421875,
+          "height": 159
+        },
+        {
+          "tag": "H3",
+          "text": "Établissements d’enseignement",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3919.125,
+          "bottom": 3983.125,
+          "width": 191.421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Transformez l’apprentissage de la programmation. Les enseignants peuvent rejoindre le projet de chaq",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3999.125,
+          "bottom": 4138.25,
+          "width": 191.421875,
+          "height": 139.125
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 1,
+      "controls": [],
+      "overflowElements": [
+        {
+          "tag": "A",
+          "text": "e-code.ai/subprocessors",
+          "left": 49,
+          "right": 196.6640625,
+          "top": 4430.5,
+          "bottom": 4469.375,
+          "width": 147.6640625,
+          "height": 38.875
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "low",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/student-dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 12,
+      "controls": [
+        {
+          "text": "Demander l’accord complet",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 821,
+            "bottom": 865,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 11.4453125,
+              "right": 191.5625,
+              "top": 833.5,
+              "bottom": 852.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Contacter l’équipe Éducation",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 881,
+            "bottom": 925,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 7.7421875,
+              "right": 195.265625,
+              "top": 893.5,
+              "bottom": 912.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Écrire à l’équipe Éducation",
+          "box": {
+            "left": 41,
+            "right": 246.984375,
+            "top": 13723.515625,
+            "bottom": 13767.515625,
+            "width": 205.984375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 58,
+              "right": 229.984375,
+              "top": 13736.015625,
+              "bottom": 13755.015625
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Planifier un rendez-vous",
+          "box": {
+            "left": 41,
+            "right": 246.984375,
+            "top": 14002.5546875,
+            "bottom": 14046.5546875,
+            "width": 205.984375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 64.3203125,
+              "right": 223.65625,
+              "top": 14015.0546875,
+              "bottom": 14034.0546875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Voir les ressources",
+          "box": {
+            "left": 41,
+            "right": 246.984375,
+            "top": 14281.59375,
+            "bottom": 14325.59375,
+            "width": 205.984375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 82.8671875,
+              "right": 205.109375,
+              "top": 14294.09375,
+              "bottom": 14313.09375
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Droits des élèves",
+          "left": 41,
+          "right": 223.8359375,
+          "top": 9863.484375,
+          "bottom": 9927.484375,
+          "width": 182.8359375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Droits des parents ou tuteurs",
+          "left": 41,
+          "right": 223.8359375,
+          "top": 10262.484375,
+          "bottom": 10358.484375,
+          "width": 182.8359375,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "Droits des établissements",
+          "left": 41,
+          "right": 223.8359375,
+          "top": 10713.359375,
+          "bottom": 10777.359375,
+          "width": 182.8359375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Écrivez-nous",
+          "left": 41,
+          "right": 246.984375,
+          "top": 13642.4765625,
+          "bottom": 13659.515625,
+          "width": 205.984375,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Pour toute question ou signature du DPA",
+          "left": 41,
+          "right": 246.984375,
+          "top": 13667.515625,
+          "bottom": 13707.515625,
+          "width": 205.984375,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Écrire à l’équipe Éducation",
+          "left": 41,
+          "right": 246.984375,
+          "top": 13723.515625,
+          "bottom": 13767.515625,
+          "width": 205.984375,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Planifier un appel",
+          "left": 41,
+          "right": 246.984375,
+          "top": 13921.515625,
+          "bottom": 13938.5546875,
+          "width": 205.984375,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Échangez sur les besoins de votre établissement",
+          "left": 41,
+          "right": 246.984375,
+          "top": 13946.5546875,
+          "bottom": 13986.5546875,
+          "width": 205.984375,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Planifier un rendez-vous",
+          "left": 41,
+          "right": 246.984375,
+          "top": 14002.5546875,
+          "bottom": 14046.5546875,
+          "width": 205.984375,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Ressources",
+          "left": 41,
+          "right": 246.984375,
+          "top": 14200.5546875,
+          "bottom": 14217.59375,
+          "width": 205.984375,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Guides de confidentialité et bonnes pratiques",
+          "left": 41,
+          "right": 246.984375,
+          "top": 14225.59375,
+          "bottom": 14265.59375,
+          "width": 205.984375,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Voir les ressources",
+          "left": 41,
+          "right": 246.984375,
+          "top": 14281.59375,
+          "bottom": 14325.59375,
+          "width": 205.984375,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 60,
+      "controls": [
+        {
+          "text": "Parler à un expert",
+          "box": {
+            "left": 24,
+            "right": 205.84375,
+            "top": 343.3203125,
+            "bottom": 387.3203125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 56,
+              "right": 173.84375,
+              "top": 355.8203125,
+              "bottom": 374.8203125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Consulter la documentation des déploiements",
+          "box": {
+            "left": 24,
+            "right": 266.8984375,
+            "top": 403.3203125,
+            "bottom": 465.3203125,
+            "width": 242.8984375,
+            "height": 62
+          },
+          "ranges": [
+            {
+              "left": 57,
+              "right": 135.78125,
+              "top": 404.8203125,
+              "bottom": 423.8203125
+            },
+            {
+              "left": 57,
+              "right": 184.640625,
+              "top": 424.8203125,
+              "bottom": 443.8203125
+            },
+            {
+              "left": 57,
+              "right": 147.109375,
+              "top": 444.8203125,
+              "bottom": 463.8203125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Réserver une consultation",
+          "box": {
+            "left": -20.3828125,
+            "right": 215.390625,
+            "top": 16630.96875,
+            "bottom": 16674.96875,
+            "width": 235.7734375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 11.6171875,
+              "right": 183.390625,
+              "top": 16643.46875,
+              "bottom": 16662.46875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Consulter les intégrations API",
+          "box": {
+            "left": -32.8203125,
+            "right": 227.828125,
+            "top": 16690.96875,
+            "bottom": 16734.96875,
+            "width": 260.6484375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 0.1796875,
+              "right": 194.828125,
+              "top": 16703.46875,
+              "bottom": 16722.46875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H1",
+          "text": "Lancez des applications de production directement depuis votre espace de travail",
+          "left": 24,
+          "right": 266.8984375,
+          "top": -275.5,
+          "bottom": 42.5625,
+          "width": 242.8984375,
+          "height": 318.0625
+        },
+        {
+          "tag": "P",
+          "text": "E-Code Deployments associe la simplicité d’un IDE dans le navigateur à la rigueur d’une plateforme c",
+          "left": 24,
+          "right": 266.8984375,
+          "top": 66.5625,
+          "bottom": 311.3203125,
+          "width": 242.8984375,
+          "height": 244.7578125
+        },
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "left": 24,
+          "right": 205.84375,
+          "top": 343.3203125,
+          "bottom": 387.3203125,
+          "width": 181.84375,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "left": 24,
+          "right": 266.8984375,
+          "top": 403.3203125,
+          "bottom": 465.3203125,
+          "width": 242.8984375,
+          "height": 62
+        },
+        {
+          "tag": "H3",
+          "text": "Un push, un déploiement partout",
+          "left": 49,
+          "right": 241.8984375,
+          "top": 584.3203125,
+          "bottom": 680.3203125,
+          "width": 192.8984375,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "Workflows assistés par l’IA",
+          "left": 49,
+          "right": 241.8984375,
+          "top": 887.515625,
+          "bottom": 951.515625,
+          "width": 192.8984375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Prêt pour l’entreprise",
+          "left": 49,
+          "right": 241.8984375,
+          "top": 1185.109375,
+          "bottom": 1249.109375,
+          "width": 192.8984375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Secondes",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5105.84375,
+          "bottom": 5145.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Du build à l’URL en ligne",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5153.84375,
+          "bottom": 5174.84375,
+          "width": 167.515625,
+          "height": 21
+        },
+        {
+          "tag": "P",
+          "text": "HTTPS",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5256.84375,
+          "bottom": 5296.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "TLS géré sur chaque déploiement",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5304.84375,
+          "bottom": 5346.84375,
+          "width": 167.515625,
+          "height": 42
+        },
+        {
+          "tag": "P",
+          "text": "1 clic",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5428.84375,
+          "bottom": 5468.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Publication depuis l’éditeur",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5476.84375,
+          "bottom": 5518.84375,
+          "width": 167.515625,
+          "height": 42
+        },
+        {
+          "tag": "P",
+          "text": "Direct",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5600.84375,
+          "bottom": 5640.84375,
+          "width": 167.515625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Journaux de build et état",
+          "left": 49,
+          "right": 216.515625,
+          "top": 5648.84375,
+          "bottom": 5669.84375,
+          "width": 167.515625,
+          "height": 21
+        },
+        {
+          "tag": "H2",
+          "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 5888.84375,
+          "bottom": 6068.84375,
+          "width": 320.5234375,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Passez du build à la mise en ligne sans changer de contexte. Surveillez l’usage, gérez les ressource",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 6084.84375,
+          "bottom": 6204.84375,
+          "width": 320.5234375,
+          "height": 120
+        },
+        {
+          "tag": "H3",
+          "text": "Poste de contrôle de la production",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6333.84375,
+          "bottom": 6389.84375,
+          "width": 270.5234375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Une vue unifiée du CPU, de la mémoire et des requêtes, enrichie par la détection d’anomalies.",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6397.84375,
+          "bottom": 6457.46875,
+          "width": 270.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Les métriques en direct alimentent le panneau avec une détection des anomalies et des corrections su",
+          "left": 70,
+          "right": 298.5234375,
+          "top": 6502.46875,
+          "bottom": 6601.84375,
+          "width": 228.5234375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Intelligence de l’audience mondiale",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6888.34375,
+          "bottom": 6944.34375,
+          "width": 270.5234375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Identifiez l’origine des requêtes et les flux de trafic grâce à une carte géographique en temps réel",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 6952.34375,
+          "bottom": 7011.96875,
+          "width": 270.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Les métriques en direct alimentent le panneau avec une détection des anomalies et des corrections su",
+          "left": 70,
+          "right": 298.5234375,
+          "top": 7056.96875,
+          "bottom": 7156.34375,
+          "width": 228.5234375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Actions opérationnelles",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 7442.84375,
+          "bottom": 7470.84375,
+          "width": 270.5234375,
+          "height": 28
+        },
+        {
+          "tag": "P",
+          "text": "Mettez en pause, adaptez la capacité, gérez les domaines et actualisez le SSL sans quitter le pannea",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 7478.84375,
+          "bottom": 7538.46875,
+          "width": 270.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Les métriques en direct alimentent le panneau avec une détection des anomalies et des corrections su",
+          "left": 70,
+          "right": 298.5234375,
+          "top": 7583.46875,
+          "bottom": 7682.84375,
+          "width": 228.5234375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": " Les performances en un coup d’œil",
+          "left": 48,
+          "right": 320.5234375,
+          "top": 7944.34375,
+          "bottom": 8008.34375,
+          "width": 272.5234375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Suivez le CPU et la mémoire en temps réel, repérez les heures de pointe et analysez la latence des r",
+          "left": 48,
+          "right": 320.5234375,
+          "top": 8032.34375,
+          "bottom": 8111.84375,
+          "width": 272.5234375,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Exportez les métriques ou diffusez-les vers votre solution d’observabilité au moyen de webhooks sécu",
+          "left": 48,
+          "right": 320.5234375,
+          "top": 8127.84375,
+          "bottom": 8187.46875,
+          "width": 272.5234375,
+          "height": 59.625
+        },
+        {
+          "tag": "H3",
+          "text": " Mise à l’échelle intelligente",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8260.46875,
+          "bottom": 8324.46875,
+          "width": 270.5234375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Les politiques apprennent du trafic historique afin de préchauffer les instances avant les lancement",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8348.46875,
+          "bottom": 8427.96875,
+          "width": 270.5234375,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "La capacité réservée garantit des ressources dédiées aux API critiques.",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8439.96875,
+          "bottom": 8479.71875,
+          "width": 270.5234375,
+          "height": 39.75
+        },
+        {
+          "tag": "H3",
+          "text": " Des informations utiles à la direction",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8553.71875,
+          "bottom": 8617.71875,
+          "width": 270.5234375,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Les synthèses transforment les performances de l’infrastructure en rapports exploitables par les équ",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8641.71875,
+          "bottom": 8721.21875,
+          "width": 270.5234375,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Partagez des tableaux de bord en direct avec des autorisations de lien précises.",
+          "left": 49,
+          "right": 319.5234375,
+          "top": 8733.21875,
+          "bottom": 8772.96875,
+          "width": 270.5234375,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "État",
+          "left": 153.4921875,
+          "right": 215.6875,
+          "top": 11227.84375,
+          "bottom": 11243.84375,
+          "width": 62.1953125,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Connecté",
+          "left": 153.4921875,
+          "right": 215.6875,
+          "top": 11243.84375,
+          "bottom": 11263.71875,
+          "width": 62.1953125,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "État",
+          "left": 168.2265625,
+          "right": 215.6875,
+          "top": 11321.59375,
+          "bottom": 11337.59375,
+          "width": 47.4609375,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "DNS en attente",
+          "left": 168.2265625,
+          "right": 215.6875,
+          "top": 11337.59375,
+          "bottom": 11397.21875,
+          "width": 47.4609375,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "État",
+          "left": 140.671875,
+          "right": 215.6875,
+          "top": 11445.15625,
+          "bottom": 11461.15625,
+          "width": 75.015625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Génération en cours",
+          "left": 140.671875,
+          "right": 215.6875,
+          "top": 11461.15625,
+          "bottom": 11500.90625,
+          "width": 75.015625,
+          "height": 39.75
+        },
+        {
+          "tag": "H2",
+          "text": "Sécurité, conformité et gouvernance intégrées à chaque version",
+          "left": 24,
+          "right": 317.2734375,
+          "top": 11744.84375,
+          "bottom": 11924.84375,
+          "width": 293.2734375,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Exécutez vos charges critiques avec des protections intégrées. Secrets par déploiement, accès par rô",
+          "left": 24,
+          "right": 317.2734375,
+          "top": 11940.84375,
+          "bottom": 12084.84375,
+          "width": 293.2734375,
+          "height": 144
+        },
+        {
+          "tag": "H3",
+          "text": "Sécurisé par défaut",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12195.84375,
+          "bottom": 12219.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Versions gouvernées",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12423.84375,
+          "bottom": 12447.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Données résilientes",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12651.84375,
+          "bottom": 12675.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Observabilité continue",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 12879.84375,
+          "bottom": 12903.84375,
+          "width": 243.2734375,
+          "height": 24
+        },
+        {
+          "tag": "P",
+          "text": "Chronologie des versions",
+          "left": 57,
+          "right": 211.015625,
+          "top": 13093.84375,
+          "bottom": 13133.84375,
+          "width": 154.015625,
+          "height": 40
+        },
+        {
+          "tag": "P",
+          "text": "Approbation",
+          "left": 179.984375,
+          "right": 267.2734375,
+          "top": 13178.71875,
+          "bottom": 13194.71875,
+          "width": 87.2890625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Terminée",
+          "left": 179.984375,
+          "right": 267.2734375,
+          "top": 13194.71875,
+          "bottom": 13214.59375,
+          "width": 87.2890625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "v2.17.1",
+          "left": 74,
+          "right": 197.265625,
+          "top": 13276.46875,
+          "bottom": 13296.34375,
+          "width": 123.265625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Version canari active",
+          "left": 74,
+          "right": 197.265625,
+          "top": 13296.34375,
+          "bottom": 13336.09375,
+          "width": 123.265625,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Rollback",
+          "left": 197.265625,
+          "right": 267.2734375,
+          "top": 13288.34375,
+          "bottom": 13304.34375,
+          "width": 70.0078125,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Disponible",
+          "left": 197.265625,
+          "right": 267.2734375,
+          "top": 13304.34375,
+          "bottom": 13324.21875,
+          "width": 70.0078125,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Événement",
+          "left": 193.984375,
+          "right": 267.2734375,
+          "top": 13397.96875,
+          "bottom": 13413.96875,
+          "width": 73.2890625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Journalisé",
+          "left": 193.984375,
+          "right": 267.2734375,
+          "top": 13413.96875,
+          "bottom": 13433.84375,
+          "width": 73.2890625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": " Le même pipeline que celui d’E-Code",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 13544.71875,
+          "bottom": 13584.46875,
+          "width": 243.2734375,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Chaque déploiement client emprunte le même parcours de build, smoke test et rollback qu’E-Code pour ",
+          "left": 49,
+          "right": 292.2734375,
+          "top": 13596.46875,
+          "bottom": 13735.59375,
+          "width": 243.2734375,
+          "height": 139.125
+        },
+        {
+          "tag": "A",
+          "text": "Réserver une consultation",
+          "left": -20.3828125,
+          "right": 215.390625,
+          "top": 16630.96875,
+          "bottom": 16674.96875,
+          "width": 235.7734375,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Consulter les intégrations API",
+          "left": -32.8203125,
+          "right": 227.828125,
+          "top": 16690.96875,
+          "bottom": 16734.96875,
+          "width": 260.6484375,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 16,
+      "controls": [
+        {
+          "text": "Collaborer gratuitement",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 708.75,
+            "bottom": 752.75,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 6.515625,
+              "right": 188.484375,
+              "top": 719.75,
+              "bottom": 741.25
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Contacter l’équipe commerciale",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 768.75,
+            "bottom": 812.75,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": -20.5390625,
+              "right": 215.546875,
+              "top": 779.75,
+              "bottom": 801.25
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Commencer l’essai gratuit",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 6288.625,
+            "bottom": 6332.625,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 0.3203125,
+              "right": 194.6796875,
+              "top": 6299.625,
+              "bottom": 6321.125
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Collaboration en temps réel",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1309.75,
+          "bottom": 1365.75,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Voyez les curseurs, sélections et modifications de vos collègues en direct, comme si vous étiez dans",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1373.75,
+          "bottom": 1493,
+          "width": 164.203125,
+          "height": 119.25
+        },
+        {
+          "tag": "H3",
+          "text": "Gestion de versions avancée",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1639,
+          "bottom": 1723,
+          "width": 164.203125,
+          "height": 84
+        },
+        {
+          "tag": "P",
+          "text": "Git est intégré avec une représentation visuelle des branches, la résolution des conflits de fusion ",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1731,
+          "bottom": 1850.25,
+          "width": 164.203125,
+          "height": 119.25
+        },
+        {
+          "tag": "H3",
+          "text": "Communication intégrée",
+          "left": 41,
+          "right": 205.203125,
+          "top": 1996.25,
+          "bottom": 2052.25,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Échangez par audio, visioconférence et discussions thématiques directement dans votre espace de trav",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2060.25,
+          "bottom": 2159.625,
+          "width": 164.203125,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Sécurité pour les entreprises",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2305.625,
+          "bottom": 2361.625,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "SSO, authentification à deux facteurs, journaux d’audit et autorisations granulaires protègent votre",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2369.625,
+          "bottom": 2469,
+          "width": 164.203125,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Environnements instantanés",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2615,
+          "bottom": 2671,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Créez en quelques secondes un environnement de développement identique pour chaque membre de l’équip",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2679,
+          "bottom": 2798.25,
+          "width": 164.203125,
+          "height": 119.25
+        },
+        {
+          "tag": "H3",
+          "text": "Performances mondiales",
+          "left": 41,
+          "right": 205.203125,
+          "top": 2944.25,
+          "bottom": 3000.25,
+          "width": 164.203125,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Collaborez avec une faible latence depuis n’importe où grâce à notre réseau périphérique mondial.",
+          "left": 41,
+          "right": 205.203125,
+          "top": 3008.25,
+          "bottom": 3107.625,
+          "width": 164.203125,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Équipes distribuées",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3500.625,
+          "bottom": 3564.625,
+          "width": 191.421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Réduisez les distances grâce à une collaboration en temps réel qui rapproche les équipes. Partagez v",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3580.625,
+          "bottom": 3739.625,
+          "width": 191.421875,
+          "height": 159
+        },
+        {
+          "tag": "H3",
+          "text": "Établissements d’enseignement",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3919.125,
+          "bottom": 3983.125,
+          "width": 191.421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Transformez l’apprentissage de la programmation. Les enseignants peuvent rejoindre le projet de chaq",
+          "left": 16,
+          "right": 207.421875,
+          "top": 3999.125,
+          "bottom": 4138.25,
+          "width": 191.421875,
+          "height": 139.125
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/dpa",
+      "lang": "en",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 1,
+      "controls": [],
+      "overflowElements": [
+        {
+          "tag": "A",
+          "text": "e-code.ai/subprocessors",
+          "left": 49,
+          "right": 196.6640625,
+          "top": 3782.375,
+          "bottom": 3821.25,
+          "width": 147.6640625,
+          "height": 38.875
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "low",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/student-dpa",
+      "lang": "en",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 9,
+      "controls": [
+        {
+          "text": "Request Full Agreement",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 717,
+            "bottom": 761,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 22.7578125,
+              "right": 180.25,
+              "top": 729.5,
+              "bottom": 748.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Contact Education Team",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 777,
+            "bottom": 821,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 22.0078125,
+              "right": 181,
+              "top": 789.5,
+              "bottom": 808.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Email the education team",
+          "box": {
+            "left": 41,
+            "right": 242.890625,
+            "top": 12907.1015625,
+            "bottom": 12951.1015625,
+            "width": 201.890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 58,
+              "right": 225.890625,
+              "top": 12919.6015625,
+              "bottom": 12938.6015625
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Book Meeting",
+          "box": {
+            "left": 41,
+            "right": 242.890625,
+            "top": 13166.140625,
+            "bottom": 13210.140625,
+            "width": 201.890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 96.15625,
+              "right": 187.734375,
+              "top": 13178.640625,
+              "bottom": 13197.640625
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "View Resources",
+          "box": {
+            "left": 41,
+            "right": 242.890625,
+            "top": 13445.1796875,
+            "bottom": 13489.1796875,
+            "width": 201.890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 91.1796875,
+              "right": 192.7109375,
+              "top": 13457.6796875,
+              "bottom": 13476.6796875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Email Us",
+          "left": 41,
+          "right": 242.890625,
+          "top": 12826.0625,
+          "bottom": 12843.1015625,
+          "width": 201.890625,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "For DPA questions and execution",
+          "left": 41,
+          "right": 242.890625,
+          "top": 12851.1015625,
+          "bottom": 12891.1015625,
+          "width": 201.890625,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Email the education team",
+          "left": 41,
+          "right": 242.890625,
+          "top": 12907.1015625,
+          "bottom": 12951.1015625,
+          "width": 201.890625,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Schedule a Call",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13105.1015625,
+          "bottom": 13122.140625,
+          "width": 201.890625,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Discuss your school’s needs",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13130.140625,
+          "bottom": 13150.140625,
+          "width": 201.890625,
+          "height": 20
+        },
+        {
+          "tag": "A",
+          "text": "Book Meeting",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13166.140625,
+          "bottom": 13210.140625,
+          "width": 201.890625,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Resources",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13364.140625,
+          "bottom": 13381.1796875,
+          "width": 201.890625,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Privacy guides and best practices",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13389.1796875,
+          "bottom": 13429.1796875,
+          "width": 201.890625,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "View Resources",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13445.1796875,
+          "bottom": 13489.1796875,
+          "width": 201.890625,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 50,
+      "controls": [
+        {
+          "text": "Talk to an expert",
+          "box": {
+            "left": 24,
+            "right": 196.921875,
+            "top": 840.8828125,
+            "bottom": 884.8828125,
+            "width": 172.921875,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 56,
+              "right": 164.921875,
+              "top": 853.3828125,
+              "bottom": 872.3828125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Explore deployment docs",
+          "box": {
+            "left": 24,
+            "right": 248.9375,
+            "top": 900.8828125,
+            "bottom": 944.8828125,
+            "width": 224.9375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 57,
+              "right": 188.671875,
+              "top": 903.3828125,
+              "bottom": 922.3828125
+            },
+            {
+              "left": 57,
+              "right": 87.5078125,
+              "top": 923.3828125,
+              "bottom": 942.3828125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Review API integrations",
+          "box": {
+            "left": -12.890625,
+            "right": 207.8984375,
+            "top": 16416.9296875,
+            "bottom": 16460.9296875,
+            "width": 220.7890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 20.109375,
+              "right": 174.8984375,
+              "top": 16429.4296875,
+              "bottom": 16448.4296875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H1",
+          "text": "Launch production-grade apps straight from your workspace",
+          "left": 24,
+          "right": 248.9375,
+          "top": 267.5,
+          "bottom": 540.125,
+          "width": 224.9375,
+          "height": 272.625
+        },
+        {
+          "tag": "P",
+          "text": "E-Code Deployments pairs the simplicity of an in-browser IDE with the rigor of a global cloud platfo",
+          "left": 24,
+          "right": 248.9375,
+          "top": 564.125,
+          "bottom": 808.8828125,
+          "width": 224.9375,
+          "height": 244.7578125
+        },
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "left": 24,
+          "right": 196.921875,
+          "top": 840.8828125,
+          "bottom": 884.8828125,
+          "width": 172.921875,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "left": 24,
+          "right": 248.9375,
+          "top": 900.8828125,
+          "bottom": 944.8828125,
+          "width": 224.9375,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Push once, deploy everywhere",
+          "left": 49,
+          "right": 223.9375,
+          "top": 1063.8828125,
+          "bottom": 1159.8828125,
+          "width": 174.9375,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "AI-assisted workflows",
+          "left": 49,
+          "right": 223.9375,
+          "top": 1393.4765625,
+          "bottom": 1457.4765625,
+          "width": 174.9375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Enterprise ready",
+          "left": 49,
+          "right": 223.9375,
+          "top": 1691.0703125,
+          "bottom": 1723.0703125,
+          "width": 174.9375,
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Everything inside the deployment tab, elevated for production teams",
+          "left": 24,
+          "right": 336.7421875,
+          "top": 6132.4296875,
+          "bottom": 6276.4296875,
+          "width": 312.7421875,
+          "height": 144
+        },
+        {
+          "tag": "P",
+          "text": "Move from build to live without switching context. Monitor usage, manage resources, configure domain",
+          "left": 24,
+          "right": 336.7421875,
+          "top": 6292.4296875,
+          "bottom": 6388.4296875,
+          "width": 312.7421875,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "Production control room",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 6517.4296875,
+          "bottom": 6545.4296875,
+          "width": 262.7421875,
+          "height": 28
+        },
+        {
+          "tag": "P",
+          "text": "Unified view of CPU, memory, and request health paired with AI insights for anomalies.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 6553.4296875,
+          "bottom": 6613.0546875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Live metrics stream into the deployment tab with anomaly detection and suggested remediations powere",
+          "left": 70,
+          "right": 290.7421875,
+          "top": 6658.0546875,
+          "bottom": 6757.4296875,
+          "width": 220.7421875,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Global audience intelligence",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7024.0546875,
+          "bottom": 7080.0546875,
+          "width": 262.7421875,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Know where requests originate and how traffic flows with real-time geography overlays.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7088.0546875,
+          "bottom": 7147.6796875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Live metrics stream into the deployment tab with anomaly detection and suggested remediations powere",
+          "left": 70,
+          "right": 290.7421875,
+          "top": 7192.6796875,
+          "bottom": 7292.0546875,
+          "width": 220.7421875,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Operational actions",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7558.6796875,
+          "bottom": 7586.6796875,
+          "width": 262.7421875,
+          "height": 28
+        },
+        {
+          "tag": "P",
+          "text": "Pause, scale, manage domains, and update SSL without leaving the workspace tab.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7594.6796875,
+          "bottom": 7654.3046875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Live metrics stream into the deployment tab with anomaly detection and suggested remediations powere",
+          "left": 70,
+          "right": 290.7421875,
+          "top": 7699.3046875,
+          "bottom": 7798.6796875,
+          "width": 220.7421875,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": " Performance at a glance",
+          "left": 48,
+          "right": 312.7421875,
+          "top": 8040.3046875,
+          "bottom": 8104.3046875,
+          "width": 264.7421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Track real-time CPU and memory utilization, understand peak hours, and drill into request latency wi",
+          "left": 48,
+          "right": 312.7421875,
+          "top": 8128.3046875,
+          "bottom": 8207.8046875,
+          "width": 264.7421875,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Export metrics or stream them to your preferred observability stack using secure webhooks and API ac",
+          "left": 48,
+          "right": 312.7421875,
+          "top": 8223.8046875,
+          "bottom": 8283.4296875,
+          "width": 264.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "H3",
+          "text": " Intelligent scaling",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8356.4296875,
+          "bottom": 8388.4296875,
+          "width": 262.7421875,
+          "height": 32
+        },
+        {
+          "tag": "P",
+          "text": "Autoscaling policies learn from historical traffic to pre-warm instances before major launches and p",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8412.4296875,
+          "bottom": 8491.9296875,
+          "width": 262.7421875,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Reserved capacity ensures mission-critical APIs always have dedicated compute ready to serve.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8503.9296875,
+          "bottom": 8563.5546875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "H3",
+          "text": " Insights for leadership",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8637.5546875,
+          "bottom": 8701.5546875,
+          "width": 262.7421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Summaries translate infrastructure performance into business-ready reports for product managers, fin",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8725.5546875,
+          "bottom": 8805.0546875,
+          "width": 262.7421875,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Share live dashboards securely with stakeholders using granular link permissions.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8817.0546875,
+          "bottom": 8876.6796875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Status",
+          "left": 143.7890625,
+          "right": 214.59375,
+          "top": 11327.5546875,
+          "bottom": 11343.5546875,
+          "width": 70.8046875,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Connected",
+          "left": 143.7890625,
+          "right": 214.59375,
+          "top": 11343.5546875,
+          "bottom": 11363.4296875,
+          "width": 70.8046875,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Status",
+          "left": 153.3046875,
+          "right": 214.59375,
+          "top": 11423.2421875,
+          "bottom": 11439.2421875,
+          "width": 61.2890625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Pending DNS",
+          "left": 153.3046875,
+          "right": 214.59375,
+          "top": 11439.2421875,
+          "bottom": 11478.9921875,
+          "width": 61.2890625,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Status",
+          "left": 140.671875,
+          "right": 214.59375,
+          "top": 11538.8046875,
+          "bottom": 11554.8046875,
+          "width": 73.921875,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Generating",
+          "left": 140.671875,
+          "right": 214.59375,
+          "top": 11554.8046875,
+          "bottom": 11574.6796875,
+          "width": 73.921875,
+          "height": 19.875
+        },
+        {
+          "tag": "H2",
+          "text": "Security, compliance, and governance woven into every release",
+          "left": 24,
+          "right": 302.1328125,
+          "top": 11828.5546875,
+          "bottom": 12008.5546875,
+          "width": 278.1328125,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Run mission-critical workloads with built-in safeguards. Per-deployment secrets, role-based access, ",
+          "left": 24,
+          "right": 302.1328125,
+          "top": 12024.5546875,
+          "bottom": 12168.5546875,
+          "width": 278.1328125,
+          "height": 144
+        },
+        {
+          "tag": "H3",
+          "text": "Secure by default",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12279.5546875,
+          "bottom": 12303.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Governed releases",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12507.5546875,
+          "bottom": 12531.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Resilient data",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12755.5546875,
+          "bottom": 12779.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Continuous observability",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12983.5546875,
+          "bottom": 13007.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "P",
+          "text": "Approval",
+          "left": 188.65625,
+          "right": 252.1328125,
+          "top": 13264.4296875,
+          "bottom": 13280.4296875,
+          "width": 63.4765625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Complete",
+          "left": 188.65625,
+          "right": 252.1328125,
+          "top": 13280.4296875,
+          "bottom": 13300.3046875,
+          "width": 63.4765625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Rollback",
+          "left": 189.2734375,
+          "right": 252.1328125,
+          "top": 13374.0546875,
+          "bottom": 13390.0546875,
+          "width": 62.859375,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Available",
+          "left": 189.2734375,
+          "right": 252.1328125,
+          "top": 13390.0546875,
+          "bottom": 13409.9296875,
+          "width": 62.859375,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Audit",
+          "left": 74,
+          "right": 202.59375,
+          "top": 13471.8046875,
+          "bottom": 13491.6796875,
+          "width": 128.59375,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Signed via  /  SSO",
+          "left": 74,
+          "right": 202.59375,
+          "top": 13491.6796875,
+          "bottom": 13531.4296875,
+          "width": 128.59375,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Event",
+          "left": 202.59375,
+          "right": 252.1328125,
+          "top": 13483.6796875,
+          "bottom": 13499.6796875,
+          "width": 49.5390625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Logged",
+          "left": 202.59375,
+          "right": 252.1328125,
+          "top": 13499.6796875,
+          "bottom": 13519.5546875,
+          "width": 49.5390625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": " Built on the same pipeline as E-Code",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 13630.4296875,
+          "bottom": 13670.1796875,
+          "width": 228.1328125,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Every customer deployment runs through the identical build, smoke-test, and rollback path E-Code use",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 13682.1796875,
+          "bottom": 13821.3046875,
+          "width": 228.1328125,
+          "height": 139.125
+        },
+        {
+          "tag": "A",
+          "text": "Review API integrations",
+          "left": -12.890625,
+          "right": 207.8984375,
+          "top": 16416.9296875,
+          "bottom": 16460.9296875,
+          "width": 220.7890625,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 12,
+      "controls": [
+        {
+          "text": "Start Collaborating Free",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 652.75,
+            "bottom": 696.75,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 8.3359375,
+              "right": 186.6640625,
+              "top": 663.75,
+              "bottom": 685.25
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Real-time Multiplayer",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1213.75,
+          "bottom": 1269.75,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "See teammates' cursors, selections, and edits in real-time. It's like being in the same room.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1277.75,
+          "bottom": 1377.125,
+          "width": 159.4375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Advanced Version Control",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1523.125,
+          "bottom": 1579.125,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Built-in Git with visual branching, merge conflict resolution, and code review tools.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1587.125,
+          "bottom": 1666.625,
+          "width": 159.4375,
+          "height": 79.5
+        },
+        {
+          "tag": "H3",
+          "text": "Integrated Communication",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1812.625,
+          "bottom": 1868.625,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Voice chat, video calls, and threaded discussions right in your workspace.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1876.625,
+          "bottom": 1956.125,
+          "width": 159.4375,
+          "height": 79.5
+        },
+        {
+          "tag": "H3",
+          "text": "Enterprise Security",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2102.125,
+          "bottom": 2158.125,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "SSO, 2FA, audit logs, and granular permissions to keep your code secure.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2166.125,
+          "bottom": 2245.625,
+          "width": 159.4375,
+          "height": 79.5
+        },
+        {
+          "tag": "H3",
+          "text": "Instant Environments",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2391.625,
+          "bottom": 2447.625,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Spin up identical development environments for every team member in seconds.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2455.625,
+          "bottom": 2555,
+          "width": 159.4375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Global Performance",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2701,
+          "bottom": 2757,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Low-latency collaboration from anywhere with our global edge network.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2765,
+          "bottom": 2844.5,
+          "width": 159.4375,
+          "height": 79.5
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/dpa",
+      "lang": "en",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 1,
+      "controls": [],
+      "overflowElements": [
+        {
+          "tag": "A",
+          "text": "e-code.ai/subprocessors",
+          "left": 49,
+          "right": 196.6640625,
+          "top": 3782.375,
+          "bottom": 3821.25,
+          "width": 147.6640625,
+          "height": 38.875
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "low",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/student-dpa",
+      "lang": "en",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 9,
+      "controls": [
+        {
+          "text": "Request Full Agreement",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 717,
+            "bottom": 761,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 22.7578125,
+              "right": 180.25,
+              "top": 729.5,
+              "bottom": 748.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Contact Education Team",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 777,
+            "bottom": 821,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 22.0078125,
+              "right": 181,
+              "top": 789.5,
+              "bottom": 808.5
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Email the education team",
+          "box": {
+            "left": 41,
+            "right": 242.890625,
+            "top": 12907.1015625,
+            "bottom": 12951.1015625,
+            "width": 201.890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 58,
+              "right": 225.890625,
+              "top": 12919.6015625,
+              "bottom": 12938.6015625
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": true,
+          "heightBelow44": false
+        },
+        {
+          "text": "Book Meeting",
+          "box": {
+            "left": 41,
+            "right": 242.890625,
+            "top": 13166.140625,
+            "bottom": 13210.140625,
+            "width": 201.890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 96.15625,
+              "right": 187.734375,
+              "top": 13178.640625,
+              "bottom": 13197.640625
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "View Resources",
+          "box": {
+            "left": 41,
+            "right": 242.890625,
+            "top": 13445.1796875,
+            "bottom": 13489.1796875,
+            "width": 201.890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 91.1796875,
+              "right": 192.7109375,
+              "top": 13457.6796875,
+              "bottom": 13476.6796875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Email Us",
+          "left": 41,
+          "right": 242.890625,
+          "top": 12826.0625,
+          "bottom": 12843.1015625,
+          "width": 201.890625,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "For DPA questions and execution",
+          "left": 41,
+          "right": 242.890625,
+          "top": 12851.1015625,
+          "bottom": 12891.1015625,
+          "width": 201.890625,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "Email the education team",
+          "left": 41,
+          "right": 242.890625,
+          "top": 12907.1015625,
+          "bottom": 12951.1015625,
+          "width": 201.890625,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Schedule a Call",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13105.1015625,
+          "bottom": 13122.140625,
+          "width": 201.890625,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Discuss your school’s needs",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13130.140625,
+          "bottom": 13150.140625,
+          "width": 201.890625,
+          "height": 20
+        },
+        {
+          "tag": "A",
+          "text": "Book Meeting",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13166.140625,
+          "bottom": 13210.140625,
+          "width": 201.890625,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Resources",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13364.140625,
+          "bottom": 13381.1796875,
+          "width": 201.890625,
+          "height": 17.0390625
+        },
+        {
+          "tag": "P",
+          "text": "Privacy guides and best practices",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13389.1796875,
+          "bottom": 13429.1796875,
+          "width": 201.890625,
+          "height": 40
+        },
+        {
+          "tag": "A",
+          "text": "View Resources",
+          "left": 41,
+          "right": 242.890625,
+          "top": 13445.1796875,
+          "bottom": 13489.1796875,
+          "width": 201.890625,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 50,
+      "controls": [
+        {
+          "text": "Talk to an expert",
+          "box": {
+            "left": 24,
+            "right": 196.921875,
+            "top": 840.8828125,
+            "bottom": 884.8828125,
+            "width": 172.921875,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 56,
+              "right": 164.921875,
+              "top": 853.3828125,
+              "bottom": 872.3828125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Explore deployment docs",
+          "box": {
+            "left": 24,
+            "right": 248.9375,
+            "top": 900.8828125,
+            "bottom": 944.8828125,
+            "width": 224.9375,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 57,
+              "right": 188.671875,
+              "top": 903.3828125,
+              "bottom": 922.3828125
+            },
+            {
+              "left": 57,
+              "right": 87.5078125,
+              "top": 923.3828125,
+              "bottom": 942.3828125
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        },
+        {
+          "text": "Review API integrations",
+          "box": {
+            "left": -12.890625,
+            "right": 207.8984375,
+            "top": 16416.9296875,
+            "bottom": 16460.9296875,
+            "width": 220.7890625,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 20.109375,
+              "right": 174.8984375,
+              "top": 16429.4296875,
+              "bottom": 16448.4296875
+            }
+          ],
+          "borderOutsideViewport": true,
+          "textOutsideBorder": false,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H1",
+          "text": "Launch production-grade apps straight from your workspace",
+          "left": 24,
+          "right": 248.9375,
+          "top": 267.5,
+          "bottom": 540.125,
+          "width": 224.9375,
+          "height": 272.625
+        },
+        {
+          "tag": "P",
+          "text": "E-Code Deployments pairs the simplicity of an in-browser IDE with the rigor of a global cloud platfo",
+          "left": 24,
+          "right": 248.9375,
+          "top": 564.125,
+          "bottom": 808.8828125,
+          "width": 224.9375,
+          "height": 244.7578125
+        },
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "left": 24,
+          "right": 196.921875,
+          "top": 840.8828125,
+          "bottom": 884.8828125,
+          "width": 172.921875,
+          "height": 44
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "left": 24,
+          "right": 248.9375,
+          "top": 900.8828125,
+          "bottom": 944.8828125,
+          "width": 224.9375,
+          "height": 44
+        },
+        {
+          "tag": "H3",
+          "text": "Push once, deploy everywhere",
+          "left": 49,
+          "right": 223.9375,
+          "top": 1063.8828125,
+          "bottom": 1159.8828125,
+          "width": 174.9375,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "AI-assisted workflows",
+          "left": 49,
+          "right": 223.9375,
+          "top": 1393.4765625,
+          "bottom": 1457.4765625,
+          "width": 174.9375,
+          "height": 64
+        },
+        {
+          "tag": "H3",
+          "text": "Enterprise ready",
+          "left": 49,
+          "right": 223.9375,
+          "top": 1691.0703125,
+          "bottom": 1723.0703125,
+          "width": 174.9375,
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Everything inside the deployment tab, elevated for production teams",
+          "left": 24,
+          "right": 336.7421875,
+          "top": 6132.4296875,
+          "bottom": 6276.4296875,
+          "width": 312.7421875,
+          "height": 144
+        },
+        {
+          "tag": "P",
+          "text": "Move from build to live without switching context. Monitor usage, manage resources, configure domain",
+          "left": 24,
+          "right": 336.7421875,
+          "top": 6292.4296875,
+          "bottom": 6388.4296875,
+          "width": 312.7421875,
+          "height": 96
+        },
+        {
+          "tag": "H3",
+          "text": "Production control room",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 6517.4296875,
+          "bottom": 6545.4296875,
+          "width": 262.7421875,
+          "height": 28
+        },
+        {
+          "tag": "P",
+          "text": "Unified view of CPU, memory, and request health paired with AI insights for anomalies.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 6553.4296875,
+          "bottom": 6613.0546875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Live metrics stream into the deployment tab with anomaly detection and suggested remediations powere",
+          "left": 70,
+          "right": 290.7421875,
+          "top": 6658.0546875,
+          "bottom": 6757.4296875,
+          "width": 220.7421875,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Global audience intelligence",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7024.0546875,
+          "bottom": 7080.0546875,
+          "width": 262.7421875,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Know where requests originate and how traffic flows with real-time geography overlays.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7088.0546875,
+          "bottom": 7147.6796875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Live metrics stream into the deployment tab with anomaly detection and suggested remediations powere",
+          "left": 70,
+          "right": 290.7421875,
+          "top": 7192.6796875,
+          "bottom": 7292.0546875,
+          "width": 220.7421875,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Operational actions",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7558.6796875,
+          "bottom": 7586.6796875,
+          "width": 262.7421875,
+          "height": 28
+        },
+        {
+          "tag": "P",
+          "text": "Pause, scale, manage domains, and update SSL without leaving the workspace tab.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 7594.6796875,
+          "bottom": 7654.3046875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Live metrics stream into the deployment tab with anomaly detection and suggested remediations powere",
+          "left": 70,
+          "right": 290.7421875,
+          "top": 7699.3046875,
+          "bottom": 7798.6796875,
+          "width": 220.7421875,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": " Performance at a glance",
+          "left": 48,
+          "right": 312.7421875,
+          "top": 8040.3046875,
+          "bottom": 8104.3046875,
+          "width": 264.7421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Track real-time CPU and memory utilization, understand peak hours, and drill into request latency wi",
+          "left": 48,
+          "right": 312.7421875,
+          "top": 8128.3046875,
+          "bottom": 8207.8046875,
+          "width": 264.7421875,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Export metrics or stream them to your preferred observability stack using secure webhooks and API ac",
+          "left": 48,
+          "right": 312.7421875,
+          "top": 8223.8046875,
+          "bottom": 8283.4296875,
+          "width": 264.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "H3",
+          "text": " Intelligent scaling",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8356.4296875,
+          "bottom": 8388.4296875,
+          "width": 262.7421875,
+          "height": 32
+        },
+        {
+          "tag": "P",
+          "text": "Autoscaling policies learn from historical traffic to pre-warm instances before major launches and p",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8412.4296875,
+          "bottom": 8491.9296875,
+          "width": 262.7421875,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Reserved capacity ensures mission-critical APIs always have dedicated compute ready to serve.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8503.9296875,
+          "bottom": 8563.5546875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "H3",
+          "text": " Insights for leadership",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8637.5546875,
+          "bottom": 8701.5546875,
+          "width": 262.7421875,
+          "height": 64
+        },
+        {
+          "tag": "P",
+          "text": "Summaries translate infrastructure performance into business-ready reports for product managers, fin",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8725.5546875,
+          "bottom": 8805.0546875,
+          "width": 262.7421875,
+          "height": 79.5
+        },
+        {
+          "tag": "P",
+          "text": "Share live dashboards securely with stakeholders using granular link permissions.",
+          "left": 49,
+          "right": 311.7421875,
+          "top": 8817.0546875,
+          "bottom": 8876.6796875,
+          "width": 262.7421875,
+          "height": 59.625
+        },
+        {
+          "tag": "P",
+          "text": "Status",
+          "left": 143.7890625,
+          "right": 214.59375,
+          "top": 11327.5546875,
+          "bottom": 11343.5546875,
+          "width": 70.8046875,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Connected",
+          "left": 143.7890625,
+          "right": 214.59375,
+          "top": 11343.5546875,
+          "bottom": 11363.4296875,
+          "width": 70.8046875,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Status",
+          "left": 153.3046875,
+          "right": 214.59375,
+          "top": 11423.2421875,
+          "bottom": 11439.2421875,
+          "width": 61.2890625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Pending DNS",
+          "left": 153.3046875,
+          "right": 214.59375,
+          "top": 11439.2421875,
+          "bottom": 11478.9921875,
+          "width": 61.2890625,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Status",
+          "left": 140.671875,
+          "right": 214.59375,
+          "top": 11538.8046875,
+          "bottom": 11554.8046875,
+          "width": 73.921875,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Generating",
+          "left": 140.671875,
+          "right": 214.59375,
+          "top": 11554.8046875,
+          "bottom": 11574.6796875,
+          "width": 73.921875,
+          "height": 19.875
+        },
+        {
+          "tag": "H2",
+          "text": "Security, compliance, and governance woven into every release",
+          "left": 24,
+          "right": 302.1328125,
+          "top": 11828.5546875,
+          "bottom": 12008.5546875,
+          "width": 278.1328125,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Run mission-critical workloads with built-in safeguards. Per-deployment secrets, role-based access, ",
+          "left": 24,
+          "right": 302.1328125,
+          "top": 12024.5546875,
+          "bottom": 12168.5546875,
+          "width": 278.1328125,
+          "height": 144
+        },
+        {
+          "tag": "H3",
+          "text": "Secure by default",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12279.5546875,
+          "bottom": 12303.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Governed releases",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12507.5546875,
+          "bottom": 12531.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Resilient data",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12755.5546875,
+          "bottom": 12779.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "H3",
+          "text": "Continuous observability",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 12983.5546875,
+          "bottom": 13007.5546875,
+          "width": 228.1328125,
+          "height": 24
+        },
+        {
+          "tag": "P",
+          "text": "Approval",
+          "left": 188.65625,
+          "right": 252.1328125,
+          "top": 13264.4296875,
+          "bottom": 13280.4296875,
+          "width": 63.4765625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Complete",
+          "left": 188.65625,
+          "right": 252.1328125,
+          "top": 13280.4296875,
+          "bottom": 13300.3046875,
+          "width": 63.4765625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Rollback",
+          "left": 189.2734375,
+          "right": 252.1328125,
+          "top": 13374.0546875,
+          "bottom": 13390.0546875,
+          "width": 62.859375,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Available",
+          "left": 189.2734375,
+          "right": 252.1328125,
+          "top": 13390.0546875,
+          "bottom": 13409.9296875,
+          "width": 62.859375,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Audit",
+          "left": 74,
+          "right": 202.59375,
+          "top": 13471.8046875,
+          "bottom": 13491.6796875,
+          "width": 128.59375,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": "Signed via  /  SSO",
+          "left": 74,
+          "right": 202.59375,
+          "top": 13491.6796875,
+          "bottom": 13531.4296875,
+          "width": 128.59375,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Event",
+          "left": 202.59375,
+          "right": 252.1328125,
+          "top": 13483.6796875,
+          "bottom": 13499.6796875,
+          "width": 49.5390625,
+          "height": 16
+        },
+        {
+          "tag": "P",
+          "text": "Logged",
+          "left": 202.59375,
+          "right": 252.1328125,
+          "top": 13499.6796875,
+          "bottom": 13519.5546875,
+          "width": 49.5390625,
+          "height": 19.875
+        },
+        {
+          "tag": "P",
+          "text": " Built on the same pipeline as E-Code",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 13630.4296875,
+          "bottom": 13670.1796875,
+          "width": 228.1328125,
+          "height": 39.75
+        },
+        {
+          "tag": "P",
+          "text": "Every customer deployment runs through the identical build, smoke-test, and rollback path E-Code use",
+          "left": 49,
+          "right": 277.1328125,
+          "top": 13682.1796875,
+          "bottom": 13821.3046875,
+          "width": 228.1328125,
+          "height": 139.125
+        },
+        {
+          "tag": "A",
+          "text": "Review API integrations",
+          "left": -12.890625,
+          "right": 207.8984375,
+          "top": 16416.9296875,
+          "bottom": 16460.9296875,
+          "width": 220.7890625,
+          "height": 44
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "metrics": {
+        "innerWidth": 195,
+        "innerHeight": 406,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 195
+      },
+      "elementOverflowCount": 12,
+      "controls": [
+        {
+          "text": "Start Collaborating Free",
+          "box": {
+            "left": 16,
+            "right": 179,
+            "top": 652.75,
+            "bottom": 696.75,
+            "width": 163,
+            "height": 44
+          },
+          "ranges": [
+            {
+              "left": 8.3359375,
+              "right": 186.6640625,
+              "top": 663.75,
+              "bottom": 685.25
+            }
+          ],
+          "borderOutsideViewport": false,
+          "textOutsideBorder": true,
+          "textOutsideViewport": false,
+          "heightBelow44": false
+        }
+      ],
+      "overflowElements": [
+        {
+          "tag": "H3",
+          "text": "Real-time Multiplayer",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1213.75,
+          "bottom": 1269.75,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "See teammates' cursors, selections, and edits in real-time. It's like being in the same room.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1277.75,
+          "bottom": 1377.125,
+          "width": 159.4375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Advanced Version Control",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1523.125,
+          "bottom": 1579.125,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Built-in Git with visual branching, merge conflict resolution, and code review tools.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1587.125,
+          "bottom": 1666.625,
+          "width": 159.4375,
+          "height": 79.5
+        },
+        {
+          "tag": "H3",
+          "text": "Integrated Communication",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1812.625,
+          "bottom": 1868.625,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Voice chat, video calls, and threaded discussions right in your workspace.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 1876.625,
+          "bottom": 1956.125,
+          "width": 159.4375,
+          "height": 79.5
+        },
+        {
+          "tag": "H3",
+          "text": "Enterprise Security",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2102.125,
+          "bottom": 2158.125,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "SSO, 2FA, audit logs, and granular permissions to keep your code secure.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2166.125,
+          "bottom": 2245.625,
+          "width": 159.4375,
+          "height": 79.5
+        },
+        {
+          "tag": "H3",
+          "text": "Instant Environments",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2391.625,
+          "bottom": 2447.625,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Spin up identical development environments for every team member in seconds.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2455.625,
+          "bottom": 2555,
+          "width": 159.4375,
+          "height": 99.375
+        },
+        {
+          "tag": "H3",
+          "text": "Global Performance",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2701,
+          "bottom": 2757,
+          "width": 159.4375,
+          "height": 56
+        },
+        {
+          "tag": "P",
+          "text": "Low-latency collaboration from anywhere with our global edge network.",
+          "left": 41,
+          "right": 200.4375,
+          "top": 2765,
+          "bottom": 2844.5,
+          "width": 159.4375,
+          "height": 79.5
+        }
+      ],
+      "actualPixelClipping": "not verified at CSS195",
+      "absolutePositionCause": "not established",
+      "priority": "reflow follow-up",
+      "snapshot": "cc5574d; before observability grid correction"
+    }
+  ],
+  "newRouteIDs": 0,
+  "newBrowserRuns": 0
+}
