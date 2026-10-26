@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-515 entrées.
+516 entrées.
 
 ## Sans section
 
@@ -664,6 +664,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-TEAM-SETTINGS-NESTED-OUTLET-20261026](docs/bugs/BUG-TEAM-SETTINGS-NESTED-OUTLET-20261026.md) — L’URL des paramètres d’équipe affiche le journal d’accès parent au lieu de la page enfant : les paramètres existants ne sont pas accessibles par navigation. — 📤 Dispatché : ☑ 26/10/2026 — Périmètre organisation/équipes alloué, worktree séparé.31 PR ouvertes relues, aucun chevaucheme · 💻 Codé : ☐ Sur main. Correctif local : `useOutlet` inconditionnel après les autres hooks, retour enfant avant la coque · ✅ Testé live : ☐ En production. Fixtures GET synthétiques, aucune création d’équipe ni modification de permission.
 - [BUG-IDE-FEEDBACK-20261026](docs/bugs/BUG-IDE-FEEDBACK-20261026.md) — Signalements utilisateur du 26 octobre 2026 : notifications de compilation et autres couches couvrant les actions sur iPhone ; résultats des agents affichés en  — 📤 Dispatché : ☑ 26/10 — présentation et vignettes, branche isolée depuis main 951ceb8d5653bee4df30b010753c859c0c4a44c0. Back · 💻 Codé : ☐ — corrections locales en cours ; aucune fusion ni livraison de ce lot. · ✅ Testé live : ☐ — aucune session de production disponible. Les captures ont été décrites précisément par le parent ; leur té
 - [BUG-PORTFOLIO-GENERATION-20261026](docs/bugs/BUG-PORTFOLIO-GENERATION-20261026.md) — 📤 Dispatché : ☑ 26 octobre 2026 — Lot portfolio isolé, PR #806. · 💻 Codé : ☐ Sur main. Correctif proposé dans #806 ; validation CI de la nouvelle tête requise. · ✅ Testé live : ☐ Aucune recette de génération en production ; accès au projet non disponible.
+
+## Génération et orchestration
+
+- [BUG-AGENT-OUTPUT-EVIDENCE-20261026](docs/bugs/BUG-AGENT-OUTPUT-EVIDENCE-20261026.md) — 📤 Dispatché : non renseigné · 💻 Codé : Contrat de sortie et preuves distinctes ; PR #809 en validation, non déployée. · ✅ Testé live : Non : tests isolés uniquement pour ce correctif. Le 503 production reste non diagnostiqué.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
