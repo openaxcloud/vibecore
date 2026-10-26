@@ -45,6 +45,17 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     return Response.json(result);
   } catch (error) {
+    if (isApiResponse(error, 503)) {
+      const payload: unknown = await error
+        .clone()
+        .json()
+        .catch(() => null);
+
+      if (payload && typeof payload === 'object' && 'code' in payload && payload.code === 'PROVIDER_NOT_CONFIGURED') {
+        return remainingApiErrorResponse(request, 'OAUTH_PROVIDER_NOT_CONFIGURED', 503);
+      }
+    }
+
     /* apiRequest may throw a provider response; retain only a safe status. */
     const status = isApiResponse(error) && error.status !== 500 ? error.status : 502;
 

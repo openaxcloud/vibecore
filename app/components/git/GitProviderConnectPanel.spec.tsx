@@ -25,6 +25,42 @@ describe('<GitProviderConnectPanel />', () => {
     vi.unstubAllGlobals();
   });
 
+  it.each([
+    [503, 'OAUTH_PROVIDER_NOT_CONFIGURED', /indisponible sur la plateforme/],
+    [401, 'OAUTH_START_FAILED', /session est indisponible ou expirée/],
+    [403, 'OAUTH_START_FAILED', /connexion a été refusée/],
+    [429, 'OAUTH_START_FAILED', /Trop de tentatives/],
+  ])('explains OAuth start HTTP %s without opening a popup', async (status, code, message) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ code, error: 'private detail' }), { status })),
+    );
+
+    const open = vi.spyOn(window, 'open');
+    renderPanel({ projectId: 'synthetic' }, 'fr');
+    fireEvent.click(screen.getByRole('button', { name: /Connecter GitHub depuis le panneau Git/i }));
+    expect(await screen.findByText(message)).toBeTruthy();
+    expect(screen.queryByText('private detail')).toBeNull();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it.each([403, 429])('distinguishes repository list HTTP %s from a disconnected account', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status })));
+    renderPanel({ projectId: 'synthetic' });
+    fireEvent.click(screen.getByRole('button', { name: /Choose from your GitHub repositories/i }));
+    expect(
+      await screen.findByText(status === 403 ? /Access to the repository list was refused/ : /Too many requests/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Connect GitHub above first/)).toBeNull();
+  });
+
+  it('uses a provider-neutral session error for GitLab', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 401 })));
+    renderPanel({ projectId: 'synthetic' }, 'fr');
+    fireEvent.click(screen.getByRole('button', { name: /Connecter GitLab depuis le panneau Git/i }));
+    expect(await screen.findByText(/Reconnectez-vous avant de connecter un fournisseur/)).toBeTruthy();
+  });
+
   it('starts provider OAuth from the Git panel instead of linking to settings', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

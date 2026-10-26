@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-512 entrées.
+513 entrées.
 
 ## Sans section
 
@@ -661,6 +661,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-GALLERY-LONG-TITLE-TAGS-20261026](docs/bugs/BUG-GALLERY-LONG-TITLE-TAGS-20261026.md) — Les titres et tags longs sans espaces dépassent leur carte Galerie et sont masqués malgré un document horizontalement contenu. — 📤 Dispatché : ☑ 26/10/2026 — Lot Discovery P1, cause reproduite et delta local revu par le parent. · 💻 Codé : ☐ Sur main. Deux classes locales de `app/routes/gallery._index.tsx` corrigées ; aucune modification de navigat · ✅ Testé live : ☐ En production. Chromium local et catalogue synthétique ; aucune publication, remix, acquisition, achat ou do
 - [BUG-SSO-TEST-BUTTON-HEIGHT-20261026](docs/bugs/BUG-SSO-TEST-BUTTON-HEIGHT-20261026.md) — Les deux boutons « Tester la connexion » OIDC/SAML mesurent32px malgré un minimum44px prévu localement. — 📤 Dispatché : ☑ 26/10/2026 — Défaut reproduit,31 PR relues sans chevauchement, revue root indépendante du patch et des mesur · 💻 Codé : ☐ Sur main. Deux classes locales deviennent `!min-h-[44px]`. Button partagé, CSS global, h-auto, wrapping, lab · ✅ Testé live : ☐ En production. Aucun test de connexion IdP, secret ou enregistrement SSO exécuté.
 - [BUG-TEAM-SETTINGS-NESTED-OUTLET-20261026](docs/bugs/BUG-TEAM-SETTINGS-NESTED-OUTLET-20261026.md) — L’URL des paramètres d’équipe affiche le journal d’accès parent au lieu de la page enfant : les paramètres existants ne sont pas accessibles par navigation. — 📤 Dispatché : ☑ 26/10/2026 — Périmètre organisation/équipes alloué, worktree séparé.31 PR ouvertes relues, aucun chevaucheme · 💻 Codé : ☐ Sur main. Correctif local : `useOutlet` inconditionnel après les autres hooks, retour enfant avant la coque · ✅ Testé live : ☐ En production. Fixtures GET synthétiques, aucune création d’équipe ni modification de permission.
+
+## 2026-10-26 — P0 connexion Git IDE
+
+- [BUG-GIT-OAUTH-START-DIAGNOSTIC-001](docs/bugs/BUG-GIT-OAUTH-START-DIAGNOSTIC-001.md) — Sur Safari iPhone, le clic Connecter GitHub affiche « Impossible de lancer le flux OAuth GitHub. » avant sélection de dépôt. Capture rapportée par le parent ; l — 📤 Dispatché : 26 octobre : diagnostic Git dédié, distinct du hub Intégrations et de la recette navigateur menée par une autr · 💻 Codé : Non livré sur main. Lot diagnostic sur `fix/git-repository-errors-20261026`, base `951ceb8d5653bee4df30b010753 · ✅ Testé live : Non validé en production ou sur Safari matériel. Tests locaux uniquement ; le blocage utilisateur n'est pas dé
 
 ## Résidus non tabulaires — reportés mot pour mot
 
