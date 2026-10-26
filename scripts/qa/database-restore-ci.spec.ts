@@ -46,8 +46,8 @@ function completeReport() {
     numFailedTests: 0,
     numPendingTests: 0,
     numTodoTests: 0,
-    numTotalTests: 2,
-    numPassedTests: 2,
+    numTotalTests: Number(requiredSpecs.length),
+    numPassedTests: Number(requiredSpecs.length),
     testResults: requiredSpecs.map((file) => ({
       name: resolve('services/api', file),
       status: 'passed',
@@ -57,6 +57,29 @@ function completeReport() {
 }
 
 describe('restore CI report completeness (report parsing only)', () => {
+  it('requires the consumer registry PostgreSQL suite', () => {
+    expect(requiredSpecs).toContain('src/tests/database-restore-consumer-registry.spec.ts');
+  });
+
+  it.each(['absent', 'skipped', 'pending', 'failed', 'todo'])(
+    'rejects a consumer registry suite that is %s',
+    (status) => {
+      const report = completeReport();
+      const index = requiredSpecs.indexOf('src/tests/database-restore-consumer-registry.spec.ts');
+      expect(index).toBeGreaterThanOrEqual(0);
+
+      if (status === 'absent') {
+        report.testResults.splice(index, 1);
+        report.numTotalTests--;
+        report.numPassedTests--;
+      } else {
+        report.testResults[index].assertionResults[0].status = status;
+      }
+
+      expect(summarizeCiTestReport(report).valid).toBe(false);
+    },
+  );
+
   it('accepts the complete set of successful assertions', () => {
     expect(summarizeCiTestReport(completeReport()).valid).toBe(true);
   });
