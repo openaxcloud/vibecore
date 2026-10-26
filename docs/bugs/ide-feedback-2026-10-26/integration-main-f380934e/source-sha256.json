@@ -1,0 +1,17 @@
+{
+  "app/components/chat/AgentLaneSummary.tsx": "469861cf3f6c5219983bf28f1be13aa17953656cff78891c3c00070f8b8a1ef8",
+  "app/components/chat/Artifact.tsx": "1ca8402cbbb5d8c24f9937aa85ee5794ccef8f1e558bfb00ffcdd8baf3ee0e4f",
+  "app/components/chat/AssistantMessage.i18n.spec.tsx": "3ebcb3d8bc4b60f2937d75d655e1b5f698882aa0bac3c962097ea5c59d4d91c2",
+  "app/components/chat/AssistantMessage.tsx": "de06f4e05c94481a9355ce0b76523982a89518ccce6f3d8cb9c9611dee890422",
+  "app/components/dashboard/ProjectPreviewMedia.spec.tsx": "d52b43498aaf8abfa81080f3d524864357b4ab003a72d417b4035a1c96712906",
+  "app/components/dashboard/SaaSLayout.tsx": "8f777ca101d23bb218ddb5368cb932f19870842daea557da30d8ecfe8802e2dd",
+  "app/components/ui/useIdeToastLayout.spec.tsx": "29de631af1eeb5e131b9d090c31dccb258afd2c6ec69b72f7a89c368855bf774",
+  "app/components/ui/useIdeToastLayout.ts": "f1c9870738ccbbf0d6e74139aacb49de86a6028f4cfcef641aa05316e02e28ea",
+  "app/components/workbench/Preview.start-notice.spec.tsx": "646bb831acf36c3ffda0abed3eebc52d340c2b9d695f254e5ded2ffacc7c16d2",
+  "app/components/workbench/Preview.tsx": "3ee4ba5398ac5f0b7f8ae26137d287bf4b49df2044554524e8d7015ef6efec28",
+  "app/components/workbench/usePreviewStartNotice.spec.tsx": "a0dd9fa65ea7106d0ee6d4d54759967db5ea3957a36e9b47146fcdcc8eaee810",
+  "app/components/workbench/usePreviewStartNotice.ts": "c480a63a4ce7896c07996fa63fdc8895e9255bbca21977c706ed040e127cb6cb",
+  "app/lib/i18n/catalogs/assistant-message.ts": "92f0f7e859cd6d514f2156221c1954f3e23625896ddbf14655b4fb022e866aa3",
+  "app/root.tsx": "fffabae5bff82089c49db619993596c8ae421b187af94fcbb9798426c1842659",
+  "app/styles/components/toast.scss": "ba2e5352b27ecb5d7b316d710491a31d94778aaf459be1464376a25730bd7315"
+}

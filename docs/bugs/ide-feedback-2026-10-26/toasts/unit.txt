@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ide-feedback
+
+ ✓ app/styles/deux-defauts-visuels.spec.ts (9 tests) 6ms
+ ✓ app/components/ui/use-toast.spec.ts (7 tests) 17ms
+ ✓ app/components/ui/useIdeToastLayout.spec.tsx (3 tests) 27ms
+
+ Test Files  3 passed (3)
+      Tests  19 passed (19)
+   Start at  05:58:46
+   Duration  2.34s (transform 1.03s, setup 66ms, collect 273ms, tests 50ms, environment 637ms, prepare 179ms)

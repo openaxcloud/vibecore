@@ -1,0 +1,13 @@
+{
+  "app/components/chat/AgentLaneSummary.tsx": "a64e22bf6ee75e3693932824462a741e91a28e164f85c27a9514a6e74cf0a1b7",
+  "app/components/chat/AssistantMessage.i18n.spec.tsx": "5bab77e545b9cfded387b6e38bd2bf10d4c91a851279b2987851f0702c100c78",
+  "app/components/chat/AssistantMessage.tsx": "773ee83bef647233fe422d89b35f2690668260f9fcfad839da6b0babbff7ac35",
+  "app/components/dashboard/ProjectPreviewMedia.spec.tsx": "d52b43498aaf8abfa81080f3d524864357b4ab003a72d417b4035a1c96712906",
+  "app/components/dashboard/SaaSLayout.tsx": "8f777ca101d23bb218ddb5368cb932f19870842daea557da30d8ecfe8802e2dd",
+  "app/components/ui/useIdeToastLayout.spec.tsx": "91df06559c687a31479e1bd887e21fed4f06505adf1a9f7fe21bb8a872dce683",
+  "app/components/ui/useIdeToastLayout.ts": "d9bdba52e15cacc710b55a402819d187106cc7fa5954aeca1e054acab25ffb30",
+  "app/lib/i18n/catalogs/assistant-message.ts": "f6491aa97535712578df0cd5b35dd2a3634aa198967efc918117f1cfda7c3ac7",
+  "app/root.tsx": "fffabae5bff82089c49db619993596c8ae421b187af94fcbb9798426c1842659",
+  "app/styles/components/toast.scss": "ba2e5352b27ecb5d7b316d710491a31d94778aaf459be1464376a25730bd7315",
+  "tests/e2e/bandeau-toast-visible.spec.ts": "c148e6b951777a747775d734ae066ddbf1b7a989796436b5eb9f94dccad97e8d"
+}

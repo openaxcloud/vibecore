@@ -13,6 +13,7 @@ import { memo, Fragment, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
+import { AgentLaneSummary, AgentVerificationClaims, getAgentOutputLabel } from './AgentLaneSummary';
 import { Markdown } from './Markdown';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { MessagePatchReview } from './MessagePatchReview';
@@ -210,6 +211,7 @@ export const AssistantMessage = memo(
         text: string;
         status: 'running' | 'complete' | 'partial' | 'failed';
         summary?: string;
+        terminalOutput?: unknown;
       };
 
       const lanes = new Map<string, AgentLaneStreamState>();
@@ -233,6 +235,7 @@ export const AssistantMessage = memo(
         } else if (annotation.kind === 'done') {
           lane.status = annotation.status ?? 'complete';
           lane.summary = annotation.summary;
+          lane.terminalOutput = annotation;
         }
 
         lanes.set(annotation.roleId, lane);
@@ -616,6 +619,10 @@ export const AssistantMessage = memo(
                               </span>
                             </div>
                           </div>
+                          <p className="text-xs text-bolt-elements-textSecondary">
+                            {copy['assistantMessage.lanes.unverifiedClaims']}
+                          </p>
+                          <AgentVerificationClaims consensus={agentExecution.consensus} copy={copy} />
                           {agentExecution.consensus.claimVotes.length > 0 && (
                             <details className="text-xs">
                               <summary className="cursor-pointer text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
@@ -967,17 +974,29 @@ export const AssistantMessage = memo(
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
                   const stream = agentLaneStreams?.find((lane) => lane.roleId === role.id);
 
-                  const state = resolveLaneState({
-                    resultStatus: result?.status,
-                    streamStatus: stream?.status,
-                    hasExecution: Boolean(agentExecution),
-                    isStreaming,
-                  });
+                  const output = agentExecution ? result : stream?.terminalOutput;
+
+                  const outputLabel = getAgentOutputLabel(output, copy);
+
+                  const interrupted =
+                    output &&
+                    typeof output === 'object' &&
+                    'outputState' in output &&
+                    output.outputState === 'interrupted';
+
+                  const state = interrupted
+                    ? 'failed'
+                    : resolveLaneState({
+                        resultStatus: result?.status,
+                        streamStatus: stream?.status,
+                        hasExecution: Boolean(agentExecution),
+                        isStreaming,
+                      });
                   const icon =
                     state === 'running'
                       ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
                       : state === 'complete'
-                        ? 'i-ph:check-circle text-emerald-500'
+                        ? 'i-ph:check-circle text-bolt-elements-textSecondary'
                         : state === 'partial'
                           ? 'i-ph:warning-circle text-amber-500'
                           : 'i-ph:x-circle text-red-500';
@@ -985,7 +1004,7 @@ export const AssistantMessage = memo(
                   return (
                     <div
                       key={role.id}
-                      className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
+                      className="min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
                       data-testid={`agent-lane-${role.id}`}
                       data-state={state}
                     >
@@ -995,27 +1014,34 @@ export const AssistantMessage = memo(
                           {role.title}
                         </span>
                       </div>
-                      {/*
-                         HAUTEUR RÉSERVÉE : trois lignes, toujours. Mesuré le 2026-09-28 en
-                         production à 390 px : la source de cet aperçu change pendant le flux
-                         (responsabilité → extrait du flux → résumé) et la carte passait de
-                         une à trois lignes et retour — ±20 px par carte, quatre cartes
-                         empilées, ~750 px de sauts en 0,9 s et des retours en arrière de
-                         40 px. Hauteur fixe : le panneau entre d'un bloc et ne bouge plus.
-                      */}
-                      <div
-                        data-testid="agent-lane-apercu"
-                        className="mt-1 h-12 overflow-hidden line-clamp-3 text-[11px] leading-4 text-bolt-elements-textSecondary"
-                      >
-                        {result?.summary ??
+                      <div className="mt-1 h-8 overflow-hidden text-[11px] text-bolt-elements-textSecondary">
+                        {outputLabel
+                          ? state !== 'complete' && !interrupted
+                            ? `${localizeAssistantEnum(copy, 'status', state)} · ${outputLabel}`
+                            : outputLabel
+                          : state === 'complete'
+                            ? copy['assistantMessage.lanes.taskFinished']
+                            : !agentExecution && !isStreaming && (!stream || stream.status === 'running')
+                              ? copy['assistantMessage.lanes.stopped']
+                              : localizeAssistantEnum(copy, 'status', state)}
+                      </div>
+                      <AgentLaneSummary
+                        copy={copy}
+                        result={output}
+                        value={
+                          result?.summary ??
                           stream?.summary ??
                           extractLaneStreamSummary(stream?.text) ??
-                          role.responsibility}
-                      </div>
+                          role.responsibility
+                        }
+                      />
                     </div>
                   );
                 })}
               </div>
+              <p className="mt-2 text-[11px] text-bolt-elements-textSecondary">
+                {copy['assistantMessage.lanes.notValidated']}
+              </p>
               {agentExecution?.consensus && (
                 <div className="mt-2 text-[11px] text-bolt-elements-textSecondary">
                   {text(copy['assistantMessage.lanes.consensusSummary'], {

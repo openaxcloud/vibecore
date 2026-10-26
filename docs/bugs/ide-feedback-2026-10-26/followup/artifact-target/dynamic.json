@@ -1,0 +1,143 @@
+[
+  {
+    "width": 320,
+    "rows": [
+      {
+        "status": "running",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "failed",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      }
+    ],
+    "existingNodePreserved": true,
+    "openFileHandler": true
+  },
+  {
+    "width": 390,
+    "rows": [
+      {
+        "status": "running",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "failed",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      }
+    ],
+    "existingNodePreserved": true,
+    "openFileHandler": true
+  },
+  {
+    "width": 768,
+    "rows": [
+      {
+        "status": "running",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "failed",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      },
+      {
+        "status": "complete",
+        "transform": "none",
+        "height": 44
+      }
+    ],
+    "existingNodePreserved": true,
+    "openFileHandler": true
+  }
+]

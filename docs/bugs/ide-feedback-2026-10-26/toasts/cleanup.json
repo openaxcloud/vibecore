@@ -1,0 +1,8 @@
+{
+  "pid": 228008,
+  "startTicksExpected": "3755375",
+  "startTicksActual": "3755375",
+  "command": "node /tmp/ui-ide-toast-feedback/server.cjs ",
+  "sent": "SIGTERM",
+  "remaining": false
+}
