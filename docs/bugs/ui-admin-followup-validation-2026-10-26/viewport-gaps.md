@@ -8,6 +8,7 @@ Complément de la matrice par route de #802 : `ui-p2-coverage-2026-10-26/routes-
 | Admin Billing corrigé | 320,390,844,820,1440 ; 20 observations/4 parcours | 360,768,1024,1280,1920,2560 | #802 brouillon |
 | Éditorial, baseline de 15 IDs | 320,390,844,820,1440 ; FR/EN clair/sombre | 360,768,1024,1280,1920,2560 | Cartes Blog et contrat Newsletter restent ouverts |
 | Détail Blog corrigé | 320,390,844,820,1440 ; 20 observations/4 parcours | 360,768,1024,1280,1920,2560 ; tous les slugs et cartes non rejoués | #802 brouillon |
+| Complément des trois articles Blog publiés | 320,360,390,844,768,820,1024,1280,1440,1920,2560 ; FR/EN clair/sombre, 132 observations/12 groupes | Pas tous les états ni les sept cartes ; uniquement les trois slugs existants | Complément #802 sur build produit inchangé |
 | Légal, 15 routes observées dont 4 corrigées | 320,360,390,844,768,820,1024,1280,1440,1920 ; FR/EN clair/sombre | 2560 ; tous les états dynamiques/formulaires ne sont pas couverts | #802 brouillon |
 | Solutions/Produit, baseline de 29 états rendus et 1 alias | 320,360,390,844,768,820,1024,1280,1440,1920,2560 ; FR/EN clair/sombre | Pas de format manquant dans cette grille, mais uniquement les états et valeurs de routes documentés | Baseline partielle, pas certification fonctionnelle |
 | Hero marketing Déploiements corrigé | Les 11 formats précédents ; 44 observations/8 groupes | Autres états, contenus futurs et clavier OS non couverts | #802 brouillon |
