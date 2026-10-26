@@ -1,0 +1,5556 @@
+[
+  {
+    "id": "routes/admin._index",
+    "routePattern": "/admin",
+    "sourcefile": "app/routes/admin._index.tsx",
+    "group": "administration",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority baseline13199, direct-source comparison only",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13199/admin/overview"
+        ]
+      }
+    ],
+    "openDefects": [
+      "ADMIN-INDEX-LOCALE-REDIRECT-OBSERVATION"
+    ],
+    "limits": [
+      "Synthetic admin identity and API only; no financial mutation, permissions change, OAuth creation or actual account.",
+      "Only320/390/844landscape/820/1440; no360/768/1024/1280/1920/zoom200.",
+      "Redirect route, not an additional screen. /admin lost querylang in baseline; requested FR first title English."
+    ],
+    "concretePaths": [
+      "/admin"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-administration-2026-10-26/before13199/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/admin.$section",
+    "routePattern": "/admin/:section",
+    "sourcefile": "app/routes/admin.$section.tsx",
+    "group": "administration",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority baseline13199, direct-source comparison only",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13199/admin/overview?lang=en",
+          "http://127.0.0.1:13199/admin/overview?lang=fr",
+          "http://127.0.0.1:13199/admin/users?lang=en",
+          "http://127.0.0.1:13199/admin/users?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [
+      "ADMIN-USERS-SMALL-CONTROLS-OBSERVATION"
+    ],
+    "limits": [
+      "Synthetic admin identity and API only; no financial mutation, permissions change, OAuth creation or actual account.",
+      "Only320/390/844landscape/820/1440; no360/768/1024/1280/1920/zoom200.",
+      "Only overview and users values; remaining dynamic sections unexercised."
+    ],
+    "concretePaths": [
+      "/admin/overview",
+      "/admin/users"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-administration-2026-10-26/before13199/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/admin.billing",
+    "routePattern": "/admin/billing",
+    "sourcefile": "app/routes/admin.billing.tsx",
+    "group": "administration",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority baseline13199, direct-source comparison only",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13199/admin/billing?lang=en",
+          "http://127.0.0.1:13199/admin/billing?lang=fr"
+        ]
+      },
+      {
+        "receipt": "docs/bugs/ui-administration-2026-10-26/after13299/receipt.json",
+        "phase": "corrected compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13299/admin/billing?lang=en",
+          "http://127.0.0.1:13299/admin/billing?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Synthetic admin identity and API only; no financial mutation, permissions change, OAuth creation or actual account.",
+      "Only320/390/844landscape/820/1440; no360/768/1024/1280/1920/zoom200."
+    ],
+    "concretePaths": [
+      "/admin/billing"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-administration-2026-10-26/before13199/interactions.json",
+      "docs/bugs/ui-administration-2026-10-26/after13299/interactions.json"
+    ],
+    "correction": "Long plan select/label containment verified; other baseline routes not rerun."
+  },
+  {
+    "id": "routes/admin.oauth-providers",
+    "routePattern": "/admin/oauth-providers",
+    "sourcefile": "app/routes/admin.oauth-providers.tsx",
+    "group": "administration",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority baseline13199, direct-source comparison only",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+          "http://127.0.0.1:13199/admin/oauth-providers?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Synthetic admin identity and API only; no financial mutation, permissions change, OAuth creation or actual account.",
+      "Only320/390/844landscape/820/1440; no360/768/1024/1280/1920/zoom200."
+    ],
+    "concretePaths": [
+      "/admin/oauth-providers"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-administration-2026-10-26/before13199/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/admin.stripe",
+    "routePattern": "/admin/stripe",
+    "sourcefile": "app/routes/admin.stripe.tsx",
+    "group": "administration",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority baseline13199, direct-source comparison only",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13199/admin/stripe?lang=en",
+          "http://127.0.0.1:13199/admin/stripe?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Synthetic admin identity and API only; no financial mutation, permissions change, OAuth creation or actual account.",
+      "Only320/390/844landscape/820/1440; no360/768/1024/1280/1920/zoom200."
+    ],
+    "concretePaths": [
+      "/admin/stripe"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-administration-2026-10-26/before13199/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/admin.wallets",
+    "routePattern": "/admin/wallets",
+    "sourcefile": "app/routes/admin.wallets.tsx",
+    "group": "administration",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority baseline13199, direct-source comparison only",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13199/admin/wallets?lang=en",
+          "http://127.0.0.1:13199/admin/wallets?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Synthetic admin identity and API only; no financial mutation, permissions change, OAuth creation or actual account.",
+      "Only320/390/844landscape/820/1440; no360/768/1024/1280/1920/zoom200."
+    ],
+    "concretePaths": [
+      "/admin/wallets"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-administration-2026-10-26/before13199/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/about",
+    "routePattern": "/about",
+    "sourcefile": "app/routes/about.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/about?lang=en",
+          "http://127.0.0.1:13399/about?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/about"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/blog",
+    "routePattern": "/blog",
+    "sourcefile": "app/routes/blog.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/blog?lang=en",
+          "http://127.0.0.1:13399/blog?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [
+      "BLOG-CARD-DESTINATIONS"
+    ],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/blog"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/blog.$slug",
+    "routePattern": "/blog/:slug",
+    "sourcefile": "app/routes/blog.$slug.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+          "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr"
+        ]
+      },
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/after13499/receipt.json",
+        "phase": "corrected compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+          "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only.",
+      "One published slug; unknown slug404 separately. Final navigation uses explicit page.goto, not corrected real cards."
+    ],
+    "concretePaths": [
+      "/blog/introducing-e-code"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ],
+    "correction": "Known article rendered after Outlet fix; baseline20 observations showed wrong parent content."
+  },
+  {
+    "id": "routes/careers",
+    "routePattern": "/careers",
+    "sourcefile": "app/routes/careers.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/careers?lang=en",
+          "http://127.0.0.1:13399/careers?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/careers"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/case-studies",
+    "routePattern": "/case-studies",
+    "sourcefile": "app/routes/case-studies.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/case-studies?lang=en",
+          "http://127.0.0.1:13399/case-studies?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/case-studies"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/changelog",
+    "routePattern": "/changelog",
+    "sourcefile": "app/routes/changelog.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/changelog?lang=en",
+          "http://127.0.0.1:13399/changelog?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/changelog"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/compare._index",
+    "routePattern": "/compare",
+    "sourcefile": "app/routes/compare._index.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/compare?lang=en",
+          "http://127.0.0.1:13399/compare?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/compare"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/compare.$slug",
+    "routePattern": "/compare/:slug",
+    "sourcefile": "app/routes/compare.$slug.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+          "http://127.0.0.1:13399/compare/github-codespaces?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only.",
+      "Only github-codespaces dynamic value exercised."
+    ],
+    "concretePaths": [
+      "/compare/github-codespaces"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/partners",
+    "routePattern": "/partners",
+    "sourcefile": "app/routes/partners.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/partners/?lang=en",
+          "http://127.0.0.1:13399/partners/?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/partners"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/press",
+    "routePattern": "/press",
+    "sourcefile": "app/routes/press.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/press?lang=en",
+          "http://127.0.0.1:13399/press?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only."
+    ],
+    "concretePaths": [
+      "/press"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/status",
+    "routePattern": "/status",
+    "sourcefile": "app/routes/status.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/status?lang=en",
+          "http://127.0.0.1:13399/status?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only.",
+      "Scoped Escape/focus proof exists; resize popover recovery by scroll not fully exercised."
+    ],
+    "concretePaths": [
+      "/status"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/newsletter",
+    "routePattern": "/newsletter",
+    "sourcefile": "app/routes/newsletter.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/newsletter?lang=en",
+          "http://127.0.0.1:13399/newsletter?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [
+      "NEWSLETTER-UNVERIFIED-SUCCESS"
+    ],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only.",
+      "Geometric observation does not validate confirmation/unsubscribe; missing token/backend contract remains open."
+    ],
+    "concretePaths": [
+      "/newsletter"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/newsletter-confirmed",
+    "routePattern": "/newsletter-confirmed",
+    "sourcefile": "app/routes/newsletter-confirmed.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+          "http://127.0.0.1:13399/newsletter-confirmed?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [
+      "NEWSLETTER-UNVERIFIED-SUCCESS"
+    ],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only.",
+      "Geometric observation does not validate confirmation/unsubscribe; missing token/backend contract remains open."
+    ],
+    "concretePaths": [
+      "/newsletter-confirmed"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/newsletter_.confirm",
+    "routePattern": "/newsletter/confirm",
+    "sourcefile": "app/routes/newsletter_.confirm.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+          "http://127.0.0.1:13399/newsletter/confirm?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [
+      "NEWSLETTER-UNVERIFIED-SUCCESS"
+    ],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only.",
+      "Geometric observation does not validate confirmation/unsubscribe; missing token/backend contract remains open."
+    ],
+    "concretePaths": [
+      "/newsletter/confirm"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/newsletter_.unsubscribe",
+    "routePattern": "/newsletter/unsubscribe",
+    "sourcefile": "app/routes/newsletter_.unsubscribe.tsx",
+    "group": "marketing_editorial",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-editorial-2026-10-26/before13399/receipt.json",
+        "phase": "baseline",
+        "compiledBuild": "existing priority fbb678704 baseline13399",
+        "observations": 20,
+        "formats": [
+          [
+            320,
+            740
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1440,
+            900
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+          "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [
+      "NEWSLETTER-UNVERIFIED-SUCCESS"
+    ],
+    "limits": [
+      "No real email, subscription or external mutation.",
+      "Five formats320/390/844landscape/820/1440; targeted FR-light visual samples only.",
+      "Geometric observation does not validate confirmation/unsubscribe; missing token/backend contract remains open."
+    ],
+    "concretePaths": [
+      "/newsletter/unsubscribe"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-editorial-2026-10-26/before13399/interactions.json"
+    ]
+  },
+  {
+    "id": "routes/acceptable-use",
+    "routePattern": "/acceptable-use",
+    "sourcefile": "app/routes/acceptable-use.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/acceptable-use?lang=en",
+          "http://127.0.0.1:12699/acceptable-use?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/acceptable-use"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/accessibility",
+    "routePattern": "/accessibility",
+    "sourcefile": "app/routes/accessibility.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/accessibility?lang=en",
+          "http://127.0.0.1:12699/accessibility?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/accessibility"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/commercial-agreement",
+    "routePattern": "/commercial-agreement",
+    "sourcefile": "app/routes/commercial-agreement.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/commercial-agreement?lang=en",
+          "http://127.0.0.1:12699/commercial-agreement?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/commercial-agreement"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/data-deletion",
+    "routePattern": "/data-deletion",
+    "sourcefile": "app/routes/data-deletion.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/data-deletion?lang=en",
+          "http://127.0.0.1:12699/data-deletion?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/data-deletion"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/deleting-your-data",
+    "routePattern": "/deleting-your-data",
+    "sourcefile": "app/routes/deleting-your-data.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/deleting-your-data?lang=en",
+          "http://127.0.0.1:12699/deleting-your-data?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/deleting-your-data"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/dpa",
+    "routePattern": "/dpa",
+    "sourcefile": "app/routes/dpa.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/corrected/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/dpa?lang=en",
+          "http://127.0.0.1:12699/dpa?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/dpa"
+    ],
+    "additionalReceipts": [],
+    "correction": "Email-request labels and wrapped control text: final compiled Range/height verification."
+  },
+  {
+    "id": "routes/enforcement",
+    "routePattern": "/enforcement",
+    "sourcefile": "app/routes/enforcement.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/enforcement?lang=en",
+          "http://127.0.0.1:12699/enforcement?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/enforcement"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/licensing",
+    "routePattern": "/licensing",
+    "sourcefile": "app/routes/licensing.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/licensing?lang=en",
+          "http://127.0.0.1:12699/licensing?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/licensing"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/report-abuse",
+    "routePattern": "/report-abuse",
+    "sourcefile": "app/routes/report-abuse.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/corrected/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/report-abuse?lang=en",
+          "http://127.0.0.1:12699/report-abuse?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/report-abuse"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/security",
+    "routePattern": "/security",
+    "sourcefile": "app/routes/security.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/security?lang=en",
+          "http://127.0.0.1:12699/security?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/security"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/strike-system",
+    "routePattern": "/strike-system",
+    "sourcefile": "app/routes/strike-system.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/strike-system?lang=en",
+          "http://127.0.0.1:12699/strike-system?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/strike-system"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/student-dpa",
+    "routePattern": "/student-dpa",
+    "sourcefile": "app/routes/student-dpa.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/corrected/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/student-dpa?lang=en",
+          "http://127.0.0.1:12699/student-dpa?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard.",
+      "Eight cold-hash cases acrossFR/EN themes320/1440; not all anchors on all routes."
+    ],
+    "concretePaths": [
+      "/student-dpa"
+    ],
+    "additionalReceipts": [],
+    "correction": "Email-request labels and wrapped control text: final compiled Range/height verification."
+  },
+  {
+    "id": "routes/subprocessors",
+    "routePattern": "/subprocessors",
+    "sourcefile": "app/routes/subprocessors.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/corrected/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/subprocessors?lang=en",
+          "http://127.0.0.1:12699/subprocessors?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard.",
+      "Wide table intentionally scrollable; four320 focus probes make detail link visible, external link not activated."
+    ],
+    "concretePaths": [
+      "/subprocessors"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/table-probe.json"
+    ]
+  },
+  {
+    "id": "routes/trust-and-safety",
+    "routePattern": "/trust-and-safety",
+    "sourcefile": "app/routes/trust-and-safety.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/trust-and-safety?lang=en",
+          "http://127.0.0.1:12699/trust-and-safety?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/trust-and-safety"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/usage-limits",
+    "routePattern": "/usage-limits",
+    "sourcefile": "app/routes/usage-limits.tsx",
+    "group": "legal_trust",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-legal-accessibility-2026-10-26/after12699/remaining/receipt.json",
+        "phase": "final compiled",
+        "compiledBuild": "222495dda common P2",
+        "observations": 40,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            900
+          ],
+          [
+            390,
+            900
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            900
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "http://127.0.0.1:12699/usage-limits?lang=en",
+          "http://127.0.0.1:12699/usage-limits?lang=fr"
+        ]
+      }
+    ],
+    "openDefects": [],
+    "limits": [
+      "Ten requested formats; resize observations, not forty cold starts/full journeys per route.",
+      "No real report, email, download, legal certification, quantitative contrast, native zoom or physical virtual keyboard."
+    ],
+    "concretePaths": [
+      "/usage-limits"
+    ],
+    "additionalReceipts": []
+  },
+  {
+    "id": "routes/solutions._index",
+    "routePattern": "/solutions",
+    "sourcefile": "app/routes/solutions._index.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.$slug",
+    "routePattern": "/solutions/:slug",
+    "sourcefile": "app/routes/solutions.$slug.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/synthetic-unknown"
+        ],
+        "contractObservations": [
+          {
+            "route": "/solutions/internal-ai",
+            "lang": "fr",
+            "theme": "light",
+            "status": 308,
+            "location": "/solutions/internal-ai-builder"
+          },
+          {
+            "route": "/solutions/internal-ai",
+            "lang": "fr",
+            "theme": "dark",
+            "status": 308,
+            "location": "/solutions/internal-ai-builder"
+          },
+          {
+            "route": "/solutions/internal-ai",
+            "lang": "en",
+            "theme": "light",
+            "status": 308,
+            "location": "/solutions/internal-ai-builder"
+          },
+          {
+            "route": "/solutions/internal-ai",
+            "lang": "en",
+            "theme": "dark",
+            "status": 308,
+            "location": "/solutions/internal-ai-builder"
+          }
+        ],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/synthetic-unknown",
+      "/solutions/internal-ai"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification.",
+      "Only synthetic-unknown not-found state and internal-ai308 alias; no200 dynamic resolver branch claimed. More specific static route IDs have their own observations. HTTP404 expected/asserted by harness; per-observation JSON does not duplicate HTTPstatus."
+    ]
+  },
+  {
+    "id": "routes/solutions.app-builder",
+    "routePattern": "/solutions/app-builder",
+    "sourcefile": "app/routes/solutions.app-builder.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/app-builder"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/app-builder"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.chatbot-builder",
+    "routePattern": "/solutions/chatbot-builder",
+    "sourcefile": "app/routes/solutions.chatbot-builder.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/chatbot-builder"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/chatbot-builder"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.dashboard-builder",
+    "routePattern": "/solutions/dashboard-builder",
+    "sourcefile": "app/routes/solutions.dashboard-builder.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/dashboard-builder"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/dashboard-builder"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.enterprise",
+    "routePattern": "/solutions/enterprise",
+    "sourcefile": "app/routes/solutions.enterprise.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/enterprise"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/enterprise"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.freelancers",
+    "routePattern": "/solutions/freelancers",
+    "sourcefile": "app/routes/solutions.freelancers.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/freelancers"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/freelancers"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.game-builder",
+    "routePattern": "/solutions/game-builder",
+    "sourcefile": "app/routes/solutions.game-builder.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/game-builder"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/game-builder"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.internal-ai-builder",
+    "routePattern": "/solutions/internal-ai-builder",
+    "sourcefile": "app/routes/solutions.internal-ai-builder.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/internal-ai-builder"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/internal-ai-builder"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.startups",
+    "routePattern": "/solutions/startups",
+    "sourcefile": "app/routes/solutions.startups.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/startups"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/startups"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/solutions.website-builder",
+    "routePattern": "/solutions/website-builder",
+    "sourcefile": "app/routes/solutions.website-builder.tsx",
+    "group": "solutions",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/solutions/website-builder"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/solutions/website-builder"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/ai",
+    "routePattern": "/ai",
+    "sourcefile": "app/routes/ai.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/ai"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/ai"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/ai-agent.studio",
+    "routePattern": "/ai-agent/studio",
+    "sourcefile": "app/routes/ai-agent.studio.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 0,
+        "formats": [],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [],
+        "contractObservations": [
+          {
+            "route": "/ai-agent/studio",
+            "lang": "fr",
+            "theme": "light",
+            "status": 301,
+            "location": "/ai-agent"
+          },
+          {
+            "route": "/ai-agent/studio",
+            "lang": "fr",
+            "theme": "dark",
+            "status": 301,
+            "location": "/ai-agent"
+          },
+          {
+            "route": "/ai-agent/studio",
+            "lang": "en",
+            "theme": "light",
+            "status": 301,
+            "location": "/ai-agent"
+          },
+          {
+            "route": "/ai-agent/studio",
+            "lang": "en",
+            "theme": "dark",
+            "status": 301,
+            "location": "/ai-agent"
+          }
+        ],
+        "matchedIDsVerified": false,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/ai-agent/studio"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification.",
+      "Only301 redirect contract to /ai-agent, destination not covered by inheritance; querylang not forwarded in Location."
+    ],
+    "correctionStatus": "not a rendered screen"
+  },
+  {
+    "id": "routes/ai-docs",
+    "routePattern": "/ai-docs",
+    "sourcefile": "app/routes/ai-docs.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/ai-docs"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/ai-docs"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/ai-documentation",
+    "routePattern": "/ai-documentation",
+    "sourcefile": "app/routes/ai-documentation.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/ai-documentation"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/ai-documentation"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/bounties",
+    "routePattern": "/bounties",
+    "sourcefile": "app/routes/bounties.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/bounties"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/bounties"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/collaboration",
+    "routePattern": "/collaboration",
+    "sourcefile": "app/routes/collaboration.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/collaboration"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/collaboration"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification.",
+      "Two FR768 text-padding signals stay inside cards; no confirmed collision or correction attributed."
+    ]
+  },
+  {
+    "id": "routes/customers",
+    "routePattern": "/customers",
+    "sourcefile": "app/routes/customers.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/customers"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/customers"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/demo",
+    "routePattern": "/demo",
+    "sourcefile": "app/routes/demo.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/demo"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/demo"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/deployments",
+    "routePattern": "/deployments",
+    "sourcefile": "app/routes/deployments.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/deployments"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/deployments"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/desktop",
+    "routePattern": "/desktop",
+    "sourcefile": "app/routes/desktop.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/desktop"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/desktop"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/marketing.bounties",
+    "routePattern": "/marketing/bounties",
+    "sourcefile": "app/routes/marketing.bounties.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/marketing/bounties"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/marketing/bounties"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/marketing.deployments",
+    "routePattern": "/marketing/deployments",
+    "sourcefile": "app/routes/marketing.deployments.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/marketing/deployments"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      },
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/after13899/receipt.json",
+        "phase": "final corrected compiled target",
+        "compiledBuild": "c2823890d2f5d8e07328a3ba1e5b3b24061b94d0",
+        "observations": 44,
+        "interactionGroups": 8,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "fr",
+          "en"
+        ],
+        "themes": [
+          "light",
+          "dark"
+        ],
+        "mutations": 0,
+        "fullRouteValidated": false
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/marketing/deployments"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/diagnostic.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/grid-minimal-counterproof.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ],
+    "correctionStatus": "Targeted final compiled recipe13899 passed:44 observations,8 keyboard groups,CTA44px and text/card bounds contained. Not merged or production validated."
+  },
+  {
+    "id": "routes/marketing.teams",
+    "routePattern": "/marketing/teams",
+    "sourcefile": "app/routes/marketing.teams.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/marketing/teams"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/marketing/teams"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/mcp",
+    "routePattern": "/mcp",
+    "sourcefile": "app/routes/mcp.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/mcp"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/mcp"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/mobile",
+    "routePattern": "/mobile",
+    "sourcefile": "app/routes/mobile.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/mobile"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 4
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/mobile"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/polyglot",
+    "routePattern": "/polyglot",
+    "sourcefile": "app/routes/polyglot.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/polyglot"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/polyglot"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/product",
+    "routePattern": "/product",
+    "sourcefile": "app/routes/product.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/product"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/product"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/team",
+    "routePattern": "/team",
+    "sourcefile": "app/routes/team.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/team"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/team"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  },
+  {
+    "id": "routes/theme-validation",
+    "routePattern": "/theme-validation",
+    "sourcefile": "app/routes/theme-validation.tsx",
+    "group": "marketing_product",
+    "before": "non_exerce",
+    "proposedStatus": "teste_local_partiel",
+    "state": "completed local partial evidence; not full functionality",
+    "evidence": [
+      {
+        "receipt": "docs/bugs/ui-solutions-product-2026-10-26/receipt.json",
+        "phase": "baseline before hero correction",
+        "compiledBuild": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+        "planSourceHeadNotBuildHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+        "observations": 44,
+        "formats": [
+          [
+            320,
+            900
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            390,
+            844
+          ],
+          [
+            768,
+            1024
+          ],
+          [
+            820,
+            1180
+          ],
+          [
+            844,
+            390
+          ],
+          [
+            1024,
+            768
+          ],
+          [
+            1280,
+            800
+          ],
+          [
+            1440,
+            900
+          ],
+          [
+            1920,
+            1080
+          ],
+          [
+            2560,
+            1440
+          ]
+        ],
+        "languages": [
+          "en",
+          "fr"
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "actualURLs": [
+          "/theme-validation"
+        ],
+        "contractObservations": [],
+        "matchedIDsVerified": true,
+        "representativeInteractionGroups": 0
+      }
+    ],
+    "productionValidated": false,
+    "fullRouteValidated": false,
+    "openDefects": [],
+    "concretePaths": [
+      "/theme-validation"
+    ],
+    "additionalReceipts": [
+      "docs/bugs/ui-solutions-product-2026-10-26/server-origin.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/source-comparison.json"
+    ],
+    "limits": [
+      "No real backend, POST, project creation, download or external destination activated.",
+      "Eleven formats incl2560, FR/ENthemes; resize observations not1276 independent journeys. Only16 representative matrix captures, no exhaustive visual review.",
+      "528 Google Fonts GET requests blocked in the whole matrix; no mutation attempted.",
+      "No new native zoom, WebKit/Firefox, physical safe areas/keyboard, contrast ratios or screenreader certification."
+    ]
+  }
+]

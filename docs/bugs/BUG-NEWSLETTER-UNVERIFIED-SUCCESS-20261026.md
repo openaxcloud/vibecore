@@ -1,3 +1,7 @@
+---
+id: BUG-NEWSLETTER-UNVERIFIED-SUCCESS-20261026
+---
+
 # BUG-NEWSLETTER-UNVERIFIED-SUCCESS-20261026
 
 📤 Dispatché ☑ · 💻 Codé/main ☐ · ✅ Testé live production ☐

@@ -1,0 +1,98 @@
+[
+  {
+    "path": "services/api/node_modules/.bin",
+    "target": "/workspace/vibecore-ui-next/services/api/node_modules/.bin"
+  },
+  {
+    "path": "services/api/node_modules/jszip",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/jszip@3.10.1/node_modules/jszip"
+  },
+  {
+    "path": "services/api/node_modules/xml-crypto",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/xml-crypto@6.1.2/node_modules/xml-crypto"
+  },
+  {
+    "path": "services/api/node_modules/prisma",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/prisma@7.8.0_@types+react-dom@18.3.7_@types+react@18.3.23__@types+react@18.3.23_react-dom@18._lqprda2yklzyn25afuyv6n7m4m/node_modules/prisma"
+  },
+  {
+    "path": "services/api/node_modules/tsx",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx"
+  },
+  {
+    "path": "services/api/node_modules/@google-cloud/storage",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/@google-cloud+storage@7.21.0/node_modules/@google-cloud/storage"
+  },
+  {
+    "path": "services/api/node_modules/gpt-tokenizer",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/gpt-tokenizer@3.4.0/node_modules/gpt-tokenizer"
+  },
+  {
+    "path": "services/api/node_modules/@e-code/sdk",
+    "target": "/workspace/vibecore-ui-public-admin/packages/sdk"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/template-catalog",
+    "target": "/workspace/vibecore-ui-public-admin/packages/template-catalog"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/k8s-client",
+    "target": "/workspace/vibecore-ui-public-admin/packages/k8s-client"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/security",
+    "target": "/workspace/vibecore-ui-public-admin/packages/security"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/quota",
+    "target": "/workspace/vibecore-ui-public-admin/packages/quota"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/database",
+    "target": "/workspace/vibecore-ui-public-admin/packages/database"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/audit",
+    "target": "/workspace/vibecore-ui-public-admin/packages/audit"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/auth",
+    "target": "/workspace/vibecore-ui-public-admin/packages/auth"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/rbac",
+    "target": "/workspace/vibecore-ui-public-admin/packages/rbac"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/observability",
+    "target": "/workspace/vibecore-ui-public-admin/packages/observability"
+  },
+  {
+    "path": "services/api/node_modules/@vibecore/billing",
+    "target": "/workspace/vibecore-ui-public-admin/packages/billing"
+  },
+  {
+    "path": "services/api/node_modules/ioredis",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis"
+  },
+  {
+    "path": "services/api/node_modules/bullmq",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/bullmq@5.76.2/node_modules/bullmq"
+  },
+  {
+    "path": "services/api/node_modules/@xmldom/xmldom",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/@xmldom+xmldom@0.9.10/node_modules/@xmldom/xmldom"
+  },
+  {
+    "path": "services/api/node_modules/@fastify/websocket",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/@fastify+websocket@11.2.0/node_modules/@fastify/websocket"
+  },
+  {
+    "path": "services/api/node_modules/.vite",
+    "target": "/workspace/vibecore-ui-next/services/api/node_modules/.vite"
+  },
+  {
+    "path": "services/api/node_modules/re2",
+    "target": "/workspace/vibecore-ui-next/node_modules/.pnpm/re2@1.24.1/node_modules/re2"
+  }
+]

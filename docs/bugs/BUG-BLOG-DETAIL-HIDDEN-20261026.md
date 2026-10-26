@@ -1,3 +1,7 @@
+---
+id: BUG-BLOG-DETAIL-HIDDEN-20261026
+---
+
 # BUG-BLOG-DETAIL-HIDDEN-20261026 — un article affiche la liste
 
 📤 Dispatché ☑ · 💻 Codé/main ☐ · ✅ Testé live production ☐

@@ -1,6 +1,6 @@
 # Marketing et éditorial — 15 IDs, audit partiel et correctif Blog
 
-Sources isolées initialement Discovery puis worktree Editorial base7759cbcbd. Le build commun priority fbb678704 est réutilisé en lecture seule, sans nouveau build. Les50 fichiers de routes et dépendances directes/à un niveau ont été comparés identiques avant audit (`route-map.json`). Ce graphe limité n’est pas un graphe transitif complet.
+Sources isolées initialement Discovery puis worktree Editorial base7759cbcbd. Le build commun priority fbb678704 est réutilisé en lecture seule, sans nouveau build. Les50 fichiers de routes et dépendances directes/à un niveau ont été comparés identiques avant audit ([registre des routes](before13399/route-map.json)). Ce graphe limité n’est pas un graphe transitif complet.
 
 ## Couverture exacte
 
@@ -25,7 +25,7 @@ Contrôle GitHub frais :32PR ouvertes, toutes pages de fichiers lues, aucun chev
 
 ## Partage et isolation
 
-Composants communs avec Solutions/présentations : EcodeExactShell, EcodeExactUi, EcodeMarketingPages, SaaSLayout ; catalogues marketing, remaining-route-shells, case-studies-collaboration, status-desktop, partners-bounties. Le registre `route-map.json` donne les consommateurs exacts. Aucun de ces composants partagés n’est modifié. Admin/DPA/ReportAbuse, IDE, hub Intégrations restent hors périmètre.
+Composants communs avec Solutions/présentations : EcodeExactShell, EcodeExactUi, EcodeMarketingPages, SaaSLayout ; catalogues marketing, remaining-route-shells, case-studies-collaboration, status-desktop, partners-bounties. Le registre [registre des routes](before13399/route-map.json) donne les consommateurs exacts. Aucun de ces composants partagés n’est modifié. Admin/DPA/ReportAbuse, IDE, hub Intégrations restent hors périmètre.
 
 Les preuves et scripts exacts sont sous `before13399/` (scripts `.txt` avec chemins de session, à adapter pour rejouer). La fixture locale6799 refuse tout sauf GET ; newsletter/email/paiement/actions externes n’ont jamais été activés. Les navigateurs ont été fermés. Serveurs13399/API6799 arrêtés, PID disparus ; anciens12999/13099 absents. Incident du lanceur13299 séparé : erreur d’écriture de provenance après spawn, second lancement échoué EADDRINUSE ; PID propre vérifié puis terminé. Son entrée résiduelle était un zombie sousPID1, sans serveur vivant, et reste décrite ainsi dans le reçu au lieu de prétendre une disparition non observée.
 

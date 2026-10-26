@@ -16,7 +16,7 @@ Delta limité à `!min-h-[44px]` sur le bouton de `support_.$id.tsx`, et attente
 
 ## 💻 Codé
 
-☐ Sur main. Correctif conservé localement dans `975db321b` ; branche intégrant origin/main `3eb70894e`, tête d’intégration `05c4e412e`. Cette fiche ne déclare ni fusion de ce lot UI ni livraison.
+☑ Sur main depuis la fusion protégée de [#800](https://github.com/openaxcloud/vibecore/pull/800), commit `f4f3716e14aea85f3254992f74ef3e2c60f0ece3`. Livraison suivie séparément ; aucune recette authentifiée en production déduite de cette fusion.
 
 ## ✅ Testé live
 

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "BLOG-CARD-DESTINATIONS",
+    "status": "open, reproduced",
+    "routes": [
+      "routes/blog"
+    ],
+    "description": "Seven Read more links still target /blog. Featured/card metadata do not map exactly to the three published article slugs. Outlet fix renders a known detail URL but does not repair card navigation.",
+    "evidence": "docs/bugs/ui-editorial-2026-10-26/blog-card-mapping.md",
+    "next": "Coordinate canonical editorial content and destinations; do not invent articles or relabel the fixture navigation as a repaired real card."
+  },
+  {
+    "id": "NEWSLETTER-UNVERIFIED-SUCCESS",
+    "status": "open, reproduced; backend contract missing",
+    "routes": [
+      "routes/newsletter",
+      "routes/newsletter-confirmed",
+      "routes/newsletter_.confirm",
+      "routes/newsletter_.unsubscribe"
+    ],
+    "description": "Confirmation without token and unsubscribe action lead to a page claiming successful subscription. Geometry is observed; subscription semantics are not validated.",
+    "evidence": "docs/bugs/ui-editorial-2026-10-26/newsletter-contract.md",
+    "next": "Coordinate actual confirmation/unsubscribe contract and states; no real subscribers or email mutation used in these tests."
+  },
+  {
+    "id": "MARKETING-DEPLOYMENTS-HERO-COMPILED-PENDING",
+    "status": "confirmed defect; source corrected, final compiled proof pending",
+    "routes": [
+      "routes/marketing.deployments"
+    ],
+    "description": "Marketing hero cards overlap at1024; grid counterproof also revealed documentation CTA overflow at320FR. Two local classes applied;12DOM counterproof cases are not compiled final evidence.",
+    "evidence": "docs/bugs/ui-solutions-product-2026-10-26/diagnostic.json",
+    "next": "Verify actual final compiled card, Range/CTA bounds and minimum height before closing correction gate.",
+    "additionalEvidence": [
+      "docs/bugs/ui-solutions-product-2026-10-26/grid-minimal-counterproof.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/README.md"
+    ]
+  },
+  {
+    "id": "ADMIN-USERS-SMALL-CONTROLS-OBSERVATION",
+    "status": "open observation, no automatic WCAG conclusion",
+    "routes": [
+      "routes/admin.$section"
+    ],
+    "description": "Users sort/menu/pagination controls measured below44px; not fixed by Billing containment changes.",
+    "evidence": "docs/bugs/ui-administration-2026-10-26/README.md"
+  },
+  {
+    "id": "ADMIN-INDEX-LOCALE-REDIRECT-OBSERVATION",
+    "status": "open observation",
+    "routes": [
+      "routes/admin._index"
+    ],
+    "description": "/admin redirect loses querylang; first FR-requested title observed in English. Redirect is a route observation, not a seventh admin route ID.",
+    "evidence": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json"
+  }
+]

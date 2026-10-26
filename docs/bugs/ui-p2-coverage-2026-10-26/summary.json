@@ -1,0 +1,22 @@
+{
+  "registeredRouteIDs": 357,
+  "baseCounts": {
+    "teste_local_partiel": 94,
+    "non_exerce": 103,
+    "reserve": 5,
+    "hors_ui": 155
+  },
+  "proposedCountsFromCompletedEvidence": {
+    "teste_local_partiel": 160,
+    "non_exerce": 37,
+    "hors_ui": 155,
+    "reserve": 5
+  },
+  "completedEvidenceTransitions": 66,
+  "pendingUnpromotedRouteIDs": 0,
+  "pendingCorrectionGates": [],
+  "meaning": "Partial local observation coverage, not every function fixed or production delivered.",
+  "completedCorrectionGates": [
+    "MarketingDeployments final compiled13899:44 observations/8 groups"
+  ]
+}
