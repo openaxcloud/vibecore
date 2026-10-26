@@ -1,0 +1,16 @@
+# Complément navigateur — comptes et zoom
+
+Cette phase prolonge le lot local conservé dans `6b8940ec8`. Aucun push, nouvelle PR, fusion ou changement d'index commun pendant la priorité de livraison #798/#797.
+
+- [Allocation des routes restantes](../ui-next-allocation-2026-10-26/routes-allocation.md), commit documentaire `020219bc3` :146 IDs répartis exactement une fois dans14 groupes ;43 P1,66 P2,37 réservés. Il s'agit de lecture des sources et de coordination, pas de146 nouvelles recettes.
+- [Compte Chromium11699](chromium-account11699/README.md) :40 observations ciblées,8 groupes clavier/Retour/resize,4 récupérations après panne GET synthétique. Aucune mutation ni nouveau défaut confirmé. Routes déjà partiellement exercées, donc le total des routes couvertes n'augmente pas.
+- [WebKit](webkit/README.md) : lancement impossible car exécutable absent, aucun cas exécuté. Aucun refus d'autorisation ni installation tentée. Chromium ne remplace pas cette validation et n'est pas un appareil iOS physique.
+- [Revue du bouton Support](support-target-review.md) : mesure compilée avant correction36px, règle CSS globale plus spécifique identifiée. Correction limitée à `!min-h-[44px]` sur ce bouton ; aucune modification du composant partagé ou de sa règle globale.
+
+Le correctif est conservé dans le commit local `975db321b`. Les28 tests Support, build, typage strict, lint ciblé et Prettier passent. La recette compilée11799 mesure48 cas de zoom natif200% : trois routes Support/Quota/Downgrade ×FR/EN ×clair/sombre ×quatre tailles de fenêtre. Les largeurs demandées au navigateur390/640/1280/1440 donnent respectivement195/320/640/720px CSS dans ces reçus. Pour la demande390, outerWidth reste rapporté à500 : elle ne doit donc pas être présentée comme une fenêtre physique390 confirmée. Les trois autres largeurs outerWidth correspondent à la demande ; aucune violation des contrôles DOM, aucune erreur JS ni mutation tentée. Le bouton Support mesure44px dans tous ces cas. Quatre parcours vérifient la conservation du brouillon et du focus pendant passage100→200% et resize, puis la garde et Escape.
+
+Les captures Playwright initiales de cette matrice ne sont pas des preuves visuelles exploitables : le diagnostic reproduit un fond vide malgré des contrôles DOM visibles. Des captures CDP ciblées montrent le contenu réel ; elles restent des vérifications distinctes et limitées, sans transformer les48 observations DOM en48 inspections visuelles. Voir les reçus et le compte rendu de revue pour leurs dimensions exactes.
+
+[Recette et preuves de zoom](zoom/README.md). Les reçus de zoom indiquent la taille de fenêtre physique, la taille CSS effective, DPR et visualViewport.scale ; une fenêtre1440 à200% ne compte pas comme un viewport CSS1440. Une contrepreuve par style DOM injecté est une preuve de cause, pas une validation du build corrigé.
+
+Les nouvelles validations restent locales et synthétiques. Aucun statut « testé live » production ajouté ; matrice globale inchangée :51 routes partiellement exercées,146 non exercées,5 réservées historiques et155 hors UI. Les37 réservations de la nouvelle allocation sont une dimension d'attribution au sein des146, pas37 routes supplémentaires ni un remplacement des5 réservations historiques.

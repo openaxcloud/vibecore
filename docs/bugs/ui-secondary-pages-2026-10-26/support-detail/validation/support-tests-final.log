@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+ ✓ app/routes/support-ticket-detail.i18n.spec.tsx (15 tests) 376ms
+ ✓ app/routes/support-ticket-draft-navigation.spec.tsx (13 tests) 822ms
+
+ Test Files  2 passed (2)
+      Tests  28 passed (28)
+   Start at  01:47:29
+   Duration  3.66s (transform 1.29s, setup 48ms, collect 1.21s, tests 1.20s, environment 566ms, prepare 111ms)

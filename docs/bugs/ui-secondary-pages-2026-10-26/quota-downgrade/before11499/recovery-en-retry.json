@@ -1,0 +1,59 @@
+{
+  "base": "http://127.0.0.1:11499",
+  "cases": [
+    {
+      "lang": "en",
+      "status": 503,
+      "responseStatus": 503,
+      "state": {
+        "text": "Menu\nWorkspace\n\nWORKSPACE CONSOLE\n\nWorkspace\n\nThis workspace page is temporarily unavailable.\n\nBack to dashboard\nWorkspace could not load\n\nThe latest request failed, so this page is hidden to avoid showing incomplete data. No data was changed.\n\nTry again",
+        "buttons": [
+          {
+            "text": "Menu",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "EN",
+            "type": "button"
+          },
+          {
+            "text": "FR",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "Try again",
+            "type": "button"
+          }
+        ],
+        "links": [
+          {
+            "text": "Search⌘K",
+            "href": "/command-palette"
+          },
+          {
+            "text": "Back to dashboard",
+            "href": "/dashboard"
+          }
+        ],
+        "width": 320
+      },
+      "recovery": "keyboard retry",
+      "recovered": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ]
+}

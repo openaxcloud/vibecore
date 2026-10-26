@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "status": 502,
+      "errorText": "Aller au contenu\nMenu\nDemande d’assistance\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nDemande d’assistance\n\nConsultez la conversation et répondez à votre demande d’assistance.\n\nRetour à l’assistance\nImpossible de charger la conversation d’assistance\n\nLa conversation est temporairement indisponible. Aucun message n’a été modifié.\n\nRecharger la conversation\n\nVISITE GUIDÉE — ÉTAPE 1 SUR 4\n\nParcourez votre espace de travail\n\nProjets, utilisation, facturation, gestion de l’équipe et paramètres du compte sont regroupés dans le menu principal.\n\nPlus tard\nRetour\nSuivant",
+      "recovered": true,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=fr"
+    },
+    {
+      "lang": "en",
+      "status": 502,
+      "errorText": "Skip to content\nMenu\nSupport request\n\nWORKSPACE CONSOLE\n\nSupport request\n\nReview the conversation and reply to your support request.\n\nBack to support\nSupport conversation could not load\n\nThe conversation is temporarily unavailable. No message was changed.\n\nReload conversation\n\nGUIDED TOUR — STEP 1 OF 4\n\nNavigate your workspace\n\nProjects, usage, billing, team controls, and account settings stay together in the main menu.\n\nNot now\nBack\nNext",
+      "recovered": true,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=en"
+    }
+  ],
+  "mutations": [],
+  "errors": []
+}

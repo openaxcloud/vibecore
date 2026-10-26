@@ -1,0 +1,40 @@
+[
+  {
+    tag: 'TEXTAREA',
+    text: '',
+    html: '<textarea id="ticket-reply" name="body" rows="5" required="" maxlength="10000" placeholder="Ajouter une réponse…" aria-describedby="support-ticket-reply-count" class="min-h-28 w-full min-w-0 resize-y rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm outline-none placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:ring-2 focus:ring-bolt-elements-borderColorActive"></textarea>',
+    form: '<form method="post" action="/support/synthetic-ticket?lang=fr" class="grid min-w-0 gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-5" data-discover="true"><label for="ticket-reply" class="break-words text-sm font-medium">Votre message</label><textarea id="ticket-reply" name="body" rows="5" required="" maxlength="10000" placeholder="Ajouter une réponse…" aria-describedby="support-ticket-reply-count" class="min-h-28 w-full min-w-0 resize-y roun',
+    rect: {
+      x: 29,
+      y: 2018.125,
+      width: 262,
+      height: 123,
+      top: 2018.125,
+      right: 291,
+      bottom: 2141.125,
+      left: 29
+    },
+    css: { display: 'block', visibility: 'visible', minHeight: '98px' },
+    main: true,
+    viewport: { innerWidth: 320, outerWidth: 640, dpr: 2 }
+  },
+  {
+    tag: 'BUTTON',
+    text: 'Envoyer le message',
+    html: '<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4 py-2 min-h-[44px] w-full whitespace-normal px-4 py-2 sm:w-auto" data-vc-button="true" data-variant="default" data-size="default" type="submit" aria-busy="false">Envoyer le message</button>',
+    form: '<form method="post" action="/support/synthetic-ticket?lang=fr" class="grid min-w-0 gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-5" data-discover="true"><label for="ticket-reply" class="break-words text-sm font-medium">Votre message</label><textarea id="ticket-reply" name="body" rows="5" required="" maxlength="10000" placeholder="Ajouter une réponse…" aria-describedby="support-ticket-reply-count" class="min-h-28 w-full min-w-0 resize-y roun',
+    rect: {
+      x: 29,
+      y: 2178.125,
+      width: 262,
+      height: 36,
+      top: 2178.125,
+      right: 291,
+      bottom: 2214.125,
+      left: 29
+    },
+    css: { display: 'flex', visibility: 'visible', minHeight: '36px' },
+    main: true,
+    viewport: { innerWidth: 320, outerWidth: 640, dpr: 2 }
+  }
+]

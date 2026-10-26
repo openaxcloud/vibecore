@@ -1,0 +1,46 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx (11 tests | 1 failed) 743ms
+   ✓ support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation 211ms
+   ✓ support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation 72ms
+   ✓ support reply navigation with a real data router > retains the draft across locale-query GET revalidation 46ms
+   ✓ support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit 61ms
+   ✓ support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies 110ms
+   ✓ support reply navigation with a real data router > clears a reply only after explicit success acknowledgment, retaining content during delayed reload 44ms
+   ✓ support explicit acknowledgment and draft identity > clears after a fast successful action even when loading renders coalesce 26ms
+   ✓ support explicit acknowledgment and draft identity > preserves edits made while POST is pending 53ms
+   ✓ support explicit acknowledgment and draft identity > does not reuse a previous acknowledgment during a second submission 35ms
+   ✓ support explicit acknowledgment and draft identity > keeps the draft after POST is aborted by a same-path locale GET 22ms
+   × support explicit acknowledgment and draft identity > does not resurrect explicitly discarded text when returning from another ticket 63ms
+     → expect(element).toHaveValue()
+
+Expected the element to have value:
+
+Received:
+  Synthetic reply which must not be lost
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support explicit acknowledgment and draft identity > does not resurrect explicitly discarded text when returning from another ticket
+Error: expect(element).toHaveValue()
+
+Expected the element to have value:
+
+Received:
+  Synthetic reply which must not be lost
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:230:41
+    228|     expect(screen.getByRole('textbox')).toHaveValue('');
+    229|     await act(async () => router.navigate(-1));
+    230|     expect(screen.getByRole('textbox')).toHaveValue('');
+       |                                         ^
+    231|   });
+    232| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Start at  01:45:43
+   Duration  3.72s (transform 1.19s, setup 21ms, collect 710ms, tests 743ms, environment 306ms, prepare 64ms)

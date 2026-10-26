@@ -1,0 +1,21 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+stdout | app/routes/support-ticket-draft-navigation.spec.tsx > observed router acknowledgment transitions > records hook-visible transitions for success
+ROUTER_TRACE success [{"state":"idle"},{"state":"submitting","method":"POST"},{"state":"loading","method":"POST"},{"state":"idle"}]
+
+stdout | app/routes/support-ticket-draft-navigation.spec.tsx > observed router acknowledgment transitions > records hook-visible transitions for 400
+ROUTER_TRACE 400 [{"state":"idle"},{"state":"submitting","method":"POST"},{"state":"loading","method":"POST","actionData":{"errorCode":"unavailable"}},{"state":"idle","actionData":{"errorCode":"unavailable"}}]
+
+stdout | app/routes/support-ticket-draft-navigation.spec.tsx > observed router acknowledgment transitions > records hook-visible transitions for 503
+ROUTER_TRACE 503 [{"state":"idle"},{"state":"submitting","method":"POST"},{"state":"loading","method":"POST","actionData":{"errorCode":"unavailable"}},{"state":"idle","actionData":{"errorCode":"unavailable"}}]
+
+stdout | app/routes/support-ticket-draft-navigation.spec.tsx > observed router acknowledgment transitions > records hook-visible transitions for abort-get
+ROUTER_TRACE abort-get [{"state":"idle"},{"state":"submitting","method":"POST"},{"state":"loading"},{"state":"idle"}]
+
+ ✓ app/routes/support-ticket-draft-navigation.spec.tsx (10 tests | 6 skipped) 208ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed | 6 skipped (10)
+   Start at  01:35:03
+   Duration  3.07s (transform 1.27s, setup 20ms, collect 428ms, tests 208ms, environment 301ms, prepare 59ms)
