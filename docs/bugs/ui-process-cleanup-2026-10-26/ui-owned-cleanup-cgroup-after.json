@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-26T03:11:10.710434+00:00",
+  "memory": {
+    "memory.current": "7617961984",
+    "memory.max": "17179869184",
+    "memory.events": "low 0\nhigh 0\nmax 116920\noom 6\noom_kill 2\noom_group_kill 0"
+  },
+  "summedPriorRSSKiB": 1155228,
+  "sumIsNotExactCgroupReclaim": true
+}
