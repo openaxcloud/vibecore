@@ -62,7 +62,7 @@ export function registerGithubVerification(app: FastifyInstance, store: ApiStore
         const value = decryptJson<{ value: unknown }>(connection.accessTokenEncrypted ?? '').value;
 
         if (typeof value !== 'string' || !value.trim()) {
-          throw new Error('Invalid token');
+          return fail(503, 'CONNECTOR_TOKEN_UNAVAILABLE');
         }
 
         accessToken = value;
