@@ -30,6 +30,22 @@ const pendingMonaco = vi.hoisted(() => {
   return { ready, release, created: [] as TestEditor[], setTheme: vi.fn() };
 });
 
+const pendingTabFocus = vi.hoisted(() => {
+  let release!: () => void;
+
+  const ready = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  return { ready, release };
+});
+
+vi.mock('monaco-editor/esm/vs/editor/contrib/toggleTabFocusMode/browser/toggleTabFocusMode.js', async () => {
+  await pendingTabFocus.ready;
+
+  return {};
+});
+
 vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
   await pendingMonaco.ready;
 
@@ -136,6 +152,7 @@ it('initializes the latest document after a delayed import and ignores an unmoun
   const preload = preloadDesktopCodeEditor();
   expect(preloadDesktopCodeEditor()).toBe(preload);
   expect(pendingMonaco.created).toHaveLength(0);
+
   const onChange = vi.fn();
   const onSave = vi.fn();
   const props = (filePath: string, value: string) => ({ filePath, value, onChange, onSave });
@@ -150,6 +167,10 @@ it('initializes the latest document after a delayed import and ignores an unmoun
   await act(async () => {
     pendingMonaco.release();
     await pendingMonaco.ready;
+  });
+  expect(pendingMonaco.created).toHaveLength(0);
+  await act(async () => {
+    pendingTabFocus.release();
     await preload;
   });
   expect(pendingMonaco.created).toHaveLength(1);

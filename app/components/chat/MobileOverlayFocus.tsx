@@ -1,4 +1,14 @@
-import { createContext, useCallback, useContext, useRef, type ReactNode, type RefObject } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 import { useLayoutHandoffEffect } from './ide-layout-handoff';
 
 const regions = [
@@ -13,11 +23,25 @@ type Control = { region: (typeof regions)[number]; testId: string };
 type FocusState = { opener: Control | null; pending: Control | null };
 
 const Context = createContext<RefObject<FocusState> | null>(null);
+const TabSearchContext = createContext<[string, Dispatch<SetStateAction<string>>] | null>(null);
 
 function ScopedProvider({ children }: { children: ReactNode }) {
   const state = useRef<FocusState>({ opener: null, pending: null });
+  const search = useState('');
 
-  return <Context.Provider value={state}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={state}>
+      <TabSearchContext.Provider value={search}>{children}</TabSearchContext.Provider>
+    </Context.Provider>
+  );
+}
+
+/** Retain only the current interaction; existing close/open handlers still clear the query. */
+export function useMobileTabSearchQuery() {
+  const shared = useContext(TabSearchContext);
+  const local = useState('');
+
+  return shared ?? local;
 }
 
 /** Transient keyboard interaction survives loading shells, never a route scope change. */

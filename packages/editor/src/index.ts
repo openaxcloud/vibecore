@@ -1030,8 +1030,13 @@ let desktopEditorModule: Promise<typeof import('monaco-editor/esm/vs/editor/edit
 /** Begin loading the desktop engine independently of file hydration/selection. */
 export function preloadDesktopCodeEditor() {
   (globalThis as any).__vibecoreStartupMark?.('monaco-import-requested');
-  desktopEditorModule ??= import('monaco-editor/esm/vs/editor/editor.api')
-    .then((module) => {
+  desktopEditorModule ??= Promise.all([
+    import('monaco-editor/esm/vs/editor/editor.api'),
+
+    // editor.api excludes contributions: load the native keyboard escape from Tab indentation.
+    import('monaco-editor/esm/vs/editor/contrib/toggleTabFocusMode/browser/toggleTabFocusMode.js'),
+  ])
+    .then(([module]) => {
       (globalThis as any).__vibecoreStartupMark?.('monaco-import-resolved');
       return module;
     })

@@ -1,0 +1,42 @@
+{
+  "files": {
+    "final-build-manifest.json": "4424b966bc9152702aa6619823246353a299097459d1ac97bf0d5f24cd9fbd2f",
+    "final-prebuild-sources.json": "131756002a887c463047a5fec0e951b5f11fb7e23527220856ed486eff55e126",
+    "baseline-query-results.json": "331e8be84fb42c7c1504210d607fb48b4dd6557fbab3969ac3ecfd64a3bdd4a0",
+    "baseline-monaco-results.json": "555bad44028a38b9305114f542de1ee7f8a52c2a5de150bdf32b932a5ab3e49f",
+    "final-targeted-results.json": "6e3c42657b59cbdb25d4bf82390a26afdfd0a5d18f706cf3488a588e11d356d5",
+    "monaco-final-results.json": "34bcca729804e1c6f00d34890b68229d74b9f1309342a99d64abf809f4965fcf",
+    "native-results.json": "48be8e1ba241e50cac8bf2b87e812af12ceef2a9b86f302830bfecbc8bb5c3bb",
+    "monaco-native-final-results.json": "81b7eace3c681e480cf544f7b9a36a4ee39a890f7ab9719afa38a4f3ba0319aa",
+    "monaco-native-diagnostic-results.json": "80036cafc0e3059a4a45186eccbe0bc0b1359f2e9a57085c03f59ceb5c0b018f",
+    "query320-results.json": "b3885b7f05aa77b37f8aac1ff217c597818d8f8b8fa800cbd779b08370913390",
+    "coverage-keyboard-results.json": "d60bdad709d5a5b049d29c2d272930433215aade8ea1b161d6c8444d95dd2d05",
+    "read-errors-results.json": "6f75fd52d86adb208a335f2df90781cd2764027575f12a4bffa76b3fad25216d",
+    "native-startup-focus-replacement-evidence.json": "2272a2a0db2930c6272379bed0e6732910a1745feb0feb26fb23c06271414bfd",
+    "local-qa-report.md": "ce779793e1609e4778e50dc69f93b00e6d1bf27b0a03ceb87a7545b699c49cf0",
+    "monaco-settled-provenance.json": "bd0486b6db8d372c643c14147d1287b5b033ba38ef5a15d310f92eecd1c589a8",
+    "monaco-settled-results.json": "ececff51aabd36b229a81de97e6079837160f6764da73a8774633e84676ba2bb",
+    "monaco-native-settled-results.json": "2d33612c567b3c55261c3c935145651bd824282f8ad3a9a83f3747b79134020f"
+  },
+  "productionValidated": false,
+  "stackStillRunning": false,
+  "cleanup": {
+    "time": "2026-10-26T03:45:05.991052+00:00",
+    "ports": {
+      "5199": "closed",
+      "3018": "closed",
+      "55448": "closed",
+      "56388": "closed"
+    },
+    "ownedProcessExists": {
+      "186310": false,
+      "184895": false,
+      "184879": false
+    },
+    "remainingContainers": [],
+    "unrelated96853Exists": true,
+    "scope": "Only WEB186310 API184895/184879 and ide-followup-pg/redis stopped. No tests or repository changes."
+  },
+  "versionedReportSHA256": "64c4003d5f2a77a9711bf5a76f751f64df9abe16b3de68521a831fc05001cb64",
+  "filesReferTo": "Original local evidence in /tmp/ide-followup-qa; versioned report adds preservation notes."
+}

@@ -20,7 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
-import { useMobileOverlayFocus } from './MobileOverlayFocus';
+import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
 import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
 import {
@@ -2996,7 +2996,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
-    const [mobileTabSearchQuery, setMobileTabSearchQuery] = useState('');
+    const [mobileTabSearchQuery, setMobileTabSearchQuery] = useMobileTabSearchQuery();
 
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
     const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);

@@ -1,0 +1,17 @@
+{
+  "time": "2026-10-26T03:45:05.991052+00:00",
+  "ports": {
+    "5199": "closed",
+    "3018": "closed",
+    "55448": "closed",
+    "56388": "closed"
+  },
+  "ownedProcessExists": {
+    "186310": false,
+    "184895": false,
+    "184879": false
+  },
+  "remainingContainers": [],
+  "unrelated96853Exists": true,
+  "scope": "Only WEB186310 API184895/184879 and ide-followup-pg/redis stopped. No tests or repository changes."
+}
