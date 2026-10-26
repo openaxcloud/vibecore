@@ -23,3 +23,5 @@ Le build importe editor.api sans la contribution native toggleTabFocusMode. Tab 
 ## Limite distincte observée
 
 Une trace du démarrage montre une instance Monaco focalisée remplacée par une nouvelle instance non focalisée avant le premier Tab. Ce lot ne corrige pas cette perte de focus ; la cause React exacte reste à établir. Les cas finaux vérifient le raccourci après disponibilité observable et ne revendiquent pas la stabilité du focus pendant ce remplacement. La preuve extraite est conservée avec le reçu local.
+
+Suivi local distinct : `BUG-IDE-MONACO-STARTUP-FOCUS-20261026.md` traite ensuite la conservation du focus et de la position lors du remplacement initial. Les limites et reçus ci-dessus décrivent le lot dbc56e6d6 avant cette correction supplémentaire.

@@ -22,6 +22,9 @@ import type * as MonacoTypes from 'monaco-editor';
 import { createElement, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 import { formatEditorCopy, getEditorCopy, type EditorCopy } from './editor-copy.js';
+import { claimDesktopEditorFocus, registerDesktopEditorFocus, useDesktopEditorFocus } from './desktop-editor-focus.js';
+
+export { DesktopEditorFocusProvider, useDesktopEditorFocusHandoff } from './desktop-editor-focus.js';
 
 function readEditorUiLanguage(): string {
   if (typeof document !== 'undefined' && document.documentElement.lang) {
@@ -86,6 +89,8 @@ export interface EditorChange {
 export interface EditorAdapterProps extends EditorAdapterValue {
   theme?: 'dark' | 'light';
   autoFocus?: boolean;
+  /** Stable pane and document identity, scoped by DesktopEditorFocusProvider. */
+  focusIdentity?: string;
   largeFile?: boolean;
   minimapEnabled?: boolean;
   projectFiles?: Record<string, string>;
@@ -1059,6 +1064,7 @@ export function DesktopCodeEditor({
   projectFiles,
   theme = 'dark',
   autoFocus,
+  focusIdentity,
   className,
   onChange,
   onSave,
@@ -1077,6 +1083,39 @@ export function DesktopCodeEditor({
   const retainedModelsRef = useRef(new Map<string, MonacoTypes.editor.ITextModel>());
   const ownedWorkspaceModelsRef = useRef<Set<string>>(new Set());
   const envMaskDecorationsRef = useRef<string[]>([]);
+  const focusState = useDesktopEditorFocus();
+  const restoreFocusRef = useRef<ReturnType<typeof claimDesktopEditorFocus>>(null);
+  const focusScopeRef = useRef<{ state: typeof focusState; identity?: string } | null>(null);
+
+  useLayoutEffect(() => {
+    const sameScope = focusScopeRef.current?.state === focusState && focusScopeRef.current?.identity === focusIdentity;
+    const claimed = claimDesktopEditorFocus(focusState, focusIdentity);
+
+    // StrictMode can replay layout setup before the asynchronous editor exists.
+    if (!sameScope || claimed) {
+      restoreFocusRef.current = claimed;
+    }
+
+    focusScopeRef.current = { state: focusState, identity: focusIdentity };
+  }, [focusState, focusIdentity]);
+
+  useLayoutEffect(() => {
+    const editor = editorRef.current;
+    const container = containerRef.current;
+
+    if (editor && container && focusIdentity) {
+      return registerDesktopEditorFocus(focusState, {
+        identity: focusIdentity,
+        hasTextFocus: () => editor.hasTextFocus() && container.contains(document.activeElement),
+        snapshot: () => {
+          const model = editor.getModel();
+          const viewState = editor.saveViewState();
+
+          return model && viewState ? { viewState, modelUri: model.uri.toString(), contents: model.getValue() } : null;
+        },
+      });
+    }
+  }, [editorVersion, focusState, focusIdentity]);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -1314,7 +1353,20 @@ export function DesktopCodeEditor({
           },
         });
 
-        if (autoFocus) {
+        const restoreFocus = restoreFocusRef.current;
+        restoreFocusRef.current = null;
+        const snapshot = restoreFocus?.();
+        const canRestore =
+          snapshot &&
+          snapshot.modelUri === currentModel.uri.toString() &&
+          snapshot.contents === valueRef.current &&
+          snapshot.contents === currentModel.getValue();
+
+        if (canRestore) {
+          editor.restoreViewState(snapshot.viewState);
+        }
+
+        if (autoFocus || canRestore) {
           editor.focus();
         }
 

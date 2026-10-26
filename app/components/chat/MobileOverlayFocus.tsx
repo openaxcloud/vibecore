@@ -1,3 +1,4 @@
+import { DesktopEditorFocusProvider } from '@vibecore/editor';
 import {
   createContext,
   useCallback,
@@ -31,7 +32,9 @@ function ScopedProvider({ children }: { children: ReactNode }) {
 
   return (
     <Context.Provider value={state}>
-      <TabSearchContext.Provider value={search}>{children}</TabSearchContext.Provider>
+      <TabSearchContext.Provider value={search}>
+        <DesktopEditorFocusProvider>{children}</DesktopEditorFocusProvider>
+      </TabSearchContext.Provider>
     </Context.Provider>
   );
 }

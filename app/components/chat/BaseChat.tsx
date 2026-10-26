@@ -43,7 +43,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { EditorAdapter, preloadDesktopCodeEditor } from '@vibecore/editor';
+import { EditorAdapter, preloadDesktopCodeEditor, useDesktopEditorFocusHandoff } from '@vibecore/editor';
 import {
   BarElement,
   CategoryScale,
@@ -3032,6 +3032,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       rememberOpener,
       restoreOpener,
     } = useMobileOverlayFocus(projectIdeMode && useMobileIde && clientHydrated, useMobileIde);
+    useDesktopEditorFocusHandoff();
+
     const ref = useCallback(
       (node: HTMLDivElement | null) => {
         mobileFocusRootRef.current = node;
@@ -8712,7 +8714,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
-      (panel: IdeWorkspacePanel, filePath?: string) => {
+      (panel: IdeWorkspacePanel, paneId: string, filePath?: string) => {
         const paneDocument = filePath ? editorDocuments[filePath] : currentDocument;
 
         const savePaneDocument = () => {
@@ -8748,6 +8750,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {paneDocument && !paneDocument.isBinary ? (
                 <EditorAdapter
                   className="bolt-project-editor-adapter"
+                  focusIdentity={JSON.stringify([paneId, paneDocument.filePath])}
                   value={paneDocument.value}
                   filePath={paneDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
@@ -9086,7 +9089,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     unsavedChanges: unsavedFiles instanceof Set ? unsavedFiles.size : 0,
                   })}
                 >
-                  {renderPaneContent(activeTab.panel, activeTab.filePath)}
+                  {renderPaneContent(activeTab.panel, leaf.id, activeTab.filePath)}
                 </PanelErrorBoundary>
               ) : (
                 <ProjectWelcomeState

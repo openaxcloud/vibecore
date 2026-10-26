@@ -1,8 +1,13 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, render, waitFor } from '@testing-library/react';
-import { createElement } from 'react';
+import { createElement, StrictMode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DesktopCodeEditor, preloadDesktopCodeEditor } from './index.js';
+import {
+  DesktopCodeEditor,
+  DesktopEditorFocusProvider,
+  preloadDesktopCodeEditor,
+  useDesktopEditorFocusHandoff,
+} from './index.js';
 
 type TestUri = { path: string; toString: () => string };
 type TestModel = {
@@ -18,6 +23,9 @@ type TestEditor = {
   contentChanged: () => void;
   updateOptions: ReturnType<typeof vi.fn>;
   disposed: boolean;
+  input: HTMLTextAreaElement;
+  viewState: { column: number; scrollTop: number };
+  focusedViewState?: { column: number; scrollTop: number };
 };
 
 const pendingMonaco = vi.hoisted(() => {
@@ -96,11 +104,21 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
       registerCommand: disposable,
       ShowLightbulbIconMode: { On: 'on', Off: 'off' },
       create: (_container: HTMLElement, options: { model: TestModel }) => {
+        const input = document.createElement('textarea');
+        _container.append(input);
+
         let model = options.model;
         let onChange: () => void = () => undefined;
         let onDispose: () => void = () => undefined;
 
         const editor = {
+          input,
+          viewState: { column: 1, scrollTop: 0 },
+          focusedViewState: undefined as TestEditor['focusedViewState'],
+          saveViewState: () => ({ ...editor.viewState }),
+          restoreViewState: (state: TestEditor['viewState']) => {
+            editor.viewState = { ...state };
+          },
           disposed: false,
           getModel: () => model,
           getValue: () => model.getValue(),
@@ -119,12 +137,17 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
           },
           dispose: () => {
             editor.disposed = true;
+            input.remove();
             onDispose();
           },
           addCommand: vi.fn(),
           addAction: vi.fn(),
           updateOptions: vi.fn(),
-          focus: vi.fn(),
+          focus: vi.fn(() => {
+            editor.focusedViewState = { ...editor.viewState };
+            input.focus();
+          }),
+          hasTextFocus: () => document.activeElement === input,
         };
         pendingMonaco.created.push(editor);
 
@@ -299,4 +322,174 @@ it('keeps borrowed workspace models alive when indexing stops and the owner unmo
   expect(indexed.isDisposed()).toBe(true);
   expect(external.isDisposed()).toBe(false);
   external.dispose();
+});
+
+function focusShell({
+  identity = 'pane-a:/focus.txt',
+  visible = true,
+  filePath = '/focus.txt',
+  value = 'FOCUS',
+}: {
+  identity?: string;
+  visible?: boolean;
+  filePath?: string;
+  value?: string;
+}) {
+  useDesktopEditorFocusHandoff();
+  return visible ? createElement(DesktopCodeEditor, { filePath, value, focusIdentity: identity }) : null;
+}
+
+function focusTree(
+  shell: string,
+  identity = 'pane-a:/focus.txt',
+  visible = true,
+  scope = 'project-a',
+  options: { filePath?: string; value?: string } = {},
+) {
+  return createElement(DesktopEditorFocusProvider, {
+    key: scope,
+    children: createElement(focusShell, { key: shell, identity, visible, ...options }),
+  });
+}
+
+async function newestEditor() {
+  await waitFor(() => expect(pendingMonaco.created.filter((editor) => !editor.disposed)).toHaveLength(1));
+  return pendingMonaco.created.find((editor) => !editor.disposed)!;
+}
+
+it('hands off focused text across a shell replacement without initial autofocus', async () => {
+  const mounted = render(focusTree('pending'));
+  const initial = await newestEditor();
+  expect(document.activeElement).not.toBe(initial.input);
+  initial.viewState = { column: 6, scrollTop: 120 };
+  initial.input.focus();
+  mounted.rerender(focusTree('ready'));
+
+  const replacement = await newestEditor();
+  expect(replacement).not.toBe(initial);
+  expect(document.activeElement).toBe(replacement.input);
+  expect(replacement.viewState).toEqual({ column: 6, scrollTop: 120 });
+  expect(replacement.focusedViewState).toEqual({ column: 6, scrollTop: 120 });
+});
+
+it('retains the shell handoff across StrictMode layout effect replay', async () => {
+  const mounted = render(createElement(StrictMode, { children: focusTree('pending') }));
+  (await newestEditor()).input.focus();
+  mounted.rerender(createElement(StrictMode, { children: focusTree('ready') }));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).toBe(replacement.input);
+});
+
+it.each(['focus', 'pointer', 'keyboard'])(
+  'does not steal focus after an external %s during async replacement',
+  async (interaction) => {
+    const mounted = render(focusTree('pending'));
+    const initial = await newestEditor();
+    initial.input.focus();
+
+    const outside = document.createElement('button');
+    document.body.append(outside);
+
+    try {
+      mounted.rerender(focusTree('ready'));
+
+      if (interaction === 'focus') {
+        outside.focus();
+      }
+
+      if (interaction === 'pointer') {
+        outside.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      }
+
+      if (interaction === 'keyboard') {
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+      }
+
+      const replacement = await newestEditor();
+      expect(document.activeElement).not.toBe(replacement.input);
+
+      if (interaction === 'focus') {
+        expect(document.activeElement).toBe(outside);
+      }
+    } finally {
+      outside.remove();
+    }
+  },
+);
+
+it('does not retain focus after closing and reopening an editor in the same shell', async () => {
+  const mounted = render(focusTree('ready'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('ready', undefined, false));
+  await act(async () => {
+    await Promise.resolve();
+  });
+  mounted.rerender(focusTree('ready'));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+});
+
+it.each(['pane-b:/focus.txt', 'pane-a:/other.txt'])(
+  'does not transfer focus to different identity %s',
+  async (identity) => {
+    const mounted = render(focusTree('pending'));
+    (await newestEditor()).input.focus();
+    mounted.rerender(focusTree('ready', identity));
+
+    const replacement = await newestEditor();
+    expect(document.activeElement).not.toBe(replacement.input);
+  },
+);
+
+it('does not carry focus across a provider scope change', async () => {
+  const mounted = render(focusTree('pending'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('ready', undefined, true, 'project-b'));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+});
+
+it('does not restore a shell intent after a commit without a matching replacement', async () => {
+  const mounted = render(focusTree('pending'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('intermediate', undefined, false));
+  await act(async () => {
+    await Promise.resolve();
+  });
+  mounted.rerender(focusTree('later'));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+});
+
+it.each([
+  ['contents', { value: 'CHANGED' }],
+  ['URI', { filePath: '/different.txt' }],
+] as const)('does not restore stale caret or focus after model %s diverges', async (_kind, options) => {
+  const mounted = render(focusTree('pending'));
+  const initial = await newestEditor();
+  initial.viewState = { column: 6, scrollTop: 120 };
+  initial.input.focus();
+  mounted.rerender(focusTree('ready', undefined, true, undefined, options));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+  expect(replacement.viewState).toEqual({ column: 1, scrollTop: 0 });
+});
+
+it('does not restore focus when a borrowed model still has old content but incoming props changed', async () => {
+  const monaco = await import('monaco-editor/esm/vs/editor/editor.api');
+  const model = monaco.editor.createModel('FOCUS', 'plaintext', monaco.Uri.parse('file:///focus.txt'));
+  const mounted = render(focusTree('pending'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('ready', undefined, true, undefined, { value: 'CHANGED' }));
+
+  const replacement = await newestEditor();
+  expect(replacement.getValue()).toBe('CHANGED');
+  expect(document.activeElement).not.toBe(replacement.input);
+  mounted.unmount();
+  model.dispose();
 });

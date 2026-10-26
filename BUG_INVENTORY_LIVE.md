@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-507 entrées.
+508 entrées.
 
 ## Sans section
 
@@ -656,6 +656,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-TAB-FOCUS-20261026](docs/bugs/BUG-IDE-TAB-FOCUS-20261026.md) — Sur main #797, le test `ide-panel-visibility.spec.ts:83`, cas « panel visibility 390px › tabs closes with Escape and restores focus », constate le menu fermé ma — 📤 Dispatché : 26/10/2026 — audit des panneaux IDE, branche dédiée depuis main `798fa0f251dec690f81ebd11f0c43eae76c98ba6`. · 💻 Codé : ☐ — correctif local en validation, aucun correctif de ce lot livré. · ✅ Testé live : ☐ — aucune recette authentifiée en production ni Safari matériel.
 - [BUG-IDE-MONACO-TAB-EXIT-20261026](docs/bugs/BUG-IDE-MONACO-TAB-EXIT-20261026.md) — Le build importe editor.api sans la contribution native toggleTabFocusMode. Tab indente normalement, mais Ctrl+M puis Tab ne permet pas de quitter l'éditeur sur — 📤 Dispatché : 26/10/2026 — correction locale distincte demandée après audit IDE ; #799 reste stable. · 💻 Codé : ☐ — local seulement, publication interdite avant coordination. La contribution native est chargée et attendue · ✅ Testé live : ☐ — aucun Safari matériel, macOS réel ou environnement de production validé. 39 tests de package et typecheck
 - [BUG-IDE-TAB-SEARCH-HANDOFF-20261026](docs/bugs/BUG-IDE-TAB-SEARCH-HANDOFF-20261026.md) — Le remplacement réel de PendingComposerShell par ChatImpl conserve le menu et son focus après #799, mais perd la recherche saisie : `Webview` devient une chaîne — 📤 Dispatché : 26/10/2026 — correction locale distincte demandée après audit IDE ; #799 reste stable. · 💻 Codé : ☐ — local seulement, publication interdite avant coordination. L'état de recherche est porté par le contexte p · ✅ Testé live : ☐ — aucune production authentifiée. Reproduction rouge navigateur locale confirmée ; 13 tests focus/recherche
+- [BUG-IDE-MONACO-STARTUP-FOCUS-20261026](docs/bugs/BUG-IDE-MONACO-STARTUP-FOCUS-20261026.md) — Pendant le démarrage, un éditeur Monaco focalisé peut être remplacé par une instance non focalisée avant le premier Tab. La trace locale initiale établit le pas — 📤 Dispatché : 26/10/2026 — investigation et correction locales autorisées, sans publication avant coordination. Préserver le · 💻 Codé : ☐ — correctif local écrit et en recette compilée : transmettre uniquement l’intention de focus lors du démonta · ✅ Testé live : ☐ — aucune validation production ou Safari matériel. 48 tests du package et 20 tests app/garde AST passent ; t
 
 ## Résidus non tabulaires — reportés mot pour mot
 
