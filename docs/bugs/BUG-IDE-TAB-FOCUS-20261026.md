@@ -34,3 +34,9 @@ Un contexte éphémère limité au projet, espace et fenêtre conserve une cible
 - [Matrice locale et zoom natif](ide-panel-focus-2026-10-26/qa/README.md)
 
 Revue indépendante : ancien déclencheur périmé après une ouverture sans cible détecté, corrigé et couvert par un neuvième test. Avis favorable sur le delta final ; recette compilée finale 8/8, sans retry, passée. Typecheck web strict et lint passés. La tentative tsc globale non partitionnée a dépassé son heap4GiB ; elle ne constitue pas un contrôle réussi.
+
+## Garde de la zone mobile conservée
+
+La première CI de #799 (`a67a0fd46`, run40258563741/job121365666398) échoue sur une garde AST : `ref={setChatRootRef}` modifie l’empreinte de la tranche JSX gelée. 10 375 tests passent, 4 sont ignorés et 1 échoue. Le correctif compose la référence hors de cette tranche (`forwardedRef` vers le callback local `ref`) et conserve exactement `ref={ref}` dans le JSX. Le test et son empreinte attendue ne sont pas modifiés. Les 7 gardes AST et 9 tests de focus passent après cette correction ; la revue indépendante confirme l’absence de récursion et la transmission du démontage au parent.
+
+Après reconstruction exacte de cette composition, les huit scénarios navigateur passent à nouveau sans retry en27,4s. Les reçus successifs restent distincts ; aucun hash de garde changé.

@@ -2365,7 +2365,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectUrl,
       initialIdePanels,
     },
-    ref,
+    forwardedRef,
   ) => {
     const { t, i18n } = useTranslation();
     const language = resolvedBaseChatLanguage(i18n);
@@ -3032,17 +3032,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       rememberOpener,
       restoreOpener,
     } = useMobileOverlayFocus(projectIdeMode && useMobileIde && clientHydrated, useMobileIde);
-    const setChatRootRef = useCallback(
+    const ref = useCallback(
       (node: HTMLDivElement | null) => {
         mobileFocusRootRef.current = node;
 
-        if (typeof ref === 'function') {
-          ref(node);
-        } else if (ref) {
-          ref.current = node;
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(node);
+        } else if (forwardedRef) {
+          forwardedRef.current = node;
         }
       },
-      [mobileFocusRootRef, ref],
+      [mobileFocusRootRef, forwardedRef],
     );
 
     const blurActiveMobileControl = useCallback(() => {
@@ -10164,7 +10164,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const baseChat = (
       <div
-        ref={setChatRootRef}
+        ref={ref}
         className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden bolt-responsive-ide', {
           'bolt-responsive-ide-mobile': useMobileIde,
           'bolt-responsive-ide-tablet-landscape': layout.isTabletLandscape,
