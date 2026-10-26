@@ -1,0 +1,1 @@
+const http=require('http');http.createServer((q,r)=>{console.log(q.method,q.url);r.writeHead(q.method==='GET'?401:405,{'content-type':'application/json'});r.end(JSON.stringify({error:'Local anonymous GET-only fixture'}))}).listen(7199,'127.0.0.1')

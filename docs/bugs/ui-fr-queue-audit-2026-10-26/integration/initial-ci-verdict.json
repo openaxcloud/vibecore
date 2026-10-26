@@ -1,0 +1,48 @@
+{
+  "run": 40269242481,
+  "head": "279440d2fcbe3ee028d4209759f482bf6101c422",
+  "conclusion": "failure",
+  "jobs": [
+    {
+      "id": 121398601225,
+      "conclusion": "failure",
+      "cause": "forbidden-term: Utiliser des files d’attente pour les traitements longs",
+      "route": "/blog/building-at-scale-how-we-handle-10m-requests",
+      "themes": [
+        "dark",
+        "light"
+      ]
+    },
+    {
+      "id": 121398601266,
+      "conclusion": "failure",
+      "cause": "forbidden-term: Utiliser des files d’attente pour les traitements longs",
+      "route": "/blog/building-at-scale-how-we-handle-10m-requests",
+      "themes": [
+        "dark",
+        "light"
+      ]
+    },
+    {
+      "id": 121398601278,
+      "conclusion": "failure",
+      "cause": "forbidden-term: Utiliser des files d’attente pour les traitements longs",
+      "route": "/blog/building-at-scale-how-we-handle-10m-requests",
+      "themes": [
+        "dark",
+        "light"
+      ]
+    },
+    {
+      "id": 121398601441,
+      "conclusion": "failure",
+      "cause": "forbidden-term: Utiliser des files d’attente pour les traitements longs",
+      "route": "/blog/building-at-scale-how-we-handle-10m-requests",
+      "themes": [
+        "dark",
+        "light"
+      ]
+    }
+  ],
+  "correction": "Existing French queue expression regex now accepts plural files; English term detection retained. No workflow, E2E test, waiver, threshold or product copy changed."
+}

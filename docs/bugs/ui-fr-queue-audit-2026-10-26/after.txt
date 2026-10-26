@@ -1,0 +1,13 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-fr-audit-next
+
+ ✓ tests/i18n/live-audit-heuristics.spec.ts (75 tests) 21ms
+ ✓ app/lib/i18n/catalogs/tarifs-boutons-audit.spec.ts (8 tests) 11ms
+ ✓ app/components/marketing/solutions/solution-french-glossary.spec.ts (11 tests) 47ms
+ ✓ tests/i18n/audit-shell-path.spec.ts (17 tests) 13ms
+ ✓ app/lib/i18n/catalogs/git-provider-connect.audit.spec.ts (1 test) 14ms
+
+ Test Files  5 passed (5)
+      Tests  112 passed (112)
+   Start at  05:07:20
+   Duration  2.28s (transform 1.21s, setup 114ms, collect 536ms, tests 107ms, environment 1ms, prepare 285ms)

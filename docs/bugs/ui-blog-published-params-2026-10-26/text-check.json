@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "introducing-e-code",
+    "language": "fr",
+    "catalogContentLines": 11,
+    "observationsChecked": 22,
+    "missing": []
+  },
+  {
+    "slug": "building-at-scale-how-we-handle-10m-requests",
+    "language": "fr",
+    "catalogContentLines": 9,
+    "observationsChecked": 22,
+    "missing": []
+  },
+  {
+    "slug": "getting-started-with-e-code-in-5-minutes",
+    "language": "fr",
+    "catalogContentLines": 8,
+    "observationsChecked": 22,
+    "missing": []
+  },
+  {
+    "slug": "introducing-e-code",
+    "language": "en",
+    "catalogContentLines": 11,
+    "observationsChecked": 22,
+    "missing": []
+  },
+  {
+    "slug": "building-at-scale-how-we-handle-10m-requests",
+    "language": "en",
+    "catalogContentLines": 9,
+    "observationsChecked": 22,
+    "missing": []
+  },
+  {
+    "slug": "getting-started-with-e-code-in-5-minutes",
+    "language": "en",
+    "catalogContentLines": 8,
+    "observationsChecked": 22,
+    "missing": []
+  }
+]

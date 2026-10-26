@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-526 entrées.
+527 entrées.
 
 ## Sans section
 
@@ -675,6 +675,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-ADMIN-ENTRY-QUERY-LANGUAGE-20261026](docs/bugs/BUG-ADMIN-ENTRY-QUERY-LANGUAGE-20261026.md) — L’entrée `/admin?lang=fr` perd sa langue pendant le redirect vers `/admin/overview`, qui affiche alors « Admin overview » dans le reçu navigateur synthétique be — 📤 Dispatché : ☑ 26/10/2026 — Défaut issu de l’audit Administration ; correction isolée autorisée après inspection des PR ouv · 💻 Codé : ☐ Sur main. `admin._index.tsx` reporte uniquement le paramètre `lang`, encodé, sur la même destination. La gar · ✅ Testé live : ☐ En production. Contrat GET du loader local avec garde synthétique, aucune API réelle ni compte administrateu
 - [BUG-ADMIN-USERS-LOCAL-TARGET-SIZE-20261026](docs/bugs/BUG-ADMIN-USERS-LOCAL-TARGET-SIZE-20261026.md) — Les boutons de tri et le déclencheur de menu d’AdminUsers sont actifs mais trop petits pour la convention locale44px. La nouvelle contrepreuve mesure leurs vrai — 📤 Dispatché : ☑ 26/10/2026 — Périmètre local UsersPanel/UserRow autorisé après diagnostic et vérification des propriétaires. · 💻 Codé : ☐ Sur main. Deux classes locales ajoutent les minima44px en largeur et hauteur aux trois tris et au déclencheu · ✅ Testé live : ☐ En production. API GET synthétique uniquement, aucun mot de passe réel, POST, rôle, suspension ou impersonat
 - [BUG-DEPLOYMENTS-OBSERVABILITY-GRID-20261026](docs/bugs/BUG-DEPLOYMENTS-OBSERVABILITY-GRID-20261026.md) — La grille Observabilité de `/marketing/deployments` possède une piste implicite de 320,53 px dans un conteneur de 272 px à CSS320. Le paragraphe atteint x337,77 — 📤 Dispatché : ☑ 26/10/2026 — Cause et contrepreuve DOM transmises par public_ui_audit ; delta local autorisé et revu indépen · 💻 Codé : ☐ Sur main. Une classe `grid-cols-1` ajoutée au seul conteneur Observabilité de PublicDeploymentsSections.tsx · ✅ Testé live : ☐ En production. Diagnostic Chromium local sur API synthétique ; aucun backend réel, mutation ou déploiement c
+- [BUG-FR-AUDIT-QUEUE-PLURAL-20261026](docs/bugs/BUG-FR-AUDIT-QUEUE-PLURAL-20261026.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
