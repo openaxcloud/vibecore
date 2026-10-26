@@ -1,6 +1,6 @@
 # Authentification — audit local du 26 octobre 2026
 
-Base avant correctif : `05c4e412e0ad21b77a36a26dad5091f7d7bf9bde`. Chromium local, app11999 et API6199 synthétique uniquement. Les deux corrections locales ne sont pas encore vérifiées sur un build compilé corrigé ; cette recette est réservée au build consolidé du parent.
+Base avant correctif : `05c4e412e0ad21b77a36a26dad5091f7d7bf9bde`. Chromium local, app11999 et API6199 synthétique uniquement. Les corrections sont maintenant vérifiées sur le build consolidé du parent : voir [after12199](after12199/README.md). Les sections historiques ci-dessous restent explicitement baseline.
 
 ## Couverture réellement exécutée
 
