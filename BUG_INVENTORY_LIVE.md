@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-524 entrées.
+527 entrées.
 
 ## Sans section
 
@@ -679,6 +679,15 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-IDE-PANEL-WIDTH-20261026](docs/bugs/BUG-IDE-PANEL-WIDTH-20261026.md) — 📤 Dispatché : Oui — lot Agent séparé de #807 ; Settings préparé hors fichier réservé. · 💻 Codé : Non sur main — corrections Agent validées localement, PR en préparation. · ✅ Testé live : Non — composants locaux synthétiques, aucune recette authentifiée client.
+
+## Runtime et preview
+
+- [BUG-PREVIEW-COMMAND-DIAGNOSTICS-20261026](docs/bugs/BUG-PREVIEW-COMMAND-DIAGNOSTICS-20261026.md) — 📤 Dispatché : ☑ 26/10 — diagnostic sur main `90d92ff12`. · 💻 Codé : ☐ — correctif local testé ; non fusionné et non déployé. · ✅ Testé live : ☐ — aucun redémarrage ni commande sur le projet client.
+
+## Génération et orchestration
+
+- [BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026](docs/bugs/BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026.md) — 📤 Dispatché : ☑ 26/10 — diagnostic sur main `90d92ff12`. · 💻 Codé : ☐ — correctif local testé ; non fusionné et non déployé. · ✅ Testé live : ☐ — aucune invocation fournisseur ni lecture de solde.
+- [BUG-AGENT-WRITE-RECEIPTS-20261026](docs/bugs/BUG-AGENT-WRITE-RECEIPTS-20261026.md) — 📤 Dispatché : ☑ 26/10 — audit isolé sur main `90d92ff12`, sans écriture de projet. · 💻 Codé : ☐ — défaut confirmé, raccordement des confirmations d'écriture non réalisé. · ✅ Testé live : ☐ — aucune modification ou relance du projet client.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

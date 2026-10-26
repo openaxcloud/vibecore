@@ -36,3 +36,9 @@ Les rapports de sous-composants gardent leur chronologie : le rapport menu menti
 Cette archive est une sélection de reçus et de captures avant/après, **pas un harness navigateur complet exécutable**. Les scripts `prepare.cjs`, `check.cjs`, `actions.cjs`, les traces intermédiaires et les journaux cités par les rapports de sous-composants restent dans leurs dossiers `/tmp/ui-agent-panel-width`, `/tmp/ui-file-action-layout` et `/tmp/ui-toast-panel-after`. Les tests unitaires produit sont bien versionnés avec ce lot.
 
 [État après intégration de main #808, validations et correction Escape](integration-main-70f40edb/README.md). Cette section actualise les propositions initiales ; aucun raccordement #812 n’est inclus.
+
+## Intégration de main #810
+
+Main `5790f5b1d6b2187842f23255fc49d6f1f9f6e4ca` intégré après #808. Le seul conflit porte sur l’index dérivé, régénéré à 527 fiches. Les cinq fichiers produit/tests de #810 sont identiques à main ; les 65 fichiers du lot #811 hors index étaient identiques à la tête précédente `052487353` avant cette note. Le raccord #812 reste séparé.
+
+Revue indépendante favorable. Sur cette base intégrée : 203 tests ciblés dans 20 fichiers réussis, incluant les contrôles UI/focus/index et les tests fournisseur/journalisation de #810 ; typage web et build client/SSR réussis, lint sans erreur (52 avertissements préexistants). Les recettes navigateur documentées plus haut restent celles de la tête précédente : elles ne sont pas présentées comme de nouvelles recettes de cette intégration. La CI de la nouvelle tête doit rendre ses propres verdicts. Aucun changement d’assertion ou de délai pour la reprise de restauration à 768 px observée sur `052487353` ; cause toujours indéterminée.

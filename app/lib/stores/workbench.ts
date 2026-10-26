@@ -43,6 +43,7 @@ import {
 import { recordAgentRepairEvent } from '~/lib/persistence/agentRepairEventSync';
 import { getRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { foldCommandExitCode } from '~/lib/runtime/command-exit';
+import { workspaceLogLines } from '~/lib/runtime/workspace-command-log';
 import { ActionRunner, actionApresReprise } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
@@ -214,8 +215,6 @@ const WORKSPACE_LOG_FLUSH_INTERVAL_MS = 100;
  */
 const PREVIEW_SETUP_RETRY_ATTEMPTS = 3;
 const PREVIEW_SETUP_RETRY_BASE_DELAY_MS = 1000;
-const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
-const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
 
 /*
  * Sampling window for the AI streaming-action runner. Each token chunk
@@ -267,19 +266,6 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   }
 
   return Buffer.from(binary, 'binary').toString('base64');
-}
-
-function workspaceLogLines(event: CommandEvent | string) {
-  const rawLine = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
-
-  return rawLine
-    .split(/\r?\n/)
-    .map((line) => line.trimEnd())
-    .filter((line) => {
-      const normalizedLine = line.replace(ANSI_ESCAPE_SEQUENCE, '').trim();
-
-      return normalizedLine.length > 0 && !WORKSPACE_LOG_NOISE_PATTERNS.some((pattern) => pattern.test(normalizedLine));
-    });
 }
 
 export class WorkbenchStore {
