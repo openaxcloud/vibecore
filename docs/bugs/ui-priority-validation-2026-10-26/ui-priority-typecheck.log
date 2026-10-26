@@ -1,0 +1,89 @@
+
+> vibecore@1.0.0 typecheck /workspace/vibecore-ui-priority
+> node scripts/typecheck.mjs
+
+[typecheck] web app
+[typecheck] web app passed in 42.8s
+[typecheck] node scripts
+[typecheck] node scripts passed in 24.3s
+[typecheck] IDE browser test helpers
+[typecheck] IDE browser test helpers passed in 4.1s
+[typecheck] electron main
+[typecheck] electron main passed in 3.5s
+[typecheck] electron preload
+[typecheck] electron preload passed in 1.9s
+[typecheck] workspace packages
+Scope: 34 of 36 workspace projects
+apps/admin typecheck$ tsc --noEmit
+packages/audit typecheck$ tsc --noEmit
+packages/auth typecheck$ tsc --noEmit
+packages/billing typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/audit typecheck: Done
+packages/config typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/billing typecheck: Done
+packages/connector-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/auth typecheck: Done
+packages/database typecheck$ tsc --noEmit
+packages/config typecheck: Done
+packages/editor typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts src/index.spec.ts src/desktop-editor.spec.ts src/mobile-editor.spec.tsx src/monaco-editor-ambient.d.ts
+packages/connector-sdk typecheck: Done
+packages/k8s-client typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/k8s-client typecheck: Done
+packages/observability typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+apps/admin typecheck: Done
+packages/quota typecheck$ tsc --noEmit
+packages/editor typecheck: Done
+packages/rbac typecheck$ tsc --noEmit
+packages/quota typecheck: Done
+packages/runtime-contract typecheck$ tsc --noEmit
+packages/observability typecheck: Done
+packages/sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/rbac typecheck: Done
+packages/security typecheck$ tsc --noEmit
+packages/sdk typecheck: Done
+packages/shared typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/runtime-contract typecheck: Done
+packages/template-catalog typecheck$ tsc --noEmit
+packages/template-catalog typecheck: Done
+packages/ui typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts
+packages/shared typecheck: Done
+packages/workspace-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/security typecheck: Done
+services/preview-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+packages/workspace-sdk typecheck: Done
+packages/ui typecheck: Done
+services/preview-proxy typecheck: Done
+packages/database typecheck: Done
+apps/mobile typecheck$ tsc --noEmit
+packages/runtime-remote typecheck$ tsc --noEmit
+packages/runtime-webcontainer typecheck$ tsc --noEmit
+packages/sandbox-runtime typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/sandbox-runtime typecheck: Done
+services/ai-gateway typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts
+packages/runtime-remote typecheck: Done
+services/api typecheck$ tsc --noEmit -p tsconfig.json
+packages/runtime-webcontainer typecheck: Done
+services/connector-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+apps/mobile typecheck: capacitor.config.ts(1,38): error TS2307: Cannot find module '@capacitor/cli' or its corresponding type declarations.
+apps/mobile typecheck: capacitor.config.ts(2,47): error TS2307: Cannot find module '@capacitor/keyboard' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(1,48): error TS2307: Cannot find module '@capacitor/app' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(2,25): error TS2307: Cannot find module '@capacitor/browser' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(3,27): error TS2307: Cannot find module '@capacitor/core' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(4,39): error TS2307: Cannot find module '@capacitor/filesystem' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(5,38): error TS2307: Cannot find module '@capacitor/haptics' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(6,26): error TS2307: Cannot find module '@capacitor/keyboard' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(7,47): error TS2307: Cannot find module '@capacitor/push-notifications' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(8,23): error TS2307: Cannot find module '@capacitor/share' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(9,30): error TS2307: Cannot find module '@capacitor/splash-screen' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(10,34): error TS2307: Cannot find module '@capacitor/status-bar' or its corresponding type declarations.
+apps/mobile typecheck: src/native.ts(171,87): error TS7006: Parameter 'error' implicitly has an 'any' type.
+apps/mobile typecheck: src/native.ts(175,90): error TS7006: Parameter 'event' implicitly has an 'any' type.
+apps/mobile typecheck: src/session.ts(1,29): error TS2307: Cannot find module '@capacitor/preferences' or its corresponding type declarations.
+apps/mobile typecheck: Failed
+/workspace/vibecore-ui-priority/apps/mobile:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @vibecore/mobile@ typecheck: `tsc --noEmit`
+Exit status 2
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?
+services/screenshotter typecheck$ tsc --noEmit -p tsconfig.json
+[typecheck] workspace packages failed with exit code 2
+ ELIFECYCLE  Command failed with exit code 1.

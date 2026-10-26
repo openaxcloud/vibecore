@@ -1,0 +1,376 @@
+{
+  "base": "http://127.0.0.1:11899",
+  "cases": [
+    {
+      "path": "/enterprise-sso-settings",
+      "key": "/orgs/synthetic-org/sso/enforcement",
+      "status": 503,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nParamètres SSO d’entreprise\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres SSO d’entreprise\n\nConfigurez un fournisseur OIDC, dont Microsoft Entra ID, ou un fournisseur d’identité SAML pour votre organisation. Chaque fournisseur est enregistré séparément et peut être activé ou désactivé indépendamment.\n\nPour protéger votre organisation, les secrets des fournisseurs sont chiffrés et ne sont plus affichés après leur enregistrement. Ces formulaires sont donc initialement vides. L’enregistrement d’un fournisseur remplace toute sa configuration. Utilisez « Tester la connexion » pour valider un fournisseur enregistré sans saisir de nouveau son secret.\n\nOIDC / Entra ID\n\nDétection automatique OpenID Connect. Autorisations demandées : openid profile email\n\nÉmetteur\nIdentifiant client\nSecret client\nURL d’autorisation (facultative)\nURL de jeton (facultative)\nURL JWKS (facultative)\nActiver l’authentification OIDC\nEnregistrer le fournisseur OIDC\nTester la connexion\nSAML 2.0\n\nSaisissez l’identifiant d’entité, l’URL d’authentification unique et le certificat de signature X.509 du fournisseur d’identité.\n\nIdentifiant d’entité\nURL SSO\nCertificat X.509\nActiver l’authentification SAML\nEnregistrer le fournisseur SAML\nTester la connexion\nImposer le SSO\n\nObligez les membres à se connecter auprès de votre fournisseur d’identité. Cette règle s’applique après un délai de grâce de 7 jours afin de leur laisser le temps de migrer. Les propriétaires de l’organisation restent toujours exemptés pour éviter qu’une mauvaise configuration du fournisseur d’identité ne bloque votre équipe.\n\nImpossible de charger l’état actuel de l’obligation d’utiliser le SSO. La commande est désactivée afin de ne pas modifier un état de sécurité inconnu. Les paramètres des fournisseurs restent disponibles.\nImposer le SSO à tous les membres",
+      "recoveredText": "Menu\nParamètres SSO d’entreprise\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres SSO d’entreprise\n\nConfigurez un fournisseur OIDC, dont Microsoft Entra ID, ou un fournisseur d’identité SAML pour votre organisation. Chaque fournisseur est enregistré séparément et peut être activé ou désactivé indépendamment.\n\nPour protéger votre organisation, les secrets des fournisseurs sont chiffrés et ne sont plus affichés après leur enregistrement. Ces formulaires sont donc initialement vides. L’enregistrement d’un fournisseur remplace toute sa configuration. Utilisez « Tester la connexion » pour valider un fournisseur enregistré sans saisir de nouveau son secret.\n\nOIDC / Entra ID\n\nDétection automatique OpenID Connect. Autorisations demandées : openid profile email\n\nÉmetteur\nIdentifiant client\nSecret client\nURL d’autorisation (facultative)\nURL de jeton (facultative)\nURL JWKS (facultative)\nActiver l’authentification OIDC\nEnregistrer le fournisseur OIDC\nTester la connexion\nSAML 2.0\n\nSaisissez l’identifiant d’entité, l’URL d’authentification unique et le certificat de signature X.509 du fournisseur d’identité.\n\nIdentifiant d’entité\nURL SSO\nCertificat X.509\nActiver l’authentification SAML\nEnregistrer le fournisseur SAML\nTester la connexion\nImposer le SSO\n\nObligez les membres à se connecter auprès de votre fournisseur d’identité. Cette règle s’applique après un délai de grâce de 14 jours afin de leur laisser le temps de migrer. Les propriétaires de l’organisation restent toujours exemptés pour éviter qu’une mauvaise configuration du fournisseur d’identité ne bloque votre équipe.\n\nImposer le SSO à tous les membres",
+      "method": "browser reload",
+      "changed": true
+    },
+    {
+      "path": "/enterprise-sso-settings",
+      "key": "/orgs/synthetic-org/sso/enforcement",
+      "status": 403,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nParamètres SSO d’entreprise\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres SSO d’entreprise\n\nConfigurez un fournisseur OIDC, dont Microsoft Entra ID, ou un fournisseur d’identité SAML pour votre organisation. Chaque fournisseur est enregistré séparément et peut être activé ou désactivé indépendamment.\n\nPour protéger votre organisation, les secrets des fournisseurs sont chiffrés et ne sont plus affichés après leur enregistrement. Ces formulaires sont donc initialement vides. L’enregistrement d’un fournisseur remplace toute sa configuration. Utilisez « Tester la connexion » pour valider un fournisseur enregistré sans saisir de nouveau son secret.\n\nOIDC / Entra ID\n\nDétection automatique OpenID Connect. Autorisations demandées : openid profile email\n\nÉmetteur\nIdentifiant client\nSecret client\nURL d’autorisation (facultative)\nURL de jeton (facultative)\nURL JWKS (facultative)\nActiver l’authentification OIDC\nEnregistrer le fournisseur OIDC\nTester la connexion\nSAML 2.0\n\nSaisissez l’identifiant d’entité, l’URL d’authentification unique et le certificat de signature X.509 du fournisseur d’identité.\n\nIdentifiant d’entité\nURL SSO\nCertificat X.509\nActiver l’authentification SAML\nEnregistrer le fournisseur SAML\nTester la connexion\nImposer le SSO\n\nObligez les membres à se connecter auprès de votre fournisseur d’identité. Cette règle s’applique après un délai de grâce de 7 jours afin de leur laisser le temps de migrer. Les propriétaires de l’organisation restent toujours exemptés pour éviter qu’une mauvaise configuration du fournisseur d’identité ne bloque votre équipe.\n\nImpossible de charger l’état actuel de l’obligation d’utiliser le SSO. La commande est désactivée afin de ne pas modifier un état de sécurité inconnu. Les paramètres des fournisseurs restent disponibles.\nImposer le SSO à tous les membres",
+      "recoveredText": "Menu\nParamètres SSO d’entreprise\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres SSO d’entreprise\n\nConfigurez un fournisseur OIDC, dont Microsoft Entra ID, ou un fournisseur d’identité SAML pour votre organisation. Chaque fournisseur est enregistré séparément et peut être activé ou désactivé indépendamment.\n\nPour protéger votre organisation, les secrets des fournisseurs sont chiffrés et ne sont plus affichés après leur enregistrement. Ces formulaires sont donc initialement vides. L’enregistrement d’un fournisseur remplace toute sa configuration. Utilisez « Tester la connexion » pour valider un fournisseur enregistré sans saisir de nouveau son secret.\n\nOIDC / Entra ID\n\nDétection automatique OpenID Connect. Autorisations demandées : openid profile email\n\nÉmetteur\nIdentifiant client\nSecret client\nURL d’autorisation (facultative)\nURL de jeton (facultative)\nURL JWKS (facultative)\nActiver l’authentification OIDC\nEnregistrer le fournisseur OIDC\nTester la connexion\nSAML 2.0\n\nSaisissez l’identifiant d’entité, l’URL d’authentification unique et le certificat de signature X.509 du fournisseur d’identité.\n\nIdentifiant d’entité\nURL SSO\nCertificat X.509\nActiver l’authentification SAML\nEnregistrer le fournisseur SAML\nTester la connexion\nImposer le SSO\n\nObligez les membres à se connecter auprès de votre fournisseur d’identité. Cette règle s’applique après un délai de grâce de 14 jours afin de leur laisser le temps de migrer. Les propriétaires de l’organisation restent toujours exemptés pour éviter qu’une mauvaise configuration du fournisseur d’identité ne bloque votre équipe.\n\nImposer le SSO à tous les membres",
+      "method": "browser reload",
+      "changed": true
+    },
+    {
+      "path": "/recovery-codes",
+      "key": "/auth/recovery-codes/status",
+      "status": 503,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nCodes de récupération\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nCodes de récupération\n\nGérez les codes de récupération à usage unique utilisés comme solution de secours pour l’authentification multifacteur.\n\nImpossible de charger l’état des codes de récupération\n\nAucun code n’a été modifié. Vous pouvez tout de même confirmer votre mot de passe et générer un nouveau jeu ci-dessous.\n\nRecharger l’état\nSolution de secours à usage unique pour l’authentification multifacteur\n\nLes codes de récupération sont des codes de secours à usage unique qui vous permettent de vous connecter si vous perdez l’accès à votre application d’authentification.\n\nLe nombre de codes inutilisés est indisponible. La génération d’un nouveau jeu invalide définitivement tous les codes précédents.\n\nChaque code ne fonctionne qu’une fois et n’est affiché qu’au moment de sa génération. Enregistrez le nouveau jeu dans un gestionnaire de mots de passe ou imprimez-le et conservez-le sous clé.\n\nGénérer un nouveau jeu\n\nConfirmez votre mot de passe actuel avant de remplacer tous les codes de récupération existants.\n\nMot de passe actuel\nGénérer les codes de récupération",
+      "recoveredText": "Menu\nCodes de récupération\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nCodes de récupération\n\nGérez les codes de récupération à usage unique utilisés comme solution de secours pour l’authentification multifacteur.\n\n2 codes de récupération restants\n2 / 10\nBientôt épuisés\nSolution de secours à usage unique pour l’authentification multifacteur\n\nLes codes de récupération sont des codes de secours à usage unique qui vous permettent de vous connecter si vous perdez l’accès à votre application d’authentification.\n\nVous disposez actuellement de 2 codes inutilisés sur 10. La génération d’un nouveau jeu invalide définitivement tous les codes précédents.\n\nChaque code ne fonctionne qu’une fois et n’est affiché qu’au moment de sa génération. Enregistrez le nouveau jeu dans un gestionnaire de mots de passe ou imprimez-le et conservez-le sous clé.\n\nGénérer un nouveau jeu\n\nConfirmez votre mot de passe actuel avant de remplacer tous les codes de récupération existants.\n\nMot de passe actuel\nGénérer les codes de récupération",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/recovery-codes",
+      "key": "/auth/recovery-codes/status",
+      "status": 403,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nCodes de récupération\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nCodes de récupération\n\nGérez les codes de récupération à usage unique utilisés comme solution de secours pour l’authentification multifacteur.\n\nImpossible de charger l’état des codes de récupération\n\nAucun code n’a été modifié. Vous pouvez tout de même confirmer votre mot de passe et générer un nouveau jeu ci-dessous.\n\nRecharger l’état\nSolution de secours à usage unique pour l’authentification multifacteur\n\nLes codes de récupération sont des codes de secours à usage unique qui vous permettent de vous connecter si vous perdez l’accès à votre application d’authentification.\n\nLe nombre de codes inutilisés est indisponible. La génération d’un nouveau jeu invalide définitivement tous les codes précédents.\n\nChaque code ne fonctionne qu’une fois et n’est affiché qu’au moment de sa génération. Enregistrez le nouveau jeu dans un gestionnaire de mots de passe ou imprimez-le et conservez-le sous clé.\n\nGénérer un nouveau jeu\n\nConfirmez votre mot de passe actuel avant de remplacer tous les codes de récupération existants.\n\nMot de passe actuel\nGénérer les codes de récupération",
+      "recoveredText": "Menu\nCodes de récupération\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nCodes de récupération\n\nGérez les codes de récupération à usage unique utilisés comme solution de secours pour l’authentification multifacteur.\n\n2 codes de récupération restants\n2 / 10\nBientôt épuisés\nSolution de secours à usage unique pour l’authentification multifacteur\n\nLes codes de récupération sont des codes de secours à usage unique qui vous permettent de vous connecter si vous perdez l’accès à votre application d’authentification.\n\nVous disposez actuellement de 2 codes inutilisés sur 10. La génération d’un nouveau jeu invalide définitivement tous les codes précédents.\n\nChaque code ne fonctionne qu’une fois et n’est affiché qu’au moment de sa génération. Enregistrez le nouveau jeu dans un gestionnaire de mots de passe ou imprimez-le et conservez-le sous clé.\n\nGénérer un nouveau jeu\n\nConfirmez votre mot de passe actuel avant de remplacer tous les codes de récupération existants.\n\nMot de passe actuel\nGénérer les codes de récupération",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/scim-token-settings",
+      "key": "/orgs/synthetic-org/scim/tokens",
+      "status": 503,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nParamètres des jetons SCIM\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres des jetons SCIM\n\nCréez des jetons porteurs pour permettre à votre fournisseur d’identité de provisionner et déprovisionner les membres via SCIM. Les jetons sont hachés au repos et affichés en entier une seule fois, après leur création ou leur renouvellement.\n\nImpossible de charger les jetons SCIM\n\nImpossible de récupérer les métadonnées actuelles des jetons. Aucun jeton n’a été modifié. Rechargez ce panneau pour réessayer.\n\nRecharger les jetons SCIM",
+      "recoveredText": "Menu\nParamètres des jetons SCIM\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres des jetons SCIM\n\nCréez des jetons porteurs pour permettre à votre fournisseur d’identité de provisionner et déprovisionner les membres via SCIM. Les jetons sont hachés au repos et affichés en entier une seule fois, après leur création ou leur renouvellement.\n\nCréer un jeton\n\nLes jetons expirent automatiquement selon la durée de validité SCIM définie pour votre organisation.\n\nNom du jeton\nCréer le jeton SCIM\nJetons SCIM\n1 jeton\n\nSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataName\n\nCréé le\n1 oct. 2026\nDernière utilisation\nJamais utilisé\nExpire le\n1 janv. 2027\nRenouveler\nRévoquer",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/scim-token-settings",
+      "key": "/orgs/synthetic-org/scim/tokens",
+      "status": 403,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nParamètres des jetons SCIM\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres des jetons SCIM\n\nCréez des jetons porteurs pour permettre à votre fournisseur d’identité de provisionner et déprovisionner les membres via SCIM. Les jetons sont hachés au repos et affichés en entier une seule fois, après leur création ou leur renouvellement.\n\nAccès aux jetons SCIM restreint\n\nVotre rôle ne dispose pas de l’autorisation scim:manage nécessaire pour consulter ou gérer les jetons SCIM.",
+      "recoveredText": "Menu\nParamètres des jetons SCIM\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres des jetons SCIM\n\nCréez des jetons porteurs pour permettre à votre fournisseur d’identité de provisionner et déprovisionner les membres via SCIM. Les jetons sont hachés au repos et affichés en entier une seule fois, après leur création ou leur renouvellement.\n\nCréer un jeton\n\nLes jetons expirent automatiquement selon la durée de validité SCIM définie pour votre organisation.\n\nNom du jeton\nCréer le jeton SCIM\nJetons SCIM\n1 jeton\n\nSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataName\n\nCréé le\n1 oct. 2026\nDernière utilisation\nJamais utilisé\nExpire le\n1 janv. 2027\nRenouveler\nRévoquer",
+      "method": "browser reload",
+      "changed": true
+    },
+    {
+      "path": "/teams/synthetic-team",
+      "key": "/teams/synthetic-team/access-log",
+      "status": 503,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nJournal des accès de l’équipe\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nJournal des accès de l’équipe\n\nConsultez les événements d’accès de cette équipe liés à la sécurité. Filtrez-les par action ou téléchargez le journal complet aux formats CSV ou JSON.\n\nExportation\n\nTéléchargez le journal complet des accès de l’équipe. Le fichier est généré de façon sécurisée sur le serveur avec votre session actuelle.\n\nExporter en CSV\nExporter en JSON\nÉvénements d’accès\nJournal des accès de l’équipe indisponible\n\nImpossible de récupérer les événements d’accès les plus récents. Aucune donnée d’audit n’a été modifiée. Rechargez le journal.\n\nRecharger le journal des accès\n\nÉquipe synthetic-team\n\nOuvrir les paramètres de l’équipe",
+      "recoveredText": "Menu\nJournal des accès de l’équipe\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nJournal des accès de l’équipe\n\nConsultez les événements d’accès de cette équipe liés à la sécurité. Filtrez-les par action ou téléchargez le journal complet aux formats CSV ou JSON.\n\nExportation\n\nTéléchargez le journal complet des accès de l’équipe. Le fichier est généré de façon sécurisée sur le serveur avec votre session actuelle.\n\nExporter en CSV\nExporter en JSON\nÉvénements d’accès\n1 événement\nAction\nToutes les actions\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nDate et heure\n26 oct. 2026, 01:00\nActeur\nSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifier\nAction\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nCible\nsynthetic · SyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifier\nAdresse IP\n2001:db8:1234:5678:abcd:abcd:abcd:abcd\n\nÉquipe synthetic-team\n\nOuvrir les paramètres de l’équipe",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/teams/synthetic-team",
+      "key": "/teams/synthetic-team/access-log",
+      "status": 403,
+      "lang": "fr",
+      "responseStatus": 200,
+      "text": "Menu\nJournal des accès de l’équipe\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nJournal des accès de l’équipe\n\nConsultez les événements d’accès de cette équipe liés à la sécurité. Filtrez-les par action ou téléchargez le journal complet aux formats CSV ou JSON.\n\nAccès restreint\n\nCertaines données du journal ou fonctions d’exportation ne sont pas disponibles avec vos autorisations actuelles. Demandez l’accès à un administrateur de l’équipe ; les exportations nécessitent l’autorisation audit:export.\n\nExportation\n\nTéléchargez le journal complet des accès de l’équipe. Le fichier est généré de façon sécurisée sur le serveur avec votre session actuelle.\n\nExporter en CSV\nExporter en JSON\nÉvénements d’accès\nAucun événement d’accès pour le moment\n\nLes activités de l’équipe liées à la sécurité apparaîtront ici dès qu’un événement sera enregistré.\n\nÉquipe synthetic-team\n\nOuvrir les paramètres de l’équipe",
+      "recoveredText": "Menu\nJournal des accès de l’équipe\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nJournal des accès de l’équipe\n\nConsultez les événements d’accès de cette équipe liés à la sécurité. Filtrez-les par action ou téléchargez le journal complet aux formats CSV ou JSON.\n\nExportation\n\nTéléchargez le journal complet des accès de l’équipe. Le fichier est généré de façon sécurisée sur le serveur avec votre session actuelle.\n\nExporter en CSV\nExporter en JSON\nÉvénements d’accès\n1 événement\nAction\nToutes les actions\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nDate et heure\n26 oct. 2026, 01:00\nActeur\nSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifier\nAction\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nCible\nsynthetic · SyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifier\nAdresse IP\n2001:db8:1234:5678:abcd:abcd:abcd:abcd\n\nÉquipe synthetic-team\n\nOuvrir les paramètres de l’équipe",
+      "method": "browser reload",
+      "changed": true
+    },
+    {
+      "path": "/enterprise-sso-settings",
+      "key": "/orgs/synthetic-org/sso/enforcement",
+      "status": 503,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nEnterprise SSO settings\n\nWORKSPACE CONSOLE\n\nEnterprise SSO settings\n\nConfigure an OIDC provider, including Microsoft Entra ID, or a SAML identity provider for your organization. Each provider is saved independently and can be enabled or disabled separately.\n\nFor your organization’s security, provider secrets are encrypted and never shown after saving. These forms therefore start blank. Saving a provider replaces its full configuration. Use “Test connection” to validate a saved provider without entering its secret again.\n\nOIDC / Entra ID\n\nOpenID Connect discovery. Requested scopes: openid profile email\n\nIssuer\nClient ID\nClient secret\nAuthorization URL (optional)\nToken URL (optional)\nJWKS URL (optional)\nEnable OIDC sign-in\nSave OIDC provider\nTest connection\nSAML 2.0\n\nEnter the identity provider’s entity ID, single sign-on URL and X.509 signing certificate.\n\nEntity ID\nSSO URL\nX.509 certificate\nEnable SAML sign-in\nSave SAML provider\nTest connection\nEnforce SSO\n\nRequire members to sign in through your identity provider. Enforcement begins after a 7-day grace period so members have time to migrate. Organization owners are always exempt, preventing an identity-provider misconfiguration from locking out your team.\n\nThe current SSO enforcement status could not be loaded. The control is disabled to avoid changing an unknown security state. Provider settings remain available.\nRequire SSO for all members",
+      "recoveredText": "Menu\nEnterprise SSO settings\n\nWORKSPACE CONSOLE\n\nEnterprise SSO settings\n\nConfigure an OIDC provider, including Microsoft Entra ID, or a SAML identity provider for your organization. Each provider is saved independently and can be enabled or disabled separately.\n\nFor your organization’s security, provider secrets are encrypted and never shown after saving. These forms therefore start blank. Saving a provider replaces its full configuration. Use “Test connection” to validate a saved provider without entering its secret again.\n\nOIDC / Entra ID\n\nOpenID Connect discovery. Requested scopes: openid profile email\n\nIssuer\nClient ID\nClient secret\nAuthorization URL (optional)\nToken URL (optional)\nJWKS URL (optional)\nEnable OIDC sign-in\nSave OIDC provider\nTest connection\nSAML 2.0\n\nEnter the identity provider’s entity ID, single sign-on URL and X.509 signing certificate.\n\nEntity ID\nSSO URL\nX.509 certificate\nEnable SAML sign-in\nSave SAML provider\nTest connection\nEnforce SSO\n\nRequire members to sign in through your identity provider. Enforcement begins after a 14-day grace period so members have time to migrate. Organization owners are always exempt, preventing an identity-provider misconfiguration from locking out your team.\n\nRequire SSO for all members",
+      "method": "browser reload",
+      "changed": true
+    },
+    {
+      "path": "/enterprise-sso-settings",
+      "key": "/orgs/synthetic-org/sso/enforcement",
+      "status": 403,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nEnterprise SSO settings\n\nWORKSPACE CONSOLE\n\nEnterprise SSO settings\n\nConfigure an OIDC provider, including Microsoft Entra ID, or a SAML identity provider for your organization. Each provider is saved independently and can be enabled or disabled separately.\n\nFor your organization’s security, provider secrets are encrypted and never shown after saving. These forms therefore start blank. Saving a provider replaces its full configuration. Use “Test connection” to validate a saved provider without entering its secret again.\n\nOIDC / Entra ID\n\nOpenID Connect discovery. Requested scopes: openid profile email\n\nIssuer\nClient ID\nClient secret\nAuthorization URL (optional)\nToken URL (optional)\nJWKS URL (optional)\nEnable OIDC sign-in\nSave OIDC provider\nTest connection\nSAML 2.0\n\nEnter the identity provider’s entity ID, single sign-on URL and X.509 signing certificate.\n\nEntity ID\nSSO URL\nX.509 certificate\nEnable SAML sign-in\nSave SAML provider\nTest connection\nEnforce SSO\n\nRequire members to sign in through your identity provider. Enforcement begins after a 7-day grace period so members have time to migrate. Organization owners are always exempt, preventing an identity-provider misconfiguration from locking out your team.\n\nThe current SSO enforcement status could not be loaded. The control is disabled to avoid changing an unknown security state. Provider settings remain available.\nRequire SSO for all members",
+      "recoveredText": "Menu\nEnterprise SSO settings\n\nWORKSPACE CONSOLE\n\nEnterprise SSO settings\n\nConfigure an OIDC provider, including Microsoft Entra ID, or a SAML identity provider for your organization. Each provider is saved independently and can be enabled or disabled separately.\n\nFor your organization’s security, provider secrets are encrypted and never shown after saving. These forms therefore start blank. Saving a provider replaces its full configuration. Use “Test connection” to validate a saved provider without entering its secret again.\n\nOIDC / Entra ID\n\nOpenID Connect discovery. Requested scopes: openid profile email\n\nIssuer\nClient ID\nClient secret\nAuthorization URL (optional)\nToken URL (optional)\nJWKS URL (optional)\nEnable OIDC sign-in\nSave OIDC provider\nTest connection\nSAML 2.0\n\nEnter the identity provider’s entity ID, single sign-on URL and X.509 signing certificate.\n\nEntity ID\nSSO URL\nX.509 certificate\nEnable SAML sign-in\nSave SAML provider\nTest connection\nEnforce SSO\n\nRequire members to sign in through your identity provider. Enforcement begins after a 14-day grace period so members have time to migrate. Organization owners are always exempt, preventing an identity-provider misconfiguration from locking out your team.\n\nRequire SSO for all members",
+      "method": "browser reload",
+      "changed": true
+    },
+    {
+      "path": "/recovery-codes",
+      "key": "/auth/recovery-codes/status",
+      "status": 503,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nRecovery codes\n\nWORKSPACE CONSOLE\n\nRecovery codes\n\nManage one-time account recovery codes for MFA fallback.\n\nRecovery-code status could not load\n\nNo codes were changed. You can still confirm your password and generate a new set below.\n\nReload status\nOne-time MFA fallback\n\nRecovery codes are one-time backup codes that let you sign in if you lose access to your authenticator app.\n\nThe number of unused codes is unavailable. Generating a new set permanently invalidates every previous code.\n\nEach code works once and is shown only when generated. Store the new set in a password manager or print it and keep it locked away.\n\nGenerate a new set\n\nConfirm your current password before replacing every existing recovery code.\n\nCurrent password\nGenerate recovery codes",
+      "recoveredText": "Menu\nRecovery codes\n\nWORKSPACE CONSOLE\n\nRecovery codes\n\nManage one-time account recovery codes for MFA fallback.\n\n2 recovery codes remaining\n2 / 10\nRunning low\nOne-time MFA fallback\n\nRecovery codes are one-time backup codes that let you sign in if you lose access to your authenticator app.\n\nYou currently have 2 of 10 unused codes. Generating a new set permanently invalidates every previous code.\n\nEach code works once and is shown only when generated. Store the new set in a password manager or print it and keep it locked away.\n\nGenerate a new set\n\nConfirm your current password before replacing every existing recovery code.\n\nCurrent password\nGenerate recovery codes",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/recovery-codes",
+      "key": "/auth/recovery-codes/status",
+      "status": 403,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nRecovery codes\n\nWORKSPACE CONSOLE\n\nRecovery codes\n\nManage one-time account recovery codes for MFA fallback.\n\nRecovery-code status could not load\n\nNo codes were changed. You can still confirm your password and generate a new set below.\n\nReload status\nOne-time MFA fallback\n\nRecovery codes are one-time backup codes that let you sign in if you lose access to your authenticator app.\n\nThe number of unused codes is unavailable. Generating a new set permanently invalidates every previous code.\n\nEach code works once and is shown only when generated. Store the new set in a password manager or print it and keep it locked away.\n\nGenerate a new set\n\nConfirm your current password before replacing every existing recovery code.\n\nCurrent password\nGenerate recovery codes",
+      "recoveredText": "Menu\nRecovery codes\n\nWORKSPACE CONSOLE\n\nRecovery codes\n\nManage one-time account recovery codes for MFA fallback.\n\n2 recovery codes remaining\n2 / 10\nRunning low\nOne-time MFA fallback\n\nRecovery codes are one-time backup codes that let you sign in if you lose access to your authenticator app.\n\nYou currently have 2 of 10 unused codes. Generating a new set permanently invalidates every previous code.\n\nEach code works once and is shown only when generated. Store the new set in a password manager or print it and keep it locked away.\n\nGenerate a new set\n\nConfirm your current password before replacing every existing recovery code.\n\nCurrent password\nGenerate recovery codes",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/scim-token-settings",
+      "key": "/orgs/synthetic-org/scim/tokens",
+      "status": 503,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nSCIM token settings\n\nWORKSPACE CONSOLE\n\nSCIM token settings\n\nCreate bearer tokens for your identity provider to provision and deprovision members over SCIM. Tokens are hashed at rest and shown in full only once, after creation or renewal.\n\nSCIM tokens could not load\n\nThe current token metadata could not be retrieved. No token was changed. Reload this panel to try again.\n\nReload SCIM tokens",
+      "recoveredText": "Menu\nSCIM token settings\n\nWORKSPACE CONSOLE\n\nSCIM token settings\n\nCreate bearer tokens for your identity provider to provision and deprovision members over SCIM. Tokens are hashed at rest and shown in full only once, after creation or renewal.\n\nCreate a token\n\nTokens expire automatically according to your organization’s SCIM token lifetime.\n\nToken name\nCreate SCIM token\nSCIM tokens\n1 token\n\nSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataName\n\nCreated\n1 Oct 2026\nLast used\nNever used\nExpires\n1 Jan 2027\nRenew\nRevoke",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/scim-token-settings",
+      "key": "/orgs/synthetic-org/scim/tokens",
+      "status": 403,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nSCIM token settings\n\nWORKSPACE CONSOLE\n\nSCIM token settings\n\nCreate bearer tokens for your identity provider to provision and deprovision members over SCIM. Tokens are hashed at rest and shown in full only once, after creation or renewal.\n\nSCIM token access restricted\n\nYour role does not include the scim:manage permission required to view or manage SCIM tokens.",
+      "recoveredText": "Menu\nSCIM token settings\n\nWORKSPACE CONSOLE\n\nSCIM token settings\n\nCreate bearer tokens for your identity provider to provision and deprovision members over SCIM. Tokens are hashed at rest and shown in full only once, after creation or renewal.\n\nCreate a token\n\nTokens expire automatically according to your organization’s SCIM token lifetime.\n\nToken name\nCreate SCIM token\nSCIM tokens\n1 token\n\nSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataNameSyntheticScimMetadataName\n\nCreated\n1 Oct 2026\nLast used\nNever used\nExpires\n1 Jan 2027\nRenew\nRevoke",
+      "method": "browser reload",
+      "changed": true
+    },
+    {
+      "path": "/teams/synthetic-team",
+      "key": "/teams/synthetic-team/access-log",
+      "status": 503,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nTeam access log\n\nWORKSPACE CONSOLE\n\nTeam access log\n\nReview security-relevant access events for this team. Filter by action, or download the complete trail in CSV or JSON format.\n\nExport\n\nDownload the complete team access log. The file is generated securely on the server using your current session.\n\nExport CSV\nExport JSON\nAccess events\nTeam access log unavailable\n\nThe latest access events could not be retrieved. No audit data was changed. Try loading the log again.\n\nReload access log\n\nTeam synthetic-team\n\nOpen team settings",
+      "recoveredText": "Menu\nTeam access log\n\nWORKSPACE CONSOLE\n\nTeam access log\n\nReview security-relevant access events for this team. Filter by action, or download the complete trail in CSV or JSON format.\n\nExport\n\nDownload the complete team access log. The file is generated securely on the server using your current session.\n\nExport CSV\nExport JSON\nAccess events\n1 event\nAction\nAll actions\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nTime\n26 Oct 2026, 01:00\nActor\nSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifier\nAction\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nTarget\nsynthetic · SyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifier\nIP address\n2001:db8:1234:5678:abcd:abcd:abcd:abcd\n\nTeam synthetic-team\n\nOpen team settings",
+      "method": "keyboard retry",
+      "changed": true
+    },
+    {
+      "path": "/teams/synthetic-team",
+      "key": "/teams/synthetic-team/access-log",
+      "status": 403,
+      "lang": "en",
+      "responseStatus": 200,
+      "text": "Menu\nTeam access log\n\nWORKSPACE CONSOLE\n\nTeam access log\n\nReview security-relevant access events for this team. Filter by action, or download the complete trail in CSV or JSON format.\n\nAccess restricted\n\nSome access-log data or export functions are unavailable with your current permissions. Ask a team administrator for access; exports require audit:export.\n\nExport\n\nDownload the complete team access log. The file is generated securely on the server using your current session.\n\nExport CSV\nExport JSON\nAccess events\nNo access events yet\n\nSecurity-relevant team activity will appear here as soon as an event is recorded.\n\nTeam synthetic-team\n\nOpen team settings",
+      "recoveredText": "Menu\nTeam access log\n\nWORKSPACE CONSOLE\n\nTeam access log\n\nReview security-relevant access events for this team. Filter by action, or download the complete trail in CSV or JSON format.\n\nExport\n\nDownload the complete team access log. The file is generated securely on the server using your current session.\n\nExport CSV\nExport JSON\nAccess events\n1 event\nAction\nAll actions\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nTime\n26 Oct 2026, 01:00\nActor\nSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifier\nAction\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nTarget\nsynthetic · SyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifier\nIP address\n2001:db8:1234:5678:abcd:abcd:abcd:abcd\n\nTeam synthetic-team\n\nOpen team settings",
+      "method": "browser reload",
+      "changed": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}

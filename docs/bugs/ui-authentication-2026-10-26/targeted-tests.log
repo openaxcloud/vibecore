@@ -1,0 +1,13 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-auth-next
+
+ ✓ app/styles/auth-touch-targets.spec.ts (5 tests) 6ms
+ ✓ app/routes/verify-email.mfa-redirect.spec.ts (4 tests) 14ms
+ ✓ app/routes/auth-password-i18n.spec.ts (7 tests) 10ms
+ ✓ app/components/auth/AuthI18n.spec.tsx (2 tests) 115ms
+
+ Test Files  4 passed (4)
+      Tests  18 passed (18)
+   Start at  02:37:37
+   Duration  3.13s (transform 1.37s, setup 113ms, collect 1.04s, tests 144ms, environment 317ms, prepare 278ms)
+

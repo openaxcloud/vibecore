@@ -1,0 +1,14 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-org-next
+
+ ✓ app/lib/i18n/catalogs/enterprise-sso-settings.spec.tsx (7 tests) 557ms
+   ✓ enterprise SSO settings EN/FR catalog > has zero hardcoded-copy scanner findings in the rendered route  512ms
+ ✓ app/routes/enterprise-sso-settings.i18n.spec.tsx (5 tests) 405ms
+ ✓ app/routes/enterprise-sso-settings.spec.ts (9 tests) 1803ms
+   ✓ enterprise SSO settings action > rejects a missing org id inline without calling the backend  1766ms
+
+ Test Files  3 passed (3)
+      Tests  21 passed (21)
+   Start at  02:29:38
+   Duration  6.05s (transform 3.34s, setup 228ms, collect 691ms, tests 2.76s, environment 595ms, prepare 594ms)
+

@@ -205,7 +205,7 @@ export default function VerifyEmailPage() {
         <button
           type="submit"
           disabled={isSubmitting || resendSecondsLeft > 0}
-          className="vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60"
+          className="vc-auth-link inline-flex min-h-[44px] max-w-full items-center whitespace-normal text-left text-sm font-semibold hover:underline disabled:opacity-60"
         >
           {resendSecondsLeft > 0
             ? t('auth.verify.resendAvailable', { count: resendSecondsLeft })

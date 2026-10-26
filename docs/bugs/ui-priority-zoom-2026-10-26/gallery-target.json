@@ -1,0 +1,72 @@
+{
+  "innerWidth": 320,
+  "outerWidth": 640,
+  "dpr": 2,
+  "visualScale": 1,
+  "documentWidth": 320,
+  "elements": [
+    {
+      "text": "web",
+      "client": 44,
+      "scroll": 44,
+      "left": 37,
+      "right": 82.5859375
+    },
+    {
+      "text": "À la une",
+      "client": 66,
+      "scroll": 66,
+      "left": 216.7109375,
+      "right": 283
+    },
+    {
+      "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "client": 246,
+      "scroll": 246,
+      "left": 37,
+      "right": 283
+    },
+    {
+      "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+      "client": 246,
+      "scroll": 246,
+      "left": 37,
+      "right": 283
+    },
+    {
+      "text": "typescript",
+      "client": 72,
+      "scroll": 72,
+      "left": 37,
+      "right": 108.875
+    },
+    {
+      "text": "par SyntheticAuthorWithoutSpacesSyntheticAuthorWithoutSpacesSyntheticAuthorWithoutSpacesSyntheticAuthorWithoutSpacesSyntheticAuthorWithoutSpacesSyntheticAuthorWithoutSpacesSyntheticAuthorWithoutSpacesSyntheticAuthorWithoutSpaces",
+      "client": 141,
+      "scroll": 141,
+      "left": 37,
+      "right": 177.6875
+    },
+    {
+      "text": "1 M1 Md",
+      "client": 105,
+      "scroll": 105,
+      "left": 177.6875,
+      "right": 283
+    },
+    {
+      "text": "1 M",
+      "client": 42,
+      "scroll": 42,
+      "left": 177.6875,
+      "right": 220.0390625
+    },
+    {
+      "text": "1 Md",
+      "client": 51,
+      "scroll": 51,
+      "left": 232.0390625,
+      "right": 283
+    }
+  ]
+}

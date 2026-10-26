@@ -1,0 +1,495 @@
+{
+  "cases": [
+    {
+      "label": "unsupported start",
+      "path": "/auth/oauth/unsupported",
+      "status": 302,
+      "location": "/login?oauth=unknown&error=unsupported_provider",
+      "cookies": []
+    },
+    {
+      "label": "unsupported callback",
+      "path": "/auth/oauth/unsupported/callback",
+      "status": 302,
+      "location": "/login?oauth=unknown&error=unsupported_provider",
+      "cookies": []
+    },
+    {
+      "label": "provider not configured",
+      "path": "/auth/oauth/google",
+      "status": 302,
+      "location": "/login?oauth=google&error=not_configured",
+      "cookies": []
+    },
+    {
+      "label": "provider start unavailable",
+      "path": "/auth/oauth/google",
+      "status": 503,
+      "location": null,
+      "cookies": []
+    },
+    {
+      "label": "ready start cookies and safe returnTo, destination not followed",
+      "path": "/auth/oauth/google?mode=link&returnTo=%2Fforgot-password",
+      "status": 302,
+      "location": "http://127.0.0.1:11999/__synthetic_authorize?state=SYNTHETIC-STATE-NOT-SIGNED",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": false,
+          "tenMinutes": true
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": false,
+          "tenMinutes": true
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "provider declined",
+      "path": "/auth/oauth/google/callback?error=access_denied&error_description=Synthetic%20decline",
+      "status": 302,
+      "location": "/login?oauth=google&error=access_denied&detail=Synthetic%20decline",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "missing callback code/state",
+      "path": "/auth/oauth/google/callback",
+      "status": 302,
+      "location": "/login?oauth=google&error=invalid_callback",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "state mismatch",
+      "path": "/auth/oauth/google/callback?code=SYNTHETIC-CODE&state=WRONG",
+      "status": 302,
+      "location": "/login?oauth=google&error=invalid_callback",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic callback rejected",
+      "path": "/auth/oauth/google/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/login?oauth=google&error=callback_failed&detail=SYNTHETIC_CALLBACK_REJECTED",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic callback unavailable",
+      "path": "/auth/oauth/google/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/login?oauth=google&error=callback_failed&detail=SYNTHETIC_UNAVAILABLE",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "success body without token rejected",
+      "path": "/auth/oauth/google/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/login?oauth=google&error=callback_failed&detail=missing_token",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic link rejected",
+      "path": "/auth/oauth/google/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/account-settings/connected?linkError=google&detail=SYNTHETIC_LINK_REJECTED",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic link acknowledgment only, no real link",
+      "path": "/auth/oauth/google/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/account-settings/connected?linked=google",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "provider not configured",
+      "path": "/auth/oauth/github",
+      "status": 302,
+      "location": "/login?oauth=github&error=not_configured",
+      "cookies": []
+    },
+    {
+      "label": "provider start unavailable",
+      "path": "/auth/oauth/github",
+      "status": 503,
+      "location": null,
+      "cookies": []
+    },
+    {
+      "label": "ready start cookies and safe returnTo, destination not followed",
+      "path": "/auth/oauth/github?mode=link&returnTo=%2Fforgot-password",
+      "status": 302,
+      "location": "http://127.0.0.1:11999/__synthetic_authorize?state=SYNTHETIC-STATE-NOT-SIGNED",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": false,
+          "tenMinutes": true
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": false,
+          "tenMinutes": true
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "provider declined",
+      "path": "/auth/oauth/github/callback?error=access_denied&error_description=Synthetic%20decline",
+      "status": 302,
+      "location": "/login?oauth=github&error=access_denied&detail=Synthetic%20decline",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "missing callback code/state",
+      "path": "/auth/oauth/github/callback",
+      "status": 302,
+      "location": "/login?oauth=github&error=invalid_callback",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "state mismatch",
+      "path": "/auth/oauth/github/callback?code=SYNTHETIC-CODE&state=WRONG",
+      "status": 302,
+      "location": "/login?oauth=github&error=invalid_callback",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic callback rejected",
+      "path": "/auth/oauth/github/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/login?oauth=github&error=callback_failed&detail=SYNTHETIC_CALLBACK_REJECTED",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic callback unavailable",
+      "path": "/auth/oauth/github/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/login?oauth=github&error=callback_failed&detail=SYNTHETIC_UNAVAILABLE",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "success body without token rejected",
+      "path": "/auth/oauth/github/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/login?oauth=github&error=callback_failed&detail=missing_token",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic link rejected",
+      "path": "/auth/oauth/github/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/account-settings/connected?linkError=github&detail=SYNTHETIC_LINK_REJECTED",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "synthetic link acknowledgment only, no real link",
+      "path": "/auth/oauth/github/callback?code=SYNTHETIC-CODE&state=SYNTHETIC-STATE-NOT-SIGNED",
+      "status": 302,
+      "location": "/account-settings/connected?linked=github",
+      "cookies": [
+        {
+          "name": "vc_oauth_state",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_link",
+          "cleared": true,
+          "tenMinutes": false
+        },
+        {
+          "name": "vc_oauth_return",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "logout GET does not clear cookie",
+      "path": "/logout",
+      "status": 302,
+      "location": "/login",
+      "cookies": []
+    },
+    {
+      "label": "logout POST fake cookie only",
+      "path": "/logout",
+      "status": 302,
+      "location": "/login",
+      "cookies": [
+        {
+          "name": "vc_session",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    },
+    {
+      "label": "logout POST clears fake cookie even API failure",
+      "path": "/logout",
+      "status": 302,
+      "location": "/login",
+      "cookies": [
+        {
+          "name": "vc_session",
+          "cleared": true,
+          "tenMinutes": false
+        }
+      ]
+    }
+  ],
+  "syntheticOnly": true,
+  "thirdPartyFollowed": false
+}

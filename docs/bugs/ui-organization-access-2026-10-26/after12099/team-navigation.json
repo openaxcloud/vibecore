@@ -1,0 +1,38 @@
+{
+  "base": "http://127.0.0.1:12099",
+  "cases": [
+    {
+      "lang": "fr",
+      "before": {
+        "url": "http://127.0.0.1:12099/teams/synthetic-team?lang=fr",
+        "h1": "Journal des accès de l’équipe"
+      },
+      "after": {
+        "url": "http://127.0.0.1:12099/teams/synthetic-team/settings",
+        "h1": "Paramètres de l’équipe",
+        "settingsBanner": "Menu\nParamètres de l’équipe\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nParamètres de l’équipe\n\nGérez cette équipe. Le journal ci-dessous consigne les événements liés à la sécurité et peut être exporté aux formats CSV ou JSON.\n\nJournal des accès de l’équipe synthetic-team.\nOuvrir le journal complet des accès de l’équipe\nExportation\n\nTéléchargez le journal complet des accès de l’équipe. Le fichier est généré de façon sécurisée sur le serveur avec votre session actuelle.\n\nExporter en CSV\nExporter en JSON\nÉvénements d’accès\n1 événement\nAction\nToutes les actions\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nDate et heure\n26 oct. 2026, 01:00\nActeur\nSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifier\nAction\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nCible\nsynthetic · SyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifier\nAdresse IP\n2001:db8:1234:5678:abcd:abcd:abcd:abcd\n\nÉquipe synthetic-team"
+      },
+      "back": {
+        "url": "http://127.0.0.1:12099/teams/synthetic-team?lang=fr",
+        "h1": "Journal des accès de l’équipe"
+      }
+    },
+    {
+      "lang": "en",
+      "before": {
+        "url": "http://127.0.0.1:12099/teams/synthetic-team?lang=en",
+        "h1": "Team access log"
+      },
+      "after": {
+        "url": "http://127.0.0.1:12099/teams/synthetic-team/settings",
+        "h1": "Team settings",
+        "settingsBanner": "Menu\nTeam settings\n\nWORKSPACE CONSOLE\n\nTeam settings\n\nManage this team. The access log below records security-relevant events and can be exported in CSV or JSON format.\n\nAccess log for team synthetic-team.\nOpen the complete team access log\nExport\n\nDownload the complete team access log. The file is generated securely on the server using your current session.\n\nExport CSV\nExport JSON\nAccess events\n1 event\nAction\nAll actions\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nTime\n26 Oct 2026, 01:00\nActor\nSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifierSyntheticActorIdentifier\nAction\nsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.actionsynthetic.read.only.action\nTarget\nsynthetic · SyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifierSyntheticResourceIdentifier\nIP address\n2001:db8:1234:5678:abcd:abcd:abcd:abcd\n\nTeam synthetic-team"
+      },
+      "back": {
+        "url": "http://127.0.0.1:12099/teams/synthetic-team?lang=en",
+        "h1": "Team access log"
+      }
+    }
+  ],
+  "errors": []
+}
