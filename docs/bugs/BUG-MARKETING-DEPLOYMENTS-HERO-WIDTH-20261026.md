@@ -29,3 +29,7 @@ Build et recette compilée du delta attendus dans le lot parent, avec mesures CT
 ## Complément compilé13799 — défaut encore ouvert
 
 [Échec conservé](ui-solutions-product-2026-10-26/after13799/README.md) : après3observations et1groupe, CTA22px à844. Cause md:min-h-0 du Button partagé. Contrepreuve DOM8cas stabilisés22→44 ; correction supplémentaire strictement locale !min-h-[44px] autorisée et appliquée, non recompilée ici. Le plan44observations/8groupes n’est pas déclaré exécuté entièrement.
+
+## Recette compilée finale 13899
+
+[Reçu final](ui-solutions-product-2026-10-26/after13899/README.md), source `c2823890d` : 44 observations (11 formats × FR/EN × thèmes) et 8 groupes clavier réussis, 0 erreur JS et 0 échec. CTA 44 px sur chaque format, texte contenu et liens conservés ; trois cartes, grille et titres contenus. Aucun CSS injecté. Les défauts ciblés sont validés localement sur build ; main/live restent faux. Cette recette ne requalifie pas globalement les 30 IDs ni les anciennes preuves.

@@ -1,0 +1,12 @@
+{
+  "status": "failed",
+  "base": "http://127.0.0.1:13899",
+  "sourceHead": "c2823890d2f5d8e07328a3ba1e5b3b24061b94d0",
+  "observations": [],
+  "keyboard": [],
+  "errors": [],
+  "blocked": [],
+  "failures": [
+    "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:13899/marketing/deployments?lang=fr\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:13899/marketing/deployments?lang=fr\", waiting until \"networkidle\"\u001b[22m\n\n    at /tmp/ui-solutions-product-next/after13899/compiled-hero.cjs:10:101"
+  ]
+}
