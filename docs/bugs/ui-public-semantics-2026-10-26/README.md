@@ -53,3 +53,7 @@ Scripts archivés exacts sous *.cjs.executed.txt ; copies *.cjs rendues portable
 Serveurs propres arrêtés : cleanup.json et initial-cleanup.json montrent les PID résiduels en état Z sans cmdline, ports libres, aucun processus serveur vivant ; ne pas prétendre disparition des entrées /proc. Navigateurs fermés.
 
 Archivage : seules les lignes blanches finales de trois logs ont été normalisées pour git diff --check ; résultats et erreurs conservés.
+
+## Mise à jour : recette compilée après disponible
+
+La réserve de recette après mentionnée ci-dessus décrit l’état au commit93af. Elle est désormais levée pour le périmètre local ciblé : [after13999](after13999/README.md),48observations/192CTA/48Tab/12EnterGETBack et44observationshero11formats/8clavier, zéro erreurJS. Aucun résultat production ou conformitéglobale. Les limites de navigateurs/lecteurs d’écran et états nonexercés restent ouvertes.

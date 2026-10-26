@@ -11,3 +11,5 @@ id: BUG-PUBLIC-MAIN-LANDMARK-20261026
 Correction locale : main autour du contenu, sections différées incluses, navbar/footer exclus, dans PublicDeploymentsPage et PublicTeamPage. Aucun shell partagé ou panneau IDE modifié.
 
 Preuves : [recette et dénominateurs](ui-public-semantics-2026-10-26/README.md), [tests et revue](ui-public-semantics-2026-10-26/independent-review.md). Le test DOM vérifie1main/1h1 et nav/footer horsmain. La recette compilée après, les lecteurs d’écran et la production ne sont pas validés.
+
+Mise à jour locale : recette compilée commune réussie sur cc5574d67 (voir [preuves après](ui-public-semantics-2026-10-26/after13999/README.md)). Les mentions « en attente » ci-dessus décrivent le stade initial ; intégration main et production demeurent non revendiquées.

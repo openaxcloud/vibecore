@@ -11,3 +11,5 @@ Quatre URLs : /bounties, /marketing/bounties (même composant), /marketing/deplo
 Correction locale : Button asChild contenant Link dans Bounties, PublicTeamPage, PublicDeploymentsPage et PublicDeploymentsSections. Aucun changement sharedUi/IDE, destination, contenu ou action backend.
 
 Preuves et limites : [dossier de recette](ui-public-semantics-2026-10-26/README.md), [revue indépendante](ui-public-semantics-2026-10-26/independent-review.md). Six tests DOM rouges→verts ;21tests existants verts. Le clavier et les dimensions du build corrigé restent à valider ; aucun résultat production.
+
+Mise à jour locale : recette compilée commune réussie sur cc5574d67 (voir [preuves après](ui-public-semantics-2026-10-26/after13999/README.md)). Les mentions « en attente » ci-dessus décrivent le stade initial ; intégration main et production demeurent non revendiquées.

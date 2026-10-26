@@ -1,0 +1,22 @@
+{
+  "app/components/marketing/ecode-exact/pages/Bounties.tsx": {
+    "expected": "d5a419a38960c16e8d52bd2b40ba594f33c57be4cb8815876e83e0e93b4e2282",
+    "actual": "d5a419a38960c16e8d52bd2b40ba594f33c57be4cb8815876e83e0e93b4e2282"
+  },
+  "app/components/marketing/ecode-exact/pages/PublicTeamPage.tsx": {
+    "expected": "48aead792d643cafd674826c5294a06acad6371771faff38c123ced6e7cc0a2f",
+    "actual": "48aead792d643cafd674826c5294a06acad6371771faff38c123ced6e7cc0a2f"
+  },
+  "app/components/marketing/ecode-exact/pages/PublicDeploymentsPage.tsx": {
+    "expected": "b52b9455415955754b3872c04f0206d7f3886a88c4a84c7b137b2d3a59712d21",
+    "actual": "b52b9455415955754b3872c04f0206d7f3886a88c4a84c7b137b2d3a59712d21"
+  },
+  "app/components/marketing/ecode-exact/pages/PublicDeploymentsSections.tsx": {
+    "expected": "6df69d9d94d776e4743775c52519de05fffd0fb027aa2c719860c8228b039c9d",
+    "actual": "6df69d9d94d776e4743775c52519de05fffd0fb027aa2c719860c8228b039c9d"
+  },
+  "app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx": {
+    "expected": "fd4677110d7b47c30189f70440de1d62242b0080c8bbd885ec0ebdefaa9c68de",
+    "actual": "fd4677110d7b47c30189f70440de1d62242b0080c8bbd885ec0ebdefaa9c68de"
+  }
+}
