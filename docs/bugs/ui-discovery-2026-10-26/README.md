@@ -27,3 +27,15 @@ Correction autorisée et revue par le parent : uniquement deux classes dans `app
 `before12999/` conserve reçus, scripts exacts exécutés en `.txt`, journaux (y compris première navigation erronée), fixture, provenance et captures choisies. Les scripts exacts contiennent les chemins de cette session ; pour réexécution, adapter le require Playwright et le cwd du serveur à un environnement local isolé, pas à un backend réel. La fixture refuse toute méthode autre queGET et les requêtes tierces sont bloquées au navigateur. Les contrôles de panne/vide sont restaurés en fin de script.
 
 Aucune recette native200%, Safari/Firefox, clavier virtuel, safe areas matérielles, lecteur d’écran, publication/remix, achat ni données réelles. Les captures initiales sont FRclair seulement ; mesures FR/EN×thèmes ne valent pas inspection visuelle exhaustive. Les15 IDs deviennent au mieux partiellement exercés après consolidation des preuves, jamais entièrement validés. L’inventaire global/index n’est pas modifié par ce lot.
+
+## Recette du correctif compilé — build commun fbb678704
+
+`after13099/receipt.json` :20 observations Galerie uniquement (5formats ×FR/EN ×clair/sombre) et4parcours clavier Enter sur la vraie carte→titre/URL détail→Back vers carte/URL liste. Zéro erreurJS, aucun POST tenté ; GET tiers bloqués. Ce complément ne rejoue ni ne prétend rejouer les280observations des autres surfaces.
+
+Chaque titre et tag long mesuré conserve son contenu complet ; scrollWidth≤clientWidth+2 et bornes dans la carte, document sans débordement. La route du build commun et celle du worktree Discovery ont le même SHA256 `ef2d3bae50b93f5d81e325f1dadb71076d9a5819918138e735dfd277aa027efa` ; hash du build serveur archivé dans `source-sha256.json`. C’est cette recette compilée qui valide le delta local, au-delà de la contrepreuve injectée précédente.
+
+La capture de carte seule FR320 recouvre le début avec le header fixe lors du scroll de capture : elle ne prouve pas l’affichage simultané de tout le titre. `gallery-fr-320-page.png`, capturée depuis le haut et inspectée, montre l’ensemble du titre et des tags repliés dans la carte. Aucune certification de contraste calculé ni de focus global déduite des images.
+
+Les serveurs12999/13099 et fixture6599 ont été arrêtés après vérification de leurs PID/startTicks ; ports fermés et processus disparus, reçu `cleanup.json`. Les serveurs Node ont fermé leurs ports sur SIGTERM mais conservé leurs processus ; seuls les deux PID encore identiques ont ensuite reçu SIGKILL. Aucun serveur d’un autre agent n’a été visé.
+
+Le parent a effectué le build commun ; ce complément ne revendique pas de build isolé, fusion, publication ou recette production. Les limites navigateur/matériel et la couverture partielle des15IDs restent inchangées.

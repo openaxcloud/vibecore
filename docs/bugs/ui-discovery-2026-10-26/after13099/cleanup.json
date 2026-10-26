@@ -1,0 +1,34 @@
+[
+  {
+    "origin": "/tmp/ui-discovery-next/server-origin.json",
+    "pid": 177478,
+    "expectedStartTicks": "2533870",
+    "port": 12999,
+    "actualStartTicks": "2533870",
+    "terminationSent": true,
+    "procStillExists": false,
+    "portStillListening": false,
+    "killAfterGracefulListenerClose": true
+  },
+  {
+    "origin": "/tmp/ui-discovery-next/after13099/server-origin.json",
+    "pid": 186344,
+    "expectedStartTicks": "2632917",
+    "port": 13099,
+    "actualStartTicks": "2632917",
+    "terminationSent": true,
+    "procStillExists": false,
+    "portStillListening": false,
+    "killAfterGracefulListenerClose": true
+  },
+  {
+    "origin": "/tmp/ui-discovery-next/api-origin.json",
+    "pid": 177461,
+    "expectedStartTicks": "2533745",
+    "port": 6599,
+    "actualStartTicks": "2533745",
+    "terminationSent": true,
+    "procStillExists": false,
+    "portStillListening": false
+  }
+]
