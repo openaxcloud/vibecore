@@ -10,6 +10,7 @@ import {
   type RefObject,
   type SetStateAction,
 } from 'react';
+import { SecurityScanSessionProvider } from './SecurityScanSession';
 import { useLayoutHandoffEffect } from './ide-layout-handoff';
 
 const regions = [
@@ -26,14 +27,16 @@ type FocusState = { opener: Control | null; pending: Control | null };
 const Context = createContext<RefObject<FocusState> | null>(null);
 const TabSearchContext = createContext<[string, Dispatch<SetStateAction<string>>] | null>(null);
 
-function ScopedProvider({ children }: { children: ReactNode }) {
+function ScopedProvider({ projectId, children }: { projectId: string; children: ReactNode }) {
   const state = useRef<FocusState>({ opener: null, pending: null });
   const search = useState('');
 
   return (
     <Context.Provider value={state}>
       <TabSearchContext.Provider value={search}>
-        <DesktopEditorFocusProvider>{children}</DesktopEditorFocusProvider>
+        <DesktopEditorFocusProvider>
+          <SecurityScanSessionProvider projectId={projectId}>{children}</SecurityScanSessionProvider>
+        </DesktopEditorFocusProvider>
       </TabSearchContext.Provider>
     </Context.Provider>
   );
@@ -59,7 +62,11 @@ export function MobileOverlayFocusProvider({
   windowId: string;
   children: ReactNode;
 }) {
-  return <ScopedProvider key={JSON.stringify([projectId, workspaceId, windowId])}>{children}</ScopedProvider>;
+  return (
+    <ScopedProvider key={JSON.stringify([projectId, workspaceId, windowId])} projectId={projectId}>
+      {children}
+    </ScopedProvider>
+  );
 }
 
 function describe(root: HTMLElement, element: Element | null): Control | null {

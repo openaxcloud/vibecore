@@ -1,0 +1,12 @@
+{
+  "head": "65228339e3bb74a64f672e8c3d1ca67ba5ed0d95",
+  "sha256": {
+    "app/components/chat/BaseChat.tsx": "f56923e6fa2639e499f828d58d324f2bbfbc90cdf2d3401e1a195f36cb82dfb0",
+    "app/components/chat/MobileOverlayFocus.tsx": "8131471224c03283ebcb011bc326c689c33c953226f7a210a780a960598d99f4",
+    "app/components/chat/SecurityScanSession.tsx": "8091205700dd73e71d8b1e2e2542077221da4056e3c88b04c7b2a63bf9711028",
+    "app/components/chat/security-scan-session.ts": "85650bb2d347c0458ad88566113c549869ead684eb2995a65da9da49716bbf84",
+    "app/components/chat/SecurityScanSession.spec.tsx": "eeb5b97508ac79b66af8262accc66a38732cf5866ebf007991dd2d05ddb117d0",
+    "app/components/chat/security-scan-session.spec.ts": "9ac2f9405d449743068f97fb1ba6b36f574e16219f5ca75bb5bbfcc281374ff2",
+    "tests/e2e/ide-security-scan-handoff.spec.ts": "fb35a7345e235888153c090cdf178df0c84b7355309731c3a446e2c516b35b0a"
+  }
+}
