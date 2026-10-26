@@ -1,8 +1,22 @@
-# Publish : contenu décalé et coupé entre les panneaux latéraux
+---
+id: BUG-PUBLISH-CONTAINER-LAYOUT-20261026
+---
 
-📤 Dispatché : ☑ 26/10/2026 — captures utilisateur 11:41–11:43, lot Publish/Domains/Manage distinct de #808 et de la palette #768.
-💻 Codé : ☐ — correctif local validé, revue indépendante favorable ; aucune livraison de ce lot.
-✅ Testé live : ☐ — aucune recette authentifiée de production, modification DNS ou publication cliente.
+## Bug
+
+Publish : contenu décalé et coupé entre les panneaux latéraux.
+
+## 📤 Dispatché
+
+☑ 26/10/2026 — captures utilisateur 11:41–11:43, lot Publish/Domains/Manage distinct de #808 et de la palette #768.
+
+## 💻 Codé
+
+☐ — correctif local validé, revue indépendante favorable ; aucune livraison de ce lot.
+
+## ✅ Testé live
+
+☐ — aucune recette authentifiée de production, modification DNS ou publication cliente.
 
 ## Signal et cause à vérifier
 
@@ -23,3 +37,9 @@ Grille Publish sur une colonne ; repli selon largeur du conteneur, hostname et v
 Le rouge causal réintroduit uniquement la grille deux colonnes sur le vrai DOM : ce n’est pas une recette complète d’un ancien build. Aucun domaine, DNS ou déploiement fournisseur exécuté. Manage conserve son erreur de détection réelle dans le workspace isolé et son bouton Publish désactivé ; le bon fonctionnement de publication n’est pas déduit de ces tests de layout.
 
 Intégration de main70f40edb8 après fusion #808 : conflit documentaire seul, index524, revue indépendante favorable ;92 tests CSS/index, build, typage et4 scénarios navigateur ciblés réussis directement. CSS identique au build des12 scénarios précédents.
+
+## Correction documentaire après CI
+
+La CI de #813 sur c63e12922 échoue sur un seul test : scripts/index-a-jour.spec.mjs exige le frontmatter id manquant dans cette nouvelle fiche (10451 autres tests réussis,4 ignorés). Rouge reproduit localement :1 échec/5 réussites. Le frontmatter et les sections de suivi sont rétablis, puis l’index régénéré. Aucun code produit ni test affaibli ; le contrôle réel de cohérence est ajouté à la sélection locale, qui ne couvrait auparavant que les16 tests du migrateur.
+
+Après correction :98/98 tests locaux réussis, dont les6 contrôles réels d’index. Revue indépendante favorable : mêmes524 chemins et ordre, seule entréeundefined corrigée ; produit et assertions inchangés. La CI rouge initiale reste enregistrée ; une validation exacte de la nouvelle tête est requise.

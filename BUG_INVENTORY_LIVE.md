@@ -678,7 +678,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Sans section
 
-- [undefined](docs/bugs/BUG-PUBLISH-CONTAINER-LAYOUT-20261026.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-PUBLISH-CONTAINER-LAYOUT-20261026](docs/bugs/BUG-PUBLISH-CONTAINER-LAYOUT-20261026.md) — Publish : contenu décalé et coupé entre les panneaux latéraux. — 📤 Dispatché : ☑ 26/10/2026 — captures utilisateur 11:41–11:43, lot Publish/Domains/Manage distinct de #808 et de la palette · 💻 Codé : ☐ — correctif local validé, revue indépendante favorable ; aucune livraison de ce lot. · ✅ Testé live : ☐ — aucune recette authentifiée de production, modification DNS ou publication cliente.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
