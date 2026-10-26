@@ -1,0 +1,13 @@
+{
+  "open": {
+    "title": "Plus d’options et d’outils",
+    "tooltip": null,
+    "locked": "true",
+    "hidden": "true",
+    "pseudo": "none"
+  },
+  "accessibleNamePreserved": true,
+  "closedTooltipRestored": true,
+  "exactBaseChatEnrichmentExecuted": true,
+  "nativeTitleReinjectionLimit": true
+}

@@ -1,0 +1,395 @@
+{
+  "records": [
+    {
+      "width": 2048,
+      "panel": 320,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 262.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 200,
+          "scroll": 200,
+          "x": 56.5,
+          "width": 199.640625,
+          "height": 37.78125,
+          "buttonHeight": 44,
+          "badgeX": 260.640625,
+          "badgeY": 91.765625,
+          "rowHeight": 49.53125
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 202,
+          "scroll": 202,
+          "x": 56.5,
+          "width": 201.9375,
+          "height": 55.171875,
+          "buttonHeight": 55.171875,
+          "badgeX": 262.9375,
+          "badgeY": 154.875,
+          "rowHeight": 60.703125
+        }
+      ]
+    },
+    {
+      "width": 2048,
+      "panel": 360,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 302.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 226,
+          "scroll": 226,
+          "x": 56.5,
+          "width": 225.75,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 300.640625,
+          "badgeY": 91.765625,
+          "rowHeight": 49.53125
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 242,
+          "scroll": 242,
+          "x": 56.5,
+          "width": 241.9375,
+          "height": 55.171875,
+          "buttonHeight": 55.171875,
+          "badgeX": 302.9375,
+          "badgeY": 154.875,
+          "rowHeight": 60.703125
+        }
+      ]
+    },
+    {
+      "width": 2048,
+      "panel": 400,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 342.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 226,
+          "scroll": 226,
+          "x": 91.796875,
+          "width": 225.75,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 340.640625,
+          "badgeY": 81,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 282,
+          "scroll": 282,
+          "x": 56.5,
+          "width": 281.9375,
+          "height": 37.78125,
+          "buttonHeight": 44,
+          "badgeX": 342.9375,
+          "badgeY": 127.765625,
+          "rowHeight": 49.53125
+        }
+      ]
+    },
+    {
+      "width": 1536,
+      "panel": 320,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 262.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 200,
+          "scroll": 200,
+          "x": 56.5,
+          "width": 199.640625,
+          "height": 37.78125,
+          "buttonHeight": 44,
+          "badgeX": 260.640625,
+          "badgeY": 91.765625,
+          "rowHeight": 49.53125
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 202,
+          "scroll": 202,
+          "x": 56.5,
+          "width": 201.9375,
+          "height": 55.171875,
+          "buttonHeight": 55.171875,
+          "badgeX": 262.9375,
+          "badgeY": 154.875,
+          "rowHeight": 60.703125
+        }
+      ]
+    },
+    {
+      "width": 1536,
+      "panel": 360,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 302.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 226,
+          "scroll": 226,
+          "x": 56.5,
+          "width": 225.75,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 300.640625,
+          "badgeY": 91.765625,
+          "rowHeight": 49.53125
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 242,
+          "scroll": 242,
+          "x": 56.5,
+          "width": 241.9375,
+          "height": 55.171875,
+          "buttonHeight": 55.171875,
+          "badgeX": 302.9375,
+          "badgeY": 154.875,
+          "rowHeight": 60.703125
+        }
+      ]
+    },
+    {
+      "width": 1536,
+      "panel": 400,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 342.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 226,
+          "scroll": 226,
+          "x": 91.796875,
+          "width": 225.75,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 340.640625,
+          "badgeY": 81,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 282,
+          "scroll": 282,
+          "x": 56.5,
+          "width": 281.9375,
+          "height": 37.78125,
+          "buttonHeight": 44,
+          "badgeX": 342.9375,
+          "badgeY": 127.765625,
+          "rowHeight": 49.53125
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "panel": 320,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 262.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 200,
+          "scroll": 200,
+          "x": 56.5,
+          "width": 199.640625,
+          "height": 37.78125,
+          "buttonHeight": 44,
+          "badgeX": 260.640625,
+          "badgeY": 91.765625,
+          "rowHeight": 49.53125
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 202,
+          "scroll": 202,
+          "x": 56.5,
+          "width": 201.9375,
+          "height": 55.171875,
+          "buttonHeight": 55.171875,
+          "badgeX": 262.9375,
+          "badgeY": 154.875,
+          "rowHeight": 60.703125
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "panel": 360,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 302.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 226,
+          "scroll": 226,
+          "x": 56.5,
+          "width": 225.75,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 300.640625,
+          "badgeY": 91.765625,
+          "rowHeight": 49.53125
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 242,
+          "scroll": 242,
+          "x": 56.5,
+          "width": 241.9375,
+          "height": 55.171875,
+          "buttonHeight": 55.171875,
+          "badgeX": 302.9375,
+          "badgeY": 154.875,
+          "rowHeight": 60.703125
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "panel": 400,
+      "rows": [
+        {
+          "text": "package.json",
+          "client": 96,
+          "scroll": 96,
+          "x": 91.796875,
+          "width": 95.703125,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 342.9375,
+          "badgeY": 45,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/ProductCard.tsx",
+          "client": 226,
+          "scroll": 226,
+          "x": 91.796875,
+          "width": 225.75,
+          "height": 20.390625,
+          "buttonHeight": 44,
+          "badgeX": 340.640625,
+          "badgeY": 81,
+          "rowHeight": 28
+        },
+        {
+          "text": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+          "client": 282,
+          "scroll": 282,
+          "x": 56.5,
+          "width": 281.9375,
+          "height": 37.78125,
+          "buttonHeight": 44,
+          "badgeX": 342.9375,
+          "badgeY": 127.765625,
+          "rowHeight": 49.53125
+        }
+      ]
+    }
+  ],
+  "tooltip": {
+    "count": 1,
+    "texts": [
+      "Fichiers"
+    ],
+    "title": null,
+    "marker": "true",
+    "global": "Fichiers"
+  },
+  "nativeMutation": {
+    "before": null,
+    "after": "Fichiers"
+  }
+}

@@ -77,7 +77,7 @@ it.each(['bolt-project-ide-shell', 'bolt-responsive-ide'])(
   },
 );
 
-it('restores desktop stacking on resize and removes its viewport listener on unmount', async () => {
+it('keeps IDE notifications readable across desktop/mobile and removes its viewport listener on unmount', async () => {
   const shell = document.createElement('div');
   shell.className = 'bolt-responsive-ide';
   document.body.append(shell);
@@ -88,7 +88,7 @@ it('restores desktop stacking on resize and removes its viewport listener on unm
     compactViewport = false;
     listeners.forEach((listener) => listener());
   });
-  expect(result.current).toBe(false);
+  expect(result.current).toBe(true);
   act(() => {
     compactViewport = true;
     listeners.forEach((listener) => listener());
@@ -169,26 +169,69 @@ it('bounds internal scrolling and ignores an outside focus including a queued re
   expect(document.activeElement).toBe(outside);
 });
 
-it('disconnects observation and cancels scheduled work when leaving compact mode or unmounting', () => {
-  const { list } = focusedList();
+it('disconnects observation and cancels scheduled work when leaving the IDE or unmounting', async () => {
+  focusedList();
+
   const { unmount } = renderHook(() => useIdeToastLayout());
-  expect(observe).toHaveBeenCalledWith(list);
   expect(frames.size).toBe(1);
-  act(() => {
-    compactViewport = false;
-    listeners.forEach((listener) => listener());
-  });
+  await act(async () => document.querySelector('.bolt-responsive-ide')!.remove());
   expect(disconnect).toHaveBeenCalled();
   expect(frames.size).toBe(0);
   act(() => window.dispatchEvent(new Event('resize')));
   expect(frames.size).toBe(0);
+  unmount();
+});
+
+it('uses the visible Agent pane on desktop, follows its resize, and clears geometry when leaving the IDE', async () => {
+  compactViewport = false;
+
+  const shell = document.createElement('div');
+  shell.className = 'bolt-responsive-ide';
+
+  const panel = document.createElement('section');
+  panel.className = 'bolt-project-agent-panel';
+
+  let width = 320;
+  vi.spyOn(panel, 'getBoundingClientRect').mockImplementation(
+    () => ({ left: 50, right: 50 + width, top: 80, bottom: 880, width, height: 800 }) as DOMRect,
+  );
+  shell.append(panel);
+  document.body.append(shell);
+
+  const { result } = renderHook(() => useIdeToastLayout());
+  expect(result.current).toBe(true);
+  expect(document.documentElement.style.getPropertyValue('--vc-ide-toast-left')).toBe('58px');
+  expect(document.documentElement.style.getPropertyValue('--vc-ide-toast-width')).toBe('304px');
+  act(() => {
+    width = 480;
+    resizeCallbacks[0]();
+  });
+  expect(document.documentElement.style.getPropertyValue('--vc-ide-toast-width')).toBe('380px');
+  act(() => {
+    width = 0;
+    resizeCallbacks[0]();
+  });
+  expect(result.current).toBe(true);
+  expect(document.documentElement.style.getPropertyValue('--vc-ide-toast-left')).toBe('');
   act(() => {
     compactViewport = true;
     listeners.forEach((listener) => listener());
   });
-  expect(frames.size).toBe(1);
-  unmount();
-  expect(frames.size).toBe(0);
+  expect(result.current).toBe(true);
+  expect(document.documentElement.style.getPropertyValue('--vc-ide-toast-left')).toBe('');
+  await act(async () => shell.remove());
+  expect(result.current).toBe(false);
+});
+
+it('rounds fractional focus repairs toward the clipped edge', () => {
+  const { list, setTop } = focusedList();
+  setTop(156.125);
+  renderHook(() => useIdeToastLayout());
+  flushFrames();
+  expect(list.scrollTop).toBe(1);
+  list.scrollTop = 10;
+  setTop(99.875);
   act(() => window.dispatchEvent(new Event('resize')));
-  expect(frames.size).toBe(0);
+  flushFrames();
+  expect(list.scrollTop).toBe(9);
 });
