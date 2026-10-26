@@ -1,8 +1,14 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, render, waitFor } from '@testing-library/react';
-import { createElement } from 'react';
+import { createElement, StrictMode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DesktopCodeEditor, preloadDesktopCodeEditor } from './index.js';
+import {
+  DesktopCodeEditor,
+  DesktopEditorFocusProvider,
+  preloadDesktopCodeEditor,
+  useDesktopEditorFocusHandoff,
+  useDesktopEditorComposing,
+} from './index.js';
 
 type TestUri = { path: string; toString: () => string };
 type TestModel = {
@@ -18,6 +24,11 @@ type TestEditor = {
   contentChanged: () => void;
   updateOptions: ReturnType<typeof vi.fn>;
   disposed: boolean;
+  input: HTMLTextAreaElement;
+  startComposition(): void;
+  endComposition(): void;
+  viewState: { column: number; scrollTop: number };
+  focusedViewState?: { column: number; scrollTop: number };
 };
 
 const pendingMonaco = vi.hoisted(() => {
@@ -28,6 +39,22 @@ const pendingMonaco = vi.hoisted(() => {
   });
 
   return { ready, release, created: [] as TestEditor[], setTheme: vi.fn() };
+});
+
+const pendingTabFocus = vi.hoisted(() => {
+  let release!: () => void;
+
+  const ready = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  return { ready, release };
+});
+
+vi.mock('monaco-editor/esm/vs/editor/contrib/toggleTabFocusMode/browser/toggleTabFocusMode.js', async () => {
+  await pendingTabFocus.ready;
+
+  return {};
 });
 
 vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
@@ -80,11 +107,33 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
       registerCommand: disposable,
       ShowLightbulbIconMode: { On: 'on', Off: 'off' },
       create: (_container: HTMLElement, options: { model: TestModel }) => {
+        const input = document.createElement('textarea');
+        _container.append(input);
+
         let model = options.model;
         let onChange: () => void = () => undefined;
         let onDispose: () => void = () => undefined;
+        let onCompositionStart = () => undefined as void;
+        let onCompositionEnd = () => undefined as void;
 
         const editor = {
+          input,
+          startComposition: () => onCompositionStart(),
+          endComposition: () => onCompositionEnd(),
+          onDidCompositionStart: (callback: () => void) => {
+            onCompositionStart = callback;
+            return disposable();
+          },
+          onDidCompositionEnd: (callback: () => void) => {
+            onCompositionEnd = callback;
+            return disposable();
+          },
+          viewState: { column: 1, scrollTop: 0 },
+          focusedViewState: undefined as TestEditor['focusedViewState'],
+          saveViewState: () => ({ ...editor.viewState }),
+          restoreViewState: (state: TestEditor['viewState']) => {
+            editor.viewState = { ...state };
+          },
           disposed: false,
           getModel: () => model,
           getValue: () => model.getValue(),
@@ -103,12 +152,17 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
           },
           dispose: () => {
             editor.disposed = true;
+            input.remove();
             onDispose();
           },
           addCommand: vi.fn(),
           addAction: vi.fn(),
           updateOptions: vi.fn(),
-          focus: vi.fn(),
+          focus: vi.fn(() => {
+            editor.focusedViewState = { ...editor.viewState };
+            input.focus();
+          }),
+          hasTextFocus: () => document.activeElement === input,
         };
         pendingMonaco.created.push(editor);
 
@@ -136,6 +190,7 @@ it('initializes the latest document after a delayed import and ignores an unmoun
   const preload = preloadDesktopCodeEditor();
   expect(preloadDesktopCodeEditor()).toBe(preload);
   expect(pendingMonaco.created).toHaveLength(0);
+
   const onChange = vi.fn();
   const onSave = vi.fn();
   const props = (filePath: string, value: string) => ({ filePath, value, onChange, onSave });
@@ -150,6 +205,10 @@ it('initializes the latest document after a delayed import and ignores an unmoun
   await act(async () => {
     pendingMonaco.release();
     await pendingMonaco.ready;
+  });
+  expect(pendingMonaco.created).toHaveLength(0);
+  await act(async () => {
+    pendingTabFocus.release();
     await preload;
   });
   expect(pendingMonaco.created).toHaveLength(1);
@@ -278,4 +337,246 @@ it('keeps borrowed workspace models alive when indexing stops and the owner unmo
   expect(indexed.isDisposed()).toBe(true);
   expect(external.isDisposed()).toBe(false);
   external.dispose();
+});
+
+function focusShell({
+  identity = 'pane-a:/focus.txt',
+  visible = true,
+  filePath = '/focus.txt',
+  value = 'FOCUS',
+}: {
+  identity?: string;
+  visible?: boolean;
+  filePath?: string;
+  value?: string;
+}) {
+  useDesktopEditorFocusHandoff();
+  return visible ? createElement(DesktopCodeEditor, { filePath, value, focusIdentity: identity }) : null;
+}
+
+function focusTree(
+  shell: string,
+  identity = 'pane-a:/focus.txt',
+  visible = true,
+  scope = 'project-a',
+  options: { filePath?: string; value?: string } = {},
+) {
+  return createElement(DesktopEditorFocusProvider, {
+    key: scope,
+    children: createElement(focusShell, { key: shell, identity, visible, ...options }),
+  });
+}
+
+async function newestEditor() {
+  await waitFor(() => expect(pendingMonaco.created.filter((editor) => !editor.disposed)).toHaveLength(1));
+  return pendingMonaco.created.find((editor) => !editor.disposed)!;
+}
+
+it('hands off focused text across a shell replacement without initial autofocus', async () => {
+  const mounted = render(focusTree('pending'));
+  const initial = await newestEditor();
+  expect(document.activeElement).not.toBe(initial.input);
+  initial.viewState = { column: 6, scrollTop: 120 };
+  initial.input.focus();
+  mounted.rerender(focusTree('ready'));
+
+  const replacement = await newestEditor();
+  expect(replacement).not.toBe(initial);
+  expect(document.activeElement).toBe(replacement.input);
+  expect(replacement.viewState).toEqual({ column: 6, scrollTop: 120 });
+  expect(replacement.focusedViewState).toEqual({ column: 6, scrollTop: 120 });
+});
+
+it('retains the shell handoff across StrictMode layout effect replay', async () => {
+  const mounted = render(createElement(StrictMode, { children: focusTree('pending') }));
+  (await newestEditor()).input.focus();
+  mounted.rerender(createElement(StrictMode, { children: focusTree('ready') }));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).toBe(replacement.input);
+});
+
+it.each(['focus', 'pointer', 'keyboard'])(
+  'does not steal focus after an external %s during async replacement',
+  async (interaction) => {
+    const mounted = render(focusTree('pending'));
+    const initial = await newestEditor();
+    initial.input.focus();
+
+    const outside = document.createElement('button');
+    document.body.append(outside);
+
+    try {
+      mounted.rerender(focusTree('ready'));
+
+      if (interaction === 'focus') {
+        outside.focus();
+      }
+
+      if (interaction === 'pointer') {
+        outside.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      }
+
+      if (interaction === 'keyboard') {
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+      }
+
+      const replacement = await newestEditor();
+      expect(document.activeElement).not.toBe(replacement.input);
+
+      if (interaction === 'focus') {
+        expect(document.activeElement).toBe(outside);
+      }
+    } finally {
+      outside.remove();
+    }
+  },
+);
+
+it('does not retain focus after closing and reopening an editor in the same shell', async () => {
+  const mounted = render(focusTree('ready'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('ready', undefined, false));
+  await act(async () => {
+    await Promise.resolve();
+  });
+  mounted.rerender(focusTree('ready'));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+});
+
+it.each(['pane-b:/focus.txt', 'pane-a:/other.txt'])(
+  'does not transfer focus to different identity %s',
+  async (identity) => {
+    const mounted = render(focusTree('pending'));
+    (await newestEditor()).input.focus();
+    mounted.rerender(focusTree('ready', identity));
+
+    const replacement = await newestEditor();
+    expect(document.activeElement).not.toBe(replacement.input);
+  },
+);
+
+it('does not carry focus across a provider scope change', async () => {
+  const mounted = render(focusTree('pending'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('ready', undefined, true, 'project-b'));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+});
+
+it('does not restore a shell intent after a commit without a matching replacement', async () => {
+  const mounted = render(focusTree('pending'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('intermediate', undefined, false));
+  await act(async () => {
+    await Promise.resolve();
+  });
+  mounted.rerender(focusTree('later'));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+});
+
+it.each([
+  ['contents', { value: 'CHANGED' }],
+  ['URI', { filePath: '/different.txt' }],
+] as const)('does not restore stale caret or focus after model %s diverges', async (_kind, options) => {
+  const mounted = render(focusTree('pending'));
+  const initial = await newestEditor();
+  initial.viewState = { column: 6, scrollTop: 120 };
+  initial.input.focus();
+  mounted.rerender(focusTree('ready', undefined, true, undefined, options));
+
+  const replacement = await newestEditor();
+  expect(document.activeElement).not.toBe(replacement.input);
+  expect(replacement.viewState).toEqual({ column: 1, scrollTop: 0 });
+});
+
+it('does not restore focus when a borrowed model still has old content but incoming props changed', async () => {
+  const monaco = await import('monaco-editor/esm/vs/editor/editor.api');
+  const model = monaco.editor.createModel('FOCUS', 'plaintext', monaco.Uri.parse('file:///focus.txt'));
+  const mounted = render(focusTree('pending'));
+  (await newestEditor()).input.focus();
+  mounted.rerender(focusTree('ready', undefined, true, undefined, { value: 'CHANGED' }));
+
+  const replacement = await newestEditor();
+  expect(replacement.getValue()).toBe('CHANGED');
+  expect(document.activeElement).not.toBe(replacement.input);
+  mounted.unmount();
+  model.dispose();
+});
+
+function compositionStatus() {
+  return createElement('output', { 'data-testid': 'composition-status' }, String(useDesktopEditorComposing()));
+}
+
+function compositionTree(visible = true, scope = 'project-a') {
+  return createElement(DesktopEditorFocusProvider, {
+    key: scope,
+    children: [
+      visible ? createElement(DesktopCodeEditor, { key: 'editor', filePath: '/composition.txt', value: 'IME' }) : null,
+      createElement(compositionStatus, { key: 'status' }),
+    ],
+  });
+}
+
+it('reports only native composition activity, not focus or ordinary typing', async () => {
+  const mounted = render(compositionTree());
+  const editor = await newestEditor();
+  editor.input.focus();
+  act(() => editor.getModel().setValue('ordinary typing'));
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+  act(() => editor.startComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  act(() => {
+    editor.getModel().setValue('日本');
+    editor.endComposition();
+  });
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+  expect(editor.getValue()).toBe('日本');
+});
+
+it('clears composition when its editor is disposed and never carries it into another scope', async () => {
+  const mounted = render(compositionTree());
+  act(() => pendingMonaco.created.find((editor) => !editor.disposed)?.startComposition());
+
+  const initial = await newestEditor();
+  act(() => initial.startComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  mounted.rerender(compositionTree(false));
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+  mounted.rerender(compositionTree());
+
+  const next = await newestEditor();
+  act(() => next.startComposition());
+  mounted.rerender(compositionTree(true, 'project-b'));
+  await newestEditor();
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+});
+
+it('keeps simultaneous compositions independent within the same provider', async () => {
+  const mounted = render(
+    createElement(DesktopEditorFocusProvider, {
+      children: [
+        createElement(DesktopCodeEditor, { key: 'a', filePath: '/composition-a.txt', value: 'A' }),
+        createElement(DesktopCodeEditor, { key: 'b', filePath: '/composition-b.txt', value: 'B' }),
+        createElement(compositionStatus, { key: 'status' }),
+      ],
+    }),
+  );
+  await waitFor(() => expect(pendingMonaco.created.filter((editor) => !editor.disposed)).toHaveLength(2));
+
+  const [first, second] = pendingMonaco.created.filter((editor) => !editor.disposed);
+  act(() => {
+    first.startComposition();
+    second.startComposition();
+  });
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  act(() => first.endComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  act(() => second.endComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
 });

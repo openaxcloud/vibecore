@@ -1,0 +1,80 @@
+[
+  {
+    "suite": "final-targeted",
+    "title": "editor focus handoff respects active editor",
+    "attachment": "editor-handoff-evidence.json",
+    "value": {
+      "moveOutside": false,
+      "oldInputConnected": false,
+      "focused": true,
+      "originalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "finalModel": "# Keyboard fixturehandoff\nTab indents until navigation mode is enabled.\n"
+    }
+  },
+  {
+    "suite": "final-targeted",
+    "title": "editor focus handoff respects focus moved outside",
+    "attachment": "editor-handoff-evidence.json",
+    "value": {
+      "moveOutside": true,
+      "oldInputConnected": false,
+      "focused": false,
+      "originalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "finalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n"
+    }
+  },
+  {
+    "suite": "native",
+    "title": "editor focus handoff respects active editor",
+    "attachment": "editor-handoff-evidence.json",
+    "value": {
+      "moveOutside": false,
+      "oldInputConnected": false,
+      "focused": true,
+      "originalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "finalModel": "# Keyboard fixturehandoff\nTab indents until navigation mode is enabled.\n"
+    }
+  },
+  {
+    "suite": "native",
+    "title": "editor focus handoff respects active editor",
+    "attachment": "editor-focus-after-handoff-metrics.json",
+    "value": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 1440,
+      "clientHeight": 856.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "suite": "native",
+    "title": "editor focus handoff respects focus moved outside",
+    "attachment": "editor-handoff-evidence.json",
+    "value": {
+      "moveOutside": true,
+      "oldInputConnected": false,
+      "focused": false,
+      "originalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "finalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n"
+    }
+  },
+  {
+    "suite": "native",
+    "title": "editor focus handoff respects focus moved outside",
+    "attachment": "editor-focus-after-handoff-metrics.json",
+    "value": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 1440,
+      "clientHeight": 856.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  }
+]
