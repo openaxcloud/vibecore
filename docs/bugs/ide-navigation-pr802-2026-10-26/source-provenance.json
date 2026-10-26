@@ -1,0 +1,7 @@
+{
+  "localSHA256": "105a4f4cc63750d26b8f2035afbee91f0eab5985b86e6cc831606f5ca673d2d3",
+  "remoteSHA256": "245c40df1a708c66ecb9c1e3c40f8595a7a4a6f7874bcdb384127e6622132d1c",
+  "equalAfterTrailingNewlineNormalization": true,
+  "baselineHead": "6f270b9bc2a14e9f07a3b3b9eb457b5189f98fac",
+  "ciHead": "279440d2fcbe3ee028d4209759f482bf6101c422"
+}

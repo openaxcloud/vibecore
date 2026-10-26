@@ -71,6 +71,7 @@ import { partagerLaCreation } from './creation-partagee';
 import { fautIlAdopterLaTranscriptionRestauree } from './late-stored-transcript';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { PendingComposerShell } from './PendingComposerShell';
+import { useEditorCompositionHandoff } from './useEditorCompositionHandoff';
 import { useProjectAiTranscriptHydration } from './useProjectAiTranscriptHydration';
 import {
   projectModelSelectionFromMetadata,
@@ -196,12 +197,13 @@ export function Chat({
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
+  const canActivate = useEditorCompositionHandoff(ready);
 
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
-  if (!ready) {
+  if (!canActivate) {
     return (
       <PendingComposerShell
         chatStarted={forceWorkbench}

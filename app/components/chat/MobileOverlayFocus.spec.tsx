@@ -2,12 +2,13 @@
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { StrictMode, useState } from 'react';
 import { afterEach, expect, it } from 'vitest';
-import { MobileOverlayFocusProvider, useMobileOverlayFocus } from './MobileOverlayFocus';
+import { MobileOverlayFocusProvider, useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
 
 afterEach(cleanup);
 
 function Shell({ openInitially = false, mobile = true, more = false }) {
   const [open, setOpen] = useState(openInitially);
+  const [query, setQuery] = useMobileTabSearchQuery();
   const { rootRef, rememberOpener, restoreOpener } = useMobileOverlayFocus(mobile, mobile);
 
   return (
@@ -34,11 +35,17 @@ function Shell({ openInitially = false, mobile = true, more = false }) {
               onKeyDown={(event) => {
                 if (event.key === 'Escape') {
                   setOpen(false);
+                  setQuery('');
                   restoreOpener();
                 }
               }}
             >
-              <input data-testid="input-search-tabs" aria-label="Search" />
+              <input
+                data-testid="input-search-tabs"
+                aria-label="Search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
             </section>
           )}
         </>
@@ -146,4 +153,37 @@ it('drops pending focus on desktop and does not steal it on return to mobile', (
   } finally {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
   }
+});
+
+it('retains tab search across shell replacement and clears it on explicit Escape', () => {
+  const view = render(tree('shell'));
+  fireEvent.click(view.getByText('Tabs'));
+  fireEvent.change(view.getByLabelText('Search'), { target: { value: 'Webview' } });
+  view.getByLabelText('Search').focus();
+
+  const old = view.getByLabelText('Search');
+  view.rerender(tree('chat', true));
+  expect(old.isConnected).toBe(false);
+  expect((view.getByLabelText('Search') as HTMLInputElement).value).toBe('Webview');
+  expect(document.activeElement).toBe(view.getByLabelText('Search'));
+  fireEvent.keyDown(view.getByLabelText('Search'), { key: 'Escape' });
+  fireEvent.click(view.getByText('Tabs'));
+  expect((view.getByLabelText('Search') as HTMLInputElement).value).toBe('');
+});
+
+it.each(['project', 'workspace', 'window'])('does not retain tab search across %s scope', (scope) => {
+  const view = render(tree('shell', true));
+  fireEvent.change(view.getByLabelText('Search'), { target: { value: 'Webview' } });
+  view.rerender(
+    tree(
+      'chat',
+      true,
+      scope === 'project' ? 'p2' : 'p',
+      scope === 'workspace' ? 'w2' : 'w',
+      scope === 'window' ? 'two' : 'main',
+    ),
+  );
+  expect((view.getByLabelText('Search') as HTMLInputElement).value).toBe('');
+  view.rerender(tree('returned', true));
+  expect((view.getByLabelText('Search') as HTMLInputElement).value).toBe('');
 });

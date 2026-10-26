@@ -1,0 +1,40 @@
+{
+  "results": {
+    "standard": {
+      "passed": 11,
+      "durationSeconds": 57.1
+    },
+    "native200": {
+      "passed": 2,
+      "durationSeconds": 24.1
+    },
+    "retries": 0
+  },
+  "sourceChangesSinceBuild": [],
+  "files": {
+    "final-build-manifest.json": "a8a032f79065455d5a86c43d596a58d4c28f7dba874e7cb4e40a198e044b19d1",
+    "final-prebuild-sources.json": "d725d67d92642afa7ca044f68c4dee76833b4c51f6d80933f10cf60fffa1d441",
+    "final-targeted-results.json": "fcfbed19e67ffb7e71e8b03407d90f05e409569fa2478ac4d47ad47b6616f0f5",
+    "native-results.json": "79db3889a9ac5387968035bda92c9b9003c50518286c292286b488536008292d",
+    "final-behavior-evidence.json": "c64bc0029eea926a09a4ccecbc27a916bfb6447faa1c4a28a08531efdd24d74d",
+    "baseline-receipt.json": "d485267d7aaf26723bb1543352f051f757f6d000d34f599dc2f6683e36b93e91",
+    "cursor-results.json": "bc57872d12b00c625173f68ad95d98b8581130668e3f99592677d8a702944c26"
+  },
+  "durableTestSHA256": "d57bd9179986944621aa5e0e9a769b60feb8a84ab85c6bd2ea2dc138dcae03d9",
+  "productionValidated": false,
+  "cleanup": {
+    "ports": {
+      "5199": "closed",
+      "3018": "closed",
+      "55448": "closed",
+      "56388": "closed"
+    },
+    "containers": [],
+    "unrelated96853Preserved": true,
+    "ownedProcessExists": {
+      "204302": false,
+      "198210": false,
+      "198174": false
+    }
+  }
+}

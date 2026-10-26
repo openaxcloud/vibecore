@@ -1,0 +1,18 @@
+{
+  "head": "cd0dd515e22772d37f1cbcb50c27dfd6cc26d48b",
+  "sha256": {
+    "app/components/chat/BaseChat.tsx": "ccaabd06120093d4842ed0333aceb4d15038352d9a4bd1683eafbfe4d0f9a02c",
+    "app/components/chat/MobileOverlayFocus.tsx": "4e052172fe471de5a4560afb090dd941224d597281f760712bcae20e069cf99b",
+    "app/components/chat/Chat.client.tsx": "4a22931656f5f5662b19039183b5fe76f369dd633ea660a4fd0e71dfc5489286",
+    "app/components/chat/useEditorCompositionHandoff.ts": "926580d49424ebfd261e0cfe6a85a834e4166fd3709ed52f9285cfb23f65764c",
+    "packages/editor/src/index.ts": "26ec31481de98df64915e9ca0b6087fe77f2e564fa4f5e32c3073af43895d42e",
+    "packages/editor/src/desktop-editor-focus.ts": "13500b93b271327ef2697123d1d2b9129499fbc9cddd0f62f82b6d34199b60a3",
+    "tests/e2e/ide-editor-composition-handoff.spec.ts": "b6d85947387f268c7ebfc1dfb5867af6afcf80a78619090e4ba30bf8a0e3b96b",
+    "tests/e2e/ide-editor-focus-handoff.spec.ts": "d57bd9179986944621aa5e0e9a769b60feb8a84ab85c6bd2ea2dc138dcae03d9",
+    "tests/e2e/ide-monaco-tab-exit.spec.ts": "4e244777d47911d03918aa32171d2803d80c25dc49f8312083633396729c32ef",
+    "tests/e2e/ide-overlay-focus-handoff.spec.ts": "39a04d532dee01f046f612f85d6b5e65734d57debdc25ab48c0fa314a74d10a4",
+    "tests/e2e/ide-panel-visibility.spec.ts": "3141b1aa223aaf47c9120dbc685cebc357c01c9b957c45ed07dfdcce114589c2",
+    "build/server/index.js": "396fbe1e7fa36c410c220a0c5a60154a61dc5764f826a0ecb4b3fe8d8129e891"
+  },
+  "fullBuildManifestSHA256": "1e3849f9dfec59800d7f153ae84afa17093135d7c16a60e3f82ef288346bc07f"
+}

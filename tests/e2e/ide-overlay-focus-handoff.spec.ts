@@ -104,6 +104,7 @@ for (const width of [390, 820]) {
 
           if (keepOpen) {
             await expect(menu).toBeVisible();
+            await expect(menu.getByTestId('input-search-tabs')).toHaveValue('Webview');
             await expect(menu.getByTestId('input-search-tabs')).toBeFocused();
             await page.keyboard.press('Escape');
             await expect(menu).toHaveCount(0);
@@ -112,6 +113,13 @@ for (const width of [390, 820]) {
             await expect(trigger).toBeFocused();
             await expect(menu).toHaveCount(0);
           }
+
+          // Explicit dismissal still starts the next search empty.
+          await trigger.press('Enter');
+          await expect(menu.getByTestId('input-search-tabs')).toHaveValue('');
+          await menu.getByTestId('input-search-tabs').press('Escape');
+          await expect(menu).toHaveCount(0);
+          await expect(trigger).toBeFocused();
 
           await page.screenshot({ path: info.outputPath('focus-after-handoff.png') });
         } finally {
