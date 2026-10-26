@@ -70,14 +70,14 @@ export default function PublicDeploymentsPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-[var(--ecode-border)] text-foreground hover:bg-[var(--ecode-surface-hover)]"
+                  className="h-auto min-h-[44px] whitespace-normal border-[var(--ecode-border)] text-foreground hover:bg-[var(--ecode-surface-hover)]"
                   data-testid="button-explore-docs"
                 >
                   {copy.page.exploreDocs}
                 </Button>
               </Link>
             </div>
-            <div className="mt-12 grid gap-6 sm:grid-cols-3">
+            <div className="mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-6">
               {HERO_HIGHLIGHT_ICONS.map((Icon, index) => {
                 const highlight = copy.page.heroHighlights[index];
 

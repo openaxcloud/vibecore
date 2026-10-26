@@ -1,0 +1,1071 @@
+{
+  "sourceHead": "7759cbcbd75b3e1cf5234dac97dbcb6762f93e0f",
+  "groups": {
+    "solutions": 11,
+    "marketing_product": 19
+  },
+  "routeIDs": 30,
+  "routes": [
+    {
+      "id": "routes/ai",
+      "group": "marketing_product",
+      "file": "app/routes/ai.tsx",
+      "family": "product-interactive-or-static",
+      "urls": [
+        "/ai"
+      ],
+      "browserURL": "/ai",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeProductMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { EcodeAiPlatformPage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';"
+        },
+        {
+          "line": 6,
+          "text": "export default function AiRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/ai-agent.studio",
+      "group": "marketing_product",
+      "file": "app/routes/ai-agent.studio.tsx",
+      "family": "studio-redirect",
+      "urls": [
+        "/ai-agent/studio"
+      ],
+      "browserURL": null,
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { redirect } from 'react-router';"
+        },
+        {
+          "line": 8,
+          "text": "return redirect('/ai-agent', 301);"
+        }
+      ]
+    },
+    {
+      "id": "routes/ai-docs",
+      "group": "marketing_product",
+      "file": "app/routes/ai-docs.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/ai-docs"
+      ],
+      "browserURL": "/ai-docs",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function AiDocsAliasRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/ai-documentation",
+      "group": "marketing_product",
+      "file": "app/routes/ai-documentation.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/ai-documentation"
+      ],
+      "browserURL": "/ai-documentation",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function AiDocumentationRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/bounties",
+      "group": "marketing_product",
+      "file": "app/routes/bounties.tsx",
+      "family": "bounties-transitive-wrapper",
+      "urls": [
+        "/bounties"
+      ],
+      "browserURL": "/bounties",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeExactProductMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { EcodeBountiesPage, makeEcodeCampaignMeta } from '~/components/marketing/EcodeExactProductMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function BountiesRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/collaboration",
+      "group": "marketing_product",
+      "file": "app/routes/collaboration.tsx",
+      "family": "exact-page",
+      "urls": [
+        "/collaboration"
+      ],
+      "browserURL": "/collaboration",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Collaboration.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-case-studies-collaboration.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import type { LoaderFunctionArgs, MetaFunction } from 'react-router';"
+        },
+        {
+          "line": 2,
+          "text": "import Collaboration from '~/components/marketing/ecode-exact/pages/Collaboration';"
+        },
+        {
+          "line": 3,
+          "text": "import { getMarketingExactCaseStudiesCollaborationCopy } from '~/lib/i18n/catalogs/marketing-exact-case-studies-collaboration';"
+        },
+        {
+          "line": 4,
+          "text": "import { resolveRequestLocale } from '~/lib/i18n/request-locale';"
+        },
+        {
+          "line": 5,
+          "text": "import { socialMetaTags } from '~/utils/social-meta';"
+        },
+        {
+          "line": 25,
+          "text": "export default function CollaborationRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/customers",
+      "group": "marketing_product",
+      "file": "app/routes/customers.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/customers"
+      ],
+      "browserURL": "/customers",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function CustomersRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/demo",
+      "group": "marketing_product",
+      "file": "app/routes/demo.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/demo"
+      ],
+      "browserURL": "/demo",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function DemoRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/deployments",
+      "group": "marketing_product",
+      "file": "app/routes/deployments.tsx",
+      "family": "product-interactive-or-static",
+      "urls": [
+        "/deployments"
+      ],
+      "browserURL": "/deployments",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeProductMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { EcodeDeploymentsPage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';"
+        },
+        {
+          "line": 6,
+          "text": "export default function DeploymentsRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/desktop",
+      "group": "marketing_product",
+      "file": "app/routes/desktop.tsx",
+      "family": "exact-page",
+      "urls": [
+        "/desktop"
+      ],
+      "browserURL": "/desktop",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Desktop.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import type { LoaderFunctionArgs, MetaFunction } from 'react-router';"
+        },
+        {
+          "line": 2,
+          "text": "import Desktop from '~/components/marketing/ecode-exact/pages/Desktop';"
+        },
+        {
+          "line": 3,
+          "text": "import { getMarketingExactStatusDesktopCopy } from '~/lib/i18n/catalogs/marketing-exact-status-desktop';"
+        },
+        {
+          "line": 4,
+          "text": "import { resolveRequestLocale } from '~/lib/i18n/request-locale';"
+        },
+        {
+          "line": 5,
+          "text": "import { socialMetaTags } from '~/utils/social-meta';"
+        },
+        {
+          "line": 25,
+          "text": "export default function DesktopRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/marketing.bounties",
+      "group": "marketing_product",
+      "file": "app/routes/marketing.bounties.tsx",
+      "family": "exact-page",
+      "urls": [
+        "/marketing/bounties"
+      ],
+      "browserURL": "/marketing/bounties",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Bounties.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-partners-bounties.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import type { LoaderFunctionArgs, MetaFunction } from 'react-router';"
+        },
+        {
+          "line": 2,
+          "text": "import MarketingBounties from '~/components/marketing/ecode-exact/pages/Bounties';"
+        },
+        {
+          "line": 3,
+          "text": "import { getMarketingExactPartnersBountiesCopy } from '~/lib/i18n/catalogs/marketing-exact-partners-bounties';"
+        },
+        {
+          "line": 4,
+          "text": "import { resolveRequestLocale } from '~/lib/i18n/request-locale';"
+        },
+        {
+          "line": 5,
+          "text": "import { socialMetaTags } from '~/utils/social-meta';"
+        },
+        {
+          "line": 22,
+          "text": "export default function MarketingBountiesRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/marketing.deployments",
+      "group": "marketing_product",
+      "file": "app/routes/marketing.deployments.tsx",
+      "family": "exact-page",
+      "urls": [
+        "/marketing/deployments"
+      ],
+      "browserURL": "/marketing/deployments",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/PublicDeploymentsPage.tsx",
+        "app/lib/i18n/catalogs/remaining-route-shells.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import type { MetaFunction } from 'react-router';"
+        },
+        {
+          "line": 2,
+          "text": "import PublicDeploymentsPage from '~/components/marketing/ecode-exact/pages/PublicDeploymentsPage';"
+        },
+        {
+          "line": 3,
+          "text": "import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n/catalogs/remaining-route-shells';"
+        },
+        {
+          "line": 23,
+          "text": "export default function MarketingDeploymentsRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/marketing.teams",
+      "group": "marketing_product",
+      "file": "app/routes/marketing.teams.tsx",
+      "family": "exact-page",
+      "urls": [
+        "/marketing/teams"
+      ],
+      "browserURL": "/marketing/teams",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/PublicTeamPage.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-agreement-team.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import type { LoaderFunctionArgs, MetaFunction } from 'react-router';"
+        },
+        {
+          "line": 2,
+          "text": "import PublicTeamPage from '~/components/marketing/ecode-exact/pages/PublicTeamPage';"
+        },
+        {
+          "line": 3,
+          "text": "import { getMarketingExactAgreementTeamCopy } from '~/lib/i18n/catalogs/marketing-exact-agreement-team';"
+        },
+        {
+          "line": 4,
+          "text": "import { resolveRequestLocale } from '~/lib/i18n/request-locale';"
+        },
+        {
+          "line": 5,
+          "text": "import { socialMetaTags } from '~/utils/social-meta';"
+        },
+        {
+          "line": 30,
+          "text": "export default function MarketingTeamsRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/mcp",
+      "group": "marketing_product",
+      "file": "app/routes/mcp.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/mcp"
+      ],
+      "browserURL": "/mcp",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function McpRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/mobile",
+      "group": "marketing_product",
+      "file": "app/routes/mobile.tsx",
+      "family": "product-interactive-or-static",
+      "urls": [
+        "/mobile"
+      ],
+      "browserURL": "/mobile",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeProductMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { EcodeMobilePage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';"
+        },
+        {
+          "line": 6,
+          "text": "export default function MobileRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/polyglot",
+      "group": "marketing_product",
+      "file": "app/routes/polyglot.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/polyglot"
+      ],
+      "browserURL": "/polyglot",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function PolyglotRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/product",
+      "group": "marketing_product",
+      "file": "app/routes/product.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/product"
+      ],
+      "browserURL": "/product",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function ProductRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions._index",
+      "group": "solutions",
+      "file": "app/routes/solutions._index.tsx",
+      "family": "solutions-index",
+      "urls": [
+        "/solutions"
+      ],
+      "browserURL": "/solutions",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/lib/i18n/catalogs/marketing-solutions-route.ts",
+        "app/lib/i18n/request-locale.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { useTranslation } from 'react-i18next';"
+        },
+        {
+          "line": 2,
+          "text": "import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';"
+        },
+        {
+          "line": 4,
+          "text": "import { MarketingIndexPage, solutionPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "import {"
+        },
+        {
+          "line": 8,
+          "text": "} from '~/lib/i18n/catalogs/marketing-solutions-route';"
+        },
+        {
+          "line": 9,
+          "text": "import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';"
+        },
+        {
+          "line": 29,
+          "text": "export default function SolutionsIndexRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.$slug",
+      "group": "solutions",
+      "file": "app/routes/solutions.$slug.tsx",
+      "family": "solutions-resolver",
+      "urls": [
+        "/solutions/synthetic-unknown",
+        "/solutions/internal-ai"
+      ],
+      "browserURL": "/solutions/synthetic-unknown",
+      "expectedStatus": 404,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/lib/i18n/catalogs/marketing-solutions-route.ts",
+        "app/lib/i18n/request-locale.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { useTranslation } from 'react-i18next';"
+        },
+        {
+          "line": 2,
+          "text": "import { data as json, redirect, type LoaderFunctionArgs, type MetaFunction } from 'react-router';"
+        },
+        {
+          "line": 4,
+          "text": "import { MarketingDynamicPage, solutionPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "import { getMarketingSolutionsRouteCopy } from '~/lib/i18n/catalogs/marketing-solutions-route';"
+        },
+        {
+          "line": 6,
+          "text": "import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';"
+        },
+        {
+          "line": 24,
+          "text": "* Fallbacks come from the same catalogue the `/solutions` index uses, so a"
+        },
+        {
+          "line": 44,
+          "text": "throw redirect(`/solutions/${canonical}`, 308);"
+        },
+        {
+          "line": 68,
+          "text": "export default function SolutionSlugRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.app-builder",
+      "group": "solutions",
+      "file": "app/routes/solutions.app-builder.tsx",
+      "family": "solution-app-builder",
+      "urls": [
+        "/solutions/app-builder"
+      ],
+      "browserURL": "/solutions/app-builder",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/AppBuilderSolutionPage.tsx",
+        "app/components/marketing/solutions/app-builder.copy.ts",
+        "app/lib/i18n/language.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import {"
+        },
+        {
+          "line": 8,
+          "text": "} from 'react-router';"
+        },
+        {
+          "line": 10,
+          "text": "import { AppBuilderSolutionPage } from '~/components/marketing/solutions/AppBuilderSolutionPage';"
+        },
+        {
+          "line": 11,
+          "text": "import { APP_BUILDER_COPY } from '~/components/marketing/solutions/app-builder.copy';"
+        },
+        {
+          "line": 12,
+          "text": "import { SUPPORTED_LANGUAGES, USER_LANGUAGE_COOKIE, type SupportedLanguage } from '~/lib/i18n/language';"
+        },
+        {
+          "line": 190,
+          "text": "export default function AppBuilderSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.chatbot-builder",
+      "group": "solutions",
+      "file": "app/routes/solutions.chatbot-builder.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/chatbot-builder"
+      ],
+      "browserURL": "/solutions/chatbot-builder",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/chatbot-builder.copy.ts",
+        "app/components/marketing/solutions/solution-route.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { CHATBOT_BUILDER_COPY } from '~/components/marketing/solutions/chatbot-builder.copy';"
+        },
+        {
+          "line": 2,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 22,
+          "text": "export default function ChatbotBuilderSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.dashboard-builder",
+      "group": "solutions",
+      "file": "app/routes/solutions.dashboard-builder.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/dashboard-builder"
+      ],
+      "browserURL": "/solutions/dashboard-builder",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/dashboard-builder.copy.ts",
+        "app/components/marketing/solutions/solution-route.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { DASHBOARD_BUILDER_COPY } from '~/components/marketing/solutions/dashboard-builder.copy';"
+        },
+        {
+          "line": 2,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 22,
+          "text": "export default function DashboardBuilderSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.enterprise",
+      "group": "solutions",
+      "file": "app/routes/solutions.enterprise.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/enterprise"
+      ],
+      "browserURL": "/solutions/enterprise",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/enterprise.copy.ts",
+        "app/components/marketing/solutions/solution-route.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { ENTERPRISE_COPY } from '~/components/marketing/solutions/enterprise.copy';"
+        },
+        {
+          "line": 2,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 22,
+          "text": "export default function EnterpriseSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.freelancers",
+      "group": "solutions",
+      "file": "app/routes/solutions.freelancers.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/freelancers"
+      ],
+      "browserURL": "/solutions/freelancers",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/freelancers.copy.ts",
+        "app/components/marketing/solutions/solution-route.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { FREELANCERS_COPY } from '~/components/marketing/solutions/freelancers.copy';"
+        },
+        {
+          "line": 2,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 22,
+          "text": "export default function FreelancersSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.game-builder",
+      "group": "solutions",
+      "file": "app/routes/solutions.game-builder.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/game-builder"
+      ],
+      "browserURL": "/solutions/game-builder",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/game-builder.copy.ts",
+        "app/components/marketing/solutions/solution-route.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { GAME_BUILDER_COPY } from '~/components/marketing/solutions/game-builder.copy';"
+        },
+        {
+          "line": 2,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 22,
+          "text": "export default function GameBuilderSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.internal-ai-builder",
+      "group": "solutions",
+      "file": "app/routes/solutions.internal-ai-builder.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/internal-ai-builder"
+      ],
+      "browserURL": "/solutions/internal-ai-builder",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/internal-ai-builder.copy.ts",
+        "app/components/marketing/solutions/solution-route.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { INTERNAL_AI_BUILDER_COPY } from '~/components/marketing/solutions/internal-ai-builder.copy';"
+        },
+        {
+          "line": 2,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 22,
+          "text": "export default function InternalAiBuilderSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.startups",
+      "group": "solutions",
+      "file": "app/routes/solutions.startups.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/startups"
+      ],
+      "browserURL": "/solutions/startups",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/solution-route.tsx",
+        "app/components/marketing/solutions/startups.copy.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 2,
+          "text": "import { STARTUPS_COPY } from '~/components/marketing/solutions/startups.copy';"
+        },
+        {
+          "line": 22,
+          "text": "export default function StartupsSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/solutions.website-builder",
+      "group": "solutions",
+      "file": "app/routes/solutions.website-builder.tsx",
+      "family": "solution-sales-factory",
+      "urls": [
+        "/solutions/website-builder"
+      ],
+      "browserURL": "/solutions/website-builder",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/solutions/solution-route.tsx",
+        "app/components/marketing/solutions/website-builder.copy.ts"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeSolutionRoute } from '~/components/marketing/solutions/solution-route';"
+        },
+        {
+          "line": 2,
+          "text": "import { WEBSITE_BUILDER_COPY } from '~/components/marketing/solutions/website-builder.copy';"
+        },
+        {
+          "line": 22,
+          "text": "export default function WebsiteBuilderSolutionRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/team",
+      "group": "marketing_product",
+      "file": "app/routes/team.tsx",
+      "family": "product-interactive-or-static",
+      "urls": [
+        "/team"
+      ],
+      "browserURL": "/team",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeProductMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { EcodeTeamsPage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';"
+        },
+        {
+          "line": 6,
+          "text": "export default function TeamRoute() {"
+        }
+      ]
+    },
+    {
+      "id": "routes/theme-validation",
+      "group": "marketing_product",
+      "file": "app/routes/theme-validation.tsx",
+      "family": "marketing-static-catalog",
+      "urls": [
+        "/theme-validation"
+      ],
+      "browserURL": "/theme-validation",
+      "expectedStatus": 200,
+      "sourceCoverage": "not_browser_tested",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "sourceEvidence": [
+        {
+          "line": 1,
+          "text": "import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';"
+        },
+        {
+          "line": 5,
+          "text": "export default function ThemeValidationRoute() {"
+        }
+      ]
+    }
+  ],
+  "formats": [
+    [
+      320,
+      900
+    ],
+    [
+      360,
+      800
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      820,
+      1180
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1440,
+      900
+    ],
+    [
+      1920,
+      1080
+    ],
+    [
+      2560,
+      1440
+    ]
+  ],
+  "languages": [
+    "fr",
+    "en"
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "status": "PREPARED_NOT_EXECUTED",
+  "sourceFiles": {
+    "app/routes/ai.tsx": "1704a9829259e5dd073499c5b47a4562618ac819dace84a5f0b4385780542889",
+    "app/components/marketing/EcodeProductMarketingPages.tsx": "c508f6f1c20b8ec302786782d69f9d11c4dcd7f39bf53229edda3e02ff3a4452",
+    "app/routes/ai-agent.studio.tsx": "02533c006f4191ff471c8b853f20cdf4b4a406981a0f2830a74fe2bf49d5e1ba",
+    "app/routes/ai-docs.tsx": "16eefebd62b6654cb7f0d0a084a4ab8e5dfb9362a88cbd4c13159c5524139fd2",
+    "app/components/marketing/EcodeMarketingPages.tsx": "c85176eb62ce8adf13774547307b2aa48d3b65ea71d69a50ade16cd9002a9590",
+    "app/routes/ai-documentation.tsx": "9ddaeeee782d01d612c2610237b03a8d8a2ba14d71a2f7ac69b4842d1d27799c",
+    "app/routes/bounties.tsx": "1d251a1e503467788af374a80c446535fd021ba581646431ca94a8fd4ee5e98e",
+    "app/components/marketing/EcodeExactProductMarketingPages.tsx": "4e0be91d2c95317d583df173c9c4222cc3e1b2ab8e692460befae983333c47f6",
+    "app/routes/collaboration.tsx": "80ee753117828e5db1ae5caf91254aa587d9183bc12313b6f31212332e0961cb",
+    "app/components/marketing/ecode-exact/pages/Collaboration.tsx": "377f0bf90ea7094e7439e2b3b01113b25b29cfc74af4a0b6099b81b66fccb833",
+    "app/lib/i18n/catalogs/marketing-exact-case-studies-collaboration.ts": "c073f2063b9f65339e66e7e97d03679cb0c8c39456d96a20d7b4b909cab6b6fd",
+    "app/lib/i18n/request-locale.ts": "a17d461d86dabff01ddbd443b818c45e730776094a971ce5ca9ddd51b1b3fc45",
+    "app/utils/social-meta.ts": "5b7968d8eefe71237160b1c8afb8b68368e84864e8a3939909cef830dd11dbf3",
+    "app/routes/customers.tsx": "290b81813c2cf0e0fe6ac867ca69c20749aaa10eeba44dd51e5fb3932125c782",
+    "app/routes/demo.tsx": "534935f0c8272ad6e21f986b2a2057393247a28878bf1f680ee44c2f71b4f483",
+    "app/routes/deployments.tsx": "1b22406188352496406d5d98e9cf6cb488d11fa6468d640f2639f12be756adee",
+    "app/routes/desktop.tsx": "c98267d430c4dd998db436ea23662382c59b6dffb6f16b6c6090287ad19f53d1",
+    "app/components/marketing/ecode-exact/pages/Desktop.tsx": "82974b40f93535516cde0433cc97148d2fb5e1904299f88a5dd2619fcfdbf2ab",
+    "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts": "a6d0e4ef18fcb0455dd4edf6ac1163f2c15556835903163d71f6df6c7732e8d5",
+    "app/routes/marketing.bounties.tsx": "523663562cdec4c90a31adaf04d9038c90ac780198766955dfc6f4bae5384668",
+    "app/components/marketing/ecode-exact/pages/Bounties.tsx": "27036346e44405401607b3fb72c7821a785e2e39a8c2c9e84af9fc058a8be4f6",
+    "app/lib/i18n/catalogs/marketing-exact-partners-bounties.ts": "6e45bd7e2a259b56bd1a96ad26487cadd63d9f642005068fb2bd04be09f831bc",
+    "app/routes/marketing.deployments.tsx": "1a05e4a1d0e0d300b82927d3e8432446d59831162183708ee27cd1cd944f7792",
+    "app/components/marketing/ecode-exact/pages/PublicDeploymentsPage.tsx": "3ded1962fed10b0c29e39415f275a21bc26847893083d49fcc8ea222737cca0f",
+    "app/lib/i18n/catalogs/remaining-route-shells.ts": "e306a161c5ffe70b433f6a3c6a19f907a76693719d9e8b894179de19f3f95278",
+    "app/routes/marketing.teams.tsx": "dd0963c8feda6a401031dff9a86c1c80f157c794e59ffc3aff4e5f450fb97626",
+    "app/components/marketing/ecode-exact/pages/PublicTeamPage.tsx": "23f55c97b914d1a290c3a29e518d4b7d8a21369ddd092e37ecbaf3994c401bd7",
+    "app/lib/i18n/catalogs/marketing-exact-agreement-team.ts": "a0ac5ebcb54ad92cdc98c4313bc2430ddd6a02ad24c01037145d3656a6772e7d",
+    "app/routes/mcp.tsx": "870007daf8842856ee331167f8abad219483869bbb5b91d338e7bd25bdfce5a4",
+    "app/routes/mobile.tsx": "e55a5ce7837f3eb9bfff3113f4f31bc4c26f054f647821956024ec828c9e29d9",
+    "app/routes/polyglot.tsx": "65f7aa70dabd87b85ce3ea8f131baa4ec79e58b23163e2056cf5c8a84a532198",
+    "app/routes/product.tsx": "32ffb3981c9fbbfa3acace582f63b0e65ec7d4af7aa9a75e4d9f916abcebcb2c",
+    "app/routes/solutions._index.tsx": "eb326cec6c4e4c218736d6b2501deeb363ae68f106cea9d10d81d8521b0a8abd",
+    "app/lib/i18n/catalogs/marketing-solutions-route.ts": "4c3cfa9019d7bea14c7c3993eb8df27515a362cba5d9d03f7037038eea2b32ec",
+    "app/routes/solutions.$slug.tsx": "6d158b55f6d25aa154c2228428ab89d2209e19689fec5f0bc2206905605be005",
+    "app/routes/solutions.app-builder.tsx": "46d2929977dac23c2477492caad0833f501f726be99a23b7928703f29e00ea25",
+    "app/components/marketing/solutions/AppBuilderSolutionPage.tsx": "38d3de2246b57f898b04bd3e8adf2dd50602179d4e46773f30f481bb703cd99f",
+    "app/components/marketing/solutions/app-builder.copy.ts": "d9038837baf20f46b6bd9cee391c278a078b304adbc16d430b05c2386cf4a7f3",
+    "app/lib/i18n/language.ts": "afd29e1f4bbaaf5abc68e09f903fc0cf0783a1cd77bbf8ad34242a76fe63b48c",
+    "app/routes/solutions.chatbot-builder.tsx": "98a9c6358b840e7b3c770054204f3fe61a74d1dcca6fb43a041a68701040a5ce",
+    "app/components/marketing/solutions/chatbot-builder.copy.ts": "c0398e5c3e426f6b977c489a04cabdf4f7962f53c4c13683eb230291bfe11465",
+    "app/components/marketing/solutions/solution-route.tsx": "f3c74f56f09b923004ff1cbb1670285620a2138ee77ad9a351a182e0d170ad67",
+    "app/routes/solutions.dashboard-builder.tsx": "0b6544c3aef0342a842b3b8e11abca03f1a555b85399709b48f53ee5e14e2aad",
+    "app/components/marketing/solutions/dashboard-builder.copy.ts": "087ae38e9b0c8d58f3a60a5a37da1957409191361957a8c55e10469183aae1fa",
+    "app/routes/solutions.enterprise.tsx": "fce45d575db82e3e58f24e705279fcd59d7b598b7e03584809986859b2c33ffa",
+    "app/components/marketing/solutions/enterprise.copy.ts": "a6f87176042424928294d6e1991f4d3458e0fd51ae557f26d240507557377d86",
+    "app/routes/solutions.freelancers.tsx": "b969a43d28901da932693fe59e089a21a1c238e816f376ea70029278061f5c03",
+    "app/components/marketing/solutions/freelancers.copy.ts": "b13636a55178503613771a1a7440c9f301eef2dad243b40d11781482515170a4",
+    "app/routes/solutions.game-builder.tsx": "d5e3ad1c7dde8dd0a75b7ecf25a40f4986888a0b65e7cd62bc773d38fb83683d",
+    "app/components/marketing/solutions/game-builder.copy.ts": "9ce9b2b869e0b0782df0063ae416f7a360a73fe94a29bf32f08ddacc24856992",
+    "app/routes/solutions.internal-ai-builder.tsx": "003ed3da41f2583b4c0fec386e0ed9b8e836f34025bce29302aac6eebe8c1a60",
+    "app/components/marketing/solutions/internal-ai-builder.copy.ts": "c0501564532eea0ff2a1d014dfa2c77e00e20b480fd89f358d1d7df55d17a28f",
+    "app/routes/solutions.startups.tsx": "ae9eaf09146dbbadedf7fc849728136a52e3d73e4c7c216340115655942cb0fc",
+    "app/components/marketing/solutions/startups.copy.ts": "e18ee1f19eb62b8368fcf636f39da2a2f81dde8655b53f589749c81bf85009ec",
+    "app/routes/solutions.website-builder.tsx": "12aa2b134e76aecc8e41cc767808378f1f7a6e21a02169f4553535429d5f0ba3",
+    "app/components/marketing/solutions/website-builder.copy.ts": "51313b42f0862df22ab3e5834e4733fc7b46dbd5577003ce03e04b1f00083807",
+    "app/routes/team.tsx": "9e68eba28013b1413912e711f1113bece701bbf3974698eeeba0fa65d238c5f2",
+    "app/routes/theme-validation.tsx": "76adf47a5c33363bd68a44e2fad15053c978ebb123833efd367ad971e27adfc8",
+    "app/components/marketing/solutions/SolutionSalesPage.tsx": "c9f3c51ec711b4f5c950448dbeaa3a569804560fdc911264a9c12eff36af996e",
+    "app/components/marketing/solutions/solution-sales.css": "2e2e1f2f2931ebe7389fdc5a5e5515a675e4e869051b77200698d5982d470298",
+    "app/components/marketing/solutions/app-builder.css": "9132dd897432dc8816e2d18b8b550297d2a24f9ec907805fd4b6be5d1fb2bbde",
+    "app/components/marketing/solutions/solution-app-showcases.ts": "1d6e9be0e96f617ce2502c01341d70afe713e100e7f30f2024ef99942f0e7bbc",
+    "app/components/marketing/ecode-exact/EcodeExactShell.tsx": "d87d899dd60be31bde31d5c49c7e7ec0fc469c377186301e882075c7cc77fbc2",
+    "app/components/marketing/ecode-exact/pages/desktop-download.ts": "183bbf9f2e7005754dc69d64374b511e98cbda3dbd16149108a955cf3e3eba60"
+  }
+}

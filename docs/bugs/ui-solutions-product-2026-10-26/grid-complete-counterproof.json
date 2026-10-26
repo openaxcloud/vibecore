@@ -1,0 +1,1214 @@
+[
+  {
+    "lang": "fr",
+    "theme": "light",
+    "width": 320,
+    "before": {
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "display": "grid",
+        "columns": "369.812px",
+        "children": 3,
+        "width": 369.8125
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 320,
+          "scroll": 320,
+          "font": "20px",
+          "left": 49,
+          "right": 368.8125,
+          "cardLeft": 24,
+          "cardRight": 393.8125,
+          "cardWidth": 369.8125,
+          "textRight": 300.546875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 320,
+          "scroll": 320,
+          "font": "20px",
+          "left": 49,
+          "right": 368.8125,
+          "cardLeft": 24,
+          "cardRight": 393.8125,
+          "cardWidth": 369.8125,
+          "textRight": 314.5625
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 320,
+          "scroll": 320,
+          "font": "20px",
+          "left": 49,
+          "right": 368.8125,
+          "cardLeft": 24,
+          "cardRight": 393.8125,
+          "cardWidth": 369.8125,
+          "textRight": 261.390625
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "display": "grid",
+        "columns": "272px",
+        "children": 3,
+        "width": 272
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 257.734375
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 238.328125
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 261.390625
+        }
+      ]
+    }
+  },
+  {
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "before": {
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "display": "grid",
+        "columns": "224px 224px 224px",
+        "children": 3,
+        "width": 720
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 49,
+          "right": 223,
+          "cardLeft": 24,
+          "cardRight": 248,
+          "cardWidth": 224,
+          "textRight": 196.828125
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 297,
+          "right": 471,
+          "cardLeft": 272,
+          "cardRight": 496,
+          "cardWidth": 224,
+          "textRight": 433.921875
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 545,
+          "right": 719,
+          "cardLeft": 520,
+          "cardRight": 744,
+          "cardWidth": 224,
+          "textRight": 676.703125
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "display": "grid",
+        "columns": "224px 224px 224px",
+        "children": 3,
+        "width": 720
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 49,
+          "right": 223,
+          "cardLeft": 24,
+          "cardRight": 248,
+          "cardWidth": 224,
+          "textRight": 196.828125
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 297,
+          "right": 471,
+          "cardLeft": 272,
+          "cardRight": 496,
+          "cardWidth": 224,
+          "textRight": 433.921875
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 545,
+          "right": 719,
+          "cardLeft": 520,
+          "cardRight": 744,
+          "cardWidth": 224,
+          "textRight": 676.703125
+        }
+      ]
+    }
+  },
+  {
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "before": {
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "display": "grid",
+        "columns": "146.906px 146.906px 146.906px",
+        "children": 3,
+        "width": 488.71875
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 97,
+          "scroll": 152,
+          "font": "24px",
+          "left": 65,
+          "right": 161.90625,
+          "cardLeft": 40,
+          "cardRight": 186.90625,
+          "cardWidth": 146.90625,
+          "textRight": 217.1875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 97,
+          "scroll": 127,
+          "font": "24px",
+          "left": 235.90625,
+          "right": 332.8125,
+          "cardLeft": 210.90625,
+          "cardRight": 357.8125,
+          "cardWidth": 146.90625,
+          "textRight": 362.734375
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 97,
+          "scroll": 136,
+          "font": "24px",
+          "left": 406.8125,
+          "right": 503.71875,
+          "cardLeft": 381.8125,
+          "cardRight": 528.71875,
+          "cardWidth": 146.90625,
+          "textRight": 542.390625
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "display": "grid",
+        "columns": "232.359px 232.359px",
+        "children": 3,
+        "width": 488.71875
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 182,
+          "scroll": 182,
+          "font": "24px",
+          "left": 65,
+          "right": 247.359375,
+          "cardLeft": 40,
+          "cardRight": 272.359375,
+          "cardWidth": 232.359375,
+          "textRight": 217.1875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 182,
+          "scroll": 182,
+          "font": "24px",
+          "left": 321.359375,
+          "right": 503.71875,
+          "cardLeft": 296.359375,
+          "cardRight": 528.71875,
+          "cardWidth": 232.359375,
+          "textRight": 462.3125
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 182,
+          "scroll": 182,
+          "font": "24px",
+          "left": 65,
+          "right": 247.359375,
+          "cardLeft": 40,
+          "cardRight": 272.359375,
+          "cardWidth": 232.359375,
+          "textRight": 200.578125
+        }
+      ]
+    }
+  },
+  {
+    "lang": "fr",
+    "theme": "light",
+    "width": 1280,
+    "before": {
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "display": "grid",
+        "columns": "193.453px 193.453px 193.453px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 143,
+          "scroll": 152,
+          "font": "24px",
+          "left": 65,
+          "right": 208.453125,
+          "cardLeft": 40,
+          "cardRight": 233.453125,
+          "cardWidth": 193.453125,
+          "textRight": 217.1875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 282.453125,
+          "right": 425.90625,
+          "cardLeft": 257.453125,
+          "cardRight": 450.90625,
+          "cardWidth": 193.453125,
+          "textRight": 423.40625
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 499.90625,
+          "right": 643.359375,
+          "cardLeft": 474.90625,
+          "cardRight": 668.359375,
+          "cardWidth": 193.453125,
+          "textRight": 635.484375
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "display": "grid",
+        "columns": "302.172px 302.188px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 65,
+          "right": 317.171875,
+          "cardLeft": 40,
+          "cardRight": 342.171875,
+          "cardWidth": 302.171875,
+          "textRight": 315.46875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 391.171875,
+          "right": 643.359375,
+          "cardLeft": 366.171875,
+          "cardRight": 668.359375,
+          "cardWidth": 302.1875,
+          "textRight": 618.359375
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 65,
+          "right": 317.171875,
+          "cardLeft": 40,
+          "cardRight": 342.171875,
+          "cardWidth": 302.171875,
+          "textRight": 200.578125
+        }
+      ]
+    }
+  },
+  {
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "before": {
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "display": "grid",
+        "columns": "193.453px 193.453px 193.453px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 143,
+          "scroll": 152,
+          "font": "24px",
+          "left": 145,
+          "right": 288.453125,
+          "cardLeft": 120,
+          "cardRight": 313.453125,
+          "cardWidth": 193.453125,
+          "textRight": 297.1875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 362.453125,
+          "right": 505.90625,
+          "cardLeft": 337.453125,
+          "cardRight": 530.90625,
+          "cardWidth": 193.453125,
+          "textRight": 503.40625
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 579.90625,
+          "right": 723.359375,
+          "cardLeft": 554.90625,
+          "cardRight": 748.359375,
+          "cardWidth": 193.453125,
+          "textRight": 715.484375
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "display": "grid",
+        "columns": "302.172px 302.188px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 145,
+          "right": 397.171875,
+          "cardLeft": 120,
+          "cardRight": 422.171875,
+          "cardWidth": 302.171875,
+          "textRight": 395.46875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 471.171875,
+          "right": 723.359375,
+          "cardLeft": 446.171875,
+          "cardRight": 748.359375,
+          "cardWidth": 302.1875,
+          "textRight": 698.359375
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 145,
+          "right": 397.171875,
+          "cardLeft": 120,
+          "cardRight": 422.171875,
+          "cardWidth": 302.171875,
+          "textRight": 280.578125
+        }
+      ]
+    }
+  },
+  {
+    "lang": "fr",
+    "theme": "light",
+    "width": 1920,
+    "before": {
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "display": "grid",
+        "columns": "193.453px 193.453px 193.453px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 143,
+          "scroll": 152,
+          "font": "24px",
+          "left": 385,
+          "right": 528.453125,
+          "cardLeft": 360,
+          "cardRight": 553.453125,
+          "cardWidth": 193.453125,
+          "textRight": 537.1875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 602.453125,
+          "right": 745.90625,
+          "cardLeft": 577.453125,
+          "cardRight": 770.90625,
+          "cardWidth": 193.453125,
+          "textRight": 743.40625
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 819.90625,
+          "right": 963.359375,
+          "cardLeft": 794.90625,
+          "cardRight": 988.359375,
+          "cardWidth": 193.453125,
+          "textRight": 955.484375
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "display": "grid",
+        "columns": "302.172px 302.188px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 385,
+          "right": 637.171875,
+          "cardLeft": 360,
+          "cardRight": 662.171875,
+          "cardWidth": 302.171875,
+          "textRight": 635.46875
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 711.171875,
+          "right": 963.359375,
+          "cardLeft": 686.171875,
+          "cardRight": 988.359375,
+          "cardWidth": 302.1875,
+          "textRight": 938.359375
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 385,
+          "right": 637.171875,
+          "cardLeft": 360,
+          "cardRight": 662.171875,
+          "cardWidth": 302.171875,
+          "textRight": 520.578125
+        }
+      ]
+    }
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "width": 320,
+    "before": {
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "display": "grid",
+        "columns": "272px",
+        "children": 3,
+        "width": 272
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 228.109375
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 267.25
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 214.34375
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "display": "grid",
+        "columns": "272px",
+        "children": 3,
+        "width": 272
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 228.109375
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 267.25
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 222,
+          "scroll": 222,
+          "font": "20px",
+          "left": 49,
+          "right": 271,
+          "cardLeft": 24,
+          "cardRight": 296,
+          "cardWidth": 272,
+          "textRight": 214.34375
+        }
+      ]
+    }
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "before": {
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "display": "grid",
+        "columns": "224px 224px 224px",
+        "children": 3,
+        "width": 720
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 49,
+          "right": 223,
+          "cardLeft": 24,
+          "cardRight": 248,
+          "cardWidth": 224,
+          "textRight": 186.15625
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 297,
+          "right": 471,
+          "cardLeft": 272,
+          "cardRight": 496,
+          "cardWidth": 224,
+          "textRight": 424.265625
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 545,
+          "right": 719,
+          "cardLeft": 520,
+          "cardRight": 744,
+          "cardWidth": 224,
+          "textRight": 665.671875
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "display": "grid",
+        "columns": "224px 224px 224px",
+        "children": 3,
+        "width": 720
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 49,
+          "right": 223,
+          "cardLeft": 24,
+          "cardRight": 248,
+          "cardWidth": 224,
+          "textRight": 186.15625
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 297,
+          "right": 471,
+          "cardLeft": 272,
+          "cardRight": 496,
+          "cardWidth": 224,
+          "textRight": 424.265625
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px",
+          "left": 545,
+          "right": 719,
+          "cardLeft": 520,
+          "cardRight": 744,
+          "cardWidth": 224,
+          "textRight": 665.671875
+        }
+      ]
+    }
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "before": {
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "display": "grid",
+        "columns": "146.906px 146.906px 146.906px",
+        "children": 3,
+        "width": 488.71875
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 97,
+          "scroll": 141,
+          "font": "24px",
+          "left": 65,
+          "right": 161.90625,
+          "cardLeft": 40,
+          "cardRight": 186.90625,
+          "cardWidth": 146.90625,
+          "textRight": 206.203125
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 97,
+          "scroll": 125,
+          "font": "24px",
+          "left": 235.90625,
+          "right": 332.8125,
+          "cardLeft": 210.90625,
+          "cardRight": 357.8125,
+          "cardWidth": 146.90625,
+          "textRight": 360.546875
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 97,
+          "scroll": 124,
+          "font": "24px",
+          "left": 406.8125,
+          "right": 503.71875,
+          "cardLeft": 381.8125,
+          "cardRight": 528.71875,
+          "cardWidth": 146.90625,
+          "textRight": 531.046875
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "display": "grid",
+        "columns": "232.359px 232.359px",
+        "children": 3,
+        "width": 488.71875
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 182,
+          "scroll": 182,
+          "font": "24px",
+          "left": 65,
+          "right": 247.359375,
+          "cardLeft": 40,
+          "cardRight": 272.359375,
+          "cardWidth": 232.359375,
+          "textRight": 206.203125
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 182,
+          "scroll": 182,
+          "font": "24px",
+          "left": 321.359375,
+          "right": 503.71875,
+          "cardLeft": 296.359375,
+          "cardRight": 528.71875,
+          "cardWidth": 232.359375,
+          "textRight": 452.375
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 182,
+          "scroll": 182,
+          "font": "24px",
+          "left": 65,
+          "right": 247.359375,
+          "cardLeft": 40,
+          "cardRight": 272.359375,
+          "cardWidth": 232.359375,
+          "textRight": 189.234375
+        }
+      ]
+    }
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "width": 1280,
+    "before": {
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "display": "grid",
+        "columns": "193.453px 193.453px 193.453px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 65,
+          "right": 208.453125,
+          "cardLeft": 40,
+          "cardRight": 233.453125,
+          "cardWidth": 193.453125,
+          "textRight": 206.203125
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 282.453125,
+          "right": 425.90625,
+          "cardLeft": 257.453125,
+          "cardRight": 450.90625,
+          "cardWidth": 193.453125,
+          "textRight": 413.46875
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 499.90625,
+          "right": 643.359375,
+          "cardLeft": 474.90625,
+          "cardRight": 668.359375,
+          "cardWidth": 193.453125,
+          "textRight": 624.140625
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "display": "grid",
+        "columns": "302.172px 302.188px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 65,
+          "right": 317.171875,
+          "cardLeft": 40,
+          "cardRight": 342.171875,
+          "cardWidth": 302.171875,
+          "textRight": 279.921875
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 391.171875,
+          "right": 643.359375,
+          "cardLeft": 366.171875,
+          "cardRight": 668.359375,
+          "cardWidth": 302.1875,
+          "textRight": 522.1875
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 65,
+          "right": 317.171875,
+          "cardLeft": 40,
+          "cardRight": 342.171875,
+          "cardWidth": 302.171875,
+          "textRight": 263.421875
+        }
+      ]
+    }
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "before": {
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "display": "grid",
+        "columns": "193.453px 193.453px 193.453px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 145,
+          "right": 288.453125,
+          "cardLeft": 120,
+          "cardRight": 313.453125,
+          "cardWidth": 193.453125,
+          "textRight": 286.203125
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 362.453125,
+          "right": 505.90625,
+          "cardLeft": 337.453125,
+          "cardRight": 530.90625,
+          "cardWidth": 193.453125,
+          "textRight": 493.46875
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 579.90625,
+          "right": 723.359375,
+          "cardLeft": 554.90625,
+          "cardRight": 748.359375,
+          "cardWidth": 193.453125,
+          "textRight": 704.140625
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "display": "grid",
+        "columns": "302.172px 302.188px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 145,
+          "right": 397.171875,
+          "cardLeft": 120,
+          "cardRight": 422.171875,
+          "cardWidth": 302.171875,
+          "textRight": 359.921875
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 471.171875,
+          "right": 723.359375,
+          "cardLeft": 446.171875,
+          "cardRight": 748.359375,
+          "cardWidth": 302.1875,
+          "textRight": 602.1875
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 145,
+          "right": 397.171875,
+          "cardLeft": 120,
+          "cardRight": 422.171875,
+          "cardWidth": 302.171875,
+          "textRight": 343.421875
+        }
+      ]
+    }
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "width": 1920,
+    "before": {
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "display": "grid",
+        "columns": "193.453px 193.453px 193.453px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 385,
+          "right": 528.453125,
+          "cardLeft": 360,
+          "cardRight": 553.453125,
+          "cardWidth": 193.453125,
+          "textRight": 526.203125
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 602.453125,
+          "right": 745.90625,
+          "cardLeft": 577.453125,
+          "cardRight": 770.90625,
+          "cardWidth": 193.453125,
+          "textRight": 733.46875
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 143,
+          "scroll": 143,
+          "font": "24px",
+          "left": 819.90625,
+          "right": 963.359375,
+          "cardLeft": 794.90625,
+          "cardRight": 988.359375,
+          "cardWidth": 193.453125,
+          "textRight": 944.140625
+        }
+      ]
+    },
+    "after": {
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "display": "grid",
+        "columns": "302.172px 302.188px",
+        "children": 3,
+        "width": 628.359375
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 385,
+          "right": 637.171875,
+          "cardLeft": 360,
+          "cardRight": 662.171875,
+          "cardWidth": 302.171875,
+          "textRight": 599.921875
+        },
+        {
+          "text": "AI-assisted workflows",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 711.171875,
+          "right": 963.359375,
+          "cardLeft": 686.171875,
+          "cardRight": 988.359375,
+          "cardWidth": 302.1875,
+          "textRight": 842.1875
+        },
+        {
+          "text": "Enterprise ready",
+          "client": 252,
+          "scroll": 252,
+          "font": "24px",
+          "left": 385,
+          "right": 637.171875,
+          "cardLeft": 360,
+          "cardRight": 662.171875,
+          "cardWidth": 302.171875,
+          "textRight": 583.421875
+        }
+      ]
+    }
+  }
+]

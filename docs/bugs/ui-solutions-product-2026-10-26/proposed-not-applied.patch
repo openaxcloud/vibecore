@@ -1,0 +1,11 @@
+--- a/app/components/marketing/ecode-exact/pages/PublicDeploymentsPage.tsx
++++ b/app/components/marketing/ecode-exact/pages/PublicDeploymentsPage.tsx
+@@ -91,7 +91,7 @@
+                       <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
+                         <Icon className="h-5 w-5" />
+                       </span>
+-                      <CardTitle className="mkt-h3 font-semibold">{highlight.title}</CardTitle>
++                      <CardTitle className="mkt-h3 font-semibold [overflow-wrap:anywhere]">{highlight.title}</CardTitle>
+                     </CardHeader>
+                     <CardContent className="mkt-body text-muted-foreground">{highlight.description}</CardContent>
+                   </Card>
