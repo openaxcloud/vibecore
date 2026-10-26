@@ -1470,6 +1470,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                         roleId: event.roleId,
                         status: event.result.status,
                         summary: localizeApiChatAgentResultSummary(language, event.result.status, event.result.summary),
+                        ...(event.result.outputState ? { outputState: event.result.outputState } : {}),
+                        ...(event.result.emittedFiles ? { emittedFiles: event.result.emittedFiles } : {}),
+                        verificationState: 'not_observed',
                       } satisfies ContextAnnotation);
                     }
                   },

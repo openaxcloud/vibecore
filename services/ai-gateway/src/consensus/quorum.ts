@@ -97,7 +97,9 @@ function buildConsolidated(
   return {
     summary: summary || aiGatewayMessage('consensusEmptySummary', locale),
     acceptedRisks: accepted.filter((v) => v.type === 'risk').map((v) => v.claim),
-    acceptedVerification: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
+    // Consensus votes establish agreement on declarations, never execution.
+    acceptedVerification: [],
+    agreedVerificationClaims: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
     acceptedFiles: accepted.filter((v) => v.type === 'file').map((v) => v.claim),
     rejectedClaims: rejected.map((v) => ({ claim: v.claim, type: v.type })),
     perRoleSummaries: results.map((r) => ({ roleId: r.roleId, summary: r.summary, status: r.status })),
