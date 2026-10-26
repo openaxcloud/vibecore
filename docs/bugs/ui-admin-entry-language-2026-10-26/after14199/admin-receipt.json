@@ -1,0 +1,45 @@
+{
+  "sourceHead": "c3404050d2ae62a962a1b34abd693032bbca68d0",
+  "cases": [
+    {
+      "name": "fr",
+      "path": "/admin?lang=fr&export=csv",
+      "cookie": "SYNTH_ADMIN",
+      "location": "/admin/overview?lang=fr",
+      "status": 302,
+      "pass": true
+    },
+    {
+      "name": "en",
+      "path": "/admin?lang=en",
+      "cookie": "SYNTH_ADMIN",
+      "location": "/admin/overview?lang=en",
+      "status": 302,
+      "pass": true
+    },
+    {
+      "name": "default",
+      "path": "/admin",
+      "cookie": "SYNTH_ADMIN",
+      "location": "/admin/overview",
+      "status": 302,
+      "pass": true
+    },
+    {
+      "name": "nonadmin",
+      "path": "/admin?lang=fr",
+      "cookie": "SYNTH_USER",
+      "location": "/dashboard",
+      "status": 302,
+      "pass": true
+    },
+    {
+      "name": "anonymous",
+      "path": "/admin?lang=fr",
+      "locationPrefix": "/login?",
+      "status": 302,
+      "location": "/login?returnTo=%2Fadmin%3Flang%3Dfr",
+      "pass": true
+    }
+  ]
+}

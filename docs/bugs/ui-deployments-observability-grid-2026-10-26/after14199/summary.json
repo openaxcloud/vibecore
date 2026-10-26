@@ -1,0 +1,13 @@
+{
+  "completed": true,
+  "observations": 24,
+  "keyboardGroups": 4,
+  "failures": 0,
+  "jsErrors": 0,
+  "nonGetAttempts": 0,
+  "externalFontsBlocked": 48,
+  "sourceBuild": "c3404050d2",
+  "fixScope": "Observability section grid only",
+  "css195Retested": false,
+  "newRouteIDs": 0
+}

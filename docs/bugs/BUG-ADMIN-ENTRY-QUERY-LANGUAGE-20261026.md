@@ -21,3 +21,7 @@ L’entrée `/admin?lang=fr` perd sa langue pendant le redirect vers `/admin/ove
 ## Validation locale et preuves
 
 [Diagnostic et tests](ui-admin-entry-language-2026-10-26/README.md) : avant deux échecs FR/EN et deux réussites ; après quatre tests réussis, lint/Prettier verts. Paramètres sans rapport non transmis et refus d’autorisation conservé. Pas de nouveau build ou navigateur pour ce redirect pur ; aucune certification globale des pages Administration.
+
+## Contrat HTTP compilé après correction
+
+[Après 14199](ui-admin-entry-language-2026-10-26/after14199/README.md), build `c3404050d2` : cinq GET HTTP réussis avec redirects non suivis. Langue FR/EN conservée, défaut inchangé, export exclu, utilisateur non-admin redirigé dashboard et anonyme vers login. Auth API strictement synthétique ; aucune recette de backend réel ou de destination visuelle. Main/live restent faux.
