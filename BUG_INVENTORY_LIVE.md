@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-520 entrées.
+521 entrées.
 
 ## Sans section
 
@@ -669,6 +669,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-SSO-TEST-BUTTON-HEIGHT-20261026](docs/bugs/BUG-SSO-TEST-BUTTON-HEIGHT-20261026.md) — Les deux boutons « Tester la connexion » OIDC/SAML mesurent32px malgré un minimum44px prévu localement. — 📤 Dispatché : ☑ 26/10/2026 — Défaut reproduit,31 PR relues sans chevauchement, revue root indépendante du patch et des mesur · 💻 Codé : ☐ Sur main. Deux classes locales deviennent `!min-h-[44px]`. Button partagé, CSS global, h-auto, wrapping, lab · ✅ Testé live : ☐ En production. Aucun test de connexion IdP, secret ou enregistrement SSO exécuté.
 - [BUG-TEAM-SETTINGS-NESTED-OUTLET-20261026](docs/bugs/BUG-TEAM-SETTINGS-NESTED-OUTLET-20261026.md) — L’URL des paramètres d’équipe affiche le journal d’accès parent au lieu de la page enfant : les paramètres existants ne sont pas accessibles par navigation. — 📤 Dispatché : ☑ 26/10/2026 — Périmètre organisation/équipes alloué, worktree séparé.31 PR ouvertes relues, aucun chevaucheme · 💻 Codé : ☐ Sur main. Correctif local : `useOutlet` inconditionnel après les autres hooks, retour enfant avant la coque · ✅ Testé live : ☐ En production. Fixtures GET synthétiques, aucune création d’équipe ni modification de permission.
 - [BUG-IDE-SECURITY-SCAN-HANDOFF-20261026](docs/bugs/BUG-IDE-SECURITY-SCAN-HANDOFF-20261026.md) — La CI #808 sur `65228339e` échoue trois fois sur `security-timeout preserves the execution outcome` : progression absente au lieu de running/timeout. Le run E2E — 📤 Dispatché : 26/10/2026 — correction autorisée dans le lot #808 après diagnostic reproductible. Worktree séparé `vibecore-e · 💻 Codé : ☐ — validation locale. Session transitoire indexée projet/espace/fenêtre au-dessus des coquilles : état, contr · ✅ Testé live : ☐ — aucune recette production. 36 tests unitaires/provider/gardes AST, lint ciblé et typecheck web passent. Re
+- [BUG-PORTFOLIO-GENERATION-20261026](docs/bugs/BUG-PORTFOLIO-GENERATION-20261026.md) — 📤 Dispatché : ☑ 26 octobre 2026 — Lot portfolio isolé, PR #806. · 💻 Codé : ☐ Sur main. Correctif proposé dans #806 ; validation CI de la nouvelle tête requise. · ✅ Testé live : ☐ Aucune recette de génération en production ; accès au projet non disponible.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

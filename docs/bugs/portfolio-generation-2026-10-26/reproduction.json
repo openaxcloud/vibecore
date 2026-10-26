@@ -1,0 +1,39 @@
+{
+  "rawPrompt": "Créez un portfolio soigné avec études de cas, articles de blog et formulaires de contact dédié à l’ia",
+  "execution": "Local pure exported functions transpiled with installed TypeScript; no network, generation, user data or repo edits.",
+  "cases": [
+    {
+      "label": "raw",
+      "selected": true,
+      "profileName": "Alex Morgan",
+      "nameRegexMatch": null,
+      "hasBlogFile": false,
+      "hasForm": false,
+      "fixedEmail": true,
+      "fixedCTA": true
+    },
+    {
+      "label": "wrapped",
+      "selected": true,
+      "profileName": "them",
+      "nameRegexMatch": "for them",
+      "hasBlogFile": false,
+      "hasForm": false,
+      "fixedEmail": true,
+      "fixedCTA": true
+    }
+  ],
+  "wrapperTrigger": "charts or tables where the data calls for them, loading / empty / error / success states",
+  "codePaths": {
+    "wrap": "app/routes/projects.new.tsx:596",
+    "queue": "app/routes/projects.new.tsx:690",
+    "internalRule": "app/lib/common/prompts/premier-projet.ts:39",
+    "readQueue": "app/components/chat/Chat.client.tsx:1721",
+    "sendQueue": "app/components/chat/Chat.client.tsx:1816",
+    "shortcut": "app/routes/api.chat.ts:936",
+    "nameRegex": "app/utils/portfolio-template.ts:106",
+    "fixedEmail": "app/utils/portfolio-template.ts:188",
+    "fixedCTA": "app/utils/portfolio-template.ts:358"
+  },
+  "limitation": "Live request/files/workspace mapping unverified; supplied URLs inaccessible (403), no authenticated client request made."
+}
