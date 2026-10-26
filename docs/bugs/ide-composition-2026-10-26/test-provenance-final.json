@@ -1,0 +1,14 @@
+{
+  "v1_ambiguous_selector": {
+    "file": "/tmp/ide-continuous-input-qa/test-selector-before.ts",
+    "sha256": "fa9c9b9261e6de1d5967cf49a344eb13f5ca918d21f2c5c5a9c5b49855caaa84"
+  },
+  "v2_logger_visible_editor_assumption": {
+    "file": "/tmp/ide-continuous-input-qa/test-before-evidence-fix.ts",
+    "sha256": "7833abfa698f778ad48051ded08c255b8e859d97e66469b04e8d91c70a5997f6"
+  },
+  "v3_final": {
+    "file": "/workspace/vibecore-ide-followup/tests/e2e/ide-editor-composition-handoff.spec.ts",
+    "sha256": "b6d85947387f268c7ebfc1dfb5867af6afcf80a78619090e4ba30bf8a0e3b96b"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "trace": "/tmp/ide-followup-qa/monaco-native-final-results/monaco-native-final-Monaco-f5672-e-keyboard-leave-and-return/trace.zip",
+  "sha256": "a292bfce886c055ebf441e147f2641e72d4325555c807e0189e4bc3b4d33af0f",
+  "observations": [
+    {
+      "name": "after@call@167",
+      "timestamp": 8429.956,
+      "keybindingContexts": [
+        "1"
+      ],
+      "monacoClasses": [
+        "monaco-editor no-user-select  showUnused showDeprecated vs"
+      ],
+      "agentPanelInDelta": true
+    },
+    {
+      "name": "before@call@217",
+      "timestamp": 8444.813,
+      "keybindingContexts": [],
+      "monacoClasses": [],
+      "agentPanelInDelta": false
+    },
+    {
+      "name": "after@call@217",
+      "timestamp": 8844.514,
+      "keybindingContexts": [
+        "2"
+      ],
+      "monacoClasses": [
+        "monaco-editor no-user-select  showUnused showDeprecated vs focused"
+      ],
+      "agentPanelInDelta": true
+    },
+    {
+      "name": "before@call@235",
+      "timestamp": 9077.097,
+      "keybindingContexts": [
+        "3"
+      ],
+      "monacoClasses": [
+        "monaco-editor no-user-select  showUnused showDeprecated vs"
+      ],
+      "agentPanelInDelta": true
+    },
+    {
+      "name": "after@call@235",
+      "timestamp": 9212.201,
+      "keybindingContexts": [
+        "3"
+      ],
+      "monacoClasses": [
+        "monaco-editor no-user-select  showUnused showDeprecated vs"
+      ],
+      "agentPanelInDelta": true
+    },
+    {
+      "name": "input@call@257",
+      "timestamp": 9222.659,
+      "keybindingContexts": [],
+      "monacoClasses": [],
+      "agentPanelInDelta": true
+    },
+    {
+      "name": "after@call@257",
+      "timestamp": 9293.937,
+      "keybindingContexts": [],
+      "monacoClasses": [],
+      "agentPanelInDelta": false
+    },
+    {
+      "name": "before@call@259",
+      "timestamp": 9299.466,
+      "keybindingContexts": [],
+      "monacoClasses": [],
+      "agentPanelInDelta": false
+    }
+  ],
+  "qualification": "Snapshot deltas prove editor context2 focused replaced with context3 unfocused before first Tab. Exact owning remount cause not established. Not a CtrlM failure. Passing instrumented run not proof startup is fixed."
+}

@@ -1,0 +1,62 @@
+{
+  "scope": "Local integration smoke only; earlier12 scenarios remain attributed to base90d92ff12",
+  "headBeforeMerge": "bcd0687049ceac5e33e020a5cb2995232365555b",
+  "stagedTree": "b5f248a060de9580689036077df2a18821a83d18",
+  "incomingMain": "70f40edb8",
+  "buildExitCode": 0,
+  "webTypecheckExitCode": 0,
+  "sourceChangesDuringBuild": [],
+  "passed": 4,
+  "failed": 0,
+  "automaticRetries": 0,
+  "allFirstAttempt": true,
+  "standardDurationSeconds": 19.405,
+  "nativeDurationSeconds": 16.896,
+  "cases": [
+    "container320 atviewport2560",
+    "container1120 atviewport2560",
+    "naturalcontainer1089 atviewport2048 withAgent480 andLibrary380",
+    "container320 withnativeChromiumzoom200%"
+  ],
+  "allViews": [
+    "Overview",
+    "Logs",
+    "Domains",
+    "Manage"
+  ],
+  "fixtures": "Real local synthetic API/PostgreSQL project creation and shell state; controlled GET domain/DNS/deployment history envelopes; browser mutations blocked",
+  "limitations": [
+    "No provider publication or DNS changes; Manage runtime detection unavailable is expected local state.",
+    "No production or hardware Safari verification.",
+    "This4case smoke does not reattribute or repeat the earlier full12case matrix."
+  ],
+  "sha256": {
+    "prebuild-sources.json": "53c09d347498cc3e12205c889443d4d9d3a011a62a1f7b0a83b5eeb5ce311e4c",
+    "build-manifest.json": "1949cf362a853ae85eed2db0b60efe5ff6e593de274c0ddbe4d50a3e99818958",
+    "standard-results.json": "9a57415afcec74267ab734119deb947374c08369d9a2e6179b674c98c6e3f846",
+    "native-results.json": "03d27f04d675ac1453165b0318107c89ffe51c5a397ea0467d934f9b39470e43",
+    "typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "cleanup": {
+    "closedPorts": [
+      5199,
+      3018,
+      55448,
+      56388
+    ],
+    "stoppedOwnedPids": [
+      278163,
+      277938,
+      277922
+    ],
+    "stoppedRetainedContainers": [
+      "ide-palette-opener-pg",
+      "ide-palette-opener-redis"
+    ],
+    "foreignPidsPreserved": [
+      96853,
+      254553,
+      259812
+    ]
+  }
+}

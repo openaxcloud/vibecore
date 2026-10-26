@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createSecurityScanSession, type SecurityScanMessages } from './security-scan-session';
 
 /*
  * Execute the real panel callbacks with deferred transport promises. This is a
@@ -44,31 +45,35 @@ function deferred<T>() {
 }
 
 function harness() {
-  type State = { status: string; progress: number };
-
-  let state: State = { status: 'idle', progress: 0 };
-
-  const requests: ReturnType<typeof deferred<Response>>[] = [];
-  const scanAbortRef: { current: AbortController | null } = { current: null };
+  const requests: (ReturnType<typeof deferred<Response>> & { signal: AbortSignal })[] = [];
   const reload = vi.fn().mockResolvedValue(undefined);
 
+  const fetcher = vi.fn<typeof fetch>((_url, init) => {
+    const request = { ...deferred<Response>(), signal: init!.signal as AbortSignal };
+    requests.push(request);
+
+    return request.promise;
+  });
+
+  const session = createSecurityScanSession('synthetic-project', fetcher);
+  session.subscribe(() => {
+    if (session.claimRefresh(session.getSnapshot().refreshRevision)) {
+      void reload();
+    }
+  });
+
+  let pending!: Promise<void>;
+
   const bindings = {
-    scanAbortRef,
-    reload,
-    projectId: 'synthetic-project',
-    PROJECT_SECURITY_SCAN_TIMEOUT_MS: 90_000,
-    window: { setTimeout, clearTimeout },
+    scanSession: {
+      ...session,
+      run: (body: FormData, messages: SecurityScanMessages) => {
+        pending = session.run(body, messages);
+        return pending;
+      },
+    },
     FormData: class {},
     t: (key: string) => key,
-    setScanState: (next: State | ((current: State) => State)) => {
-      state = typeof next === 'function' ? next(state) : next;
-    },
-    fetch: vi.fn(() => {
-      const request = deferred<Response>();
-      requests.push(request);
-
-      return request.promise;
-    }),
   };
 
   function evaluate(name: string) {
@@ -81,12 +86,15 @@ function harness() {
   const run = evaluate('runScan');
 
   return {
-    start: () => run({ preventDefault: vi.fn(), currentTarget: {} }) as Promise<void>,
+    start: () => {
+      run({ preventDefault: vi.fn(), currentTarget: {} });
+      return pending;
+    },
     cancel: evaluate('cancelScan') as () => void,
-    state: () => state,
+    state: session.getSnapshot,
     requests,
     reload,
-    scanAbortRef,
+    activeSignal: () => requests.at(-1)?.signal,
   };
 }
 
@@ -104,11 +112,16 @@ describe('Security scan operation ownership', () => {
     expect(h.state().status).toBe('cancelled');
 
     const second = h.start();
-    const secondController = h.scanAbortRef.current;
+    const secondSignal = h.activeSignal();
+    expect(h.requests).toHaveLength(2);
+    expect(h.requests[0].signal.aborted).toBe(true);
+    expect(secondSignal).toBeDefined();
+    expect(secondSignal).not.toBe(h.requests[0].signal);
     h.requests[0].reject(new DOMException('Aborted', 'AbortError'));
     await first;
     expect(h.state().status).toBe('running');
-    expect(h.scanAbortRef.current).toBe(secondController);
+    expect(h.activeSignal()).toBe(secondSignal);
+    expect(secondSignal?.aborted).toBe(false);
     h.requests[1].resolve(completed());
     await second;
     expect(h.state().status).toBe('completed');

@@ -1,0 +1,15 @@
+{
+  "localBuild": "6f270b9bc2a14e9f07a3b3b9eb457b5189f98fac",
+  "stats": {
+    "startTime": "2026-10-26T05:08:36.735Z",
+    "duration": 58777.918,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "settingsPageGotoCalls": 1,
+  "firstBrowserLaunch": "Did not run assertions: default Playwright binary missing. Used existing /usr/bin/chromium, no install.",
+  "productChanges": false,
+  "automaticRetries": 0
+}

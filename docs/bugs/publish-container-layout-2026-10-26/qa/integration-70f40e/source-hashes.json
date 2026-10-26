@@ -1,0 +1,8 @@
+{
+  "app/styles/index.scss": "ee52ef788861c0cd893e465ff5d748ca2ba8ece5313a530270c879ae9bb0a9e9",
+  "tests/e2e/publish-container-layout.spec.ts": "6078249d128fa669e922725b95d0e33e45202fa31af9e3fb38aa748e47fa0d40",
+  "app/components/chat/BaseChat.tsx": "f56923e6fa2639e499f828d58d324f2bbfbc90cdf2d3401e1a195f36cb82dfb0",
+  "app/components/chat/Chat.client.tsx": "4a22931656f5f5662b19039183b5fe76f369dd633ea660a4fd0e71dfc5489286",
+  "app/components/chat/MobileOverlayFocus.tsx": "8131471224c03283ebcb011bc326c689c33c953226f7a210a780a960598d99f4",
+  "packages/editor/src/index.ts": "26ec31481de98df64915e9ca0b6087fe77f2e564fa4f5e32c3073af43895d42e"
+}
