@@ -634,6 +634,11 @@ export type DatabaseSnapshot = $Result.DefaultSelection<Prisma.$DatabaseSnapshot
  */
 export type DatabaseRestore = $Result.DefaultSelection<Prisma.$DatabaseRestorePayload>
 /**
+ * Model DatabaseRestoreConsumer
+ * Cooperative managed consumers only; expired leases never prove drainage.
+ */
+export type DatabaseRestoreConsumer = $Result.DefaultSelection<Prisma.$DatabaseRestoreConsumerPayload>
+/**
  * Model DatabaseRestoreExecution
  * Durable restore journal. Credentials remain encrypted and are never projected
  * by the restore HTTP routes. A held activeLock is not reclaimed by a timeout.
@@ -2307,6 +2312,16 @@ export class PrismaClient<
   get databaseRestore(): Prisma.DatabaseRestoreDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.databaseRestoreConsumer`: Exposes CRUD operations for the **DatabaseRestoreConsumer** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DatabaseRestoreConsumers
+    * const databaseRestoreConsumers = await prisma.databaseRestoreConsumer.findMany()
+    * ```
+    */
+  get databaseRestoreConsumer(): Prisma.DatabaseRestoreConsumerDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.databaseRestoreExecution`: Exposes CRUD operations for the **DatabaseRestoreExecution** model.
     * Example usage:
     * ```ts
@@ -3047,6 +3062,7 @@ export namespace Prisma {
     DatabaseInstance: 'DatabaseInstance',
     DatabaseSnapshot: 'DatabaseSnapshot',
     DatabaseRestore: 'DatabaseRestore',
+    DatabaseRestoreConsumer: 'DatabaseRestoreConsumer',
     DatabaseRestoreExecution: 'DatabaseRestoreExecution',
     ScheduledTask: 'ScheduledTask',
     ScheduledTaskRun: 'ScheduledTaskRun',
@@ -3082,7 +3098,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "databaseRestoreExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "databaseRestoreConsumer" | "databaseRestoreExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11062,6 +11078,80 @@ export namespace Prisma {
           }
         }
       }
+      DatabaseRestoreConsumer: {
+        payload: Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>
+        fields: Prisma.DatabaseRestoreConsumerFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DatabaseRestoreConsumerFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DatabaseRestoreConsumerFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>
+          }
+          findFirst: {
+            args: Prisma.DatabaseRestoreConsumerFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DatabaseRestoreConsumerFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>
+          }
+          findMany: {
+            args: Prisma.DatabaseRestoreConsumerFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>[]
+          }
+          create: {
+            args: Prisma.DatabaseRestoreConsumerCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>
+          }
+          createMany: {
+            args: Prisma.DatabaseRestoreConsumerCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DatabaseRestoreConsumerCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>[]
+          }
+          delete: {
+            args: Prisma.DatabaseRestoreConsumerDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>
+          }
+          update: {
+            args: Prisma.DatabaseRestoreConsumerUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>
+          }
+          deleteMany: {
+            args: Prisma.DatabaseRestoreConsumerDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DatabaseRestoreConsumerUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DatabaseRestoreConsumerUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>[]
+          }
+          upsert: {
+            args: Prisma.DatabaseRestoreConsumerUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreConsumerPayload>
+          }
+          aggregate: {
+            args: Prisma.DatabaseRestoreConsumerAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDatabaseRestoreConsumer>
+          }
+          groupBy: {
+            args: Prisma.DatabaseRestoreConsumerGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreConsumerGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DatabaseRestoreConsumerCountArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreConsumerCountAggregateOutputType> | number
+          }
+        }
+      }
       DatabaseRestoreExecution: {
         payload: Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>
         fields: Prisma.DatabaseRestoreExecutionFieldRefs
@@ -12758,6 +12848,7 @@ export namespace Prisma {
     databaseInstance?: DatabaseInstanceOmit
     databaseSnapshot?: DatabaseSnapshotOmit
     databaseRestore?: DatabaseRestoreOmit
+    databaseRestoreConsumer?: DatabaseRestoreConsumerOmit
     databaseRestoreExecution?: DatabaseRestoreExecutionOmit
     scheduledTask?: ScheduledTaskOmit
     scheduledTaskRun?: ScheduledTaskRunOmit
@@ -14215,11 +14306,13 @@ export namespace Prisma {
   export type DatabaseInstanceCountOutputType = {
     snapshots: number
     restores: number
+    restoreConsumers: number
   }
 
   export type DatabaseInstanceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     snapshots?: boolean | DatabaseInstanceCountOutputTypeCountSnapshotsArgs
     restores?: boolean | DatabaseInstanceCountOutputTypeCountRestoresArgs
+    restoreConsumers?: boolean | DatabaseInstanceCountOutputTypeCountRestoreConsumersArgs
   }
 
   // Custom InputTypes
@@ -14245,6 +14338,13 @@ export namespace Prisma {
    */
   export type DatabaseInstanceCountOutputTypeCountRestoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DatabaseRestoreWhereInput
+  }
+
+  /**
+   * DatabaseInstanceCountOutputType without action
+   */
+  export type DatabaseInstanceCountOutputTypeCountRestoreConsumersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseRestoreConsumerWhereInput
   }
 
 
@@ -135305,6 +135405,7 @@ export namespace Prisma {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    restoreConsumers?: boolean | DatabaseInstance$restoreConsumersArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["databaseInstance"]>
 
@@ -135366,6 +135467,7 @@ export namespace Prisma {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    restoreConsumers?: boolean | DatabaseInstance$restoreConsumersArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DatabaseInstanceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -135381,6 +135483,7 @@ export namespace Prisma {
       project: Prisma.$ProjectPayload<ExtArgs>
       snapshots: Prisma.$DatabaseSnapshotPayload<ExtArgs>[]
       restores: Prisma.$DatabaseRestorePayload<ExtArgs>[]
+      restoreConsumers: Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -135797,6 +135900,7 @@ export namespace Prisma {
     project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     snapshots<T extends DatabaseInstance$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restores<T extends DatabaseInstance$restoresArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$restoresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    restoreConsumers<T extends DatabaseInstance$restoreConsumersArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$restoreConsumersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -136286,6 +136390,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DatabaseRestoreScalarFieldEnum | DatabaseRestoreScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseInstance.restoreConsumers
+   */
+  export type DatabaseInstance$restoreConsumersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    where?: DatabaseRestoreConsumerWhereInput
+    orderBy?: DatabaseRestoreConsumerOrderByWithRelationInput | DatabaseRestoreConsumerOrderByWithRelationInput[]
+    cursor?: DatabaseRestoreConsumerWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DatabaseRestoreConsumerScalarFieldEnum | DatabaseRestoreConsumerScalarFieldEnum[]
   }
 
   /**
@@ -138617,6 +138745,1194 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DatabaseRestoreInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DatabaseRestoreConsumer
+   */
+
+  export type AggregateDatabaseRestoreConsumer = {
+    _count: DatabaseRestoreConsumerCountAggregateOutputType | null
+    _avg: DatabaseRestoreConsumerAvgAggregateOutputType | null
+    _sum: DatabaseRestoreConsumerSumAggregateOutputType | null
+    _min: DatabaseRestoreConsumerMinAggregateOutputType | null
+    _max: DatabaseRestoreConsumerMaxAggregateOutputType | null
+  }
+
+  export type DatabaseRestoreConsumerAvgAggregateOutputType = {
+    bindingVersion: number | null
+  }
+
+  export type DatabaseRestoreConsumerSumAggregateOutputType = {
+    bindingVersion: number | null
+  }
+
+  export type DatabaseRestoreConsumerMinAggregateOutputType = {
+    id: string | null
+    instanceId: string | null
+    bindingVersion: number | null
+    kind: string | null
+    uid: string | null
+    generation: string | null
+    state: string | null
+    leaseUntil: Date | null
+    drainRestoreId: string | null
+    drainAttemptToken: string | null
+    drainedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DatabaseRestoreConsumerMaxAggregateOutputType = {
+    id: string | null
+    instanceId: string | null
+    bindingVersion: number | null
+    kind: string | null
+    uid: string | null
+    generation: string | null
+    state: string | null
+    leaseUntil: Date | null
+    drainRestoreId: string | null
+    drainAttemptToken: string | null
+    drainedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DatabaseRestoreConsumerCountAggregateOutputType = {
+    id: number
+    instanceId: number
+    bindingVersion: number
+    kind: number
+    uid: number
+    generation: number
+    state: number
+    leaseUntil: number
+    drainRestoreId: number
+    drainAttemptToken: number
+    drainedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DatabaseRestoreConsumerAvgAggregateInputType = {
+    bindingVersion?: true
+  }
+
+  export type DatabaseRestoreConsumerSumAggregateInputType = {
+    bindingVersion?: true
+  }
+
+  export type DatabaseRestoreConsumerMinAggregateInputType = {
+    id?: true
+    instanceId?: true
+    bindingVersion?: true
+    kind?: true
+    uid?: true
+    generation?: true
+    state?: true
+    leaseUntil?: true
+    drainRestoreId?: true
+    drainAttemptToken?: true
+    drainedAt?: true
+    createdAt?: true
+  }
+
+  export type DatabaseRestoreConsumerMaxAggregateInputType = {
+    id?: true
+    instanceId?: true
+    bindingVersion?: true
+    kind?: true
+    uid?: true
+    generation?: true
+    state?: true
+    leaseUntil?: true
+    drainRestoreId?: true
+    drainAttemptToken?: true
+    drainedAt?: true
+    createdAt?: true
+  }
+
+  export type DatabaseRestoreConsumerCountAggregateInputType = {
+    id?: true
+    instanceId?: true
+    bindingVersion?: true
+    kind?: true
+    uid?: true
+    generation?: true
+    state?: true
+    leaseUntil?: true
+    drainRestoreId?: true
+    drainAttemptToken?: true
+    drainedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DatabaseRestoreConsumerAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestoreConsumer to aggregate.
+     */
+    where?: DatabaseRestoreConsumerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreConsumers to fetch.
+     */
+    orderBy?: DatabaseRestoreConsumerOrderByWithRelationInput | DatabaseRestoreConsumerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DatabaseRestoreConsumerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreConsumers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreConsumers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DatabaseRestoreConsumers
+    **/
+    _count?: true | DatabaseRestoreConsumerCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DatabaseRestoreConsumerAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DatabaseRestoreConsumerSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DatabaseRestoreConsumerMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DatabaseRestoreConsumerMaxAggregateInputType
+  }
+
+  export type GetDatabaseRestoreConsumerAggregateType<T extends DatabaseRestoreConsumerAggregateArgs> = {
+        [P in keyof T & keyof AggregateDatabaseRestoreConsumer]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDatabaseRestoreConsumer[P]>
+      : GetScalarType<T[P], AggregateDatabaseRestoreConsumer[P]>
+  }
+
+
+
+
+  export type DatabaseRestoreConsumerGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseRestoreConsumerWhereInput
+    orderBy?: DatabaseRestoreConsumerOrderByWithAggregationInput | DatabaseRestoreConsumerOrderByWithAggregationInput[]
+    by: DatabaseRestoreConsumerScalarFieldEnum[] | DatabaseRestoreConsumerScalarFieldEnum
+    having?: DatabaseRestoreConsumerScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DatabaseRestoreConsumerCountAggregateInputType | true
+    _avg?: DatabaseRestoreConsumerAvgAggregateInputType
+    _sum?: DatabaseRestoreConsumerSumAggregateInputType
+    _min?: DatabaseRestoreConsumerMinAggregateInputType
+    _max?: DatabaseRestoreConsumerMaxAggregateInputType
+  }
+
+  export type DatabaseRestoreConsumerGroupByOutputType = {
+    id: string
+    instanceId: string
+    bindingVersion: number
+    kind: string
+    uid: string
+    generation: string
+    state: string
+    leaseUntil: Date
+    drainRestoreId: string | null
+    drainAttemptToken: string | null
+    drainedAt: Date | null
+    createdAt: Date
+    _count: DatabaseRestoreConsumerCountAggregateOutputType | null
+    _avg: DatabaseRestoreConsumerAvgAggregateOutputType | null
+    _sum: DatabaseRestoreConsumerSumAggregateOutputType | null
+    _min: DatabaseRestoreConsumerMinAggregateOutputType | null
+    _max: DatabaseRestoreConsumerMaxAggregateOutputType | null
+  }
+
+  type GetDatabaseRestoreConsumerGroupByPayload<T extends DatabaseRestoreConsumerGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DatabaseRestoreConsumerGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DatabaseRestoreConsumerGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DatabaseRestoreConsumerGroupByOutputType[P]>
+            : GetScalarType<T[P], DatabaseRestoreConsumerGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DatabaseRestoreConsumerSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    bindingVersion?: boolean
+    kind?: boolean
+    uid?: boolean
+    generation?: boolean
+    state?: boolean
+    leaseUntil?: boolean
+    drainRestoreId?: boolean
+    drainAttemptToken?: boolean
+    drainedAt?: boolean
+    createdAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreConsumer"]>
+
+  export type DatabaseRestoreConsumerSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    bindingVersion?: boolean
+    kind?: boolean
+    uid?: boolean
+    generation?: boolean
+    state?: boolean
+    leaseUntil?: boolean
+    drainRestoreId?: boolean
+    drainAttemptToken?: boolean
+    drainedAt?: boolean
+    createdAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreConsumer"]>
+
+  export type DatabaseRestoreConsumerSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    bindingVersion?: boolean
+    kind?: boolean
+    uid?: boolean
+    generation?: boolean
+    state?: boolean
+    leaseUntil?: boolean
+    drainRestoreId?: boolean
+    drainAttemptToken?: boolean
+    drainedAt?: boolean
+    createdAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreConsumer"]>
+
+  export type DatabaseRestoreConsumerSelectScalar = {
+    id?: boolean
+    instanceId?: boolean
+    bindingVersion?: boolean
+    kind?: boolean
+    uid?: boolean
+    generation?: boolean
+    state?: boolean
+    leaseUntil?: boolean
+    drainRestoreId?: boolean
+    drainAttemptToken?: boolean
+    drainedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type DatabaseRestoreConsumerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "instanceId" | "bindingVersion" | "kind" | "uid" | "generation" | "state" | "leaseUntil" | "drainRestoreId" | "drainAttemptToken" | "drainedAt" | "createdAt", ExtArgs["result"]["databaseRestoreConsumer"]>
+  export type DatabaseRestoreConsumerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreConsumerIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreConsumerIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+
+  export type $DatabaseRestoreConsumerPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DatabaseRestoreConsumer"
+    objects: {
+      instance: Prisma.$DatabaseInstancePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      instanceId: string
+      bindingVersion: number
+      kind: string
+      uid: string
+      generation: string
+      state: string
+      leaseUntil: Date
+      drainRestoreId: string | null
+      drainAttemptToken: string | null
+      drainedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["databaseRestoreConsumer"]>
+    composites: {}
+  }
+
+  type DatabaseRestoreConsumerGetPayload<S extends boolean | null | undefined | DatabaseRestoreConsumerDefaultArgs> = $Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload, S>
+
+  type DatabaseRestoreConsumerCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DatabaseRestoreConsumerFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DatabaseRestoreConsumerCountAggregateInputType | true
+    }
+
+  export interface DatabaseRestoreConsumerDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DatabaseRestoreConsumer'], meta: { name: 'DatabaseRestoreConsumer' } }
+    /**
+     * Find zero or one DatabaseRestoreConsumer that matches the filter.
+     * @param {DatabaseRestoreConsumerFindUniqueArgs} args - Arguments to find a DatabaseRestoreConsumer
+     * @example
+     * // Get one DatabaseRestoreConsumer
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DatabaseRestoreConsumerFindUniqueArgs>(args: SelectSubset<T, DatabaseRestoreConsumerFindUniqueArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DatabaseRestoreConsumer that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DatabaseRestoreConsumerFindUniqueOrThrowArgs} args - Arguments to find a DatabaseRestoreConsumer
+     * @example
+     * // Get one DatabaseRestoreConsumer
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DatabaseRestoreConsumerFindUniqueOrThrowArgs>(args: SelectSubset<T, DatabaseRestoreConsumerFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestoreConsumer that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreConsumerFindFirstArgs} args - Arguments to find a DatabaseRestoreConsumer
+     * @example
+     * // Get one DatabaseRestoreConsumer
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DatabaseRestoreConsumerFindFirstArgs>(args?: SelectSubset<T, DatabaseRestoreConsumerFindFirstArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestoreConsumer that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreConsumerFindFirstOrThrowArgs} args - Arguments to find a DatabaseRestoreConsumer
+     * @example
+     * // Get one DatabaseRestoreConsumer
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DatabaseRestoreConsumerFindFirstOrThrowArgs>(args?: SelectSubset<T, DatabaseRestoreConsumerFindFirstOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DatabaseRestoreConsumers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreConsumerFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DatabaseRestoreConsumers
+     * const databaseRestoreConsumers = await prisma.databaseRestoreConsumer.findMany()
+     * 
+     * // Get first 10 DatabaseRestoreConsumers
+     * const databaseRestoreConsumers = await prisma.databaseRestoreConsumer.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const databaseRestoreConsumerWithIdOnly = await prisma.databaseRestoreConsumer.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DatabaseRestoreConsumerFindManyArgs>(args?: SelectSubset<T, DatabaseRestoreConsumerFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DatabaseRestoreConsumer.
+     * @param {DatabaseRestoreConsumerCreateArgs} args - Arguments to create a DatabaseRestoreConsumer.
+     * @example
+     * // Create one DatabaseRestoreConsumer
+     * const DatabaseRestoreConsumer = await prisma.databaseRestoreConsumer.create({
+     *   data: {
+     *     // ... data to create a DatabaseRestoreConsumer
+     *   }
+     * })
+     * 
+     */
+    create<T extends DatabaseRestoreConsumerCreateArgs>(args: SelectSubset<T, DatabaseRestoreConsumerCreateArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DatabaseRestoreConsumers.
+     * @param {DatabaseRestoreConsumerCreateManyArgs} args - Arguments to create many DatabaseRestoreConsumers.
+     * @example
+     * // Create many DatabaseRestoreConsumers
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DatabaseRestoreConsumerCreateManyArgs>(args?: SelectSubset<T, DatabaseRestoreConsumerCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DatabaseRestoreConsumers and returns the data saved in the database.
+     * @param {DatabaseRestoreConsumerCreateManyAndReturnArgs} args - Arguments to create many DatabaseRestoreConsumers.
+     * @example
+     * // Create many DatabaseRestoreConsumers
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DatabaseRestoreConsumers and only return the `id`
+     * const databaseRestoreConsumerWithIdOnly = await prisma.databaseRestoreConsumer.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DatabaseRestoreConsumerCreateManyAndReturnArgs>(args?: SelectSubset<T, DatabaseRestoreConsumerCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DatabaseRestoreConsumer.
+     * @param {DatabaseRestoreConsumerDeleteArgs} args - Arguments to delete one DatabaseRestoreConsumer.
+     * @example
+     * // Delete one DatabaseRestoreConsumer
+     * const DatabaseRestoreConsumer = await prisma.databaseRestoreConsumer.delete({
+     *   where: {
+     *     // ... filter to delete one DatabaseRestoreConsumer
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DatabaseRestoreConsumerDeleteArgs>(args: SelectSubset<T, DatabaseRestoreConsumerDeleteArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DatabaseRestoreConsumer.
+     * @param {DatabaseRestoreConsumerUpdateArgs} args - Arguments to update one DatabaseRestoreConsumer.
+     * @example
+     * // Update one DatabaseRestoreConsumer
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DatabaseRestoreConsumerUpdateArgs>(args: SelectSubset<T, DatabaseRestoreConsumerUpdateArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DatabaseRestoreConsumers.
+     * @param {DatabaseRestoreConsumerDeleteManyArgs} args - Arguments to filter DatabaseRestoreConsumers to delete.
+     * @example
+     * // Delete a few DatabaseRestoreConsumers
+     * const { count } = await prisma.databaseRestoreConsumer.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DatabaseRestoreConsumerDeleteManyArgs>(args?: SelectSubset<T, DatabaseRestoreConsumerDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestoreConsumers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreConsumerUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DatabaseRestoreConsumers
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DatabaseRestoreConsumerUpdateManyArgs>(args: SelectSubset<T, DatabaseRestoreConsumerUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestoreConsumers and returns the data updated in the database.
+     * @param {DatabaseRestoreConsumerUpdateManyAndReturnArgs} args - Arguments to update many DatabaseRestoreConsumers.
+     * @example
+     * // Update many DatabaseRestoreConsumers
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DatabaseRestoreConsumers and only return the `id`
+     * const databaseRestoreConsumerWithIdOnly = await prisma.databaseRestoreConsumer.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DatabaseRestoreConsumerUpdateManyAndReturnArgs>(args: SelectSubset<T, DatabaseRestoreConsumerUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DatabaseRestoreConsumer.
+     * @param {DatabaseRestoreConsumerUpsertArgs} args - Arguments to update or create a DatabaseRestoreConsumer.
+     * @example
+     * // Update or create a DatabaseRestoreConsumer
+     * const databaseRestoreConsumer = await prisma.databaseRestoreConsumer.upsert({
+     *   create: {
+     *     // ... data to create a DatabaseRestoreConsumer
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DatabaseRestoreConsumer we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DatabaseRestoreConsumerUpsertArgs>(args: SelectSubset<T, DatabaseRestoreConsumerUpsertArgs<ExtArgs>>): Prisma__DatabaseRestoreConsumerClient<$Result.GetResult<Prisma.$DatabaseRestoreConsumerPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DatabaseRestoreConsumers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreConsumerCountArgs} args - Arguments to filter DatabaseRestoreConsumers to count.
+     * @example
+     * // Count the number of DatabaseRestoreConsumers
+     * const count = await prisma.databaseRestoreConsumer.count({
+     *   where: {
+     *     // ... the filter for the DatabaseRestoreConsumers we want to count
+     *   }
+     * })
+    **/
+    count<T extends DatabaseRestoreConsumerCountArgs>(
+      args?: Subset<T, DatabaseRestoreConsumerCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DatabaseRestoreConsumerCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DatabaseRestoreConsumer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreConsumerAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DatabaseRestoreConsumerAggregateArgs>(args: Subset<T, DatabaseRestoreConsumerAggregateArgs>): Prisma.PrismaPromise<GetDatabaseRestoreConsumerAggregateType<T>>
+
+    /**
+     * Group by DatabaseRestoreConsumer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreConsumerGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DatabaseRestoreConsumerGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DatabaseRestoreConsumerGroupByArgs['orderBy'] }
+        : { orderBy?: DatabaseRestoreConsumerGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DatabaseRestoreConsumerGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDatabaseRestoreConsumerGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DatabaseRestoreConsumer model
+   */
+  readonly fields: DatabaseRestoreConsumerFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DatabaseRestoreConsumer.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DatabaseRestoreConsumerClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    instance<T extends DatabaseInstanceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstanceDefaultArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DatabaseRestoreConsumer model
+   */
+  interface DatabaseRestoreConsumerFieldRefs {
+    readonly id: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly instanceId: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly bindingVersion: FieldRef<"DatabaseRestoreConsumer", 'Int'>
+    readonly kind: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly uid: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly generation: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly state: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly leaseUntil: FieldRef<"DatabaseRestoreConsumer", 'DateTime'>
+    readonly drainRestoreId: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly drainAttemptToken: FieldRef<"DatabaseRestoreConsumer", 'String'>
+    readonly drainedAt: FieldRef<"DatabaseRestoreConsumer", 'DateTime'>
+    readonly createdAt: FieldRef<"DatabaseRestoreConsumer", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DatabaseRestoreConsumer findUnique
+   */
+  export type DatabaseRestoreConsumerFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreConsumer to fetch.
+     */
+    where: DatabaseRestoreConsumerWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreConsumer findUniqueOrThrow
+   */
+  export type DatabaseRestoreConsumerFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreConsumer to fetch.
+     */
+    where: DatabaseRestoreConsumerWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreConsumer findFirst
+   */
+  export type DatabaseRestoreConsumerFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreConsumer to fetch.
+     */
+    where?: DatabaseRestoreConsumerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreConsumers to fetch.
+     */
+    orderBy?: DatabaseRestoreConsumerOrderByWithRelationInput | DatabaseRestoreConsumerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestoreConsumers.
+     */
+    cursor?: DatabaseRestoreConsumerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreConsumers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreConsumers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreConsumers.
+     */
+    distinct?: DatabaseRestoreConsumerScalarFieldEnum | DatabaseRestoreConsumerScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreConsumer findFirstOrThrow
+   */
+  export type DatabaseRestoreConsumerFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreConsumer to fetch.
+     */
+    where?: DatabaseRestoreConsumerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreConsumers to fetch.
+     */
+    orderBy?: DatabaseRestoreConsumerOrderByWithRelationInput | DatabaseRestoreConsumerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestoreConsumers.
+     */
+    cursor?: DatabaseRestoreConsumerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreConsumers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreConsumers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreConsumers.
+     */
+    distinct?: DatabaseRestoreConsumerScalarFieldEnum | DatabaseRestoreConsumerScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreConsumer findMany
+   */
+  export type DatabaseRestoreConsumerFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreConsumers to fetch.
+     */
+    where?: DatabaseRestoreConsumerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreConsumers to fetch.
+     */
+    orderBy?: DatabaseRestoreConsumerOrderByWithRelationInput | DatabaseRestoreConsumerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DatabaseRestoreConsumers.
+     */
+    cursor?: DatabaseRestoreConsumerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreConsumers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreConsumers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreConsumers.
+     */
+    distinct?: DatabaseRestoreConsumerScalarFieldEnum | DatabaseRestoreConsumerScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreConsumer create
+   */
+  export type DatabaseRestoreConsumerCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DatabaseRestoreConsumer.
+     */
+    data: XOR<DatabaseRestoreConsumerCreateInput, DatabaseRestoreConsumerUncheckedCreateInput>
+  }
+
+  /**
+   * DatabaseRestoreConsumer createMany
+   */
+  export type DatabaseRestoreConsumerCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DatabaseRestoreConsumers.
+     */
+    data: DatabaseRestoreConsumerCreateManyInput | DatabaseRestoreConsumerCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DatabaseRestoreConsumer createManyAndReturn
+   */
+  export type DatabaseRestoreConsumerCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * The data used to create many DatabaseRestoreConsumers.
+     */
+    data: DatabaseRestoreConsumerCreateManyInput | DatabaseRestoreConsumerCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestoreConsumer update
+   */
+  export type DatabaseRestoreConsumerUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DatabaseRestoreConsumer.
+     */
+    data: XOR<DatabaseRestoreConsumerUpdateInput, DatabaseRestoreConsumerUncheckedUpdateInput>
+    /**
+     * Choose, which DatabaseRestoreConsumer to update.
+     */
+    where: DatabaseRestoreConsumerWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreConsumer updateMany
+   */
+  export type DatabaseRestoreConsumerUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DatabaseRestoreConsumers.
+     */
+    data: XOR<DatabaseRestoreConsumerUpdateManyMutationInput, DatabaseRestoreConsumerUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestoreConsumers to update
+     */
+    where?: DatabaseRestoreConsumerWhereInput
+    /**
+     * Limit how many DatabaseRestoreConsumers to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestoreConsumer updateManyAndReturn
+   */
+  export type DatabaseRestoreConsumerUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * The data used to update DatabaseRestoreConsumers.
+     */
+    data: XOR<DatabaseRestoreConsumerUpdateManyMutationInput, DatabaseRestoreConsumerUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestoreConsumers to update
+     */
+    where?: DatabaseRestoreConsumerWhereInput
+    /**
+     * Limit how many DatabaseRestoreConsumers to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestoreConsumer upsert
+   */
+  export type DatabaseRestoreConsumerUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DatabaseRestoreConsumer to update in case it exists.
+     */
+    where: DatabaseRestoreConsumerWhereUniqueInput
+    /**
+     * In case the DatabaseRestoreConsumer found by the `where` argument doesn't exist, create a new DatabaseRestoreConsumer with this data.
+     */
+    create: XOR<DatabaseRestoreConsumerCreateInput, DatabaseRestoreConsumerUncheckedCreateInput>
+    /**
+     * In case the DatabaseRestoreConsumer was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DatabaseRestoreConsumerUpdateInput, DatabaseRestoreConsumerUncheckedUpdateInput>
+  }
+
+  /**
+   * DatabaseRestoreConsumer delete
+   */
+  export type DatabaseRestoreConsumerDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
+    /**
+     * Filter which DatabaseRestoreConsumer to delete.
+     */
+    where: DatabaseRestoreConsumerWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreConsumer deleteMany
+   */
+  export type DatabaseRestoreConsumerDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestoreConsumers to delete
+     */
+    where?: DatabaseRestoreConsumerWhereInput
+    /**
+     * Limit how many DatabaseRestoreConsumers to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestoreConsumer without action
+   */
+  export type DatabaseRestoreConsumerDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreConsumer
+     */
+    select?: DatabaseRestoreConsumerSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreConsumer
+     */
+    omit?: DatabaseRestoreConsumerOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreConsumerInclude<ExtArgs> | null
   }
 
 
@@ -164207,6 +165523,24 @@ export namespace Prisma {
   export type DatabaseRestoreScalarFieldEnum = (typeof DatabaseRestoreScalarFieldEnum)[keyof typeof DatabaseRestoreScalarFieldEnum]
 
 
+  export const DatabaseRestoreConsumerScalarFieldEnum: {
+    id: 'id',
+    instanceId: 'instanceId',
+    bindingVersion: 'bindingVersion',
+    kind: 'kind',
+    uid: 'uid',
+    generation: 'generation',
+    state: 'state',
+    leaseUntil: 'leaseUntil',
+    drainRestoreId: 'drainRestoreId',
+    drainAttemptToken: 'drainAttemptToken',
+    drainedAt: 'drainedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type DatabaseRestoreConsumerScalarFieldEnum = (typeof DatabaseRestoreConsumerScalarFieldEnum)[keyof typeof DatabaseRestoreConsumerScalarFieldEnum]
+
+
   export const DatabaseRestoreExecutionScalarFieldEnum: {
     restoreId: 'restoreId',
     activeLock: 'activeLock',
@@ -173409,6 +174743,7 @@ export namespace Prisma {
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
+    restoreConsumers?: DatabaseRestoreConsumerListRelationFilter
   }
 
   export type DatabaseInstanceOrderByWithRelationInput = {
@@ -173429,6 +174764,7 @@ export namespace Prisma {
     project?: ProjectOrderByWithRelationInput
     snapshots?: DatabaseSnapshotOrderByRelationAggregateInput
     restores?: DatabaseRestoreOrderByRelationAggregateInput
+    restoreConsumers?: DatabaseRestoreConsumerOrderByRelationAggregateInput
   }
 
   export type DatabaseInstanceWhereUniqueInput = Prisma.AtLeast<{
@@ -173453,6 +174789,7 @@ export namespace Prisma {
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
+    restoreConsumers?: DatabaseRestoreConsumerListRelationFilter
   }, "id" | "projectId_environment">
 
   export type DatabaseInstanceOrderByWithAggregationInput = {
@@ -173660,6 +174997,99 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"DatabaseRestore"> | Date | string
     startedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
     completedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
+  }
+
+  export type DatabaseRestoreConsumerWhereInput = {
+    AND?: DatabaseRestoreConsumerWhereInput | DatabaseRestoreConsumerWhereInput[]
+    OR?: DatabaseRestoreConsumerWhereInput[]
+    NOT?: DatabaseRestoreConsumerWhereInput | DatabaseRestoreConsumerWhereInput[]
+    id?: StringFilter<"DatabaseRestoreConsumer"> | string
+    instanceId?: StringFilter<"DatabaseRestoreConsumer"> | string
+    bindingVersion?: IntFilter<"DatabaseRestoreConsumer"> | number
+    kind?: StringFilter<"DatabaseRestoreConsumer"> | string
+    uid?: StringFilter<"DatabaseRestoreConsumer"> | string
+    generation?: StringFilter<"DatabaseRestoreConsumer"> | string
+    state?: StringFilter<"DatabaseRestoreConsumer"> | string
+    leaseUntil?: DateTimeFilter<"DatabaseRestoreConsumer"> | Date | string
+    drainRestoreId?: StringNullableFilter<"DatabaseRestoreConsumer"> | string | null
+    drainAttemptToken?: StringNullableFilter<"DatabaseRestoreConsumer"> | string | null
+    drainedAt?: DateTimeNullableFilter<"DatabaseRestoreConsumer"> | Date | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestoreConsumer"> | Date | string
+    instance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }
+
+  export type DatabaseRestoreConsumerOrderByWithRelationInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    bindingVersion?: SortOrder
+    kind?: SortOrder
+    uid?: SortOrder
+    generation?: SortOrder
+    state?: SortOrder
+    leaseUntil?: SortOrder
+    drainRestoreId?: SortOrderInput | SortOrder
+    drainAttemptToken?: SortOrderInput | SortOrder
+    drainedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    instance?: DatabaseInstanceOrderByWithRelationInput
+  }
+
+  export type DatabaseRestoreConsumerWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    instanceId_kind_uid?: DatabaseRestoreConsumerInstanceIdKindUidCompoundUniqueInput
+    AND?: DatabaseRestoreConsumerWhereInput | DatabaseRestoreConsumerWhereInput[]
+    OR?: DatabaseRestoreConsumerWhereInput[]
+    NOT?: DatabaseRestoreConsumerWhereInput | DatabaseRestoreConsumerWhereInput[]
+    instanceId?: StringFilter<"DatabaseRestoreConsumer"> | string
+    bindingVersion?: IntFilter<"DatabaseRestoreConsumer"> | number
+    kind?: StringFilter<"DatabaseRestoreConsumer"> | string
+    uid?: StringFilter<"DatabaseRestoreConsumer"> | string
+    generation?: StringFilter<"DatabaseRestoreConsumer"> | string
+    state?: StringFilter<"DatabaseRestoreConsumer"> | string
+    leaseUntil?: DateTimeFilter<"DatabaseRestoreConsumer"> | Date | string
+    drainRestoreId?: StringNullableFilter<"DatabaseRestoreConsumer"> | string | null
+    drainAttemptToken?: StringNullableFilter<"DatabaseRestoreConsumer"> | string | null
+    drainedAt?: DateTimeNullableFilter<"DatabaseRestoreConsumer"> | Date | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestoreConsumer"> | Date | string
+    instance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }, "id" | "instanceId_kind_uid">
+
+  export type DatabaseRestoreConsumerOrderByWithAggregationInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    bindingVersion?: SortOrder
+    kind?: SortOrder
+    uid?: SortOrder
+    generation?: SortOrder
+    state?: SortOrder
+    leaseUntil?: SortOrder
+    drainRestoreId?: SortOrderInput | SortOrder
+    drainAttemptToken?: SortOrderInput | SortOrder
+    drainedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DatabaseRestoreConsumerCountOrderByAggregateInput
+    _avg?: DatabaseRestoreConsumerAvgOrderByAggregateInput
+    _max?: DatabaseRestoreConsumerMaxOrderByAggregateInput
+    _min?: DatabaseRestoreConsumerMinOrderByAggregateInput
+    _sum?: DatabaseRestoreConsumerSumOrderByAggregateInput
+  }
+
+  export type DatabaseRestoreConsumerScalarWhereWithAggregatesInput = {
+    AND?: DatabaseRestoreConsumerScalarWhereWithAggregatesInput | DatabaseRestoreConsumerScalarWhereWithAggregatesInput[]
+    OR?: DatabaseRestoreConsumerScalarWhereWithAggregatesInput[]
+    NOT?: DatabaseRestoreConsumerScalarWhereWithAggregatesInput | DatabaseRestoreConsumerScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DatabaseRestoreConsumer"> | string
+    instanceId?: StringWithAggregatesFilter<"DatabaseRestoreConsumer"> | string
+    bindingVersion?: IntWithAggregatesFilter<"DatabaseRestoreConsumer"> | number
+    kind?: StringWithAggregatesFilter<"DatabaseRestoreConsumer"> | string
+    uid?: StringWithAggregatesFilter<"DatabaseRestoreConsumer"> | string
+    generation?: StringWithAggregatesFilter<"DatabaseRestoreConsumer"> | string
+    state?: StringWithAggregatesFilter<"DatabaseRestoreConsumer"> | string
+    leaseUntil?: DateTimeWithAggregatesFilter<"DatabaseRestoreConsumer"> | Date | string
+    drainRestoreId?: StringNullableWithAggregatesFilter<"DatabaseRestoreConsumer"> | string | null
+    drainAttemptToken?: StringNullableWithAggregatesFilter<"DatabaseRestoreConsumer"> | string | null
+    drainedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestoreConsumer"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DatabaseRestoreConsumer"> | Date | string
   }
 
   export type DatabaseRestoreExecutionWhereInput = {
@@ -184772,6 +186202,7 @@ export namespace Prisma {
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateInput = {
@@ -184791,6 +186222,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUpdateInput = {
@@ -184810,6 +186242,7 @@ export namespace Prisma {
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateInput = {
@@ -184829,6 +186262,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateManyInput = {
@@ -185063,6 +186497,110 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreConsumerCreateInput = {
+    id: string
+    bindingVersion: number
+    kind: string
+    uid: string
+    generation: string
+    state?: string
+    leaseUntil: Date | string
+    drainRestoreId?: string | null
+    drainAttemptToken?: string | null
+    drainedAt?: Date | string | null
+    createdAt?: Date | string
+    instance: DatabaseInstanceCreateNestedOneWithoutRestoreConsumersInput
+  }
+
+  export type DatabaseRestoreConsumerUncheckedCreateInput = {
+    id: string
+    instanceId: string
+    bindingVersion: number
+    kind: string
+    uid: string
+    generation: string
+    state?: string
+    leaseUntil: Date | string
+    drainRestoreId?: string | null
+    drainAttemptToken?: string | null
+    drainedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseRestoreConsumerUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    uid?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    leaseUntil?: DateTimeFieldUpdateOperationsInput | Date | string
+    drainRestoreId?: NullableStringFieldUpdateOperationsInput | string | null
+    drainAttemptToken?: NullableStringFieldUpdateOperationsInput | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    instance?: DatabaseInstanceUpdateOneRequiredWithoutRestoreConsumersNestedInput
+  }
+
+  export type DatabaseRestoreConsumerUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    uid?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    leaseUntil?: DateTimeFieldUpdateOperationsInput | Date | string
+    drainRestoreId?: NullableStringFieldUpdateOperationsInput | string | null
+    drainAttemptToken?: NullableStringFieldUpdateOperationsInput | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreConsumerCreateManyInput = {
+    id: string
+    instanceId: string
+    bindingVersion: number
+    kind: string
+    uid: string
+    generation: string
+    state?: string
+    leaseUntil: Date | string
+    drainRestoreId?: string | null
+    drainAttemptToken?: string | null
+    drainedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseRestoreConsumerUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    uid?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    leaseUntil?: DateTimeFieldUpdateOperationsInput | Date | string
+    drainRestoreId?: NullableStringFieldUpdateOperationsInput | string | null
+    drainAttemptToken?: NullableStringFieldUpdateOperationsInput | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreConsumerUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    uid?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    leaseUntil?: DateTimeFieldUpdateOperationsInput | Date | string
+    drainRestoreId?: NullableStringFieldUpdateOperationsInput | string | null
+    drainAttemptToken?: NullableStringFieldUpdateOperationsInput | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type DatabaseRestoreExecutionCreateInput = {
@@ -193004,11 +194542,21 @@ export namespace Prisma {
     none?: DatabaseRestoreWhereInput
   }
 
+  export type DatabaseRestoreConsumerListRelationFilter = {
+    every?: DatabaseRestoreConsumerWhereInput
+    some?: DatabaseRestoreConsumerWhereInput
+    none?: DatabaseRestoreConsumerWhereInput
+  }
+
   export type DatabaseSnapshotOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type DatabaseRestoreOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DatabaseRestoreConsumerOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -193217,6 +194765,65 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
+  }
+
+  export type DatabaseRestoreConsumerInstanceIdKindUidCompoundUniqueInput = {
+    instanceId: string
+    kind: string
+    uid: string
+  }
+
+  export type DatabaseRestoreConsumerCountOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    bindingVersion?: SortOrder
+    kind?: SortOrder
+    uid?: SortOrder
+    generation?: SortOrder
+    state?: SortOrder
+    leaseUntil?: SortOrder
+    drainRestoreId?: SortOrder
+    drainAttemptToken?: SortOrder
+    drainedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DatabaseRestoreConsumerAvgOrderByAggregateInput = {
+    bindingVersion?: SortOrder
+  }
+
+  export type DatabaseRestoreConsumerMaxOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    bindingVersion?: SortOrder
+    kind?: SortOrder
+    uid?: SortOrder
+    generation?: SortOrder
+    state?: SortOrder
+    leaseUntil?: SortOrder
+    drainRestoreId?: SortOrder
+    drainAttemptToken?: SortOrder
+    drainedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DatabaseRestoreConsumerMinOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    bindingVersion?: SortOrder
+    kind?: SortOrder
+    uid?: SortOrder
+    generation?: SortOrder
+    state?: SortOrder
+    leaseUntil?: SortOrder
+    drainRestoreId?: SortOrder
+    drainAttemptToken?: SortOrder
+    drainedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DatabaseRestoreConsumerSumOrderByAggregateInput = {
+    bindingVersion?: SortOrder
   }
 
   export type DatabaseRestoreScalarRelationFilter = {
@@ -201244,6 +202851,13 @@ export namespace Prisma {
     connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
   }
 
+  export type DatabaseRestoreConsumerCreateNestedManyWithoutInstanceInput = {
+    create?: XOR<DatabaseRestoreConsumerCreateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput> | DatabaseRestoreConsumerCreateWithoutInstanceInput[] | DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput | DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput[]
+    createMany?: DatabaseRestoreConsumerCreateManyInstanceInputEnvelope
+    connect?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+  }
+
   export type DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -201256,6 +202870,13 @@ export namespace Prisma {
     connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput | DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput[]
     createMany?: DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope
     connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+  }
+
+  export type DatabaseRestoreConsumerUncheckedCreateNestedManyWithoutInstanceInput = {
+    create?: XOR<DatabaseRestoreConsumerCreateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput> | DatabaseRestoreConsumerCreateWithoutInstanceInput[] | DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput | DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput[]
+    createMany?: DatabaseRestoreConsumerCreateManyInstanceInputEnvelope
+    connect?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
   }
 
   export type EnumDatabaseInstanceStatusFieldUpdateOperationsInput = {
@@ -201306,6 +202927,20 @@ export namespace Prisma {
     deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
   }
 
+  export type DatabaseRestoreConsumerUpdateManyWithoutInstanceNestedInput = {
+    create?: XOR<DatabaseRestoreConsumerCreateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput> | DatabaseRestoreConsumerCreateWithoutInstanceInput[] | DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput | DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput[]
+    upsert?: DatabaseRestoreConsumerUpsertWithWhereUniqueWithoutInstanceInput | DatabaseRestoreConsumerUpsertWithWhereUniqueWithoutInstanceInput[]
+    createMany?: DatabaseRestoreConsumerCreateManyInstanceInputEnvelope
+    set?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    disconnect?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    delete?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    connect?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    update?: DatabaseRestoreConsumerUpdateWithWhereUniqueWithoutInstanceInput | DatabaseRestoreConsumerUpdateWithWhereUniqueWithoutInstanceInput[]
+    updateMany?: DatabaseRestoreConsumerUpdateManyWithWhereWithoutInstanceInput | DatabaseRestoreConsumerUpdateManyWithWhereWithoutInstanceInput[]
+    deleteMany?: DatabaseRestoreConsumerScalarWhereInput | DatabaseRestoreConsumerScalarWhereInput[]
+  }
+
   export type DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -201332,6 +202967,20 @@ export namespace Prisma {
     update?: DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput[]
     updateMany?: DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput | DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput[]
     deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
+  }
+
+  export type DatabaseRestoreConsumerUncheckedUpdateManyWithoutInstanceNestedInput = {
+    create?: XOR<DatabaseRestoreConsumerCreateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput> | DatabaseRestoreConsumerCreateWithoutInstanceInput[] | DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput | DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput[]
+    upsert?: DatabaseRestoreConsumerUpsertWithWhereUniqueWithoutInstanceInput | DatabaseRestoreConsumerUpsertWithWhereUniqueWithoutInstanceInput[]
+    createMany?: DatabaseRestoreConsumerCreateManyInstanceInputEnvelope
+    set?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    disconnect?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    delete?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    connect?: DatabaseRestoreConsumerWhereUniqueInput | DatabaseRestoreConsumerWhereUniqueInput[]
+    update?: DatabaseRestoreConsumerUpdateWithWhereUniqueWithoutInstanceInput | DatabaseRestoreConsumerUpdateWithWhereUniqueWithoutInstanceInput[]
+    updateMany?: DatabaseRestoreConsumerUpdateManyWithWhereWithoutInstanceInput | DatabaseRestoreConsumerUpdateManyWithWhereWithoutInstanceInput[]
+    deleteMany?: DatabaseRestoreConsumerScalarWhereInput | DatabaseRestoreConsumerScalarWhereInput[]
   }
 
   export type DatabaseInstanceCreateNestedOneWithoutSnapshotsInput = {
@@ -201396,6 +203045,20 @@ export namespace Prisma {
     delete?: DatabaseRestoreExecutionWhereInput | boolean
     connect?: DatabaseRestoreExecutionWhereUniqueInput
     update?: XOR<XOR<DatabaseRestoreExecutionUpdateToOneWithWhereWithoutRestoreInput, DatabaseRestoreExecutionUpdateWithoutRestoreInput>, DatabaseRestoreExecutionUncheckedUpdateWithoutRestoreInput>
+  }
+
+  export type DatabaseInstanceCreateNestedOneWithoutRestoreConsumersInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutRestoreConsumersInput, DatabaseInstanceUncheckedCreateWithoutRestoreConsumersInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutRestoreConsumersInput
+    connect?: DatabaseInstanceWhereUniqueInput
+  }
+
+  export type DatabaseInstanceUpdateOneRequiredWithoutRestoreConsumersNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutRestoreConsumersInput, DatabaseInstanceUncheckedCreateWithoutRestoreConsumersInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutRestoreConsumersInput
+    upsert?: DatabaseInstanceUpsertWithoutRestoreConsumersInput
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutRestoreConsumersInput, DatabaseInstanceUpdateWithoutRestoreConsumersInput>, DatabaseInstanceUncheckedUpdateWithoutRestoreConsumersInput>
   }
 
   export type DatabaseRestoreExecutionCreatependingFenceTokensInput = {
@@ -208972,6 +210635,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutProjectInput = {
@@ -208990,6 +210654,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutProjectInput = {
@@ -228668,6 +230333,44 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type DatabaseRestoreConsumerCreateWithoutInstanceInput = {
+    id: string
+    bindingVersion: number
+    kind: string
+    uid: string
+    generation: string
+    state?: string
+    leaseUntil: Date | string
+    drainRestoreId?: string | null
+    drainAttemptToken?: string | null
+    drainedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput = {
+    id: string
+    bindingVersion: number
+    kind: string
+    uid: string
+    generation: string
+    state?: string
+    leaseUntil: Date | string
+    drainRestoreId?: string | null
+    drainAttemptToken?: string | null
+    drainedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseRestoreConsumerCreateOrConnectWithoutInstanceInput = {
+    where: DatabaseRestoreConsumerWhereUniqueInput
+    create: XOR<DatabaseRestoreConsumerCreateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreConsumerCreateManyInstanceInputEnvelope = {
+    data: DatabaseRestoreConsumerCreateManyInstanceInput | DatabaseRestoreConsumerCreateManyInstanceInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectUpsertWithoutDatabaseInstancesInput = {
     update: XOR<ProjectUpdateWithoutDatabaseInstancesInput, ProjectUncheckedUpdateWithoutDatabaseInstancesInput>
     create: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
@@ -228829,6 +230532,40 @@ export namespace Prisma {
     completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
   }
 
+  export type DatabaseRestoreConsumerUpsertWithWhereUniqueWithoutInstanceInput = {
+    where: DatabaseRestoreConsumerWhereUniqueInput
+    update: XOR<DatabaseRestoreConsumerUpdateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedUpdateWithoutInstanceInput>
+    create: XOR<DatabaseRestoreConsumerCreateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedCreateWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreConsumerUpdateWithWhereUniqueWithoutInstanceInput = {
+    where: DatabaseRestoreConsumerWhereUniqueInput
+    data: XOR<DatabaseRestoreConsumerUpdateWithoutInstanceInput, DatabaseRestoreConsumerUncheckedUpdateWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreConsumerUpdateManyWithWhereWithoutInstanceInput = {
+    where: DatabaseRestoreConsumerScalarWhereInput
+    data: XOR<DatabaseRestoreConsumerUpdateManyMutationInput, DatabaseRestoreConsumerUncheckedUpdateManyWithoutInstanceInput>
+  }
+
+  export type DatabaseRestoreConsumerScalarWhereInput = {
+    AND?: DatabaseRestoreConsumerScalarWhereInput | DatabaseRestoreConsumerScalarWhereInput[]
+    OR?: DatabaseRestoreConsumerScalarWhereInput[]
+    NOT?: DatabaseRestoreConsumerScalarWhereInput | DatabaseRestoreConsumerScalarWhereInput[]
+    id?: StringFilter<"DatabaseRestoreConsumer"> | string
+    instanceId?: StringFilter<"DatabaseRestoreConsumer"> | string
+    bindingVersion?: IntFilter<"DatabaseRestoreConsumer"> | number
+    kind?: StringFilter<"DatabaseRestoreConsumer"> | string
+    uid?: StringFilter<"DatabaseRestoreConsumer"> | string
+    generation?: StringFilter<"DatabaseRestoreConsumer"> | string
+    state?: StringFilter<"DatabaseRestoreConsumer"> | string
+    leaseUntil?: DateTimeFilter<"DatabaseRestoreConsumer"> | Date | string
+    drainRestoreId?: StringNullableFilter<"DatabaseRestoreConsumer"> | string | null
+    drainAttemptToken?: StringNullableFilter<"DatabaseRestoreConsumer"> | string | null
+    drainedAt?: DateTimeNullableFilter<"DatabaseRestoreConsumer"> | Date | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestoreConsumer"> | Date | string
+  }
+
   export type DatabaseInstanceCreateWithoutSnapshotsInput = {
     id?: string
     organizationId: string
@@ -228845,6 +230582,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutSnapshotsInput = {
@@ -228863,6 +230601,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutSnapshotsInput = {
@@ -228897,6 +230636,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput = {
@@ -228915,6 +230655,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateWithoutRestoresInput = {
@@ -228933,6 +230674,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutRestoresInput = {
@@ -228951,6 +230693,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutRestoresInput = {
@@ -229036,6 +230779,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutRestoresInput = {
@@ -229054,6 +230798,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseRestoreExecutionUpsertWithoutRestoreInput = {
@@ -229111,6 +230856,98 @@ export namespace Prisma {
     failureCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseInstanceCreateWithoutRestoreConsumersInput = {
+    id?: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
+    snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateWithoutRestoreConsumersInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceCreateOrConnectWithoutRestoreConsumersInput = {
+    where: DatabaseInstanceWhereUniqueInput
+    create: XOR<DatabaseInstanceCreateWithoutRestoreConsumersInput, DatabaseInstanceUncheckedCreateWithoutRestoreConsumersInput>
+  }
+
+  export type DatabaseInstanceUpsertWithoutRestoreConsumersInput = {
+    update: XOR<DatabaseInstanceUpdateWithoutRestoreConsumersInput, DatabaseInstanceUncheckedUpdateWithoutRestoreConsumersInput>
+    create: XOR<DatabaseInstanceCreateWithoutRestoreConsumersInput, DatabaseInstanceUncheckedCreateWithoutRestoreConsumersInput>
+    where?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseInstanceUpdateToOneWithWhereWithoutRestoreConsumersInput = {
+    where?: DatabaseInstanceWhereInput
+    data: XOR<DatabaseInstanceUpdateWithoutRestoreConsumersInput, DatabaseInstanceUncheckedUpdateWithoutRestoreConsumersInput>
+  }
+
+  export type DatabaseInstanceUpdateWithoutRestoreConsumersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutRestoreConsumersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
   }
 
   export type DatabaseRestoreCreateWithoutExecutionInput = {
@@ -234805,6 +236642,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutProjectInput = {
@@ -234823,6 +236661,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restoreConsumers?: DatabaseRestoreConsumerUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateManyWithoutProjectInput = {
@@ -235793,6 +237632,20 @@ export namespace Prisma {
     completedAt?: Date | string | null
   }
 
+  export type DatabaseRestoreConsumerCreateManyInstanceInput = {
+    id: string
+    bindingVersion: number
+    kind: string
+    uid: string
+    generation: string
+    state?: string
+    leaseUntil: Date | string
+    drainRestoreId?: string | null
+    drainAttemptToken?: string | null
+    drainedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
   export type DatabaseSnapshotUpdateWithoutDatabaseInstanceInput = {
     id?: StringFieldUpdateOperationsInput | string
     kind?: StringFieldUpdateOperationsInput | string
@@ -235865,6 +237718,48 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreConsumerUpdateWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    uid?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    leaseUntil?: DateTimeFieldUpdateOperationsInput | Date | string
+    drainRestoreId?: NullableStringFieldUpdateOperationsInput | string | null
+    drainAttemptToken?: NullableStringFieldUpdateOperationsInput | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreConsumerUncheckedUpdateWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    uid?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    leaseUntil?: DateTimeFieldUpdateOperationsInput | Date | string
+    drainRestoreId?: NullableStringFieldUpdateOperationsInput | string | null
+    drainAttemptToken?: NullableStringFieldUpdateOperationsInput | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreConsumerUncheckedUpdateManyWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    uid?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    leaseUntil?: DateTimeFieldUpdateOperationsInput | Date | string
+    drainRestoreId?: NullableStringFieldUpdateOperationsInput | string | null
+    drainAttemptToken?: NullableStringFieldUpdateOperationsInput | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ScheduledTaskRunCreateManyTaskInput = {

@@ -1424,6 +1424,21 @@ exports.Prisma.DatabaseRestoreScalarFieldEnum = {
   completedAt: 'completedAt'
 };
 
+exports.Prisma.DatabaseRestoreConsumerScalarFieldEnum = {
+  id: 'id',
+  instanceId: 'instanceId',
+  bindingVersion: 'bindingVersion',
+  kind: 'kind',
+  uid: 'uid',
+  generation: 'generation',
+  state: 'state',
+  leaseUntil: 'leaseUntil',
+  drainRestoreId: 'drainRestoreId',
+  drainAttemptToken: 'drainAttemptToken',
+  drainedAt: 'drainedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.DatabaseRestoreExecutionScalarFieldEnum = {
   restoreId: 'restoreId',
   activeLock: 'activeLock',
@@ -2050,6 +2065,7 @@ exports.Prisma.ModelName = {
   DatabaseInstance: 'DatabaseInstance',
   DatabaseSnapshot: 'DatabaseSnapshot',
   DatabaseRestore: 'DatabaseRestore',
+  DatabaseRestoreConsumer: 'DatabaseRestoreConsumer',
   DatabaseRestoreExecution: 'DatabaseRestoreExecution',
   ScheduledTask: 'ScheduledTask',
   ScheduledTaskRun: 'ScheduledTaskRun',

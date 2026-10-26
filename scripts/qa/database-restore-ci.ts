@@ -20,6 +20,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const apiRoot = resolve(root, 'services/api');
 export const requiredSpecs = [
   'src/tests/database-restore-repository.spec.ts',
+  'src/tests/database-restore-consumer-registry.spec.ts',
   'src/tests/database-provisioning-transfer.prisma.spec.ts',
 ] as const;
 
