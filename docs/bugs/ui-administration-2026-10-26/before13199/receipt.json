@@ -1,0 +1,4200 @@
+{
+  "base": "http://127.0.0.1:13199",
+  "observations": [
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 320,
+      "bodyWidth": 1743,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 225,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 682,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 390,
+      "bodyWidth": 1743,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 295,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 682,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 844,
+      "bodyWidth": 1753,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 598,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 820,
+      "bodyWidth": 1753,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 598,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 14.1875
+        },
+        {
+          "text": "E-mail",
+          "h": 14.1875
+        },
+        {
+          "text": "Création▼",
+          "h": 17.03125
+        },
+        {
+          "text": "⋯",
+          "h": 21
+        },
+        {
+          "text": "Précédent",
+          "h": 25.03125
+        },
+        {
+          "text": "Suivant",
+          "h": 25.03125
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 1440,
+      "bodyWidth": 1689,
+      "mainWidth": 1440,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 512,
+          "scroll": 1279
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 320,
+      "bodyWidth": 1743,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 225,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 682,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 390,
+      "bodyWidth": 1743,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 295,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 682,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 844,
+      "bodyWidth": 1753,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 598,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Section d’administration",
+          "client": 1,
+          "scroll": 146
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 15.609375
+        },
+        {
+          "text": "E-mail",
+          "h": 15.609375
+        },
+        {
+          "text": "Création▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Précédent",
+          "h": 28.875
+        },
+        {
+          "text": "Suivant",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 820,
+      "bodyWidth": 1753,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 598,
+          "scroll": 1695
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=fr",
+      "title": "Vue d’ensemble de l’administration",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=fr",
+      "title": "Utilisateurs",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": [
+        {
+          "text": "Utilisateur",
+          "h": 14.1875
+        },
+        {
+          "text": "E-mail",
+          "h": 14.1875
+        },
+        {
+          "text": "Création▼",
+          "h": 17.03125
+        },
+        {
+          "text": "⋯",
+          "h": 21
+        },
+        {
+          "text": "Précédent",
+          "h": 25.03125
+        },
+        {
+          "text": "Suivant",
+          "h": 25.03125
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 1440,
+      "bodyWidth": 1689,
+      "mainWidth": 1440,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "OffreSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpace",
+          "client": 512,
+          "scroll": 1279
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=fr",
+      "title": "Fournisseurs OAuth",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=fr",
+      "title": "Configuration Stripe",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=fr",
+      "title": "Portefeuilles de crédits",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 320,
+      "bodyWidth": 1752,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 225,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 682,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 390,
+      "bodyWidth": 1752,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 295,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 682,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 844,
+      "bodyWidth": 1762,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 598,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 820,
+      "bodyWidth": 1762,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 598,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 14.1875
+        },
+        {
+          "text": "Email",
+          "h": 14.1875
+        },
+        {
+          "text": "Created▼",
+          "h": 17.03125
+        },
+        {
+          "text": "⋯",
+          "h": 21
+        },
+        {
+          "text": "Prev",
+          "h": 25.03125
+        },
+        {
+          "text": "Next",
+          "h": 25.03125
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 1440,
+      "bodyWidth": 1696,
+      "mainWidth": 1440,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 512,
+          "scroll": 1286
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 320,
+      "bodyWidth": 1752,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 225,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 682,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 390,
+      "bodyWidth": 1752,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 295,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 682,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 844,
+      "bodyWidth": 1762,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 598,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 15.609375
+        },
+        {
+          "text": "Email",
+          "h": 15.609375
+        },
+        {
+          "text": "Created▼",
+          "h": 19.875
+        },
+        {
+          "text": "⋯",
+          "h": 24.5
+        },
+        {
+          "text": "Prev",
+          "h": 28.875
+        },
+        {
+          "text": "Next",
+          "h": 28.875
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 820,
+      "bodyWidth": 1762,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 598,
+          "scroll": 1704
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview?lang=en",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/users",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/users?lang=en",
+      "title": "Users",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": [
+        {
+          "text": "User",
+          "h": 14.1875
+        },
+        {
+          "text": "Email",
+          "h": 14.1875
+        },
+        {
+          "text": "Created▼",
+          "h": 17.03125
+        },
+        {
+          "text": "⋯",
+          "h": 21
+        },
+        {
+          "text": "Prev",
+          "h": 25.03125
+        },
+        {
+          "text": "Next",
+          "h": 25.03125
+        }
+      ]
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 1440,
+      "bodyWidth": 1696,
+      "mainWidth": 1440,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "PlanSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "client": 512,
+          "scroll": 1286
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/oauth-providers?lang=en",
+      "title": "OAuth providers",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/stripe?lang=en",
+      "title": "Stripe configuration",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/wallets?lang=en",
+      "title": "Credit wallets",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}

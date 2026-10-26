@@ -1,0 +1,16 @@
+{
+  "status": "prepared-not-executed-awaiting-parent-GO",
+  "corrected": ["/dpa", "/student-dpa", "/report-abuse", "/subprocessors"],
+  "remaining": ["/acceptable-use", "/accessibility", "/commercial-agreement", "/data-deletion", "/deleting-your-data", "/enforcement", "/licensing", "/security", "/strike-system", "/trust-and-safety", "/usage-limits"],
+  "formats": [[320,900],[360,900],[390,900],[844,390],[768,1024],[820,1180],[1024,768],[1280,900],[1440,900],[1920,1080]],
+  "languages": ["fr","en"],
+  "themes": ["light","dark"],
+  "expectedObservations": {"corrected":160,"remaining":440,"total":600},
+  "method": "Navigate each actual route once per language/theme, resize through ten formats, wait for stable layout. Observations are resize observations, not 600 cold starts or 600 full journeys.",
+  "coldHash": "StudentDPA only, FR/EN light/dark at320/1440:8 cold observations after about:blank, initial HTML target plus actual heading/header geometry.",
+  "interactions": "Four report-abuse groups language/theme: named radio group, arrows, draft resize320→844landscape→1440→320, Escape. Four ordinary internal legal-link/Back groups after checking destination is same-origin and allocated. No submit, mail activation or external navigation.",
+  "safety": "GET local origin only; no service workers. Block all nonGET and third-party requests. No fixture API server needed: these route loaders only resolve locale; bind app SAAS_API_URL to a closed localhost port after contract check if own server is required. Never use real backend.",
+  "range": "DPA document/contact links and StudentDPA PDF/Word: every nonempty text-node Range must be contained by link border; computed white-space/height/min-height, icon width and shrink recorded. Also inspect button viewport containment. 44px height expected on these four changed controls.",
+  "limits": "No new zoom, physical virtual keyboard, Safari/WebKit, contrast measurement, production, legal certification, file download, email or real report submission. Preserve existing evidence rather than rerun unrelated unit suites.",
+  "processes": "Browser starts only when explicit BASE_URL and LEGAL_AUDIT_GO=1 are passed after parent GO. Record child PID/startTicks for diagnosis. If own app required, record origin before use and verify /proc absence after cleanup, not just closed port. Never terminate parent-owned server."
+}

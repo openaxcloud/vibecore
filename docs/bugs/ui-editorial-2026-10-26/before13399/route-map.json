@@ -1,0 +1,1145 @@
+{
+  "editorialRouteIDs": 15,
+  "routes": [
+    {
+      "id": "routes/about",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/about.tsx",
+      "routePattern": "/about",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/About.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-about-contact.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/About.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/lib/i18n/catalogs/marketing-exact-about-contact.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/blog",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/blog.tsx",
+      "routePattern": "/blog",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Blog.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-legal-blog.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/Blog.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/components/marketing/ecode-exact/pages/blog-filter.ts",
+          "app/lib/i18n/catalogs/marketing-exact-legal-blog.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/blog.$slug",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/blog.$slug.tsx",
+      "routePattern": "/blog/:slug",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/lib/i18n/catalogs/remaining-route-shells.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/ecode-blog-detail-page.ts",
+        "app/lib/marketing/ecode-public-api-data.server.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/EcodeMarketingPages.tsx": [
+          "app/components/dashboard/SaaSLayout.tsx",
+          "app/lib/i18n/catalogs/marketing.ts",
+          "app/utils/social-meta.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/careers",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/careers.tsx",
+      "routePattern": "/careers",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Careers.tsx",
+        "app/lib/i18n/catalogs/public-route-seo.ts",
+        "app/lib/i18n/request-locale.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/Careers.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/lib/i18n/catalogs/marketing-exact-company.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/case-studies",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/case-studies.tsx",
+      "routePattern": "/case-studies",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/CaseStudies.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-case-studies-collaboration.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/CaseStudies.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/lib/i18n/catalogs/marketing-exact-case-studies-collaboration.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/changelog",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/changelog.tsx",
+      "routePattern": "/changelog",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Changelog.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-changelog.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/Changelog.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/lib/i18n/catalogs/marketing-exact-changelog.ts",
+          "app/lib/i18n/catalogs/marketing.ts",
+          "app/lib/marketing/changelog-releases.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/compare._index",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/compare._index.tsx",
+      "routePattern": "/compare",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/CompareIndex.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-compare-index.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/CompareIndex.tsx": [
+          "app/components/marketing/EcodeMarketingPages.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/lib/i18n/catalogs/marketing-exact-compare-index.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/compare.$slug",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/compare.$slug.tsx",
+      "routePattern": "/compare/:slug",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/lib/i18n/catalogs/remaining-route-shells.ts",
+        "app/lib/i18n/request-locale.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/EcodeMarketingPages.tsx": [
+          "app/components/dashboard/SaaSLayout.tsx",
+          "app/lib/i18n/catalogs/marketing.ts",
+          "app/utils/social-meta.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/newsletter",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/newsletter.tsx",
+      "routePattern": "/newsletter",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/lib/enterprise-api.server.ts",
+        "app/lib/i18n/catalogs/remaining-api-routes.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/EcodeMarketingPages.tsx": [
+          "app/components/dashboard/SaaSLayout.tsx",
+          "app/lib/i18n/catalogs/marketing.ts",
+          "app/utils/social-meta.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/newsletter-confirmed",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/newsletter-confirmed.tsx",
+      "routePattern": "/newsletter-confirmed",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/EcodeMarketingPages.tsx": [
+          "app/components/dashboard/SaaSLayout.tsx",
+          "app/lib/i18n/catalogs/marketing.ts",
+          "app/utils/social-meta.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/newsletter_.confirm",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/newsletter_.confirm.tsx",
+      "routePattern": "/newsletter/confirm",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/EcodeMarketingPages.tsx": [
+          "app/components/dashboard/SaaSLayout.tsx",
+          "app/lib/i18n/catalogs/marketing.ts",
+          "app/utils/social-meta.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/newsletter_.unsubscribe",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/newsletter_.unsubscribe.tsx",
+      "routePattern": "/newsletter/unsubscribe",
+      "directDependencies": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/EcodeMarketingPages.tsx": [
+          "app/components/dashboard/SaaSLayout.tsx",
+          "app/lib/i18n/catalogs/marketing.ts",
+          "app/utils/social-meta.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/partners",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/partners.tsx",
+      "routePattern": "/partners",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Partners.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-partners-bounties.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/Partners.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/lib/i18n/catalogs/marketing-exact-partners-bounties.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/press",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/press.tsx",
+      "routePattern": "/press",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/Press.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-trust-press.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/Press.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/components/marketing/ecode-exact/pages/press-contact.ts",
+          "app/lib/i18n/catalogs/marketing-exact-trust-press.ts"
+        ]
+      }
+    },
+    {
+      "id": "routes/status",
+      "group": "marketing_editorial",
+      "sourcefile": "app/routes/status.tsx",
+      "routePattern": "/status",
+      "directDependencies": [
+        "app/components/marketing/ecode-exact/pages/StatusPage.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "componentDependencies": {
+        "app/components/marketing/ecode-exact/pages/StatusPage.tsx": [
+          "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+          "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+          "app/components/ui/Popover.tsx",
+          "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts"
+        ]
+      }
+    }
+  ],
+  "sharedWithSolutionsProduct": {
+    "app/components/marketing/ecode-exact/EcodeExactShell.tsx": [
+      {
+        "id": "routes/about",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/blog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/careers",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/case-studies",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/changelog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/collaboration",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/compare._index",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/desktop",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.bounties",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.deployments",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.teams",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/partners",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/press",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/solutions.app-builder",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/status",
+        "group": "marketing_editorial"
+      }
+    ],
+    "app/components/marketing/ecode-exact/EcodeExactUi.tsx": [
+      {
+        "id": "routes/about",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/blog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/careers",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/changelog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/collaboration",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/compare._index",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/desktop",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.bounties",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.deployments",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.teams",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/partners",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/press",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/status",
+        "group": "marketing_editorial"
+      }
+    ],
+    "app/lib/i18n/request-locale.ts": [
+      {
+        "id": "routes/about",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/blog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/blog.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/careers",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/case-studies",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/changelog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/collaboration",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/compare._index",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/compare.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/desktop",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.bounties",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.teams",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/partners",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/press",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/solutions._index",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/solutions.$slug",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/status",
+        "group": "marketing_editorial"
+      }
+    ],
+    "app/utils/social-meta.ts": [
+      {
+        "id": "routes/about",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/ai",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/ai-docs",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/ai-documentation",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/blog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/blog.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/bounties",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/case-studies",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/changelog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/collaboration",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/compare._index",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/compare.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/customers",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/demo",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/deployments",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/desktop",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.bounties",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/marketing.teams",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/mcp",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/mobile",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/newsletter",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter-confirmed",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.confirm",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.unsubscribe",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/partners",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/polyglot",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/press",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/product",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/solutions._index",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/solutions.$slug",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/status",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/team",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/theme-validation",
+        "group": "marketing_product"
+      }
+    ],
+    "app/lib/i18n/catalogs/marketing.ts": [
+      {
+        "id": "routes/ai",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/ai-docs",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/ai-documentation",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/blog.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/bounties",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/changelog",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/compare.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/customers",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/demo",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/deployments",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/mcp",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/mobile",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/newsletter",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter-confirmed",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.confirm",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.unsubscribe",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/polyglot",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/product",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/solutions._index",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/solutions.$slug",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/team",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/theme-validation",
+        "group": "marketing_product"
+      }
+    ],
+    "app/components/dashboard/SaaSLayout.tsx": [
+      {
+        "id": "routes/ai",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/ai-docs",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/ai-documentation",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/blog.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/compare.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/customers",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/demo",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/deployments",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/mcp",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/mobile",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/newsletter",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter-confirmed",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.confirm",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.unsubscribe",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/polyglot",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/product",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/solutions._index",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/solutions.$slug",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/team",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/theme-validation",
+        "group": "marketing_product"
+      }
+    ],
+    "app/components/marketing/EcodeMarketingPages.tsx": [
+      {
+        "id": "routes/ai-docs",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/ai-documentation",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/blog.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/compare._index",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/compare.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/customers",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/demo",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/mcp",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/newsletter",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter-confirmed",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.confirm",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/newsletter_.unsubscribe",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/polyglot",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/product",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/solutions._index",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/solutions.$slug",
+        "group": "solutions"
+      },
+      {
+        "id": "routes/theme-validation",
+        "group": "marketing_product"
+      }
+    ],
+    "app/lib/i18n/catalogs/remaining-route-shells.ts": [
+      {
+        "id": "routes/blog.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/compare.$slug",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/marketing.deployments",
+        "group": "marketing_product"
+      }
+    ],
+    "app/lib/i18n/catalogs/marketing-exact-case-studies-collaboration.ts": [
+      {
+        "id": "routes/case-studies",
+        "group": "marketing_editorial"
+      },
+      {
+        "id": "routes/collaboration",
+        "group": "marketing_product"
+      }
+    ],
+    "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts": [
+      {
+        "id": "routes/desktop",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/status",
+        "group": "marketing_editorial"
+      }
+    ],
+    "app/lib/i18n/catalogs/marketing-exact-partners-bounties.ts": [
+      {
+        "id": "routes/marketing.bounties",
+        "group": "marketing_product"
+      },
+      {
+        "id": "routes/partners",
+        "group": "marketing_editorial"
+      }
+    ]
+  },
+  "fileProvenance": [
+    {
+      "file": "app/components/dashboard/SaaSLayout.tsx",
+      "sha256": "4b14e37e65b0a33a33af266cbe652d51af91a1e0422c3fa9959a31a84467bd22",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/EcodeMarketingPages.tsx",
+      "sha256": "c85176eb62ce8adf13774547307b2aa48d3b65ea71d69a50ade16cd9002a9590",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+      "sha256": "d87d899dd60be31bde31d5c49c7e7ec0fc469c377186301e882075c7cc77fbc2",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+      "sha256": "0e692ed4ab8f9a522a1355cbfaecc02bcb10402344a6d04684147ecd7a4c9b72",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/About.tsx",
+      "sha256": "7879d65934afd2a4f7ae557aad7a6006baed635fc6f0759f999ec700fafdf960",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Blog.tsx",
+      "sha256": "415615c7d4fae75140b7c9c7f84dcef749c877fc553f91a70edb35094c2d2940",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Careers.tsx",
+      "sha256": "697c3bed66859ef1ed3d9027f3c05d92e91a768fd93491727213cde2d9c592fd",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/CaseStudies.tsx",
+      "sha256": "a982b40bddb41768da9d6939916fa9f744e9b19a2cda650c8d2f61c2ff291361",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Changelog.tsx",
+      "sha256": "a0e60cef8ab3edec704aebb2d23cbfc783e20468c836195a37a3cd27abb461a1",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/CompareIndex.tsx",
+      "sha256": "1292269fb86cd423eecd02dd819645e59e3d7bbf43d893cc52f85d3eb961fcbf",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Partners.tsx",
+      "sha256": "5b4939d52d49a4d6dca1318c6416e9bcdd63a3497c424c7b5f33d2052f9dd8db",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Press.tsx",
+      "sha256": "25fdab8f68251a7feda47562c97733de98a73178e8eb1075f266adf5bb5159bf",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/StatusPage.tsx",
+      "sha256": "8315176610266dc04b91a9e6d21022a2ef0701a274dc6f4e4247917b9ba51f11",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/blog-filter.ts",
+      "sha256": "fe95c96e69389aa58b0b8907e08ab7de522aba9393a9938a3ceab7c444edc1f0",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/press-contact.ts",
+      "sha256": "49cacb6269c9710775ad501521d75a50a0788a035e34737d4c5dcc9577093998",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/components/ui/Popover.tsx",
+      "sha256": "f37f3e2b85bc857a17e7d95945365129e1cc745e91c96b84b0d1fbada90f206e",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/enterprise-api.server.ts",
+      "sha256": "3e60d9f5f5c900a7e5437f753cb948ae0cec3b8f4859f92ab6039aebcda65334",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-about-contact.ts",
+      "sha256": "15f354698815f49928b57c41c4e8fb79db3a2b6586265f63a1f3987b5154a74a",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-case-studies-collaboration.ts",
+      "sha256": "c073f2063b9f65339e66e7e97d03679cb0c8c39456d96a20d7b4b909cab6b6fd",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-changelog.ts",
+      "sha256": "f6bdca28780308e5a6d70e2c757e4ae7d133133a7810ef866b70a7dce860ab2c",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-company.ts",
+      "sha256": "aca60e5cd7f53a66e1c63d446041e2b2f0491478ea544a3b7a6978b979b3b7ae",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-compare-index.ts",
+      "sha256": "55f0b1783171f83d73c305eb42c5aeb1824c431076a4fd1c6e6cc9ddbbc27cc0",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-legal-blog.ts",
+      "sha256": "06d125ddeb422f43d66fddc9b1cae3ae6b9189f9e4ff086a4e5c352def27bd7f",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-partners-bounties.ts",
+      "sha256": "6e45bd7e2a259b56bd1a96ad26487cadd63d9f642005068fb2bd04be09f831bc",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts",
+      "sha256": "a6d0e4ef18fcb0455dd4edf6ac1163f2c15556835903163d71f6df6c7732e8d5",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-trust-press.ts",
+      "sha256": "5586d788fe425e64de48d70b17e821c254dc981e2190adc815a5a9865cd60f06",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing.ts",
+      "sha256": "10f61f6865e0a090a8c48ba87e33c64eb3016eede53f778582c3edd6c7dd46c1",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/public-route-seo.ts",
+      "sha256": "87fe1267826f58608f8a2eb260a9a60741ba741cb74a78ade23b1791cd763b79",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/remaining-api-routes.ts",
+      "sha256": "af865a58c33b208b1c83adb9c59e210ea01eacb461959c24227f4ee59d3ea8d5",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/remaining-route-shells.ts",
+      "sha256": "e306a161c5ffe70b433f6a3c6a19f907a76693719d9e8b894179de19f3f95278",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/i18n/request-locale.ts",
+      "sha256": "a17d461d86dabff01ddbd443b818c45e730776094a971ce5ca9ddd51b1b3fc45",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/marketing/changelog-releases.ts",
+      "sha256": "5aca3015fa82cd18802ee8b6af56bf580391fe48ae885c7ea620ec0da962a505",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/marketing/ecode-blog-detail-page.ts",
+      "sha256": "b31825a9649f2c05a8285265ef04934e42353594a814ae3d24f7f95a7314be4f",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/lib/marketing/ecode-public-api-data.server.ts",
+      "sha256": "6c38075442c164d7f35fce00fbccf9c3a595a3fb92c8f7cd38e10d64ec35b772",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/about.tsx",
+      "sha256": "5d7a67085360b6512fab2248fd52eaca4384152428ef2d7e5a39dcadc375005d",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/blog.$slug.tsx",
+      "sha256": "0708ea048f0eed3d7389c2e93e611b414a1233f888e49dc5e696a38c1c69999c",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/blog.tsx",
+      "sha256": "2dbd9052c9c174080ade36adcb09a30101f3db8c358ff953defd6b55731aeb7c",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/careers.tsx",
+      "sha256": "b7debe38fcf58d86bfb91556bafc7cb7b7657099b18c46579cfd922ca5851e52",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/case-studies.tsx",
+      "sha256": "7653c4ce434d81ea678bb358d43a062bdecdf84ffc9d60858f3c6c31bd1a31b5",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/changelog.tsx",
+      "sha256": "3390cb0f88b3ecccf936b9b725d5e15746bea6210a611e42a6614b6aec9b9835",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/compare.$slug.tsx",
+      "sha256": "6c85318e57584ad15e90a8f4c803252989129bebd5c9b67328df0a4ac1cbc2dc",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/compare._index.tsx",
+      "sha256": "ef3c365c0676d40e2d497770f5275e79e69097ad90a5d5b5edb06667fc87412d",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/newsletter-confirmed.tsx",
+      "sha256": "1baf402563e457b0b34d4c71ac7562a1f6c0473ee249e2ca22e0e476b4823804",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/newsletter.tsx",
+      "sha256": "2fccfe9a617793fe574757348e469120cd650193a06a3f106a6a9f1e30e23a85",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/newsletter_.confirm.tsx",
+      "sha256": "68baa7d2d81e7aec1f05593c4f4a6d0698a04c90fdf87797b5f54a33ff0755a4",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/newsletter_.unsubscribe.tsx",
+      "sha256": "fa46e898c3bca2a337a9cff64f6b90f74db4fb1d80c6f4ac3d84ee4d01f3bc3a",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/partners.tsx",
+      "sha256": "ef40e3a35110ce409b29aeec84388774ba9562fac2324784f10f480559225c87",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/press.tsx",
+      "sha256": "0ac3c28827288b9682c8996cb93c065ccf599be12f1793fa96a0f3b5917de73c",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/routes/status.tsx",
+      "sha256": "56614a8e34122c85760ebd5384345f9c5cd0c567fba3c5736af046f5978cd816",
+      "sameAsPriority": true
+    },
+    {
+      "file": "app/utils/social-meta.ts",
+      "sha256": "5b7968d8eefe71237160b1c8afb8b68368e84864e8a3939909cef830dd11dbf3",
+      "sameAsPriority": true
+    }
+  ],
+  "limits": "direct imports plus one level through route component, not complete transitive graph; no editorial mutation"
+}

@@ -325,7 +325,7 @@ export default function AdminBillingPage() {
                 id="plan-key"
                 required
                 disabled={busy || data.plans.length === 0}
-                className={`min-h-[44px] max-w-full rounded-md border ${
+                className={`min-h-[44px] min-w-0 max-w-full rounded-md border ${
                   fieldError('plan', 'planKey')
                     ? 'border-[var(--vc-ide-accent-error)]'
                     : 'border-bolt-elements-borderColor'
@@ -389,7 +389,9 @@ export default function AdminBillingPage() {
                   className="min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
                 >
                   <div className="flex min-w-0 flex-col items-start justify-between gap-2 sm:flex-row sm:gap-3">
-                    <strong className="min-w-0 break-words text-bolt-elements-textPrimary">{plan.name}</strong>
+                    <strong className="min-w-0 max-w-full break-words text-bolt-elements-textPrimary">
+                      {plan.name}
+                    </strong>
                     <span className="break-words text-sm font-medium text-bolt-elements-textPrimary">
                       {formatAdminBillingMonthlyPrice(plan.monthlyCents, data.language)}
                     </span>

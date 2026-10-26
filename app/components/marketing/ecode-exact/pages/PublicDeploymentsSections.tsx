@@ -340,17 +340,13 @@ function PublicDeploymentsSectionsImpl() {
           <h3 className="text-2xl font-semibold">{copy.ctaTitle}</h3>
           <p className="text-muted-foreground">{copy.ctaDescription}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/contact-sales">
-              <Button size="lg" className="bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90">
-                {copy.bookConsultation}
-              </Button>
-            </Link>
+            <Button asChild size="lg" className="bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90">
+              <Link href="/contact-sales">{copy.bookConsultation}</Link>
+            </Button>
             {/* /docs/deployments/api n'existe pas (splat 404) — /docs est le hub docs réel. */}
-            <Link href="/docs">
-              <Button size="lg" variant="outline" className="border-[var(--ecode-border)]">
-                {copy.reviewApiIntegrations}
-              </Button>
-            </Link>
+            <Button asChild size="lg" variant="outline" className="border-[var(--ecode-border)]">
+              <Link href="/docs">{copy.reviewApiIntegrations}</Link>
+            </Button>
           </div>
         </div>
       </section>

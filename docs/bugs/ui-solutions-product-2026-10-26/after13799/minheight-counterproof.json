@@ -1,0 +1,178 @@
+[
+  {
+    "lang": "fr",
+    "width": 844,
+    "height": 390,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 221.84375,
+      "right": 591.65625,
+      "minHeight": "0px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 221.84375,
+      "right": 591.65625,
+      "minHeight": "44px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    }
+  },
+  {
+    "lang": "fr",
+    "width": 820,
+    "height": 1180,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 221.84375,
+      "right": 591.65625,
+      "minHeight": "0px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 221.84375,
+      "right": 591.65625,
+      "minHeight": "44px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    }
+  },
+  {
+    "lang": "fr",
+    "width": 1024,
+    "height": 768,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 40,
+      "right": 409.8125,
+      "minHeight": "0px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 40,
+      "right": 409.8125,
+      "minHeight": "44px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    }
+  },
+  {
+    "lang": "fr",
+    "width": 1440,
+    "height": 900,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 317.84375,
+      "right": 687.65625,
+      "minHeight": "0px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 317.84375,
+      "right": 687.65625,
+      "minHeight": "44px",
+      "text": "Consulter la documentation des déploiements",
+      "href": "/docs"
+    }
+  },
+  {
+    "lang": "en",
+    "width": 844,
+    "height": 390,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 212.921875,
+      "right": 444.75,
+      "minHeight": "0px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 212.921875,
+      "right": 444.75,
+      "minHeight": "44px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    }
+  },
+  {
+    "lang": "en",
+    "width": 820,
+    "height": 1180,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 212.921875,
+      "right": 444.75,
+      "minHeight": "0px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 212.921875,
+      "right": 444.75,
+      "minHeight": "44px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    }
+  },
+  {
+    "lang": "en",
+    "width": 1024,
+    "height": 768,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 228.921875,
+      "right": 460.75,
+      "minHeight": "0px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 228.921875,
+      "right": 460.75,
+      "minHeight": "44px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    }
+  },
+  {
+    "lang": "en",
+    "width": 1440,
+    "height": 900,
+    "method": "DOM inline min-height:44px!important; utility generation awaits build",
+    "before": {
+      "height": 22,
+      "left": 308.921875,
+      "right": 540.75,
+      "minHeight": "0px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    },
+    "after": {
+      "height": 44,
+      "left": 308.921875,
+      "right": 540.75,
+      "minHeight": "44px",
+      "text": "Explore deployment docs",
+      "href": "/docs"
+    }
+  }
+]

@@ -1,0 +1,156 @@
+[
+  {
+    "origin": "/tmp/ui-entry-next/server-origin.json",
+    "record": {
+      "pid": 177333,
+      "startTicks": "2532223",
+      "port": 12399,
+      "at": "2026-10-26T02:27:22Z",
+      "build": "safecontent existing UI975 plus merge main; no rebuild",
+      "apiProcess": 177332
+    },
+    "before": {
+      "exists": true,
+      "state": "S",
+      "startTicks": "2532223",
+      "cmd": "node ./node_modules/.bin/../@react-router/serve/bin.js ./build/server/index.js ",
+      "rss": "VmRSS:\t  406552 kB"
+    },
+    "signals": [
+      "SIGTERM"
+    ],
+    "afterGrace": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "2532223",
+      "cmd": "",
+      "rss": null
+    },
+    "final": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "2532223",
+      "cmd": "",
+      "rss": null
+    },
+    "portConnectCode": 111
+  },
+  {
+    "origin": "/tmp/ui-priority-nativezoom/server-origin.json",
+    "record": {
+      "pid": 188380,
+      "startTicks": "2719948",
+      "port": 13599,
+      "at": "2026-10-26T02:58:39Z",
+      "build": "priority common existing build fbb678704; source frozen944592e18; no rebuild",
+      "apiProcess": 188379
+    },
+    "before": {
+      "exists": true,
+      "state": "S",
+      "startTicks": "2719948",
+      "cmd": "node ./node_modules/.bin/../@react-router/serve/bin.js ./build/server/index.js ",
+      "rss": "VmRSS:\t  215460 kB"
+    },
+    "signals": [
+      "SIGTERM"
+    ],
+    "afterGrace": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "2719948",
+      "cmd": "",
+      "rss": null
+    },
+    "final": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "2719948",
+      "cmd": "",
+      "rss": null
+    },
+    "portConnectCode": 111
+  },
+  {
+    "origin": "/tmp/ui-safecontent/baseline-origin.json",
+    "record": {
+      "pid": 158383,
+      "startTicks": "1935728",
+      "port": 11299,
+      "cwd": "/workspace/vibecore-ui-coverage",
+      "log": "/tmp/ui-safecontent/baseline-server.log",
+      "api": "http://127.0.0.1:5499",
+      "build": "existing coverage build, no rebuild",
+      "args": [
+        "/workspace/vibecore-ui-coverage/node_modules/@react-router/serve/bin.js",
+        "/workspace/vibecore-ui-coverage/build/server/index.js"
+      ]
+    },
+    "before": {
+      "exists": true,
+      "state": "S",
+      "startTicks": "1935728",
+      "cmd": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node /workspace/vibecore-ui-coverage/node_modules/@react-router/serve/bin.js /workspace/vibecore-ui-coverage/build/server/index.js ",
+      "rss": "VmRSS:\t  274692 kB"
+    },
+    "signals": [
+      "SIGTERM"
+    ],
+    "afterGrace": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "1935728",
+      "cmd": "",
+      "rss": null
+    },
+    "final": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "1935728",
+      "cmd": "",
+      "rss": null
+    },
+    "portConnectCode": 111
+  },
+  {
+    "origin": "/tmp/ui-safecontent/compiled-origin.json",
+    "record": {
+      "pid": 159444,
+      "startTicks": "1967103",
+      "port": 11399,
+      "cwd": "/workspace/vibecore-ui-safecontent",
+      "log": "/tmp/ui-safecontent/compiled-server.log",
+      "api": "http://127.0.0.1:5499",
+      "build": "safecontent compiled build",
+      "args": [
+        "/workspace/vibecore-ui-safecontent/node_modules/@react-router/serve/bin.js",
+        "/workspace/vibecore-ui-safecontent/build/server/index.js"
+      ]
+    },
+    "before": {
+      "exists": true,
+      "state": "S",
+      "startTicks": "1967103",
+      "cmd": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node /workspace/vibecore-ui-safecontent/node_modules/@react-router/serve/bin.js /workspace/vibecore-ui-safecontent/build/server/index.js ",
+      "rss": "VmRSS:\t  258524 kB"
+    },
+    "signals": [
+      "SIGTERM"
+    ],
+    "afterGrace": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "1967103",
+      "cmd": "",
+      "rss": null
+    },
+    "final": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "1967103",
+      "cmd": "",
+      "rss": null
+    },
+    "portConnectCode": 111
+  }
+]

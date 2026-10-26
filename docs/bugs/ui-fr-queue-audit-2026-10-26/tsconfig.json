@@ -1,0 +1,1 @@
+{"extends":"/workspace/vibecore-ui-fr-audit-next/tsconfig.json","compilerOptions":{"types":[]},"include":["/workspace/vibecore-ui-fr-audit-next/app/lib/i18n/catalogs/live-audit-heuristics.ts","/workspace/vibecore-ui-fr-audit-next/tests/i18n/live-audit-heuristics.spec.ts"],"exclude":[]}

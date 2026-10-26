@@ -1,0 +1,59 @@
+[
+  {
+    "id": "BLOG-CARD-DESTINATIONS",
+    "status": "open, reproduced",
+    "routes": [
+      "routes/blog"
+    ],
+    "description": "Seven Read more links still target /blog. Featured/card metadata do not map exactly to the three published article slugs. Outlet fix renders a known detail URL but does not repair card navigation.",
+    "evidence": "docs/bugs/ui-editorial-2026-10-26/blog-card-mapping.md",
+    "next": "Coordinate canonical editorial content and destinations; do not invent articles or relabel the fixture navigation as a repaired real card."
+  },
+  {
+    "id": "NEWSLETTER-UNVERIFIED-SUCCESS",
+    "status": "open, reproduced; backend contract missing",
+    "routes": [
+      "routes/newsletter",
+      "routes/newsletter-confirmed",
+      "routes/newsletter_.confirm",
+      "routes/newsletter_.unsubscribe"
+    ],
+    "description": "Confirmation without token and unsubscribe action lead to a page claiming successful subscription. Geometry is observed; subscription semantics are not validated.",
+    "evidence": "docs/bugs/ui-editorial-2026-10-26/newsletter-contract.md",
+    "next": "Coordinate actual confirmation/unsubscribe contract and states; no real subscribers or email mutation used in these tests."
+  },
+  {
+    "id": "MARKETING-DEPLOYMENTS-HERO-LOCALLY-CORRECTED",
+    "status": "locally corrected, compiled proof passed; not merged or deployed",
+    "routes": [
+      "routes/marketing.deployments"
+    ],
+    "description": "Final compiled13899 recipe passed44 observations/8 groups after !min-h-[44px]. Semantic extension cc5574 repeated44 observations/8 groups successfully, preserving CTA dimensions and adding unique keyboard stops.",
+    "evidence": "docs/bugs/ui-solutions-product-2026-10-26/diagnostic.json",
+    "next": "Normal PR validation and coordinated delivery; no production recipe claimed.",
+    "additionalEvidence": [
+      "docs/bugs/ui-solutions-product-2026-10-26/grid-minimal-counterproof.json",
+      "docs/bugs/ui-solutions-product-2026-10-26/README.md",
+      "docs/bugs/ui-public-admin-validation-2026-10-26/README.md",
+      "docs/bugs/ui-public-semantics-2026-10-26/after13999/README.md"
+    ]
+  },
+  {
+    "id": "ADMIN-USERS-SMALL-CONTROLS-OBSERVATION",
+    "status": "open observation, no automatic WCAG conclusion",
+    "routes": [
+      "routes/admin.$section"
+    ],
+    "description": "Users sort/menu/pagination controls measured below44px; not fixed by Billing containment changes.",
+    "evidence": "docs/bugs/ui-administration-2026-10-26/README.md"
+  },
+  {
+    "id": "ADMIN-INDEX-LOCALE-REDIRECT-OBSERVATION",
+    "status": "open observation",
+    "routes": [
+      "routes/admin._index"
+    ],
+    "description": "/admin redirect loses querylang; first FR-requested title observed in English. Redirect is a route observation, not a seventh admin route ID.",
+    "evidence": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json"
+  }
+]

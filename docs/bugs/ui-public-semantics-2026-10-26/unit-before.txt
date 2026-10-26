@@ -1,0 +1,93 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-semantics-next
+
+ ❯ app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx (6 tests | 6 failed) 343ms
+   × public page navigation semantics > bounties fr exposes one main and one interactive element per navigation action 124ms
+     → expected <button …(1)>…(1)</button>
+…(3) to have a length of +0 but got 4
+   × public page navigation semantics > deployments fr exposes one main and one interactive element per navigation action 117ms
+     → expected <button …(2)></button>
+…(3) to have a length of +0 but got 4
+   × public page navigation semantics > teams fr exposes one main and one interactive element per navigation action 22ms
+     → expected <button …(1)></button>
+…(3) to have a length of +0 but got 4
+   × public page navigation semantics > bounties en exposes one main and one interactive element per navigation action 27ms
+     → expected <button …(1)>…(1)</button>
+…(3) to have a length of +0 but got 4
+   × public page navigation semantics > deployments en exposes one main and one interactive element per navigation action 32ms
+     → expected <button …(2)></button>
+…(3) to have a length of +0 but got 4
+   × public page navigation semantics > teams en exposes one main and one interactive element per navigation action 19ms
+     → expected <button …(1)></button>
+…(3) to have a length of +0 but got 4
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx > public page navigation semantics > bounties fr exposes one main and one interactive element per navigation action
+ FAIL  app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx > public page navigation semantics > bounties en exposes one main and one interactive element per navigation action
+AssertionError: expected <button …(1)>…(1)</button>
+…(3) to have a length of +0 but got 4
+
+- Expected
++ Received
+
+- 0
++ 4
+
+ ❯ app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx:35:65
+     33|         await waitFor(() => expect(screen.getAllByRole('link')).toHave…
+     34|         expect(screen.getAllByRole('link').map((link) => link.getAttri…
+     35|         expect(container.querySelectorAll('a button,button a')).toHave…
+       |                                                                 ^
+     36|         expect(screen.getAllByRole('main')).toHaveLength(1);
+     37|         expect(screen.getAllByRole('heading', { level: 1 })).toHaveLen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx > public page navigation semantics > deployments fr exposes one main and one interactive element per navigation action
+ FAIL  app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx > public page navigation semantics > deployments en exposes one main and one interactive element per navigation action
+AssertionError: expected <button …(2)></button>
+…(3) to have a length of +0 but got 4
+
+- Expected
++ Received
+
+- 0
++ 4
+
+ ❯ app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx:35:65
+     33|         await waitFor(() => expect(screen.getAllByRole('link')).toHave…
+     34|         expect(screen.getAllByRole('link').map((link) => link.getAttri…
+     35|         expect(container.querySelectorAll('a button,button a')).toHave…
+       |                                                                 ^
+     36|         expect(screen.getAllByRole('main')).toHaveLength(1);
+     37|         expect(screen.getAllByRole('heading', { level: 1 })).toHaveLen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx > public page navigation semantics > teams fr exposes one main and one interactive element per navigation action
+ FAIL  app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx > public page navigation semantics > teams en exposes one main and one interactive element per navigation action
+AssertionError: expected <button …(1)></button>
+…(3) to have a length of +0 but got 4
+
+- Expected
++ Received
+
+- 0
++ 4
+
+ ❯ app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx:35:65
+     33|         await waitFor(() => expect(screen.getAllByRole('link')).toHave…
+     34|         expect(screen.getAllByRole('link').map((link) => link.getAttri…
+     35|         expect(container.querySelectorAll('a button,button a')).toHave…
+       |                                                                 ^
+     36|         expect(screen.getAllByRole('main')).toHaveLength(1);
+     37|         expect(screen.getAllByRole('heading', { level: 1 })).toHaveLen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  04:12:17
+   Duration  3.09s (transform 1.22s, setup 27ms, collect 550ms, tests 343ms, environment 283ms, prepare 57ms)

@@ -1,0 +1,45 @@
+tests/e2e/i18n-french-live.spec.ts:8:  findFrenchAuditResidue,
+tests/e2e/i18n-french-live.spec.ts:10:} from '~/lib/i18n/catalogs/live-audit-heuristics';
+tests/e2e/i18n-french-live.spec.ts:472:  const findings = findFrenchAuditResidue(english, french);
+tests/i18n/audit-shell-path.spec.ts:3:import { findFrenchAuditResidue } from '../../app/lib/i18n/catalogs/live-audit-heuristics';
+tests/i18n/audit-shell-path.spec.ts:41:    expect(findFrenchAuditResidue(entries(en), entries(fr))).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:3:import { findFrenchAuditResidue, type AuditSemanticEntry } from '~/lib/i18n/catalogs/live-audit-heuristics';
+tests/i18n/live-audit-heuristics.spec.ts:19:    expect(findFrenchAuditResidue([entry('Connect GitHub with OAuth to use your repository.')], [french])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:25:    expect(findFrenchAuditResidue([english], [english])).toEqual([
+tests/i18n/live-audit-heuristics.spec.ts:33:    expect(findFrenchAuditResidue([entry('Connect your backend to this workspace.')], [french])).toEqual([
+tests/i18n/live-audit-heuristics.spec.ts:51:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([
+tests/i18n/live-audit-heuristics.spec.ts:67:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:78:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([
+tests/i18n/live-audit-heuristics.spec.ts:96:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:108:    expect(findFrenchAuditResidue(values, values)).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:117:    expect(findFrenchAuditResidue([englishAlt], [englishAlt])).toEqual([
+tests/i18n/live-audit-heuristics.spec.ts:126:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:135:    expect(findFrenchAuditResidue([], [entry(text)])).toHaveLength(1);
+tests/i18n/live-audit-heuristics.spec.ts:139:    expect(findFrenchAuditResidue([], [entry('settings.workspace.title')])).toEqual([
+tests/i18n/live-audit-heuristics.spec.ts:142:    expect(findFrenchAuditResidue([], [entry('example.test')])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:143:    expect(findFrenchAuditResidue([], [entry('app.e-code.ai')])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:144:    expect(findFrenchAuditResidue([], [entry('ecode://workspace/customer-portal')])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:145:    expect(findFrenchAuditResidue([], [entry('ari-builds')])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:146:    expect(findFrenchAuditResidue([], [entry('Consultez api-keys.md pour continuer.')])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:147:    expect(findFrenchAuditResidue([], [entry('Source citée : billing.md')])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:167:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:172:      findFrenchAuditResidue([], [entry('Consultez responsive.tsx et rollback-policy.yaml avant de continuer.')]),
+tests/i18n/live-audit-heuristics.spec.ts:183:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:192:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+tests/i18n/live-audit-heuristics.spec.ts:202:    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([
+tests/i18n/live-audit-heuristics.spec.ts:215:    expect(findFrenchAuditResidue([], french)).toEqual([]);
+app/components/marketing/solutions/solution-french-glossary.spec.ts:13:import { findFrenchAuditResidue, type AuditSemanticEntry } from '~/lib/i18n/catalogs/live-audit-heuristics';
+app/components/marketing/solutions/solution-french-glossary.spec.ts:90:function formatFindings(findings: ReturnType<typeof findFrenchAuditResidue>): string {
+app/components/marketing/solutions/solution-french-glossary.spec.ts:96:    const findings = findFrenchAuditResidue(collectCopy(copy.en), collectCopy(copy.fr));
+app/components/marketing/solutions/solution-french-glossary.spec.ts:102:    const findings = findFrenchAuditResidue(collectShowcaseCopy('en'), collectShowcaseCopy('fr'));
+app/components/marketing/solutions/solution-french-glossary.spec.ts:108:    const findings = findFrenchAuditResidue(
+app/lib/modules-morts.ts:48:   * colonne unique ; `live-audit-heuristics` est l'outil de l'audit i18n live
+app/lib/modules-morts.ts:55:  'app/lib/i18n/catalogs/live-audit-heuristics.ts',
+app/lib/i18n/catalogs/git-provider-connect.audit.spec.ts:3:import { findFrenchAuditResidue, type AuditSemanticEntry } from './live-audit-heuristics';
+app/lib/i18n/catalogs/git-provider-connect.audit.spec.ts:29:    expect(findFrenchAuditResidue(anglais, francais).map((f) => `${f.reason}: ${f.text}`)).toEqual([]);
+app/lib/i18n/catalogs/live-audit-heuristics.ts:172:export function isApprovedAuditText(text: string): boolean {
+app/lib/i18n/catalogs/live-audit-heuristics.ts:204:export function findFrenchAuditResidue(
+app/lib/i18n/catalogs/live-audit-heuristics.ts:215:    if (isApprovedAuditText(text)) {
+app/lib/i18n/catalogs/tarifs-boutons-audit.spec.ts:2:import { findFrenchAuditResidue } from './live-audit-heuristics';
+app/lib/i18n/catalogs/tarifs-boutons-audit.spec.ts:29:      expect(findFrenchAuditResidue([anglais], [entree])).toEqual([]);
+app/lib/i18n/catalogs/tarifs-boutons-audit.spec.ts:49:        findFrenchAuditResidue(

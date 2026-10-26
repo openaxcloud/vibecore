@@ -1,0 +1,43 @@
+[
+  {
+    "kind": "api",
+    "pid": 212685,
+    "startTicks": "3230788",
+    "args": [
+      "/tmp/ui-public-semantics/fixture.cjs"
+    ],
+    "cwd": "/workspace/vibecore-ui-public-admin",
+    "before": {
+      "state": "S",
+      "startTicks": "3230788",
+      "cmd": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node /tmp/ui-public-semantics/fixture.cjs "
+    },
+    "after": {
+      "state": "Z",
+      "startTicks": "3230788",
+      "cmd": ""
+    }
+  },
+  {
+    "kind": "app",
+    "pid": 212686,
+    "startTicks": "3230788",
+    "args": [
+      "--require",
+      "/tmp/ui-public-semantics/fetch-guard.cjs",
+      "/workspace/vibecore-ui-public-admin/node_modules/@react-router/serve/bin.js",
+      "./build/server/index.js"
+    ],
+    "cwd": "/workspace/vibecore-ui-public-admin",
+    "before": {
+      "state": "S",
+      "startTicks": "3230788",
+      "cmd": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node --require /tmp/ui-public-semantics/fetch-guard.cjs /workspace/vibecore-ui-public-admin/node_modules/@react-router/serve/bin.js ./build/server/index.js "
+    },
+    "after": {
+      "state": "Z",
+      "startTicks": "3230788",
+      "cmd": ""
+    }
+  }
+]

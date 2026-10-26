@@ -1,0 +1,4 @@
+fr light
+fr dark
+en light
+en dark

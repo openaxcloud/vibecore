@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-editorial-next
+
+ ✓ app/routes/blog-routing.spec.tsx (2 tests) 164ms
+ ✓ app/routes/blog-detail-route.i18n.spec.ts (2 tests) 6ms
+
+ Test Files  2 passed (2)
+      Tests  4 passed (4)
+   Start at  03:16:29
+   Duration  3.05s (transform 1.63s, setup 41ms, collect 1.53s, tests 170ms, environment 324ms, prepare 113ms)
+

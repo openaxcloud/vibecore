@@ -1,0 +1,8 @@
+{
+  "base": "http://127.0.0.1:13999",
+  "phase": "before",
+  "observations": [],
+  "errors": [],
+  "blocked": [],
+  "keyboard": []
+}

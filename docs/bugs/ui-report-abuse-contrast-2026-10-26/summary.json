@@ -1,0 +1,26 @@
+{
+  "/reset-password": {
+    "observations": 8,
+    "evaluated": 24,
+    "below": 0,
+    "notEvaluated": {
+      "overlapping sibling gradient layer": 44,
+      "unresolved translucent background": 32,
+      "foreground alpha": 4
+    }
+  },
+  "/report-abuse": {
+    "observations": 8,
+    "evaluated": 352,
+    "below": 8,
+    "notEvaluated": {}
+  },
+  "/marketing/deployments": {
+    "observations": 8,
+    "evaluated": 72,
+    "below": 0,
+    "notEvaluated": {
+      "unresolved translucent background": 24
+    }
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "pid": 177478,
+    "port": 12999,
+    "expectedStartTicks": "2533870",
+    "exists": false
+  },
+  {
+    "pid": 186344,
+    "port": 13099,
+    "expectedStartTicks": "2632917",
+    "exists": false
+  },
+  {
+    "pid": 191394,
+    "port": 13299,
+    "expectedStartTicks": "2768681",
+    "exists": true,
+    "actualStartTicks": "2768681",
+    "state": "S",
+    "signal": "SIGKILL own proven residual"
+  }
+]

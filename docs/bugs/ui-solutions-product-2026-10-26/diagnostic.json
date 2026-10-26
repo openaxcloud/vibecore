@@ -1,0 +1,1978 @@
+[
+  {
+    "path": "/collaboration",
+    "width": 768,
+    "lang": "fr",
+    "theme": "light",
+    "candidates": [
+      {
+        "text": "Programmation en binôme",
+        "client": 174,
+        "scroll": 185,
+        "element": {
+          "left": 49,
+          "right": 223,
+          "top": 2498.296875,
+          "bottom": 2564.546875,
+          "width": 174,
+          "height": 66.25,
+          "overflow": "visible",
+          "class": "mkt-h3 font-semibold mb-2"
+        },
+        "textRects": [
+          {
+            "left": 49,
+            "right": 234,
+            "top": 2498.296875,
+            "bottom": 2530.296875
+          },
+          {
+            "left": 49,
+            "right": 172.453125,
+            "top": 2531.421875,
+            "bottom": 2563.421875
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 49,
+            "right": 223,
+            "top": 2498.296875,
+            "bottom": 2564.546875,
+            "width": 174,
+            "height": 66.25,
+            "overflow": "visible",
+            "class": "mkt-h3 font-semibold mb-2"
+          },
+          {
+            "left": 25,
+            "right": 247,
+            "top": 2418.296875,
+            "bottom": 2754.890625,
+            "width": 222,
+            "height": 336.59375,
+            "overflow": "visible",
+            "class": "p-6 pt-6"
+          },
+          {
+            "left": 24,
+            "right": 248,
+            "top": 2417.296875,
+            "bottom": 2808.671875,
+            "width": 224,
+            "height": 391.375,
+            "overflow": "visible",
+            "class": "rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md h-full"
+          },
+          {
+            "left": 24,
+            "right": 744,
+            "top": 2417.296875,
+            "bottom": 2808.671875,
+            "width": 720,
+            "height": 391.375,
+            "overflow": "visible",
+            "class": "grid md:grid-cols-3 gap-6 max-w-5xl mx-auto"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 25,
+            "right": 247,
+            "top": 2418.296875,
+            "bottom": 2754.890625,
+            "width": 222,
+            "height": 336.59375,
+            "overflow": "visible",
+            "class": "p-6 pt-6"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1024,
+    "lang": "fr",
+    "theme": "light",
+    "candidates": [
+      {
+        "text": "Un push, un déploiement partout",
+        "client": 97,
+        "scroll": 152,
+        "element": {
+          "left": 65,
+          "right": 161.90625,
+          "top": 1148.328125,
+          "bottom": 1308.328125,
+          "width": 96.90625,
+          "height": 160,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 65,
+            "right": 98.921875,
+            "top": 1147.328125,
+            "bottom": 1180.328125
+          },
+          {
+            "left": 65,
+            "right": 130.5,
+            "top": 1179.328125,
+            "bottom": 1212.328125
+          },
+          {
+            "left": 65,
+            "right": 96.546875,
+            "top": 1211.328125,
+            "bottom": 1244.328125
+          },
+          {
+            "left": 65,
+            "right": 217.1875,
+            "top": 1243.328125,
+            "bottom": 1276.328125
+          },
+          {
+            "left": 65,
+            "right": 157.046875,
+            "top": 1275.328125,
+            "bottom": 1308.328125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 65,
+            "right": 161.90625,
+            "top": 1148.328125,
+            "bottom": 1308.328125,
+            "width": 96.90625,
+            "height": 160,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1078.328125,
+            "bottom": 1316.328125,
+            "width": 144.90625,
+            "height": 238,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 40,
+            "right": 186.90625,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 146.90625,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 488.71875,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1078.328125,
+            "bottom": 1316.328125,
+            "width": 144.90625,
+            "height": 238,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1316.328125,
+            "bottom": 1525.0625,
+            "width": 144.90625,
+            "height": 208.734375,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Workflows assistés par l’IA",
+        "client": 97,
+        "scroll": 127,
+        "element": {
+          "left": 235.90625,
+          "right": 332.8125,
+          "top": 1148.328125,
+          "bottom": 1244.328125,
+          "width": 96.90625,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 235.90625,
+            "right": 362.734375,
+            "top": 1147.328125,
+            "bottom": 1180.328125
+          },
+          {
+            "left": 235.90625,
+            "right": 330.046875,
+            "top": 1179.328125,
+            "bottom": 1212.328125
+          },
+          {
+            "left": 235.90625,
+            "right": 321.15625,
+            "top": 1211.328125,
+            "bottom": 1244.328125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 235.90625,
+            "right": 332.8125,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 96.90625,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 210.90625,
+            "right": 357.8125,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 146.90625,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 488.71875,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1252.328125,
+            "bottom": 1487.453125,
+            "width": 144.90625,
+            "height": 235.125,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Prêt pour l’entreprise",
+        "client": 97,
+        "scroll": 136,
+        "element": {
+          "left": 406.8125,
+          "right": 503.71875,
+          "top": 1148.328125,
+          "bottom": 1244.328125,
+          "width": 96.90625,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 406.8125,
+            "right": 456.90625,
+            "top": 1147.328125,
+            "bottom": 1180.328125
+          },
+          {
+            "left": 406.8125,
+            "right": 463.53125,
+            "top": 1179.328125,
+            "bottom": 1212.328125
+          },
+          {
+            "left": 406.8125,
+            "right": 542.390625,
+            "top": 1211.328125,
+            "bottom": 1244.328125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 406.8125,
+            "right": 503.71875,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 96.90625,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 381.8125,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 146.90625,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 488.71875,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1252.328125,
+            "bottom": 1487.453125,
+            "width": 144.90625,
+            "height": 235.125,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Secondes",
+        "client": 150,
+        "scroll": 168,
+        "element": {
+          "left": 89,
+          "right": 239,
+          "top": 2721.203125,
+          "bottom": 2761.203125,
+          "width": 150,
+          "height": 40,
+          "overflow": "visible",
+          "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+        },
+        "textRects": [
+          {
+            "left": 89,
+            "right": 256.515625,
+            "top": 2716.203125,
+            "bottom": 2765.203125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 89,
+            "right": 239,
+            "top": 2721.203125,
+            "bottom": 2761.203125,
+            "width": 150,
+            "height": 40,
+            "overflow": "visible",
+            "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+          },
+          {
+            "left": 65,
+            "right": 263,
+            "top": 2697.203125,
+            "bottom": 2835.203125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          },
+          {
+            "left": 64,
+            "right": 264,
+            "top": 2696.203125,
+            "bottom": 2836.203125,
+            "width": 200,
+            "height": 140,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background"
+          },
+          {
+            "left": 64,
+            "right": 960,
+            "top": 2696.203125,
+            "bottom": 2836.203125,
+            "width": 896,
+            "height": 140,
+            "overflow": "visible",
+            "class": "mx-auto mt-12 grid max-w-4xl gap-8 sm:grid-cols-2 lg:grid-cols-4"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 65,
+            "right": 263,
+            "top": 2697.203125,
+            "bottom": 2835.203125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1440,
+    "lang": "fr",
+    "theme": "light",
+    "candidates": [
+      {
+        "text": "Un push, un déploiement partout",
+        "client": 143,
+        "scroll": 152,
+        "element": {
+          "left": 145,
+          "right": 288.453125,
+          "top": 1074.09375,
+          "bottom": 1170.09375,
+          "width": 143.453125,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 145,
+            "right": 288.4375,
+            "top": 1073.09375,
+            "bottom": 1106.09375
+          },
+          {
+            "left": 145,
+            "right": 297.1875,
+            "top": 1105.09375,
+            "bottom": 1138.09375
+          },
+          {
+            "left": 145,
+            "right": 237.046875,
+            "top": 1137.09375,
+            "bottom": 1170.09375
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 145,
+            "right": 288.453125,
+            "top": 1074.09375,
+            "bottom": 1170.09375,
+            "width": 143.453125,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 121,
+            "right": 312.453125,
+            "top": 1004.09375,
+            "bottom": 1178.09375,
+            "width": 191.453125,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 120,
+            "right": 313.453125,
+            "top": 1003.09375,
+            "bottom": 1361.4375,
+            "width": 193.453125,
+            "height": 358.34375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 120,
+            "right": 748.359375,
+            "top": 1003.09375,
+            "bottom": 1361.4375,
+            "width": 628.359375,
+            "height": 358.34375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 121,
+            "right": 312.453125,
+            "top": 1004.09375,
+            "bottom": 1178.09375,
+            "width": 191.453125,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 121,
+            "right": 312.453125,
+            "top": 1178.09375,
+            "bottom": 1307.65625,
+            "width": 191.453125,
+            "height": 129.5625,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Secondes",
+        "client": 150,
+        "scroll": 168,
+        "element": {
+          "left": 297,
+          "right": 447,
+          "top": 2437.703125,
+          "bottom": 2477.703125,
+          "width": 150,
+          "height": 40,
+          "overflow": "visible",
+          "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+        },
+        "textRects": [
+          {
+            "left": 297,
+            "right": 464.515625,
+            "top": 2432.703125,
+            "bottom": 2481.703125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 297,
+            "right": 447,
+            "top": 2437.703125,
+            "bottom": 2477.703125,
+            "width": 150,
+            "height": 40,
+            "overflow": "visible",
+            "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+          },
+          {
+            "left": 273,
+            "right": 471,
+            "top": 2413.703125,
+            "bottom": 2551.703125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          },
+          {
+            "left": 272,
+            "right": 472,
+            "top": 2412.703125,
+            "bottom": 2552.703125,
+            "width": 200,
+            "height": 140,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background"
+          },
+          {
+            "left": 272,
+            "right": 1168,
+            "top": 2412.703125,
+            "bottom": 2552.703125,
+            "width": 896,
+            "height": 140,
+            "overflow": "visible",
+            "class": "mx-auto mt-12 grid max-w-4xl gap-8 sm:grid-cols-2 lg:grid-cols-4"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 273,
+            "right": 471,
+            "top": 2413.703125,
+            "bottom": 2551.703125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/collaboration",
+    "width": 768,
+    "lang": "fr",
+    "theme": "dark",
+    "candidates": [
+      {
+        "text": "Programmation en binôme",
+        "client": 174,
+        "scroll": 185,
+        "element": {
+          "left": 49,
+          "right": 223,
+          "top": 2498.296875,
+          "bottom": 2564.546875,
+          "width": 174,
+          "height": 66.25,
+          "overflow": "visible",
+          "class": "mkt-h3 font-semibold mb-2"
+        },
+        "textRects": [
+          {
+            "left": 49,
+            "right": 234,
+            "top": 2498.296875,
+            "bottom": 2530.296875
+          },
+          {
+            "left": 49,
+            "right": 172.453125,
+            "top": 2531.421875,
+            "bottom": 2563.421875
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 49,
+            "right": 223,
+            "top": 2498.296875,
+            "bottom": 2564.546875,
+            "width": 174,
+            "height": 66.25,
+            "overflow": "visible",
+            "class": "mkt-h3 font-semibold mb-2"
+          },
+          {
+            "left": 25,
+            "right": 247,
+            "top": 2418.296875,
+            "bottom": 2754.890625,
+            "width": 222,
+            "height": 336.59375,
+            "overflow": "visible",
+            "class": "p-6 pt-6"
+          },
+          {
+            "left": 24,
+            "right": 248,
+            "top": 2417.296875,
+            "bottom": 2808.671875,
+            "width": 224,
+            "height": 391.375,
+            "overflow": "visible",
+            "class": "rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md h-full"
+          },
+          {
+            "left": 24,
+            "right": 744,
+            "top": 2417.296875,
+            "bottom": 2808.671875,
+            "width": 720,
+            "height": 391.375,
+            "overflow": "visible",
+            "class": "grid md:grid-cols-3 gap-6 max-w-5xl mx-auto"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 25,
+            "right": 247,
+            "top": 2418.296875,
+            "bottom": 2754.890625,
+            "width": 222,
+            "height": 336.59375,
+            "overflow": "visible",
+            "class": "p-6 pt-6"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1024,
+    "lang": "fr",
+    "theme": "dark",
+    "candidates": [
+      {
+        "text": "Un push, un déploiement partout",
+        "client": 97,
+        "scroll": 152,
+        "element": {
+          "left": 65,
+          "right": 161.90625,
+          "top": 1148.328125,
+          "bottom": 1308.328125,
+          "width": 96.90625,
+          "height": 160,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 65,
+            "right": 98.921875,
+            "top": 1147.328125,
+            "bottom": 1180.328125
+          },
+          {
+            "left": 65,
+            "right": 130.5,
+            "top": 1179.328125,
+            "bottom": 1212.328125
+          },
+          {
+            "left": 65,
+            "right": 96.546875,
+            "top": 1211.328125,
+            "bottom": 1244.328125
+          },
+          {
+            "left": 65,
+            "right": 217.1875,
+            "top": 1243.328125,
+            "bottom": 1276.328125
+          },
+          {
+            "left": 65,
+            "right": 157.046875,
+            "top": 1275.328125,
+            "bottom": 1308.328125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 65,
+            "right": 161.90625,
+            "top": 1148.328125,
+            "bottom": 1308.328125,
+            "width": 96.90625,
+            "height": 160,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1078.328125,
+            "bottom": 1316.328125,
+            "width": 144.90625,
+            "height": 238,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 40,
+            "right": 186.90625,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 146.90625,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 488.71875,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1078.328125,
+            "bottom": 1316.328125,
+            "width": 144.90625,
+            "height": 238,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1316.328125,
+            "bottom": 1525.0625,
+            "width": 144.90625,
+            "height": 208.734375,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Workflows assistés par l’IA",
+        "client": 97,
+        "scroll": 127,
+        "element": {
+          "left": 235.90625,
+          "right": 332.8125,
+          "top": 1148.328125,
+          "bottom": 1244.328125,
+          "width": 96.90625,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 235.90625,
+            "right": 362.734375,
+            "top": 1147.328125,
+            "bottom": 1180.328125
+          },
+          {
+            "left": 235.90625,
+            "right": 330.046875,
+            "top": 1179.328125,
+            "bottom": 1212.328125
+          },
+          {
+            "left": 235.90625,
+            "right": 321.15625,
+            "top": 1211.328125,
+            "bottom": 1244.328125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 235.90625,
+            "right": 332.8125,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 96.90625,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 210.90625,
+            "right": 357.8125,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 146.90625,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 488.71875,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1252.328125,
+            "bottom": 1487.453125,
+            "width": 144.90625,
+            "height": 235.125,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Prêt pour l’entreprise",
+        "client": 97,
+        "scroll": 136,
+        "element": {
+          "left": 406.8125,
+          "right": 503.71875,
+          "top": 1148.328125,
+          "bottom": 1244.328125,
+          "width": 96.90625,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 406.8125,
+            "right": 456.90625,
+            "top": 1147.328125,
+            "bottom": 1180.328125
+          },
+          {
+            "left": 406.8125,
+            "right": 463.53125,
+            "top": 1179.328125,
+            "bottom": 1212.328125
+          },
+          {
+            "left": 406.8125,
+            "right": 542.390625,
+            "top": 1211.328125,
+            "bottom": 1244.328125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 406.8125,
+            "right": 503.71875,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 96.90625,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 381.8125,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 146.90625,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1526.0625,
+            "width": 488.71875,
+            "height": 448.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1078.328125,
+            "bottom": 1252.328125,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1252.328125,
+            "bottom": 1487.453125,
+            "width": 144.90625,
+            "height": 235.125,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Secondes",
+        "client": 150,
+        "scroll": 168,
+        "element": {
+          "left": 89,
+          "right": 239,
+          "top": 2721.203125,
+          "bottom": 2761.203125,
+          "width": 150,
+          "height": 40,
+          "overflow": "visible",
+          "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+        },
+        "textRects": [
+          {
+            "left": 89,
+            "right": 256.515625,
+            "top": 2716.203125,
+            "bottom": 2765.203125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 89,
+            "right": 239,
+            "top": 2721.203125,
+            "bottom": 2761.203125,
+            "width": 150,
+            "height": 40,
+            "overflow": "visible",
+            "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+          },
+          {
+            "left": 65,
+            "right": 263,
+            "top": 2697.203125,
+            "bottom": 2835.203125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          },
+          {
+            "left": 64,
+            "right": 264,
+            "top": 2696.203125,
+            "bottom": 2836.203125,
+            "width": 200,
+            "height": 140,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background"
+          },
+          {
+            "left": 64,
+            "right": 960,
+            "top": 2696.203125,
+            "bottom": 2836.203125,
+            "width": 896,
+            "height": 140,
+            "overflow": "visible",
+            "class": "mx-auto mt-12 grid max-w-4xl gap-8 sm:grid-cols-2 lg:grid-cols-4"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 65,
+            "right": 263,
+            "top": 2697.203125,
+            "bottom": 2835.203125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1440,
+    "lang": "fr",
+    "theme": "dark",
+    "candidates": [
+      {
+        "text": "Un push, un déploiement partout",
+        "client": 143,
+        "scroll": 152,
+        "element": {
+          "left": 145,
+          "right": 288.453125,
+          "top": 1074.09375,
+          "bottom": 1170.09375,
+          "width": 143.453125,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 145,
+            "right": 288.4375,
+            "top": 1073.09375,
+            "bottom": 1106.09375
+          },
+          {
+            "left": 145,
+            "right": 297.1875,
+            "top": 1105.09375,
+            "bottom": 1138.09375
+          },
+          {
+            "left": 145,
+            "right": 237.046875,
+            "top": 1137.09375,
+            "bottom": 1170.09375
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 145,
+            "right": 288.453125,
+            "top": 1074.09375,
+            "bottom": 1170.09375,
+            "width": 143.453125,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 121,
+            "right": 312.453125,
+            "top": 1004.09375,
+            "bottom": 1178.09375,
+            "width": 191.453125,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 120,
+            "right": 313.453125,
+            "top": 1003.09375,
+            "bottom": 1361.4375,
+            "width": 193.453125,
+            "height": 358.34375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 120,
+            "right": 748.359375,
+            "top": 1003.09375,
+            "bottom": 1361.4375,
+            "width": 628.359375,
+            "height": 358.34375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 121,
+            "right": 312.453125,
+            "top": 1004.09375,
+            "bottom": 1178.09375,
+            "width": 191.453125,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 121,
+            "right": 312.453125,
+            "top": 1178.09375,
+            "bottom": 1307.65625,
+            "width": 191.453125,
+            "height": 129.5625,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Secondes",
+        "client": 150,
+        "scroll": 168,
+        "element": {
+          "left": 297,
+          "right": 447,
+          "top": 2437.703125,
+          "bottom": 2477.703125,
+          "width": 150,
+          "height": 40,
+          "overflow": "visible",
+          "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+        },
+        "textRects": [
+          {
+            "left": 297,
+            "right": 464.515625,
+            "top": 2432.703125,
+            "bottom": 2481.703125
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 297,
+            "right": 447,
+            "top": 2437.703125,
+            "bottom": 2477.703125,
+            "width": 150,
+            "height": 40,
+            "overflow": "visible",
+            "class": "text-4xl font-semibold text-[var(--ecode-accent)]"
+          },
+          {
+            "left": 273,
+            "right": 471,
+            "top": 2413.703125,
+            "bottom": 2551.703125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          },
+          {
+            "left": 272,
+            "right": 472,
+            "top": 2412.703125,
+            "bottom": 2552.703125,
+            "width": 200,
+            "height": 140,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background"
+          },
+          {
+            "left": 272,
+            "right": 1168,
+            "top": 2412.703125,
+            "bottom": 2552.703125,
+            "width": 896,
+            "height": 140,
+            "overflow": "visible",
+            "class": "mx-auto mt-12 grid max-w-4xl gap-8 sm:grid-cols-2 lg:grid-cols-4"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 273,
+            "right": 471,
+            "top": 2413.703125,
+            "bottom": 2551.703125,
+            "width": 198,
+            "height": 138,
+            "overflow": "visible",
+            "class": "p-6 text-center"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/collaboration",
+    "width": 768,
+    "lang": "en",
+    "theme": "light",
+    "candidates": []
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1024,
+    "lang": "en",
+    "theme": "light",
+    "candidates": [
+      {
+        "text": "Push once, deploy everywhere",
+        "client": 97,
+        "scroll": 141,
+        "element": {
+          "left": 65,
+          "right": 161.90625,
+          "top": 1011.640625,
+          "bottom": 1139.640625,
+          "width": 96.90625,
+          "height": 128,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 65,
+            "right": 123.546875,
+            "top": 1010.640625,
+            "bottom": 1043.640625
+          },
+          {
+            "left": 65,
+            "right": 128.984375,
+            "top": 1042.640625,
+            "bottom": 1075.640625
+          },
+          {
+            "left": 65,
+            "right": 144.921875,
+            "top": 1074.640625,
+            "bottom": 1107.640625
+          },
+          {
+            "left": 65,
+            "right": 206.203125,
+            "top": 1106.640625,
+            "bottom": 1139.640625
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 65,
+            "right": 161.90625,
+            "top": 1011.640625,
+            "bottom": 1139.640625,
+            "width": 96.90625,
+            "height": 128,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 941.640625,
+            "bottom": 1147.640625,
+            "width": 144.90625,
+            "height": 206,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 40,
+            "right": 186.90625,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 146.90625,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 488.71875,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 941.640625,
+            "bottom": 1147.640625,
+            "width": 144.90625,
+            "height": 206,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1147.640625,
+            "bottom": 1356.375,
+            "width": 144.90625,
+            "height": 208.734375,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "AI-assisted workflows",
+        "client": 97,
+        "scroll": 125,
+        "element": {
+          "left": 235.90625,
+          "right": 332.8125,
+          "top": 1011.640625,
+          "bottom": 1107.640625,
+          "width": 96.90625,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 235.90625,
+            "right": 269.53125,
+            "top": 1010.640625,
+            "bottom": 1043.640625
+          },
+          {
+            "left": 235.90625,
+            "right": 333.3125,
+            "top": 1042.640625,
+            "bottom": 1075.640625
+          },
+          {
+            "left": 235.90625,
+            "right": 360.546875,
+            "top": 1074.640625,
+            "bottom": 1107.640625
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 235.90625,
+            "right": 332.8125,
+            "top": 1011.640625,
+            "bottom": 1107.640625,
+            "width": 96.90625,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 941.640625,
+            "bottom": 1115.640625,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 210.90625,
+            "right": 357.8125,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 146.90625,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 488.71875,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 941.640625,
+            "bottom": 1115.640625,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1115.640625,
+            "bottom": 1350.765625,
+            "width": 144.90625,
+            "height": 235.125,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Enterprise ready",
+        "client": 97,
+        "scroll": 124,
+        "element": {
+          "left": 406.8125,
+          "right": 503.71875,
+          "top": 1011.640625,
+          "bottom": 1075.640625,
+          "width": 96.90625,
+          "height": 64,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 406.8125,
+            "right": 531.046875,
+            "top": 1010.640625,
+            "bottom": 1043.640625
+          },
+          {
+            "left": 406.8125,
+            "right": 474.765625,
+            "top": 1042.640625,
+            "bottom": 1075.640625
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 406.8125,
+            "right": 503.71875,
+            "top": 1011.640625,
+            "bottom": 1075.640625,
+            "width": 96.90625,
+            "height": 64,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 941.640625,
+            "bottom": 1083.640625,
+            "width": 144.90625,
+            "height": 142,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 381.8125,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 146.90625,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 488.71875,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 941.640625,
+            "bottom": 1083.640625,
+            "width": 144.90625,
+            "height": 142,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1083.640625,
+            "bottom": 1292.375,
+            "width": 144.90625,
+            "height": 208.734375,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1440,
+    "lang": "en",
+    "theme": "light",
+    "candidates": []
+  },
+  {
+    "path": "/collaboration",
+    "width": 768,
+    "lang": "en",
+    "theme": "dark",
+    "candidates": []
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1024,
+    "lang": "en",
+    "theme": "dark",
+    "candidates": [
+      {
+        "text": "Push once, deploy everywhere",
+        "client": 97,
+        "scroll": 141,
+        "element": {
+          "left": 65,
+          "right": 161.90625,
+          "top": 1011.640625,
+          "bottom": 1139.640625,
+          "width": 96.90625,
+          "height": 128,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 65,
+            "right": 123.546875,
+            "top": 1010.640625,
+            "bottom": 1043.640625
+          },
+          {
+            "left": 65,
+            "right": 128.984375,
+            "top": 1042.640625,
+            "bottom": 1075.640625
+          },
+          {
+            "left": 65,
+            "right": 144.921875,
+            "top": 1074.640625,
+            "bottom": 1107.640625
+          },
+          {
+            "left": 65,
+            "right": 206.203125,
+            "top": 1106.640625,
+            "bottom": 1139.640625
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 65,
+            "right": 161.90625,
+            "top": 1011.640625,
+            "bottom": 1139.640625,
+            "width": 96.90625,
+            "height": 128,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 941.640625,
+            "bottom": 1147.640625,
+            "width": 144.90625,
+            "height": 206,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 40,
+            "right": 186.90625,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 146.90625,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 488.71875,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 941.640625,
+            "bottom": 1147.640625,
+            "width": 144.90625,
+            "height": 206,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 41,
+            "right": 185.90625,
+            "top": 1147.640625,
+            "bottom": 1356.375,
+            "width": 144.90625,
+            "height": 208.734375,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "AI-assisted workflows",
+        "client": 97,
+        "scroll": 125,
+        "element": {
+          "left": 235.90625,
+          "right": 332.8125,
+          "top": 1011.640625,
+          "bottom": 1107.640625,
+          "width": 96.90625,
+          "height": 96,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 235.90625,
+            "right": 269.53125,
+            "top": 1010.640625,
+            "bottom": 1043.640625
+          },
+          {
+            "left": 235.90625,
+            "right": 333.3125,
+            "top": 1042.640625,
+            "bottom": 1075.640625
+          },
+          {
+            "left": 235.90625,
+            "right": 360.546875,
+            "top": 1074.640625,
+            "bottom": 1107.640625
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 235.90625,
+            "right": 332.8125,
+            "top": 1011.640625,
+            "bottom": 1107.640625,
+            "width": 96.90625,
+            "height": 96,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 941.640625,
+            "bottom": 1115.640625,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 210.90625,
+            "right": 357.8125,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 146.90625,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 488.71875,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 941.640625,
+            "bottom": 1115.640625,
+            "width": 144.90625,
+            "height": 174,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 211.90625,
+            "right": 356.8125,
+            "top": 1115.640625,
+            "bottom": 1350.765625,
+            "width": 144.90625,
+            "height": 235.125,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      },
+      {
+        "text": "Enterprise ready",
+        "client": 97,
+        "scroll": 124,
+        "element": {
+          "left": 406.8125,
+          "right": 503.71875,
+          "top": 1011.640625,
+          "bottom": 1075.640625,
+          "width": 96.90625,
+          "height": 64,
+          "overflow": "visible",
+          "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+        },
+        "textRects": [
+          {
+            "left": 406.8125,
+            "right": 531.046875,
+            "top": 1010.640625,
+            "bottom": 1043.640625
+          },
+          {
+            "left": 406.8125,
+            "right": 474.765625,
+            "top": 1042.640625,
+            "bottom": 1075.640625
+          }
+        ],
+        "ancestors": [
+          {
+            "left": 406.8125,
+            "right": 503.71875,
+            "top": 1011.640625,
+            "bottom": 1075.640625,
+            "width": 96.90625,
+            "height": 64,
+            "overflow": "visible",
+            "class": "text-2xl leading-none tracking-tight mkt-h3 font-semibold"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 941.640625,
+            "bottom": 1083.640625,
+            "width": 144.90625,
+            "height": 142,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 381.8125,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 146.90625,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "rounded-lg border text-[var(--ecode-text)] shadow-sm transition-all duration-150 hover:shadow-md border-[var(--ecode-border)] bg-background/60 backdrop-blur"
+          },
+          {
+            "left": 40,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1357.375,
+            "width": 488.71875,
+            "height": 416.734375,
+            "overflow": "visible",
+            "class": "mt-12 grid gap-6 sm:grid-cols-3"
+          }
+        ],
+        "siblings": [
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 941.640625,
+            "bottom": 1083.640625,
+            "width": 144.90625,
+            "height": 142,
+            "overflow": "visible",
+            "class": "flex flex-col space-y-1.5 p-6 pb-2"
+          },
+          {
+            "left": 382.8125,
+            "right": 527.71875,
+            "top": 1083.640625,
+            "bottom": 1292.375,
+            "width": 144.90625,
+            "height": 208.734375,
+            "overflow": "visible",
+            "class": "p-6 pt-0 mkt-body text-muted-foreground"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/marketing/deployments",
+    "width": 1440,
+    "lang": "en",
+    "theme": "dark",
+    "candidates": []
+  }
+]

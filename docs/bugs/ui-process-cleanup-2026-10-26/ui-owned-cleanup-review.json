@@ -1,0 +1,79 @@
+[
+  {
+    "origin": "/tmp/ui-entry-next/server-origin.json",
+    "record": {
+      "pid": 177333,
+      "startTicks": "2532223",
+      "port": 12399,
+      "at": "2026-10-26T02:27:22Z",
+      "build": "safecontent existing UI975 plus merge main; no rebuild",
+      "apiProcess": 177332
+    },
+    "exists": true,
+    "actualStartTicks": "2532223",
+    "state": "S",
+    "cmd": "node ./node_modules/.bin/../@react-router/serve/bin.js ./build/server/index.js "
+  },
+  {
+    "origin": "/tmp/ui-entry-next/api-origin.json",
+    "record": {
+      "pid": 177332,
+      "startTicks": "2532223",
+      "port": 6499,
+      "at": "2026-10-26T02:27:22.200Z"
+    },
+    "exists": true,
+    "actualStartTicks": "2532223",
+    "state": "Z",
+    "cmd": ""
+  },
+  {
+    "origin": "/tmp/ui-priority-nativezoom/server-origin.json",
+    "record": {
+      "pid": 188380,
+      "startTicks": "2719948",
+      "port": 13599,
+      "at": "2026-10-26T02:58:39Z",
+      "build": "priority common existing build fbb678704; source frozen944592e18; no rebuild",
+      "apiProcess": 188379
+    },
+    "exists": true,
+    "actualStartTicks": "2719948",
+    "state": "S",
+    "cmd": "node ./node_modules/.bin/../@react-router/serve/bin.js ./build/server/index.js "
+  },
+  {
+    "origin": "/tmp/ui-priority-nativezoom/api-origin.json",
+    "record": {
+      "pid": 188379,
+      "startTicks": "2719947",
+      "port": 6799,
+      "startedAt": "2026-10-26T02:58:39.435Z",
+      "log": "/tmp/ui-priority-nativezoom/api.log"
+    },
+    "exists": true,
+    "actualStartTicks": "2719947",
+    "state": "Z",
+    "cmd": ""
+  },
+  {
+    "origin": "/workspace/vibecore-ui-safecontent/docs/bugs/ui-safe-content-2026-10-26/before/baseline-origin.json",
+    "record": {
+      "pid": 158383,
+      "startTicks": "1935728",
+      "port": 11299,
+      "cwd": "/workspace/vibecore-ui-coverage",
+      "log": "/tmp/ui-safecontent/baseline-server.log",
+      "api": "http://127.0.0.1:5499",
+      "build": "existing coverage build, no rebuild",
+      "args": [
+        "/workspace/vibecore-ui-coverage/node_modules/@react-router/serve/bin.js",
+        "/workspace/vibecore-ui-coverage/build/server/index.js"
+      ]
+    },
+    "exists": true,
+    "actualStartTicks": "1935728",
+    "state": "S",
+    "cmd": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node /workspace/vibecore-ui-coverage/node_modules/@react-router/serve/bin.js /workspace/vibecore-ui-coverage/build/server/index.js "
+  }
+]

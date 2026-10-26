@@ -1,0 +1,24 @@
+2026-10-26T05:03:44.4404736Z     Error: /blog/building-at-scale-how-we-handle-10m-requests (dark) contains 1 untranslated/raw French DOM entries:
+2026-10-26T05:03:44.4405744Z     forbidden-term: Utiliser des files d’attente pour les traitements longs @ section:nth-of-type(3) > article:nth-of-type(3) > ul > li:nth-of-type(3) > span
+2026-10-26T05:03:44.4409959Z     [31m+     "reason": "forbidden-term",[39m
+2026-10-26T05:03:44.4410783Z     [31m+     "text": "Utiliser des files d’attente pour les traitements longs",[39m
+2026-10-26T05:03:44.4413868Z     Error: /blog/building-at-scale-how-we-handle-10m-requests (light) contains 1 untranslated/raw French DOM entries:
+2026-10-26T05:03:44.4414490Z     forbidden-term: Utiliser des files d’attente pour les traitements longs @ section:nth-of-type(3) > article:nth-of-type(3) > ul > li:nth-of-type(3) > span
+2026-10-26T05:03:44.4416731Z     [31m+     "reason": "forbidden-term",[39m
+2026-10-26T05:03:44.4417215Z     [31m+     "text": "Utiliser des files d’attente pour les traitements longs",[39m
+2026-10-26T05:03:44.4420819Z     Error: /blog/building-at-scale-how-we-handle-10m-requests (dark) contains 1 untranslated/raw French DOM entries:
+2026-10-26T05:03:44.4421453Z     forbidden-term: Utiliser des files d’attente pour les traitements longs @ section:nth-of-type(3) > article:nth-of-type(3) > ul > li:nth-of-type(3) > span
+2026-10-26T05:03:44.4423939Z     [31m+     "reason": "forbidden-term",[39m
+2026-10-26T05:03:44.4424465Z     [31m+     "text": "Utiliser des files d’attente pour les traitements longs",[39m
+2026-10-26T05:03:44.4427115Z     Error: /blog/building-at-scale-how-we-handle-10m-requests (light) contains 1 untranslated/raw French DOM entries:
+2026-10-26T05:03:44.4427753Z     forbidden-term: Utiliser des files d’attente pour les traitements longs @ section:nth-of-type(3) > article:nth-of-type(3) > ul > li:nth-of-type(3) > span
+2026-10-26T05:03:44.4430162Z     [31m+     "reason": "forbidden-term",[39m
+2026-10-26T05:03:44.4430893Z     [31m+     "text": "Utiliser des files d’attente pour les traitements longs",[39m
+2026-10-26T05:03:44.4436715Z     Error: /blog/building-at-scale-how-we-handle-10m-requests (dark) contains 1 untranslated/raw French DOM entries:
+2026-10-26T05:03:44.4437367Z     forbidden-term: Utiliser des files d’attente pour les traitements longs @ section:nth-of-type(3) > article:nth-of-type(3) > ul > li:nth-of-type(3) > span
+2026-10-26T05:03:44.4439830Z     [31m+     "reason": "forbidden-term",[39m
+2026-10-26T05:03:44.4440364Z     [31m+     "text": "Utiliser des files d’attente pour les traitements longs",[39m
+2026-10-26T05:03:44.4443159Z     Error: /blog/building-at-scale-how-we-handle-10m-requests (light) contains 1 untranslated/raw French DOM entries:
+2026-10-26T05:03:44.4443805Z     forbidden-term: Utiliser des files d’attente pour les traitements longs @ section:nth-of-type(3) > article:nth-of-type(3) > ul > li:nth-of-type(3) > span
+2026-10-26T05:03:44.4446190Z     [31m+     "reason": "forbidden-term",[39m
+2026-10-26T05:03:44.4446951Z     [31m+     "text": "Utiliser des files d’attente pour les traitements longs",[39m

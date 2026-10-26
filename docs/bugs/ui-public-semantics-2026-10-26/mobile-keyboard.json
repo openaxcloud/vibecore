@@ -1,0 +1,122 @@
+[
+  {
+    "route": "/marketing/deployments",
+    "lang": "fr",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Parler à un expert",
+      "href": "/contact-sales"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Parler à un expert",
+      "href": "/contact-sales"
+    }
+  },
+  {
+    "route": "/marketing/teams",
+    "lang": "fr",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Collaborer gratuitement",
+      "href": "/register"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Collaborer gratuitement",
+      "href": "/register"
+    }
+  },
+  {
+    "route": "/bounties",
+    "lang": "fr",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Publier votre première mission",
+      "href": "/register"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Publier votre première mission",
+      "href": "/register"
+    }
+  },
+  {
+    "route": "/marketing/bounties",
+    "lang": "fr",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Publier votre première mission",
+      "href": "/register"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Publier votre première mission",
+      "href": "/register"
+    }
+  },
+  {
+    "route": "/marketing/deployments",
+    "lang": "en",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Talk to an expert",
+      "href": "/contact-sales"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Talk to an expert",
+      "href": "/contact-sales"
+    }
+  },
+  {
+    "route": "/marketing/teams",
+    "lang": "en",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Start Collaborating Free",
+      "href": "/register"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Start Collaborating Free",
+      "href": "/register"
+    }
+  },
+  {
+    "route": "/bounties",
+    "lang": "en",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Launch your first bounty",
+      "href": "/register"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Launch your first bounty",
+      "href": "/register"
+    }
+  },
+  {
+    "route": "/marketing/bounties",
+    "lang": "en",
+    "width": 320,
+    "before": {
+      "tag": "A",
+      "text": "Launch your first bounty",
+      "href": "/register"
+    },
+    "after": {
+      "tag": "BUTTON",
+      "text": "Launch your first bounty",
+      "href": "/register"
+    }
+  }
+]

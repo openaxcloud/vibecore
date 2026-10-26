@@ -1,0 +1,193 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "before": {
+        "box": {
+          "x": 19.658248901367188,
+          "y": 342.35076904296875,
+          "width": 280.63232421875,
+          "height": 237.02716064453125,
+          "top": 342.35076904296875,
+          "right": 300.2905731201172,
+          "bottom": 579.3779296875,
+          "left": 19.658248901367188
+        },
+        "viewport": {
+          "w": 320,
+          "h": 740
+        }
+      },
+      "after": {
+        "box": {
+          "x": 262,
+          "y": 269,
+          "width": 320,
+          "height": 243.25,
+          "top": 269,
+          "right": 582,
+          "bottom": 512.25,
+          "left": 262
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        },
+        "visibility": "hidden",
+        "opacity": "1"
+      },
+      "escapeClosed": true,
+      "focusRestored": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "path": "/blog/synthetic-no-article",
+      "status": 404,
+      "h1": "Cette page est introuvable"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "before": {
+        "box": {
+          "x": 19.658248901367188,
+          "y": 342.35076904296875,
+          "width": 280.63232421875,
+          "height": 237.02716064453125,
+          "top": 342.35076904296875,
+          "right": 300.2905731201172,
+          "bottom": 579.3779296875,
+          "left": 19.658248901367188
+        },
+        "viewport": {
+          "w": 320,
+          "h": 740
+        }
+      },
+      "after": {
+        "box": {
+          "x": 262,
+          "y": 269,
+          "width": 320,
+          "height": 243.25,
+          "top": 269,
+          "right": 582,
+          "bottom": 512.25,
+          "left": 262
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        },
+        "visibility": "hidden",
+        "opacity": "1"
+      },
+      "escapeClosed": true,
+      "focusRestored": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "path": "/blog/synthetic-no-article",
+      "status": 404,
+      "h1": "Cette page est introuvable"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "before": {
+        "box": {
+          "x": 20.721084594726562,
+          "y": 290.5397033691406,
+          "width": 278.4918212890625,
+          "height": 216.0003662109375,
+          "top": 290.5397033691406,
+          "right": 299.21290588378906,
+          "bottom": 506.5400695800781,
+          "left": 20.721084594726562
+        },
+        "viewport": {
+          "w": 320,
+          "h": 740
+        }
+      },
+      "after": {
+        "box": {
+          "x": 262,
+          "y": 289,
+          "width": 320,
+          "height": 223.375,
+          "top": 289,
+          "right": 582,
+          "bottom": 512.375,
+          "left": 262
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        },
+        "visibility": "hidden",
+        "opacity": "1"
+      },
+      "escapeClosed": true,
+      "focusRestored": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "path": "/blog/synthetic-no-article",
+      "status": 404,
+      "h1": "This page could not be found"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "before": {
+        "box": {
+          "x": 21.88031005859375,
+          "y": 292.3910217285156,
+          "width": 276.1571350097656,
+          "height": 214.1895751953125,
+          "top": 292.3910217285156,
+          "right": 298.0374450683594,
+          "bottom": 506.5805969238281,
+          "left": 21.88031005859375
+        },
+        "viewport": {
+          "w": 320,
+          "h": 740
+        }
+      },
+      "after": {
+        "box": {
+          "x": 262,
+          "y": 289,
+          "width": 320,
+          "height": 223.375,
+          "top": 289,
+          "right": 582,
+          "bottom": 512.375,
+          "left": 262
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        },
+        "visibility": "hidden",
+        "opacity": "1"
+      },
+      "escapeClosed": true,
+      "focusRestored": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "path": "/blog/synthetic-no-article",
+      "status": 404,
+      "h1": "This page could not be found"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,11 @@
+{
+  "routeIDs": 357,
+  "counts": {
+    "teste_local_partiel": 160,
+    "non_exerce": 37,
+    "hors_ui": 155,
+    "reserve": 5
+  },
+  "partialOnly": true,
+  "productionValidated": false
+}

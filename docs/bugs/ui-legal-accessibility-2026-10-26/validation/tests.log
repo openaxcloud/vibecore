@@ -1,0 +1,41 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-legal-next
+
+stderr | app/components/marketing/ecode-exact/pages/ReportAbuse.spec.tsx > ReportAbuse submit fallback > falls back to a client-side mailto when the server rejects without a fallbackMailto
+react-i18next:: useTranslation: You will need to pass in an i18next instance by using initReactI18next { code: 'NO_I18NEXT_INSTANCE' }
+
+ ✓ app/components/marketing/ecode-exact/pages/ReportAbuse.spec.tsx (5 tests) 143ms
+ ✓ app/lib/i18n/catalogs/marketing-exact-legal.spec.tsx (14 tests) 244ms
+stdout | app/routes/public-route-seo.i18n.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/routes/public-route-seo.i18n.spec.tsx > public route locale and SEO contracts > has zero direct scanner findings in every assigned route
+INFO Debug logger initialized
+
+ ✓ app/routes/public-route-seo.i18n.spec.tsx (8 tests) 243ms
+
+ Test Files  3 passed (3)
+      Tests  27 passed (27)
+   Start at  03:05:55
+   Duration  4.63s (transform 2.55s, setup 87ms, collect 3.28s, tests 631ms, environment 830ms, prepare 191ms)

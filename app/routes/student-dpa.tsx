@@ -4,6 +4,8 @@ import StudentDPA from '~/components/marketing/ecode-exact/pages/StudentDPA';
 import { buildPublicRouteMeta, getPublicRouteSeoCopy } from '~/lib/i18n/catalogs/public-route-seo';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
+export const handle = { serverRenderedMarketing: true };
+
 // In-repo SSR (main Remix app) rather than the prebuilt external marketing bundle.
 export function loader({ request }: LoaderFunctionArgs) {
   const locale = resolveRequestLocale(request);

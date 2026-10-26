@@ -1,0 +1,26 @@
+[
+  {
+    "pid": 198402,
+    "startTicks": "2867950",
+    "port": 13299,
+    "startedAt": "2026-10-26T03:23:19Z",
+    "cwd": "/workspace/vibecore-ui-public-admin",
+    "buildLabel": "common P2 head222495dda read-only",
+    "log": "/tmp/ui-admin-next/server.log",
+    "signal": "SIGTERM"
+  },
+  {
+    "pid": 198387,
+    "startTicks": "2867828",
+    "port": 6699,
+    "startedAt": "2026-10-26T03:23:18.233Z",
+    "log": "/tmp/ui-admin-next/api.log",
+    "signal": "SIGTERM"
+  },
+  {
+    "pid": 198402,
+    "startTicks": "2867950",
+    "signal": "SIGKILL",
+    "reason": "owned residual after SIGTERM"
+  }
+]

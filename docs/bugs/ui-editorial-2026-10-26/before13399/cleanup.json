@@ -1,0 +1,27 @@
+[
+  {
+    "pid": 192675,
+    "startTicks": "2778870",
+    "port": 13399,
+    "startedAt": "2026-10-26T03:08:28Z",
+    "cwd": "/workspace/vibecore-ui-priority",
+    "buildLabel": "priority fbb678704 compiled common build",
+    "log": "/tmp/ui-editorial-next/server.log",
+    "existed": true,
+    "signal": "SIGTERM",
+    "residualSignal": "SIGKILL",
+    "processState": "absent",
+    "portListening": false
+  },
+  {
+    "pid": 191379,
+    "startTicks": "2768555",
+    "port": 6799,
+    "startedAt": "2026-10-26T03:06:45.541Z",
+    "log": "/tmp/ui-editorial-next/api.log",
+    "existed": true,
+    "signal": "SIGTERM",
+    "processState": "absent",
+    "portListening": false
+  }
+]

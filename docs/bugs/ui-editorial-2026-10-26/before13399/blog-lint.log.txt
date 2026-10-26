@@ -1,0 +1,11 @@
+
+/workspace/vibecore-ui-editorial-next/app/routes/blog-routing.spec.tsx
+  11:1  error  Expected a block comment instead of consecutive line comments                                          multiline-comment-style
+  32:1  error  `./blog` import should occur before type import of `~/components/marketing/EcodeMarketingPages`        import/order
+  33:1  error  `./blog.$slug` import should occur before type import of `~/components/marketing/EcodeMarketingPages`  import/order
+  45:3  error  Expected blank line before this statement                                                              padding-line-between-statements
+  63:3  error  Expected newline before return statement                                                               @blitz/newline-before-return
+
+✖ 5 problems (5 errors, 0 warnings)
+  4 errors and 0 warnings potentially fixable with the `--fix` option.
+

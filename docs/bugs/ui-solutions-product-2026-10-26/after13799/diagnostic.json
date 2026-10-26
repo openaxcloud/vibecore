@@ -1,0 +1,21 @@
+{
+  "html": "<button class=\"inline-flex items-center justify-center text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 border bg-surface-solid hover:text-foreground rounded-md px-8 md:min-h-0 replit-button-press h-auto min-h-[44px] whitespace-normal border-[var(--ecode-border)] text-foreground hover:bg-[var(--ecode-surface-hover)]\" data-testid=\"button-explore-docs\">Consulter la documentation des déploiements</button>",
+  "box": {
+    "x": 221.84375,
+    "y": 633,
+    "width": 369.8125,
+    "height": 22,
+    "top": 633,
+    "right": 591.65625,
+    "bottom": 655,
+    "left": 221.84375
+  },
+  "style": {
+    "height": "22px",
+    "minHeight": "0px",
+    "padding": "0px 32px",
+    "lineHeight": "20px",
+    "fontSize": "14px"
+  },
+  "matches": []
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "kind": "api",
+    "pid": 209903,
+    "startTicks": "3169519",
+    "args": [
+      "/tmp/ui-public-semantics/fixture.cjs"
+    ],
+    "cwd": "/workspace/vibecore-ui-public-admin"
+  },
+  {
+    "kind": "app",
+    "pid": 209904,
+    "startTicks": "3169519",
+    "args": [
+      "--require",
+      "/tmp/ui-public-semantics/fetch-guard.cjs",
+      "/workspace/vibecore-ui-public-admin/node_modules/@react-router/serve/bin.js",
+      "./build/server/index.js"
+    ],
+    "cwd": "/workspace/vibecore-ui-public-admin"
+  }
+]

@@ -1,0 +1,140 @@
+/admin fr light 320 Admin overview 320
+/admin/overview fr light 320 Vue d’ensemble de l’administration 320
+/admin/users fr light 320 Utilisateurs 320
+/admin/billing fr light 320 Administration de la facturation 320
+/admin/oauth-providers fr light 320 Fournisseurs OAuth 320
+/admin/stripe fr light 320 Configuration Stripe 682
+/admin/wallets fr light 320 Portefeuilles de crédits 320
+/admin fr light 390 Admin overview 390
+/admin/overview fr light 390 Vue d’ensemble de l’administration 390
+/admin/users fr light 390 Utilisateurs 390
+/admin/billing fr light 390 Administration de la facturation 390
+/admin/oauth-providers fr light 390 Fournisseurs OAuth 390
+/admin/stripe fr light 390 Configuration Stripe 682
+/admin/wallets fr light 390 Portefeuilles de crédits 390
+/admin fr light 844 Admin overview 844
+/admin/overview fr light 844 Vue d’ensemble de l’administration 844
+/admin/users fr light 844 Utilisateurs 844
+/admin/billing fr light 844 Administration de la facturation 844
+/admin/oauth-providers fr light 844 Fournisseurs OAuth 844
+/admin/stripe fr light 844 Configuration Stripe 844
+/admin/wallets fr light 844 Portefeuilles de crédits 844
+/admin fr light 820 Admin overview 820
+/admin/overview fr light 820 Vue d’ensemble de l’administration 820
+/admin/users fr light 820 Utilisateurs 820
+/admin/billing fr light 820 Administration de la facturation 820
+/admin/oauth-providers fr light 820 Fournisseurs OAuth 820
+/admin/stripe fr light 820 Configuration Stripe 820
+/admin/wallets fr light 820 Portefeuilles de crédits 820
+/admin fr light 1440 Admin overview 1440
+/admin/overview fr light 1440 Vue d’ensemble de l’administration 1440
+/admin/users fr light 1440 Utilisateurs 1440
+/admin/billing fr light 1440 Administration de la facturation 1440
+/admin/oauth-providers fr light 1440 Fournisseurs OAuth 1440
+/admin/stripe fr light 1440 Configuration Stripe 1440
+/admin/wallets fr light 1440 Portefeuilles de crédits 1440
+/admin fr dark 320 Admin overview 320
+/admin/overview fr dark 320 Vue d’ensemble de l’administration 320
+/admin/users fr dark 320 Utilisateurs 320
+/admin/billing fr dark 320 Administration de la facturation 320
+/admin/oauth-providers fr dark 320 Fournisseurs OAuth 320
+/admin/stripe fr dark 320 Configuration Stripe 682
+/admin/wallets fr dark 320 Portefeuilles de crédits 320
+/admin fr dark 390 Admin overview 390
+/admin/overview fr dark 390 Vue d’ensemble de l’administration 390
+/admin/users fr dark 390 Utilisateurs 390
+/admin/billing fr dark 390 Administration de la facturation 390
+/admin/oauth-providers fr dark 390 Fournisseurs OAuth 390
+/admin/stripe fr dark 390 Configuration Stripe 682
+/admin/wallets fr dark 390 Portefeuilles de crédits 390
+/admin fr dark 844 Admin overview 844
+/admin/overview fr dark 844 Vue d’ensemble de l’administration 844
+/admin/users fr dark 844 Utilisateurs 844
+/admin/billing fr dark 844 Administration de la facturation 844
+/admin/oauth-providers fr dark 844 Fournisseurs OAuth 844
+/admin/stripe fr dark 844 Configuration Stripe 844
+/admin/wallets fr dark 844 Portefeuilles de crédits 844
+/admin fr dark 820 Admin overview 820
+/admin/overview fr dark 820 Vue d’ensemble de l’administration 820
+/admin/users fr dark 820 Utilisateurs 820
+/admin/billing fr dark 820 Administration de la facturation 820
+/admin/oauth-providers fr dark 820 Fournisseurs OAuth 820
+/admin/stripe fr dark 820 Configuration Stripe 820
+/admin/wallets fr dark 820 Portefeuilles de crédits 820
+/admin fr dark 1440 Admin overview 1440
+/admin/overview fr dark 1440 Vue d’ensemble de l’administration 1440
+/admin/users fr dark 1440 Utilisateurs 1440
+/admin/billing fr dark 1440 Administration de la facturation 1440
+/admin/oauth-providers fr dark 1440 Fournisseurs OAuth 1440
+/admin/stripe fr dark 1440 Configuration Stripe 1440
+/admin/wallets fr dark 1440 Portefeuilles de crédits 1440
+/admin en light 320 Admin overview 320
+/admin/overview en light 320 Admin overview 320
+/admin/users en light 320 Users 320
+/admin/billing en light 320 Billing administration 320
+/admin/oauth-providers en light 320 OAuth providers 320
+/admin/stripe en light 320 Stripe configuration 682
+/admin/wallets en light 320 Credit wallets 320
+/admin en light 390 Admin overview 390
+/admin/overview en light 390 Admin overview 390
+/admin/users en light 390 Users 390
+/admin/billing en light 390 Billing administration 390
+/admin/oauth-providers en light 390 OAuth providers 390
+/admin/stripe en light 390 Stripe configuration 682
+/admin/wallets en light 390 Credit wallets 390
+/admin en light 844 Admin overview 844
+/admin/overview en light 844 Admin overview 844
+/admin/users en light 844 Users 844
+/admin/billing en light 844 Billing administration 844
+/admin/oauth-providers en light 844 OAuth providers 844
+/admin/stripe en light 844 Stripe configuration 844
+/admin/wallets en light 844 Credit wallets 844
+/admin en light 820 Admin overview 820
+/admin/overview en light 820 Admin overview 820
+/admin/users en light 820 Users 820
+/admin/billing en light 820 Billing administration 820
+/admin/oauth-providers en light 820 OAuth providers 820
+/admin/stripe en light 820 Stripe configuration 820
+/admin/wallets en light 820 Credit wallets 820
+/admin en light 1440 Admin overview 1440
+/admin/overview en light 1440 Admin overview 1440
+/admin/users en light 1440 Users 1440
+/admin/billing en light 1440 Billing administration 1440
+/admin/oauth-providers en light 1440 OAuth providers 1440
+/admin/stripe en light 1440 Stripe configuration 1440
+/admin/wallets en light 1440 Credit wallets 1440
+/admin en dark 320 Admin overview 320
+/admin/overview en dark 320 Admin overview 320
+/admin/users en dark 320 Users 320
+/admin/billing en dark 320 Billing administration 320
+/admin/oauth-providers en dark 320 OAuth providers 320
+/admin/stripe en dark 320 Stripe configuration 682
+/admin/wallets en dark 320 Credit wallets 320
+/admin en dark 390 Admin overview 390
+/admin/overview en dark 390 Admin overview 390
+/admin/users en dark 390 Users 390
+/admin/billing en dark 390 Billing administration 390
+/admin/oauth-providers en dark 390 OAuth providers 390
+/admin/stripe en dark 390 Stripe configuration 682
+/admin/wallets en dark 390 Credit wallets 390
+/admin en dark 844 Admin overview 844
+/admin/overview en dark 844 Admin overview 844
+/admin/users en dark 844 Users 844
+/admin/billing en dark 844 Billing administration 844
+/admin/oauth-providers en dark 844 OAuth providers 844
+/admin/stripe en dark 844 Stripe configuration 844
+/admin/wallets en dark 844 Credit wallets 844
+/admin en dark 820 Admin overview 820
+/admin/overview en dark 820 Admin overview 820
+/admin/users en dark 820 Users 820
+/admin/billing en dark 820 Billing administration 820
+/admin/oauth-providers en dark 820 OAuth providers 820
+/admin/stripe en dark 820 Stripe configuration 820
+/admin/wallets en dark 820 Credit wallets 820
+/admin en dark 1440 Admin overview 1440
+/admin/overview en dark 1440 Admin overview 1440
+/admin/users en dark 1440 Users 1440
+/admin/billing en dark 1440 Billing administration 1440
+/admin/oauth-providers en dark 1440 OAuth providers 1440
+/admin/stripe en dark 1440 Stripe configuration 1440
+/admin/wallets en dark 1440 Credit wallets 1440

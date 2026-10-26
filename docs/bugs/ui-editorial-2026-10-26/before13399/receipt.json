@@ -1,0 +1,5291 @@
+{
+  "base": "http://127.0.0.1:13399",
+  "build": "Existing priority fbb678704 compiled build; editorial source compared separately",
+  "routeIDs": 15,
+  "concreteURLs": 15,
+  "observations": [
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=fr",
+      "title": "À propos — E-Code",
+      "headings": [
+        "Construire l’avenir de la création logicielle"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=fr",
+      "title": "Blog — E-Code",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "headings": [
+        "Le blog E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=fr",
+      "title": "Carrières — E-Code",
+      "headings": [
+        "Construisez l’avenir avec nous"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=fr",
+      "title": "Cas d’usage — E-Code",
+      "headings": [
+        "Du prompt à l’application déployée"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=fr",
+      "title": "Journal des modifications — E-Code",
+      "headings": [
+        "Journal des modifications"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=fr",
+      "title": "Comparer les plateformes de développement assisté par IA — E-Code",
+      "headings": [
+        "Comparez E-Code aux autres plateformes"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=fr",
+      "title": "E-Code face à GitHub Codespaces — Comparatif",
+      "headings": [
+        "E-Code face à GitHub Codespaces"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=fr",
+      "title": "Partenaires — E-Code",
+      "headings": [
+        "Devenez partenaire E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=fr",
+      "title": "Presse — E-Code",
+      "headings": [
+        "Presse et médias"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=fr",
+      "title": "État du système — E-Code",
+      "headings": [
+        "État de la plateforme"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=fr",
+      "title": "Newsletter E-Code - E-Code",
+      "headings": [
+        "Newsletter E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=fr",
+      "title": "Newsletter confirmée - E-Code",
+      "headings": [
+        "Newsletter confirmée"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=fr",
+      "title": "Confirmer l’abonnement à la newsletter - E-Code",
+      "headings": [
+        "Confirmer l’abonnement à la newsletter"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=fr",
+      "title": "Préférences d’e-mail - E-Code",
+      "headings": [
+        "Préférences d’e-mail"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/about",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/about?lang=en",
+      "title": "About — E-Code",
+      "headings": [
+        "Building the future of software creation"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog?lang=en",
+      "title": "Blog — E-Code",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/blog/introducing-e-code",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "headings": [
+        "The E-Code blog"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/careers",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/careers?lang=en",
+      "title": "Careers — E-Code",
+      "headings": [
+        "Build the future with us"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/case-studies",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/case-studies?lang=en",
+      "title": "Case Studies — E-Code",
+      "headings": [
+        "From a prompt to a deployed app"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/changelog",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/changelog?lang=en",
+      "title": "Changelog — E-Code",
+      "headings": [
+        "Changelog"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare?lang=en",
+      "title": "Compare AI Development Platforms — E-Code",
+      "headings": [
+        "How E-Code compares"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/compare/github-codespaces",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/compare/github-codespaces?lang=en",
+      "title": "E-Code vs GitHub Codespaces — Comparison",
+      "headings": [
+        "E-Code vs GitHub Codespaces"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/partners",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/partners/?lang=en",
+      "title": "Partners — E-Code",
+      "headings": [
+        "Partner with E-Code"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/press",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/press?lang=en",
+      "title": "Press — E-Code",
+      "headings": [
+        "Press & Media"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/status",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/status?lang=en",
+      "title": "System Status — E-Code",
+      "headings": [
+        "Platform status"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter?lang=en",
+      "title": "E-Code Newsletter - E-Code",
+      "headings": [
+        "E-Code Newsletter"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter-confirmed",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter-confirmed?lang=en",
+      "title": "Newsletter confirmed - E-Code",
+      "headings": [
+        "Newsletter confirmed"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/confirm",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/confirm?lang=en",
+      "title": "Confirm newsletter subscription - E-Code",
+      "headings": [
+        "Confirm newsletter subscription"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 320,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 390,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 844,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 820,
+      "overflows": [],
+      "inputs": []
+    },
+    {
+      "path": "/newsletter/unsubscribe",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13399/newsletter/unsubscribe?lang=en",
+      "title": "Email preferences - E-Code",
+      "headings": [
+        "Email preferences"
+      ],
+      "docWidth": 1440,
+      "overflows": [],
+      "inputs": []
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}

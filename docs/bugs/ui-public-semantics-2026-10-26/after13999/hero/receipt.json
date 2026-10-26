@@ -1,0 +1,7425 @@
+{
+  "status": "completed",
+  "base": "http://127.0.0.1:13999",
+  "sourceHead": "cc5574d67ec1b37809fb7bbdfaa7519ac163cc38",
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "left": 24,
+        "right": 296,
+        "top": 950.125,
+        "bottom": 1707.640625,
+        "width": 272,
+        "height": 757.515625,
+        "columns": "272px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1021.125,
+            "bottom": 1085.125,
+            "width": 222,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 950.125,
+            "bottom": 1197.296875,
+            "width": 272,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 168.53125,
+              "top": 1023.125,
+              "bottom": 1050.125
+            },
+            {
+              "left": 49,
+              "right": 257.734375,
+              "top": 1055.125,
+              "bottom": 1082.125
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1292.296875,
+            "bottom": 1356.296875,
+            "width": 222,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1221.296875,
+            "bottom": 1468.46875,
+            "width": 272,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 238.328125,
+              "top": 1294.296875,
+              "bottom": 1321.296875
+            },
+            {
+              "left": 49,
+              "right": 120.046875,
+              "top": 1326.296875,
+              "bottom": 1353.296875
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1563.46875,
+            "bottom": 1595.46875,
+            "width": 222,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1492.46875,
+            "bottom": 1707.640625,
+            "width": 272,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 261.390625,
+              "top": 1565.46875,
+              "bottom": 1592.46875
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 858.125,
+          "bottom": 902.125,
+          "width": 272,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 240.21875,
+            "top": 860.125,
+            "bottom": 879.125
+          },
+          {
+            "left": 57,
+            "right": 173.96875,
+            "top": 880.125,
+            "bottom": 899.125
+          }
+        ],
+        "client": 270,
+        "scroll": 270,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 360,
+      "viewport": 360,
+      "grid": {
+        "left": 24,
+        "right": 336,
+        "top": 924.359375,
+        "bottom": 1681.875,
+        "width": 312,
+        "height": 757.515625,
+        "columns": "312px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 995.359375,
+            "bottom": 1059.359375,
+            "width": 262,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 924.359375,
+            "bottom": 1171.53125,
+            "width": 312,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 300.546875,
+              "top": 997.359375,
+              "bottom": 1024.359375
+            },
+            {
+              "left": 49,
+              "right": 125.703125,
+              "top": 1029.359375,
+              "bottom": 1056.359375
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1266.53125,
+            "bottom": 1330.53125,
+            "width": 262,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1195.53125,
+            "bottom": 1442.703125,
+            "width": 312,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 277.34375,
+              "top": 1268.53125,
+              "bottom": 1295.53125
+            },
+            {
+              "left": 49,
+              "right": 81.03125,
+              "top": 1300.53125,
+              "bottom": 1327.53125
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1537.703125,
+            "bottom": 1569.703125,
+            "width": 262,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1466.703125,
+            "bottom": 1681.875,
+            "width": 312,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 261.390625,
+              "top": 1539.703125,
+              "bottom": 1566.703125
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 24,
+          "right": 336,
+          "top": 832.359375,
+          "bottom": 876.359375,
+          "width": 312,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 267.0625,
+            "top": 834.359375,
+            "bottom": 853.359375
+          },
+          {
+            "left": 57,
+            "right": 147.109375,
+            "top": 854.359375,
+            "bottom": 873.359375
+          }
+        ],
+        "client": 310,
+        "scroll": 310,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 390,
+      "viewport": 390,
+      "grid": {
+        "left": 24,
+        "right": 366,
+        "top": 855.84375,
+        "bottom": 1528.578125,
+        "width": 342,
+        "height": 672.734375,
+        "columns": "342px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 926.84375,
+            "bottom": 990.84375,
+            "width": 292,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 855.84375,
+            "bottom": 1076.625,
+            "width": 342,
+            "height": 220.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 301.921875,
+              "top": 928.84375,
+              "bottom": 955.84375
+            },
+            {
+              "left": 49,
+              "right": 126.125,
+              "top": 960.84375,
+              "bottom": 987.84375
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1171.625,
+            "bottom": 1203.625,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1100.625,
+            "bottom": 1315.796875,
+            "width": 342,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 316.015625,
+              "top": 1173.625,
+              "bottom": 1200.625
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1410.796875,
+            "bottom": 1442.796875,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1339.796875,
+            "bottom": 1528.578125,
+            "width": 342,
+            "height": 188.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 262.546875,
+              "top": 1412.796875,
+              "bottom": 1439.796875
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 24,
+          "right": 366,
+          "top": 763.84375,
+          "bottom": 807.84375,
+          "width": 342,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 267.0625,
+            "top": 765.84375,
+            "bottom": 784.84375
+          },
+          {
+            "left": 57,
+            "right": 147.109375,
+            "top": 785.84375,
+            "bottom": 804.84375
+          }
+        ],
+        "client": 340,
+        "scroll": 340,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 844,
+      "viewport": 844,
+      "grid": {
+        "left": 24,
+        "right": 820,
+        "top": 725,
+        "bottom": 1004.171875,
+        "width": 796,
+        "height": 279.171875,
+        "columns": "249.328px 249.328px 249.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 248.328125,
+            "top": 796,
+            "bottom": 892,
+            "width": 199.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 273.328125,
+            "top": 725,
+            "bottom": 1004.171875,
+            "width": 249.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 192.25,
+              "top": 795,
+              "bottom": 828
+            },
+            {
+              "left": 49,
+              "right": 201,
+              "top": 827,
+              "bottom": 860
+            },
+            {
+              "left": 49,
+              "right": 140.921875,
+              "top": 859,
+              "bottom": 892
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 322.328125,
+            "right": 521.65625,
+            "top": 796,
+            "bottom": 860,
+            "width": 199.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 297.328125,
+            "right": 546.65625,
+            "top": 725,
+            "bottom": 1004.171875,
+            "width": 249.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 322.328125,
+              "right": 448.984375,
+              "top": 795,
+              "bottom": 828
+            },
+            {
+              "left": 322.328125,
+              "right": 507.703125,
+              "top": 827,
+              "bottom": 860
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 595.65625,
+            "right": 794.984375,
+            "top": 796,
+            "bottom": 860,
+            "width": 199.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 570.65625,
+            "right": 819.984375,
+            "top": 725,
+            "bottom": 1004.171875,
+            "width": 249.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 595.65625,
+              "right": 708.5625,
+              "top": 795,
+              "bottom": 828
+            },
+            {
+              "left": 595.65625,
+              "right": 731.0625,
+              "top": 827,
+              "bottom": 860
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 221.84375,
+          "right": 591.65625,
+          "top": 633,
+          "bottom": 677,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 254.84375,
+            "right": 558.65625,
+            "top": 645,
+            "bottom": 664
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "left": 24,
+        "right": 744,
+        "top": 712.03125,
+        "bottom": 1043.984375,
+        "width": 720,
+        "height": 331.953125,
+        "columns": "224px 224px 224px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 223,
+            "top": 783.03125,
+            "bottom": 879.03125,
+            "width": 174,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 248,
+            "top": 712.03125,
+            "bottom": 1043.984375,
+            "width": 224,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 188.328125,
+              "top": 783.03125,
+              "bottom": 815.03125
+            },
+            {
+              "left": 49,
+              "right": 196.828125,
+              "top": 815.03125,
+              "bottom": 847.03125
+            },
+            {
+              "left": 49,
+              "right": 138.40625,
+              "top": 847.03125,
+              "bottom": 879.03125
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 297,
+            "right": 471,
+            "top": 783.03125,
+            "bottom": 879.03125,
+            "width": 174,
+            "height": 96
+          },
+          "card": {
+            "left": 272,
+            "right": 496,
+            "top": 712.03125,
+            "bottom": 1043.984375,
+            "width": 224,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 297,
+              "right": 420.1875,
+              "top": 783.03125,
+              "bottom": 815.03125
+            },
+            {
+              "left": 297,
+              "right": 433.921875,
+              "top": 815.03125,
+              "bottom": 847.03125
+            },
+            {
+              "left": 297,
+              "right": 334.328125,
+              "top": 847.03125,
+              "bottom": 879.03125
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 545,
+            "right": 719,
+            "top": 783.03125,
+            "bottom": 847.03125,
+            "width": 174,
+            "height": 64
+          },
+          "card": {
+            "left": 520,
+            "right": 744,
+            "top": 712.03125,
+            "bottom": 1043.984375,
+            "width": 224,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 545,
+              "right": 654.8125,
+              "top": 783.03125,
+              "bottom": 815.03125
+            },
+            {
+              "left": 545,
+              "right": 676.703125,
+              "top": 815.03125,
+              "bottom": 847.03125
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 221.84375,
+          "right": 591.65625,
+          "top": 620.03125,
+          "bottom": 664.03125,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 254.84375,
+            "right": 558.65625,
+            "top": 632.03125,
+            "bottom": 651.03125
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 820,
+      "viewport": 820,
+      "grid": {
+        "left": 24,
+        "right": 796,
+        "top": 720.78125,
+        "bottom": 999.953125,
+        "width": 772,
+        "height": 279.171875,
+        "columns": "241.328px 241.328px 241.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 240.328125,
+            "top": 791.78125,
+            "bottom": 887.78125,
+            "width": 191.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 265.328125,
+            "top": 720.78125,
+            "bottom": 999.953125,
+            "width": 241.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 191.03125,
+              "top": 791.78125,
+              "bottom": 823.78125
+            },
+            {
+              "left": 49,
+              "right": 199.703125,
+              "top": 823.78125,
+              "bottom": 855.78125
+            },
+            {
+              "left": 49,
+              "right": 140.15625,
+              "top": 855.78125,
+              "bottom": 887.78125
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 314.328125,
+            "right": 505.65625,
+            "top": 791.78125,
+            "bottom": 855.78125,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 289.328125,
+            "right": 530.65625,
+            "top": 720.78125,
+            "bottom": 999.953125,
+            "width": 241.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 314.328125,
+              "right": 439.90625,
+              "top": 791.78125,
+              "bottom": 823.78125
+            },
+            {
+              "left": 314.328125,
+              "right": 498.140625,
+              "top": 823.78125,
+              "bottom": 855.78125
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 579.65625,
+            "right": 770.984375,
+            "top": 791.78125,
+            "bottom": 855.78125,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 554.65625,
+            "right": 795.984375,
+            "top": 720.78125,
+            "bottom": 999.953125,
+            "width": 241.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 579.65625,
+              "right": 691.59375,
+              "top": 791.78125,
+              "bottom": 823.78125
+            },
+            {
+              "left": 579.65625,
+              "right": 713.921875,
+              "top": 823.78125,
+              "bottom": 855.78125
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 221.84375,
+          "right": 591.65625,
+          "top": 628.78125,
+          "bottom": 672.78125,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 254.84375,
+            "right": 558.65625,
+            "top": 640.78125,
+            "bottom": 659.78125
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "left": 40,
+        "right": 528.71875,
+        "top": 1077.328125,
+        "bottom": 1706.84375,
+        "width": 488.71875,
+        "height": 629.515625,
+        "columns": "232.359px 232.359px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 182.359375,
+            "height": 96
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 1077.328125,
+            "bottom": 1409.28125,
+            "width": 232.359375,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 208.4375,
+              "top": 1147.328125,
+              "bottom": 1180.328125
+            },
+            {
+              "left": 65,
+              "right": 217.1875,
+              "top": 1179.328125,
+              "bottom": 1212.328125
+            },
+            {
+              "left": 65,
+              "right": 157.046875,
+              "top": 1211.328125,
+              "bottom": 1244.328125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 321.359375,
+            "right": 503.71875,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 182.359375,
+            "height": 96
+          },
+          "card": {
+            "left": 296.359375,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1409.28125,
+            "width": 232.359375,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 321.359375,
+              "right": 448.1875,
+              "top": 1147.328125,
+              "bottom": 1180.328125
+            },
+            {
+              "left": 321.359375,
+              "right": 462.3125,
+              "top": 1179.328125,
+              "bottom": 1212.328125
+            },
+            {
+              "left": 321.359375,
+              "right": 359.796875,
+              "top": 1211.328125,
+              "bottom": 1244.328125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1504.28125,
+            "bottom": 1568.28125,
+            "width": 182.359375,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 1433.28125,
+            "bottom": 1706.84375,
+            "width": 232.359375,
+            "height": 273.5625
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 178.046875,
+              "top": 1503.28125,
+              "bottom": 1536.28125
+            },
+            {
+              "left": 65,
+              "right": 200.578125,
+              "top": 1535.28125,
+              "bottom": 1568.28125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 40,
+          "right": 409.8125,
+          "top": 985.328125,
+          "bottom": 1029.328125,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 73,
+            "right": 376.8125,
+            "top": 997.328125,
+            "bottom": 1016.328125
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "left": 40,
+        "right": 668.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 208.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 65,
+              "right": 315.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 391.171875,
+            "right": 643.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 366.171875,
+            "right": 668.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 391.171875,
+              "right": 618.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 391.171875,
+              "right": 476.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 178.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 65,
+              "right": 200.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 237.84375,
+          "right": 607.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 270.84375,
+            "right": 574.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "left": 120,
+        "right": 748.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 288.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 145,
+              "right": 395.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 471.171875,
+            "right": 723.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 446.171875,
+            "right": 748.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 471.171875,
+              "right": 698.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 471.171875,
+              "right": 556.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 258.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 145,
+              "right": 280.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 317.84375,
+          "right": 687.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 350.84375,
+            "right": 654.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "left": 360,
+        "right": 988.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 528.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 385,
+              "right": 635.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 711.171875,
+            "right": 963.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 686.171875,
+            "right": 988.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 711.171875,
+              "right": 938.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 711.171875,
+              "right": 796.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 498.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 385,
+              "right": 520.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 557.84375,
+          "right": 927.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 590.84375,
+            "right": 894.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 2560,
+      "viewport": 2560,
+      "grid": {
+        "left": 680,
+        "right": 1308.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 848.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 705,
+              "right": 955.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 1031.171875,
+            "right": 1283.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 1006.171875,
+            "right": 1308.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 1031.171875,
+              "right": 1258.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 1031.171875,
+              "right": 1116.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 818.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 705,
+              "right": 840.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 877.84375,
+          "right": 1247.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 910.84375,
+            "right": 1214.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "left": 24,
+        "right": 296,
+        "top": 950.125,
+        "bottom": 1707.640625,
+        "width": 272,
+        "height": 757.515625,
+        "columns": "272px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1021.125,
+            "bottom": 1085.125,
+            "width": 222,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 950.125,
+            "bottom": 1197.296875,
+            "width": 272,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 168.53125,
+              "top": 1023.125,
+              "bottom": 1050.125
+            },
+            {
+              "left": 49,
+              "right": 257.734375,
+              "top": 1055.125,
+              "bottom": 1082.125
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1292.296875,
+            "bottom": 1356.296875,
+            "width": 222,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1221.296875,
+            "bottom": 1468.46875,
+            "width": 272,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 238.328125,
+              "top": 1294.296875,
+              "bottom": 1321.296875
+            },
+            {
+              "left": 49,
+              "right": 120.046875,
+              "top": 1326.296875,
+              "bottom": 1353.296875
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1563.46875,
+            "bottom": 1595.46875,
+            "width": 222,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1492.46875,
+            "bottom": 1707.640625,
+            "width": 272,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 261.390625,
+              "top": 1565.46875,
+              "bottom": 1592.46875
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 858.125,
+          "bottom": 902.125,
+          "width": 272,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 240.21875,
+            "top": 860.125,
+            "bottom": 879.125
+          },
+          {
+            "left": 57,
+            "right": 173.96875,
+            "top": 880.125,
+            "bottom": 899.125
+          }
+        ],
+        "client": 270,
+        "scroll": 270,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 360,
+      "viewport": 360,
+      "grid": {
+        "left": 24,
+        "right": 336,
+        "top": 924.359375,
+        "bottom": 1681.875,
+        "width": 312,
+        "height": 757.515625,
+        "columns": "312px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 995.359375,
+            "bottom": 1059.359375,
+            "width": 262,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 924.359375,
+            "bottom": 1171.53125,
+            "width": 312,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 300.546875,
+              "top": 997.359375,
+              "bottom": 1024.359375
+            },
+            {
+              "left": 49,
+              "right": 125.703125,
+              "top": 1029.359375,
+              "bottom": 1056.359375
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1266.53125,
+            "bottom": 1330.53125,
+            "width": 262,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1195.53125,
+            "bottom": 1442.703125,
+            "width": 312,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 277.34375,
+              "top": 1268.53125,
+              "bottom": 1295.53125
+            },
+            {
+              "left": 49,
+              "right": 81.03125,
+              "top": 1300.53125,
+              "bottom": 1327.53125
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1537.703125,
+            "bottom": 1569.703125,
+            "width": 262,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1466.703125,
+            "bottom": 1681.875,
+            "width": 312,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 261.390625,
+              "top": 1539.703125,
+              "bottom": 1566.703125
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 24,
+          "right": 336,
+          "top": 832.359375,
+          "bottom": 876.359375,
+          "width": 312,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 267.0625,
+            "top": 834.359375,
+            "bottom": 853.359375
+          },
+          {
+            "left": 57,
+            "right": 147.109375,
+            "top": 854.359375,
+            "bottom": 873.359375
+          }
+        ],
+        "client": 310,
+        "scroll": 310,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 390,
+      "viewport": 390,
+      "grid": {
+        "left": 24,
+        "right": 366,
+        "top": 855.84375,
+        "bottom": 1528.578125,
+        "width": 342,
+        "height": 672.734375,
+        "columns": "342px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 926.84375,
+            "bottom": 990.84375,
+            "width": 292,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 855.84375,
+            "bottom": 1076.625,
+            "width": 342,
+            "height": 220.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 301.921875,
+              "top": 928.84375,
+              "bottom": 955.84375
+            },
+            {
+              "left": 49,
+              "right": 126.125,
+              "top": 960.84375,
+              "bottom": 987.84375
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1171.625,
+            "bottom": 1203.625,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1100.625,
+            "bottom": 1315.796875,
+            "width": 342,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 316.015625,
+              "top": 1173.625,
+              "bottom": 1200.625
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1410.796875,
+            "bottom": 1442.796875,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1339.796875,
+            "bottom": 1528.578125,
+            "width": 342,
+            "height": 188.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 262.546875,
+              "top": 1412.796875,
+              "bottom": 1439.796875
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 24,
+          "right": 366,
+          "top": 763.84375,
+          "bottom": 807.84375,
+          "width": 342,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 267.0625,
+            "top": 765.84375,
+            "bottom": 784.84375
+          },
+          {
+            "left": 57,
+            "right": 147.109375,
+            "top": 785.84375,
+            "bottom": 804.84375
+          }
+        ],
+        "client": 340,
+        "scroll": 340,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 844,
+      "viewport": 844,
+      "grid": {
+        "left": 24,
+        "right": 820,
+        "top": 725,
+        "bottom": 1004.171875,
+        "width": 796,
+        "height": 279.171875,
+        "columns": "249.328px 249.328px 249.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 248.328125,
+            "top": 796,
+            "bottom": 892,
+            "width": 199.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 273.328125,
+            "top": 725,
+            "bottom": 1004.171875,
+            "width": 249.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 192.25,
+              "top": 795,
+              "bottom": 828
+            },
+            {
+              "left": 49,
+              "right": 201,
+              "top": 827,
+              "bottom": 860
+            },
+            {
+              "left": 49,
+              "right": 140.921875,
+              "top": 859,
+              "bottom": 892
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 322.328125,
+            "right": 521.65625,
+            "top": 796,
+            "bottom": 860,
+            "width": 199.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 297.328125,
+            "right": 546.65625,
+            "top": 725,
+            "bottom": 1004.171875,
+            "width": 249.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 322.328125,
+              "right": 448.984375,
+              "top": 795,
+              "bottom": 828
+            },
+            {
+              "left": 322.328125,
+              "right": 507.703125,
+              "top": 827,
+              "bottom": 860
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 595.65625,
+            "right": 794.984375,
+            "top": 796,
+            "bottom": 860,
+            "width": 199.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 570.65625,
+            "right": 819.984375,
+            "top": 725,
+            "bottom": 1004.171875,
+            "width": 249.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 595.65625,
+              "right": 708.5625,
+              "top": 795,
+              "bottom": 828
+            },
+            {
+              "left": 595.65625,
+              "right": 731.0625,
+              "top": 827,
+              "bottom": 860
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 221.84375,
+          "right": 591.65625,
+          "top": 633,
+          "bottom": 677,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 254.84375,
+            "right": 558.65625,
+            "top": 645,
+            "bottom": 664
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "left": 24,
+        "right": 744,
+        "top": 712.03125,
+        "bottom": 1043.984375,
+        "width": 720,
+        "height": 331.953125,
+        "columns": "224px 224px 224px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 223,
+            "top": 783.03125,
+            "bottom": 879.03125,
+            "width": 174,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 248,
+            "top": 712.03125,
+            "bottom": 1043.984375,
+            "width": 224,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 188.328125,
+              "top": 783.03125,
+              "bottom": 815.03125
+            },
+            {
+              "left": 49,
+              "right": 196.828125,
+              "top": 815.03125,
+              "bottom": 847.03125
+            },
+            {
+              "left": 49,
+              "right": 138.40625,
+              "top": 847.03125,
+              "bottom": 879.03125
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 297,
+            "right": 471,
+            "top": 783.03125,
+            "bottom": 879.03125,
+            "width": 174,
+            "height": 96
+          },
+          "card": {
+            "left": 272,
+            "right": 496,
+            "top": 712.03125,
+            "bottom": 1043.984375,
+            "width": 224,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 297,
+              "right": 420.1875,
+              "top": 783.03125,
+              "bottom": 815.03125
+            },
+            {
+              "left": 297,
+              "right": 433.921875,
+              "top": 815.03125,
+              "bottom": 847.03125
+            },
+            {
+              "left": 297,
+              "right": 334.328125,
+              "top": 847.03125,
+              "bottom": 879.03125
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 545,
+            "right": 719,
+            "top": 783.03125,
+            "bottom": 847.03125,
+            "width": 174,
+            "height": 64
+          },
+          "card": {
+            "left": 520,
+            "right": 744,
+            "top": 712.03125,
+            "bottom": 1043.984375,
+            "width": 224,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 545,
+              "right": 654.8125,
+              "top": 783.03125,
+              "bottom": 815.03125
+            },
+            {
+              "left": 545,
+              "right": 676.703125,
+              "top": 815.03125,
+              "bottom": 847.03125
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 221.84375,
+          "right": 591.65625,
+          "top": 620.03125,
+          "bottom": 664.03125,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 254.84375,
+            "right": 558.65625,
+            "top": 632.03125,
+            "bottom": 651.03125
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 820,
+      "viewport": 820,
+      "grid": {
+        "left": 24,
+        "right": 796,
+        "top": 720.78125,
+        "bottom": 999.953125,
+        "width": 772,
+        "height": 279.171875,
+        "columns": "241.328px 241.328px 241.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 49,
+            "right": 240.328125,
+            "top": 791.78125,
+            "bottom": 887.78125,
+            "width": 191.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 265.328125,
+            "top": 720.78125,
+            "bottom": 999.953125,
+            "width": 241.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 191.03125,
+              "top": 791.78125,
+              "bottom": 823.78125
+            },
+            {
+              "left": 49,
+              "right": 199.703125,
+              "top": 823.78125,
+              "bottom": 855.78125
+            },
+            {
+              "left": 49,
+              "right": 140.15625,
+              "top": 855.78125,
+              "bottom": 887.78125
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 314.328125,
+            "right": 505.65625,
+            "top": 791.78125,
+            "bottom": 855.78125,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 289.328125,
+            "right": 530.65625,
+            "top": 720.78125,
+            "bottom": 999.953125,
+            "width": 241.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 314.328125,
+              "right": 439.90625,
+              "top": 791.78125,
+              "bottom": 823.78125
+            },
+            {
+              "left": 314.328125,
+              "right": 498.140625,
+              "top": 823.78125,
+              "bottom": 855.78125
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 579.65625,
+            "right": 770.984375,
+            "top": 791.78125,
+            "bottom": 855.78125,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 554.65625,
+            "right": 795.984375,
+            "top": 720.78125,
+            "bottom": 999.953125,
+            "width": 241.328125,
+            "height": 279.171875
+          },
+          "range": [
+            {
+              "left": 579.65625,
+              "right": 691.59375,
+              "top": 791.78125,
+              "bottom": 823.78125
+            },
+            {
+              "left": 579.65625,
+              "right": 713.921875,
+              "top": 823.78125,
+              "bottom": 855.78125
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 221.84375,
+          "right": 591.65625,
+          "top": 628.78125,
+          "bottom": 672.78125,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 254.84375,
+            "right": 558.65625,
+            "top": 640.78125,
+            "bottom": 659.78125
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "left": 40,
+        "right": 528.71875,
+        "top": 1077.328125,
+        "bottom": 1706.84375,
+        "width": 488.71875,
+        "height": 629.515625,
+        "columns": "232.359px 232.359px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 182.359375,
+            "height": 96
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 1077.328125,
+            "bottom": 1409.28125,
+            "width": 232.359375,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 208.4375,
+              "top": 1147.328125,
+              "bottom": 1180.328125
+            },
+            {
+              "left": 65,
+              "right": 217.1875,
+              "top": 1179.328125,
+              "bottom": 1212.328125
+            },
+            {
+              "left": 65,
+              "right": 157.046875,
+              "top": 1211.328125,
+              "bottom": 1244.328125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 321.359375,
+            "right": 503.71875,
+            "top": 1148.328125,
+            "bottom": 1244.328125,
+            "width": 182.359375,
+            "height": 96
+          },
+          "card": {
+            "left": 296.359375,
+            "right": 528.71875,
+            "top": 1077.328125,
+            "bottom": 1409.28125,
+            "width": 232.359375,
+            "height": 331.953125
+          },
+          "range": [
+            {
+              "left": 321.359375,
+              "right": 448.1875,
+              "top": 1147.328125,
+              "bottom": 1180.328125
+            },
+            {
+              "left": 321.359375,
+              "right": 462.3125,
+              "top": 1179.328125,
+              "bottom": 1212.328125
+            },
+            {
+              "left": 321.359375,
+              "right": 359.796875,
+              "top": 1211.328125,
+              "bottom": 1244.328125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1504.28125,
+            "bottom": 1568.28125,
+            "width": 182.359375,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 1433.28125,
+            "bottom": 1706.84375,
+            "width": 232.359375,
+            "height": 273.5625
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 178.046875,
+              "top": 1503.28125,
+              "bottom": 1536.28125
+            },
+            {
+              "left": 65,
+              "right": 200.578125,
+              "top": 1535.28125,
+              "bottom": 1568.28125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 40,
+          "right": 409.8125,
+          "top": 985.328125,
+          "bottom": 1029.328125,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 73,
+            "right": 376.8125,
+            "top": 997.328125,
+            "bottom": 1016.328125
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "left": 40,
+        "right": 668.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 208.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 65,
+              "right": 315.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 391.171875,
+            "right": 643.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 366.171875,
+            "right": 668.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 391.171875,
+              "right": 618.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 391.171875,
+              "right": 476.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 178.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 65,
+              "right": 200.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 237.84375,
+          "right": 607.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 270.84375,
+            "right": 574.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "left": 120,
+        "right": 748.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 288.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 145,
+              "right": 395.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 471.171875,
+            "right": 723.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 446.171875,
+            "right": 748.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 471.171875,
+              "right": 698.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 471.171875,
+              "right": 556.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 258.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 145,
+              "right": 280.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 317.84375,
+          "right": 687.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 350.84375,
+            "right": 654.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "left": 360,
+        "right": 988.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 528.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 385,
+              "right": 635.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 711.171875,
+            "right": 963.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 686.171875,
+            "right": 988.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 711.171875,
+              "right": 938.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 711.171875,
+              "right": 796.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 498.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 385,
+              "right": 520.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 557.84375,
+          "right": 927.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 590.84375,
+            "right": 894.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 2560,
+      "viewport": 2560,
+      "grid": {
+        "left": 680,
+        "right": 1308.359375,
+        "top": 1003.09375,
+        "bottom": 1521.4375,
+        "width": 628.359375,
+        "height": 518.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Un push, un déploiement partout",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 848.4375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 705,
+              "right": 955.46875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Workflows assistés par l’IA",
+          "box": {
+            "left": 1031.171875,
+            "right": 1283.359375,
+            "top": 1074.09375,
+            "bottom": 1138.09375,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 1006.171875,
+            "right": 1308.359375,
+            "top": 1003.09375,
+            "bottom": 1250.265625,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 1031.171875,
+              "right": 1258.359375,
+              "top": 1073.09375,
+              "bottom": 1106.09375
+            },
+            {
+              "left": 1031.171875,
+              "right": 1116.421875,
+              "top": 1105.09375,
+              "bottom": 1138.09375
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Prêt pour l’entreprise",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 1345.265625,
+            "bottom": 1409.265625,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 1274.265625,
+            "bottom": 1521.4375,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 818.046875,
+              "top": 1344.265625,
+              "bottom": 1377.265625
+            },
+            {
+              "left": 705,
+              "right": 840.578125,
+              "top": 1376.265625,
+              "bottom": 1409.265625
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Consulter la documentation des déploiements",
+        "box": {
+          "left": 877.84375,
+          "right": 1247.65625,
+          "top": 911.09375,
+          "bottom": 955.09375,
+          "width": 369.8125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 910.84375,
+            "right": 1214.65625,
+            "top": 923.09375,
+            "bottom": 942.09375
+          }
+        ],
+        "client": 368,
+        "scroll": 368,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "left": 24,
+        "right": 296,
+        "top": 877.5,
+        "bottom": 1603.015625,
+        "width": 272,
+        "height": 725.515625,
+        "columns": "272px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 948.5,
+            "bottom": 1012.5,
+            "width": 222,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 877.5,
+            "bottom": 1124.671875,
+            "width": 272,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 228.109375,
+              "top": 950.5,
+              "bottom": 977.5
+            },
+            {
+              "left": 49,
+              "right": 166.671875,
+              "top": 982.5,
+              "bottom": 1009.5
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1219.671875,
+            "bottom": 1251.671875,
+            "width": 222,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1148.671875,
+            "bottom": 1363.84375,
+            "width": 272,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 267.25,
+              "top": 1221.671875,
+              "bottom": 1248.671875
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1458.84375,
+            "bottom": 1490.84375,
+            "width": 222,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1387.84375,
+            "bottom": 1603.015625,
+            "width": 272,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 214.34375,
+              "top": 1460.84375,
+              "bottom": 1487.84375
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 24,
+          "right": 255.828125,
+          "top": 785.5,
+          "bottom": 829.5,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 222.828125,
+            "top": 797.5,
+            "bottom": 816.5
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 360,
+      "viewport": 360,
+      "grid": {
+        "left": 24,
+        "right": 336,
+        "top": 806.09375,
+        "bottom": 1531.609375,
+        "width": 312,
+        "height": 725.515625,
+        "columns": "312px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 877.09375,
+            "bottom": 941.09375,
+            "width": 262,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 806.09375,
+            "bottom": 1053.265625,
+            "width": 312,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 228.109375,
+              "top": 879.09375,
+              "bottom": 906.09375
+            },
+            {
+              "left": 49,
+              "right": 166.671875,
+              "top": 911.09375,
+              "bottom": 938.09375
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1148.265625,
+            "bottom": 1180.265625,
+            "width": 262,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1077.265625,
+            "bottom": 1292.4375,
+            "width": 312,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 267.25,
+              "top": 1150.265625,
+              "bottom": 1177.265625
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1387.4375,
+            "bottom": 1419.4375,
+            "width": 262,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1316.4375,
+            "bottom": 1531.609375,
+            "width": 312,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 214.34375,
+              "top": 1389.4375,
+              "bottom": 1416.4375
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 24,
+          "right": 255.828125,
+          "top": 714.09375,
+          "bottom": 758.09375,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 222.828125,
+            "top": 726.09375,
+            "bottom": 745.09375
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 390,
+      "viewport": 390,
+      "grid": {
+        "left": 24,
+        "right": 366,
+        "top": 763.6875,
+        "bottom": 1436.421875,
+        "width": 342,
+        "height": 672.734375,
+        "columns": "342px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 834.6875,
+            "bottom": 898.6875,
+            "width": 292,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 763.6875,
+            "bottom": 1010.859375,
+            "width": 342,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 229.09375,
+              "top": 836.6875,
+              "bottom": 863.6875
+            },
+            {
+              "left": 49,
+              "right": 167.3125,
+              "top": 868.6875,
+              "bottom": 895.6875
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1105.859375,
+            "bottom": 1137.859375,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1034.859375,
+            "bottom": 1223.640625,
+            "width": 342,
+            "height": 188.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 268.4375,
+              "top": 1107.859375,
+              "bottom": 1134.859375
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1318.640625,
+            "bottom": 1350.640625,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1247.640625,
+            "bottom": 1436.421875,
+            "width": 342,
+            "height": 188.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 215.25,
+              "top": 1320.640625,
+              "bottom": 1347.640625
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 24,
+          "right": 255.828125,
+          "top": 671.6875,
+          "bottom": 715.6875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 222.828125,
+            "top": 683.6875,
+            "bottom": 702.6875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 844,
+      "viewport": 844,
+      "grid": {
+        "left": 24,
+        "right": 820,
+        "top": 626.5,
+        "bottom": 932.0625,
+        "width": 796,
+        "height": 305.5625,
+        "columns": "249.328px 249.328px 249.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 248.328125,
+            "top": 697.5,
+            "bottom": 793.5,
+            "width": 199.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 273.328125,
+            "top": 626.5,
+            "bottom": 932.0625,
+            "width": 249.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 177.59375,
+              "top": 696.5,
+              "bottom": 729.5
+            },
+            {
+              "left": 49,
+              "right": 128.828125,
+              "top": 728.5,
+              "bottom": 761.5
+            },
+            {
+              "left": 49,
+              "right": 190.015625,
+              "top": 760.5,
+              "bottom": 793.5
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 322.328125,
+            "right": 521.65625,
+            "top": 697.5,
+            "bottom": 761.5,
+            "width": 199.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 297.328125,
+            "right": 546.65625,
+            "top": 626.5,
+            "bottom": 932.0625,
+            "width": 249.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 322.328125,
+              "right": 453.1875,
+              "top": 696.5,
+              "bottom": 729.5
+            },
+            {
+              "left": 322.328125,
+              "right": 446.8125,
+              "top": 728.5,
+              "bottom": 761.5
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 595.65625,
+            "right": 794.984375,
+            "top": 697.5,
+            "bottom": 729.5,
+            "width": 199.328125,
+            "height": 32
+          },
+          "card": {
+            "left": 570.65625,
+            "right": 819.984375,
+            "top": 626.5,
+            "bottom": 932.0625,
+            "width": 249.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 595.65625,
+              "right": 793.8125,
+              "top": 696.5,
+              "bottom": 729.5
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 212.921875,
+          "right": 444.75,
+          "top": 534.5,
+          "bottom": 578.5,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 245.921875,
+            "right": 411.75,
+            "top": 546.5,
+            "bottom": 565.5
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "left": 24,
+        "right": 744,
+        "top": 617.6875,
+        "bottom": 923.25,
+        "width": 720,
+        "height": 305.5625,
+        "columns": "224px 224px 224px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 223,
+            "top": 688.6875,
+            "bottom": 784.6875,
+            "width": 174,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 248,
+            "top": 617.6875,
+            "bottom": 923.25,
+            "width": 224,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 174.078125,
+              "top": 688.6875,
+              "bottom": 720.6875
+            },
+            {
+              "left": 49,
+              "right": 126.640625,
+              "top": 720.6875,
+              "bottom": 752.6875
+            },
+            {
+              "left": 49,
+              "right": 186.15625,
+              "top": 752.6875,
+              "bottom": 784.6875
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 297,
+            "right": 471,
+            "top": 688.6875,
+            "bottom": 752.6875,
+            "width": 174,
+            "height": 64
+          },
+          "card": {
+            "left": 272,
+            "right": 496,
+            "top": 617.6875,
+            "bottom": 923.25,
+            "width": 224,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 297,
+              "right": 424.265625,
+              "top": 688.6875,
+              "bottom": 720.6875
+            },
+            {
+              "left": 297,
+              "right": 418.0625,
+              "top": 720.6875,
+              "bottom": 752.6875
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 545,
+            "right": 719,
+            "top": 688.6875,
+            "bottom": 752.6875,
+            "width": 174,
+            "height": 64
+          },
+          "card": {
+            "left": 520,
+            "right": 744,
+            "top": 617.6875,
+            "bottom": 923.25,
+            "width": 224,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 545,
+              "right": 665.671875,
+              "top": 688.6875,
+              "bottom": 720.6875
+            },
+            {
+              "left": 545,
+              "right": 611,
+              "top": 720.6875,
+              "bottom": 752.6875
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 212.921875,
+          "right": 444.75,
+          "top": 525.6875,
+          "bottom": 569.6875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 245.921875,
+            "right": 411.75,
+            "top": 537.6875,
+            "bottom": 556.6875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 820,
+      "viewport": 820,
+      "grid": {
+        "left": 24,
+        "right": 796,
+        "top": 623.625,
+        "bottom": 929.1875,
+        "width": 772,
+        "height": 305.5625,
+        "columns": "241.328px 241.328px 241.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 240.328125,
+            "top": 694.625,
+            "bottom": 790.625,
+            "width": 191.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 265.328125,
+            "top": 623.625,
+            "bottom": 929.1875,
+            "width": 241.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 176.515625,
+              "top": 694.625,
+              "bottom": 726.625
+            },
+            {
+              "left": 49,
+              "right": 128.140625,
+              "top": 726.625,
+              "bottom": 758.625
+            },
+            {
+              "left": 49,
+              "right": 188.828125,
+              "top": 758.625,
+              "bottom": 790.625
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 314.328125,
+            "right": 505.65625,
+            "top": 694.625,
+            "bottom": 758.625,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 289.328125,
+            "right": 530.65625,
+            "top": 623.625,
+            "bottom": 929.1875,
+            "width": 241.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 314.328125,
+              "right": 444.078125,
+              "top": 694.625,
+              "bottom": 726.625
+            },
+            {
+              "left": 314.328125,
+              "right": 437.75,
+              "top": 726.625,
+              "bottom": 758.625
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 579.65625,
+            "right": 770.984375,
+            "top": 694.625,
+            "bottom": 758.625,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 554.65625,
+            "right": 795.984375,
+            "top": 623.625,
+            "bottom": 929.1875,
+            "width": 241.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 579.65625,
+              "right": 702.671875,
+              "top": 694.625,
+              "bottom": 726.625
+            },
+            {
+              "left": 579.65625,
+              "right": 646.9375,
+              "top": 726.625,
+              "bottom": 758.625
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 212.921875,
+          "right": 444.75,
+          "top": 531.625,
+          "bottom": 575.625,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 245.921875,
+            "right": 411.75,
+            "top": 543.625,
+            "bottom": 562.625
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "left": 40,
+        "right": 528.71875,
+        "top": 940.640625,
+        "bottom": 1543.765625,
+        "width": 488.71875,
+        "height": 603.125,
+        "columns": "232.359px 232.359px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1011.640625,
+            "bottom": 1107.640625,
+            "width": 182.359375,
+            "height": 96
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 940.640625,
+            "bottom": 1246.203125,
+            "width": 232.359375,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 193.765625,
+              "top": 1010.640625,
+              "bottom": 1043.640625
+            },
+            {
+              "left": 65,
+              "right": 144.921875,
+              "top": 1042.640625,
+              "bottom": 1075.640625
+            },
+            {
+              "left": 65,
+              "right": 206.203125,
+              "top": 1074.640625,
+              "bottom": 1107.640625
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 321.359375,
+            "right": 503.71875,
+            "top": 1011.640625,
+            "bottom": 1075.640625,
+            "width": 182.359375,
+            "height": 64
+          },
+          "card": {
+            "left": 296.359375,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1246.203125,
+            "width": 232.359375,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 321.359375,
+              "right": 452.375,
+              "top": 1010.640625,
+              "bottom": 1043.640625
+            },
+            {
+              "left": 321.359375,
+              "right": 446,
+              "top": 1042.640625,
+              "bottom": 1075.640625
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1341.203125,
+            "bottom": 1405.203125,
+            "width": 182.359375,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 1270.203125,
+            "bottom": 1543.765625,
+            "width": 232.359375,
+            "height": 273.5625
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 189.234375,
+              "top": 1340.203125,
+              "bottom": 1373.203125
+            },
+            {
+              "left": 65,
+              "right": 132.953125,
+              "top": 1372.203125,
+              "bottom": 1405.203125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 228.921875,
+          "right": 460.75,
+          "top": 848.640625,
+          "bottom": 892.640625,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 261.921875,
+            "right": 427.75,
+            "top": 860.640625,
+            "bottom": 879.640625
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "left": 40,
+        "right": 668.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 279.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 65,
+              "right": 206.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 391.171875,
+            "right": 643.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 366.171875,
+            "right": 668.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 391.171875,
+              "right": 522.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 391.171875,
+              "right": 515.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 263.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 228.921875,
+          "right": 460.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 261.921875,
+            "right": 427.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "left": 120,
+        "right": 748.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 359.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 145,
+              "right": 286.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 471.171875,
+            "right": 723.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 446.171875,
+            "right": 748.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 471.171875,
+              "right": 602.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 471.171875,
+              "right": 595.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 343.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 308.921875,
+          "right": 540.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 341.921875,
+            "right": 507.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "left": 360,
+        "right": 988.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 599.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 385,
+              "right": 526.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 711.171875,
+            "right": 963.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 686.171875,
+            "right": 988.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 711.171875,
+              "right": 842.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 711.171875,
+              "right": 835.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 583.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 548.921875,
+          "right": 780.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 581.921875,
+            "right": 747.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 2560,
+      "viewport": 2560,
+      "grid": {
+        "left": 680,
+        "right": 1308.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 919.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 705,
+              "right": 846.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 1031.171875,
+            "right": 1283.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 1006.171875,
+            "right": 1308.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 1031.171875,
+              "right": 1162.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 1031.171875,
+              "right": 1155.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 903.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 868.921875,
+          "right": 1100.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 901.921875,
+            "right": 1067.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 320,
+      "viewport": 320,
+      "grid": {
+        "left": 24,
+        "right": 296,
+        "top": 877.5,
+        "bottom": 1603.015625,
+        "width": 272,
+        "height": 725.515625,
+        "columns": "272px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 948.5,
+            "bottom": 1012.5,
+            "width": 222,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 877.5,
+            "bottom": 1124.671875,
+            "width": 272,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 228.109375,
+              "top": 950.5,
+              "bottom": 977.5
+            },
+            {
+              "left": 49,
+              "right": 166.671875,
+              "top": 982.5,
+              "bottom": 1009.5
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1219.671875,
+            "bottom": 1251.671875,
+            "width": 222,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1148.671875,
+            "bottom": 1363.84375,
+            "width": 272,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 267.25,
+              "top": 1221.671875,
+              "bottom": 1248.671875
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 49,
+            "right": 271,
+            "top": 1458.84375,
+            "bottom": 1490.84375,
+            "width": 222,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 296,
+            "top": 1387.84375,
+            "bottom": 1603.015625,
+            "width": 272,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 214.34375,
+              "top": 1460.84375,
+              "bottom": 1487.84375
+            }
+          ],
+          "client": 222,
+          "scroll": 222,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 24,
+          "right": 255.828125,
+          "top": 785.5,
+          "bottom": 829.5,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 222.828125,
+            "top": 797.5,
+            "bottom": 816.5
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 360,
+      "viewport": 360,
+      "grid": {
+        "left": 24,
+        "right": 336,
+        "top": 806.09375,
+        "bottom": 1531.609375,
+        "width": 312,
+        "height": 725.515625,
+        "columns": "312px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 877.09375,
+            "bottom": 941.09375,
+            "width": 262,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 806.09375,
+            "bottom": 1053.265625,
+            "width": 312,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 228.109375,
+              "top": 879.09375,
+              "bottom": 906.09375
+            },
+            {
+              "left": 49,
+              "right": 166.671875,
+              "top": 911.09375,
+              "bottom": 938.09375
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1148.265625,
+            "bottom": 1180.265625,
+            "width": 262,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1077.265625,
+            "bottom": 1292.4375,
+            "width": 312,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 267.25,
+              "top": 1150.265625,
+              "bottom": 1177.265625
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 49,
+            "right": 311,
+            "top": 1387.4375,
+            "bottom": 1419.4375,
+            "width": 262,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 336,
+            "top": 1316.4375,
+            "bottom": 1531.609375,
+            "width": 312,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 214.34375,
+              "top": 1389.4375,
+              "bottom": 1416.4375
+            }
+          ],
+          "client": 262,
+          "scroll": 262,
+          "font": "20px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 24,
+          "right": 255.828125,
+          "top": 714.09375,
+          "bottom": 758.09375,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 222.828125,
+            "top": 726.09375,
+            "bottom": 745.09375
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 390,
+      "viewport": 390,
+      "grid": {
+        "left": 24,
+        "right": 366,
+        "top": 763.6875,
+        "bottom": 1436.421875,
+        "width": 342,
+        "height": 672.734375,
+        "columns": "342px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 834.6875,
+            "bottom": 898.6875,
+            "width": 292,
+            "height": 64
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 763.6875,
+            "bottom": 1010.859375,
+            "width": 342,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 229.09375,
+              "top": 836.6875,
+              "bottom": 863.6875
+            },
+            {
+              "left": 49,
+              "right": 167.3125,
+              "top": 868.6875,
+              "bottom": 895.6875
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1105.859375,
+            "bottom": 1137.859375,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1034.859375,
+            "bottom": 1223.640625,
+            "width": 342,
+            "height": 188.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 268.4375,
+              "top": 1107.859375,
+              "bottom": 1134.859375
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 49,
+            "right": 341,
+            "top": 1318.640625,
+            "bottom": 1350.640625,
+            "width": 292,
+            "height": 32
+          },
+          "card": {
+            "left": 24,
+            "right": 366,
+            "top": 1247.640625,
+            "bottom": 1436.421875,
+            "width": 342,
+            "height": 188.78125
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 215.25,
+              "top": 1320.640625,
+              "bottom": 1347.640625
+            }
+          ],
+          "client": 292,
+          "scroll": 292,
+          "font": "20.115px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 24,
+          "right": 255.828125,
+          "top": 671.6875,
+          "bottom": 715.6875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 57,
+            "right": 222.828125,
+            "top": 683.6875,
+            "bottom": 702.6875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 844,
+      "viewport": 844,
+      "grid": {
+        "left": 24,
+        "right": 820,
+        "top": 626.5,
+        "bottom": 932.0625,
+        "width": 796,
+        "height": 305.5625,
+        "columns": "249.328px 249.328px 249.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 248.328125,
+            "top": 697.5,
+            "bottom": 793.5,
+            "width": 199.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 273.328125,
+            "top": 626.5,
+            "bottom": 932.0625,
+            "width": 249.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 177.59375,
+              "top": 696.5,
+              "bottom": 729.5
+            },
+            {
+              "left": 49,
+              "right": 128.828125,
+              "top": 728.5,
+              "bottom": 761.5
+            },
+            {
+              "left": 49,
+              "right": 190.015625,
+              "top": 760.5,
+              "bottom": 793.5
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 322.328125,
+            "right": 521.65625,
+            "top": 697.5,
+            "bottom": 761.5,
+            "width": 199.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 297.328125,
+            "right": 546.65625,
+            "top": 626.5,
+            "bottom": 932.0625,
+            "width": 249.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 322.328125,
+              "right": 453.1875,
+              "top": 696.5,
+              "bottom": 729.5
+            },
+            {
+              "left": 322.328125,
+              "right": 446.8125,
+              "top": 728.5,
+              "bottom": 761.5
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 595.65625,
+            "right": 794.984375,
+            "top": 697.5,
+            "bottom": 729.5,
+            "width": 199.328125,
+            "height": 32
+          },
+          "card": {
+            "left": 570.65625,
+            "right": 819.984375,
+            "top": 626.5,
+            "bottom": 932.0625,
+            "width": 249.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 595.65625,
+              "right": 793.8125,
+              "top": 696.5,
+              "bottom": 729.5
+            }
+          ],
+          "client": 199,
+          "scroll": 199,
+          "font": "23.974px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 212.921875,
+          "right": 444.75,
+          "top": 534.5,
+          "bottom": 578.5,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 245.921875,
+            "right": 411.75,
+            "top": 546.5,
+            "bottom": 565.5
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 768,
+      "viewport": 768,
+      "grid": {
+        "left": 24,
+        "right": 744,
+        "top": 617.6875,
+        "bottom": 923.25,
+        "width": 720,
+        "height": 305.5625,
+        "columns": "224px 224px 224px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 223,
+            "top": 688.6875,
+            "bottom": 784.6875,
+            "width": 174,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 248,
+            "top": 617.6875,
+            "bottom": 923.25,
+            "width": 224,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 174.078125,
+              "top": 688.6875,
+              "bottom": 720.6875
+            },
+            {
+              "left": 49,
+              "right": 126.640625,
+              "top": 720.6875,
+              "bottom": 752.6875
+            },
+            {
+              "left": 49,
+              "right": 186.15625,
+              "top": 752.6875,
+              "bottom": 784.6875
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 297,
+            "right": 471,
+            "top": 688.6875,
+            "bottom": 752.6875,
+            "width": 174,
+            "height": 64
+          },
+          "card": {
+            "left": 272,
+            "right": 496,
+            "top": 617.6875,
+            "bottom": 923.25,
+            "width": 224,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 297,
+              "right": 424.265625,
+              "top": 688.6875,
+              "bottom": 720.6875
+            },
+            {
+              "left": 297,
+              "right": 418.0625,
+              "top": 720.6875,
+              "bottom": 752.6875
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 545,
+            "right": 719,
+            "top": 688.6875,
+            "bottom": 752.6875,
+            "width": 174,
+            "height": 64
+          },
+          "card": {
+            "left": 520,
+            "right": 744,
+            "top": 617.6875,
+            "bottom": 923.25,
+            "width": 224,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 545,
+              "right": 665.671875,
+              "top": 688.6875,
+              "bottom": 720.6875
+            },
+            {
+              "left": 545,
+              "right": 611,
+              "top": 720.6875,
+              "bottom": 752.6875
+            }
+          ],
+          "client": 174,
+          "scroll": 174,
+          "font": "23.328px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 212.921875,
+          "right": 444.75,
+          "top": 525.6875,
+          "bottom": 569.6875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 245.921875,
+            "right": 411.75,
+            "top": 537.6875,
+            "bottom": 556.6875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 820,
+      "viewport": 820,
+      "grid": {
+        "left": 24,
+        "right": 796,
+        "top": 623.625,
+        "bottom": 929.1875,
+        "width": 772,
+        "height": 305.5625,
+        "columns": "241.328px 241.328px 241.328px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 49,
+            "right": 240.328125,
+            "top": 694.625,
+            "bottom": 790.625,
+            "width": 191.328125,
+            "height": 96
+          },
+          "card": {
+            "left": 24,
+            "right": 265.328125,
+            "top": 623.625,
+            "bottom": 929.1875,
+            "width": 241.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 49,
+              "right": 176.515625,
+              "top": 694.625,
+              "bottom": 726.625
+            },
+            {
+              "left": 49,
+              "right": 128.140625,
+              "top": 726.625,
+              "bottom": 758.625
+            },
+            {
+              "left": 49,
+              "right": 188.828125,
+              "top": 758.625,
+              "bottom": 790.625
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 314.328125,
+            "right": 505.65625,
+            "top": 694.625,
+            "bottom": 758.625,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 289.328125,
+            "right": 530.65625,
+            "top": 623.625,
+            "bottom": 929.1875,
+            "width": 241.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 314.328125,
+              "right": 444.078125,
+              "top": 694.625,
+              "bottom": 726.625
+            },
+            {
+              "left": 314.328125,
+              "right": 437.75,
+              "top": 726.625,
+              "bottom": 758.625
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 579.65625,
+            "right": 770.984375,
+            "top": 694.625,
+            "bottom": 758.625,
+            "width": 191.328125,
+            "height": 64
+          },
+          "card": {
+            "left": 554.65625,
+            "right": 795.984375,
+            "top": 623.625,
+            "bottom": 929.1875,
+            "width": 241.328125,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 579.65625,
+              "right": 702.671875,
+              "top": 694.625,
+              "bottom": 726.625
+            },
+            {
+              "left": 579.65625,
+              "right": 646.9375,
+              "top": 726.625,
+              "bottom": 758.625
+            }
+          ],
+          "client": 191,
+          "scroll": 191,
+          "font": "23.77px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 212.921875,
+          "right": 444.75,
+          "top": 531.625,
+          "bottom": 575.625,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 245.921875,
+            "right": 411.75,
+            "top": 543.625,
+            "bottom": 562.625
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1024,
+      "viewport": 1024,
+      "grid": {
+        "left": 40,
+        "right": 528.71875,
+        "top": 940.640625,
+        "bottom": 1543.765625,
+        "width": 488.71875,
+        "height": 603.125,
+        "columns": "232.359px 232.359px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1011.640625,
+            "bottom": 1107.640625,
+            "width": 182.359375,
+            "height": 96
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 940.640625,
+            "bottom": 1246.203125,
+            "width": 232.359375,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 193.765625,
+              "top": 1010.640625,
+              "bottom": 1043.640625
+            },
+            {
+              "left": 65,
+              "right": 144.921875,
+              "top": 1042.640625,
+              "bottom": 1075.640625
+            },
+            {
+              "left": 65,
+              "right": 206.203125,
+              "top": 1074.640625,
+              "bottom": 1107.640625
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 321.359375,
+            "right": 503.71875,
+            "top": 1011.640625,
+            "bottom": 1075.640625,
+            "width": 182.359375,
+            "height": 64
+          },
+          "card": {
+            "left": 296.359375,
+            "right": 528.71875,
+            "top": 940.640625,
+            "bottom": 1246.203125,
+            "width": 232.359375,
+            "height": 305.5625
+          },
+          "range": [
+            {
+              "left": 321.359375,
+              "right": 452.375,
+              "top": 1010.640625,
+              "bottom": 1043.640625
+            },
+            {
+              "left": 321.359375,
+              "right": 446,
+              "top": 1042.640625,
+              "bottom": 1075.640625
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 65,
+            "right": 247.359375,
+            "top": 1341.203125,
+            "bottom": 1405.203125,
+            "width": 182.359375,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 272.359375,
+            "top": 1270.203125,
+            "bottom": 1543.765625,
+            "width": 232.359375,
+            "height": 273.5625
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 189.234375,
+              "top": 1340.203125,
+              "bottom": 1373.203125
+            },
+            {
+              "left": 65,
+              "right": 132.953125,
+              "top": 1372.203125,
+              "bottom": 1405.203125
+            }
+          ],
+          "client": 182,
+          "scroll": 182,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 228.921875,
+          "right": 460.75,
+          "top": 848.640625,
+          "bottom": 892.640625,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 261.921875,
+            "right": 427.75,
+            "top": 860.640625,
+            "bottom": 879.640625
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1280,
+      "viewport": 1280,
+      "grid": {
+        "left": 40,
+        "right": 668.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 279.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 65,
+              "right": 206.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 391.171875,
+            "right": 643.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 366.171875,
+            "right": 668.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 391.171875,
+              "right": 522.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 391.171875,
+              "right": 515.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 65,
+            "right": 317.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 40,
+            "right": 342.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 65,
+              "right": 263.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 228.921875,
+          "right": 460.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 261.921875,
+            "right": 427.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "grid": {
+        "left": 120,
+        "right": 748.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 359.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 145,
+              "right": 286.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 471.171875,
+            "right": 723.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 446.171875,
+            "right": 748.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 471.171875,
+              "right": 602.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 471.171875,
+              "right": 595.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 145,
+            "right": 397.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 120,
+            "right": 422.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 145,
+              "right": 343.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 308.921875,
+          "right": 540.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 341.921875,
+            "right": 507.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 1920,
+      "viewport": 1920,
+      "grid": {
+        "left": 360,
+        "right": 988.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 599.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 385,
+              "right": 526.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 711.171875,
+            "right": 963.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 686.171875,
+            "right": 988.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 711.171875,
+              "right": 842.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 711.171875,
+              "right": 835.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 385,
+            "right": 637.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 360,
+            "right": 662.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 385,
+              "right": 583.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 548.921875,
+          "right": 780.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 581.921875,
+            "right": 747.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "status": 200,
+      "matched": [
+        "root",
+        "routes/marketing.deployments"
+      ],
+      "documentWidth": 2560,
+      "viewport": 2560,
+      "grid": {
+        "left": 680,
+        "right": 1308.359375,
+        "top": 764.546875,
+        "bottom": 1250.890625,
+        "width": 628.359375,
+        "height": 486.34375,
+        "columns": "302.172px 302.188px",
+        "children": 3
+      },
+      "titles": [
+        {
+          "text": "Push once, deploy everywhere",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.171875,
+            "height": 64
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.171875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 919.921875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 705,
+              "right": 846.203125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "AI-assisted workflows",
+          "box": {
+            "left": 1031.171875,
+            "right": 1283.359375,
+            "top": 835.546875,
+            "bottom": 899.546875,
+            "width": 252.1875,
+            "height": 64
+          },
+          "card": {
+            "left": 1006.171875,
+            "right": 1308.359375,
+            "top": 764.546875,
+            "bottom": 1011.71875,
+            "width": 302.1875,
+            "height": 247.171875
+          },
+          "range": [
+            {
+              "left": 1031.171875,
+              "right": 1162.1875,
+              "top": 834.546875,
+              "bottom": 867.546875
+            },
+            {
+              "left": 1031.171875,
+              "right": 1155.8125,
+              "top": 866.546875,
+              "bottom": 899.546875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        },
+        {
+          "text": "Enterprise ready",
+          "box": {
+            "left": 705,
+            "right": 957.171875,
+            "top": 1106.71875,
+            "bottom": 1138.71875,
+            "width": 252.171875,
+            "height": 32
+          },
+          "card": {
+            "left": 680,
+            "right": 982.171875,
+            "top": 1035.71875,
+            "bottom": 1250.890625,
+            "width": 302.171875,
+            "height": 215.171875
+          },
+          "range": [
+            {
+              "left": 705,
+              "right": 903.421875,
+              "top": 1105.71875,
+              "bottom": 1138.71875
+            }
+          ],
+          "client": 252,
+          "scroll": 252,
+          "font": "24px"
+        }
+      ],
+      "cta": {
+        "text": "Explore deployment docs",
+        "box": {
+          "left": 868.921875,
+          "right": 1100.75,
+          "top": 672.546875,
+          "bottom": 716.546875,
+          "width": 231.828125,
+          "height": 44
+        },
+        "range": [
+          {
+            "left": 901.921875,
+            "right": 1067.75,
+            "top": 684.546875,
+            "bottom": 703.546875
+          }
+        ],
+        "client": 230,
+        "scroll": 230,
+        "whiteSpace": "normal",
+        "href": "/docs"
+      },
+      "talkHref": "/contact-sales"
+    }
+  ],
+  "keyboard": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "focus": {
+        "tag": "A",
+        "text": "Réserver une consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "focus": {
+        "tag": "A",
+        "text": "Réserver une consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "focus": {
+        "tag": "A",
+        "text": "Réserver une consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "focus": {
+        "tag": "A",
+        "text": "Réserver une consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "focus": {
+        "tag": "A",
+        "text": "Book a consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "focus": {
+        "tag": "A",
+        "text": "Book a consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "focus": {
+        "tag": "A",
+        "text": "Book a consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "focus": {
+        "tag": "A",
+        "text": "Book a consultation"
+      },
+      "tabReturn": true,
+      "escapeStayed": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    }
+  ],
+  "failures": []
+}

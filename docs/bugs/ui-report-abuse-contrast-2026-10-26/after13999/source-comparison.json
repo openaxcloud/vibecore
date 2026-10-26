@@ -1,0 +1,17 @@
+{
+  "sources": [
+    {
+      "worktree": "/workspace/vibecore-ui-report-next",
+      "head": "8aadd5e0a2dd38834974df8733abf8321dc1c73d",
+      "file": "app/components/marketing/ecode-exact/pages/ReportAbuse.tsx",
+      "sha256": "9fc56c8cd0d9f1954948f948cb3e5973f6e2a112d6089a2fe6acbab32ecaa21c"
+    },
+    {
+      "worktree": "/workspace/vibecore-ui-public-admin",
+      "head": "cc5574d67ec1b37809fb7bbdfaa7519ac163cc38",
+      "file": "app/components/marketing/ecode-exact/pages/ReportAbuse.tsx",
+      "sha256": "9fc56c8cd0d9f1954948f948cb3e5973f6e2a112d6089a2fe6acbab32ecaa21c"
+    }
+  ],
+  "equal": true
+}

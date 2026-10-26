@@ -1,0 +1,79 @@
+
+> vibecore@1.0.0 typecheck /workspace/vibecore-ui-public-admin
+> node scripts/typecheck.mjs
+
+[typecheck] web app
+[typecheck] web app passed in 49.1s
+[typecheck] node scripts
+[typecheck] node scripts passed in 16.4s
+[typecheck] IDE browser test helpers
+[typecheck] IDE browser test helpers passed in 1.6s
+[typecheck] electron main
+[typecheck] electron main passed in 1.4s
+[typecheck] electron preload
+[typecheck] electron preload passed in 1.0s
+[typecheck] workspace packages
+Scope: 34 of 36 workspace projects
+apps/admin typecheck$ tsc --noEmit
+packages/audit typecheck$ tsc --noEmit
+packages/auth typecheck$ tsc --noEmit
+packages/billing typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/audit typecheck: Done
+packages/config typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/auth typecheck: Done
+packages/connector-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/billing typecheck: Done
+packages/database typecheck$ tsc --noEmit
+packages/connector-sdk typecheck: Done
+packages/editor typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts src/index.spec.ts src/desktop-editor.spec.ts src/mobile-editor.spec.tsx src/monaco-editor-ambient.d.ts
+packages/config typecheck: Done
+packages/k8s-client typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/k8s-client typecheck: Done
+packages/observability typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+apps/admin typecheck: Done
+packages/quota typecheck$ tsc --noEmit
+packages/editor typecheck: Done
+packages/rbac typecheck$ tsc --noEmit
+packages/observability typecheck: Done
+packages/runtime-contract typecheck$ tsc --noEmit
+packages/quota typecheck: Done
+packages/sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/rbac typecheck: Done
+packages/security typecheck$ tsc --noEmit
+packages/runtime-contract typecheck: Done
+packages/shared typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/sdk typecheck: Done
+packages/template-catalog typecheck$ tsc --noEmit
+packages/template-catalog typecheck: Done
+packages/ui typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts
+packages/security typecheck: Done
+packages/workspace-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/shared typecheck: Done
+services/preview-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+packages/workspace-sdk typecheck: Done
+packages/ui typecheck: Done
+services/preview-proxy typecheck: Done
+packages/database typecheck: Done
+apps/mobile typecheck$ tsc --noEmit
+packages/runtime-remote typecheck$ tsc --noEmit
+packages/runtime-webcontainer typecheck$ tsc --noEmit
+packages/sandbox-runtime typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/sandbox-runtime typecheck: Done
+services/ai-gateway typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts
+packages/runtime-webcontainer typecheck: Done
+services/api typecheck$ tsc --noEmit -p tsconfig.json
+packages/runtime-remote typecheck: Done
+services/connector-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+apps/mobile typecheck: Done
+services/screenshotter typecheck$ tsc --noEmit -p tsconfig.json
+services/screenshotter typecheck: Done
+services/worker typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts src/enqueue-cli.ts
+services/worker typecheck: Done
+services/workspace-agent typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts
+services/workspace-agent typecheck: Done
+services/ai-gateway typecheck: Done
+services/connector-proxy typecheck: Done
+services/api typecheck: Done
+services/workspace-manager typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts
+services/workspace-manager typecheck: Done
+[typecheck] workspace packages passed in 48.6s

@@ -1,0 +1,137 @@
+[
+  {
+    "routeID": "routes/dpa",
+    "routePattern": "/dpa",
+    "sourcefile": "app/routes/dpa.tsx",
+    "group": "corrected",
+    "receipt": "corrected/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/student-dpa",
+    "routePattern": "/student-dpa",
+    "sourcefile": "app/routes/student-dpa.tsx",
+    "group": "corrected",
+    "receipt": "corrected/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/report-abuse",
+    "routePattern": "/report-abuse",
+    "sourcefile": "app/routes/report-abuse.tsx",
+    "group": "corrected",
+    "receipt": "corrected/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/subprocessors",
+    "routePattern": "/subprocessors",
+    "sourcefile": "app/routes/subprocessors.tsx",
+    "group": "corrected",
+    "receipt": "corrected/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/acceptable-use",
+    "routePattern": "/acceptable-use",
+    "sourcefile": "app/routes/acceptable-use.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/accessibility",
+    "routePattern": "/accessibility",
+    "sourcefile": "app/routes/accessibility.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/commercial-agreement",
+    "routePattern": "/commercial-agreement",
+    "sourcefile": "app/routes/commercial-agreement.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/data-deletion",
+    "routePattern": "/data-deletion",
+    "sourcefile": "app/routes/data-deletion.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/deleting-your-data",
+    "routePattern": "/deleting-your-data",
+    "sourcefile": "app/routes/deleting-your-data.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/enforcement",
+    "routePattern": "/enforcement",
+    "sourcefile": "app/routes/enforcement.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/licensing",
+    "routePattern": "/licensing",
+    "sourcefile": "app/routes/licensing.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/security",
+    "routePattern": "/security",
+    "sourcefile": "app/routes/security.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/strike-system",
+    "routePattern": "/strike-system",
+    "sourcefile": "app/routes/strike-system.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/trust-and-safety",
+    "routePattern": "/trust-and-safety",
+    "sourcefile": "app/routes/trust-and-safety.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  },
+  {
+    "routeID": "routes/usage-limits",
+    "routePattern": "/usage-limits",
+    "sourcefile": "app/routes/usage-limits.tsx",
+    "group": "remaining",
+    "receipt": "remaining/receipt.json",
+    "state": "partially exercised, local Chromium only",
+    "actualObservations": 40
+  }
+]

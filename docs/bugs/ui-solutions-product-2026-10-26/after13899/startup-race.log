@@ -1,0 +1,7 @@
+page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:13899/marketing/deployments?lang=fr
+Call log:
+[2m  - navigating to "http://127.0.0.1:13899/marketing/deployments?lang=fr", waiting until "networkidle"[22m
+
+    at /tmp/ui-solutions-product-next/after13899/compiled-hero.cjs:10:101 {
+  name: 'Error'
+}

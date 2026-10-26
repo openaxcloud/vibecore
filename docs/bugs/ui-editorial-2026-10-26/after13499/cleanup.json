@@ -1,0 +1,27 @@
+[
+  {
+    "pid": 198649,
+    "startTicks": "2868745",
+    "port": 13499,
+    "startedAt": "2026-10-26T03:23:27Z",
+    "cwd": "/workspace/vibecore-ui-public-admin",
+    "source": "222495dda",
+    "log": "/tmp/ui-editorial-next/after13499/server.log",
+    "existsBefore": true,
+    "signal": "SIGTERM",
+    "residualSignal": "SIGKILL after identity recheck",
+    "processExistsAfter": false,
+    "portListeningAfter": false
+  },
+  {
+    "pid": 198593,
+    "startTicks": "2868616",
+    "port": 6999,
+    "startedAt": "2026-10-26T03:23:26.126Z",
+    "log": "/tmp/ui-editorial-next/after13499/api.log",
+    "existsBefore": true,
+    "signal": "SIGTERM",
+    "processExistsAfter": false,
+    "portListeningAfter": false
+  }
+]

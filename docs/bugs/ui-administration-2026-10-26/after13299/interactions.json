@@ -1,0 +1,211 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "before": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois"
+        }
+      ],
+      "after": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois"
+        }
+      ],
+      "displayed": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+      "sizes": [
+        {
+          "width": 844,
+          "height": 390,
+          "inner": 844,
+          "body": 844,
+          "selectRight": 656
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "inner": 1440,
+          "body": 1440,
+          "selectRight": 830
+        },
+        {
+          "width": 320,
+          "height": 740,
+          "inner": 320,
+          "body": 320,
+          "selectRight": 272.5
+        }
+      ],
+      "draftPreserved": true,
+      "tabSelect": true,
+      "escapeValuePreserved": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "before": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois"
+        }
+      ],
+      "after": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois"
+        }
+      ],
+      "displayed": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+      "sizes": [
+        {
+          "width": 844,
+          "height": 390,
+          "inner": 844,
+          "body": 844,
+          "selectRight": 656
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "inner": 1440,
+          "body": 1440,
+          "selectRight": 851.765625
+        },
+        {
+          "width": 320,
+          "height": 740,
+          "inner": 320,
+          "body": 320,
+          "selectRight": 272.5
+        }
+      ],
+      "draftPreserved": true,
+      "tabSelect": true,
+      "escapeValuePreserved": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "before": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month"
+        }
+      ],
+      "after": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month"
+        }
+      ],
+      "displayed": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+      "sizes": [
+        {
+          "width": 844,
+          "height": 390,
+          "inner": 844,
+          "body": 844,
+          "selectRight": 656
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "inner": 1440,
+          "body": 1440,
+          "selectRight": 830
+        },
+        {
+          "width": 320,
+          "height": 740,
+          "inner": 320,
+          "body": 320,
+          "selectRight": 272.5
+        }
+      ],
+      "draftPreserved": true,
+      "tabSelect": true,
+      "escapeValuePreserved": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "before": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month"
+        }
+      ],
+      "after": [
+        {
+          "value": "synthetic",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month"
+        }
+      ],
+      "displayed": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+      "sizes": [
+        {
+          "width": 844,
+          "height": 390,
+          "inner": 844,
+          "body": 844,
+          "selectRight": 656
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "inner": 1440,
+          "body": 1440,
+          "selectRight": 830
+        },
+        {
+          "width": 320,
+          "height": 740,
+          "inner": 320,
+          "body": 320,
+          "selectRight": 272.5
+        }
+      ],
+      "draftPreserved": true,
+      "tabSelect": true,
+      "escapeValuePreserved": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}

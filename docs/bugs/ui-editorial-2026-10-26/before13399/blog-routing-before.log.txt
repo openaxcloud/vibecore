@@ -1,0 +1,181 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-editorial-next
+
+ ❯ app/routes/blog-routing.spec.tsx (2 tests | 2 failed) 2131ms
+   × nested blog route rendering > renders the known article from its child loader on direct entry with one shell 1078ms
+     → Unable to find role="heading" and name "Introducing E-Code AI Agent 2.0"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   × nested blog route rendering > switches from index to child and restores the index through browser history 1051ms
+     → Unable to find role="heading" and name "Introducing E-Code AI Agent 2.0"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/blog-routing.spec.tsx > nested blog route rendering > renders the known article from its child loader on direct entry with one shell
+TestingLibraryElementError: Unable to find role="heading" and name "Introducing E-Code AI Agent 2.0"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ app/routes/blog-routing.spec.tsx:69:25
+     67|   it('renders the known article from its child loader on direct entry …
+     68|     mount('/blog/introducing-e-code?lang=en');
+     69|     expect(await screen.findByRole('heading', { name: 'Introducing E-C…
+       |                         ^
+     70|     expect(screen.queryByRole('heading', { name: 'Blog index fixture' …
+     71|     expect(screen.getAllByRole('main')).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/routes/blog-routing.spec.tsx > nested blog route rendering > switches from index to child and restores the index through browser history
+TestingLibraryElementError: Unable to find role="heading" and name "Introducing E-Code AI Agent 2.0"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<h1>[39m
+        [0mBlog index fixture[0m
+      [36m</h1>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/blog/introducing-e-code?lang=en"[39m
+      [36m>[39m
+        [0mKnown article fixture[0m
+      [36m</a>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ app/routes/blog-routing.spec.tsx:78:25
+     76|     await screen.findByRole('heading', { name: 'Blog index fixture' });
+     77|     fireEvent.click(screen.getByRole('link', { name: 'Known article fi…
+     78|     expect(await screen.findByRole('heading', { name: 'Introducing E-C…
+       |                         ^
+     79|     expect(screen.getAllByRole('main')).toHaveLength(1);
+     80|     await act(async () => router.navigate(-1));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  03:14:15
+   Duration  5.43s (transform 1.39s, setup 18ms, collect 582ms, tests 2.13s, environment 297ms, prepare 57ms)
+

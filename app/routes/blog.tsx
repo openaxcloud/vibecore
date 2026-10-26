@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { useOutlet, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import Blog from '~/components/marketing/ecode-exact/pages/Blog';
 import { getMarketingExactLegalBlogCopy } from '~/lib/i18n/catalogs/marketing-exact-legal-blog';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
@@ -23,5 +23,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export default function BlogRoute() {
-  return <Blog />;
+  const outlet = useOutlet();
+
+  return outlet ?? <Blog />;
 }

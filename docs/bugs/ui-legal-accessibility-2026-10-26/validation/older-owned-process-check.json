@@ -1,0 +1,107 @@
+[
+  {
+    "pid": 161303,
+    "startedAt": "2026-10-26T01:18:35Z",
+    "startTicks": "2119548",
+    "port": 11499,
+    "log": "/tmp/ui-support-detail-next/server.log",
+    "sent": "SIGTERM",
+    "thenSent": "SIGKILL",
+    "connectionResult": 111,
+    "originFile": "/tmp/ui-support-detail-next/cleanup.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 161276,
+    "startTicks": "2119004",
+    "port": 5999,
+    "startedAt": "2026-10-26T01:18:29.993Z",
+    "log": "/tmp/ui-support-detail-next/api.log",
+    "sent": "SIGTERM",
+    "connectionResult": 111,
+    "originFile": "/tmp/ui-support-detail-next/cleanup.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 165206,
+    "startedAt": "2026-10-26T01:40:03Z",
+    "startTicks": "2248330",
+    "port": 11499,
+    "log": "/tmp/ui-support-detail-next/server-header-probe.log",
+    "sent": "SIGTERM",
+    "thenSent": "SIGKILL",
+    "connectionResult": 111,
+    "originFile": "/tmp/ui-support-detail-next/cleanup-header-probe.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 165191,
+    "startTicks": "2248203",
+    "port": 5999,
+    "startedAt": "2026-10-26T01:40:01.976Z",
+    "log": "/tmp/ui-support-detail-next/api-header-probe.log",
+    "sent": "SIGTERM",
+    "connectionResult": 111,
+    "originFile": "/tmp/ui-support-detail-next/cleanup-header-probe.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 166849,
+    "startedAt": "2026-10-26T01:52:01Z",
+    "startTicks": "2320164",
+    "port": 11599,
+    "log": "/tmp/ui-support-detail-next/server-after.log",
+    "sent": "SIGTERM",
+    "thenSent": "SIGKILL",
+    "connectionResult": 111,
+    "originFile": "/tmp/ui-support-detail-next/after/cleanup.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 166816,
+    "startTicks": "2320028",
+    "port": 5999,
+    "startedAt": "2026-10-26T01:52:00.276Z",
+    "log": "/tmp/ui-support-detail-next/api-after.log",
+    "sent": "SIGTERM",
+    "connectionResult": 111,
+    "originFile": "/tmp/ui-support-detail-next/after/cleanup.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 168972,
+    "startedAt": "2026-10-26T01:58:26Z",
+    "startTicks": "2358701",
+    "port": 11699,
+    "log": "/tmp/ui-browser-zoom-next/server.log",
+    "originFile": "/tmp/ui-browser-zoom-next/server-process.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 171785,
+    "startedAt": "2026-10-26T02:08:23Z",
+    "startTicks": "2418378",
+    "port": 11799,
+    "log": "/tmp/ui-browser-zoom-next/server11799.log",
+    "originFile": "/tmp/ui-browser-zoom-next/server11799-origin.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  },
+  {
+    "pid": 168957,
+    "startTicks": "2358577",
+    "port": 6099,
+    "startedAt": "2026-10-26T01:58:25.717Z",
+    "log": "/tmp/ui-browser-zoom-next/api.log",
+    "originFile": "/tmp/ui-browser-zoom-next/api-origin.json",
+    "presentBefore": false,
+    "procExistsAfter": false
+  }
+]

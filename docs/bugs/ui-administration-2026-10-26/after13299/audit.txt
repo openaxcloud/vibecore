@@ -1,0 +1,20 @@
+/admin/billing fr light 320 Administration de la facturation 320
+/admin/billing fr light 390 Administration de la facturation 390
+/admin/billing fr light 844 Administration de la facturation 844
+/admin/billing fr light 820 Administration de la facturation 820
+/admin/billing fr light 1440 Administration de la facturation 1440
+/admin/billing fr dark 320 Administration de la facturation 320
+/admin/billing fr dark 390 Administration de la facturation 390
+/admin/billing fr dark 844 Administration de la facturation 844
+/admin/billing fr dark 820 Administration de la facturation 820
+/admin/billing fr dark 1440 Administration de la facturation 1440
+/admin/billing en light 320 Billing administration 320
+/admin/billing en light 390 Billing administration 390
+/admin/billing en light 844 Billing administration 844
+/admin/billing en light 820 Billing administration 820
+/admin/billing en light 1440 Billing administration 1440
+/admin/billing en dark 320 Billing administration 320
+/admin/billing en dark 390 Billing administration 390
+/admin/billing en dark 844 Billing administration 844
+/admin/billing en dark 820 Billing administration 820
+/admin/billing en dark 1440 Billing administration 1440

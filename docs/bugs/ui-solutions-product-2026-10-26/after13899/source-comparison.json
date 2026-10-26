@@ -1,0 +1,17 @@
+{
+  "sources": [
+    {
+      "worktree": "/workspace/vibecore-ui-public-admin",
+      "head": "c2823890d2f5d8e07328a3ba1e5b3b24061b94d0",
+      "file": "app/components/marketing/ecode-exact/pages/PublicDeploymentsPage.tsx",
+      "sha256": "e0995d8e7e16475a27abc23980794fa023b634c67fabb69c87a42e30ac0f1e7f"
+    },
+    {
+      "worktree": "/workspace/vibecore-ui-marketing-next",
+      "head": "bef3af1d4eb7b40accf653f6b796a726a2d8b3ca",
+      "file": "app/components/marketing/ecode-exact/pages/PublicDeploymentsPage.tsx",
+      "sha256": "e0995d8e7e16475a27abc23980794fa023b634c67fabb69c87a42e30ac0f1e7f"
+    }
+  ],
+  "equal": true
+}

@@ -1,0 +1,24 @@
+{
+  "registeredRouteIDs": 357,
+  "baseCounts": {
+    "teste_local_partiel": 94,
+    "non_exerce": 103,
+    "reserve": 5,
+    "hors_ui": 155
+  },
+  "proposedCountsFromCompletedEvidence": {
+    "teste_local_partiel": 160,
+    "non_exerce": 37,
+    "hors_ui": 155,
+    "reserve": 5
+  },
+  "completedEvidenceTransitions": 66,
+  "pendingUnpromotedRouteIDs": 0,
+  "pendingCorrectionGates": [],
+  "meaning": "Partial local observation coverage, not every function fixed or production delivered.",
+  "completedCorrectionGates": [
+    "MarketingDeployments final compiled13899:44 observations/8 groups",
+    "Semantic extension cc5574:48 observations/192 CTA/48 Tab/12 Enter-Back +44 Hero observations/8 groups",
+    "ReportAbuse compiled cc5574:16 link measures/8 contexts, light5.9449 dark7.7688"
+  ]
+}

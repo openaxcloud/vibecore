@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-marketing-next
+
+ ✓ app/components/marketing/ecode-exact/marketing-ux-audit.spec.ts (8 tests) 8ms
+ ✓ app/components/marketing/ecode-exact/pages/PublicDeployments.i18n.spec.tsx (3 tests) 92ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  03:36:18
+   Duration  3.93s (transform 2.04s, setup 85ms, collect 891ms, tests 99ms, environment 0ms, prepare 133ms)

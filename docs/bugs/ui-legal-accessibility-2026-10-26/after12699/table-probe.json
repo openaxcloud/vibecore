@@ -1,0 +1,78 @@
+[
+  {
+    "lang": "fr",
+    "theme": "light",
+    "width": 320,
+    "before": {
+      "scrollWidth": 672,
+      "clientWidth": 286,
+      "scrollLeft": 0
+    },
+    "after": {
+      "scrollLeft": 386,
+      "linkLeft": 218.8125,
+      "linkRight": 286.84375,
+      "wrapperLeft": 17,
+      "wrapperRight": 303,
+      "focused": true
+    },
+    "externalLinkNotActivated": true
+  },
+  {
+    "lang": "fr",
+    "theme": "dark",
+    "width": 320,
+    "before": {
+      "scrollWidth": 672,
+      "clientWidth": 286,
+      "scrollLeft": 0
+    },
+    "after": {
+      "scrollLeft": 386,
+      "linkLeft": 218.8125,
+      "linkRight": 286.84375,
+      "wrapperLeft": 17,
+      "wrapperRight": 303,
+      "focused": true
+    },
+    "externalLinkNotActivated": true
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "width": 320,
+    "before": {
+      "scrollWidth": 645,
+      "clientWidth": 286,
+      "scrollLeft": 0
+    },
+    "after": {
+      "scrollLeft": 359,
+      "linkLeft": 216.296875,
+      "linkRight": 286.609375,
+      "wrapperLeft": 17,
+      "wrapperRight": 303,
+      "focused": true
+    },
+    "externalLinkNotActivated": true
+  },
+  {
+    "lang": "en",
+    "theme": "dark",
+    "width": 320,
+    "before": {
+      "scrollWidth": 645,
+      "clientWidth": 286,
+      "scrollLeft": 0
+    },
+    "after": {
+      "scrollLeft": 359,
+      "linkLeft": 216.296875,
+      "linkRight": 286.609375,
+      "wrapperLeft": 17,
+      "wrapperRight": 303,
+      "focused": true
+    },
+    "externalLinkNotActivated": true
+  }
+]

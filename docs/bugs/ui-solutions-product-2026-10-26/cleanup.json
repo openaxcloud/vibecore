@@ -1,0 +1,57 @@
+[
+  {
+    "origin": {
+      "pid": 199673,
+      "startTicks": "2871172",
+      "port": 13699,
+      "at": "2026-10-26T03:23:51Z",
+      "sourceHead": "222495dda3f4688af53a1eaddff864d893d1dfa9",
+      "cwd": "/workspace/vibecore-ui-public-admin",
+      "buildSHA256": "b4e1ef3308d0bc2db3df364614758a3acfc15eb789c83da01b24501acadce083",
+      "args": [
+        "react-router-serve",
+        "./build/server/index.js"
+      ],
+      "apiPID": 199671
+    },
+    "before": {
+      "exists": true,
+      "state": "S",
+      "startTicks": "2871172",
+      "cmdline": "node ./node_modules/.bin/../@react-router/serve/bin.js ./build/server/index.js ",
+      "rss": "VmRSS:\t  377556 kB"
+    },
+    "sigkill": true,
+    "after": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "2871172",
+      "cmdline": "",
+      "rss": null
+    },
+    "portConnectResult": 111
+  },
+  {
+    "origin": {
+      "pid": 199671,
+      "startTicks": "2871171",
+      "port": 6899,
+      "startedAt": "2026-10-26T03:23:51.732Z"
+    },
+    "before": {
+      "exists": true,
+      "state": "S",
+      "startTicks": "2871171",
+      "cmdline": "node /tmp/ui-solutions-product-next/fixture.cjs ",
+      "rss": "VmRSS:\t   34164 kB"
+    },
+    "after": {
+      "exists": true,
+      "state": "Z",
+      "startTicks": "2871171",
+      "cmdline": "",
+      "rss": null
+    },
+    "portConnectResult": 111
+  }
+]

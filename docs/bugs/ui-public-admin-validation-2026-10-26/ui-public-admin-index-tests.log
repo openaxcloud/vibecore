@@ -1,0 +1,42 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-public-admin
+
+ ❯ scripts/index-a-jour.spec.mjs (6 tests | 1 failed) 25ms
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > chaque fichier du dossier a exactement une ligne dans l’index 4ms
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > chaque ligne de l’index pointe vers un fichier qui existe 2ms
+   × l'index de l'inventaire ne diverge pas de docs/bugs/ > l’identifiant de l’index est celui du frontmatter du fichier 15ms
+     → identifiants en désaccord: expected [ …(3) ] to deeply equal []
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > le compte annoncé en tête d’index est le compte réel 1ms
+   ✓ la décision restée hors du tableau est conservée mot pour mot > figure dans l'index, à la ligne près 1ms
+   ✓ la décision restée hors du tableau est conservée mot pour mot > est annoncée comme un résidu, pas glissée dans la liste des entrées 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/index-a-jour.spec.mjs > l'index de l'inventaire ne diverge pas de docs/bugs/ > l’identifiant de l’index est celui du frontmatter du fichier
+AssertionError: identifiants en désaccord: expected [ …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "BUG-BLOG-CARD-DESTINATIONS-20261026.md: index=undefined frontmatter=undefined",
++   "BUG-BLOG-DETAIL-HIDDEN-20261026.md: index=undefined frontmatter=undefined",
++   "BUG-NEWSLETTER-UNVERIFIED-SUCCESS-20261026.md: index=undefined frontmatter=undefined",
++ ]
+
+ ❯ scripts/index-a-jour.spec.mjs:78:53
+     76|       .map((entree) => `${entree.fichier}: index=${entree.id} frontmat…
+     77|
+     78|     expect(desaccords, 'identifiants en désaccord').toEqual([]);
+       |                                                     ^
+     79|   });
+     80|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  03:56:13
+   Duration  2.02s (transform 1.05s, setup 23ms, collect 8ms, tests 25ms, environment 0ms, prepare 60ms)
