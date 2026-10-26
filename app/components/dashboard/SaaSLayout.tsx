@@ -1205,7 +1205,7 @@ export function AppShell({
                     <h1 className="vc-app-shell-title text-[28px] font-semibold leading-[36px] tracking-normal sm:text-[32px] sm:leading-[40px]">
                       {displayedTitle}
                     </h1>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">
+                    <p className="mt-2 max-w-3xl break-words [overflow-wrap:anywhere] text-sm leading-6 text-bolt-elements-textSecondary">
                       {displayedDescription}
                     </p>
                   </div>
@@ -2422,7 +2422,7 @@ function TopBar({
 
   return (
     <header
-      className="sticky top-0 z-10 flex h-[56px] items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6"
+      className="sticky top-0 z-10 flex h-[calc(56px+env(safe-area-inset-top,0px))] items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 pt-[env(safe-area-inset-top,0px)] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] backdrop-blur-xl sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]"
       data-vc-tour-target="tools"
     >
       <button

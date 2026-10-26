@@ -23351,8 +23351,8 @@ body:has(.bolt-project-statusbar)
     display: grid;
   }
 
-  html,
-  body {
+  html:has(.bolt-project-ide-shell, .bolt-responsive-ide),
+  body:has(.bolt-project-ide-shell, .bolt-responsive-ide) {
     overflow: hidden;
   }
 

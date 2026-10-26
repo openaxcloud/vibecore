@@ -54,3 +54,49 @@ test('E-Code marketing routes render the shared public shell with content', asyn
     expect(noHorizontalOverflow, `${route} horizontal overflow`).toBeTruthy();
   }
 });
+
+test('public policy remains scrollable with wheel and PageDown in a short landscape viewport', async ({
+  page,
+  baseURL,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'chromium',
+    'One desktop Chromium input regression at an explicit landscape size',
+  );
+
+  const origin = new URL(baseURL!).origin;
+  await page.route('**/*', (route) => {
+    const request = route.request();
+
+    return request.method() !== 'GET' || new URL(request.url()).origin !== origin ? route.abort() : route.continue();
+  });
+
+  await page.setViewportSize({ width: 844, height: 390 });
+
+  for (const input of ['wheel', 'PageDown'] as const) {
+    await page.goto('/account-inactivity?lang=fr', { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('heading-account-inactivity')).toBeVisible({ timeout: 30_000 });
+
+    const lastParagraph = page.locator('main article section').last().locator('p').last();
+    await expect(lastParagraph).toBeAttached();
+    await expect(lastParagraph).not.toBeInViewport();
+    await page.mouse.move(500, 280);
+
+    // A real input must move the policy content. Programmatic scrolling or
+    // focus would bypass the body overflow lock; repeated inputs can overshoot.
+    const topBefore = await lastParagraph.evaluate((node) => node.getBoundingClientRect().top);
+
+    if (input === 'wheel') {
+      await page.mouse.wheel(0, 260);
+    } else {
+      await page.keyboard.press('PageDown');
+    }
+
+    await expect
+      .poll(async () => topBefore - (await lastParagraph.evaluate((node) => node.getBoundingClientRect().top)), {
+        message: `${input} moves policy content after one gesture`,
+        timeout: 5_000,
+      })
+      .toBeGreaterThan(100);
+  }
+});
