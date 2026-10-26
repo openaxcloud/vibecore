@@ -22,7 +22,7 @@ Un nom d’offre long déborde le sélecteur et la carte de Facturation admin, �
 
 ## Validation locale
 
-18tests existants sur2fichiers verts, lint ciblé0. Contrepreuve DOM body1743→320,select1695→225,nom1421→202. Compilation et recette corrigée en attente ; aucune livraison présumée.
+18tests existants sur2fichiers verts, lint ciblé0. Contrepreuve DOM body1743→320,select1695→225,nom1421→202. Buildcommun P2 réussi ;20observations compilées13299 sur5formats FR/ENthèmes et4parcours clavier/resize passent. Body et contrôles contenus, nom/valeurs conservés ; aucune livraison présumée.
 
 ## Preuves et limites
 

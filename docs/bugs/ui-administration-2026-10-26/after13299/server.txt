@@ -1,0 +1,178 @@
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  AmazonBedrock
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Anthropic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cerebras
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cohere
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Deepseek
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Fireworks
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Github
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Google
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Groq
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  HuggingFace
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Hyperbolic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  LMStudio
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Mistral
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Moonshot
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Ollama
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAILike
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenRouter
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Perplexity
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Together
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  xAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Z.ai
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 1ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[react-router-serve] http://localhost:13299 (http://127.0.0.1:13299)
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /admin/billing?lang=fr 200 - - 129.230 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 6.805 ms
+GET /api/auth/user 200 - - 32.780 ms
+GET /api/notifications 200 - - 31.943 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 21.878 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 35.224 ms
+GET /admin/billing?lang=fr 200 - - 32.258 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 2.139 ms
+GET /api/auth/user 200 - - 9.350 ms
+GET /api/notifications 200 - - 9.185 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 10.237 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 13.204 ms
+GET /admin/billing?lang=fr 200 - - 38.132 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 3.687 ms
+GET /api/auth/user 200 - - 4.241 ms
+GET /api/notifications 200 - - 4.820 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 7.614 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 5.350 ms
+GET /admin/billing?lang=fr 200 - - 24.878 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.051 ms
+GET /api/auth/user 200 - - 4.128 ms
+GET /api/notifications 200 - - 5.178 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.415 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 5.893 ms
+GET /admin/billing?lang=fr 200 - - 33.832 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 2.294 ms
+GET /api/auth/user 200 - - 4.351 ms
+GET /api/notifications 200 - - 3.950 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 4.570 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.269 ms
+GET /admin/billing?lang=fr 200 - - 19.340 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.461 ms
+GET /api/notifications 200 - - 9.629 ms
+GET /api/auth/user 200 - - 9.766 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.443 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 5.020 ms
+GET /admin/billing?lang=fr 200 - - 23.763 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 2.058 ms
+GET /api/auth/user 200 - - 5.907 ms
+GET /api/notifications 200 - - 4.412 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.935 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 12.035 ms
+GET /admin/billing?lang=fr 200 - - 17.055 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 4.233 ms
+GET /api/auth/user 200 - - 4.200 ms
+GET /api/notifications 200 - - 5.025 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.076 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 8.469 ms
+GET /admin/billing?lang=fr 200 - - 19.717 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.105 ms
+GET /api/auth/user 200 - - 6.973 ms
+GET /api/notifications 200 - - 6.390 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.394 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 4.532 ms
+GET /admin/billing?lang=fr 200 - - 20.101 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.209 ms
+GET /api/auth/user 200 - - 7.285 ms
+GET /api/notifications 200 - - 13.763 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 9.717 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.503 ms
+GET /admin/billing?lang=en 200 - - 49.343 ms
+GET /admin/billing?lang=fr 200 - - 30.885 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.434 ms
+GET /api/auth/user 200 - - 8.638 ms
+GET /api/notifications 200 - - 9.457 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.198 ms
+GET /api/auth/user 200 - - 5.371 ms
+GET /api/notifications 200 - - 5.158 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 12.377 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.202 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 4.836 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 9.412 ms
+GET /admin/billing?lang=en 200 - - 33.911 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.700 ms
+GET /api/auth/user 200 - - 5.712 ms
+GET /api/notifications 200 - - 5.119 ms
+GET /admin/billing?lang=fr 200 - - 52.442 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 31.792 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 14.861 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 2.705 ms
+GET /api/auth/user 200 - - 7.001 ms
+GET /api/notifications 200 - - 8.350 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.359 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 9.815 ms
+GET /admin/billing?lang=en 200 - - 20.874 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.406 ms
+GET /api/auth/user 200 - - 20.629 ms
+GET /api/notifications 200 - - 17.440 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 16.644 ms
+GET /admin/billing?lang=en 200 - - 24.584 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 6.050 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.600 ms
+GET /api/auth/user 200 - - 7.464 ms
+GET /api/notifications 200 - - 6.642 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 15.533 ms
+GET /admin/billing?lang=en 200 - - 58.390 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 16.617 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 7ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.115 ms
+GET /api/auth/user 200 - - 3.891 ms
+GET /api/notifications 200 - - 3.560 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.315 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 5.438 ms
+GET /admin/billing?lang=en 200 - - 23.403 ms
+GET /admin/billing?lang=en 200 - - 61.133 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.730 ms
+GET /api/auth/user 200 - - 61.854 ms
+GET /api/notifications 200 - - 23.764 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.124 ms
+GET /api/auth/user 200 - - 24.106 ms
+GET /api/notifications 200 - - 19.326 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 11.769 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 11.670 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 10.747 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 13.339 ms
+GET /admin/billing?lang=en 200 - - 38.242 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 0.988 ms
+GET /api/auth/user 200 - - 2.689 ms
+GET /api/notifications 200 - - 2.976 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.225 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 8.441 ms
+GET /admin/billing?lang=en 200 - - 42.441 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.875 ms
+GET /api/notifications 200 - - 4.525 ms
+GET /api/auth/user 200 - - 6.963 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.385 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 6.502 ms
+GET /admin/billing?lang=en 200 - - 35.723 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 7.173 ms
+GET /api/auth/user 200 - - 19.032 ms
+GET /api/notifications 200 - - 16.866 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.624 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 7.003 ms
+GET /admin/billing?lang=en 200 - - 20.993 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 1.657 ms
+GET /api/auth/user 200 - - 11.775 ms
+GET /api/notifications 200 - - 11.836 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.535 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 9.843 ms
+GET /admin/billing?lang=en 200 - - 36.050 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=cf4b1d95 200 - - 4.054 ms
+GET /api/auth/user 200 - - 16.695 ms
+GET /api/notifications 200 - - 20.347 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fadmin%2C%2Fadmin%2Fbilling%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=cf4b1d95 200 - - 13.802 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 29.964 ms
+
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms

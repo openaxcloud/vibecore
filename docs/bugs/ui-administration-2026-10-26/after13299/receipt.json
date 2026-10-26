@@ -1,0 +1,908 @@
+{
+  "base": "http://127.0.0.1:13299",
+  "observations": [
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 47.5,
+          "right": 272.5,
+          "width": 225,
+          "parentWidth": 225,
+          "client": 223,
+          "scroll": 223
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 261,
+          "width": 202,
+          "parentWidth": 202,
+          "client": 202,
+          "scroll": 202
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 47.5,
+          "right": 342.5,
+          "width": 295,
+          "parentWidth": 295,
+          "client": 293,
+          "scroll": 293
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 331,
+          "width": 272,
+          "parentWidth": 272,
+          "client": 272,
+          "scroll": 272
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 282.3125,
+          "width": 212.8125,
+          "parentWidth": 270.75,
+          "client": 213,
+          "scroll": 213
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 282.3125,
+          "width": 212.8125,
+          "parentWidth": 270.75,
+          "client": 213,
+          "scroll": 213
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 410,
+          "right": 922,
+          "width": 512,
+          "parentWidth": 512,
+          "client": 510,
+          "scroll": 510
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 420,
+          "right": 595.0625,
+          "width": 175.0625,
+          "parentWidth": 231.5,
+          "client": 175,
+          "scroll": 175
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 47.5,
+          "right": 272.5,
+          "width": 225,
+          "parentWidth": 225,
+          "client": 223,
+          "scroll": 223
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 261,
+          "width": 202,
+          "parentWidth": 202,
+          "client": 202,
+          "scroll": 202
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 47.5,
+          "right": 342.5,
+          "width": 295,
+          "parentWidth": 295,
+          "client": 293,
+          "scroll": 293
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 331,
+          "width": 272,
+          "parentWidth": 272,
+          "client": 272,
+          "scroll": 272
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 282.3125,
+          "width": 212.8125,
+          "parentWidth": 270.75,
+          "client": 213,
+          "scroll": 213
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 282.3125,
+          "width": 212.8125,
+          "parentWidth": 270.75,
+          "client": 213,
+          "scroll": 213
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=fr",
+      "title": "Administration de la facturation",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — 25,00 € par mois",
+          "left": 410,
+          "right": 922,
+          "width": 512,
+          "parentWidth": 512,
+          "client": 510,
+          "scroll": 510
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 420,
+          "right": 595.0625,
+          "width": 175.0625,
+          "parentWidth": 231.5,
+          "client": 175,
+          "scroll": 175
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 47.5,
+          "right": 272.5,
+          "width": 225,
+          "parentWidth": 225,
+          "client": 223,
+          "scroll": 223
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 261,
+          "width": 202,
+          "parentWidth": 202,
+          "client": 202,
+          "scroll": 202
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 47.5,
+          "right": 342.5,
+          "width": 295,
+          "parentWidth": 295,
+          "client": 293,
+          "scroll": 293
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 331,
+          "width": 272,
+          "parentWidth": 272,
+          "client": 272,
+          "scroll": 272
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 285.84375,
+          "width": 216.34375,
+          "parentWidth": 270.75,
+          "client": 216,
+          "scroll": 216
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 285.84375,
+          "width": 216.34375,
+          "parentWidth": 270.75,
+          "client": 216,
+          "scroll": 216
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 410,
+          "right": 922,
+          "width": 512,
+          "parentWidth": 512,
+          "client": 510,
+          "scroll": 510
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 420,
+          "right": 598.59375,
+          "width": 178.59375,
+          "parentWidth": 231.5,
+          "client": 179,
+          "scroll": 179
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 47.5,
+          "right": 272.5,
+          "width": 225,
+          "parentWidth": 225,
+          "client": 223,
+          "scroll": 223
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 261,
+          "width": 202,
+          "parentWidth": 202,
+          "client": 202,
+          "scroll": 202
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 47.5,
+          "right": 342.5,
+          "width": 295,
+          "parentWidth": 295,
+          "client": 293,
+          "scroll": 293
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 59,
+          "right": 331,
+          "width": 272,
+          "parentWidth": 272,
+          "client": 272,
+          "scroll": 272
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 285.84375,
+          "width": 216.34375,
+          "parentWidth": 270.75,
+          "client": 216,
+          "scroll": 216
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 58,
+          "right": 656,
+          "width": 598,
+          "parentWidth": 598,
+          "client": 596,
+          "scroll": 596
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 69.5,
+          "right": 285.84375,
+          "width": 216.34375,
+          "parentWidth": 270.75,
+          "client": 216,
+          "scroll": 216
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13299/admin/billing?lang=en",
+      "title": "Billing administration",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "planBounds": [
+        {
+          "tag": "SELECT",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces — €25.00 per month",
+          "left": 410,
+          "right": 922,
+          "width": 512,
+          "parentWidth": 512,
+          "client": 510,
+          "scroll": 510
+        },
+        {
+          "tag": "STRONG",
+          "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpaces",
+          "left": 420,
+          "right": 598.59375,
+          "width": 178.59375,
+          "parentWidth": 231.5,
+          "client": 179,
+          "scroll": 179
+        }
+      ],
+      "overflows": [],
+      "smallButtons": []
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}
