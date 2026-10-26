@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-report-next
+
+stderr | app/components/marketing/ecode-exact/pages/ReportAbuse.spec.tsx > ReportAbuse submit fallback > falls back to a client-side mailto when the server rejects without a fallbackMailto
+react-i18next:: useTranslation: You will need to pass in an i18next instance by using initReactI18next { code: 'NO_I18NEXT_INSTANCE' }
+
+ ✓ app/components/marketing/ecode-exact/pages/ReportAbuse.spec.tsx (5 tests) 136ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  04:16:58
+   Duration  2.71s (transform 1.13s, setup 27ms, collect 284ms, tests 136ms, environment 321ms, prepare 62ms)

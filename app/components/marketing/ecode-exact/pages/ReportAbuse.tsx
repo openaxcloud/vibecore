@@ -368,11 +368,11 @@ export default function ReportAbuse() {
                   {copy.warning}
                   <br />
                   {copy.moreInformation}{' '}
-                  <a href="/terms" className="text-primary hover:underline">
+                  <a href="/terms" className="text-[var(--ecode-accent-text)] hover:underline">
                     {copy.terms}
                   </a>{' '}
                   {copy.and}{' '}
-                  <a href="/acceptable-use" className="text-primary hover:underline">
+                  <a href="/acceptable-use" className="text-[var(--ecode-accent-text)] hover:underline">
                     {copy.guidelines}
                   </a>
                   .
