@@ -1,0 +1,26 @@
+[
+  {
+    "panel": "git",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "ixture-033.ts\nU\nUntracked\nStage\nsrc/fixture-034.ts\nU\nUntracked\nStage\nsrc/fixture-035.ts\nU\nUntracked\nStage\nsrc/fixture-036.ts\nU\nUntracked\nStage\nsrc/fixture-037.ts\nU\nUntracked\nStage\nsrc/fixture-038.ts\nU\nUntracked\nStage\nsrc/fixture-039.ts\nU\nUntracked\nStage\nsrc/fixture-040.ts\nU\nUntracked\nStage\nsrc/fixture-041.ts\nU\nUntracked\nStage\nsrc/fixture-042.ts\nU\nUntracked\nStage\nsrc/fixture-043.ts\nU\nUntracked\nStage\nsrc/fixture-044.ts\nU\nUntracked\nStage\nsrc/fixture-045.ts\nU\nUntracked\nStage\nsrc/fixture-046.ts\nU\nUntracked\nStage\nsrc/fixture-047.ts\nU\nUntracked\nStage\nsrc/fixture-048.ts\nU\nUntracked\nStage\nsrc/fixture-049.ts\nU\nUntracked\nStage\nsrc/fixture-050.ts\nU\nUntracked\nStage\nsrc/fixture-051.ts\nU\nUntracked\nStage\nsrc/fixture-052.ts\nU\nUntracked\nStage\nsrc/fixture-053.ts\nU\nUntracked\nStage\nsrc/fixture-054.ts\nU\nUntracked\nStage\nsrc/fixture-055.ts\nU\nUntracked\nStage\nsrc/fixture-056.ts\nU\nUntracked\nStage\nsrc/fixture-057.ts\nU\nUntracked\nStage\nsrc/fixture-058.ts\nU\nUntracked\nStage\nsrc/fixture-059.ts\nU\nUntracked\nStage\nStatus guide:\nU\nUntracked\nUntracked\nM\nModified\nModified\nA\nAdded\nAdded\nD\nDeleted\nDeleted\nR\nRenamed\nRenamed\n!\nConflict\nConflict\nStaged\nSelect files above to stage changes.\nCommit message\nCommit as… (optional author override)\nCommit changes\nCommit & push\nCommit graph\nUP TO DATE WITH REMOTE\n3ee5884\nchore: initial scaffold\njust now - HEAD -> main - You\nInspect file (diff + blame)\nInspect\nSelect a changed file or enter a path to view its diff and blame.\nBranch actions\nPull request title\nSource branch\nTarget branch\nCreate GitHub PR\n\nConfigure a GitHub remote before creating a pull request.\n\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "git",
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      }
+    ]
+  }
+]

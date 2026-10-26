@@ -1,0 +1,26 @@
+{
+  "baselineHEAD": "798fa0f251dec690f81ebd11f0c43eae76c98ba6",
+  "productStatus": "uncommitted final focus correction at build time",
+  "workingDiffSHA256": "4a80d9ea20b234efc0073d32bfd9bfc822c7fe11aee891d4d580f390dadd925b",
+  "productFiles": {
+    "app/components/chat/BaseChat.tsx": "036e6aa90ad684b65a3e25bf423278ee38a9f8bc45dbd780926e97d784477754",
+    "app/routes/projects.$projectId.ide.tsx": "a868916381d2bd0a068da74b9e3a45a7e743013cda192fe5f769ca24799456da",
+    "app/components/chat/MobileOverlayFocus.tsx": "03358a16f6fbc4f5ce52c9727d49f1eaca797d2a9e32ac5c90a853f2708c5f4d"
+  },
+  "sourceManifestSHA256": "8cf77c8a3cc4a903af70ccadc73b9686d9590078f3b081c5ea0f4eccaf8b74cb",
+  "buildManifestSHA256": "3779a283677e41b012d9594e172b1510087a15d45df459398c8fd739d2fbacc8",
+  "buildExit": 0,
+  "sourceChangesDuringBuild": [],
+  "stats": {
+    "startTime": "2026-10-26T02:16:54.440Z",
+    "duration": 34852.905,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "retries": 0,
+  "resultSHA256": "0a07239be4a14e7bd7337ad7b2ead62ca1e607e4019bc2e54c5773c316f7f955",
+  "scope": "Native Chromium zoom200%, six panels and tab-search empty/Escape; no provider action. Main parent owns exact eight focus handoff/Escape E2E cases. Baseline17cases not relabeled as final-build results.",
+  "interruptedBuild": "Earlier correction build deliberately terminated before completion because independent review required stale opener fix; no result claimed."
+}

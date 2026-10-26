@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { useMobileOverlayFocus } from './MobileOverlayFocus';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
 import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
 import {
@@ -2364,7 +2365,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectUrl,
       initialIdePanels,
     },
-    ref,
+    forwardedRef,
   ) => {
     const { t, i18n } = useTranslation();
     const language = resolvedBaseChatLanguage(i18n);
@@ -3026,7 +3027,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [mobileOverlayStorageKey],
     );
 
-    const mobileOverlayReturnFocusRef = useRef<HTMLElement | null>(null);
+    const {
+      rootRef: mobileFocusRootRef,
+      rememberOpener,
+      restoreOpener,
+    } = useMobileOverlayFocus(projectIdeMode && useMobileIde && clientHydrated, useMobileIde);
+    const ref = useCallback(
+      (node: HTMLDivElement | null) => {
+        mobileFocusRootRef.current = node;
+
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(node);
+        } else if (forwardedRef) {
+          forwardedRef.current = node;
+        }
+      },
+      [mobileFocusRootRef, forwardedRef],
+    );
 
     const blurActiveMobileControl = useCallback(() => {
       if (typeof document === 'undefined') {
@@ -3037,12 +3054,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (activeElement instanceof HTMLElement) {
         if (!activeElement.closest('[role="dialog"]')) {
-          mobileOverlayReturnFocusRef.current = activeElement;
+          rememberOpener(activeElement);
         }
 
         activeElement.blur();
       }
-    }, []);
+    }, [rememberOpener]);
 
     useEffect(() => {
       setClientHydrated(true);
@@ -3233,9 +3250,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       },
-      [closeMobileOverlays],
+      [closeMobileOverlays, restoreOpener],
     );
 
     const openMobileToolsSheet = useCallback(() => {
@@ -3485,7 +3502,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       };
 
       /*
@@ -3497,6 +3514,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape, true);
     }, [
       closeMobileOverlays,
+      restoreOpener,
       mobileAgentMenuOpen,
       mobileMoreMenuOpen,
       mobileTabSwitcherOpen,
