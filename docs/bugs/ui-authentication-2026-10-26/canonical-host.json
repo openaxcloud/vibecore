@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-26T02:37:01.852Z",
+  "transport": "node:http explicit Host, localhost socket only",
+  "status": 301,
+  "location": "https://app.e-code.ai/register?lang=fr",
+  "followed": false,
+  "initialHarness": "Node fetch Host override did not exercise this branch; initial protocols assertion preserved separately"
+}

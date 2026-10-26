@@ -1,0 +1,27 @@
+{
+  "cases": [
+    {
+      "label": "unsupported start",
+      "path": "/auth/oauth/unsupported",
+      "status": 302,
+      "location": "/login?oauth=unknown&error=unsupported_provider",
+      "cookies": []
+    },
+    {
+      "label": "unsupported callback",
+      "path": "/auth/oauth/unsupported/callback",
+      "status": 302,
+      "location": "/login?oauth=unknown&error=unsupported_provider",
+      "cookies": []
+    },
+    {
+      "label": "provider not configured",
+      "path": "/auth/oauth/google",
+      "status": 302,
+      "location": "/login?oauth=google&error=not_configured",
+      "cookies": []
+    }
+  ],
+  "syntheticOnly": true,
+  "thirdPartyFollowed": false
+}
