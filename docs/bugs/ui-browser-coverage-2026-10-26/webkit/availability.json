@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-26",
+  "worktree": "/workspace/vibecore-ui-safecontent",
+  "engine": "Playwright WebKit",
+  "expectedExecutable": "/home/agent/.cache/ms-playwright/webkit-2272/pw_run.sh",
+  "executableExists": false,
+  "launchAttempted": true,
+  "launchSucceeded": false,
+  "error": "browserType.launch: Executable doesn't exist at /home/agent/.cache/ms-playwright/webkit-2272/pw_run.sh",
+  "PLAYWRIGHT_BROWSERS_PATH": "unset",
+  "alternativeSearch": "Read-only conventional /home/agent/.cache/ms-playwright, /ms-playwright and /opt paths; rg --files --hidden /workspace /tmp /opt for pw_run.sh or MiniBrowser: none found.",
+  "temporaryEmptyProfileFound": "/tmp/playwright_webkitdev_profile-fYp0te",
+  "installationAttempted": false,
+  "denied": false,
+  "browserCasesExecuted": 0,
+  "productionValidated": false
+}

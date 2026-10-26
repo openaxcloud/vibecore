@@ -1,0 +1,162 @@
+[
+  {
+    "path": "/enterprise-sso-settings",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/enterprise-sso-settings?lang=fr",
+      "title": "Paramètres SSO d’entreprise"
+    },
+    "after": "http://127.0.0.1:11899/enterprise-sso-settings?lang=fr",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/invitations/accept?token=synthetic-not-an-access-token",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/invitations/accept?token=synthetic-not-an-access-token&lang=fr",
+      "title": "Accepter l’invitation"
+    },
+    "after": "http://127.0.0.1:11899/invitations/accept?token=synthetic-not-an-access-token&lang=fr",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/mfa-setup",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/mfa-setup?lang=fr",
+      "title": "Authentification à deux facteurs"
+    },
+    "after": "http://127.0.0.1:11899/mfa-setup?lang=fr",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/recovery-codes",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/recovery-codes?lang=fr",
+      "title": "Codes de récupération"
+    },
+    "after": "http://127.0.0.1:11899/recovery-codes?lang=fr",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/scim-token-settings",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/scim-token-settings?lang=fr",
+      "title": "Paramètres des jetons SCIM"
+    },
+    "after": "http://127.0.0.1:11899/scim-token-settings?lang=fr",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/teams/synthetic-team",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/teams/synthetic-team?lang=fr",
+      "title": "Journal des accès de l’équipe"
+    },
+    "after": "http://127.0.0.1:11899/teams/synthetic-team?lang=fr",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/teams/synthetic-team/settings",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/teams/synthetic-team/settings?lang=fr",
+      "title": "Journal des accès de l’équipe"
+    },
+    "after": "http://127.0.0.1:11899/teams/synthetic-team/settings?lang=fr",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/teams/new",
+    "lang": "fr",
+    "before": {
+      "url": "http://127.0.0.1:11899/organization-switcher?create=1",
+      "title": "Organisations"
+    },
+    "after": "http://127.0.0.1:11899/organization-switcher?create=1",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/enterprise-sso-settings",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/enterprise-sso-settings?lang=en",
+      "title": "Enterprise SSO settings"
+    },
+    "after": "http://127.0.0.1:11899/enterprise-sso-settings?lang=en",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/invitations/accept?token=synthetic-not-an-access-token",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/invitations/accept?token=synthetic-not-an-access-token&lang=en",
+      "title": "Accept invitation"
+    },
+    "after": "http://127.0.0.1:11899/invitations/accept?token=synthetic-not-an-access-token&lang=en",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/mfa-setup",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/mfa-setup?lang=en",
+      "title": "Two-factor authentication"
+    },
+    "after": "http://127.0.0.1:11899/mfa-setup?lang=en",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/recovery-codes",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/recovery-codes?lang=en",
+      "title": "Recovery codes"
+    },
+    "after": "http://127.0.0.1:11899/recovery-codes?lang=en",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/scim-token-settings",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/scim-token-settings?lang=en",
+      "title": "SCIM token settings"
+    },
+    "after": "http://127.0.0.1:11899/scim-token-settings?lang=en",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/teams/synthetic-team",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/teams/synthetic-team?lang=en",
+      "title": "Team access log"
+    },
+    "after": "http://127.0.0.1:11899/teams/synthetic-team?lang=en",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/teams/synthetic-team/settings",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/teams/synthetic-team/settings?lang=en",
+      "title": "Team access log"
+    },
+    "after": "http://127.0.0.1:11899/teams/synthetic-team/settings?lang=en",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  },
+  {
+    "path": "/teams/new",
+    "lang": "en",
+    "before": {
+      "url": "http://127.0.0.1:11899/organization-switcher?create=1",
+      "title": "Organizations"
+    },
+    "after": "http://127.0.0.1:11899/organization-switcher?create=1",
+    "method": "goto another read-only page then native Back, no product link claimed"
+  }
+]

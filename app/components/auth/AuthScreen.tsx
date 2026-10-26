@@ -253,14 +253,14 @@ export function AuthField({
           onBlur={isPassword ? () => setCapsLockOn(false) : undefined}
           className={`vc-auth-input h-12 w-full rounded-md border ${
             icon ? 'pl-10' : 'pl-3'
-          } ${isPassword ? 'pr-11' : icon ? 'pr-10' : 'pr-3'} text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]`}
+          } ${isPassword ? 'pr-[52px]' : icon ? 'pr-10' : 'pr-3'} text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]`}
           {...inputProps}
         />
         {isPassword ? (
           <RevealButton
             revealed={revealed}
             onToggle={toggleRevealed}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2"
+            className="vc-auth-input-action absolute right-1.5 top-1/2 -translate-y-1/2"
           />
         ) : null}
       </span>

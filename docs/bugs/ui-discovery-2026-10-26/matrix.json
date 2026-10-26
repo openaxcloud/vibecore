@@ -1,0 +1,582 @@
+{
+  "routeIDs": 15,
+  "concreteURLs": 14,
+  "observations": 280,
+  "routes": [
+    {
+      "id": "routes/community",
+      "routePattern": "/community",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/community.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/community.post.$id",
+      "routePattern": "/community/post/:id",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/community.post.$id.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/explore",
+      "routePattern": "/explore",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/explore.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/forum",
+      "routePattern": "/forum",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/forum.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/gallery._index",
+      "routePattern": "/gallery",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/gallery._index.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/gallery.$slug",
+      "routePattern": "/gallery/:slug",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/gallery.$slug.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/help",
+      "routePattern": "/help",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/help.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/help-center",
+      "routePattern": "/help-center",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/help-center.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/languages",
+      "routePattern": "/languages",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/languages.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/marketplace._index",
+      "routePattern": "/marketplace",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/marketplace._index.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/marketplace",
+      "routePattern": "/marketplace",
+      "kind": "outlet_layout",
+      "sourcefile": "app/routes/marketplace.tsx",
+      "coverage": "indirect parent Outlet through marketplace URLs",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/marketplace.templates",
+      "routePattern": "/marketplace/templates",
+      "kind": "module_reexport",
+      "sourcefile": "app/routes/marketplace.templates.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/search",
+      "routePattern": "/search",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/search.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/templates_.languages",
+      "routePattern": "/templates/languages",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/templates_.languages.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    },
+    {
+      "id": "routes/tutorials",
+      "routePattern": "/tutorials",
+      "kind": "rendered_page",
+      "sourcefile": "app/routes/tutorials.tsx",
+      "coverage": "20 targeted local geometry observations; not complete acceptance",
+      "formats": [
+        [
+          320,
+          740
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          820,
+          1180
+        ],
+        [
+          1440,
+          900
+        ]
+      ],
+      "languages": [
+        "fr",
+        "en"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "productionValidated": false
+    }
+  ],
+  "limitations": [
+    "Viewport changes do not prove OS virtual keyboard or hardware safe areas.",
+    "No Safari Firefox production or native zoom acceptance in this lot.",
+    "Catalogues contain existing product editorial content; only gallery remote GETs are synthetic."
+  ]
+}

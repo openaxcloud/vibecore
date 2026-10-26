@@ -1,0 +1,43 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+ ✓ app/routes/downgrade.shouldRethrow.spec.ts (5 tests) 5ms
+ ❯ app/routes/plan-quota.i18n.spec.tsx (13 tests | 1 failed) 290ms
+   ✓ plan and quota catalog > keeps strict EN/FR parity, an English fallback and stable product plan names 2ms
+   ✓ localized plan comparison surface > renders professional French and switches every customer-facing string live 146ms
+   ✓ localized plan comparison surface > fr : chaque offre porte le nom de la grille, et son bouton commande CETTE offre 11ms
+   ✓ localized plan comparison surface > en : chaque offre porte le nom de la grille, et son bouton commande CETTE offre 8ms
+   ✓ localized plan comparison surface > announces and disables checkout actions while a selected plan is submitting 13ms
+   × localized quota surface > renders French, switches live and keeps both mobile actions at least 44px high 17ms
+     → expected 'inline-flex min-h-[44px] w-full items…' to contain 'min-h-11'
+   ✓ plan and quota locale contracts > detects a first-visit French locale and sends language persistence headers from both loaders 5ms
+   ✓ plan and quota locale contracts > emits localized descriptions, canonical URLs, Open Graph, Twitter and hreflang metadata 1ms
+   ✓ plan and quota locale contracts > returns stable action codes and never exposes an upstream API message 5ms
+   ✓ plan and quota locale contracts > validates checkout plans before API access and reports a missing organization safely 2ms
+   ✓ plan and quota locale contracts > preserves the backend plan key and locale headers on a successful checkout redirect 2ms
+   ✓ plan and quota locale contracts > rethrows only reauthentication redirects 2ms
+   ✓ plan and quota locale contracts > has zero hardcoded visible-copy findings in both routes 73ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/plan-quota.i18n.spec.tsx > localized quota surface > renders French, switches live and keeps both mobile actions at least 44px high
+AssertionError: expected 'inline-flex min-h-[44px] w-full items…' to contain 'min-h-11'
+
+Expected: "min-h-11"
+Received: "inline-flex min-h-[44px] w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90"
+
+ ❯ app/routes/plan-quota.i18n.spec.tsx:245:31
+    243|     const compare = screen.getByRole('link', { name: 'Comparer les off…
+    244|
+    245|     expect(upgrade.className).toContain('min-h-11');
+       |                               ^
+    246|     expect(upgrade.className).toContain('w-full');
+    247|     expect(compare.className).toContain('min-h-11');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 17 passed (18)
+   Start at  01:21:17
+   Duration  2.94s (transform 1.24s, setup 46ms, collect 337ms, tests 295ms, environment 301ms, prepare 147ms)

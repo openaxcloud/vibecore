@@ -1,0 +1,21 @@
+[
+  {
+    "pid": 161303,
+    "startedAt": "2026-10-26T01:18:35Z",
+    "startTicks": "2119548",
+    "port": 11499,
+    "log": "/tmp/ui-support-detail-next/server.log",
+    "sent": "SIGTERM",
+    "thenSent": "SIGKILL",
+    "connectionResult": 111
+  },
+  {
+    "pid": 161276,
+    "startTicks": "2119004",
+    "port": 5999,
+    "startedAt": "2026-10-26T01:18:29.993Z",
+    "log": "/tmp/ui-support-detail-next/api.log",
+    "sent": "SIGTERM",
+    "connectionResult": 111
+  }
+]

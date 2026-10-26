@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-org-next
+
+ ✓ app/routes/team-routes.i18n.spec.tsx (3 tests) 105ms
+ ✓ app/routes/team-routes.navigation.spec.tsx (2 tests) 147ms
+
+ Test Files  2 passed (2)
+      Tests  5 passed (5)
+   Start at  02:26:03
+   Duration  2.57s (transform 1.14s, setup 39ms, collect 409ms, tests 251ms, environment 597ms, prepare 121ms)
+

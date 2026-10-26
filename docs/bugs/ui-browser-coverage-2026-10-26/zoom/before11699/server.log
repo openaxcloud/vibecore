@@ -1,0 +1,164 @@
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  AmazonBedrock
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Anthropic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cerebras
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cohere
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Deepseek
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Fireworks
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Github
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Google
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Groq
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  HuggingFace
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Hyperbolic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  LMStudio
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Mistral
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Moonshot
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Ollama
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAILike
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenRouter
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Perplexity
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Together
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  xAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Z.ai
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[react-router-serve] http://localhost:11699 (http://127.0.0.1:11699)
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 3ms
+GET /login 200 - - 107.034 ms
+GET /sw.js 200 - - 4.256 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 5.998 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 10.168 ms
+GET /__manifest?paths=%2F%2C%2Fauth%2C%2Fauth%2Foauth%2C%2Fauth%2Foauth%2Fgithub%2C%2Fauth%2Foauth%2Fgoogle%2C%2Fforgot-password%2C%2Flogin%2C%2Fprivacy%2C%2Fregister%2C%2Fterms&version=eba1ed81 200 - - 5.193 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /account-settings/data?lang=fr 200 - - 36.344 ms
+GET /sw.js 200 - - 6.859 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 1.834 ms
+GET /api/auth/user 200 - - 14.880 ms
+GET /api/notifications 200 - - 13.108 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.532 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 15.665 ms
+GET /account-settings/connected.data 200 - - 10.671 ms
+GET /__manifest?paths=%2Fauth%2C%2Fauth%2Foauth%2C%2Fauth%2Foauth%2Fgithub%2C%2Fauth%2Foauth%2Fgoogle&version=eba1ed81 200 - - 2.525 ms
+GET /account-settings/data.data?lang=fr 200 - - 8.812 ms
+GET /account-settings/data?lang=fr 200 - - 34.265 ms
+GET /sw.js 200 - - 2.260 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 3.632 ms
+GET /api/auth/user 200 - - 7.928 ms
+GET /api/notifications 200 - - 7.999 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 3.873 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 10.924 ms
+GET /account-settings/connected.data 200 - - 6.157 ms
+GET /__manifest?paths=%2Fauth%2C%2Fauth%2Foauth%2C%2Fauth%2Foauth%2Fgithub%2C%2Fauth%2Foauth%2Fgoogle&version=eba1ed81 200 - - 1.644 ms
+GET /account-settings/data.data?lang=fr 200 - - 8.671 ms
+GET /account-settings/data?lang=en 200 - - 34.132 ms
+GET /sw.js 200 - - 7.156 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 1.994 ms
+GET /api/auth/user 200 - - 9.904 ms
+GET /api/notifications 200 - - 8.043 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.218 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 9.415 ms
+GET /account-settings/connected.data 200 - - 7.243 ms
+GET /__manifest?paths=%2Fauth%2C%2Fauth%2Foauth%2C%2Fauth%2Foauth%2Fgithub%2C%2Fauth%2Foauth%2Fgoogle&version=eba1ed81 200 - - 1.491 ms
+GET /account-settings/data.data?lang=en 200 - - 7.079 ms
+GET /account-settings/data?lang=en 200 - - 24.884 ms
+GET /sw.js 200 - - 1.885 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 0.804 ms
+GET /api/auth/user 200 - - 6.781 ms
+GET /api/notifications 200 - - 5.296 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.891 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 5.517 ms
+GET /account-settings/connected.data 200 - - 7.616 ms
+GET /__manifest?paths=%2Fauth%2C%2Fauth%2Foauth%2C%2Fauth%2Foauth%2Fgithub%2C%2Fauth%2Foauth%2Fgoogle&version=eba1ed81 200 - - 1.694 ms
+GET /account-settings/data.data?lang=en 200 - - 6.819 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /account-settings/data?lang=fr 200 - - 37.025 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 2.887 ms
+GET /api/auth/user 200 - - 7.591 ms
+GET /api/notifications 200 - - 6.957 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 3.947 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 8.265 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 10.395 ms
+GET /account-settings/data.data?lang=fr 200 - - 10.406 ms
+GET /account-settings/connected?lang=fr 200 - - 30.384 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 1.333 ms
+GET /api/auth/user 200 - - 6.453 ms
+GET /api/notifications 200 - - 6.123 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.836 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fauth%2C%2Fauth%2Foauth%2C%2Fauth%2Foauth%2Fgithub%2C%2Fauth%2Foauth%2Fgoogle%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 8.430 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.675 ms
+GET /account-settings/connected.data?lang=fr 200 - - 5.311 ms
+GET /account-settings/data?lang=en 200 - - 23.877 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 1.219 ms
+GET /api/auth/user 200 - - 5.074 ms
+GET /api/notifications 200 - - 5.080 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.069 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 5.670 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.942 ms
+GET /account-settings/data.data?lang=en 200 - - 5.170 ms
+GET /account-settings/connected?lang=en 200 - - 23.966 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 2.280 ms
+GET /api/auth/user 200 - - 8.801 ms
+GET /api/notifications 200 - - 8.685 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 3.687 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fauth%2C%2Fauth%2Foauth%2C%2Fauth%2Foauth%2Fgithub%2C%2Fauth%2Foauth%2Fgoogle%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 7.405 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 9.042 ms
+GET /account-settings/connected.data?lang=en 200 - - 11.472 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /support/synthetic-ticket?lang=fr 200 - - 21.790 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 1.275 ms
+GET /api/auth/user 200 - - 6.849 ms
+GET /api/notifications 200 - - 6.775 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 3.283 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fsupport%2Fsynthetic-ticket%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 6.623 ms
+GET /support/synthetic-ticket?lang=fr 200 - - 15.989 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 1.873 ms
+GET /api/notifications 200 - - 5.546 ms
+GET /api/auth/user 200 - - 5.740 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.293 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fsupport%2Fsynthetic-ticket%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 6.022 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /support/synthetic-ticket?lang=fr 200 - - 22.611 ms
+GET /sw.js 200 - - 2.314 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 2.742 ms
+GET /api/auth/user 200 - - 4.450 ms
+GET /api/notifications 200 - - 3.311 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 6.695 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fsupport%2Fsynthetic-ticket%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 6.374 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /support/synthetic-ticket?lang=fr 200 - - 16.722 ms
+GET /sw.js 200 - - 1.934 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=eba1ed81 200 - - 1.099 ms
+GET /api/auth/user 200 - - 7.839 ms
+GET /api/notifications 200 - - 7.159 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.998 ms
+GET /__manifest?paths=%2Faccount-settings%2C%2Faccount-settings%2Fconnected%2C%2Faccount-settings%2Fdata%2C%2Fapi-keys%2C%2Fbilling%2C%2Fcommand-palette%2C%2Fdashboard%2C%2Fdashboard%2Ftemplates%2C%2Fdesktop-settings%2C%2Fnotifications%2C%2Forganization-members%2C%2Forganization-switcher%2C%2Fprojects%2C%2Fprojects%2Fnew%2C%2Fsecurity-settings%2C%2Fsupport%2C%2Fsupport%2Fsynthetic-ticket%2C%2Fusage%2C%2Fworkspace-settings&version=eba1ed81 200 - - 6.202 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms

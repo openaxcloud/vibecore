@@ -1,0 +1,146 @@
+[
+  {
+    "lang": "fr",
+    "width": 320,
+    "before": [
+      {
+        "text": "Tester la connexion",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Tester la connexion",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ],
+    "after": [
+      {
+        "text": "Tester la connexion",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Tester la connexion",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ]
+  },
+  {
+    "lang": "fr",
+    "width": 1440,
+    "before": [
+      {
+        "text": "Tester la connexion",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Tester la connexion",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ],
+    "after": [
+      {
+        "text": "Tester la connexion",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Tester la connexion",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ]
+  },
+  {
+    "lang": "en",
+    "width": 320,
+    "before": [
+      {
+        "text": "Test connection",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Test connection",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ],
+    "after": [
+      {
+        "text": "Test connection",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Test connection",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ]
+  },
+  {
+    "lang": "en",
+    "width": 1440,
+    "before": [
+      {
+        "text": "Test connection",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Test connection",
+        "height": 32,
+        "minHeight": "32px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ],
+    "after": [
+      {
+        "text": "Test connection",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      },
+      {
+        "text": "Test connection",
+        "height": 44,
+        "minHeight": "44px",
+        "size": "sm",
+        "class": "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 h-8 rounded-md px-3 text-xs !h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+      }
+    ]
+  }
+]

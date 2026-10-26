@@ -1,0 +1,35 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-discovery-next
+
+ ✓ app/routes/gallery-detail.i18n.spec.tsx (5 tests) 180ms
+stdout | app/routes/public-gallery.i18n.spec.ts
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Anthropic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cerebras
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cohere
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Deepseek
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Fireworks
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Google
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Groq
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  HuggingFace
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Hyperbolic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Mistral
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Moonshot
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Ollama
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenRouter
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAILike
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Perplexity
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  xAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Together
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  LMStudio
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  AmazonBedrock
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Github
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Z.ai
+
+ ✓ app/routes/public-gallery.i18n.spec.ts (2 tests) 14ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  02:31:56
+   Duration  4.11s (transform 2.17s, setup 68ms, collect 2.12s, tests 194ms, environment 320ms, prepare 122ms)
+

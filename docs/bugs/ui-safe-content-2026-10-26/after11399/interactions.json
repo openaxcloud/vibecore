@@ -1,0 +1,72 @@
+{
+  "interactions": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "focusDraftResizeRestored": true,
+      "field": {
+        "x": 69,
+        "y": 346,
+        "width": 530.328125,
+        "height": 44
+      },
+      "menuEscape": true,
+      "modalEscape": true,
+      "back": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "focusDraftResizeRestored": true,
+      "field": {
+        "x": 69,
+        "y": 346,
+        "width": 530.328125,
+        "height": 44
+      },
+      "menuEscape": true,
+      "modalEscape": true,
+      "back": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "focusDraftResizeRestored": true,
+      "field": {
+        "x": 69,
+        "y": 346,
+        "width": 552.578125,
+        "height": 44
+      },
+      "menuEscape": true,
+      "modalEscape": true,
+      "back": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "focusDraftResizeRestored": true,
+      "field": {
+        "x": 69,
+        "y": 346,
+        "width": 552.578125,
+        "height": 44
+      },
+      "menuEscape": true,
+      "modalEscape": true,
+      "back": true
+    }
+  ],
+  "shared": [
+    {
+      "route": "projects/new",
+      "safe": false,
+      "pad": {
+        "left": "0px",
+        "right": "0px"
+      }
+    }
+  ],
+  "sidebars": [],
+  "errors": []
+}

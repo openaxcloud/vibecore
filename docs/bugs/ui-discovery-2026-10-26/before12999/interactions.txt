@@ -1,0 +1,68 @@
+fr light {
+  lang: 'fr',
+  theme: 'light',
+  longSearch: {
+    url: 'http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=fr',
+    doc: 320,
+    viewport: 320
+  },
+  resizeDraft: true,
+  cleared: true,
+  galleryDetail: 'Les applications de la communauté — remixez-en une pour commencer',
+  galleryBack: 'http://127.0.0.1:12999/gallery/synthetic-gallery',
+  helpEmpty: true,
+  helpDoc: { width: 320, doc: 320 },
+  helpRecovered: true,
+  unknownPostDestination: '/community'
+}
+fr dark {
+  lang: 'fr',
+  theme: 'dark',
+  longSearch: {
+    url: 'http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=fr',
+    doc: 320,
+    viewport: 320
+  },
+  resizeDraft: true,
+  cleared: true,
+  galleryDetail: 'Les applications de la communauté — remixez-en une pour commencer',
+  galleryBack: 'http://127.0.0.1:12999/gallery/synthetic-gallery',
+  helpEmpty: true,
+  helpDoc: { width: 320, doc: 320 },
+  helpRecovered: true,
+  unknownPostDestination: '/community'
+}
+en light {
+  lang: 'en',
+  theme: 'light',
+  longSearch: {
+    url: 'http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=en',
+    doc: 320,
+    viewport: 320
+  },
+  resizeDraft: true,
+  cleared: true,
+  galleryDetail: 'Apps the community built — remix one to start',
+  galleryBack: 'http://127.0.0.1:12999/gallery/synthetic-gallery',
+  helpEmpty: true,
+  helpDoc: { width: 320, doc: 320 },
+  helpRecovered: true,
+  unknownPostDestination: '/community'
+}
+en dark {
+  lang: 'en',
+  theme: 'dark',
+  longSearch: {
+    url: 'http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=en',
+    doc: 320,
+    viewport: 320
+  },
+  resizeDraft: true,
+  cleared: true,
+  galleryDetail: 'Apps the community built — remix one to start',
+  galleryBack: 'http://127.0.0.1:12999/gallery/synthetic-gallery',
+  helpEmpty: true,
+  helpDoc: { width: 320, doc: 320 },
+  helpRecovered: true,
+  unknownPostDestination: '/community'
+}

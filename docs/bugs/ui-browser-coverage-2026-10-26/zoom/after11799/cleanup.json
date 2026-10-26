@@ -1,0 +1,21 @@
+[
+  {
+    "pid": 171785,
+    "startedAt": "2026-10-26T02:08:23Z",
+    "startTicks": "2418378",
+    "port": 11799,
+    "log": "/tmp/ui-browser-zoom-next/server11799.log",
+    "sent": "SIGTERM",
+    "thenSent": "SIGKILL",
+    "connectionResult": 111
+  },
+  {
+    "pid": 168957,
+    "startTicks": "2358577",
+    "port": 6099,
+    "startedAt": "2026-10-26T01:58:25.717Z",
+    "log": "/tmp/ui-browser-zoom-next/api.log",
+    "sent": "SIGTERM",
+    "connectionResult": 111
+  }
+]

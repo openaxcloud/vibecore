@@ -1,0 +1,952 @@
+{
+  "sourceBase": "b72c48322",
+  "buildReuse": "safecontent build UI975 +merge798; no new build",
+  "files": [
+    {
+      "file": "app/components/dashboard/SaaSLayout.tsx",
+      "sourceSHA256": "4b14e37e65b0a33a33af266cbe652d51af91a1e0422c3fa9959a31a84467bd22",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/EcodeExploreGallery.tsx",
+      "sourceSHA256": "231abd1bb73c3b08a39a6a6c06736dd1f61de6863d53ce8cca20e599bf51f9fa",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/EcodeMarketingPages.tsx",
+      "sourceSHA256": "c85176eb62ce8adf13774547307b2aa48d3b65ea71d69a50ade16cd9002a9590",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/EcodePublicResourcePages.tsx",
+      "sourceSHA256": "0c2b9701e4c828d21b9e7349eabb10d2332f33ede6fec004db515c79d5af3053",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Forum.tsx",
+      "sourceSHA256": "d792b864bfcfa6a392418c3bfc426b3dbdbb8b6496d983b870c455b4c95c390d",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/HelpCenter.tsx",
+      "sourceSHA256": "d8f0bed01f44e579f44be3666a1de71431364f2aeff5ffae5a99d46d57ab2d29",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Languages.tsx",
+      "sourceSHA256": "30e8709e4d87b010a1c4d483478626c4a3293e4ff1a7172ea3ec19729cf5bf33",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/Tutorials.tsx",
+      "sourceSHA256": "43de8038ce21f97ca87c58a5cdff2298540e2f1592f9ecd660ba18e11d629a11",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/marketing/ecode-exact/pages/help-search.ts",
+      "sourceSHA256": "2c13e92830ce17db64f70f1397dec199159686cb2bf3dd6df711c130692c0984",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/components/ui/EmptyState.tsx",
+      "sourceSHA256": "eced673816d605645e19967e546a15ba89e137a726a0d580974439164df5a668",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/enterprise-api.server.ts",
+      "sourceSHA256": "3e60d9f5f5c900a7e5437f753cb948ae0cec3b8f4859f92ab6039aebcda65334",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-community-route.ts",
+      "sourceSHA256": "68a2c5958a1589c13bd6992f8910a522ca4dbe7d6b397ec128b6c20d16fa99c1",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-account-languages.ts",
+      "sourceSHA256": "455f03de558d92c77175b076cecfc6958018cd63b850a4956a6cc023fb90beb4",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-guides-policies.ts",
+      "sourceSHA256": "53a94c947cf725186dfdae45ebe718763b87d14a26c0c3bd1652cbd12acfb199",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-help-center.ts",
+      "sourceSHA256": "13be35372897f19d8c3895c1058223f1a6d8527ee0bcaf0c491db77550af829f",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/marketing-exact-landing-forum.ts",
+      "sourceSHA256": "599e2920230f10787ad920404725b5a2af586b91140c5d470945d54bba49f1b2",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/public-gallery.ts",
+      "sourceSHA256": "68e0a7f3477c5ca8a33e4b50c0caacf198933fded1f54053dfaff6ece5414116",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/public-route-seo.ts",
+      "sourceSHA256": "87fe1267826f58608f8a2eb260a9a60741ba741cb74a78ade23b1791cd763b79",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/remaining-route-shells.ts",
+      "sourceSHA256": "e306a161c5ffe70b433f6a3c6a19f907a76693719d9e8b894179de19f3f95278",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/search-data-settings.ts",
+      "sourceSHA256": "f209f3f494e60ec3bfa12f8a7fa490d7d9845e31176e535a80dbc2d2d8e4a285",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/catalogs/templates-languages-route.ts",
+      "sourceSHA256": "0528f400eaf6eafa3a677b99cc74290dda6c2461c60599b01a57f9a8e7bdb1d6",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/language.ts",
+      "sourceSHA256": "afd29e1f4bbaaf5abc68e09f903fc0cf0783a1cd77bbf8ad34242a76fe63b48c",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/i18n/request-locale.ts",
+      "sourceSHA256": "a17d461d86dabff01ddbd443b818c45e730776094a971ce5ca9ddd51b1b3fc45",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/marketing/community-content.ts",
+      "sourceSHA256": "f28bb3fa9a8350723fe93703ae6e99201064a5d8c43b69c1044a4683d7e2777e",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/marketing/ecode-template-catalog.server.ts",
+      "sourceSHA256": "6ba7ef383c163f367c2711fcd4ab4372542ebc1da81d91bc89a32dea5ab1bc93",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/lib/route-reauth.ts",
+      "sourceSHA256": "cf80a48e02f7d83ffd8df5d919e201981d8a65cfdb719adeafb5252ae48a871f",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/community.post.$id.tsx",
+      "sourceSHA256": "1ffeab4a98e263decac57201e24159b7e7dbde37732bba5d45ee3af60b8688d8",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/community.tsx",
+      "sourceSHA256": "fdad1728c16395c412cd3b168802d5900fee1b3679236e2ad8329feaa0a5b915",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/explore.tsx",
+      "sourceSHA256": "0f4a4d1ed3bef112669414d76ad35c6ecbb82504288083857f20862de03c98ea",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/forum.tsx",
+      "sourceSHA256": "59e092beee8d130fda9872bb6602198ddb2ef501b257074e0a431ee725ef2205",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/gallery.$slug.tsx",
+      "sourceSHA256": "0263b784d79e881a689ab949105083e0706ff6a397be5815975cc9ca2dc85885",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/gallery._index.tsx",
+      "sourceSHA256": "1c9a6e8f3b8e278a7438914403216ccf83cb22f56fb5b66d6fc74fa07d5f5556",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/help-center.tsx",
+      "sourceSHA256": "4a450e78e995642bb1395a535636183f893781f068ab4c403b913be270978dd0",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/help.tsx",
+      "sourceSHA256": "ab54acee50d8bc8b563c60055e5be8456369183d4c3bf03fe9cddc8a48878029",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/languages.tsx",
+      "sourceSHA256": "5b98e76fbdee59f9648e17a2ee1dbef050b816b2aa57e8b8857b6381c13acbad",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/marketplace._index.tsx",
+      "sourceSHA256": "10681a6498bb61be03328cd5488ef88f720e6adbd83ac1cdbd5c1f81e277ef5c",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/marketplace.templates.tsx",
+      "sourceSHA256": "3079d63c0d59b522ffb24aebba7497d7915802318a3245f07891eca74e787285",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/marketplace.tsx",
+      "sourceSHA256": "9fa2b315fed4ccdcd4801485c8bf011d36971e831172c4d23a733d528a233a7d",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/search.tsx",
+      "sourceSHA256": "34293caa99d146f2d325e39f68e9cce00309d8d4428804a6271121de5ba2bd70",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/templates.tsx",
+      "sourceSHA256": "647ab12294f558dd99fe3149f954be96a60a4a36f19e0a0f77021c938721c846",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/templates_.languages.icons.ts",
+      "sourceSHA256": "d5c4c817d1de3351dc26f0efb37917f072dacd5aa285a6b3a667de0c238d310d",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/templates_.languages.tsx",
+      "sourceSHA256": "270bc5c60c0869ee32737acc47db0897852b80ebc592a8d18b75acf1295792be",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/routes/tutorials.tsx",
+      "sourceSHA256": "2ab0859ab0ed29992c02e7058ab44dfc1fe946ad0ceb67258c2b8c668bc249e6",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/utils/classNames.ts",
+      "sourceSHA256": "ddb9f61ed9225c132595850f03170f273cd1210768e844310134d141ddaf3552",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/utils/project-url.ts",
+      "sourceSHA256": "c74d9aa5447f065662ca07fa31a14afe7027ea2e5424c9ed3414fb5e98e41409",
+      "sameAsBuildWorktree": true
+    },
+    {
+      "file": "app/utils/social-meta.ts",
+      "sourceSHA256": "5b7968d8eefe71237160b1c8afb8b68368e84864e8a3939909cef830dd11dbf3",
+      "sameAsBuildWorktree": true
+    }
+  ],
+  "routes": [
+    {
+      "id": "routes/community",
+      "routePattern": "/community",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/community.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/community.tsx",
+          "line": 305,
+          "text": "export default function CommunityRoute() {"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/EcodePublicResourcePages.tsx",
+        "app/lib/i18n/catalogs/marketing-community-route.ts",
+        "app/lib/i18n/language.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/EcodePublicResourcePages.tsx",
+        "app/lib/i18n/catalogs/marketing-community-route.ts",
+        "app/lib/i18n/language.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/EcodePublicResourcePages.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/marketing-community-route.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/language.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/community.post.$id",
+      "routePattern": "/community/post/:id",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/community.post.$id.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/community.post.$id.tsx",
+          "line": 36,
+          "text": "throw redirect('/community', { headers });"
+        },
+        {
+          "file": "app/routes/community.post.$id.tsx",
+          "line": 42,
+          "text": "export default function CommunityPostRoute() {"
+        },
+        {
+          "file": "app/routes/community.post.$id.tsx",
+          "line": 46,
+          "text": "return <MarketingStaticPage page={page} />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/lib/i18n/catalogs/marketing-community-route.ts",
+        "app/lib/i18n/catalogs/remaining-route-shells.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/community-content.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/lib/i18n/catalogs/marketing-community-route.ts",
+        "app/lib/i18n/catalogs/remaining-route-shells.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/community-content.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/EcodeMarketingPages.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/marketing-community-route.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/remaining-route-shells.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/lib/marketing/community-content.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/explore",
+      "routePattern": "/explore",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/explore.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/explore.tsx",
+          "line": 65,
+          "text": "export default function ExploreRoute() {"
+        },
+        {
+          "file": "app/routes/explore.tsx",
+          "line": 68,
+          "text": "return <ExploreMarketingPage projects={data.projects} categories={data.categories} />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/EcodeExploreGallery.tsx",
+        "app/lib/i18n/catalogs/public-gallery.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/ecode-template-catalog.server.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/EcodeExploreGallery.tsx",
+        "app/lib/i18n/catalogs/public-gallery.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/ecode-template-catalog.server.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/EcodeExploreGallery.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/public-gallery.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/lib/marketing/ecode-template-catalog.server.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/forum",
+      "routePattern": "/forum",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/forum.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/forum.tsx",
+          "line": 25,
+          "text": "export default function ForumRoute() {"
+        },
+        {
+          "file": "app/routes/forum.tsx",
+          "line": 26,
+          "text": "return <Forum />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/ecode-exact/pages/Forum.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-landing-forum.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/ecode-exact/pages/Forum.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-landing-forum.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/ecode-exact/pages/Forum.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/marketing-exact-landing-forum.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/gallery._index",
+      "routePattern": "/gallery",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/gallery._index.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/gallery._index.tsx",
+          "line": 206,
+          "text": "export default function GalleryIndexRoute() {"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/lib/enterprise-api.server.ts",
+        "app/lib/i18n/catalogs/public-gallery.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/classNames.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/lib/enterprise-api.server.ts",
+        "app/lib/i18n/catalogs/public-gallery.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/classNames.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/dashboard/SaaSLayout.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/enterprise-api.server.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/public-gallery.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/utils/classNames.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/gallery.$slug",
+      "routePattern": "/gallery/:slug",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/gallery.$slug.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/gallery.$slug.tsx",
+          "line": 195,
+          "text": "export default function GalleryDetailRoute() {"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/lib/enterprise-api.server.ts",
+        "app/lib/i18n/catalogs/public-gallery.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/route-reauth.ts",
+        "app/utils/project-url.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/lib/enterprise-api.server.ts",
+        "app/lib/i18n/catalogs/public-gallery.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/route-reauth.ts",
+        "app/utils/project-url.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/dashboard/SaaSLayout.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/enterprise-api.server.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/public-gallery.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/lib/route-reauth.ts": "root/shared-dependencies-coordinator",
+        "app/utils/project-url.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/help",
+      "routePattern": "/help",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/help.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/help.tsx",
+          "line": 5,
+          "text": "export default function HelpAliasRoute() {"
+        },
+        {
+          "file": "app/routes/help.tsx",
+          "line": 6,
+          "text": "return <MarketingStaticPage page={marketingPages['help-center']} />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/EcodeMarketingPages.tsx": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/help-center",
+      "routePattern": "/help-center",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/help-center.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/help-center.tsx",
+          "line": 21,
+          "text": "export default function HelpCenterRoute() {"
+        },
+        {
+          "file": "app/routes/help-center.tsx",
+          "line": 22,
+          "text": "return <HelpCenter />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/ecode-exact/pages/HelpCenter.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-help-center.ts",
+        "app/lib/i18n/catalogs/public-route-seo.ts",
+        "app/lib/i18n/request-locale.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/ecode-exact/pages/HelpCenter.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-help-center.ts",
+        "app/lib/i18n/catalogs/public-route-seo.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/ecode-exact/pages/HelpCenter.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/marketing-exact-help-center.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/public-route-seo.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/languages",
+      "routePattern": "/languages",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/languages.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/languages.tsx",
+          "line": 21,
+          "text": "export default function LanguagesRoute() {"
+        },
+        {
+          "file": "app/routes/languages.tsx",
+          "line": 22,
+          "text": "return <Languages />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/ecode-exact/pages/Languages.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-account-languages.ts",
+        "app/lib/i18n/catalogs/public-route-seo.ts",
+        "app/lib/i18n/request-locale.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/ecode-exact/pages/Languages.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-account-languages.ts",
+        "app/lib/i18n/catalogs/public-route-seo.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/ecode-exact/pages/Languages.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/marketing-exact-account-languages.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/public-route-seo.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/marketplace._index",
+      "routePattern": "/marketplace",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/marketplace._index.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/marketplace._index.tsx",
+          "line": 5,
+          "text": "export default function MarketplaceRoute() {"
+        },
+        {
+          "file": "app/routes/marketplace._index.tsx",
+          "line": 6,
+          "text": "return <MarketingStaticPage page={marketingPages.marketplace} />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/EcodeMarketingPages.tsx"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/EcodeMarketingPages.tsx",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/EcodeMarketingPages.tsx": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/marketplace",
+      "routePattern": "/marketplace",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/marketplace.tsx"
+      ],
+      "historicalKind": "ui_layout",
+      "implementationKind": "outlet_layout",
+      "targetOrReuse": "children",
+      "note": "Parent Outlet, pas page doublon de son index.",
+      "evidence": [
+        {
+          "file": "app/routes/marketplace.tsx",
+          "line": 1,
+          "text": "import { Outlet } from 'react-router';"
+        },
+        {
+          "file": "app/routes/marketplace.tsx",
+          "line": 10,
+          "text": "* <Outlet /> of its own."
+        },
+        {
+          "file": "app/routes/marketplace.tsx",
+          "line": 13,
+          "text": "return <Outlet />;"
+        }
+      ],
+      "dependencyFiles": [],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/marketplace.templates",
+      "routePattern": "/marketplace/templates",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/marketplace.templates.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "module_reexport",
+      "targetOrReuse": "app/routes/templates.tsx",
+      "note": "R\u00e9export prouv\u00e9, URL distincte ; loader/action/meta partag\u00e9s selon exports exacts.",
+      "evidence": [
+        {
+          "file": "app/routes/marketplace.templates.tsx",
+          "line": 1,
+          "text": "export { default, loader, meta } from './templates';"
+        }
+      ],
+      "dependencyFiles": [
+        "app/routes/templates.tsx"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/routes/templates.tsx",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/routes/templates.tsx": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/search",
+      "routePattern": "/search",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/search.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/search.tsx",
+          "line": 260,
+          "text": "export default function SearchRoute() {"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/components/marketing/ecode-exact/pages/help-search.ts",
+        "app/components/ui/EmptyState.tsx",
+        "app/lib/i18n/catalogs/search-data-settings.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/ecode-template-catalog.server.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/components/marketing/ecode-exact/pages/help-search.ts",
+        "app/components/ui/EmptyState.tsx",
+        "app/lib/i18n/catalogs/search-data-settings.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/ecode-template-catalog.server.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/dashboard/SaaSLayout.tsx": "root/shared-dependencies-coordinator",
+        "app/components/marketing/ecode-exact/pages/help-search.ts": "root/shared-dependencies-coordinator",
+        "app/components/ui/EmptyState.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/search-data-settings.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/lib/marketing/ecode-template-catalog.server.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/templates_.languages",
+      "routePattern": "/templates/languages",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/templates_.languages.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/templates_.languages.tsx",
+          "line": 192,
+          "text": "export default function TemplatesLanguagesRoute() {"
+        }
+      ],
+      "dependencyFiles": [
+        "app/routes/templates_.languages.icons.ts",
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/lib/i18n/catalogs/templates-languages-route.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/ecode-template-catalog.server.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/routes/templates_.languages.icons.ts",
+        "app/components/dashboard/SaaSLayout.tsx",
+        "app/lib/i18n/catalogs/templates-languages-route.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/lib/marketing/ecode-template-catalog.server.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/routes/templates_.languages.icons.ts": "root/shared-dependencies-coordinator",
+        "app/components/dashboard/SaaSLayout.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/templates-languages-route.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/lib/marketing/ecode-template-catalog.server.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    },
+    {
+      "id": "routes/tutorials",
+      "routePattern": "/tutorials",
+      "group": "discovery_help",
+      "owner": "Lot public d\u00e9couverte propos\u00e9",
+      "ownedFiles": [
+        "app/routes/tutorials.tsx"
+      ],
+      "historicalKind": "ui_page",
+      "implementationKind": "rendered_page",
+      "targetOrReuse": null,
+      "note": "Page ou wrapper avec UI propre ; import de composant partag\u00e9 ne prouve pas un doublon.",
+      "evidence": [
+        {
+          "file": "app/routes/tutorials.tsx",
+          "line": 26,
+          "text": "export default function TutorialsRoute() {"
+        },
+        {
+          "file": "app/routes/tutorials.tsx",
+          "line": 27,
+          "text": "return <Tutorials />;"
+        }
+      ],
+      "dependencyFiles": [
+        "app/components/marketing/ecode-exact/pages/Tutorials.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-guides-policies.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts"
+      ],
+      "coverageStatus": "non_exerce",
+      "recipePriority": "P1",
+      "ne_pas_modifier_sans_coordination": [
+        "app/components/marketing/ecode-exact/pages/Tutorials.tsx",
+        "app/lib/i18n/catalogs/marketing-exact-guides-policies.ts",
+        "app/lib/i18n/request-locale.ts",
+        "app/utils/social-meta.ts",
+        "app/root.tsx",
+        "app/styles/index.scss"
+      ],
+      "sharedComponentsOwners": {
+        "app/components/marketing/ecode-exact/pages/Tutorials.tsx": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/catalogs/marketing-exact-guides-policies.ts": "root/shared-dependencies-coordinator",
+        "app/lib/i18n/request-locale.ts": "root/shared-dependencies-coordinator",
+        "app/utils/social-meta.ts": "root/shared-dependencies-coordinator",
+        "app/root.tsx": "root/shared-dependencies-coordinator",
+        "app/styles/index.scss": "root/shared-dependencies-coordinator"
+      }
+    }
+  ]
+}

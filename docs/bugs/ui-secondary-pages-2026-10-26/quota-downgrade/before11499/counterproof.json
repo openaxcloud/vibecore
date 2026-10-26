@@ -1,0 +1,162 @@
+[
+  {
+    "lang": "fr",
+    "theme": "light",
+    "before": [
+      {
+        "text": "Changer d’offre",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Comparer les offres",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/plan-comparison"
+      }
+    ],
+    "after": [
+      {
+        "text": "Changer d’offre",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Comparer les offres",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/plan-comparison"
+      }
+    ]
+  },
+  {
+    "lang": "fr",
+    "theme": "dark",
+    "before": [
+      {
+        "text": "Changer d’offre",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Comparer les offres",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/plan-comparison"
+      }
+    ],
+    "after": [
+      {
+        "text": "Changer d’offre",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Comparer les offres",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/plan-comparison"
+      }
+    ]
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "before": [
+      {
+        "text": "Upgrade plan",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Compare plans",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/plan-comparison"
+      }
+    ],
+    "after": [
+      {
+        "text": "Upgrade plan",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Compare plans",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/plan-comparison"
+      }
+    ]
+  },
+  {
+    "lang": "en",
+    "theme": "dark",
+    "before": [
+      {
+        "text": "Upgrade plan",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Compare plans",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "33px",
+        "rootFont": "12px",
+        "height": 34,
+        "href": "/plan-comparison"
+      }
+    ],
+    "after": [
+      {
+        "text": "Upgrade plan",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/upgrade"
+      },
+      {
+        "text": "Compare plans",
+        "class": "inline-flex min-h-11 w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:border-bolt-elements-focus",
+        "minHeight": "44px",
+        "rootFont": "12px",
+        "height": 44,
+        "href": "/plan-comparison"
+      }
+    ]
+  }
+]

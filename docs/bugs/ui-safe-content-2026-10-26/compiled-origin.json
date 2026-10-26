@@ -1,0 +1,13 @@
+{
+  "pid": 159444,
+  "startTicks": "1967103",
+  "port": 11399,
+  "cwd": "/workspace/vibecore-ui-safecontent",
+  "log": "/tmp/ui-safecontent/compiled-server.log",
+  "api": "http://127.0.0.1:5499",
+  "build": "safecontent compiled build",
+  "args": [
+    "/workspace/vibecore-ui-safecontent/node_modules/@react-router/serve/bin.js",
+    "/workspace/vibecore-ui-safecontent/build/server/index.js"
+  ]
+}
