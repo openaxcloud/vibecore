@@ -1,0 +1,10 @@
+{
+  "head": "944592e1899919e5b9f7b425f1347768bbda4848",
+  "files": {
+    "build/server/index.js": "369c60095e6598e1a9cf388a1af16123c3e8a3424a717757ae60bc458025614a",
+    "app/components/auth/AuthScreen.tsx": "8323302b90077974a0ef879b9162c5b796848abc6c1805a0c0f0a1b382b3fa21",
+    "app/routes/teams.$id.tsx": "fddf12b539add28e60e8ba7037d1c07e6774e72a520ca4b7204a269b6d4e7410",
+    "app/routes/gallery._index.tsx": "ef2d3bae50b93f5d81e325f1dadb71076d9a5819918138e735dfd277aa027efa"
+  },
+  "buildDeclaredByParent": "common product tree fbb678704; no rebuild by this recipe"
+}
