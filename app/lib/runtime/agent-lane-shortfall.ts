@@ -11,7 +11,7 @@
  * résultat partiel soit acceptable plutôt que trompeur.
  */
 
-import { cleDeChemin } from './agent-lane-arbiter';
+import { cleDeConfirmation } from './agent-lane-writes';
 
 export interface RapportDeLane {
   roleId: string;
@@ -34,8 +34,8 @@ export interface EcartDeLane {
 /**
  * Confronte ce que chaque rôle a annoncé à ce qui a réellement été écrit.
  *
- * `cheminsEcrits` vient des attributions de l'arbitre — donc des actions
- * effectivement appliquées, pas d'une seconde déclaration. C'est ce qui
+ * `cheminsEcrits` vient des propositions confirmées par relecture du runtime,
+ * jamais des autorisations de l'arbitre ni d'une seconde déclaration. C'est ce qui
  * distingue cette mesure d'un simple recomptage du rapport : un rôle qui
  * annonce dix fichiers et n'en émet aucun rend ici dix manquants, alors que
  * son propre rapport se dit complet.
@@ -44,7 +44,7 @@ export function ecartsDesLanes(rapports: RapportDeLane[], cheminsEcrits: Iterabl
   const ecrits = new Set<string>();
 
   for (const chemin of cheminsEcrits) {
-    const cle = cleDeChemin(chemin);
+    const cle = cleDeConfirmation(chemin);
 
     if (cle) {
       ecrits.add(cle);
@@ -55,7 +55,7 @@ export function ecartsDesLanes(rapports: RapportDeLane[], cheminsEcrits: Iterabl
     const annonces = rapport.files ?? [];
 
     const manquants = annonces.filter((chemin) => {
-      const cle = cleDeChemin(chemin);
+      const cle = cleDeConfirmation(chemin);
       return Boolean(cle) && !ecrits.has(cle);
     });
 
