@@ -1,0 +1,18 @@
+{
+  "firstPort": 13299,
+  "firstProcessObserved": 191394,
+  "firstStartTicks": "2768681",
+  "firstFailure": "metadata path missing after successful spawn",
+  "secondPid": 191867,
+  "secondFailure": "EADDRINUSE, exited; provenance file superseded",
+  "procCwdEnvironment": "PermissionError read only; no escalation",
+  "newPort": 13399,
+  "orphanCleanup": {
+    "pid": 191394,
+    "startTicks": "2768681",
+    "commandReverified": "node ./node_modules/.bin/../@react-router/serve/bin.js ./build/server/index.js",
+    "signal": "SIGTERM"
+  },
+  "orphanFinalState": "Z",
+  "orphanFinalNote": "Zombie adopted by PID1, no executable live process; no further signal useful"
+}

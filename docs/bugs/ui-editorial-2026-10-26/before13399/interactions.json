@@ -1,0 +1,555 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "blogLinks": [
+        {
+          "testid": "link-featured-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        }
+      ],
+      "blogBefore": {
+        "url": "http://127.0.0.1:13399/blog?lang=fr",
+        "h1": "Le blog E-Code"
+      },
+      "blogAfter": {
+        "url": "http://127.0.0.1:13399/blog",
+        "h1": "Le blog E-Code"
+      },
+      "directDetail": "Le blog E-Code",
+      "compareTitle": "E-Code face à GitHub Codespaces",
+      "compareBack": "http://127.0.0.1:13399/compare?lang=fr",
+      "popover": {
+        "input": {
+          "x": 434,
+          "y": -723.109375,
+          "width": 386,
+          "height": 44,
+          "top": -723.109375,
+          "right": 820,
+          "bottom": -679.109375,
+          "left": 434
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        }
+      },
+      "escapeClosed": false,
+      "focusRestored": false,
+      "confirmWithoutToken": {
+        "h1": "Confirmer l’abonnement à la newsletter",
+        "actions": [
+          "Confirmer les préférences",
+          "Confirmer les préférences"
+        ]
+      },
+      "confirmResultWithoutToken": {
+        "h1": "Newsletter confirmée",
+        "body": "NEWSLETTER\nNewsletter confirmée\n\nVotre abonnement à la newsletter E-Code est confirmé. Vous recevrez bientôt les actualités produit et les notes techniques.\n\nLire le journal des modifications\nCommencer à créer\nActualités produit\nNotes d’ingénierie\nTemps forts des versions\nNouveaux modèles\nÀ quoi vous attendre\n\nDes actualités courtes et utiles sur la plateforme E-Code et les flux de développement d’IA en production.\n\nNouvelles fonctionnalités\nMises à jour de sécurité\nGuides pratiques\nRetours de clients\nCréez, exécutez et livrez avec E-Code\n\nGénérez du code réel et vérifiable, exécutez-le dans des environnements de production et déployez-le au moyen de flux de mise en production gouvernés, depuis un même espace de travail.\n\nLire le journal des modifications\nCommencer à créer"
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "blogLinks": [
+        {
+          "testid": "link-featured-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Lire la suite"
+        }
+      ],
+      "blogBefore": {
+        "url": "http://127.0.0.1:13399/blog?lang=fr",
+        "h1": "Le blog E-Code"
+      },
+      "blogAfter": {
+        "url": "http://127.0.0.1:13399/blog",
+        "h1": "Le blog E-Code"
+      },
+      "directDetail": "Le blog E-Code",
+      "compareTitle": "E-Code face à GitHub Codespaces",
+      "compareBack": "http://127.0.0.1:13399/compare?lang=fr",
+      "popover": {
+        "input": {
+          "x": 434,
+          "y": -723.109375,
+          "width": 386,
+          "height": 44,
+          "top": -723.109375,
+          "right": 820,
+          "bottom": -679.109375,
+          "left": 434
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        }
+      },
+      "escapeClosed": false,
+      "focusRestored": false,
+      "confirmWithoutToken": {
+        "h1": "Confirmer l’abonnement à la newsletter",
+        "actions": [
+          "Confirmer les préférences",
+          "Confirmer les préférences"
+        ]
+      },
+      "confirmResultWithoutToken": {
+        "h1": "Newsletter confirmée",
+        "body": "NEWSLETTER\nNewsletter confirmée\n\nVotre abonnement à la newsletter E-Code est confirmé. Vous recevrez bientôt les actualités produit et les notes techniques.\n\nLire le journal des modifications\nCommencer à créer\nActualités produit\nNotes d’ingénierie\nTemps forts des versions\nNouveaux modèles\nÀ quoi vous attendre\n\nDes actualités courtes et utiles sur la plateforme E-Code et les flux de développement d’IA en production.\n\nNouvelles fonctionnalités\nMises à jour de sécurité\nGuides pratiques\nRetours de clients\nCréez, exécutez et livrez avec E-Code\n\nGénérez du code réel et vérifiable, exécutez-le dans des environnements de production et déployez-le au moyen de flux de mise en production gouvernés, depuis un même espace de travail.\n\nLire le journal des modifications\nCommencer à créer"
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "blogLinks": [
+        {
+          "testid": "link-featured-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        }
+      ],
+      "blogBefore": {
+        "url": "http://127.0.0.1:13399/blog?lang=en",
+        "h1": "The E-Code blog"
+      },
+      "blogAfter": {
+        "url": "http://127.0.0.1:13399/blog",
+        "h1": "The E-Code blog"
+      },
+      "directDetail": "The E-Code blog",
+      "compareTitle": "E-Code vs GitHub Codespaces",
+      "compareBack": "http://127.0.0.1:13399/compare?lang=en",
+      "popover": {
+        "input": {
+          "x": 434,
+          "y": -393,
+          "width": 386,
+          "height": 44,
+          "top": -393,
+          "right": 820,
+          "bottom": -349,
+          "left": 434
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        }
+      },
+      "escapeClosed": false,
+      "focusRestored": false,
+      "confirmWithoutToken": {
+        "h1": "Confirm newsletter subscription",
+        "actions": [
+          "Confirm preferences",
+          "Confirm preferences"
+        ]
+      },
+      "confirmResultWithoutToken": {
+        "h1": "Confirm newsletter subscription",
+        "body": "NEWSLETTER\nNewsletter confirmed\n\nYour E-Code newsletter subscription is confirmed. Product updates and technical notes will arrive soon.\n\nRead changelog\nStart building\nProduct updates\nEngineering notes\nRelease highlights\nTemplate drops\nWhat to expect\n\nShort, useful updates about the E-Code platform and production AI development workflows.\n\nNew features\nSecurity updates\nWorkflow guides\nCustomer patterns\nBuild, run and ship with E-Code\n\nGenerate real, reviewable code, run it on production runtimes and deploy through governed release flows from one workspace.\n\nRead changelog\nStart building"
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "blogLinks": [
+        {
+          "testid": "link-featured-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        },
+        {
+          "testid": "link-read-more",
+          "href": "/blog",
+          "text": "Read more"
+        }
+      ],
+      "blogBefore": {
+        "url": "http://127.0.0.1:13399/blog?lang=en",
+        "h1": "The E-Code blog"
+      },
+      "blogAfter": {
+        "url": "http://127.0.0.1:13399/blog",
+        "h1": "The E-Code blog"
+      },
+      "directDetail": "The E-Code blog",
+      "compareTitle": "E-Code vs GitHub Codespaces",
+      "compareBack": "http://127.0.0.1:13399/compare?lang=en",
+      "popover": {
+        "input": {
+          "x": 434,
+          "y": -393,
+          "width": 386,
+          "height": 44,
+          "top": -393,
+          "right": 820,
+          "bottom": -349,
+          "left": 434
+        },
+        "viewport": {
+          "w": 844,
+          "h": 390
+        }
+      },
+      "escapeClosed": false,
+      "focusRestored": false,
+      "confirmWithoutToken": {
+        "h1": "Confirm newsletter subscription",
+        "actions": [
+          "Confirm preferences",
+          "Confirm preferences"
+        ]
+      },
+      "confirmResultWithoutToken": {
+        "h1": "Newsletter confirmed",
+        "body": "NEWSLETTER\nNewsletter confirmed\n\nYour E-Code newsletter subscription is confirmed. Product updates and technical notes will arrive soon.\n\nRead changelog\nStart building\nProduct updates\nEngineering notes\nRelease highlights\nTemplate drops\nWhat to expect\n\nShort, useful updates about the E-Code platform and production AI development workflows.\n\nNew features\nSecurity updates\nWorkflow guides\nCustomer patterns\nBuild, run and ship with E-Code\n\nGenerate real, reviewable code, run it on production runtimes and deploy through governed release flows from one workspace.\n\nRead changelog\nStart building"
+      }
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}
