@@ -23,11 +23,16 @@ async function demarrerFauxRuntime(panne: 'connexion-refusee' | 'nom-introuvable
   /* Agent injoignable : le port est fermé, donc la connexion est refusée. */
   const agent = createServer((_request, response) => response.writeHead(503).end('{}'));
   await new Promise<void>((resolve) => agent.listen(0, '127.0.0.1', resolve));
+
   const agentPort = (agent.address() as { port: number }).port;
   await new Promise<void>((resolve) => agent.close(() => resolve()));
 
   const demarragesRecus: string[] = [];
+
   let manageurEnPanne = false;
+  let retenirEchecs = false;
+
+  const echecsEnAttente: Array<() => void> = [];
 
   const manager = createServer((request, response) => {
     const chemin = new URL(request.url ?? '/', 'http://manager.local').pathname;
@@ -38,7 +43,14 @@ async function demarrerFauxRuntime(panne: 'connexion-refusee' | 'nom-introuvable
       demarragesRecus.push(chemin);
 
       if (manageurEnPanne) {
-        response.writeHead(500).end(JSON.stringify({ error: 'manager indisponible' }));
+        const repondre = () => response.writeHead(500).end(JSON.stringify({ error: 'manager indisponible' }));
+
+        if (retenirEchecs) {
+          echecsEnAttente.push(repondre);
+        } else {
+          repondre();
+        }
+
         return;
       }
 
@@ -58,6 +70,7 @@ async function demarrerFauxRuntime(panne: 'connexion-refusee' | 'nom-introuvable
   };
 
   process.env.WORKSPACE_MANAGER_URL = `http://127.0.0.1:${(manager.address() as { port: number }).port}`;
+
   /*
    * DEUX PANNES DISTINCTES, deux branches distinctes du code :
    *  - port fermé  -> ECONNREFUSED -> branche « agent injoignable » (502) ;
@@ -74,7 +87,20 @@ async function demarrerFauxRuntime(panne: 'connexion-refusee' | 'nom-introuvable
     tomberEnPanne() {
       manageurEnPanne = true;
     },
+    retenirEchecs() {
+      retenirEchecs = true;
+    },
+    libererEchecs() {
+      for (const repondre of echecsEnAttente.splice(0)) {
+        repondre();
+      }
+    },
     async close() {
+      retenirEchecs = false;
+
+      for (const repondre of echecsEnAttente.splice(0)) {
+        repondre();
+      }
       process.env.WORKSPACE_MANAGER_URL = precedent.manager;
       process.env.WORKSPACE_AGENT_URL_TEMPLATE = precedent.agent;
       await new Promise<void>((resolve) => (manager as Server).close(() => resolve()));
@@ -215,23 +241,40 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
     runtime.tomberEnPanne();
 
     const { app, lireArbre } = await preparer();
-    fermetures.push(() => runtime.close(), () => app.close());
+    fermetures.push(
+      () => runtime.close(),
+      () => app.close(),
+    );
 
-    app.log.error = (() => undefined) as typeof app.log.error;
+    runtime.retenirEchecs();
+
+    const echecs: unknown[] = [];
+    app.log.error = ((entry: { event?: string }) => {
+      if (entry.event === 'workspace.read_triggered_start_failed') {
+        echecs.push(entry);
+      }
+    }) as typeof app.log.error;
 
     await lireArbre();
-    await laisserRespirer();
-    const apresLePremier = runtime.demarragesRecus.length;
+    await expect.poll(() => runtime.demarragesRecus.length, { timeout: 5_000 }).toBe(1);
 
+    // Tant que la réponse du manager est en vol, une lecture doit être dédoublonnée.
     await lireArbre();
-    await laisserRespirer();
+    expect(runtime.demarragesRecus.length).toBe(1);
+    expect(echecs).toHaveLength(0);
+
+    runtime.libererEchecs();
 
     /*
-     * La fenêtre de garde ne doit jamais protéger un ÉCHEC : sinon un manager
-     * momentanément indisponible gèlerait l'espace de travail pour toute la durée
-     * de la fenêtre, sans que rien ne réessaie.
+     * Le journal est émis dans le catch qui réarme la garde, pas à la réception
+     * de la requête par le manager. Une pause fixe ne prouve pas ce réarmement.
      */
-    expect(runtime.demarragesRecus.length).toBeGreaterThan(apresLePremier);
+    await expect.poll(() => echecs.length, { timeout: 5_000 }).toBe(1);
+
+    await lireArbre();
+    await expect.poll(() => runtime.demarragesRecus.length, { timeout: 5_000 }).toBe(2);
+    runtime.libererEchecs();
+    await expect.poll(() => echecs.length, { timeout: 5_000 }).toBe(2);
   });
 
   it('CONDITION 0 bis — le déclenchement vaut aussi quand le nom DNS ne résout pas encore', async () => {
