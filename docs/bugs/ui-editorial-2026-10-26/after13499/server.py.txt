@@ -1,0 +1,6 @@
+import subprocess,os,json,time
+from pathlib import Path
+out=Path('/tmp/ui-editorial-next/after13499');out.mkdir(parents=True,exist_ok=True)
+p=subprocess.Popen(['./node_modules/.bin/react-router-serve','./build/server/index.js'],cwd='/workspace/vibecore-ui-public-admin',env={**os.environ,'PORT':'13499','HOST':'127.0.0.1','SAAS_API_URL':'http://127.0.0.1:6999','API_BASE_URL':'http://127.0.0.1:6999','NODE_ENV':'production'})
+(out/'server-origin.json').write_text(json.dumps({'pid':p.pid,'startTicks':Path(f'/proc/{p.pid}/stat').read_text().split()[21],'port':13499,'startedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'cwd':'/workspace/vibecore-ui-public-admin','source':'222495dda','log':str(out/'server.log')}))
+raise SystemExit(p.wait())

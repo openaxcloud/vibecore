@@ -1,0 +1,511 @@
+{
+  "base": "http://127.0.0.1:13499",
+  "source": "222495dda common P2 build",
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 320,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 390,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 844,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 820,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 1440,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 320,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 390,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 844,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 820,
+      "overflows": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "title": "Découvrez l’agent IA E-Code 2.0 - E-Code Blog",
+      "h1": [
+        "Découvrez l’agent IA E-Code 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 1440,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 320,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 390,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 844,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 820,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 1440,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 320,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 390,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 844,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 820,
+      "overflows": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "title": "Introducing E-Code AI Agent 2.0 - E-Code Blog",
+      "h1": [
+        "Introducing E-Code AI Agent 2.0"
+      ],
+      "mainCount": 1,
+      "documentWidth": 1440,
+      "overflows": []
+    }
+  ],
+  "navigation": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "index": "http://127.0.0.1:13499/blog?lang=fr",
+      "article": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "back": "http://127.0.0.1:13499/blog?lang=fr",
+      "mechanism": "explicit page.goto known article URL, browser goBack; NOT product Read more links",
+      "actualCardHrefs": [
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog"
+      ],
+      "focusedAfterResize": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "index": "http://127.0.0.1:13499/blog?lang=fr",
+      "article": "http://127.0.0.1:13499/blog/introducing-e-code?lang=fr",
+      "back": "http://127.0.0.1:13499/blog?lang=fr",
+      "mechanism": "explicit page.goto known article URL, browser goBack; NOT product Read more links",
+      "actualCardHrefs": [
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog"
+      ],
+      "focusedAfterResize": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "index": "http://127.0.0.1:13499/blog?lang=en",
+      "article": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "back": "http://127.0.0.1:13499/blog?lang=en",
+      "mechanism": "explicit page.goto known article URL, browser goBack; NOT product Read more links",
+      "actualCardHrefs": [
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog"
+      ],
+      "focusedAfterResize": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "index": "http://127.0.0.1:13499/blog?lang=en",
+      "article": "http://127.0.0.1:13499/blog/introducing-e-code?lang=en",
+      "back": "http://127.0.0.1:13499/blog?lang=en",
+      "mechanism": "explicit page.goto known article URL, browser goBack; NOT product Read more links",
+      "actualCardHrefs": [
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog",
+        "/blog"
+      ],
+      "focusedAfterResize": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}
