@@ -239,7 +239,7 @@ describe('support ticket detail localized UI', () => {
     );
 
     const submit = screen.getByRole('button', { name: 'Envoyer le message' });
-    expect(submit.className).toContain('min-h-[44px]');
+    expect(submit.className).toContain('!min-h-[44px]');
     expect(document.body.textContent).not.toMatch(
       /Back to support|Support request|No replies yet|Send message|Your message|Status unavailable/,
     );

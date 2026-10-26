@@ -581,7 +581,7 @@ function TicketConversation({
               type="submit"
               disabled={sending}
               aria-busy={sending}
-              className="min-h-[44px] w-full whitespace-normal px-4 py-2 sm:w-auto"
+              className="!min-h-[44px] w-full whitespace-normal px-4 py-2 sm:w-auto"
             >
               {sending ? copy['supportTicketDetail.reply.submitting'] : copy['supportTicketDetail.reply.submit']}
             </Button>
