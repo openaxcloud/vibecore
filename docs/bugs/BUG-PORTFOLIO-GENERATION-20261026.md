@@ -1,4 +1,20 @@
+---
+id: BUG-PORTFOLIO-GENERATION-20261026
+---
+
 # Portfolio demandé remplacé par un starter statique
+
+## 📤 Dispatché
+
+☑ 26 octobre 2026 — Lot portfolio isolé, PR #806.
+
+## 💻 Codé
+
+☐ Sur main. Correctif proposé dans #806 ; validation CI de la nouvelle tête requise.
+
+## ✅ Testé live
+
+☐ Aucune recette de génération en production ; accès au projet non disponible.
 
 ## Défaut reproduit et portée
 
@@ -39,8 +55,8 @@ fichiers et la fermeture des transports restent ceux du parcours normal.
 
 Il ne s'agit ni de traduire le starter ni de renommer « them » : cela laisserait
 les demandes blog, formulaires et spécialisation IA sans traitement. Les
-utilitaires de template restent dans le dépôt, mais ne court-circuitent plus la
-route de génération.
+utilitaires de template devenus inutilisés et leur test dédié sont supprimés.
+Les tests de régression de la route de génération sont conservés.
 
 ## Validation sans appel payant
 
@@ -64,8 +80,8 @@ Le projet déjà créé n'est pas réparé rétroactivement par ce changement.
 
 ## Coordination
 
-Branche séparée de #805, aucun `app.ts`, aucune route Git/GitHub ni index partagé
-modifié. #799 conserve la priorité d'intégration. Les nouveaux fichiers et la
+Branche séparée de #805, aucun `app.ts` ni aucune route Git/GitHub modifiés.
+L’index partagé est régénéré pour référencer cette entrée de suivi. #799 conserve la priorité d'intégration. Les nouveaux fichiers et la
 suppression du raccourci de `app/routes/api.chat.ts` forment le périmètre du lot.
 
 Validation locale : 100 tests ciblés passent dans 12 fichiers, revue indépendante
@@ -73,3 +89,15 @@ favorable, build web/SSR et commande officielle `pnpm typecheck` réussis, lint
 0 erreur / 52 avertissements existants. Une tentative directe de typage du
 monorepo a épuisé son heap local ; la validation officielle partitionnée a
 ensuite réussi sans modification des limites CI.
+
+## Échec CI et correction du suivi
+
+La CI de la tête `ead39d71fe3f880d534bc558cdf421f995ca81ba` de #806
+a signalé trois échecs : entrée absente de l’index, total annoncé de 512 au lieu
+de 513, et module `app/utils/portfolio-template.ts` devenu inutilisé.
+Ces trois échecs sont reproduits localement avant correction. Le frontmatter
+d’identification est ajouté, l’index est régénéré avec le script du dépôt et le
+module sans import produit est supprimé avec son test dédié. Les tests de la
+vraie route restent en place ; aucune assertion de garde n’est affaiblie.
+
+Cette correction ne fournit aucune nouvelle preuve de génération en production.
