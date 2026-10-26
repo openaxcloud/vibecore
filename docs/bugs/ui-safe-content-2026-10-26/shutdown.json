@@ -1,0 +1,18 @@
+[
+  {
+    "pid": 158383,
+    "startTicks": "1935728",
+    "port": 11299,
+    "signal": "SIGTERM",
+    "matched": true,
+    "portResult": "ECONNREFUSED"
+  },
+  {
+    "pid": 159444,
+    "startTicks": "1967103",
+    "port": 11399,
+    "signal": "SIGTERM",
+    "matched": true,
+    "portResult": "ECONNREFUSED"
+  }
+]

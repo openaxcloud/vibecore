@@ -1191,7 +1191,12 @@ export function AppShell({
               title={displayedTitle}
             />
           ) : null}
-          <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
+          <div
+            className={classNames(
+              'mx-auto max-w-7xl py-6 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] lg:py-8',
+              contentClassName,
+            )}
+          >
             {!hideHeader ? (
               <div
                 className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"
