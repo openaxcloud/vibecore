@@ -20,4 +20,12 @@ Les quatre captures `counterproof-*` sont des modifications DOM synthétiques, p
 
 18 tests existants passent sur quatre fichiers : auth-touch-targets(5), AuthI18n(2), auth-password-i18n et verify-email.mfa-redirect (comptes individuels dans le log). Lint des deux fichiers, Prettier et diff-check passent. Revue du patch par le parent favorable avant application. Aucun nouveau build après correction, push ou déploiement dans ce lot.
 
-Non exercés ici : actions métier UI après soumission, authentification réelle, OAuth fournisseur réel, réussite création compte/session, vraie délivrance email, token réel, production, WebKit, zoom200%, clavier virtuel matériel. `/signup` n'hérite pas de la couverture `/register`. Sept routes/groupes partiellement exercés, pas sept écrans ni certification globale.
+Non exercés ici : authentification réelle, OAuth fournisseur réel, réussite création compte/session, vraie délivrance email, token réel, production, WebKit, zoom200%, clavier virtuel matériel. `/signup` n'hérite pas de la couverture `/register`. Sept routes/groupes partiellement exercés, pas sept écrans ni certification globale.
+
+## Complément formulaires sur le même build baseline
+
+`actions.json` :20 états FR/EN, clair320, chaque état chargé séparément avant soumission : forgot503/200, reset400/503/200, verify400/503/200, register409/503. Chaque feedback visible et contenu ;20POST navigateur verslocalhost,0écriture bloquée,0erreur JS.
+
+`recovery.json` : six groupes réellement consécutifs sur la même page (forgot/reset/verify × FR/EN), erreur503 puis nouvelle soumission200 sans rechargement ;12POST synthétiques. `resend.json` : deux groupes FR/EN, erreur503 puis nouvel envoi200 après avancement de61secondes d'horloge navigateur synthétique ;4POST. Le bouton est désactivé durant le délai puis activé. Le compteur observé initialement affiche61secondes dans ce harness d'horloge, sans conclusion sur le temps matériel.
+
+Total complément :36POST navigateur fictifs, APIlocalhost sans persistance, sans compte/token/session/email réel. Les POST protocoles sont un groupe distinct. Le succès register reste volontairement exclu. Ces preuves ne sont pas une recette du backend réel ni du build corrigé.
