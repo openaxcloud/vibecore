@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { IntegrationGithubVerification } from './IntegrationGithubVerification';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
 import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
 import {
@@ -21178,6 +21179,9 @@ function ProjectIntegrationsPanel({
     category: itemCategory,
     icon,
     ...(integrationState[id] ?? {}),
+
+    // Legacy project configuration is not a verified personal GitHub connection.
+    ...(id === 'github' ? { connected: false, status: undefined } : {}),
   }));
 
   const connected = catalog.filter((item) => item.connected);
@@ -21297,74 +21301,80 @@ function ProjectIntegrationsPanel({
                 <strong>{selected.name}</strong>
                 <small>{selected.description}</small>
               </div>
-              <div
-                className="bolt-project-integration-permissions"
-                data-connected={selected.connected ? 'true' : 'false'}
-              >
-                <strong>
-                  {selected.connected
-                    ? t('chat.copy.value0CurrentlyHasAccessTo_25db6291', { value0: selected.name })
-                    : t('chat.copy.beforeYouConnectValue0WillBe_513f1b91', { value0: selected.name })}
-                </strong>
-                <ul>
-                  {integrationPermissions(selected.category).map((permission: string) => (
-                    <li key={permission}>
-                      <span className="i-ph:check-circle" aria-hidden />
-                      {t(permission)}
-                    </li>
-                  ))}
-                </ul>
-                <small>
-                  {selected.connected
-                    ? t('baseChatAst.integrations.syncUnavailable')
-                    : t('chat.copy.youCanRevokeThisAccessAt_76f2b594')}
-                </small>
-              </div>
-              <form onSubmit={onSubmit}>
-                <input type="hidden" name="intent" value={selected.connected ? 'disconnect' : 'connect'} />
-                <input type="hidden" name="integrationId" value={selected.id} />
-                {selected.connected ? null : (
-                  <>
-                    <PanelInput
-                      name="apiToken"
-                      type="password"
-                      placeholder={t('chat.copy.apiTokenOauthTokenOrApp_76acb24f')}
-                    />
-                    <PanelInput
-                      name="organization"
-                      placeholder={t('chat.copy.organizationOrWorkspace_f81f84d0')}
-                      defaultValue={selected.config?.organization ?? ''}
-                    />
-                  </>
-                )}
-                <PanelButton disabled={busy} variant={selected.connected ? 'outline' : undefined}>
-                  {selected.connected
-                    ? t('chat.copy.revokeAccess_094386f6', {})
-                    : t('chat.copy.connectValue0_521bd823', { value0: selected.name })}
-                </PanelButton>
-              </form>
-              <PanelRows
-                rows={[
-                  [
-                    t('baseChatAst.common.status'),
-                    selected.connected
-                      ? platformStateLabel(t, selected.status ?? 'active')
-                      : t('baseChatAst.status.notConnected'),
-                  ],
-                  [
-                    t('baseChatAst.integrations.lastSync'),
+              {selected.id === 'github' ? (
+                <IntegrationGithubVerification projectId={projectId} language={language} />
+              ) : (
+                <>
+                  <div
+                    className="bolt-project-integration-permissions"
+                    data-connected={selected.connected ? 'true' : 'false'}
+                  >
+                    <strong>
+                      {selected.connected
+                        ? t('chat.copy.value0CurrentlyHasAccessTo_25db6291', { value0: selected.name })
+                        : t('chat.copy.beforeYouConnectValue0WillBe_513f1b91', { value0: selected.name })}
+                    </strong>
+                    <ul>
+                      {integrationPermissions(selected.category).map((permission: string) => (
+                        <li key={permission}>
+                          <span className="i-ph:check-circle" aria-hidden />
+                          {t(permission)}
+                        </li>
+                      ))}
+                    </ul>
+                    <small>
+                      {selected.connected
+                        ? t('baseChatAst.integrations.syncUnavailable')
+                        : t('chat.copy.youCanRevokeThisAccessAt_76f2b594')}
+                    </small>
+                  </div>
+                  <form onSubmit={onSubmit}>
+                    <input type="hidden" name="intent" value={selected.connected ? 'disconnect' : 'connect'} />
+                    <input type="hidden" name="integrationId" value={selected.id} />
+                    {selected.connected ? null : (
+                      <>
+                        <PanelInput
+                          name="apiToken"
+                          type="password"
+                          placeholder={t('chat.copy.apiTokenOauthTokenOrApp_76acb24f')}
+                        />
+                        <PanelInput
+                          name="organization"
+                          placeholder={t('chat.copy.organizationOrWorkspace_f81f84d0')}
+                          defaultValue={selected.config?.organization ?? ''}
+                        />
+                      </>
+                    )}
+                    <PanelButton disabled={busy} variant={selected.connected ? 'outline' : undefined}>
+                      {selected.connected
+                        ? t('chat.copy.revokeAccess_094386f6', {})
+                        : t('chat.copy.connectValue0_521bd823', { value0: selected.name })}
+                    </PanelButton>
+                  </form>
+                  <PanelRows
+                    rows={[
+                      [
+                        t('baseChatAst.common.status'),
+                        selected.connected
+                          ? platformStateLabel(t, selected.status ?? 'active')
+                          : t('baseChatAst.status.notConnected'),
+                      ],
+                      [
+                        t('baseChatAst.integrations.lastSync'),
 
-                    // Stored dates were configuration writes, never verified synchronization results.
-                    t('baseChatAst.integrations.syncUnverified'),
-                  ],
-                  [
-                    t('baseChatAst.integrations.secretStored'),
-                    secretKeys.has(`INTEGRATION_TOKEN_${selected.id.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`)
-                      ? t('baseChatAst.status.yes')
-                      : t('baseChatAst.status.noToken'),
-                  ],
-                ]}
-              />
+                        // Stored dates were configuration writes, never verified synchronization results.
+                        t('baseChatAst.integrations.syncUnverified'),
+                      ],
+                      [
+                        t('baseChatAst.integrations.secretStored'),
+                        secretKeys.has(`INTEGRATION_TOKEN_${selected.id.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`)
+                          ? t('baseChatAst.status.yes')
+                          : t('baseChatAst.status.noToken'),
+                      ],
+                    ]}
+                  />
+                </>
+              )}
               <PanelButton type="button" variant="outline" size="sm" onClick={() => setSelectedIntegrationId(null)}>
                 {t('chat.copy.closeConfiguration_0675f715')}
               </PanelButton>

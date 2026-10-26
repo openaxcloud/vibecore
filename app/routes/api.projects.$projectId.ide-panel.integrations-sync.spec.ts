@@ -116,6 +116,23 @@ function unpack(value: unknown) {
 
 for (const language of ['en', 'fr']) {
   describe(`integration Sync ${language}`, () => {
+    for (const integrationId of ['github', 'GitHub', 'GITHUB', ' github ']) {
+      for (const jsonBody of [false, true]) {
+        it(`rejects legacy GitHub connect ${integrationId} JSON=${jsonBody} before any credential write`, async () => {
+          const result = unpack(
+            await action(
+              args(language, { intent: 'connect', integrationId, apiToken: 'synthetic-not-a-credential' }, jsonBody),
+            ),
+          );
+          expect(result.init?.status).toBe(409);
+          expect(result.data).toMatchObject({ ok: false, code: 'GITHUB_ACCOUNT_VERIFICATION_REQUIRED' });
+          expect(calls).toEqual([{ path: '/projects/proj-fixture/env-vars', method: 'GET' }]);
+          expect(state).toEqual(initial);
+          expect(JSON.stringify(result.data)).not.toContain('synthetic-not-a-credential');
+        });
+      }
+    }
+
     for (const jsonBody of [false, true]) {
       it(`rejects ${jsonBody ? 'JSON' : 'form'} Sync before any write and preserves existing state`, async () => {
         const result = unpack(await action(args(language, { intent: 'sync', integrationId: 'github' }, jsonBody)));

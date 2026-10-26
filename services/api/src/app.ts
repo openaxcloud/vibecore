@@ -323,6 +323,7 @@ import {
   verifyIntegrationOauthState,
 } from './integrations/oauth-state.js';
 import { bitbucketConnector, resolveBitbucketCredentials } from './integrations/providers/bitbucket.js';
+import { registerGithubVerification } from './integrations/github-verification.js';
 import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
@@ -12722,6 +12723,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { memory: archived };
   });
+
+  registerGithubVerification(app, store);
 
   app.post(
     '/api/integrations/oauth/:provider/connect',

@@ -2905,6 +2905,22 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     const state = readIntegrationsState(envVars);
     const now = new Date().toISOString();
 
+    if (
+      intent === 'connect' &&
+      String(body.integrationId ?? '')
+        .trim()
+        .toLowerCase() === 'github'
+    ) {
+      return json(
+        {
+          ok: false,
+          code: 'GITHUB_ACCOUNT_VERIFICATION_REQUIRED',
+          error: copy['apiRuntime.panel.githubAccountVerificationRequired'],
+        },
+        { status: 409 },
+      );
+    }
+
     if (intent === 'connect' || intent === 'disconnect') {
       const integrationId = body.integrationId;
 
