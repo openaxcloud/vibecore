@@ -1,0 +1,6 @@
+{
+  "version": "154.0.8037.57",
+  "simulation": "CDP safe-area env override; NOT physical iOS, NOT real virtual keyboard",
+  "observations": [],
+  "errors": []
+}

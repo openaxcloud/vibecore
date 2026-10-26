@@ -12,7 +12,9 @@ Mission UI globale, audit complémentaire de deux routes marketing ; fichier AIA
 
 ## 💻 Codé
 
-Local, pas sur main : grille une colonne explicitement contrainte, libellés CTA repliables et hauteur automatique avec minimum d’origine conservé, y compris md:min-h-14 pour neutraliser le md:min-h-0 du Button. Aucun texte, action, lien ni fonction retiré. Revue indépendante favorable au mécanisme, réserve de hauteur desktop corrigée ; build final, typage et recette compilée réussis.
+☑ Fusionné normalement dans main par [#796](https://github.com/openaxcloud/vibecore/pull/796), commit `ea2ff01c5cf6ffc5116f6ae98e9aaa4a43a807af`. [Suivi de livraison distinct](https://github.com/openaxcloud/vibecore/actions/runs/40249728903) ; ce statut de code sur main ne vaut pas validation UI en production.
+
+Correctif : grille une colonne explicitement contrainte, libellés CTA repliables et hauteur automatique avec minimum d’origine conservé, y compris md:min-h-14 pour neutraliser le md:min-h-0 du Button. Aucun texte, action, lien ni fonction retiré. Revue indépendante favorable au mécanisme, réserve de hauteur desktop corrigée ; build final, typage et recette compilée réussis.
 
 ## ✅ Testé live
 

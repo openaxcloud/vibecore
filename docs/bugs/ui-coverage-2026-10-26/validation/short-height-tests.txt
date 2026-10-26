@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-coverage
+
+ ✓ app/styles/agent-transcript-mobile.spec.ts (6 tests) 14ms
+ ✓ app/styles/ide-mobile-panels.spec.ts (70 tests) 33ms
+ ✓ app/styles/deux-defauts-visuels.spec.ts (9 tests) 8ms
+
+ Test Files  3 passed (3)
+      Tests  85 passed (85)
+   Start at  00:33:25
+   Duration  2.27s (transform 1.26s, setup 116ms, collect 123ms, tests 54ms, environment 0ms, prepare 181ms)

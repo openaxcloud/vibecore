@@ -1,0 +1,179 @@
+{
+  "mutations": [],
+  "errors": [],
+  "before": {
+    "docWidth": 320,
+    "articles": [
+      {
+        "left": 16,
+        "right": 366.8125
+      },
+      {
+        "left": 16,
+        "right": 366.8125
+      },
+      {
+        "left": 16,
+        "right": 366.8125
+      },
+      {
+        "left": 16,
+        "right": 366.8125
+      },
+      {
+        "left": 16,
+        "right": 366.8125
+      },
+      {
+        "left": 16,
+        "right": 366.8125
+      },
+      {
+        "left": 16,
+        "right": 365.109375
+      },
+      {
+        "left": 16,
+        "right": 365.109375
+      },
+      {
+        "left": 16,
+        "right": 365.109375
+      },
+      {
+        "left": 16,
+        "right": 365.109375
+      },
+      {
+        "left": 16,
+        "right": 365.109375
+      },
+      {
+        "left": 16,
+        "right": 365.109375
+      }
+    ],
+    "badControls": [
+      {
+        "text": "Use template",
+        "right": 341.8125
+      },
+      {
+        "text": "Use template",
+        "right": 341.8125
+      },
+      {
+        "text": "Use template",
+        "right": 341.8125
+      },
+      {
+        "text": "Use template",
+        "right": 341.8125
+      },
+      {
+        "text": "Use template",
+        "right": 341.8125
+      },
+      {
+        "text": "Use template",
+        "right": 341.8125
+      },
+      {
+        "text": "Use template",
+        "right": 340.109375
+      },
+      {
+        "text": "Use template",
+        "right": 340.109375
+      },
+      {
+        "text": "Use template",
+        "right": 340.109375
+      },
+      {
+        "text": "Use template",
+        "right": 340.109375
+      },
+      {
+        "text": "Use template",
+        "right": 340.109375
+      },
+      {
+        "text": "Use template",
+        "right": 340.109375
+      }
+    ]
+  },
+  "after": {
+    "docWidth": 320,
+    "articles": [
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      },
+      {
+        "left": 16,
+        "right": 304
+      }
+    ],
+    "badControls": []
+  },
+  "docsBefore": {
+    "top": 24.125,
+    "headingTop": 49.125,
+    "headerBottom": 111
+  },
+  "docsAfter": {
+    "top": 144.125,
+    "headingTop": 169.125,
+    "headerBottom": 111
+  },
+  "docsCaption": "Maquette de l’interface — remplacez-la par une vraie capture dans /public/marketing/agent-mentions.png après la capture.",
+  "failedGet": "http://127.0.0.1:10799/templates.data?lang=fr&q=synthetic-503-recovery",
+  "failureText": "Skip to content\nE-Code\nEN\nFR\nUNAVAILABLE\nUnavailable\n\nUnavailable\n\nUnavailable\nUnavailable\nUnavailable\nPrompt, code, preview, deploy\nBuild inspectable software with your team\n\nE-Code keeps generated files, runtime feedback, preview state, and release controls together from the first prompt to the live application.\n\nTalk to sales\nStart building\n\nSOURCE CODE\n\nVisible and exportable\n\nPROJECT WORKFLOW\n\nPreview through deployment\n\nPRODUCT\nAI Agent\nIDE\nMultiplayer\nMobile App\nDesktop App\nCollaboration\nMCP Integrations\nPolyglot Backends\nTeams\nDeployments\nPricing\nBounties\nAI Platform\nRESOURCES\nDocs\nBlog\nCommunity\nTemplates\nMarketplace\nLanguages\nStatus\nForum\nNEWSLETTER\nSubscribe\nCOMPANY\nAbout\nCareers\nPress\nPartners\nContact Sales\nLEGAL\nTerms\nPrivacy\nSubprocessors\nDPA\nUS Student DPA\nSecurity\nTrust & Safety\nAcceptable Use\nReport Abuse\nStrike System\nUsage & Limits\nSupport Policy\nLicensing\nAccount Inactivity\nDeleting Your Data\n\nCompare platforms\n\nSee how E-Code compares with other development clouds.\n\nE-Code vs GitHub Codespaces\nE-Code vs Glitch\nE-Code vs Heroku\nE-Code vs CodeSandbox\nE-Code vs AWS Cloud9\nSource files remain visible for review and export.\nPreview links and deployment controls share one workspace.\nAgent changes stay connected to files and runtime feedback.\nE-Code\n© 2026 E-Code.AI (Snatch Group Limited). All rights reserved.\nEmail preferences\nNewsletter\nUnavailable…",
+  "recovered": {
+    "url": "http://127.0.0.1:10799/templates?lang=fr&q=synthetic-503-recovery",
+    "search": "synthetic-503-recovery",
+    "anonymous": true
+  }
+}

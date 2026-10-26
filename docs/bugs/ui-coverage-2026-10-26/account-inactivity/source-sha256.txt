@@ -1,0 +1,3 @@
+efac35905c6501c2b36b68c9bed045cab6ab5e5cfe9ae485f1ca60a738a076f9  app/routes/account-inactivity.tsx
+107726bf7d260ecfc5330dd9da1bb8e1e2a550bbaa82c47caf2658f73c0fb9e6  app/components/marketing/ecode-exact/pages/AccountInactivity.tsx
+455f03de558d92c77175b076cecfc6958018cd63b850a4956a6cc023fb90beb4  app/lib/i18n/catalogs/marketing-exact-account-languages.ts

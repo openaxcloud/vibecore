@@ -12,7 +12,9 @@ Audit global UI/UX du25octobre2026, parcours publics isolés après la publicati
 
 ## 💻 Codé
 
-Correctif local dans un worktree séparé : header mobile repliable, focus restauré et dialogue fermé au seuil desktop1280px. La carte Comparaisons du footer utilise toute la largeur mobile ; la marge logique du header préserve le RTL. Pas sur main. Source #792 figée pendant sa CI. Aucun lien ou parcours retiré pour masquer le défaut.
+☑ Fusionné normalement dans main par [#795](https://github.com/openaxcloud/vibecore/pull/795), commit `5b09bf65bd65f004a35aa778d549deac1546b871`. [Livraison GitHub Actions confirmée](https://github.com/openaxcloud/vibecore/actions/runs/40246418278), sans recette UI authentifiée en production.
+
+Correctif : header mobile repliable, focus restauré et dialogue fermé au seuil desktop1280px. La carte Comparaisons du footer utilise toute la largeur mobile ; la marge logique du header préserve le RTL. Source #792 figée pendant sa CI. Aucun lien ou parcours retiré pour masquer le défaut.
 
 ## ✅ Testé live
 

@@ -1,0 +1,81 @@
+{
+  "closures": [
+    {
+      "method": "Escape",
+      "focusRestored": true
+    },
+    {
+      "method": "Annuler",
+      "focusRestored": true
+    },
+    {
+      "method": "Fermer",
+      "focusRestored": true
+    },
+    {
+      "method": "Backdrop",
+      "focusRestored": true
+    }
+  ],
+  "scroll": {
+    "before": {
+      "client": 253,
+      "scroll": 504,
+      "left": 0,
+      "tabindex": null
+    },
+    "after": {
+      "left": 40,
+      "focused": true
+    }
+  },
+  "descriptions": [
+    {
+      "route": "billing",
+      "width": 320,
+      "text": "Gérez votre abonnement, le paiement, l’accès au portail client, les factures et l’utilisation mesurée.",
+      "client": 255,
+      "scroll": 255,
+      "height": 60,
+      "wrap": "break-word"
+    },
+    {
+      "route": "billing",
+      "width": 1440,
+      "text": "Gérez votre abonnement, le paiement, l’accès au portail client, les factures et l’utilisation mesurée.",
+      "client": 555,
+      "scroll": 555,
+      "height": 40,
+      "wrap": "break-word"
+    },
+    {
+      "route": "account-settings",
+      "width": 320,
+      "text": "Profil, comptes connectés, données et confidentialité de votre compte.",
+      "client": 255,
+      "scroll": 255,
+      "height": 40,
+      "wrap": "break-word"
+    },
+    {
+      "route": "account-settings",
+      "width": 1440,
+      "text": "Profil, comptes connectés, données et confidentialité de votre compte.",
+      "client": 463,
+      "scroll": 463,
+      "height": 20,
+      "wrap": "break-word"
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ]
+}

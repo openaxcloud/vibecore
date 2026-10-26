@@ -1,0 +1,328 @@
+{
+  "cases": [
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 112,
+          "right": 504,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    }
+  ],
+  "interactions": [],
+  "errors": [],
+  "mutations": [],
+  "dataRequests": [
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10899/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript"
+  ]
+}

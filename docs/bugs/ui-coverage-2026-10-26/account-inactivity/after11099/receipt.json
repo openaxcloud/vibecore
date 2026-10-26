@@ -1,0 +1,718 @@
+{
+  "base": "http://127.0.0.1:11099",
+  "startedAt": "2026-10-26T00:36:59.945Z",
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "gestures": [
+        {
+          "input": "wheel",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 872.25,
+              "bottom": 892.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 260,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 612.25,
+              "bottom": 632.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        },
+        {
+          "input": "PageDown",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 872.25,
+              "bottom": 892.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 249,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 623.25,
+              "bottom": 643.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        }
+      ],
+      "lastParagraph": {
+        "steps": 9,
+        "scrollY": 540,
+        "bodyTop": 0,
+        "rootY": "visible",
+        "bodyY": "visible",
+        "last": {
+          "top": 332.25,
+          "bottom": 352.125,
+          "text": "Pour toute question, écrivez à support@e-code.ai."
+        },
+        "header": {
+          "top": 0,
+          "bottom": 110
+        },
+        "lock": null,
+        "inSafeViewport": true
+      },
+      "menu": {
+        "opened": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 872.25,
+            "bottom": 892.125,
+            "text": "Pour toute question, écrivez à support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "locked": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 872.25,
+            "bottom": 892.125,
+            "text": "Pour toute question, écrivez à support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "closed": {
+          "scrollY": 260,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "visible",
+          "last": {
+            "top": 612.25,
+            "bottom": 632.125,
+            "text": "Pour toute question, écrivez à support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": null,
+          "inSafeViewport": false
+        },
+        "focusRestored": true
+      },
+      "navigation": {
+        "mailAfterResize": {
+          "top": -123.75,
+          "bottom": -104.75,
+          "focused": true,
+          "href": "mailto:support@e-code.ai"
+        },
+        "beforeBack": "http://127.0.0.1:11099/account-inactivity?lang=fr",
+        "afterBack": "http://127.0.0.1:11099/account-inactivity?lang=fr",
+        "cookies": [
+          "ecode_theme",
+          "vibecore-lang"
+        ],
+        "mailActivated": false
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "gestures": [
+        {
+          "input": "wheel",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 872.25,
+              "bottom": 892.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 260,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 612.25,
+              "bottom": 632.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        },
+        {
+          "input": "PageDown",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 872.25,
+              "bottom": 892.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 300,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 572.25,
+              "bottom": 592.125,
+              "text": "Pour toute question, écrivez à support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        }
+      ],
+      "lastParagraph": {
+        "steps": 9,
+        "scrollY": 540,
+        "bodyTop": 0,
+        "rootY": "visible",
+        "bodyY": "visible",
+        "last": {
+          "top": 332.25,
+          "bottom": 352.125,
+          "text": "Pour toute question, écrivez à support@e-code.ai."
+        },
+        "header": {
+          "top": 0,
+          "bottom": 110
+        },
+        "lock": null,
+        "inSafeViewport": true
+      },
+      "menu": {
+        "opened": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 872.25,
+            "bottom": 892.125,
+            "text": "Pour toute question, écrivez à support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "locked": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 872.25,
+            "bottom": 892.125,
+            "text": "Pour toute question, écrivez à support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "closed": {
+          "scrollY": 260,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "visible",
+          "last": {
+            "top": 612.25,
+            "bottom": 632.125,
+            "text": "Pour toute question, écrivez à support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": null,
+          "inSafeViewport": false
+        },
+        "focusRestored": true
+      },
+      "navigation": {
+        "mailAfterResize": {
+          "top": -123.75,
+          "bottom": -104.75,
+          "focused": true,
+          "href": "mailto:support@e-code.ai"
+        },
+        "beforeBack": "http://127.0.0.1:11099/account-inactivity?lang=fr",
+        "afterBack": "http://127.0.0.1:11099/account-inactivity?lang=fr",
+        "cookies": [
+          "ecode_theme",
+          "vibecore-lang"
+        ],
+        "mailActivated": false
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "gestures": [
+        {
+          "input": "wheel",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 852.375,
+              "bottom": 872.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 260,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 592.375,
+              "bottom": 612.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        },
+        {
+          "input": "PageDown",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 852.375,
+              "bottom": 872.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 278,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 574.375,
+              "bottom": 594.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        }
+      ],
+      "lastParagraph": {
+        "steps": 9,
+        "scrollY": 540,
+        "bodyTop": 0,
+        "rootY": "visible",
+        "bodyY": "visible",
+        "last": {
+          "top": 312.375,
+          "bottom": 332.25,
+          "text": "For questions, contact support@e-code.ai."
+        },
+        "header": {
+          "top": 0,
+          "bottom": 110
+        },
+        "lock": null,
+        "inSafeViewport": true
+      },
+      "menu": {
+        "opened": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 852.375,
+            "bottom": 872.25,
+            "text": "For questions, contact support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "locked": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 852.375,
+            "bottom": 872.25,
+            "text": "For questions, contact support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "closed": {
+          "scrollY": 260,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "visible",
+          "last": {
+            "top": 592.375,
+            "bottom": 612.25,
+            "text": "For questions, contact support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": null,
+          "inSafeViewport": false
+        },
+        "focusRestored": true
+      },
+      "navigation": {
+        "mailAfterResize": {
+          "top": 1.375,
+          "bottom": 20.375,
+          "focused": true,
+          "href": "mailto:support@e-code.ai"
+        },
+        "beforeBack": "http://127.0.0.1:11099/account-inactivity?lang=en",
+        "afterBack": "http://127.0.0.1:11099/account-inactivity?lang=en",
+        "cookies": [
+          "ecode_theme",
+          "vibecore-lang"
+        ],
+        "mailActivated": false
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "gestures": [
+        {
+          "input": "wheel",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 852.375,
+              "bottom": 872.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 260,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 592.375,
+              "bottom": 612.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        },
+        {
+          "input": "PageDown",
+          "before": {
+            "scrollY": 0,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 852.375,
+              "bottom": 872.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          },
+          "after": {
+            "scrollY": 227,
+            "bodyTop": 0,
+            "rootY": "visible",
+            "bodyY": "visible",
+            "last": {
+              "top": 625.375,
+              "bottom": 645.25,
+              "text": "For questions, contact support@e-code.ai."
+            },
+            "header": {
+              "top": 0,
+              "bottom": 110
+            },
+            "lock": null,
+            "inSafeViewport": false
+          }
+        }
+      ],
+      "lastParagraph": {
+        "steps": 9,
+        "scrollY": 540,
+        "bodyTop": 0,
+        "rootY": "visible",
+        "bodyY": "visible",
+        "last": {
+          "top": 312.375,
+          "bottom": 332.25,
+          "text": "For questions, contact support@e-code.ai."
+        },
+        "header": {
+          "top": 0,
+          "bottom": 110
+        },
+        "lock": null,
+        "inSafeViewport": true
+      },
+      "menu": {
+        "opened": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 852.375,
+            "bottom": 872.25,
+            "text": "For questions, contact support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "locked": {
+          "scrollY": 0,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "hidden",
+          "last": {
+            "top": 852.375,
+            "bottom": 872.25,
+            "text": "For questions, contact support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": "1",
+          "inSafeViewport": false
+        },
+        "closed": {
+          "scrollY": 260,
+          "bodyTop": 0,
+          "rootY": "visible",
+          "bodyY": "visible",
+          "last": {
+            "top": 592.375,
+            "bottom": 612.25,
+            "text": "For questions, contact support@e-code.ai."
+          },
+          "header": {
+            "top": 0,
+            "bottom": 110
+          },
+          "lock": null,
+          "inSafeViewport": false
+        },
+        "focusRestored": true
+      },
+      "navigation": {
+        "mailAfterResize": {
+          "top": 1.375,
+          "bottom": 20.375,
+          "focused": true,
+          "href": "mailto:support@e-code.ai"
+        },
+        "beforeBack": "http://127.0.0.1:11099/account-inactivity?lang=en",
+        "afterBack": "http://127.0.0.1:11099/account-inactivity?lang=en",
+        "cookies": [
+          "ecode_theme",
+          "vibecore-lang"
+        ],
+        "mailActivated": false
+      }
+    }
+  ],
+  "errors": [],
+  "blockedMutations": [],
+  "blockedExternal": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "finishedAt": "2026-10-26T00:37:35.874Z"
+}

@@ -1,0 +1,10 @@
+{
+  "testFile": "tests/e2e/ecode-marketing-content.spec.ts",
+  "sha256": "c01256def2c938589b16662787505ddbc0f498687664ac77ab39e79b4e8d19ec",
+  "redTemporaryCopyEqualsFinalRepoAfterPrettier": true,
+  "red": "11199",
+  "green": "11099",
+  "retries": 0,
+  "greenPassed": 1,
+  "scope": "One test executes wheel and PageDown after fresh navigations; no previous guards rerun."
+}

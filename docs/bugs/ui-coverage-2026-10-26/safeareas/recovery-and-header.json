@@ -1,0 +1,310 @@
+{
+  "recovery": {
+    "before": {
+      "x": 43,
+      "y": 358,
+      "right": 573.328125,
+      "bottom": 402,
+      "height": 44,
+      "focused": true,
+      "scrollY": 0
+    },
+    "afterWheel": {
+      "x": 43,
+      "y": 358,
+      "right": 573.328125,
+      "bottom": 402,
+      "height": 44,
+      "focused": true,
+      "scrollY": 0
+    },
+    "tabNext": {
+      "tag": "BUTTON",
+      "text": "Ajouter"
+    },
+    "afterKeyboard": {
+      "x": 43,
+      "y": 346,
+      "right": 573.328125,
+      "bottom": 390,
+      "height": 44,
+      "focused": true,
+      "scrollY": 0
+    }
+  },
+  "headerCounterproof": [
+    {
+      "width": 320,
+      "height": 900,
+      "insets": {
+        "top": 44,
+        "bottom": 34,
+        "left": 0,
+        "right": 0
+      },
+      "before": [
+        {
+          "label": "Ouvrir le menu de navigation",
+          "x": 14,
+          "y": 5.5,
+          "right": 58,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Aide et visite guidée",
+          "x": 207.5,
+          "y": 5.5,
+          "right": 251.5,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Notifications",
+          "x": 262,
+          "y": 5.5,
+          "right": 306,
+          "bottom": 49.5,
+          "height": 44
+        }
+      ],
+      "after": [
+        {
+          "label": "Ouvrir le menu de navigation",
+          "x": 14,
+          "y": 49.5,
+          "right": 58,
+          "bottom": 93.5,
+          "height": 44
+        },
+        {
+          "label": "Aide et visite guidée",
+          "x": 207.5,
+          "y": 49.5,
+          "right": 251.5,
+          "bottom": 93.5,
+          "height": 44
+        },
+        {
+          "label": "Notifications",
+          "x": 262,
+          "y": 49.5,
+          "right": 306,
+          "bottom": 93.5,
+          "height": 44
+        }
+      ],
+      "beforeHeader": 56,
+      "afterHeader": 100
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "insets": {
+        "top": 0,
+        "bottom": 21,
+        "left": 47,
+        "right": 47
+      },
+      "before": [
+        {
+          "label": "Ouvrir le menu de navigation",
+          "x": 21,
+          "y": 5.5,
+          "right": 65,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Ouvrir la palette de commandes",
+          "x": 462.3125,
+          "y": 5.5,
+          "right": 613.5,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Aide et visite guidée",
+          "x": 624,
+          "y": 5.5,
+          "right": 668,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Anglais",
+          "x": 679.5,
+          "y": 5.5,
+          "right": 723.5,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Langue actuelle : Français",
+          "x": 723.5,
+          "y": 5.5,
+          "right": 767.5,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Notifications",
+          "x": 779,
+          "y": 5.5,
+          "right": 823,
+          "bottom": 49.5,
+          "height": 44
+        }
+      ],
+      "after": [
+        {
+          "label": "Ouvrir le menu de navigation",
+          "x": 47,
+          "y": 5.5,
+          "right": 91,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Ouvrir la palette de commandes",
+          "x": 436.3125,
+          "y": 5.5,
+          "right": 587.5,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Aide et visite guidée",
+          "x": 598,
+          "y": 5.5,
+          "right": 642,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Anglais",
+          "x": 653.5,
+          "y": 5.5,
+          "right": 697.5,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Langue actuelle : Français",
+          "x": 697.5,
+          "y": 5.5,
+          "right": 741.5,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Notifications",
+          "x": 753,
+          "y": 5.5,
+          "right": 797,
+          "bottom": 49.5,
+          "height": 44
+        }
+      ],
+      "beforeHeader": 56,
+      "afterHeader": 56
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "insets": {
+        "top": 0,
+        "bottom": 0,
+        "left": 0,
+        "right": 0
+      },
+      "before": [
+        {
+          "label": "Ouvrir la palette de commandes",
+          "x": 1074.3125,
+          "y": 5.5,
+          "right": 1217,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Aide et visite guidée",
+          "x": 1226,
+          "y": 5.5,
+          "right": 1270,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Anglais",
+          "x": 1280,
+          "y": 5.5,
+          "right": 1324,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Langue actuelle : Français",
+          "x": 1324,
+          "y": 5.5,
+          "right": 1368,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Notifications",
+          "x": 1378,
+          "y": 5.5,
+          "right": 1422,
+          "bottom": 49.5,
+          "height": 44
+        }
+      ],
+      "after": [
+        {
+          "label": "Ouvrir la palette de commandes",
+          "x": 1074.3125,
+          "y": 5.5,
+          "right": 1217,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Aide et visite guidée",
+          "x": 1226,
+          "y": 5.5,
+          "right": 1270,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Anglais",
+          "x": 1280,
+          "y": 5.5,
+          "right": 1324,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Langue actuelle : Français",
+          "x": 1324,
+          "y": 5.5,
+          "right": 1368,
+          "bottom": 49.5,
+          "height": 44
+        },
+        {
+          "label": "Notifications",
+          "x": 1378,
+          "y": 5.5,
+          "right": 1422,
+          "bottom": 49.5,
+          "height": 44
+        }
+      ],
+      "beforeHeader": 56,
+      "afterHeader": 56
+    }
+  ],
+  "errors": []
+}

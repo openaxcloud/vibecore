@@ -1,0 +1,12 @@
+{
+  "synthetic": true,
+  "route": "/projects/synthetic-safearea-project/ide?lang=fr",
+  "blocked": [
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://stackblitz.com/headless?coep=credentialless&version=1.6.1-internal.1"
+  ],
+  "errors": [],
+  "bootShell": 1,
+  "failure": "Error: page.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')\n    at eval (eval at evaluate (:302:30), <anonymous>:1:83)\n    at UtilityScript.evaluate (<anonymous>:304:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+}

@@ -12,7 +12,9 @@ Mission UI globale, complément isolé pendant CI/livraison #792 et #795. Périm
 
 ## 💻 Codé
 
-Correctif local uniquement, pas sur main : SSR existant activé uniquement sur les trois routes ; Support-policy importe directement la même coquille finale pour éviter son wrapper client-only. Marges locales sur Privacy/Terms et la seule CTA Support-policy reproduite. Autres ancres Support-policy non revendiquées corrigées.
+☑ Fusionné normalement dans main par [#796](https://github.com/openaxcloud/vibecore/pull/796), commit `ea2ff01c5cf6ffc5116f6ae98e9aaa4a43a807af`. [Suivi de livraison distinct](https://github.com/openaxcloud/vibecore/actions/runs/40249728903) ; ce statut de code sur main ne vaut pas validation UI en production.
+
+Correctif : SSR existant activé uniquement sur les trois routes ; Support-policy importe directement la même coquille finale pour éviter son wrapper client-only. Marges locales sur Privacy/Terms et la seule CTA Support-policy reproduite. Autres ancres Support-policy non revendiquées corrigées.
 
 ## ✅ Testé live
 

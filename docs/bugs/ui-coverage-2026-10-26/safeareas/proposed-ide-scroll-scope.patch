@@ -1,0 +1,12 @@
+--- a/app/styles/index.scss
++++ b/app/styles/index.scss
+@@ -23351,8 +23351,8 @@
+     display: grid;
+   }
+
+-  html,
+-  body {
++  html:has(.bolt-project-ide-shell, .bolt-responsive-ide),
++  body:has(.bolt-project-ide-shell, .bolt-responsive-ide) {
+     overflow: hidden;
+   }
