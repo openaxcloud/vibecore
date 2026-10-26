@@ -63,7 +63,7 @@ function PublicDeploymentsSectionsImpl() {
       {/* Observability */}
       <section className="border-t border-[var(--ecode-border)] bg-[var(--ecode-surface)]/40 px-6 py-24 lg:px-10">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-16 lg:grid-cols-[1.2fr_1fr]">
+          <div className="grid grid-cols-1 gap-16 lg:grid-cols-[1.2fr_1fr]">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{copy.observabilityTitle}</h2>
               <p className="mt-4 text-[15px] text-muted-foreground">{copy.observabilityDescription}</p>

@@ -1,0 +1,1120 @@
+[
+  {
+    "zoom": 1,
+    "kind": "DOM grid counterproof only",
+    "before": {
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 813,
+        "outerWidth": 520,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollX": 0,
+        "scrollY": 4822,
+        "docWidth": 320
+      },
+      "heading": {
+        "left": 24,
+        "right": 344.53125,
+        "top": 316.640625,
+        "bottom": 496.640625,
+        "width": 320.53125,
+        "height": 180
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 344.53125,
+          "top": 512.640625,
+          "bottom": 632.640625,
+          "width": 320.53125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 313.171875,
+            "top": 513.640625,
+            "bottom": 535.640625
+          },
+          {
+            "left": 24,
+            "right": 318.03125,
+            "top": 537.640625,
+            "bottom": 559.640625
+          },
+          {
+            "left": 24,
+            "right": 337.765625,
+            "top": 561.640625,
+            "bottom": 583.640625
+          },
+          {
+            "left": 24,
+            "right": 276.21875,
+            "top": 585.640625,
+            "bottom": 607.640625
+          },
+          {
+            "left": 24,
+            "right": 151.59375,
+            "top": 609.640625,
+            "bottom": 631.640625
+          }
+        ]
+      },
+      "ranges": [
+        {
+          "left": 24,
+          "right": 309.671875,
+          "top": 313.640625,
+          "bottom": 354.640625
+        },
+        {
+          "left": 24,
+          "right": 222.78125,
+          "top": 349.640625,
+          "bottom": 390.640625
+        },
+        {
+          "left": 24,
+          "right": 279.09375,
+          "top": 385.640625,
+          "bottom": 426.640625
+        },
+        {
+          "left": 24,
+          "right": 185.734375,
+          "top": 421.640625,
+          "bottom": 462.640625
+        },
+        {
+          "left": 24,
+          "right": 189.15625,
+          "top": 457.640625,
+          "bottom": 498.640625
+        }
+      ],
+      "ancestors": [
+        {
+          "tag": "H2",
+          "class": "text-3xl font-semibold tracking-tight sm:text-4xl",
+          "left": 24,
+          "right": 344.53125,
+          "top": 316.640625,
+          "bottom": 496.640625,
+          "width": 320.53125,
+          "height": 180,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "",
+          "left": 24,
+          "right": 344.53125,
+          "top": 316.640625,
+          "bottom": 2284.140625,
+          "width": 320.53125,
+          "height": 1967.5,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "auto"
+        },
+        {
+          "tag": "DIV",
+          "class": "grid gap-16 lg:grid-cols-[1.2fr_1fr]",
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 3225.765625,
+          "width": 272,
+          "height": 2909.125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "320.531px",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "mx-auto max-w-6xl",
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 3225.765625,
+          "width": 272,
+          "height": 2909.125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "SECTION",
+          "class": "border-t border-[var(--ecode-border)] bg-[var(--ecode-surface)]/40 px-6 py-24 lg:px-10",
+          "left": 0,
+          "right": 320,
+          "top": 219.640625,
+          "bottom": 3321.765625,
+          "width": 320,
+          "height": 3102.125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "MAIN",
+          "class": "",
+          "left": 0,
+          "right": 320,
+          "top": -4711,
+          "bottom": 9572.640625,
+          "width": 320,
+          "height": 14283.640625,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "min-h-screen bg-background text-foreground",
+          "left": 0,
+          "right": 320,
+          "top": -4822,
+          "bottom": 12680.015625,
+          "width": 320,
+          "height": 17502.015625,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        }
+      ],
+      "outside": [
+        {
+          "tag": "DIV",
+          "text": "Tout le panneau de déploiement, renforcé pour les équipes de productionPassez du build à la mise en ligne sans",
+          "left": 24,
+          "right": 344.53125,
+          "top": 316.640625,
+          "bottom": 2284.140625,
+          "width": 320.53125,
+          "height": 1967.5
+        },
+        {
+          "tag": "H2",
+          "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+          "left": 24,
+          "right": 344.53125,
+          "top": 316.640625,
+          "bottom": 496.640625,
+          "width": 320.53125,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Passez du build à la mise en ligne sans changer de contexte. Surveillez l’usage, gérez les ressources et les d",
+          "left": 24,
+          "right": 344.53125,
+          "top": 512.640625,
+          "bottom": 632.640625,
+          "width": 320.53125,
+          "height": 120
+        },
+        {
+          "tag": "DIV",
+          "text": "Poste de contrôle de la productionUne vue unifiée du CPU, de la mémoire et des requêtes, enrichie par la détec",
+          "left": 24,
+          "right": 344.53125,
+          "top": 672.640625,
+          "bottom": 2284.140625,
+          "width": 320.53125,
+          "height": 1611.5
+        },
+        {
+          "tag": "DIV",
+          "text": "Poste de contrôle de la productionUne vue unifiée du CPU, de la mémoire et des requêtes, enrichie par la détec",
+          "left": 24,
+          "right": 344.53125,
+          "top": 672.640625,
+          "bottom": 1203.140625,
+          "width": 320.53125,
+          "height": 530.5
+        },
+        {
+          "tag": "DIV",
+          "text": "Intelligence de l’audience mondialeIdentifiez l’origine des requêtes et les flux de trafic grâce à une carte g",
+          "left": 24,
+          "right": 344.53125,
+          "top": 1227.140625,
+          "bottom": 1757.640625,
+          "width": 320.53125,
+          "height": 530.5
+        },
+        {
+          "tag": "DIV",
+          "text": "Actions opérationnellesMettez en pause, adaptez la capacité, gérez les domaines et actualisez le SSL sans quit",
+          "left": 24,
+          "right": 344.53125,
+          "top": 1781.640625,
+          "bottom": 2284.140625,
+          "width": 320.53125,
+          "height": 502.5
+        },
+        {
+          "tag": "DIV",
+          "text": " Les performances en un coup d’œilSuivez le CPU et la mémoire en temps réel, repérez les heures de pointe et a",
+          "left": 24,
+          "right": 344.53125,
+          "top": 2348.140625,
+          "bottom": 3225.765625,
+          "width": 320.53125,
+          "height": 877.625
+        },
+        {
+          "tag": "DIV",
+          "text": " Les performances en un coup d’œilSuivez le CPU et la mémoire en temps réel, repérez les heures de pointe et a",
+          "left": 24,
+          "right": 344.53125,
+          "top": 2348.140625,
+          "bottom": 2639.265625,
+          "width": 320.53125,
+          "height": 291.125
+        },
+        {
+          "tag": "DIV",
+          "text": " Les performances en un coup d’œil",
+          "left": 24,
+          "right": 344.53125,
+          "top": 2348.140625,
+          "bottom": 2460.140625,
+          "width": 320.53125,
+          "height": 112
+        },
+        {
+          "tag": "DIV",
+          "text": "Suivez le CPU et la mémoire en temps réel, repérez les heures de pointe et analysez la latence des requêtes sa",
+          "left": 24,
+          "right": 344.53125,
+          "top": 2460.140625,
+          "bottom": 2639.265625,
+          "width": 320.53125,
+          "height": 179.125
+        },
+        {
+          "tag": "DIV",
+          "text": " Mise à l’échelle intelligenteLes politiques apprennent du trafic historique afin de préchauffer les instances",
+          "left": 24,
+          "right": 344.53125,
+          "top": 2663.265625,
+          "bottom": 2932.515625,
+          "width": 320.53125,
+          "height": 269.25
+        },
+        {
+          "tag": "DIV",
+          "text": " Mise à l’échelle intelligente",
+          "left": 25,
+          "right": 343.53125,
+          "top": 2664.265625,
+          "bottom": 2776.265625,
+          "width": 318.53125,
+          "height": 112
+        },
+        {
+          "tag": "DIV",
+          "text": "Les politiques apprennent du trafic historique afin de préchauffer les instances avant les lancements importan",
+          "left": 25,
+          "right": 343.53125,
+          "top": 2776.265625,
+          "bottom": 2931.515625,
+          "width": 318.53125,
+          "height": 155.25
+        },
+        {
+          "tag": "DIV",
+          "text": " Des informations utiles à la directionLes synthèses transforment les performances de l’infrastructure en rapp",
+          "left": 24,
+          "right": 344.53125,
+          "top": 2956.515625,
+          "bottom": 3225.765625,
+          "width": 320.53125,
+          "height": 269.25
+        },
+        {
+          "tag": "DIV",
+          "text": " Des informations utiles à la direction",
+          "left": 25,
+          "right": 343.53125,
+          "top": 2957.515625,
+          "bottom": 3069.515625,
+          "width": 318.53125,
+          "height": 112
+        },
+        {
+          "tag": "DIV",
+          "text": "Les synthèses transforment les performances de l’infrastructure en rapports exploitables par les équipes produ",
+          "left": 25,
+          "right": 343.53125,
+          "top": 3069.515625,
+          "bottom": 3224.765625,
+          "width": 318.53125,
+          "height": 155.25
+        }
+      ]
+    },
+    "afterGrid": {
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 813,
+        "outerWidth": 520,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollX": 0,
+        "scrollY": 4822,
+        "docWidth": 320
+      },
+      "heading": {
+        "left": 24,
+        "right": 296,
+        "top": 316.640625,
+        "bottom": 496.640625,
+        "width": 272,
+        "height": 180
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 512.640625,
+          "bottom": 656.640625,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 274.828125,
+            "top": 513.640625,
+            "bottom": 535.640625
+          },
+          {
+            "left": 24,
+            "right": 220.734375,
+            "top": 537.640625,
+            "bottom": 559.640625
+          },
+          {
+            "left": 24,
+            "right": 226.171875,
+            "top": 561.640625,
+            "bottom": 583.640625
+          },
+          {
+            "left": 24,
+            "right": 267.09375,
+            "top": 585.640625,
+            "bottom": 607.640625
+          },
+          {
+            "left": 24,
+            "right": 276.21875,
+            "top": 609.640625,
+            "bottom": 631.640625
+          },
+          {
+            "left": 24,
+            "right": 151.59375,
+            "top": 633.640625,
+            "bottom": 655.640625
+          }
+        ]
+      },
+      "ranges": [
+        {
+          "left": 24,
+          "right": 265.140625,
+          "top": 313.640625,
+          "bottom": 354.640625
+        },
+        {
+          "left": 24,
+          "right": 267.3125,
+          "top": 349.640625,
+          "bottom": 390.640625
+        },
+        {
+          "left": 24,
+          "right": 279.09375,
+          "top": 385.640625,
+          "bottom": 426.640625
+        },
+        {
+          "left": 24,
+          "right": 185.734375,
+          "top": 421.640625,
+          "bottom": 462.640625
+        },
+        {
+          "left": 24,
+          "right": 189.15625,
+          "top": 457.640625,
+          "bottom": 498.640625
+        }
+      ],
+      "ancestors": [
+        {
+          "tag": "H2",
+          "class": "text-3xl font-semibold tracking-tight sm:text-4xl",
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 496.640625,
+          "width": 272,
+          "height": 180,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "",
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 2455.390625,
+          "width": 272,
+          "height": 2138.75,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "auto"
+        },
+        {
+          "tag": "DIV",
+          "class": "grid gap-16 lg:grid-cols-[1.2fr_1fr]",
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 3572.515625,
+          "width": 272,
+          "height": 3255.875,
+          "overflowX": "visible",
+          "gridTemplateColumns": "272px",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "mx-auto max-w-6xl",
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 3572.515625,
+          "width": 272,
+          "height": 3255.875,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "SECTION",
+          "class": "border-t border-[var(--ecode-border)] bg-[var(--ecode-surface)]/40 px-6 py-24 lg:px-10",
+          "left": 0,
+          "right": 320,
+          "top": 219.640625,
+          "bottom": 3668.515625,
+          "width": 320,
+          "height": 3448.875,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "MAIN",
+          "class": "",
+          "left": 0,
+          "right": 320,
+          "top": -4711,
+          "bottom": 9919.390625,
+          "width": 320,
+          "height": 14630.390625,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "min-h-screen bg-background text-foreground",
+          "left": 0,
+          "right": 320,
+          "top": -4822,
+          "bottom": 13026.765625,
+          "width": 320,
+          "height": 17848.765625,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        }
+      ],
+      "outside": []
+    }
+  },
+  {
+    "zoom": 2,
+    "kind": "DOM grid counterproof only",
+    "before": {
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 406,
+        "outerWidth": 640,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollX": 0,
+        "scrollY": 5025,
+        "docWidth": 320
+      },
+      "heading": {
+        "left": 24,
+        "right": 344.5234375,
+        "top": 113.40625,
+        "bottom": 293.40625,
+        "width": 320.5234375,
+        "height": 180
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 344.5234375,
+          "top": 309.40625,
+          "bottom": 429.40625,
+          "width": 320.5234375,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 313.171875,
+            "top": 310.40625,
+            "bottom": 331.90625
+          },
+          {
+            "left": 24,
+            "right": 318.0234375,
+            "top": 334.40625,
+            "bottom": 355.90625
+          },
+          {
+            "left": 24,
+            "right": 337.765625,
+            "top": 358.40625,
+            "bottom": 379.90625
+          },
+          {
+            "left": 24,
+            "right": 276.2109375,
+            "top": 382.40625,
+            "bottom": 403.90625
+          },
+          {
+            "left": 24,
+            "right": 151.5859375,
+            "top": 406.40625,
+            "bottom": 427.90625
+          }
+        ]
+      },
+      "ranges": [
+        {
+          "left": 24,
+          "right": 309.6640625,
+          "top": 110.90625,
+          "bottom": 151.90625
+        },
+        {
+          "left": 24,
+          "right": 222.78125,
+          "top": 146.90625,
+          "bottom": 187.90625
+        },
+        {
+          "left": 24,
+          "right": 279.09375,
+          "top": 182.90625,
+          "bottom": 223.90625
+        },
+        {
+          "left": 24,
+          "right": 185.734375,
+          "top": 218.90625,
+          "bottom": 259.90625
+        },
+        {
+          "left": 24,
+          "right": 189.15625,
+          "top": 254.90625,
+          "bottom": 295.90625
+        }
+      ],
+      "ancestors": [
+        {
+          "tag": "H2",
+          "class": "text-3xl font-semibold tracking-tight sm:text-4xl",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 113.40625,
+          "bottom": 293.40625,
+          "width": 320.5234375,
+          "height": 180,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 113.40625,
+          "bottom": 2080.90625,
+          "width": 320.5234375,
+          "height": 1967.5,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "auto"
+        },
+        {
+          "tag": "DIV",
+          "class": "grid gap-16 lg:grid-cols-[1.2fr_1fr]",
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 3022.53125,
+          "width": 272,
+          "height": 2909.125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "320.523px",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "mx-auto max-w-6xl",
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 3022.53125,
+          "width": 272,
+          "height": 2909.125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "SECTION",
+          "class": "border-t border-[var(--ecode-border)] bg-[var(--ecode-surface)]/40 px-6 py-24 lg:px-10",
+          "left": 0,
+          "right": 320,
+          "top": 16.40625,
+          "bottom": 3118.53125,
+          "width": 320,
+          "height": 3102.125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "MAIN",
+          "class": "",
+          "left": 0,
+          "right": 320,
+          "top": -4914,
+          "bottom": 9369.40625,
+          "width": 320,
+          "height": 14283.40625,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "min-h-screen bg-background text-foreground",
+          "left": 0,
+          "right": 320,
+          "top": -5025,
+          "bottom": 12476.78125,
+          "width": 320,
+          "height": 17501.78125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        }
+      ],
+      "outside": [
+        {
+          "tag": "DIV",
+          "text": "Tout le panneau de déploiement, renforcé pour les équipes de productionPassez du build à la mise en ligne sans",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 113.40625,
+          "bottom": 2080.90625,
+          "width": 320.5234375,
+          "height": 1967.5
+        },
+        {
+          "tag": "H2",
+          "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 113.40625,
+          "bottom": 293.40625,
+          "width": 320.5234375,
+          "height": 180
+        },
+        {
+          "tag": "P",
+          "text": "Passez du build à la mise en ligne sans changer de contexte. Surveillez l’usage, gérez les ressources et les d",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 309.40625,
+          "bottom": 429.40625,
+          "width": 320.5234375,
+          "height": 120
+        },
+        {
+          "tag": "DIV",
+          "text": "Poste de contrôle de la productionUne vue unifiée du CPU, de la mémoire et des requêtes, enrichie par la détec",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 469.40625,
+          "bottom": 2080.90625,
+          "width": 320.5234375,
+          "height": 1611.5
+        },
+        {
+          "tag": "DIV",
+          "text": "Poste de contrôle de la productionUne vue unifiée du CPU, de la mémoire et des requêtes, enrichie par la détec",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 469.40625,
+          "bottom": 999.90625,
+          "width": 320.5234375,
+          "height": 530.5
+        },
+        {
+          "tag": "DIV",
+          "text": "Intelligence de l’audience mondialeIdentifiez l’origine des requêtes et les flux de trafic grâce à une carte g",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 1023.90625,
+          "bottom": 1554.40625,
+          "width": 320.5234375,
+          "height": 530.5
+        },
+        {
+          "tag": "DIV",
+          "text": "Actions opérationnellesMettez en pause, adaptez la capacité, gérez les domaines et actualisez le SSL sans quit",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 1578.40625,
+          "bottom": 2080.90625,
+          "width": 320.5234375,
+          "height": 502.5
+        },
+        {
+          "tag": "DIV",
+          "text": " Les performances en un coup d’œilSuivez le CPU et la mémoire en temps réel, repérez les heures de pointe et a",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 2144.90625,
+          "bottom": 3022.53125,
+          "width": 320.5234375,
+          "height": 877.625
+        },
+        {
+          "tag": "DIV",
+          "text": " Les performances en un coup d’œilSuivez le CPU et la mémoire en temps réel, repérez les heures de pointe et a",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 2144.90625,
+          "bottom": 2436.03125,
+          "width": 320.5234375,
+          "height": 291.125
+        },
+        {
+          "tag": "DIV",
+          "text": " Les performances en un coup d’œil",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 2144.90625,
+          "bottom": 2256.90625,
+          "width": 320.5234375,
+          "height": 112
+        },
+        {
+          "tag": "DIV",
+          "text": "Suivez le CPU et la mémoire en temps réel, repérez les heures de pointe et analysez la latence des requêtes sa",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 2256.90625,
+          "bottom": 2436.03125,
+          "width": 320.5234375,
+          "height": 179.125
+        },
+        {
+          "tag": "DIV",
+          "text": " Mise à l’échelle intelligenteLes politiques apprennent du trafic historique afin de préchauffer les instances",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 2460.03125,
+          "bottom": 2729.28125,
+          "width": 320.5234375,
+          "height": 269.25
+        },
+        {
+          "tag": "DIV",
+          "text": " Mise à l’échelle intelligente",
+          "left": 25,
+          "right": 343.5234375,
+          "top": 2461.03125,
+          "bottom": 2573.03125,
+          "width": 318.5234375,
+          "height": 112
+        },
+        {
+          "tag": "DIV",
+          "text": "Les politiques apprennent du trafic historique afin de préchauffer les instances avant les lancements importan",
+          "left": 25,
+          "right": 343.5234375,
+          "top": 2573.03125,
+          "bottom": 2728.28125,
+          "width": 318.5234375,
+          "height": 155.25
+        },
+        {
+          "tag": "DIV",
+          "text": " Des informations utiles à la directionLes synthèses transforment les performances de l’infrastructure en rapp",
+          "left": 24,
+          "right": 344.5234375,
+          "top": 2753.28125,
+          "bottom": 3022.53125,
+          "width": 320.5234375,
+          "height": 269.25
+        },
+        {
+          "tag": "DIV",
+          "text": " Des informations utiles à la direction",
+          "left": 25,
+          "right": 343.5234375,
+          "top": 2754.28125,
+          "bottom": 2866.28125,
+          "width": 318.5234375,
+          "height": 112
+        },
+        {
+          "tag": "DIV",
+          "text": "Les synthèses transforment les performances de l’infrastructure en rapports exploitables par les équipes produ",
+          "left": 25,
+          "right": 343.5234375,
+          "top": 2866.28125,
+          "bottom": 3021.53125,
+          "width": 318.5234375,
+          "height": 155.25
+        }
+      ]
+    },
+    "afterGrid": {
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 406,
+        "outerWidth": 640,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollX": 0,
+        "scrollY": 5025,
+        "docWidth": 320
+      },
+      "heading": {
+        "left": 24,
+        "right": 296,
+        "top": 113.40625,
+        "bottom": 293.40625,
+        "width": 272,
+        "height": 180
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 309.40625,
+          "bottom": 453.40625,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 274.8203125,
+            "top": 310.40625,
+            "bottom": 331.90625
+          },
+          {
+            "left": 24,
+            "right": 220.7265625,
+            "top": 334.40625,
+            "bottom": 355.90625
+          },
+          {
+            "left": 24,
+            "right": 226.1640625,
+            "top": 358.40625,
+            "bottom": 379.90625
+          },
+          {
+            "left": 24,
+            "right": 267.09375,
+            "top": 382.40625,
+            "bottom": 403.90625
+          },
+          {
+            "left": 24,
+            "right": 276.2109375,
+            "top": 406.40625,
+            "bottom": 427.90625
+          },
+          {
+            "left": 24,
+            "right": 151.5859375,
+            "top": 430.40625,
+            "bottom": 451.90625
+          }
+        ]
+      },
+      "ranges": [
+        {
+          "left": 24,
+          "right": 265.140625,
+          "top": 110.90625,
+          "bottom": 151.90625
+        },
+        {
+          "left": 24,
+          "right": 267.3046875,
+          "top": 146.90625,
+          "bottom": 187.90625
+        },
+        {
+          "left": 24,
+          "right": 279.09375,
+          "top": 182.90625,
+          "bottom": 223.90625
+        },
+        {
+          "left": 24,
+          "right": 185.734375,
+          "top": 218.90625,
+          "bottom": 259.90625
+        },
+        {
+          "left": 24,
+          "right": 189.15625,
+          "top": 254.90625,
+          "bottom": 295.90625
+        }
+      ],
+      "ancestors": [
+        {
+          "tag": "H2",
+          "class": "text-3xl font-semibold tracking-tight sm:text-4xl",
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 293.40625,
+          "width": 272,
+          "height": 180,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "",
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 2252.15625,
+          "width": 272,
+          "height": 2138.75,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "auto"
+        },
+        {
+          "tag": "DIV",
+          "class": "grid gap-16 lg:grid-cols-[1.2fr_1fr]",
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 3369.28125,
+          "width": 272,
+          "height": 3255.875,
+          "overflowX": "visible",
+          "gridTemplateColumns": "272px",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "mx-auto max-w-6xl",
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 3369.28125,
+          "width": 272,
+          "height": 3255.875,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "SECTION",
+          "class": "border-t border-[var(--ecode-border)] bg-[var(--ecode-surface)]/40 px-6 py-24 lg:px-10",
+          "left": 0,
+          "right": 320,
+          "top": 16.40625,
+          "bottom": 3465.28125,
+          "width": 320,
+          "height": 3448.875,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "MAIN",
+          "class": "",
+          "left": 0,
+          "right": 320,
+          "top": -4914,
+          "bottom": 9716.15625,
+          "width": 320,
+          "height": 14630.15625,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        },
+        {
+          "tag": "DIV",
+          "class": "min-h-screen bg-background text-foreground",
+          "left": 0,
+          "right": 320,
+          "top": -5025,
+          "bottom": 12823.53125,
+          "width": 320,
+          "height": 17848.53125,
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "minWidth": "0px"
+        }
+      ],
+      "outside": []
+    }
+  }
+]
