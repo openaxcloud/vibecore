@@ -1,0 +1,2852 @@
+{
+  "buildSource": "c3404050d2",
+  "method": "Chrome settingsPrivate native zoom; no DOM injection",
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "zoom": 1,
+      "cssWidth": 320,
+      "requestedWindowWidth": 320,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 813,
+        "outerWidth": 500,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 496.640625,
+          "width": 272,
+          "height": 180
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 265.140625,
+            "top": 313.640625,
+            "bottom": 354.640625
+          },
+          {
+            "left": 24,
+            "right": 267.3125,
+            "top": 349.640625,
+            "bottom": 390.640625
+          },
+          {
+            "left": 24,
+            "right": 279.09375,
+            "top": 385.640625,
+            "bottom": 426.640625
+          },
+          {
+            "left": 24,
+            "right": 185.734375,
+            "top": 421.640625,
+            "bottom": 462.640625
+          },
+          {
+            "left": 24,
+            "right": 189.15625,
+            "top": 457.640625,
+            "bottom": 498.640625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 512.640625,
+          "bottom": 656.640625,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 274.828125,
+            "top": 513.640625,
+            "bottom": 535.640625
+          },
+          {
+            "left": 24,
+            "right": 220.734375,
+            "top": 537.640625,
+            "bottom": 559.640625
+          },
+          {
+            "left": 24,
+            "right": 226.171875,
+            "top": 561.640625,
+            "bottom": 583.640625
+          },
+          {
+            "left": 24,
+            "right": 267.09375,
+            "top": 585.640625,
+            "bottom": 607.640625
+          },
+          {
+            "left": 24,
+            "right": 276.21875,
+            "top": 609.640625,
+            "bottom": 631.640625
+          },
+          {
+            "left": 24,
+            "right": 151.59375,
+            "top": 633.640625,
+            "bottom": 655.640625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 3572.515625,
+          "width": 272,
+          "height": 3255.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 316.640625,
+            "bottom": 2455.390625,
+            "width": 272,
+            "height": 2138.75
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2519.390625,
+            "bottom": 3572.515625,
+            "width": 272,
+            "height": 1053.125
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "zoom": 1,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 1024,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 813,
+        "outerWidth": 1024,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 40,
+          "right": 541.375,
+          "top": 346.984375,
+          "bottom": 466.984375,
+          "width": 501.375,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 382.796875,
+            "top": 341.984375,
+            "bottom": 390.984375
+          },
+          {
+            "left": 40,
+            "right": 534.5,
+            "top": 381.984375,
+            "bottom": 430.984375
+          },
+          {
+            "left": 40,
+            "right": 501.125,
+            "top": 421.984375,
+            "bottom": 470.984375
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 541.375,
+          "top": 482.984375,
+          "bottom": 554.984375,
+          "width": 501.375,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 491.703125,
+            "top": 483.984375,
+            "bottom": 505.984375
+          },
+          {
+            "left": 40,
+            "right": 489.421875,
+            "top": 507.984375,
+            "bottom": 529.984375
+          },
+          {
+            "left": 40,
+            "right": 423.953125,
+            "top": 531.984375,
+            "bottom": 553.984375
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 346.984375,
+          "bottom": 1599.609375,
+          "width": 944,
+          "height": 1252.625
+        },
+        "columns": "501.375px 378.625px",
+        "children": [
+          {
+            "left": 40,
+            "right": 541.375,
+            "top": 346.984375,
+            "bottom": 1599.609375,
+            "width": 501.375,
+            "height": 1252.625
+          },
+          {
+            "left": 605.375,
+            "right": 984,
+            "top": 346.984375,
+            "bottom": 1599.609375,
+            "width": 378.625,
+            "height": 1252.625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "zoom": 1,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 1440,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 346.703125,
+          "bottom": 466.703125,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 734.703125,
+            "top": 341.703125,
+            "bottom": 390.703125
+          },
+          {
+            "left": 144,
+            "right": 653.546875,
+            "top": 381.703125,
+            "bottom": 430.703125
+          },
+          {
+            "left": 144,
+            "right": 342.1875,
+            "top": 421.703125,
+            "bottom": 470.703125
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 482.703125,
+          "bottom": 554.703125,
+          "width": 593.453125,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 731.359375,
+            "top": 483.703125,
+            "bottom": 505.703125
+          },
+          {
+            "left": 144,
+            "right": 714.140625,
+            "top": 507.703125,
+            "bottom": 529.703125
+          },
+          {
+            "left": 144,
+            "right": 271.59375,
+            "top": 531.703125,
+            "bottom": 553.703125
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 346.703125,
+          "bottom": 1420.359375,
+          "width": 1152,
+          "height": 1073.65625
+        },
+        "columns": "593.453px 494.531px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 346.703125,
+            "bottom": 1420.359375,
+            "width": 593.453125,
+            "height": 1073.65625
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.984375,
+            "top": 346.703125,
+            "bottom": 1420.359375,
+            "width": 494.53125,
+            "height": 1073.65625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 320,
+      "requestedWindowWidth": 640,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 406,
+        "outerWidth": 640,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 293.40625,
+          "width": 272,
+          "height": 180
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 265.140625,
+            "top": 110.90625,
+            "bottom": 151.90625
+          },
+          {
+            "left": 24,
+            "right": 267.3046875,
+            "top": 146.90625,
+            "bottom": 187.90625
+          },
+          {
+            "left": 24,
+            "right": 279.09375,
+            "top": 182.90625,
+            "bottom": 223.90625
+          },
+          {
+            "left": 24,
+            "right": 185.734375,
+            "top": 218.90625,
+            "bottom": 259.90625
+          },
+          {
+            "left": 24,
+            "right": 189.15625,
+            "top": 254.90625,
+            "bottom": 295.90625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 309.40625,
+          "bottom": 453.40625,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 274.8203125,
+            "top": 310.40625,
+            "bottom": 331.90625
+          },
+          {
+            "left": 24,
+            "right": 220.7265625,
+            "top": 334.40625,
+            "bottom": 355.90625
+          },
+          {
+            "left": 24,
+            "right": 226.1640625,
+            "top": 358.40625,
+            "bottom": 379.90625
+          },
+          {
+            "left": 24,
+            "right": 267.09375,
+            "top": 382.40625,
+            "bottom": 403.90625
+          },
+          {
+            "left": 24,
+            "right": 276.2109375,
+            "top": 406.40625,
+            "bottom": 427.90625
+          },
+          {
+            "left": 24,
+            "right": 151.5859375,
+            "top": 430.40625,
+            "bottom": 451.90625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 3369.28125,
+          "width": 272,
+          "height": 3255.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 113.40625,
+            "bottom": 2252.15625,
+            "width": 272,
+            "height": 2138.75
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2316.15625,
+            "bottom": 3369.28125,
+            "width": 272,
+            "height": 1053.125
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 2048,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 406,
+        "outerWidth": 2048,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 40,
+          "right": 541.3671875,
+          "top": 143.1171875,
+          "bottom": 263.1171875,
+          "width": 501.3671875,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 382.796875,
+            "top": 138.6171875,
+            "bottom": 187.6171875
+          },
+          {
+            "left": 40,
+            "right": 534.5,
+            "top": 178.6171875,
+            "bottom": 227.6171875
+          },
+          {
+            "left": 40,
+            "right": 501.125,
+            "top": 218.6171875,
+            "bottom": 267.6171875
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 541.3671875,
+          "top": 279.1171875,
+          "bottom": 351.1171875,
+          "width": 501.3671875,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 491.703125,
+            "top": 280.1171875,
+            "bottom": 301.6171875
+          },
+          {
+            "left": 40,
+            "right": 489.4140625,
+            "top": 304.1171875,
+            "bottom": 325.6171875
+          },
+          {
+            "left": 40,
+            "right": 423.953125,
+            "top": 328.1171875,
+            "bottom": 349.6171875
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 143.1171875,
+          "bottom": 1395.7421875,
+          "width": 944,
+          "height": 1252.625
+        },
+        "columns": "501.367px 378.633px",
+        "children": [
+          {
+            "left": 40,
+            "right": 541.3671875,
+            "top": 143.1171875,
+            "bottom": 1395.7421875,
+            "width": 501.3671875,
+            "height": 1252.625
+          },
+          {
+            "left": 605.3671875,
+            "right": 984,
+            "top": 143.1171875,
+            "bottom": 1395.7421875,
+            "width": 378.6328125,
+            "height": 1252.625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 2880,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 406,
+        "outerWidth": 2880,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 143.328125,
+          "bottom": 263.328125,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 734.6953125,
+            "top": 138.828125,
+            "bottom": 187.828125
+          },
+          {
+            "left": 144,
+            "right": 653.546875,
+            "top": 178.828125,
+            "bottom": 227.828125
+          },
+          {
+            "left": 144,
+            "right": 342.1875,
+            "top": 218.828125,
+            "bottom": 267.828125
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 279.328125,
+          "bottom": 351.328125,
+          "width": 593.453125,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 731.3515625,
+            "top": 280.328125,
+            "bottom": 301.828125
+          },
+          {
+            "left": 144,
+            "right": 714.1328125,
+            "top": 304.328125,
+            "bottom": 325.828125
+          },
+          {
+            "left": 144,
+            "right": 271.5859375,
+            "top": 328.328125,
+            "bottom": 349.828125
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 143.328125,
+          "bottom": 1217.1484375,
+          "width": 1152,
+          "height": 1073.8203125
+        },
+        "columns": "593.453px 494.539px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 143.328125,
+            "bottom": 1217.1484375,
+            "width": 593.453125,
+            "height": 1073.8203125
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.9921875,
+            "top": 143.328125,
+            "bottom": 1217.1484375,
+            "width": 494.5390625,
+            "height": 1073.8203125
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "zoom": 1,
+      "cssWidth": 320,
+      "requestedWindowWidth": 320,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 813,
+        "outerWidth": 520,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 496.640625,
+          "width": 272,
+          "height": 180
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 265.140625,
+            "top": 313.640625,
+            "bottom": 354.640625
+          },
+          {
+            "left": 24,
+            "right": 267.3125,
+            "top": 349.640625,
+            "bottom": 390.640625
+          },
+          {
+            "left": 24,
+            "right": 279.09375,
+            "top": 385.640625,
+            "bottom": 426.640625
+          },
+          {
+            "left": 24,
+            "right": 185.734375,
+            "top": 421.640625,
+            "bottom": 462.640625
+          },
+          {
+            "left": 24,
+            "right": 189.15625,
+            "top": 457.640625,
+            "bottom": 498.640625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 512.640625,
+          "bottom": 656.640625,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 274.828125,
+            "top": 513.640625,
+            "bottom": 535.640625
+          },
+          {
+            "left": 24,
+            "right": 220.734375,
+            "top": 537.640625,
+            "bottom": 559.640625
+          },
+          {
+            "left": 24,
+            "right": 226.171875,
+            "top": 561.640625,
+            "bottom": 583.640625
+          },
+          {
+            "left": 24,
+            "right": 267.09375,
+            "top": 585.640625,
+            "bottom": 607.640625
+          },
+          {
+            "left": 24,
+            "right": 276.21875,
+            "top": 609.640625,
+            "bottom": 631.640625
+          },
+          {
+            "left": 24,
+            "right": 151.59375,
+            "top": 633.640625,
+            "bottom": 655.640625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 316.640625,
+          "bottom": 3572.515625,
+          "width": 272,
+          "height": 3255.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 316.640625,
+            "bottom": 2455.390625,
+            "width": 272,
+            "height": 2138.75
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2519.390625,
+            "bottom": 3572.515625,
+            "width": 272,
+            "height": 1053.125
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "zoom": 1,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 1024,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 813,
+        "outerWidth": 1024,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 40,
+          "right": 541.375,
+          "top": 346.984375,
+          "bottom": 466.984375,
+          "width": 501.375,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 382.796875,
+            "top": 341.984375,
+            "bottom": 390.984375
+          },
+          {
+            "left": 40,
+            "right": 534.5,
+            "top": 381.984375,
+            "bottom": 430.984375
+          },
+          {
+            "left": 40,
+            "right": 501.125,
+            "top": 421.984375,
+            "bottom": 470.984375
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 541.375,
+          "top": 482.984375,
+          "bottom": 554.984375,
+          "width": 501.375,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 491.703125,
+            "top": 483.984375,
+            "bottom": 505.984375
+          },
+          {
+            "left": 40,
+            "right": 489.421875,
+            "top": 507.984375,
+            "bottom": 529.984375
+          },
+          {
+            "left": 40,
+            "right": 423.953125,
+            "top": 531.984375,
+            "bottom": 553.984375
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 346.984375,
+          "bottom": 1599.609375,
+          "width": 944,
+          "height": 1252.625
+        },
+        "columns": "501.375px 378.625px",
+        "children": [
+          {
+            "left": 40,
+            "right": 541.375,
+            "top": 346.984375,
+            "bottom": 1599.609375,
+            "width": 501.375,
+            "height": 1252.625
+          },
+          {
+            "left": 605.375,
+            "right": 984,
+            "top": 346.984375,
+            "bottom": 1599.609375,
+            "width": 378.625,
+            "height": 1252.625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "zoom": 1,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 1440,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 346.703125,
+          "bottom": 466.703125,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 734.703125,
+            "top": 341.703125,
+            "bottom": 390.703125
+          },
+          {
+            "left": 144,
+            "right": 653.546875,
+            "top": 381.703125,
+            "bottom": 430.703125
+          },
+          {
+            "left": 144,
+            "right": 342.1875,
+            "top": 421.703125,
+            "bottom": 470.703125
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 482.703125,
+          "bottom": 554.703125,
+          "width": 593.453125,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 731.359375,
+            "top": 483.703125,
+            "bottom": 505.703125
+          },
+          {
+            "left": 144,
+            "right": 714.140625,
+            "top": 507.703125,
+            "bottom": 529.703125
+          },
+          {
+            "left": 144,
+            "right": 271.59375,
+            "top": 531.703125,
+            "bottom": 553.703125
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 346.703125,
+          "bottom": 1420.359375,
+          "width": 1152,
+          "height": 1073.65625
+        },
+        "columns": "593.453px 494.531px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 346.703125,
+            "bottom": 1420.359375,
+            "width": 593.453125,
+            "height": 1073.65625
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.984375,
+            "top": 346.703125,
+            "bottom": 1420.359375,
+            "width": 494.53125,
+            "height": 1073.65625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 320,
+      "requestedWindowWidth": 640,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 406,
+        "outerWidth": 640,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 293.40625,
+          "width": 272,
+          "height": 180
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 265.140625,
+            "top": 110.90625,
+            "bottom": 151.90625
+          },
+          {
+            "left": 24,
+            "right": 267.3046875,
+            "top": 146.90625,
+            "bottom": 187.90625
+          },
+          {
+            "left": 24,
+            "right": 279.09375,
+            "top": 182.90625,
+            "bottom": 223.90625
+          },
+          {
+            "left": 24,
+            "right": 185.734375,
+            "top": 218.90625,
+            "bottom": 259.90625
+          },
+          {
+            "left": 24,
+            "right": 189.15625,
+            "top": 254.90625,
+            "bottom": 295.90625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 309.40625,
+          "bottom": 453.40625,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 274.8203125,
+            "top": 310.40625,
+            "bottom": 331.90625
+          },
+          {
+            "left": 24,
+            "right": 220.7265625,
+            "top": 334.40625,
+            "bottom": 355.90625
+          },
+          {
+            "left": 24,
+            "right": 226.1640625,
+            "top": 358.40625,
+            "bottom": 379.90625
+          },
+          {
+            "left": 24,
+            "right": 267.09375,
+            "top": 382.40625,
+            "bottom": 403.90625
+          },
+          {
+            "left": 24,
+            "right": 276.2109375,
+            "top": 406.40625,
+            "bottom": 427.90625
+          },
+          {
+            "left": 24,
+            "right": 151.5859375,
+            "top": 430.40625,
+            "bottom": 451.90625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 113.40625,
+          "bottom": 3369.28125,
+          "width": 272,
+          "height": 3255.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 113.40625,
+            "bottom": 2252.15625,
+            "width": 272,
+            "height": 2138.75
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2316.15625,
+            "bottom": 3369.28125,
+            "width": 272,
+            "height": 1053.125
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 2048,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 406,
+        "outerWidth": 2048,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 40,
+          "right": 541.3671875,
+          "top": 143.1171875,
+          "bottom": 263.1171875,
+          "width": 501.3671875,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 382.796875,
+            "top": 138.6171875,
+            "bottom": 187.6171875
+          },
+          {
+            "left": 40,
+            "right": 534.5,
+            "top": 178.6171875,
+            "bottom": 227.6171875
+          },
+          {
+            "left": 40,
+            "right": 501.125,
+            "top": 218.6171875,
+            "bottom": 267.6171875
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 541.3671875,
+          "top": 279.1171875,
+          "bottom": 351.1171875,
+          "width": 501.3671875,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 491.703125,
+            "top": 280.1171875,
+            "bottom": 301.6171875
+          },
+          {
+            "left": 40,
+            "right": 489.4140625,
+            "top": 304.1171875,
+            "bottom": 325.6171875
+          },
+          {
+            "left": 40,
+            "right": 423.953125,
+            "top": 328.1171875,
+            "bottom": 349.6171875
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 143.1171875,
+          "bottom": 1395.7421875,
+          "width": 944,
+          "height": 1252.625
+        },
+        "columns": "501.367px 378.633px",
+        "children": [
+          {
+            "left": 40,
+            "right": 541.3671875,
+            "top": 143.1171875,
+            "bottom": 1395.7421875,
+            "width": 501.3671875,
+            "height": 1252.625
+          },
+          {
+            "left": 605.3671875,
+            "right": 984,
+            "top": 143.1171875,
+            "bottom": 1395.7421875,
+            "width": 378.6328125,
+            "height": 1252.625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 2880,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 406,
+        "outerWidth": 2880,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Tout le panneau de déploiement, renforcé pour les équipes de production",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 143.328125,
+          "bottom": 263.328125,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 734.6953125,
+            "top": 138.828125,
+            "bottom": 187.828125
+          },
+          {
+            "left": 144,
+            "right": 653.546875,
+            "top": 178.828125,
+            "bottom": 227.828125
+          },
+          {
+            "left": 144,
+            "right": 342.1875,
+            "top": 218.828125,
+            "bottom": 267.828125
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 279.328125,
+          "bottom": 351.328125,
+          "width": 593.453125,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 731.3515625,
+            "top": 280.328125,
+            "bottom": 301.828125
+          },
+          {
+            "left": 144,
+            "right": 714.1328125,
+            "top": 304.328125,
+            "bottom": 325.828125
+          },
+          {
+            "left": 144,
+            "right": 271.5859375,
+            "top": 328.328125,
+            "bottom": 349.828125
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 143.328125,
+          "bottom": 1217.1484375,
+          "width": 1152,
+          "height": 1073.8203125
+        },
+        "columns": "593.453px 494.539px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 143.328125,
+            "bottom": 1217.1484375,
+            "width": 593.453125,
+            "height": 1073.8203125
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.9921875,
+            "top": 143.328125,
+            "bottom": 1217.1484375,
+            "width": 494.5390625,
+            "height": 1073.8203125
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "zoom": 1,
+      "cssWidth": 320,
+      "requestedWindowWidth": 320,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 813,
+        "outerWidth": 520,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 334,
+          "bottom": 478,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 284.3125,
+            "top": 331,
+            "bottom": 372
+          },
+          {
+            "left": 24,
+            "right": 262.09375,
+            "top": 367,
+            "bottom": 408
+          },
+          {
+            "left": 24,
+            "right": 271.03125,
+            "top": 403,
+            "bottom": 444
+          },
+          {
+            "left": 24,
+            "right": 290.203125,
+            "top": 439,
+            "bottom": 480
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 494,
+          "bottom": 614,
+          "width": 272,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 258.671875,
+            "top": 495,
+            "bottom": 517
+          },
+          {
+            "left": 24,
+            "right": 278.265625,
+            "top": 519,
+            "bottom": 541
+          },
+          {
+            "left": 24,
+            "right": 243.40625,
+            "top": 543,
+            "bottom": 565
+          },
+          {
+            "left": 24,
+            "right": 272.140625,
+            "top": 567,
+            "bottom": 589
+          },
+          {
+            "left": 24,
+            "right": 172.71875,
+            "top": 591,
+            "bottom": 613
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 334,
+          "bottom": 3246.875,
+          "width": 272,
+          "height": 2912.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 334,
+            "bottom": 2205.875,
+            "width": 272,
+            "height": 1871.875
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2269.875,
+            "bottom": 3246.875,
+            "width": 272,
+            "height": 977
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "zoom": 1,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 1024,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 813,
+        "outerWidth": 1024,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 346.515625,
+          "bottom": 466.515625,
+          "width": 480,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 422.296875,
+            "top": 341.515625,
+            "bottom": 390.515625
+          },
+          {
+            "left": 40,
+            "right": 499.65625,
+            "top": 381.515625,
+            "bottom": 430.515625
+          },
+          {
+            "left": 40,
+            "right": 421.359375,
+            "top": 421.515625,
+            "bottom": 470.515625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 482.515625,
+          "bottom": 554.515625,
+          "width": 480,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 479.234375,
+            "top": 483.515625,
+            "bottom": 505.515625
+          },
+          {
+            "left": 40,
+            "right": 507.234375,
+            "top": 507.515625,
+            "bottom": 529.515625
+          },
+          {
+            "left": 40,
+            "right": 247,
+            "top": 531.515625,
+            "bottom": 553.515625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 346.515625,
+          "bottom": 1545.890625,
+          "width": 944,
+          "height": 1199.375
+        },
+        "columns": "480px 400px",
+        "children": [
+          {
+            "left": 40,
+            "right": 520,
+            "top": 346.515625,
+            "bottom": 1545.890625,
+            "width": 480,
+            "height": 1199.375
+          },
+          {
+            "left": 584,
+            "right": 984,
+            "top": 346.515625,
+            "bottom": 1545.890625,
+            "width": 400,
+            "height": 1199.375
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "zoom": 1,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 1440,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 346.546875,
+          "bottom": 466.546875,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 526.296875,
+            "top": 341.546875,
+            "bottom": 390.546875
+          },
+          {
+            "left": 144,
+            "right": 665.578125,
+            "top": 381.546875,
+            "bottom": 430.546875
+          },
+          {
+            "left": 144,
+            "right": 463.4375,
+            "top": 421.546875,
+            "bottom": 470.546875
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 482.546875,
+          "bottom": 530.546875,
+          "width": 593.453125,
+          "height": 48
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 702.90625,
+            "top": 483.546875,
+            "bottom": 505.546875
+          },
+          {
+            "left": 144,
+            "right": 702.734375,
+            "top": 507.546875,
+            "bottom": 529.546875
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 346.546875,
+          "bottom": 1396.203125,
+          "width": 1152,
+          "height": 1049.65625
+        },
+        "columns": "593.453px 494.531px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 346.546875,
+            "bottom": 1396.203125,
+            "width": 593.453125,
+            "height": 1049.65625
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.984375,
+            "top": 346.546875,
+            "bottom": 1396.203125,
+            "width": 494.53125,
+            "height": 1049.65625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 320,
+      "requestedWindowWidth": 640,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 406,
+        "outerWidth": 640,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 131.25,
+          "bottom": 275.25,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 284.3125,
+            "top": 128.75,
+            "bottom": 169.75
+          },
+          {
+            "left": 24,
+            "right": 262.0859375,
+            "top": 164.75,
+            "bottom": 205.75
+          },
+          {
+            "left": 24,
+            "right": 271.0234375,
+            "top": 200.75,
+            "bottom": 241.75
+          },
+          {
+            "left": 24,
+            "right": 290.1953125,
+            "top": 236.75,
+            "bottom": 277.75
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 291.25,
+          "bottom": 411.25,
+          "width": 272,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 258.6640625,
+            "top": 292.25,
+            "bottom": 313.75
+          },
+          {
+            "left": 24,
+            "right": 278.2578125,
+            "top": 316.25,
+            "bottom": 337.75
+          },
+          {
+            "left": 24,
+            "right": 243.3984375,
+            "top": 340.25,
+            "bottom": 361.75
+          },
+          {
+            "left": 24,
+            "right": 272.1328125,
+            "top": 364.25,
+            "bottom": 385.75
+          },
+          {
+            "left": 24,
+            "right": 172.7109375,
+            "top": 388.25,
+            "bottom": 409.75
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 131.25,
+          "bottom": 3044.125,
+          "width": 272,
+          "height": 2912.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 131.25,
+            "bottom": 2003.125,
+            "width": 272,
+            "height": 1871.875
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2067.125,
+            "bottom": 3044.125,
+            "width": 272,
+            "height": 977
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 2048,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 406,
+        "outerWidth": 2048,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 143.125,
+          "bottom": 263.125,
+          "width": 480,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 422.2890625,
+            "top": 138.625,
+            "bottom": 187.625
+          },
+          {
+            "left": 40,
+            "right": 499.6484375,
+            "top": 178.625,
+            "bottom": 227.625
+          },
+          {
+            "left": 40,
+            "right": 421.3515625,
+            "top": 218.625,
+            "bottom": 267.625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 279.125,
+          "bottom": 351.125,
+          "width": 480,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 479.234375,
+            "top": 280.125,
+            "bottom": 301.625
+          },
+          {
+            "left": 40,
+            "right": 507.234375,
+            "top": 304.125,
+            "bottom": 325.625
+          },
+          {
+            "left": 40,
+            "right": 247,
+            "top": 328.125,
+            "bottom": 349.625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 143.125,
+          "bottom": 1342.5,
+          "width": 944,
+          "height": 1199.375
+        },
+        "columns": "480px 400px",
+        "children": [
+          {
+            "left": 40,
+            "right": 520,
+            "top": 143.125,
+            "bottom": 1342.5,
+            "width": 480,
+            "height": 1199.375
+          },
+          {
+            "left": 584,
+            "right": 984,
+            "top": 143.125,
+            "bottom": 1342.5,
+            "width": 400,
+            "height": 1199.375
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 2880,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 406,
+        "outerWidth": 2880,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 143.1796875,
+          "bottom": 263.1796875,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 526.2890625,
+            "top": 138.6796875,
+            "bottom": 187.6796875
+          },
+          {
+            "left": 144,
+            "right": 665.5703125,
+            "top": 178.6796875,
+            "bottom": 227.6796875
+          },
+          {
+            "left": 144,
+            "right": 463.4296875,
+            "top": 218.6796875,
+            "bottom": 267.6796875
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 279.1796875,
+          "bottom": 327.1796875,
+          "width": 593.453125,
+          "height": 48
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 702.8984375,
+            "top": 280.1796875,
+            "bottom": 301.6796875
+          },
+          {
+            "left": 144,
+            "right": 702.7265625,
+            "top": 304.1796875,
+            "bottom": 325.6796875
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 143.1796875,
+          "bottom": 1193,
+          "width": 1152,
+          "height": 1049.8203125
+        },
+        "columns": "593.453px 494.539px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 143.1796875,
+            "bottom": 1193,
+            "width": 593.453125,
+            "height": 1049.8203125
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.9921875,
+            "top": 143.1796875,
+            "bottom": 1193,
+            "width": 494.5390625,
+            "height": 1049.8203125
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "zoom": 1,
+      "cssWidth": 320,
+      "requestedWindowWidth": 320,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 813,
+        "outerWidth": 520,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 334,
+          "bottom": 478,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 284.3125,
+            "top": 331,
+            "bottom": 372
+          },
+          {
+            "left": 24,
+            "right": 262.09375,
+            "top": 367,
+            "bottom": 408
+          },
+          {
+            "left": 24,
+            "right": 271.03125,
+            "top": 403,
+            "bottom": 444
+          },
+          {
+            "left": 24,
+            "right": 290.203125,
+            "top": 439,
+            "bottom": 480
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 494,
+          "bottom": 614,
+          "width": 272,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 258.671875,
+            "top": 495,
+            "bottom": 517
+          },
+          {
+            "left": 24,
+            "right": 278.265625,
+            "top": 519,
+            "bottom": 541
+          },
+          {
+            "left": 24,
+            "right": 243.40625,
+            "top": 543,
+            "bottom": 565
+          },
+          {
+            "left": 24,
+            "right": 272.140625,
+            "top": 567,
+            "bottom": 589
+          },
+          {
+            "left": 24,
+            "right": 172.71875,
+            "top": 591,
+            "bottom": 613
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 334,
+          "bottom": 3246.875,
+          "width": 272,
+          "height": 2912.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 334,
+            "bottom": 2205.875,
+            "width": 272,
+            "height": 1871.875
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2269.875,
+            "bottom": 3246.875,
+            "width": 272,
+            "height": 977
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "zoom": 1,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 1024,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 813,
+        "outerWidth": 1024,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 346.515625,
+          "bottom": 466.515625,
+          "width": 480,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 422.296875,
+            "top": 341.515625,
+            "bottom": 390.515625
+          },
+          {
+            "left": 40,
+            "right": 499.65625,
+            "top": 381.515625,
+            "bottom": 430.515625
+          },
+          {
+            "left": 40,
+            "right": 421.359375,
+            "top": 421.515625,
+            "bottom": 470.515625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 482.515625,
+          "bottom": 554.515625,
+          "width": 480,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 479.234375,
+            "top": 483.515625,
+            "bottom": 505.515625
+          },
+          {
+            "left": 40,
+            "right": 507.234375,
+            "top": 507.515625,
+            "bottom": 529.515625
+          },
+          {
+            "left": 40,
+            "right": 247,
+            "top": 531.515625,
+            "bottom": 553.515625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 346.515625,
+          "bottom": 1545.890625,
+          "width": 944,
+          "height": 1199.375
+        },
+        "columns": "480px 400px",
+        "children": [
+          {
+            "left": 40,
+            "right": 520,
+            "top": 346.515625,
+            "bottom": 1545.890625,
+            "width": 480,
+            "height": 1199.375
+          },
+          {
+            "left": 584,
+            "right": 984,
+            "top": 346.515625,
+            "bottom": 1545.890625,
+            "width": 400,
+            "height": 1199.375
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "zoom": 1,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 1440,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 346.546875,
+          "bottom": 466.546875,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 526.296875,
+            "top": 341.546875,
+            "bottom": 390.546875
+          },
+          {
+            "left": 144,
+            "right": 665.578125,
+            "top": 381.546875,
+            "bottom": 430.546875
+          },
+          {
+            "left": 144,
+            "right": 463.4375,
+            "top": 421.546875,
+            "bottom": 470.546875
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 482.546875,
+          "bottom": 530.546875,
+          "width": 593.453125,
+          "height": 48
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 702.90625,
+            "top": 483.546875,
+            "bottom": 505.546875
+          },
+          {
+            "left": 144,
+            "right": 702.734375,
+            "top": 507.546875,
+            "bottom": 529.546875
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 346.546875,
+          "bottom": 1396.203125,
+          "width": 1152,
+          "height": 1049.65625
+        },
+        "columns": "593.453px 494.531px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 346.546875,
+            "bottom": 1396.203125,
+            "width": 593.453125,
+            "height": 1049.65625
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.984375,
+            "top": 346.546875,
+            "bottom": 1396.203125,
+            "width": 494.53125,
+            "height": 1049.65625
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 320,
+      "requestedWindowWidth": 640,
+      "metrics": {
+        "innerWidth": 320,
+        "innerHeight": 406,
+        "outerWidth": 640,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 320
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 131.25,
+          "bottom": 275.25,
+          "width": 272,
+          "height": 144
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 284.3125,
+            "top": 128.75,
+            "bottom": 169.75
+          },
+          {
+            "left": 24,
+            "right": 262.0859375,
+            "top": 164.75,
+            "bottom": 205.75
+          },
+          {
+            "left": 24,
+            "right": 271.0234375,
+            "top": 200.75,
+            "bottom": 241.75
+          },
+          {
+            "left": 24,
+            "right": 290.1953125,
+            "top": 236.75,
+            "bottom": 277.75
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 291.25,
+          "bottom": 411.25,
+          "width": 272,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 24,
+            "right": 258.6640625,
+            "top": 292.25,
+            "bottom": 313.75
+          },
+          {
+            "left": 24,
+            "right": 278.2578125,
+            "top": 316.25,
+            "bottom": 337.75
+          },
+          {
+            "left": 24,
+            "right": 243.3984375,
+            "top": 340.25,
+            "bottom": 361.75
+          },
+          {
+            "left": 24,
+            "right": 272.1328125,
+            "top": 364.25,
+            "bottom": 385.75
+          },
+          {
+            "left": 24,
+            "right": 172.7109375,
+            "top": 388.25,
+            "bottom": 409.75
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 24,
+          "right": 296,
+          "top": 131.25,
+          "bottom": 3044.125,
+          "width": 272,
+          "height": 2912.875
+        },
+        "columns": "272px",
+        "children": [
+          {
+            "left": 24,
+            "right": 296,
+            "top": 131.25,
+            "bottom": 2003.125,
+            "width": 272,
+            "height": 1871.875
+          },
+          {
+            "left": 24,
+            "right": 296,
+            "top": 2067.125,
+            "bottom": 3044.125,
+            "width": 272,
+            "height": 977
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 1024,
+      "requestedWindowWidth": 2048,
+      "metrics": {
+        "innerWidth": 1024,
+        "innerHeight": 406,
+        "outerWidth": 2048,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1024
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 143.125,
+          "bottom": 263.125,
+          "width": 480,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 422.2890625,
+            "top": 138.625,
+            "bottom": 187.625
+          },
+          {
+            "left": 40,
+            "right": 499.6484375,
+            "top": 178.625,
+            "bottom": 227.625
+          },
+          {
+            "left": 40,
+            "right": 421.3515625,
+            "top": 218.625,
+            "bottom": 267.625
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 40,
+          "right": 520,
+          "top": 279.125,
+          "bottom": 351.125,
+          "width": 480,
+          "height": 72
+        },
+        "ranges": [
+          {
+            "left": 40,
+            "right": 479.234375,
+            "top": 280.125,
+            "bottom": 301.625
+          },
+          {
+            "left": 40,
+            "right": 507.234375,
+            "top": 304.125,
+            "bottom": 325.625
+          },
+          {
+            "left": 40,
+            "right": 247,
+            "top": 328.125,
+            "bottom": 349.625
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 40,
+          "right": 984,
+          "top": 143.125,
+          "bottom": 1342.5,
+          "width": 944,
+          "height": 1199.375
+        },
+        "columns": "480px 400px",
+        "children": [
+          {
+            "left": 40,
+            "right": 520,
+            "top": 143.125,
+            "bottom": 1342.5,
+            "width": 480,
+            "height": 1199.375
+          },
+          {
+            "left": 584,
+            "right": 984,
+            "top": 143.125,
+            "bottom": 1342.5,
+            "width": 400,
+            "height": 1199.375
+          }
+        ]
+      },
+      "outside": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 1440,
+      "requestedWindowWidth": 2880,
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 406,
+        "outerWidth": 2880,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "heading": {
+        "text": "Everything inside the deployment tab, elevated for production teams",
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 143.1796875,
+          "bottom": 263.1796875,
+          "width": 593.453125,
+          "height": 120
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 526.2890625,
+            "top": 138.6796875,
+            "bottom": 187.6796875
+          },
+          {
+            "left": 144,
+            "right": 665.5703125,
+            "top": 178.6796875,
+            "bottom": 227.6796875
+          },
+          {
+            "left": 144,
+            "right": 463.4296875,
+            "top": 218.6796875,
+            "bottom": 267.6796875
+          }
+        ]
+      },
+      "paragraph": {
+        "box": {
+          "left": 144,
+          "right": 737.453125,
+          "top": 279.1796875,
+          "bottom": 327.1796875,
+          "width": 593.453125,
+          "height": 48
+        },
+        "ranges": [
+          {
+            "left": 144,
+            "right": 702.8984375,
+            "top": 280.1796875,
+            "bottom": 301.6796875
+          },
+          {
+            "left": 144,
+            "right": 702.7265625,
+            "top": 304.1796875,
+            "bottom": 325.6796875
+          }
+        ]
+      },
+      "grid": {
+        "box": {
+          "left": 144,
+          "right": 1296,
+          "top": 143.1796875,
+          "bottom": 1193,
+          "width": 1152,
+          "height": 1049.8203125
+        },
+        "columns": "593.453px 494.539px",
+        "children": [
+          {
+            "left": 144,
+            "right": 737.453125,
+            "top": 143.1796875,
+            "bottom": 1193,
+            "width": 593.453125,
+            "height": 1049.8203125
+          },
+          {
+            "left": 801.453125,
+            "right": 1295.9921875,
+            "top": 143.1796875,
+            "bottom": 1193,
+            "width": 494.5390625,
+            "height": 1049.8203125
+          }
+        ]
+      },
+      "outside": []
+    }
+  ],
+  "keyboard": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 320,
+      "docsEnter": true,
+      "escapeKeepsFocus": true,
+      "back": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 320,
+      "docsEnter": true,
+      "escapeKeepsFocus": true,
+      "back": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "zoom": 2,
+      "cssWidth": 320,
+      "docsEnter": true,
+      "escapeKeepsFocus": true,
+      "back": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "zoom": 2,
+      "cssWidth": 320,
+      "docsEnter": true,
+      "escapeKeepsFocus": true,
+      "back": true
+    }
+  ],
+  "errors": [],
+  "writes": [],
+  "external": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "failures": [],
+  "processes": [
+    {
+      "pid": 217679,
+      "startTicks": "3312532"
+    },
+    {
+      "pid": 217843,
+      "startTicks": "3313620"
+    },
+    {
+      "pid": 218058,
+      "startTicks": "3314735"
+    },
+    {
+      "pid": 218222,
+      "startTicks": "3315806"
+    }
+  ],
+  "completed": true
+}

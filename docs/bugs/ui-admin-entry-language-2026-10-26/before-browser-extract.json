@@ -1,0 +1,418 @@
+{
+  "source": "docs/bugs/ui-administration-2026-10-26/before13199/receipt.json",
+  "sha256": "08c3c70ad55d71794f81b747e768dcdecb8e0faa5e927fb2b6f75b32ed7620d4",
+  "observations": [
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 320,
+      "bodyWidth": 320,
+      "mainWidth": 320,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 844,
+      "bodyWidth": 844,
+      "mainWidth": 844,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 820,
+      "bodyWidth": 820,
+      "mainWidth": 820,
+      "overflows": [
+        {
+          "tag": "LABEL",
+          "text": "Admin section",
+          "client": 1,
+          "scroll": 85
+        }
+      ],
+      "smallButtons": []
+    },
+    {
+      "path": "/admin",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "status": 200,
+      "url": "http://127.0.0.1:13199/admin/overview",
+      "title": "Admin overview",
+      "documentWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "overflows": [],
+      "smallButtons": []
+    }
+  ]
+}

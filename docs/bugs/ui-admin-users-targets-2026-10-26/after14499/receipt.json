@@ -1,0 +1,3532 @@
+{
+  "sourceHead": "3031e1e700fb3530e88d855f44527a143a433795",
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 320,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 100.203125,
+            "top": 651.5,
+            "bottom": 695.5,
+            "width": 71.203125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 689.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 689.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 100.9375,
+            "rect": {
+              "left": 201.140625,
+              "right": 245.140625,
+              "top": 651.5,
+              "bottom": 695.5
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 201.140625,
+            "right": 245.140625,
+            "top": 651.5,
+            "bottom": 695.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 207.140625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 207.140625,
+              "y": 689.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 689.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 100.9375,
+            "rect": {
+              "left": 29,
+              "right": 100.203125,
+              "top": 651.5,
+              "bottom": 695.5
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 122.765625,
+            "right": 196.296875,
+            "top": 651.5,
+            "bottom": 695.5,
+            "width": 73.53125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 128.765625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 190.296875,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 128.765625,
+              "y": 689.5,
+              "own": true
+            },
+            {
+              "x": 190.296875,
+              "y": 689.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 128.98380242907442,
+            "rect": {
+              "left": 323.390625,
+              "right": 367.390625,
+              "top": 717.5,
+              "bottom": 761.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 222.390625,
+            "right": 266.390625,
+            "top": 717.5,
+            "bottom": 761.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 228.390625,
+              "y": 723.5,
+              "own": true
+            },
+            {
+              "x": 260.390625,
+              "y": 723.5,
+              "own": true
+            },
+            {
+              "x": 228.390625,
+              "y": 755.5,
+              "own": true
+            },
+            {
+              "x": 260.390625,
+              "y": 755.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 222.390625,
+              "right": 266.390625,
+              "top": 783.5,
+              "bottom": 827.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 290,
+        "scroll": 680,
+        "scrollLeft": 390,
+        "left": 14,
+        "right": 306
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 390,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 100.203125,
+            "top": 619.5,
+            "bottom": 663.5,
+            "width": 71.203125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 657.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 100.9375,
+            "rect": {
+              "left": 201.140625,
+              "right": 245.140625,
+              "top": 619.5,
+              "bottom": 663.5
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 201.140625,
+            "right": 245.140625,
+            "top": 619.5,
+            "bottom": 663.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 207.140625,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 207.140625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 657.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 100.9375,
+            "rect": {
+              "left": 29,
+              "right": 100.203125,
+              "top": 619.5,
+              "bottom": 663.5
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 157.765625,
+            "right": 231.296875,
+            "top": 619.5,
+            "bottom": 663.5,
+            "width": 73.53125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 163.765625,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 225.296875,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 163.765625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 225.296875,
+              "y": 657.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 128.98380242907442,
+            "rect": {
+              "left": 358.390625,
+              "right": 402.390625,
+              "top": 685.5,
+              "bottom": 729.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 331.390625,
+            "right": 375.390625,
+            "top": 685.5,
+            "bottom": 729.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 337.390625,
+              "y": 691.5,
+              "own": true
+            },
+            {
+              "x": 369.390625,
+              "y": 691.5,
+              "own": true
+            },
+            {
+              "x": 337.390625,
+              "y": 723.5,
+              "own": true
+            },
+            {
+              "x": 369.390625,
+              "y": 723.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 331.390625,
+              "right": 375.390625,
+              "top": 751.5,
+              "bottom": 795.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 360,
+        "scroll": 680,
+        "scrollLeft": 281,
+        "left": 14,
+        "right": 376
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 820,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 36,
+            "right": 107.203125,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 71.203125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 42,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 101.203125,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 42,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 101.203125,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 125.234375,
+            "rect": {
+              "left": 232.4375,
+              "right": 276.4375,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 232.4375,
+            "right": 276.4375,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 238.4375,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 270.4375,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 238.4375,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 270.4375,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 125.234375,
+            "rect": {
+              "left": 36,
+              "right": 107.203125,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 472.796875,
+            "right": 546.328125,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 73.53125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 478.796875,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 540.328125,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 478.796875,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 540.328125,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 156.9557343299776,
+            "rect": {
+              "left": 701.734375,
+              "right": 745.734375,
+              "top": 566.5,
+              "bottom": 610.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 701.734375,
+            "right": 745.734375,
+            "top": 566.5,
+            "bottom": 610.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 707.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 739.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 707.734375,
+              "y": 604.5,
+              "own": true
+            },
+            {
+              "x": 739.734375,
+              "y": 604.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 701.734375,
+              "right": 745.734375,
+              "top": 632.5,
+              "bottom": 676.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 776,
+        "client": 776,
+        "scroll": 776,
+        "scrollLeft": 0,
+        "left": 21,
+        "right": 799
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 1440,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 641,
+            "right": 706.125,
+            "top": 416,
+            "bottom": 460,
+            "width": 65.125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 647,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 700.125,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 647,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 700.125,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 104.890625,
+            "rect": {
+              "left": 811.015625,
+              "right": 855.015625,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 811.015625,
+            "right": 855.015625,
+            "top": 416,
+            "bottom": 460,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 817.015625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 849.015625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 817.015625,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 849.015625,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 104.890625,
+            "rect": {
+              "left": 641,
+              "right": 706.125,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 1019.046875,
+            "right": 1085.296875,
+            "top": 416,
+            "bottom": 460,
+            "width": 66.25,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1025.046875,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1079.296875,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1025.046875,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 1079.296875,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 142.646032629723,
+            "rect": {
+              "left": 1226.671875,
+              "right": 1270.671875,
+              "top": 479,
+              "bottom": 523
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 1226.671875,
+            "right": 1270.671875,
+            "top": 479,
+            "bottom": 523,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1232.671875,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1264.671875,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1232.671875,
+              "y": 517,
+              "own": true
+            },
+            {
+              "x": 1264.671875,
+              "y": 517,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 19,
+            "rect": {
+              "left": 1226.671875,
+              "right": 1270.671875,
+              "top": 542,
+              "bottom": 586
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 672,
+        "scroll": 680,
+        "scrollLeft": 0,
+        "left": 628,
+        "right": 1302
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 320,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 100.203125,
+            "top": 651.5,
+            "bottom": 695.5,
+            "width": 71.203125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 689.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 689.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 100.9375,
+            "rect": {
+              "left": 201.140625,
+              "right": 245.140625,
+              "top": 651.5,
+              "bottom": 695.5
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 201.140625,
+            "right": 245.140625,
+            "top": 651.5,
+            "bottom": 695.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 207.140625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 207.140625,
+              "y": 689.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 689.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 100.9375,
+            "rect": {
+              "left": 29,
+              "right": 100.203125,
+              "top": 651.5,
+              "bottom": 695.5
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 122.765625,
+            "right": 196.296875,
+            "top": 651.5,
+            "bottom": 695.5,
+            "width": 73.53125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 128.765625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 190.296875,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 128.765625,
+              "y": 689.5,
+              "own": true
+            },
+            {
+              "x": 190.296875,
+              "y": 689.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 128.98380242907442,
+            "rect": {
+              "left": 323.390625,
+              "right": 367.390625,
+              "top": 717.5,
+              "bottom": 761.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 222.390625,
+            "right": 266.390625,
+            "top": 717.5,
+            "bottom": 761.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 228.390625,
+              "y": 723.5,
+              "own": true
+            },
+            {
+              "x": 260.390625,
+              "y": 723.5,
+              "own": true
+            },
+            {
+              "x": 228.390625,
+              "y": 755.5,
+              "own": true
+            },
+            {
+              "x": 260.390625,
+              "y": 755.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 222.390625,
+              "right": 266.390625,
+              "top": 783.5,
+              "bottom": 827.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 290,
+        "scroll": 680,
+        "scrollLeft": 390,
+        "left": 14,
+        "right": 306
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 390,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 100.203125,
+            "top": 619.5,
+            "bottom": 663.5,
+            "width": 71.203125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 94.203125,
+              "y": 657.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 100.9375,
+            "rect": {
+              "left": 201.140625,
+              "right": 245.140625,
+              "top": 619.5,
+              "bottom": 663.5
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 201.140625,
+            "right": 245.140625,
+            "top": 619.5,
+            "bottom": 663.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 207.140625,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 207.140625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 239.140625,
+              "y": 657.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 100.9375,
+            "rect": {
+              "left": 29,
+              "right": 100.203125,
+              "top": 619.5,
+              "bottom": 663.5
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 157.765625,
+            "right": 231.296875,
+            "top": 619.5,
+            "bottom": 663.5,
+            "width": 73.53125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 163.765625,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 225.296875,
+              "y": 625.5,
+              "own": true
+            },
+            {
+              "x": 163.765625,
+              "y": 657.5,
+              "own": true
+            },
+            {
+              "x": 225.296875,
+              "y": 657.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 128.98380242907442,
+            "rect": {
+              "left": 358.390625,
+              "right": 402.390625,
+              "top": 685.5,
+              "bottom": 729.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 331.390625,
+            "right": 375.390625,
+            "top": 685.5,
+            "bottom": 729.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 337.390625,
+              "y": 691.5,
+              "own": true
+            },
+            {
+              "x": 369.390625,
+              "y": 691.5,
+              "own": true
+            },
+            {
+              "x": 337.390625,
+              "y": 723.5,
+              "own": true
+            },
+            {
+              "x": 369.390625,
+              "y": 723.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 331.390625,
+              "right": 375.390625,
+              "top": 751.5,
+              "bottom": 795.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 360,
+        "scroll": 680,
+        "scrollLeft": 281,
+        "left": 14,
+        "right": 376
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 820,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 36,
+            "right": 107.203125,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 71.203125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 42,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 101.203125,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 42,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 101.203125,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 125.234375,
+            "rect": {
+              "left": 232.4375,
+              "right": 276.4375,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 232.4375,
+            "right": 276.4375,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 238.4375,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 270.4375,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 238.4375,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 270.4375,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 125.234375,
+            "rect": {
+              "left": 36,
+              "right": 107.203125,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 472.796875,
+            "right": 546.328125,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 73.53125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 478.796875,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 540.328125,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 478.796875,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 540.328125,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 156.9557343299776,
+            "rect": {
+              "left": 701.734375,
+              "right": 745.734375,
+              "top": 566.5,
+              "bottom": 610.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 701.734375,
+            "right": 745.734375,
+            "top": 566.5,
+            "bottom": 610.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 707.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 739.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 707.734375,
+              "y": 604.5,
+              "own": true
+            },
+            {
+              "x": 739.734375,
+              "y": 604.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 701.734375,
+              "right": 745.734375,
+              "top": 632.5,
+              "bottom": 676.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 776,
+        "client": 776,
+        "scroll": 776,
+        "scrollLeft": 0,
+        "left": 21,
+        "right": 799
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 1440,
+        "lang": "fr"
+      },
+      "measurements": [
+        {
+          "text": "Utilisateur",
+          "disabled": false,
+          "rect": {
+            "left": 641,
+            "right": 706.125,
+            "top": 416,
+            "bottom": 460,
+            "width": 65.125,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 647,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 700.125,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 647,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 700.125,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "E-mail",
+            "distance": 104.890625,
+            "rect": {
+              "left": 811.015625,
+              "right": 855.015625,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "E-mail",
+          "disabled": false,
+          "rect": {
+            "left": 811.015625,
+            "right": 855.015625,
+            "top": 416,
+            "bottom": 460,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 817.015625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 849.015625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 817.015625,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 849.015625,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Utilisateur",
+            "distance": 104.890625,
+            "rect": {
+              "left": 641,
+              "right": 706.125,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "Création▼",
+          "disabled": false,
+          "rect": {
+            "left": 1019.046875,
+            "right": 1085.296875,
+            "top": 416,
+            "bottom": 460,
+            "width": 66.25,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1025.046875,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1079.296875,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1025.046875,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 1079.296875,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 142.646032629723,
+            "rect": {
+              "left": 1226.671875,
+              "right": 1270.671875,
+              "top": 479,
+              "bottom": 523
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 1226.671875,
+            "right": 1270.671875,
+            "top": 479,
+            "bottom": 523,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1232.671875,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1264.671875,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1232.671875,
+              "y": 517,
+              "own": true
+            },
+            {
+              "x": 1264.671875,
+              "y": 517,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 19,
+            "rect": {
+              "left": 1226.671875,
+              "right": 1270.671875,
+              "top": 542,
+              "bottom": 586
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 672,
+        "scroll": 680,
+        "scrollLeft": 0,
+        "left": 628,
+        "right": 1302
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 320,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 73,
+            "top": 599.5,
+            "bottom": 643.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 637.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 637.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 126.59375,
+            "rect": {
+              "left": 199.59375,
+              "right": 243.59375,
+              "top": 599.5,
+              "bottom": 643.5
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 199.59375,
+            "right": 243.59375,
+            "top": 599.5,
+            "bottom": 643.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 205.59375,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 205.59375,
+              "y": 637.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 637.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 126.59375,
+            "rect": {
+              "left": 29,
+              "right": 73,
+              "top": 599.5,
+              "bottom": 643.5
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 126.3125,
+            "right": 192.90625,
+            "top": 599.5,
+            "bottom": 643.5,
+            "width": 66.59375,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 132.3125,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 186.90625,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 132.3125,
+              "y": 637.5,
+              "own": true
+            },
+            {
+              "x": 186.90625,
+              "y": 637.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 140.09752549702876,
+            "rect": {
+              "left": 331.265625,
+              "right": 375.265625,
+              "top": 665.5,
+              "bottom": 709.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 223.265625,
+            "right": 267.265625,
+            "top": 665.5,
+            "bottom": 709.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 229.265625,
+              "y": 671.5,
+              "own": true
+            },
+            {
+              "x": 261.265625,
+              "y": 671.5,
+              "own": true
+            },
+            {
+              "x": 229.265625,
+              "y": 703.5,
+              "own": true
+            },
+            {
+              "x": 261.265625,
+              "y": 703.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 223.265625,
+              "right": 267.265625,
+              "top": 731.5,
+              "bottom": 775.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 290,
+        "scroll": 680,
+        "scrollLeft": 390,
+        "left": 14,
+        "right": 306
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 390,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 73,
+            "top": 563.5,
+            "bottom": 607.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 601.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 601.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 126.59375,
+            "rect": {
+              "left": 199.59375,
+              "right": 243.59375,
+              "top": 563.5,
+              "bottom": 607.5
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 199.59375,
+            "right": 243.59375,
+            "top": 563.5,
+            "bottom": 607.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 205.59375,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 205.59375,
+              "y": 601.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 601.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 126.59375,
+            "rect": {
+              "left": 29,
+              "right": 73,
+              "top": 563.5,
+              "bottom": 607.5
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 161.3125,
+            "right": 227.90625,
+            "top": 563.5,
+            "bottom": 607.5,
+            "width": 66.59375,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 167.3125,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 221.90625,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 167.3125,
+              "y": 601.5,
+              "own": true
+            },
+            {
+              "x": 221.90625,
+              "y": 601.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 140.09752549702876,
+            "rect": {
+              "left": 366.265625,
+              "right": 410.265625,
+              "top": 629.5,
+              "bottom": 673.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 331.265625,
+            "right": 375.265625,
+            "top": 629.5,
+            "bottom": 673.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 337.265625,
+              "y": 635.5,
+              "own": true
+            },
+            {
+              "x": 369.265625,
+              "y": 635.5,
+              "own": true
+            },
+            {
+              "x": 337.265625,
+              "y": 667.5,
+              "own": true
+            },
+            {
+              "x": 369.265625,
+              "y": 667.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 331.265625,
+              "right": 375.265625,
+              "top": 695.5,
+              "bottom": 739.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 360,
+        "scroll": 680,
+        "scrollLeft": 282,
+        "left": 14,
+        "right": 376
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 820,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 36,
+            "right": 80,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 42,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 74,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 42,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 74,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 150.671875,
+            "rect": {
+              "left": 230.671875,
+              "right": 274.671875,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 230.671875,
+            "right": 274.671875,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 236.671875,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 268.671875,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 236.671875,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 268.671875,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 150.671875,
+            "rect": {
+              "left": 36,
+              "right": 80,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 468.859375,
+            "right": 535.453125,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 66.59375,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 474.859375,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 529.453125,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 474.859375,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 529.453125,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 168.72171348573517,
+            "rect": {
+              "left": 702.734375,
+              "right": 746.734375,
+              "top": 566.5,
+              "bottom": 610.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 702.734375,
+            "right": 746.734375,
+            "top": 566.5,
+            "bottom": 610.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 708.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 740.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 708.734375,
+              "y": 604.5,
+              "own": true
+            },
+            {
+              "x": 740.734375,
+              "y": 604.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 702.734375,
+              "right": 746.734375,
+              "top": 632.5,
+              "bottom": 676.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 776,
+        "client": 776,
+        "scroll": 776,
+        "scrollLeft": 0,
+        "left": 21,
+        "right": 799
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "actual": {
+        "theme": "light",
+        "darkClass": false,
+        "documentWidth": 1440,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 641,
+            "right": 685,
+            "top": 416,
+            "bottom": 460,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 647,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 679,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 647,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 679,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 125.15625,
+            "rect": {
+              "left": 810.15625,
+              "right": 854.15625,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 810.15625,
+            "right": 854.15625,
+            "top": 416,
+            "bottom": 460,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 816.15625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 848.15625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 816.15625,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 848.15625,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 125.15625,
+            "rect": {
+              "left": 641,
+              "right": 685,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 1017.140625,
+            "right": 1077.046875,
+            "top": 416,
+            "bottom": 460,
+            "width": 59.90625,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1023.140625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1071.046875,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1023.140625,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 1071.046875,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 151.27605099127763,
+            "rect": {
+              "left": 1227.125,
+              "right": 1271.125,
+              "top": 479,
+              "bottom": 523
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 1227.125,
+            "right": 1271.125,
+            "top": 479,
+            "bottom": 523,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1233.125,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1265.125,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1233.125,
+              "y": 517,
+              "own": true
+            },
+            {
+              "x": 1265.125,
+              "y": 517,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 19,
+            "rect": {
+              "left": 1227.125,
+              "right": 1271.125,
+              "top": 542,
+              "bottom": 586
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 672,
+        "scroll": 680,
+        "scrollLeft": 0,
+        "left": 628,
+        "right": 1302
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 320,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 73,
+            "top": 599.5,
+            "bottom": 643.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 637.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 637.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 126.59375,
+            "rect": {
+              "left": 199.59375,
+              "right": 243.59375,
+              "top": 599.5,
+              "bottom": 643.5
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 199.59375,
+            "right": 243.59375,
+            "top": 599.5,
+            "bottom": 643.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 205.59375,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 205.59375,
+              "y": 637.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 637.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 126.59375,
+            "rect": {
+              "left": 29,
+              "right": 73,
+              "top": 599.5,
+              "bottom": 643.5
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 126.3125,
+            "right": 192.90625,
+            "top": 599.5,
+            "bottom": 643.5,
+            "width": 66.59375,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 132.3125,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 186.90625,
+              "y": 605.5,
+              "own": true
+            },
+            {
+              "x": 132.3125,
+              "y": 637.5,
+              "own": true
+            },
+            {
+              "x": 186.90625,
+              "y": 637.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 140.09752549702876,
+            "rect": {
+              "left": 331.265625,
+              "right": 375.265625,
+              "top": 665.5,
+              "bottom": 709.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 223.265625,
+            "right": 267.265625,
+            "top": 665.5,
+            "bottom": 709.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 229.265625,
+              "y": 671.5,
+              "own": true
+            },
+            {
+              "x": 261.265625,
+              "y": 671.5,
+              "own": true
+            },
+            {
+              "x": 229.265625,
+              "y": 703.5,
+              "own": true
+            },
+            {
+              "x": 261.265625,
+              "y": 703.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 223.265625,
+              "right": 267.265625,
+              "top": 731.5,
+              "bottom": 775.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 290,
+        "scroll": 680,
+        "scrollLeft": 390,
+        "left": 14,
+        "right": 306
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 390,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 29,
+            "right": 73,
+            "top": 563.5,
+            "bottom": 607.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 35,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 35,
+              "y": 601.5,
+              "own": true
+            },
+            {
+              "x": 67,
+              "y": 601.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 126.59375,
+            "rect": {
+              "left": 199.59375,
+              "right": 243.59375,
+              "top": 563.5,
+              "bottom": 607.5
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 199.59375,
+            "right": 243.59375,
+            "top": 563.5,
+            "bottom": 607.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 205.59375,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 205.59375,
+              "y": 601.5,
+              "own": true
+            },
+            {
+              "x": 237.59375,
+              "y": 601.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 126.59375,
+            "rect": {
+              "left": 29,
+              "right": 73,
+              "top": 563.5,
+              "bottom": 607.5
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 161.3125,
+            "right": 227.90625,
+            "top": 563.5,
+            "bottom": 607.5,
+            "width": 66.59375,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 167.3125,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 221.90625,
+              "y": 569.5,
+              "own": true
+            },
+            {
+              "x": 167.3125,
+              "y": 601.5,
+              "own": true
+            },
+            {
+              "x": 221.90625,
+              "y": 601.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 140.09752549702876,
+            "rect": {
+              "left": 366.265625,
+              "right": 410.265625,
+              "top": 629.5,
+              "bottom": 673.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 331.265625,
+            "right": 375.265625,
+            "top": 629.5,
+            "bottom": 673.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 337.265625,
+              "y": 635.5,
+              "own": true
+            },
+            {
+              "x": 369.265625,
+              "y": 635.5,
+              "own": true
+            },
+            {
+              "x": 337.265625,
+              "y": 667.5,
+              "own": true
+            },
+            {
+              "x": 369.265625,
+              "y": 667.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 331.265625,
+              "right": 375.265625,
+              "top": 695.5,
+              "bottom": 739.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 360,
+        "scroll": 680,
+        "scrollLeft": 282,
+        "left": 14,
+        "right": 376
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 820,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 36,
+            "right": 80,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 42,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 74,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 42,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 74,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 150.671875,
+            "rect": {
+              "left": 230.671875,
+              "right": 274.671875,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 230.671875,
+            "right": 274.671875,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 236.671875,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 268.671875,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 236.671875,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 268.671875,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 150.671875,
+            "rect": {
+              "left": 36,
+              "right": 80,
+              "top": 500.5,
+              "bottom": 544.5
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 468.859375,
+            "right": 535.453125,
+            "top": 500.5,
+            "bottom": 544.5,
+            "width": 66.59375,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 474.859375,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 529.453125,
+              "y": 506.5,
+              "own": true
+            },
+            {
+              "x": 474.859375,
+              "y": 538.5,
+              "own": true
+            },
+            {
+              "x": 529.453125,
+              "y": 538.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 168.72171348573517,
+            "rect": {
+              "left": 702.734375,
+              "right": 746.734375,
+              "top": 566.5,
+              "bottom": 610.5
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 702.734375,
+            "right": 746.734375,
+            "top": 566.5,
+            "bottom": 610.5,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 708.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 740.734375,
+              "y": 572.5,
+              "own": true
+            },
+            {
+              "x": 708.734375,
+              "y": 604.5,
+              "own": true
+            },
+            {
+              "x": 740.734375,
+              "y": 604.5,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 22,
+            "rect": {
+              "left": 702.734375,
+              "right": 746.734375,
+              "top": 632.5,
+              "bottom": 676.5
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 776,
+        "client": 776,
+        "scroll": 776,
+        "scrollLeft": 0,
+        "left": 21,
+        "right": 799
+      },
+      "method": "compiled source; no DOM injection"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "actual": {
+        "theme": "dark",
+        "darkClass": true,
+        "documentWidth": 1440,
+        "lang": "en"
+      },
+      "measurements": [
+        {
+          "text": "User",
+          "disabled": false,
+          "rect": {
+            "left": 641,
+            "right": 685,
+            "top": 416,
+            "bottom": 460,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 647,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 679,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 647,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 679,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "Email",
+            "distance": 125.15625,
+            "rect": {
+              "left": 810.15625,
+              "right": 854.15625,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "Email",
+          "disabled": false,
+          "rect": {
+            "left": 810.15625,
+            "right": 854.15625,
+            "top": 416,
+            "bottom": 460,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 816.15625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 848.15625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 816.15625,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 848.15625,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "User",
+            "distance": 125.15625,
+            "rect": {
+              "left": 641,
+              "right": 685,
+              "top": 416,
+              "bottom": 460
+            }
+          }
+        },
+        {
+          "text": "Created▼",
+          "disabled": false,
+          "rect": {
+            "left": 1017.140625,
+            "right": 1077.046875,
+            "top": 416,
+            "bottom": 460,
+            "width": 59.90625,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1023.140625,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1071.046875,
+              "y": 422,
+              "own": true
+            },
+            {
+              "x": 1023.140625,
+              "y": 454,
+              "own": true
+            },
+            {
+              "x": 1071.046875,
+              "y": 454,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 151.27605099127763,
+            "rect": {
+              "left": 1227.125,
+              "right": 1271.125,
+              "top": 479,
+              "bottom": 523
+            }
+          }
+        },
+        {
+          "text": "⋯",
+          "testid": "user-actions-synthetic-user-one",
+          "disabled": false,
+          "rect": {
+            "left": 1227.125,
+            "right": 1271.125,
+            "top": 479,
+            "bottom": 523,
+            "width": 44,
+            "height": 44
+          },
+          "hitOwn": true,
+          "points": [
+            {
+              "x": 1233.125,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1265.125,
+              "y": 485,
+              "own": true
+            },
+            {
+              "x": 1233.125,
+              "y": 517,
+              "own": true
+            },
+            {
+              "x": 1265.125,
+              "y": 517,
+              "own": true
+            }
+          ],
+          "nearest": {
+            "text": "⋯",
+            "distance": 19,
+            "rect": {
+              "left": 1227.125,
+              "right": 1271.125,
+              "top": 542,
+              "bottom": 586
+            }
+          }
+        }
+      ],
+      "table": {
+        "width": 680,
+        "client": 672,
+        "scroll": 680,
+        "scrollLeft": 0,
+        "left": 628,
+        "right": 1302
+      },
+      "method": "compiled source; no DOM injection"
+    }
+  ],
+  "interactions": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "sortGET": true,
+      "menuEnterEscape": true,
+      "focusRestored": true,
+      "noMenuItemSelected": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ],
+  "failures": [],
+  "status": "completed"
+}

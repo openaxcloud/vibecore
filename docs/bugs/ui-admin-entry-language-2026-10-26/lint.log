@@ -1,0 +1,6 @@
+
+/workspace/vibecore-ui-admin-redirect-next/app/routes/admin._index.spec.ts
+  45:5  error  Expected blank line before this statement  padding-line-between-statements
+
+✖ 1 problem (1 error, 0 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.

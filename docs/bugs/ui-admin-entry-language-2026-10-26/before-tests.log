@@ -1,0 +1,50 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-admin-redirect-next
+
+ ❯ app/routes/admin._index.spec.ts (4 tests | 2 failed) 16ms
+   × admin entry redirect > preserves explicit fr language without forwarding unrelated parameters 11ms
+     → expected '/admin/overview' to be '/admin/overview?lang=fr' // Object.is equality
+   × admin entry redirect > preserves explicit en language without forwarding unrelated parameters 1ms
+     → expected '/admin/overview' to be '/admin/overview?lang=en' // Object.is equality
+   ✓ admin entry redirect > keeps the default destination when no language is supplied 1ms
+   ✓ admin entry redirect > propagates the authorization rejection before producing a redirect 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/admin._index.spec.ts > admin entry redirect > preserves explicit fr language without forwarding unrelated parameters
+AssertionError: expected '/admin/overview' to be '/admin/overview?lang=fr' // Object.is equality
+
+Expected: "/admin/overview?lang=fr"
+Received: "/admin/overview"
+
+ ❯ app/routes/admin._index.spec.ts:31:46
+     29|     expect(requirePlatformAdmin).toHaveBeenCalledExactlyOnceWith(reque…
+     30|     expect(response.status).toBe(302);
+     31|     expect(response.headers.get('Location')).toBe(`/admin/overview?lan…
+       |                                              ^
+     32|   });
+     33|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/routes/admin._index.spec.ts > admin entry redirect > preserves explicit en language without forwarding unrelated parameters
+AssertionError: expected '/admin/overview' to be '/admin/overview?lang=en' // Object.is equality
+
+Expected: "/admin/overview?lang=en"
+Received: "/admin/overview"
+
+ ❯ app/routes/admin._index.spec.ts:31:46
+     29|     expect(requirePlatformAdmin).toHaveBeenCalledExactlyOnceWith(reque…
+     30|     expect(response.status).toBe(302);
+     31|     expect(response.headers.get('Location')).toBe(`/admin/overview?lan…
+       |                                              ^
+     32|   });
+     33|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  04:30:21
+   Duration  2.17s (transform 1.13s, setup 36ms, collect 90ms, tests 16ms, environment 0ms, prepare 72ms)

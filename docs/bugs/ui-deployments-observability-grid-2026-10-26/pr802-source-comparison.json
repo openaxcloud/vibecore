@@ -1,0 +1,8 @@
+{
+  "pr802Head": "279440d2fcbe3ee028d4209759f482bf6101c422",
+  "base": "279440d2f",
+  "file": "app/components/marketing/ecode-exact/pages/PublicDeploymentsSections.tsx",
+  "identicalBeforePatch": true,
+  "headHash": "6df69d9d94d776e4743775c52519de05fffd0fb027aa2c719860c8228b039c9d",
+  "baseHash": "6df69d9d94d776e4743775c52519de05fffd0fb027aa2c719860c8228b039c9d"
+}
