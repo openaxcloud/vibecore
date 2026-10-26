@@ -33,5 +33,70 @@ export function useIdeToastLayout() {
     };
   }, []);
 
+  useEffect(() => {
+    return compact ? installToastFocusRepair() : undefined;
+  }, [compact]);
+
   return compact;
+}
+
+function installToastFocusRepair() {
+  let frame = 0;
+
+  const resizeObserver = new ResizeObserver(schedule);
+
+  function repair() {
+    frame = 0;
+
+    const active = document.activeElement;
+
+    if (!(active instanceof HTMLElement)) {
+      return;
+    }
+
+    const list = active.closest('.Toastify__toast-container.vc-ide-compact-toasts');
+
+    if (!(list instanceof HTMLElement) || !document.querySelector('.bolt-project-ide-shell, .bolt-responsive-ide')) {
+      return;
+    }
+
+    const box = list.getBoundingClientRect();
+    const target = active.getBoundingClientRect();
+    const top = box.top + list.clientTop;
+    const bottom = top + list.clientHeight;
+    const delta = target.top < top ? target.top - top : target.bottom > bottom ? target.bottom - bottom : 0;
+
+    if (delta) {
+      list.scrollTop = Math.max(0, Math.min(list.scrollHeight - list.clientHeight, list.scrollTop + delta));
+    }
+  }
+
+  function schedule() {
+    if (!frame) {
+      frame = requestAnimationFrame(repair);
+    }
+  }
+
+  function focused() {
+    resizeObserver.disconnect();
+
+    const active = document.activeElement;
+    const list = active instanceof Element && active.closest('.Toastify__toast-container');
+
+    if (list instanceof HTMLElement) {
+      resizeObserver.observe(list);
+    }
+
+    schedule();
+  }
+  window.addEventListener('resize', schedule);
+  document.addEventListener('focusin', focused);
+  focused();
+
+  return () => {
+    window.removeEventListener('resize', schedule);
+    document.removeEventListener('focusin', focused);
+    resizeObserver.disconnect();
+    cancelAnimationFrame(frame);
+  };
 }

@@ -13,7 +13,7 @@ import { memo, Fragment, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
-import { AgentLaneSummary } from './AgentLaneSummary';
+import { AgentLaneSummary, AgentVerificationClaims, getAgentOutputLabel } from './AgentLaneSummary';
 import { Markdown } from './Markdown';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { MessagePatchReview } from './MessagePatchReview';
@@ -211,6 +211,7 @@ export const AssistantMessage = memo(
         text: string;
         status: 'running' | 'complete' | 'partial' | 'failed';
         summary?: string;
+        terminalOutput?: unknown;
       };
 
       const lanes = new Map<string, AgentLaneStreamState>();
@@ -234,6 +235,7 @@ export const AssistantMessage = memo(
         } else if (annotation.kind === 'done') {
           lane.status = annotation.status ?? 'complete';
           lane.summary = annotation.summary;
+          lane.terminalOutput = annotation;
         }
 
         lanes.set(annotation.roleId, lane);
@@ -620,6 +622,7 @@ export const AssistantMessage = memo(
                           <p className="text-xs text-bolt-elements-textSecondary">
                             {copy['assistantMessage.lanes.unverifiedClaims']}
                           </p>
+                          <AgentVerificationClaims consensus={agentExecution.consensus} copy={copy} />
                           {agentExecution.consensus.claimVotes.length > 0 && (
                             <details className="text-xs">
                               <summary className="cursor-pointer text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
@@ -971,12 +974,24 @@ export const AssistantMessage = memo(
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
                   const stream = agentLaneStreams?.find((lane) => lane.roleId === role.id);
 
-                  const state = resolveLaneState({
-                    resultStatus: result?.status,
-                    streamStatus: stream?.status,
-                    hasExecution: Boolean(agentExecution),
-                    isStreaming,
-                  });
+                  const output = agentExecution ? result : stream?.terminalOutput;
+
+                  const outputLabel = getAgentOutputLabel(output, copy);
+
+                  const interrupted =
+                    output &&
+                    typeof output === 'object' &&
+                    'outputState' in output &&
+                    output.outputState === 'interrupted';
+
+                  const state = interrupted
+                    ? 'failed'
+                    : resolveLaneState({
+                        resultStatus: result?.status,
+                        streamStatus: stream?.status,
+                        hasExecution: Boolean(agentExecution),
+                        isStreaming,
+                      });
                   const icon =
                     state === 'running'
                       ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
@@ -1000,15 +1015,19 @@ export const AssistantMessage = memo(
                         </span>
                       </div>
                       <div className="mt-1 h-8 overflow-hidden text-[11px] text-bolt-elements-textSecondary">
-                        {state === 'complete'
-                          ? copy['assistantMessage.lanes.taskFinished']
-                          : !agentExecution && !isStreaming && (!stream || stream.status === 'running')
-                            ? copy['assistantMessage.lanes.stopped']
-                            : localizeAssistantEnum(copy, 'status', state)}
+                        {outputLabel
+                          ? state !== 'complete' && !interrupted
+                            ? `${localizeAssistantEnum(copy, 'status', state)} · ${outputLabel}`
+                            : outputLabel
+                          : state === 'complete'
+                            ? copy['assistantMessage.lanes.taskFinished']
+                            : !agentExecution && !isStreaming && (!stream || stream.status === 'running')
+                              ? copy['assistantMessage.lanes.stopped']
+                              : localizeAssistantEnum(copy, 'status', state)}
                       </div>
                       <AgentLaneSummary
                         copy={copy}
-                        result={result}
+                        result={output}
                         value={
                           result?.summary ??
                           stream?.summary ??

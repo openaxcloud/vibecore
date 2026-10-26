@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { JSONValue } from 'ai';
 import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -52,7 +53,7 @@ vi.mock('~/utils/logger', () => ({
 }));
 vi.mock('~/utils/constants', () => ({ WORK_DIR: '/workspace' }));
 
-import { AgentLaneSummary } from './AgentLaneSummary';
+import { AgentLaneSummary, AgentVerificationClaims } from './AgentLaneSummary';
 import { AssistantMessage } from './AssistantMessage';
 import {
   formatAssistantCost,
@@ -408,4 +409,233 @@ describe('synthetic optional lane output contract', () => {
       expect(screen.getByTestId('agent-lane-output').textContent).toBe('');
     },
   );
+});
+
+describe('synthetic terminal stream output compatibility', () => {
+  afterEach(cleanup);
+
+  const start: JSONValue = { type: 'agentLaneStream', roleId: 'qa', kind: 'start', title: 'QA' };
+
+  function fixture(annotations: JSONValue[], language: 'fr' | 'en' = 'fr') {
+    return (
+      <I18nextProvider i18n={createI18nInstance(language)}>
+        <AssistantMessage
+          content="Synthetic stream fixture"
+          parts={undefined}
+          addToolResult={() => undefined}
+          annotations={annotations}
+        />
+      </I18nextProvider>
+    );
+  }
+
+  it.each(['fr', 'en'] as const)(
+    'preserves done metadata and interruption without claiming applied files (%s)',
+    (language) => {
+      const copy = getAssistantMessageCopy(language);
+
+      const done: JSONValue = {
+        type: 'agentLaneStream',
+        roleId: 'qa',
+        kind: 'done',
+        status: 'failed',
+        summary: 'Synthetic original interrupted report',
+        outputState: 'interrupted',
+        emittedFiles: ['src/synthetic.ts'],
+        verificationState: 'not_observed',
+      };
+
+      const { rerender } = render(fixture([start, done], language));
+      const lane = screen.getByTestId('agent-lane-qa');
+      expect(lane.getAttribute('data-state')).toBe('failed');
+      expect(within(lane).getByTestId('agent-lane-output').textContent).toContain(
+        copy['assistantMessage.lanes.output.interrupted'],
+      );
+      expect(within(lane).getByTestId('agent-lane-output').textContent).toContain(
+        formatAssistantMessageCopy(copy['assistantMessage.lanes.emittedFiles'], { count: 1 }),
+      );
+      expect(within(lane).getByText('src/synthetic.ts').closest('details')).toBeTruthy();
+      rerender(
+        fixture([start, { ...(done as object), outputState: 'actions_without_report', status: 'partial' }], language),
+      );
+      expect(within(lane).getByTestId('agent-lane-output').textContent).toContain(
+        copy['assistantMessage.lanes.output.actions_without_report'],
+      );
+      expect(lane.getAttribute('data-state')).toBe('partial');
+    },
+  );
+
+  it('uses final results exclusively, including legacy final results without metadata', () => {
+    const done: JSONValue = {
+      type: 'agentLaneStream',
+      roleId: 'qa',
+      kind: 'done',
+      status: 'failed',
+      summary: 'Synthetic stream summary',
+      outputState: 'interrupted',
+      emittedFiles: ['stream.ts'],
+    };
+    const final: JSONValue = {
+      type: 'agentExecution',
+      runId: 'synthetic-final',
+      status: 'complete',
+      results: [
+        {
+          roleId: 'qa',
+          status: 'complete',
+          summary: 'Synthetic final summary',
+          outputState: 'report',
+          emittedFiles: ['final.ts', 'second.ts'],
+        },
+      ],
+    };
+
+    const { rerender } = render(fixture([start, done, final]));
+    expect(screen.getByTestId('agent-lane-qa').getAttribute('data-state')).toBe('complete');
+    expect(screen.getByTestId('agent-lane-output').textContent).toContain('Rapport reçu');
+    expect(screen.getByTestId('agent-lane-output').textContent).toContain('2 fichiers émis');
+    expect(screen.queryByText('stream.ts')).toBeNull();
+    rerender(
+      fixture([
+        start,
+        done,
+        {
+          type: 'agentExecution',
+          runId: 'synthetic-legacy',
+          status: 'complete',
+          results: [{ roleId: 'qa', status: 'complete', summary: 'Legacy final' }],
+        },
+      ]),
+    );
+    expect(screen.getByTestId('agent-lane-output').textContent).toBe('');
+    expect(screen.getByTestId('agent-lane-apercu').textContent).toBe('Legacy final');
+  });
+
+  it('ignores malformed/absent optional stream data and retains stopped fallback', () => {
+    const { rerender } = render(
+      fixture([
+        start,
+        { type: 'agentLaneStream', roleId: 'qa', kind: 'done', status: 'partial', summary: 'Synthetic legacy' },
+      ]),
+    );
+    expect(screen.getByTestId('agent-lane-output').textContent).toBe('');
+    rerender(
+      fixture([
+        start,
+        {
+          type: 'agentLaneStream',
+          roleId: 'qa',
+          kind: 'done',
+          status: 'partial',
+          summary: 'Synthetic malformed',
+          outputState: { bad: true },
+          emittedFiles: ['valid', 5],
+          verificationState: 'observed',
+        },
+      ]),
+    );
+    expect(screen.getByTestId('agent-lane-output').textContent).toBe('');
+    rerender(fixture([start]));
+    expect(screen.getByTestId('agent-lane-qa').getAttribute('data-state')).toBe('failed');
+    expect(screen.getByTestId('agent-lane-qa').textContent).toContain('arrêté');
+    rerender(
+      fixture([
+        start,
+        {
+          type: 'agentLaneStream',
+          roleId: 'qa',
+          kind: 'done',
+          outputState: 'interrupted',
+          summary: 'Interrupted without legacy status',
+        },
+      ]),
+    );
+    expect(screen.getByTestId('agent-lane-qa').getAttribute('data-state')).toBe('failed');
+    expect(within(screen.getByTestId('agent-lane-qa')).queryByText('Tâche terminée')).toBeNull();
+
+    for (const outputState of ['empty', 'actions_without_report', 'interrupted']) {
+      rerender(
+        fixture([
+          start,
+          {
+            type: 'agentLaneStream',
+            roleId: 'qa',
+            kind: 'done',
+            status: 'complete',
+            outputState,
+            summary: 'Synthetic contradictory legacy status',
+          },
+        ]),
+      );
+      expect(within(screen.getByTestId('agent-lane-qa')).queryByText('Tâche terminée')).toBeNull();
+      expect(screen.getByTestId('agent-lane-output').textContent).toContain(
+        getAssistantMessageCopy('fr')[
+          `assistantMessage.lanes.output.${outputState}` as keyof ReturnType<typeof getAssistantMessageCopy>
+        ],
+      );
+    }
+  });
+
+  it.each(['fr', 'en'] as const)(
+    'keeps failed and partial status explicit alongside a received report (%s)',
+    (language) => {
+      const copy = getAssistantMessageCopy(language);
+      const { rerender } = render(fixture([start], language));
+
+      for (const status of ['partial', 'failed']) {
+        rerender(
+          fixture(
+            [
+              start,
+              {
+                type: 'agentLaneStream',
+                roleId: 'qa',
+                kind: 'done',
+                status,
+                outputState: 'report',
+                summary: 'Synthetic report despite failure',
+              },
+            ],
+            language,
+          ),
+        );
+
+        const expected = `${copy[`assistantMessage.status.${status}` as keyof typeof copy]} · ${copy['assistantMessage.lanes.output.report']}`;
+        expect(within(screen.getByTestId('agent-lane-qa')).getByText(expected)).toBeTruthy();
+        expect(screen.getByTestId('agent-lane-qa').getAttribute('data-state')).toBe(status);
+        expect(
+          within(screen.getByTestId('agent-lane-qa')).queryByText(copy['assistantMessage.lanes.taskFinished']),
+        ).toBeNull();
+      }
+    },
+  );
+
+  it.each(['fr', 'en'] as const)('renders only consolidated string claims as unobserved (%s)', (language) => {
+    const copy = getAssistantMessageCopy(language);
+
+    const { rerender } = render(
+      <AgentVerificationClaims
+        copy={copy}
+        consensus={{
+          agreedVerificationClaims: ['Wrong location'],
+          consolidated: { acceptedVerification: ['Legacy assertion'] },
+        }}
+      />,
+    );
+    expect(document.querySelector('details')).toBeNull();
+    rerender(
+      <AgentVerificationClaims copy={copy} consensus={{ consolidated: { agreedVerificationClaims: ['Valid', {}] } }} />,
+    );
+    expect(document.querySelector('details')).toBeNull();
+    rerender(
+      <AgentVerificationClaims
+        copy={copy}
+        consensus={{ consolidated: { agreedVerificationClaims: ['Synthetic QA statement'], acceptedVerification: [] } }}
+      />,
+    );
+    expect(screen.getByText(copy['assistantMessage.lanes.unverifiedClaims'])).toBeTruthy();
+    expect(screen.getByText('Synthetic QA statement').closest('details')?.open).toBe(false);
+    fireEvent.click(screen.getByText(copy['assistantMessage.lanes.agreedClaims']));
+    expect(screen.getByText('Synthetic QA statement').closest('details')?.open).toBe(true);
+  });
 });
