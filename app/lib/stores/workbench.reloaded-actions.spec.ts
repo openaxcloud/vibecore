@@ -6,8 +6,15 @@ import { RemoteKubernetesRuntimeAdapter } from '@vibecore/runtime-remote';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileHistoryStore } from './fileHistory';
 import { WorkbenchStore } from './workbench';
+import {
+  cheminsEcritsParLesLanes,
+  reinitialiserConfirmationsEcriture,
+  confirmationCouranteDuChemin,
+} from '~/lib/runtime/agent-lane-writes';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
+import { buildReviewableDiffHunks } from '~/utils/diff';
+import { sanitizeFileContent } from '~/utils/sanitize-file-content';
 
 const { runtimeAdapterMock, runtimeFiles, lockedFiles } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
@@ -253,6 +260,7 @@ function actionStatus(store: WorkbenchStore, actionId: string) {
 
 describe('WorkbenchStore reloaded and review-first actions', () => {
   beforeEach(() => {
+    reinitialiserConfirmationsEcriture();
     runtimeFiles.clear();
     lockedFiles.clear();
     runtimeAdapterMock.listFiles.mockClear();
@@ -275,6 +283,180 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     runtimeAdapterMock.streamCommand.mockImplementation(async function* () {
       yield { type: 'exit' as const, exitCode: 0 };
     });
+  });
+
+  it.each(['assistant-confirmed', 'assistant-confirmed::lane:frontend'])(
+    'records %s only after read-back; confirmed revert removes its receipt',
+    async (messageId) => {
+      const store = new WorkbenchStore();
+      const file = fileAction(messageId);
+      file.action.filePath = 'src/Card.tsx';
+      store.setAgentPatchReviewRequired(true);
+      store.addArtifact(artifactData(messageId));
+      store.addAction(file);
+      store.runAction(file);
+      await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+      expect(cheminsEcritsParLesLanes('assistant-confirmed')).toEqual([]);
+      await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+      expect(cheminsEcritsParLesLanes('assistant-confirmed')).toEqual(['src/Card.tsx']);
+      await store.revertAgentPatchProposal('artifact-1:file-1');
+      expect(store.agentPatchProposals.get()['artifact-1:file-1'].status).toBe('reverted');
+      expect(cheminsEcritsParLesLanes('assistant-confirmed')).toEqual([]);
+    },
+  );
+
+  it('does not issue a receipt when runtime read-back differs from the accepted bytes', async () => {
+    const store = new WorkbenchStore();
+    const file = fileAction();
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+    store.addAction(file);
+    store.runAction(file);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+
+    const originalRead = runtimeAdapterMock.readFile.getMockImplementation()!;
+    runtimeAdapterMock.readFile.mockResolvedValue({ content: 'different persisted bytes', encoding: 'utf8' });
+
+    try {
+      await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('failed');
+      expect(cheminsEcritsParLesLanes('assistant-1')).toEqual([]);
+    } finally {
+      runtimeAdapterMock.readFile.mockImplementation(originalRead);
+    }
+  });
+
+  it('does not issue a receipt for a partial streaming or explicitly rejected proposal', async () => {
+    const store = new WorkbenchStore();
+    const file = fileAction();
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+    await store._addAction(file);
+    await store._runAction(file, true);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.enFlux).toBe(true));
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('ignored');
+    expect(cheminsEcritsParLesLanes('assistant-1')).toEqual([]);
+    store.runAction(file, false);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.enFlux).toBe(false));
+    await store.rejectAgentPatchProposal('artifact-1:file-1');
+    expect(cheminsEcritsParLesLanes('assistant-1')).toEqual([]);
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('refuses undo of A after B confirmed the same path, preserving B bytes and receipt', async () => {
+    const store = new WorkbenchStore();
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+
+    const first = fileAction();
+    first.action.filePath = 'docs/ARCHITECTURE.md';
+    first.action.content = 'first architecture';
+    await store._addAction(first);
+    await store._runAction(first);
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+
+    const second = { ...first, actionId: 'file-2', action: { ...first.action, content: 'new architecture' } };
+    await store._addAction(second);
+    await store._runAction(second);
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-2')).resolves.toBe('accepted');
+
+    const bytes = runtimeFiles.get('docs/ARCHITECTURE.md');
+    const writes = runtimeAdapterMock.writeFile.mock.calls.length;
+    await store.revertAgentPatchProposal('artifact-1:file-1');
+    expect(runtimeAdapterMock.writeFile).toHaveBeenCalledTimes(writes);
+    expect(runtimeFiles.get('docs/ARCHITECTURE.md')).toBe(bytes);
+    expect(cheminsEcritsParLesLanes('assistant-1')).toEqual(['docs/ARCHITECTURE.md']);
+    expect(store.agentPatchProposals.get()['artifact-1:file-2'].status).toBe('accepted');
+  });
+
+  it('refuses undo from an older turn even when the newer turn reused the same proposal id', async () => {
+    const store = new WorkbenchStore();
+    store.setAgentPatchReviewRequired(true);
+
+    const first = fileAction('turn-a');
+    first.action.filePath = 'docs/ARCHITECTURE.md';
+    first.action.content = 'first turn';
+    store.addArtifact(artifactData('turn-a'));
+    await store._addAction(first);
+    await store._runAction(first);
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+
+    const oldProposal = { ...store.agentPatchProposals.get()['artifact-1:file-1'] };
+
+    const next = {
+      ...oldProposal,
+      messageId: 'turn-b',
+      status: 'pending' as const,
+      originalContent: 'first turn',
+      hunks: buildReviewableDiffHunks('docs/ARCHITECTURE.md', 'first turn', 'second turn'),
+      proposedContent: 'second turn',
+    };
+    store.agentPatchProposals.setKey(next.id, next);
+    await expect(store.acceptAgentPatchProposal(next.id)).resolves.toBe('accepted');
+
+    const bytes = runtimeFiles.get('docs/ARCHITECTURE.md');
+
+    expect(bytes).toBe('second turn');
+
+    // Restore the historical proposal selected by Undo while keeping B's confirmed receipt.
+    store.agentPatchProposals.setKey('historical-a', oldProposal);
+
+    const writes = runtimeAdapterMock.writeFile.mock.calls.length;
+    await store.revertAgentPatchProposal('historical-a');
+    expect(runtimeAdapterMock.writeFile).toHaveBeenCalledTimes(writes);
+    expect(runtimeFiles.get('docs/ARCHITECTURE.md')).toBe(bytes);
+    expect(cheminsEcritsParLesLanes('turn-b')).toEqual(['docs/ARCHITECTURE.md']);
+    await expect(store.acceptAgentPatchProposal('historical-a')).resolves.toBe('accepted');
+    expect(runtimeFiles.get('docs/ARCHITECTURE.md')).toBe('first turn');
+    expect(confirmationCouranteDuChemin('docs/ARCHITECTURE.md')).toEqual({
+      messageId: 'turn-a',
+      receiptId: oldProposal.id,
+    });
+  });
+
+  it('confirms sanitized JSONC undo bytes rather than the unsanitized original', async () => {
+    const store = new WorkbenchStore();
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+
+    const file = fileAction();
+    file.action.filePath = 'tsconfig.json';
+    file.action.content = '{"compilerOptions":{"strict":true}}';
+
+    const original = '{ /* original comment */ \u0000"compilerOptions": { "noEmit": true, }, }';
+    runtimeFiles.set('tsconfig.json', original);
+    store.files.setKey('/home/project/tsconfig.json', { type: 'file', content: original, isBinary: false });
+    await store._addAction(file);
+    await store._runAction(file);
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+    await store.revertAgentPatchProposal('artifact-1:file-1');
+    expect(store.agentPatchProposals.get()['artifact-1:file-1'].status).toBe('reverted');
+
+    const sanitized = sanitizeFileContent(original, 'tsconfig.json').sanitized;
+    expect(sanitized).not.toBe(original);
+    expect(runtimeFiles.get('tsconfig.json')).toBe(sanitized);
+    expect(cheminsEcritsParLesLanes('assistant-1')).toEqual([]);
+  });
+
+  it('keeps the existing receipt when revert read-back fails', async () => {
+    const store = new WorkbenchStore();
+    const file = fileAction();
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+    store.addAction(file);
+    store.runAction(file);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+
+    const originalRead = runtimeAdapterMock.readFile.getMockImplementation()!;
+    runtimeAdapterMock.readFile.mockResolvedValue({ content: 'different persisted bytes', encoding: 'utf8' });
+
+    try {
+      await store.revertAgentPatchProposal('artifact-1:file-1');
+      expect(store.agentPatchProposals.get()['artifact-1:file-1'].status).toBe('accepted');
+      expect(cheminsEcritsParLesLanes('assistant-1')).toEqual(['src/App.tsx']);
+    } finally {
+      runtimeAdapterMock.readFile.mockImplementation(originalRead);
+    }
   });
 
   it.each([
@@ -580,6 +762,7 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
       resolveRead({ content: outcome === 'success' ? file.action.content : 'different', encoding: 'utf8' });
       await expect(applying).resolves.toBe('ignored');
       expect(store.agentPatchProposals.get()).toEqual(sentinel);
+      expect(cheminsEcritsParLesLanes('assistant-1')).toBeUndefined();
       expect(newRuntime.readFile).not.toHaveBeenCalled();
       expect(newRuntime.writeFile).not.toHaveBeenCalled();
       expect(fetchSpy.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(writesBefore);
