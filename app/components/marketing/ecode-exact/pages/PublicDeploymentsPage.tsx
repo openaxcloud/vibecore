@@ -70,7 +70,7 @@ export default function PublicDeploymentsPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-auto min-h-[44px] whitespace-normal border-[var(--ecode-border)] text-foreground hover:bg-[var(--ecode-surface-hover)]"
+                  className="h-auto !min-h-[44px] whitespace-normal border-[var(--ecode-border)] text-foreground hover:bg-[var(--ecode-surface-hover)]"
                   data-testid="button-explore-docs"
                 >
                   {copy.page.exploreDocs}

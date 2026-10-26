@@ -25,3 +25,7 @@ Sur `/marketing/deployments`, les trois cartes Hero restent sur trois colonnes d
 Contrepreuve DOM minimale12cas FR/EN clair à320/768/1024/1280/1440/1920 : textes/typo conservés, titres dans les cartes et viewport.320FR grille369,8→272px ;1024 cartes146,9→232,4px.11tests existants, lint et formatage ciblés passent. Pas de nouvelle suite miroir CSS.
 
 Build et recette compilée du delta attendus dans le lot parent, avec mesures CTA/texte/hauteur et grille ; pas de certification responsive globale, Safari, zoom, safeareas ou contraste. Main/live restent faux.
+
+## Complément compilé13799 — défaut encore ouvert
+
+[Échec conservé](ui-solutions-product-2026-10-26/after13799/README.md) : après3observations et1groupe, CTA22px à844. Cause md:min-h-0 du Button partagé. Contrepreuve DOM8cas stabilisés22→44 ; correction supplémentaire strictement locale !min-h-[44px] autorisée et appliquée, non recompilée ici. Le plan44observations/8groupes n’est pas déclaré exécuté entièrement.

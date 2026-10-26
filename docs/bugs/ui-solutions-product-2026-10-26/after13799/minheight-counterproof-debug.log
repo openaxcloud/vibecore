@@ -1,0 +1,15 @@
+{"width":844,"lang":"fr","before":{"height":22,"left":221.84375,"right":591.65625,"minHeight":"0px","text":"Consulter la documentation des déploiements","href":"/docs"},"after":{"height":22,"left":221.84375,"right":591.65625,"minHeight":"0px","text":"Consulter la documentation des déploiements","href":"/docs"},"html":"<button class=\"inline-flex items-center justify-center text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 border bg-surface-solid hover:text-foreground rounded-md px-8 md:min-h-0 replit-button-press h-auto min-h-[44px] whitespace-normal border-[var(--ecode-border)] text-foreground hover:bg-[var(--ecode-surface-hover)]\" data-testid=\"button-explore-docs\" style=\"min-height: 44px !important;\">Consulter la documentation des déploiements</button>"}
+A [Error]: expect(received).toBeGreaterThanOrEqual(expected)
+
+Expected: >= 44
+Received:    22
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /tmp/ui-solutions-product-next/after13799/minheight-counterproof.cjs:1:1254 {
+  matcherResult: {
+    message: 'expect(received).toBeGreaterThanOrEqual(expected)\n' +
+      '\n' +
+      'Expected: >= 44\n' +
+      'Received:    22',
+    pass: false
+  }
+}
