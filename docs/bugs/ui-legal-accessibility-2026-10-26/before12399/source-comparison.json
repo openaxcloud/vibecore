@@ -1,0 +1,146 @@
+{
+  "readWorktree": "/workspace/vibecore-ui-auth-next",
+  "protectedWorktree": "/workspace/vibecore-ui-priority",
+  "files": [
+    {
+      "path": "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+      "same": true,
+      "sha256": "d87d899dd60be31bde31d5c49c7e7ec0fc469c377186301e882075c7cc77fbc2"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/EcodeExactUi.tsx",
+      "same": true,
+      "sha256": "0e692ed4ab8f9a522a1355cbfaecc02bcb10402344a6d04684147ecd7a4c9b72"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Accessibility.tsx",
+      "same": true,
+      "sha256": "1bb4fc9b48170fba91dc2fd432c93c30fbd0322c80336d20f47813e686ab2bb9"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/CommercialAgreement.tsx",
+      "same": true,
+      "sha256": "97ec3948f876be3f9a5917ee37e6293f50f2cf21747d830f65717359a586d408"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/DPA.tsx",
+      "same": true,
+      "sha256": "ab704231081f75b283afe7e0cd255aab46b7e2aa2375d850228ee41e030d0574"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/DataDeletion.tsx",
+      "same": true,
+      "sha256": "f78f1ab1e5410e503c16bda98b01f8ad418ea41bc0329882082597b361097f44"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Enforcement.tsx",
+      "same": true,
+      "sha256": "a72ea21badc137007d4b3b60cd6983b14d4cfe786585af4f9f390cfb4ccc654a"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/LocalizedPolicyArticle.tsx",
+      "same": true,
+      "sha256": "c6537493fe47b5271b2135f0f64defefe44524ef15b5a68e7bf4fd6560452105"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/ReportAbuse.tsx",
+      "same": true,
+      "sha256": "94c67e0bff1707516838976e8eb109fa56147f486d14f1cd2e5425d789906d24"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Security.tsx",
+      "same": true,
+      "sha256": "1cdfe610cc11c2866daf055b3b06d4550a6658a344212fe33fff0b386425dacf"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/StudentDPA.tsx",
+      "same": true,
+      "sha256": "a1ad260b574edbc8cf3a79304fb9056a5ba6e3e7b15406acabe1ca9d0357c21e"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Subprocessors.tsx",
+      "same": true,
+      "sha256": "93229efc5e47946ab6e920f6c77551ec68467da46db4292d960f91010d2b7f25"
+    },
+    {
+      "path": "app/root.tsx",
+      "same": true,
+      "sha256": "1c2e7976555278e586f2eeb2992059056453ec3ac172d12f46103d0231b10dac"
+    },
+    {
+      "path": "app/routes/acceptable-use.tsx",
+      "same": true,
+      "sha256": "874ad5fe6ff2cbce0993db20ced10994238f9a8a4601099f9311c6d142abfd0c"
+    },
+    {
+      "path": "app/routes/accessibility.tsx",
+      "same": true,
+      "sha256": "f18f94182fd63b832910f7c5e3edfcaa778bf5b92075d77b1c65d31fbd239a89"
+    },
+    {
+      "path": "app/routes/commercial-agreement.tsx",
+      "same": true,
+      "sha256": "92306914cebae77f0e2493b4832fd452e4a94c3fb50fc0623ac21c54260ec311"
+    },
+    {
+      "path": "app/routes/data-deletion.tsx",
+      "same": true,
+      "sha256": "fbabe64225818291a37cb246ff9fd2109599c0c21801533ae5ce6f6752ef5802"
+    },
+    {
+      "path": "app/routes/deleting-your-data.tsx",
+      "same": true,
+      "sha256": "9136c5bfb329c56849f7fede9abdea9b8bdca42e4813a4b85a126122c6fe36d4"
+    },
+    {
+      "path": "app/routes/dpa.tsx",
+      "same": true,
+      "sha256": "30aedc74e3900cff742ea97ecd7ba72b3539b0196a4ad2fb17ced3d4ba5ba05c"
+    },
+    {
+      "path": "app/routes/enforcement.tsx",
+      "same": true,
+      "sha256": "e086e0a679bfb603ec60489056f6c758ab82277fc06c2d58365ca03b0863f568"
+    },
+    {
+      "path": "app/routes/licensing.tsx",
+      "same": true,
+      "sha256": "b9934655ef8b798556ec5685f7bb16e50976a756f6dda9435b991e57c416782e"
+    },
+    {
+      "path": "app/routes/report-abuse.tsx",
+      "same": true,
+      "sha256": "c90505d345220daf56ded463a7fe18b2f04509262ec5b42131f0c3e7939a930c"
+    },
+    {
+      "path": "app/routes/security.tsx",
+      "same": true,
+      "sha256": "ea0d921b324cb867e5d79a730594d051be47782f7ebee9e6662b4219df1dede4"
+    },
+    {
+      "path": "app/routes/strike-system.tsx",
+      "same": true,
+      "sha256": "4ad50b54b0d2e464b9213c7ea37e512767b655cbf381799b4793caec812e5215"
+    },
+    {
+      "path": "app/routes/student-dpa.tsx",
+      "same": true,
+      "sha256": "ee309b89e64d2ec96896b9d2eacde851839bcb29180a15c2bae999c5bae17f8e"
+    },
+    {
+      "path": "app/routes/subprocessors.tsx",
+      "same": true,
+      "sha256": "a3678b1a9e4b62c8602897ee27f464683a07da066a0084cb65e3e9d5178ceaa7"
+    },
+    {
+      "path": "app/routes/trust-and-safety.tsx",
+      "same": true,
+      "sha256": "2ccc847b17e6cd47270fae14e32756acb555cc1dfd16f6fbdce56dcfeef75ba7"
+    },
+    {
+      "path": "app/routes/usage-limits.tsx",
+      "same": true,
+      "sha256": "d768ef28f78dfd1d50fc10acc04e5f686d9afe98c0264b23cba7fc1407690f2f"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "lang": "fr",
+    "width": 320,
+    "url": "http://127.0.0.1:12399/student-dpa?lang=fr#download",
+    "top": -0.46875,
+    "scrollY": 8749,
+    "headerBottom": 111,
+    "h2Top": 216.53125
+  },
+  {
+    "lang": "fr",
+    "width": 1440,
+    "url": "http://127.0.0.1:12399/student-dpa?lang=fr#download",
+    "top": -0.296875,
+    "scrollY": 4715,
+    "headerBottom": 110,
+    "h2Top": 216.703125
+  },
+  {
+    "lang": "en",
+    "width": 320,
+    "url": "http://127.0.0.1:12399/student-dpa?lang=en#download",
+    "top": -0.5,
+    "scrollY": 7882,
+    "headerBottom": 111,
+    "h2Top": 216.5
+  },
+  {
+    "lang": "en",
+    "width": 1440,
+    "url": "http://127.0.0.1:12399/student-dpa?lang=en#download",
+    "top": -0.296875,
+    "scrollY": 4579,
+    "headerBottom": 110,
+    "h2Top": 216.703125
+  }
+]

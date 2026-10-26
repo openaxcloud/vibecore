@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-legal-next
+
+ ✓ app/lib/i18n/catalogs/marketing-exact-legal.spec.tsx (14 tests) 215ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  03:17:05
+   Duration  2.78s (transform 1.21s, setup 22ms, collect 773ms, tests 215ms, environment 0ms, prepare 58ms)

@@ -1,0 +1,10 @@
+{
+  "pid": 195216,
+  "startedAt": "2026-10-26T03:13:58Z",
+  "startTicks": "2811879",
+  "port": 12499,
+  "log": "/tmp/ui-legal-p2-static/after12499/server.log",
+  "thenSent": "SIGKILL",
+  "procExistsAfter": false,
+  "connectionRefused": true
+}

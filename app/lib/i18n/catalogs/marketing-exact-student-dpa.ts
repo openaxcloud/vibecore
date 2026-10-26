@@ -67,7 +67,7 @@ export const marketingExactStudentDpaEn = {
       title: 'Student Data Processing Agreement',
       description:
         'Our commitment to protecting student privacy in educational settings. This agreement governs how E-Code processes student data for schools and educational institutions.',
-      download: 'Download Full Agreement',
+      download: 'Request Full Agreement',
       contact: 'Contact Education Team',
       effectiveDate: 'Effective date',
       lastUpdated: 'Last updated',
@@ -242,11 +242,11 @@ export const marketingExactStudentDpaEn = {
       ],
     },
     download: {
-      title: 'Download the Full Agreement',
+      title: 'Request the Full Agreement',
       description:
         'Get the complete Student Data Processing Agreement in PDF format. Your legal team should review and execute this document before deployment.',
-      pdf: 'Download PDF',
-      word: 'Download Word',
+      pdf: 'Request PDF by email',
+      word: 'Request Word by email',
       pdfSubject: 'Request for Student DPA (PDF)',
       wordSubject: 'Request for Student DPA (Word)',
     },
@@ -284,7 +284,7 @@ export const marketingExactStudentDpaFr = {
       title: 'Accord de traitement des données des élèves',
       description:
         'Notre engagement à protéger la vie privée des élèves dans le cadre éducatif. Cet accord régit la manière dont E-Code traite leurs données pour les établissements scolaires et organismes de formation.',
-      download: 'Télécharger l’accord complet',
+      download: 'Demander l’accord complet',
       contact: 'Contacter l’équipe Éducation',
       effectiveDate: 'Date d’effet',
       lastUpdated: 'Dernière mise à jour',
@@ -468,11 +468,11 @@ export const marketingExactStudentDpaFr = {
       ],
     },
     download: {
-      title: 'Télécharger l’accord complet',
+      title: 'Demander l’accord complet',
       description:
         'Obtenez l’Accord complet de traitement des données des élèves au format PDF. Votre équipe juridique doit l’examiner et le signer avant le déploiement.',
-      pdf: 'Télécharger le PDF',
-      word: 'Télécharger le document Word',
+      pdf: 'Demander le PDF par email',
+      word: 'Demander le document Word par email',
       pdfSubject: 'Demande de DPA Élèves (PDF)',
       wordSubject: 'Demande de DPA Élèves (Word)',
     },

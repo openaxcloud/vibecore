@@ -1,0 +1,3 @@
+Parent03:07UTC et agent final_review : revue indépendante favorable du diff sans espaces. Quatre wrappers main, association label du groupe radio, handleSSRStudentDPA et libellés demandeemail uniquement. Destinataires/sujets et corps juridique inchangés. Réserve : recette compilée réelle du nom accessible et de la position de l’ancre sous le header. Première tentative build exit137 conservée ; nouvelle tentative après libération mémoire avec heap6144, verdict à compléter.
+
+Complément parent + final_review : wraplocal4actions favorable, texteintégral conservé. Cascadecompiled finale àvérifier, DOMcontrepreuvenonéquivalente.

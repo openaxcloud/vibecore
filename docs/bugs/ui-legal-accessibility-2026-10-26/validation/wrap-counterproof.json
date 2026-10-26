@@ -1,0 +1,147 @@
+{
+  "kind": "DOM only, full labels preserved",
+  "rows": [
+    {
+      "route": "dpa",
+      "before": [
+        {
+          "text": "Demander le PDF par email",
+          "button": {
+            "left": 16,
+            "right": 304,
+            "height": 44,
+            "top": 428.125,
+            "bottom": 472.125
+          },
+          "textBounds": {
+            "left": 81.828125,
+            "right": 262.171875,
+            "top": 440.125,
+            "bottom": 459.125
+          }
+        },
+        {
+          "text": "Contacter le service juridique",
+          "button": {
+            "left": 16,
+            "right": 304,
+            "height": 44,
+            "top": 488.125,
+            "bottom": 532.125
+          },
+          "textBounds": {
+            "left": 76.234375,
+            "right": 267.765625,
+            "top": 500.125,
+            "bottom": 519.125
+          }
+        }
+      ],
+      "after": [
+        {
+          "text": "Demander le PDF par email",
+          "button": {
+            "left": 16,
+            "right": 304,
+            "height": 44,
+            "top": 428.125,
+            "bottom": 472.125
+          },
+          "textBounds": {
+            "left": 81.828125,
+            "right": 262.171875,
+            "top": 440.125,
+            "bottom": 459.125
+          }
+        },
+        {
+          "text": "Contacter le service juridique",
+          "button": {
+            "left": 16,
+            "right": 304,
+            "height": 46,
+            "top": 488.125,
+            "bottom": 534.125
+          },
+          "textBounds": {
+            "left": 76.234375,
+            "right": 267.765625,
+            "top": 501.125,
+            "bottom": 520.125
+          }
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "before": [
+        {
+          "text": "Demander le PDF par email",
+          "button": {
+            "left": 41,
+            "right": 279,
+            "height": 44,
+            "top": 427.90625,
+            "bottom": 471.90625
+          },
+          "textBounds": {
+            "left": 73.828125,
+            "right": 254.171875,
+            "top": 439.90625,
+            "bottom": 458.90625
+          }
+        },
+        {
+          "text": "Demander le document Word par email",
+          "button": {
+            "left": 41,
+            "right": 279,
+            "height": 44,
+            "top": 487.90625,
+            "bottom": 531.90625
+          },
+          "textBounds": {
+            "left": 33.765625,
+            "right": 294.25,
+            "top": 499.90625,
+            "bottom": 518.90625
+          }
+        }
+      ],
+      "after": [
+        {
+          "text": "Demander le PDF par email",
+          "button": {
+            "left": 41,
+            "right": 279,
+            "height": 64,
+            "top": 427.90625,
+            "bottom": 491.90625
+          },
+          "textBounds": {
+            "left": 103.671875,
+            "right": 244.3125,
+            "top": 439.90625,
+            "bottom": 478.90625
+          }
+        },
+        {
+          "text": "Demander le document Word par email",
+          "button": {
+            "left": 41,
+            "right": 279,
+            "height": 86,
+            "top": 507.90625,
+            "bottom": 593.90625
+          },
+          "textBounds": {
+            "left": 108,
+            "right": 240,
+            "top": 520.90625,
+            "bottom": 579.90625
+          }
+        }
+      ]
+    }
+  ]
+}

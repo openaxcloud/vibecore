@@ -84,3 +84,33 @@ describe('exact legal marketing catalogs', () => {
     },
   );
 });
+
+describe('legal page navigation semantics', () => {
+  it.each([
+    ['DPA', <Dpa key="dpa-landmark" />],
+    ['student DPA', <StudentDpa key="student-landmark" />],
+    ['subprocessors', <Subprocessors key="subprocessors-landmark" />],
+    ['report abuse', <ReportAbuse key="report-landmark" />],
+  ])('exposes exactly one main landmark containing the heading for %s', (_name, page) => {
+    const html = renderInFrench(page);
+    expect(html.match(/<main[ >]/g)).toHaveLength(1);
+    expect(html).toMatch(/<main[\s\S]*<h1[\s\S]*<\/main>/);
+  });
+
+  it('associates the report type group with its visible label', () => {
+    const html = renderInFrench(<ReportAbuse />);
+    expect(html).toContain('id="abuse-report-type-label"');
+    expect(html).toMatch(/role="radiogroup"[^>]*aria-labelledby="abuse-report-type-label"/);
+  });
+
+  it('describes the document email requests honestly in both languages', () => {
+    for (const catalog of [marketingExactDpaEn, marketingExactDpaFr]) {
+      expect(catalog.exactDpa.download).toMatch(/email/);
+    }
+
+    for (const catalog of [marketingExactStudentDpaEn, marketingExactStudentDpaFr]) {
+      expect(catalog.exactStudentDpa.download.pdf).toMatch(/email/);
+      expect(catalog.exactStudentDpa.download.word).toMatch(/email/);
+    }
+  });
+});

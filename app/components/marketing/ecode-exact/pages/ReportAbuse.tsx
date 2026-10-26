@@ -171,210 +171,217 @@ export default function ReportAbuse() {
     <div className="min-h-screen bg-background" data-testid="page-report-abuse">
       <PublicNavbar />
 
-      <section className="py-responsive">
-        <div className="container-responsive">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="h-5 w-5" />
-              <span className="text-[13px] text-muted-foreground">{copy.eyebrow}</span>
-            </div>
+      <main>
+        <section className="py-responsive">
+          <div className="container-responsive">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center gap-2 mb-4">
+                <Shield className="h-5 w-5" />
+                <span className="text-[13px] text-muted-foreground">{copy.eyebrow}</span>
+              </div>
 
-            <h1 className="text-responsive-2xl font-bold tracking-tight mb-4" data-testid="heading-report-abuse">
-              {copy.title}
-            </h1>
+              <h1 className="text-responsive-2xl font-bold tracking-tight mb-4" data-testid="heading-report-abuse">
+                {copy.title}
+              </h1>
 
-            <p className="text-responsive-base text-muted-foreground mb-8">{copy.description}</p>
+              <p className="text-responsive-base text-muted-foreground mb-8">{copy.description}</p>
 
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>{copy.violationsIntro.title}</CardTitle>
-                <CardDescription>{copy.violationsIntro.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {copy.violations.map((violation) => (
-                    <div key={violation.id}>
-                      <h3 className="font-semibold flex items-center gap-2 mb-2">
-                        <AlertTriangle className={`h-4 w-4 ${VIOLATION_COLORS[violation.id]}`} />
-                        {violation.title}
-                      </h3>
-                      <p className="text-[13px] text-muted-foreground">{violation.description}</p>
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>{copy.violationsIntro.title}</CardTitle>
+                  <CardDescription>{copy.violationsIntro.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {copy.violations.map((violation) => (
+                      <div key={violation.id}>
+                        <h3 className="font-semibold flex items-center gap-2 mb-2">
+                          <AlertTriangle className={`h-4 w-4 ${VIOLATION_COLORS[violation.id]}`} />
+                          {violation.title}
+                        </h3>
+                        <p className="text-[13px] text-muted-foreground">{violation.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>{copy.form.title}</CardTitle>
+                  <CardDescription>{copy.form.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                      <Label id="abuse-report-type-label">{copy.form.typeLabel}</Label>
+                      <RadioGroup
+                        aria-labelledby="abuse-report-type-label"
+                        value={reportType}
+                        onValueChange={setReportType}
+                        className="mt-2"
+                      >
+                        {copy.form.types.map((type) => (
+                          <div key={type.id} className="flex items-center space-x-2">
+                            <RadioGroupItem value={type.id} id={type.id} />
+                            <Label htmlFor={type.id} className="font-normal">
+                              {type.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
                     </div>
+
+                    <div>
+                      <Label htmlFor="url">{copy.form.urlLabel}</Label>
+                      <Input
+                        id="url"
+                        name="url"
+                        type="url"
+                        placeholder={ABUSE_FORM_PLACEHOLDERS.url}
+                        required
+                        className="mt-2 min-h-[44px]"
+                        data-testid="input-abuse-url"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">{copy.form.urlHelp}</p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="username">{copy.form.usernameLabel}</Label>
+                      <Input
+                        id="username"
+                        name="username"
+                        placeholder={ABUSE_FORM_PLACEHOLDERS.username}
+                        className="mt-2 min-h-[44px]"
+                        data-testid="input-abuse-username"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="description">{copy.form.descriptionLabel}</Label>
+                      <Textarea
+                        id="description"
+                        name="description"
+                        placeholder={copy.form.descriptionPlaceholder}
+                        rows={6}
+                        required
+                        className="mt-2"
+                        data-testid="input-abuse-description"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="email">{copy.form.emailLabel}</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder={ABUSE_FORM_PLACEHOLDERS.email}
+                        className="mt-2 min-h-[44px]"
+                        data-testid="input-abuse-email"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">{copy.form.emailHelp}</p>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="terms" required data-testid="checkbox-abuse-terms" />
+                      <Label htmlFor="terms" className="text-[13px] font-normal">
+                        {copy.form.confirmation}
+                      </Label>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto min-h-[44px]"
+                      data-testid="button-abuse-submit"
+                    >
+                      {isSubmitting ? (
+                        <>{copy.form.submitting}</>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          {copy.form.submit}
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[15px]">{copy.dmca.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-[13px] text-muted-foreground mb-4">{copy.dmca.description}</p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="w-full min-h-[44px]"
+                      data-testid="button-abuse-dmca"
+                    >
+                      <a href="/acceptable-use">
+                        <FileText className="h-4 w-4 mr-2" />
+                        {copy.dmca.action}
+                      </a>
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[15px]">{copy.emergency.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-[13px] text-muted-foreground mb-4">{copy.emergency.description}</p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="w-full min-h-[44px]"
+                      data-testid="button-abuse-emergency"
+                    >
+                      <a href="mailto:abuse@e-code.ai">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        {ABUSE_EMAIL}
+                      </a>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="mt-8 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">{copy.process.title}</h3>
+                <ul className="text-[13px] text-muted-foreground space-y-1 list-disc pl-5">
+                  {copy.process.steps.map((step) => (
+                    <li key={step}>{step}</li>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
+                </ul>
+              </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>{copy.form.title}</CardTitle>
-                <CardDescription>{copy.form.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <Label>{copy.form.typeLabel}</Label>
-                    <RadioGroup value={reportType} onValueChange={setReportType} className="mt-2">
-                      {copy.form.types.map((type) => (
-                        <div key={type.id} className="flex items-center space-x-2">
-                          <RadioGroupItem value={type.id} id={type.id} />
-                          <Label htmlFor={type.id} className="font-normal">
-                            {type.label}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="url">{copy.form.urlLabel}</Label>
-                    <Input
-                      id="url"
-                      name="url"
-                      type="url"
-                      placeholder={ABUSE_FORM_PLACEHOLDERS.url}
-                      required
-                      className="mt-2 min-h-[44px]"
-                      data-testid="input-abuse-url"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">{copy.form.urlHelp}</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="username">{copy.form.usernameLabel}</Label>
-                    <Input
-                      id="username"
-                      name="username"
-                      placeholder={ABUSE_FORM_PLACEHOLDERS.username}
-                      className="mt-2 min-h-[44px]"
-                      data-testid="input-abuse-username"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">{copy.form.descriptionLabel}</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      placeholder={copy.form.descriptionPlaceholder}
-                      rows={6}
-                      required
-                      className="mt-2"
-                      data-testid="input-abuse-description"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email">{copy.form.emailLabel}</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder={ABUSE_FORM_PLACEHOLDERS.email}
-                      className="mt-2 min-h-[44px]"
-                      data-testid="input-abuse-email"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">{copy.form.emailHelp}</p>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="terms" required data-testid="checkbox-abuse-terms" />
-                    <Label htmlFor="terms" className="text-[13px] font-normal">
-                      {copy.form.confirmation}
-                    </Label>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={isSubmitting}
-                    className="w-full sm:w-auto min-h-[44px]"
-                    data-testid="button-abuse-submit"
-                  >
-                    {isSubmitting ? (
-                      <>{copy.form.submitting}</>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        {copy.form.submit}
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[15px]">{copy.dmca.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-[13px] text-muted-foreground mb-4">{copy.dmca.description}</p>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="w-full min-h-[44px]"
-                    data-testid="button-abuse-dmca"
-                  >
-                    <a href="/acceptable-use">
-                      <FileText className="h-4 w-4 mr-2" />
-                      {copy.dmca.action}
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[15px]">{copy.emergency.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-[13px] text-muted-foreground mb-4">{copy.emergency.description}</p>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="w-full min-h-[44px]"
-                    data-testid="button-abuse-emergency"
-                  >
-                    <a href="mailto:abuse@e-code.ai">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      {ABUSE_EMAIL}
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-8 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">{copy.process.title}</h3>
-              <ul className="text-[13px] text-muted-foreground space-y-1 list-disc pl-5">
-                {copy.process.steps.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-[13px] text-muted-foreground">
-                {copy.warning}
-                <br />
-                {copy.moreInformation}{' '}
-                <a href="/terms" className="text-primary hover:underline">
-                  {copy.terms}
-                </a>{' '}
-                {copy.and}{' '}
-                <a href="/acceptable-use" className="text-primary hover:underline">
-                  {copy.guidelines}
-                </a>
-                .
-              </p>
+              <div className="mt-6 text-center">
+                <p className="text-[13px] text-muted-foreground">
+                  {copy.warning}
+                  <br />
+                  {copy.moreInformation}{' '}
+                  <a href="/terms" className="text-primary hover:underline">
+                    {copy.terms}
+                  </a>{' '}
+                  {copy.and}{' '}
+                  <a href="/acceptable-use" className="text-primary hover:underline">
+                    {copy.guidelines}
+                  </a>
+                  .
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <PublicFooter />
     </div>

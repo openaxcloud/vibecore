@@ -1,0 +1,1102 @@
+{
+  "observations": [
+    {
+      "route": "report-abuse",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type d’abus\":\n  - radio \"Code malveillant ou nuisible\" [checked]\n  - text: Code malveillant ou nuisible\n  - radio \"Contenu inapproprié\"\n  - text: Contenu inapproprié\n  - radio \"Harcèlement ou intimidation\"\n  - text: Harcèlement ou intimidation\n  - radio \"Spam ou escroquerie\"\n  - text: Spam ou escroquerie\n  - radio \"Atteinte au droit d’auteur\"\n  - text: Atteinte au droit d’auteur\n  - radio \"Atteinte à la vie privée\"\n  - text: Atteinte à la vie privée\n  - radio \"Autre\"\n  - text: Autre",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20d%E2%80%99Accord%20de%20traitement%20des%20donn%C3%A9es%20(DPA)",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai?subject=Question%20relative%20au%20DPA",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(PDF)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        },
+        {
+          "text": "Demander le document Word par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(Word)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type d’abus\":\n  - radio \"Code malveillant ou nuisible\" [checked]\n  - text: Code malveillant ou nuisible\n  - radio \"Contenu inapproprié\"\n  - text: Contenu inapproprié\n  - radio \"Harcèlement ou intimidation\"\n  - text: Harcèlement ou intimidation\n  - radio \"Spam ou escroquerie\"\n  - text: Spam ou escroquerie\n  - radio \"Atteinte au droit d’auteur\"\n  - text: Atteinte au droit d’auteur\n  - radio \"Atteinte à la vie privée\"\n  - text: Atteinte à la vie privée\n  - radio \"Autre\"\n  - text: Autre",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20d%E2%80%99Accord%20de%20traitement%20des%20donn%C3%A9es%20(DPA)",
+          "x": 24,
+          "right": 292.34375,
+          "width": 268.34375,
+          "height": 44
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai?subject=Question%20relative%20au%20DPA",
+          "x": 308.34375,
+          "right": 589.875,
+          "width": 281.53125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(PDF)",
+          "x": 88.578125,
+          "right": 360.921875,
+          "width": 272.34375,
+          "height": 44
+        },
+        {
+          "text": "Demander le document Word par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(Word)",
+          "x": 376.921875,
+          "right": 731.40625,
+          "width": 354.484375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type d’abus\":\n  - radio \"Code malveillant ou nuisible\" [checked]\n  - text: Code malveillant ou nuisible\n  - radio \"Contenu inapproprié\"\n  - text: Contenu inapproprié\n  - radio \"Harcèlement ou intimidation\"\n  - text: Harcèlement ou intimidation\n  - radio \"Spam ou escroquerie\"\n  - text: Spam ou escroquerie\n  - radio \"Atteinte au droit d’auteur\"\n  - text: Atteinte au droit d’auteur\n  - radio \"Atteinte à la vie privée\"\n  - text: Atteinte à la vie privée\n  - radio \"Autre\"\n  - text: Autre",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20d%E2%80%99Accord%20de%20traitement%20des%20donn%C3%A9es%20(DPA)",
+          "x": 272,
+          "right": 540.34375,
+          "width": 268.34375,
+          "height": 44
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai?subject=Question%20relative%20au%20DPA",
+          "x": 556.34375,
+          "right": 837.875,
+          "width": 281.53125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(PDF)",
+          "x": 398.578125,
+          "right": 670.921875,
+          "width": 272.34375,
+          "height": 44
+        },
+        {
+          "text": "Demander le document Word par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(Word)",
+          "x": 686.921875,
+          "right": 1041.40625,
+          "width": 354.484375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type d’abus\":\n  - radio \"Code malveillant ou nuisible\" [checked]\n  - text: Code malveillant ou nuisible\n  - radio \"Contenu inapproprié\"\n  - text: Contenu inapproprié\n  - radio \"Harcèlement ou intimidation\"\n  - text: Harcèlement ou intimidation\n  - radio \"Spam ou escroquerie\"\n  - text: Spam ou escroquerie\n  - radio \"Atteinte au droit d’auteur\"\n  - text: Atteinte au droit d’auteur\n  - radio \"Atteinte à la vie privée\"\n  - text: Atteinte à la vie privée\n  - radio \"Autre\"\n  - text: Autre",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20d%E2%80%99Accord%20de%20traitement%20des%20donn%C3%A9es%20(DPA)",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai?subject=Question%20relative%20au%20DPA",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(PDF)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        },
+        {
+          "text": "Demander le document Word par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(Word)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type d’abus\":\n  - radio \"Code malveillant ou nuisible\" [checked]\n  - text: Code malveillant ou nuisible\n  - radio \"Contenu inapproprié\"\n  - text: Contenu inapproprié\n  - radio \"Harcèlement ou intimidation\"\n  - text: Harcèlement ou intimidation\n  - radio \"Spam ou escroquerie\"\n  - text: Spam ou escroquerie\n  - radio \"Atteinte au droit d’auteur\"\n  - text: Atteinte au droit d’auteur\n  - radio \"Atteinte à la vie privée\"\n  - text: Atteinte à la vie privée\n  - radio \"Autre\"\n  - text: Autre",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20d%E2%80%99Accord%20de%20traitement%20des%20donn%C3%A9es%20(DPA)",
+          "x": 24,
+          "right": 292.34375,
+          "width": 268.34375,
+          "height": 44
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai?subject=Question%20relative%20au%20DPA",
+          "x": 308.34375,
+          "right": 589.875,
+          "width": 281.53125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(PDF)",
+          "x": 88.578125,
+          "right": 360.921875,
+          "width": 272.34375,
+          "height": 44
+        },
+        {
+          "text": "Demander le document Word par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(Word)",
+          "x": 376.921875,
+          "right": 731.40625,
+          "width": 354.484375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type d’abus\":\n  - radio \"Code malveillant ou nuisible\" [checked]\n  - text: Code malveillant ou nuisible\n  - radio \"Contenu inapproprié\"\n  - text: Contenu inapproprié\n  - radio \"Harcèlement ou intimidation\"\n  - text: Harcèlement ou intimidation\n  - radio \"Spam ou escroquerie\"\n  - text: Spam ou escroquerie\n  - radio \"Atteinte au droit d’auteur\"\n  - text: Atteinte au droit d’auteur\n  - radio \"Atteinte à la vie privée\"\n  - text: Atteinte à la vie privée\n  - radio \"Autre\"\n  - text: Autre",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20d%E2%80%99Accord%20de%20traitement%20des%20donn%C3%A9es%20(DPA)",
+          "x": 272,
+          "right": 540.34375,
+          "width": 268.34375,
+          "height": 44
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai?subject=Question%20relative%20au%20DPA",
+          "x": 556.34375,
+          "right": 837.875,
+          "width": 281.53125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Demander le PDF par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(PDF)",
+          "x": 398.578125,
+          "right": 670.921875,
+          "width": 272.34375,
+          "height": 44
+        },
+        {
+          "text": "Demander le document Word par email",
+          "href": "mailto:legal@e-code.ai?subject=Demande%20de%20DPA%20%C3%89l%C3%A8ves%20(Word)",
+          "x": 686.921875,
+          "right": 1041.40625,
+          "width": 354.484375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type of abuse\":\n  - radio \"Malicious or harmful code\" [checked]\n  - text: Malicious or harmful code\n  - radio \"Inappropriate content\"\n  - text: Inappropriate content\n  - radio \"Harassment or bullying\"\n  - text: Harassment or bullying\n  - radio \"Spam or scams\"\n  - text: Spam or scams\n  - radio \"Copyright infringement\"\n  - text: Copyright infringement\n  - radio \"Privacy violation\"\n  - text: Privacy violation\n  - radio \"Other\"\n  - text: Other",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Data%20Processing%20Agreement%20(DPA)",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai?subject=DPA%20inquiry",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(PDF)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        },
+        {
+          "text": "Request Word by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(Word)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type of abuse\":\n  - radio \"Malicious or harmful code\" [checked]\n  - text: Malicious or harmful code\n  - radio \"Inappropriate content\"\n  - text: Inappropriate content\n  - radio \"Harassment or bullying\"\n  - text: Harassment or bullying\n  - radio \"Spam or scams\"\n  - text: Spam or scams\n  - radio \"Copyright infringement\"\n  - text: Copyright infringement\n  - radio \"Privacy violation\"\n  - text: Privacy violation\n  - radio \"Other\"\n  - text: Other",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Data%20Processing%20Agreement%20(DPA)",
+          "x": 24,
+          "right": 253.9375,
+          "width": 229.9375,
+          "height": 44
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai?subject=DPA%20inquiry",
+          "x": 269.9375,
+          "right": 449.546875,
+          "width": 179.609375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(PDF)",
+          "x": 162.375,
+          "right": 396.3125,
+          "width": 233.9375,
+          "height": 44
+        },
+        {
+          "text": "Request Word by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(Word)",
+          "x": 412.3125,
+          "right": 657.625,
+          "width": 245.3125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type of abuse\":\n  - radio \"Malicious or harmful code\" [checked]\n  - text: Malicious or harmful code\n  - radio \"Inappropriate content\"\n  - text: Inappropriate content\n  - radio \"Harassment or bullying\"\n  - text: Harassment or bullying\n  - radio \"Spam or scams\"\n  - text: Spam or scams\n  - radio \"Copyright infringement\"\n  - text: Copyright infringement\n  - radio \"Privacy violation\"\n  - text: Privacy violation\n  - radio \"Other\"\n  - text: Other",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Data%20Processing%20Agreement%20(DPA)",
+          "x": 272,
+          "right": 501.9375,
+          "width": 229.9375,
+          "height": 44
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai?subject=DPA%20inquiry",
+          "x": 517.9375,
+          "right": 697.546875,
+          "width": 179.609375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(PDF)",
+          "x": 472.375,
+          "right": 706.3125,
+          "width": 233.9375,
+          "height": 44
+        },
+        {
+          "text": "Request Word by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(Word)",
+          "x": 722.3125,
+          "right": 967.625,
+          "width": 245.3125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type of abuse\":\n  - radio \"Malicious or harmful code\" [checked]\n  - text: Malicious or harmful code\n  - radio \"Inappropriate content\"\n  - text: Inappropriate content\n  - radio \"Harassment or bullying\"\n  - text: Harassment or bullying\n  - radio \"Spam or scams\"\n  - text: Spam or scams\n  - radio \"Copyright infringement\"\n  - text: Copyright infringement\n  - radio \"Privacy violation\"\n  - text: Privacy violation\n  - radio \"Other\"\n  - text: Other",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Data%20Processing%20Agreement%20(DPA)",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai?subject=DPA%20inquiry",
+          "x": 16,
+          "right": 304,
+          "width": 288,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(PDF)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        },
+        {
+          "text": "Request Word by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(Word)",
+          "x": 41,
+          "right": 279,
+          "width": 238,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type of abuse\":\n  - radio \"Malicious or harmful code\" [checked]\n  - text: Malicious or harmful code\n  - radio \"Inappropriate content\"\n  - text: Inappropriate content\n  - radio \"Harassment or bullying\"\n  - text: Harassment or bullying\n  - radio \"Spam or scams\"\n  - text: Spam or scams\n  - radio \"Copyright infringement\"\n  - text: Copyright infringement\n  - radio \"Privacy violation\"\n  - text: Privacy violation\n  - radio \"Other\"\n  - text: Other",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Data%20Processing%20Agreement%20(DPA)",
+          "x": 24,
+          "right": 253.9375,
+          "width": 229.9375,
+          "height": 44
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai?subject=DPA%20inquiry",
+          "x": 269.9375,
+          "right": 449.546875,
+          "width": 179.609375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(PDF)",
+          "x": 162.375,
+          "right": 396.3125,
+          "width": 233.9375,
+          "height": 44
+        },
+        {
+          "text": "Request Word by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(Word)",
+          "x": 412.3125,
+          "right": 657.625,
+          "width": 245.3125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    },
+    {
+      "route": "report-abuse",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": "- radiogroup \"Type of abuse\":\n  - radio \"Malicious or harmful code\" [checked]\n  - text: Malicious or harmful code\n  - radio \"Inappropriate content\"\n  - text: Inappropriate content\n  - radio \"Harassment or bullying\"\n  - text: Harassment or bullying\n  - radio \"Spam or scams\"\n  - text: Spam or scams\n  - radio \"Copyright infringement\"\n  - text: Copyright infringement\n  - radio \"Privacy violation\"\n  - text: Privacy violation\n  - radio \"Other\"\n  - text: Other",
+      "links": []
+    },
+    {
+      "route": "dpa",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Data%20Processing%20Agreement%20(DPA)",
+          "x": 272,
+          "right": 501.9375,
+          "width": 229.9375,
+          "height": 44
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai?subject=DPA%20inquiry",
+          "x": 517.9375,
+          "right": 697.546875,
+          "width": 179.609375,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "student-dpa",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": [
+        {
+          "text": "Request PDF by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(PDF)",
+          "x": 472.375,
+          "right": 706.3125,
+          "width": 233.9375,
+          "height": 44
+        },
+        {
+          "text": "Request Word by email",
+          "href": "mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(Word)",
+          "x": 722.3125,
+          "right": 967.625,
+          "width": 245.3125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "route": "subprocessors",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "radio": null,
+      "links": []
+    }
+  ],
+  "hash": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "htmlContainsTarget": true,
+      "top": -0.46875,
+      "h2Top": 216.53125,
+      "scrollY": 8749,
+      "headerBottom": 111,
+      "innerHeight": 900
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "htmlContainsTarget": true,
+      "top": 0.34375,
+      "h2Top": 217.34375,
+      "scrollY": 5094,
+      "headerBottom": 110,
+      "innerHeight": 900
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "htmlContainsTarget": true,
+      "top": -0.296875,
+      "h2Top": 216.703125,
+      "scrollY": 4715,
+      "headerBottom": 110,
+      "innerHeight": 900
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "htmlContainsTarget": true,
+      "top": -0.46875,
+      "h2Top": 216.53125,
+      "scrollY": 8749,
+      "headerBottom": 111,
+      "innerHeight": 900
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "htmlContainsTarget": true,
+      "top": 0.34375,
+      "h2Top": 217.34375,
+      "scrollY": 5094,
+      "headerBottom": 110,
+      "innerHeight": 900
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "htmlContainsTarget": true,
+      "top": -0.296875,
+      "h2Top": 216.703125,
+      "scrollY": 4715,
+      "headerBottom": 110,
+      "innerHeight": 900
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "htmlContainsTarget": true,
+      "top": -0.5,
+      "h2Top": 216.5,
+      "scrollY": 7882,
+      "headerBottom": 111,
+      "innerHeight": 900
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "htmlContainsTarget": true,
+      "top": 0.09375,
+      "h2Top": 217.09375,
+      "scrollY": 4935,
+      "headerBottom": 110,
+      "innerHeight": 900
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "htmlContainsTarget": true,
+      "top": -0.296875,
+      "h2Top": 216.703125,
+      "scrollY": 4579,
+      "headerBottom": 110,
+      "innerHeight": 900
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "htmlContainsTarget": true,
+      "top": -0.5,
+      "h2Top": 216.5,
+      "scrollY": 7882,
+      "headerBottom": 111,
+      "innerHeight": 900
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "htmlContainsTarget": true,
+      "top": 0.09375,
+      "h2Top": 217.09375,
+      "scrollY": 4935,
+      "headerBottom": 110,
+      "innerHeight": 900
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "htmlContainsTarget": true,
+      "top": -0.296875,
+      "h2Top": 216.703125,
+      "scrollY": 4579,
+      "headerBottom": 110,
+      "innerHeight": 900
+    }
+  ],
+  "writes": [],
+  "external": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "errors": []
+}

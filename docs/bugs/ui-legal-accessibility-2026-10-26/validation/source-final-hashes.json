@@ -1,0 +1,10 @@
+{
+  "app/components/marketing/ecode-exact/pages/DPA.tsx": "041bce1294557aa457b6e1f45af1c03ec2a9727615c79ad940d4591c754829e7",
+  "app/components/marketing/ecode-exact/pages/ReportAbuse.tsx": "53e50c7fd028e9e32f4527f87b1d9efd7ab50770d8123e4d80b9ed5db8b2d3f6",
+  "app/components/marketing/ecode-exact/pages/StudentDPA.tsx": "3bbd042f9e62a1e21007546369be9602ef1f7f4546d37dc13387601327b792b2",
+  "app/components/marketing/ecode-exact/pages/Subprocessors.tsx": "4dd950ddca08b9409c57b6c15079c744d90f318b8796bb5603363a279699134e",
+  "app/lib/i18n/catalogs/marketing-exact-dpa.ts": "1fa36f2d19a9ecf26eb95748ebbd37a068e641a8042c4eaa5707582bec36fe08",
+  "app/lib/i18n/catalogs/marketing-exact-legal.spec.tsx": "f5d863f3ef4b1b9b880ae32f076ca7ddca39dc28b194d2a3be57accc6de2a867",
+  "app/lib/i18n/catalogs/marketing-exact-student-dpa.ts": "dd12ef7cea240990ece74ed9efffb2a0447b8cf18813c3d70dfb604ed2a3e95b",
+  "app/routes/student-dpa.tsx": "26a9636b361ccf5c9a2ccfab98292b3fd0a813eb50e972d9b13048900c0ee204"
+}

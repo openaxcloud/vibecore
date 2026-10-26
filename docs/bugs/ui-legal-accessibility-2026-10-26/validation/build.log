@@ -1,0 +1,16 @@
+
+> vibecore@1.0.0 build /workspace/vibecore-ui-legal-next
+> VITE_CJS_IGNORE_WARNING=1 NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=8192} react-router build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 9582 modules transformed.
+Initially, there are
+886 chunks, of which
+778 are below minChunkSize.
+After merging chunks, there are
+444 chunks, of which
+305 are below minChunkSize.
+rendering chunks...
+Killed
+ ELIFECYCLE  Command failed with exit code 137.
