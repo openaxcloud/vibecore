@@ -17,6 +17,8 @@
   "pendingCorrectionGates": [],
   "meaning": "Partial local observation coverage, not every function fixed or production delivered.",
   "completedCorrectionGates": [
-    "MarketingDeployments final compiled13899:44 observations/8 groups"
+    "MarketingDeployments final compiled13899:44 observations/8 groups",
+    "Semantic extension cc5574:48 observations/192 CTA/48 Tab/12 Enter-Back +44 Hero observations/8 groups",
+    "ReportAbuse compiled cc5574:16 link measures/8 contexts, light5.9449 dark7.7688"
   ]
 }

@@ -23,17 +23,19 @@
     "next": "Coordinate actual confirmation/unsubscribe contract and states; no real subscribers or email mutation used in these tests."
   },
   {
-    "id": "MARKETING-DEPLOYMENTS-HERO-COMPILED-PENDING",
-    "status": "confirmed defect; source corrected, final compiled proof pending",
+    "id": "MARKETING-DEPLOYMENTS-HERO-LOCALLY-CORRECTED",
+    "status": "locally corrected, compiled proof passed; not merged or deployed",
     "routes": [
       "routes/marketing.deployments"
     ],
-    "description": "Marketing hero cards overlap at1024; grid counterproof also revealed documentation CTA overflow at320FR. Two local classes applied;12DOM counterproof cases are not compiled final evidence.",
+    "description": "Final compiled13899 recipe passed44 observations/8 groups after !min-h-[44px]. Semantic extension cc5574 repeated44 observations/8 groups successfully, preserving CTA dimensions and adding unique keyboard stops.",
     "evidence": "docs/bugs/ui-solutions-product-2026-10-26/diagnostic.json",
-    "next": "Verify actual final compiled card, Range/CTA bounds and minimum height before closing correction gate.",
+    "next": "Normal PR validation and coordinated delivery; no production recipe claimed.",
     "additionalEvidence": [
       "docs/bugs/ui-solutions-product-2026-10-26/grid-minimal-counterproof.json",
-      "docs/bugs/ui-solutions-product-2026-10-26/README.md"
+      "docs/bugs/ui-solutions-product-2026-10-26/README.md",
+      "docs/bugs/ui-public-admin-validation-2026-10-26/README.md",
+      "docs/bugs/ui-public-semantics-2026-10-26/after13999/README.md"
     ]
   },
   {

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-520 entrées.
+523 entrées.
 
 ## Sans section
 
@@ -669,6 +669,9 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-MARKETING-DEPLOYMENTS-HERO-WIDTH-20261026](docs/bugs/BUG-MARKETING-DEPLOYMENTS-HERO-WIDTH-20261026.md) — Sur `/marketing/deployments`, les trois cartes Hero restent sur trois colonnes dans un demi-conteneur à1024px : carte146,9px, titre97px, mots chevauchant la car — 📤 Dispatché : ☑ 26/10/2026 — Audit Solutions/présentations produit, cause reproduite et proposition minimale revue par le pa · 💻 Codé : ☐ Sur main. Deux classes locales corrigées dans `PublicDeploymentsPage.tsx` : grille auto-fit avec minimum14re · ✅ Testé live : ☐ En production. Chromium local, aucune donnée réelle, mutation, publication ou backend externe. Aucun build c
 - [BUG-NEWSLETTER-UNVERIFIED-SUCCESS-20261026](docs/bugs/BUG-NEWSLETTER-UNVERIFIED-SUCCESS-20261026.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-STUDENT-DPA-COLD-HASH-20261026](docs/bugs/BUG-STUDENT-DPA-COLD-HASH-20261026.md) — Ancre froide de la demande DPA élèves. — 📤 Dispatché : ☑ MissionUI autorisée, lotisolé. · 💻 Codé : ☐ Surmain. Correctiflocal uniquement. HandleSSRlocal : cibleHTMLinitiale et titre sousheader confirmés12cascom · ✅ Testé live : ☐ Enproduction. Chromiumlocal sansPOST/externeuniquement.
+- [BUG-PUBLIC-CTA-DUPLICATE-TAB-20261026](docs/bugs/BUG-PUBLIC-CTA-DUPLICATE-TAB-20261026.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-PUBLIC-MAIN-LANDMARK-20261026](docs/bugs/BUG-PUBLIC-MAIN-LANDMARK-20261026.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-REPORT-ABUSE-LINK-CONTRAST-20261026](docs/bugs/BUG-REPORT-ABUSE-LINK-CONTRAST-20261026.md) — Les liens « Conditions d’utilisation » et « Règles de la communauté » de ReportAbuse utilisent la couleur primaire orange en thème clair : rgb(245,101,5) sur fo — 📤 Dispatché : ☑ 26/10/2026 — Diagnostic local ciblé remonté au parent ; correction locale autorisée.32 PR ouvertes contrôlée · 💻 Codé : ☐ Sur main. Deux classes `text-primary` deviennent `text-[var(--ecode-accent-text)]` dans ReportAbuse.tsx. Tok · ✅ Testé live : ☐ En production. API synthétique et navigateur local uniquement ; aucun POST, signalement, backend réel ni tie
 
 ## Résidus non tabulaires — reportés mot pour mot
 
