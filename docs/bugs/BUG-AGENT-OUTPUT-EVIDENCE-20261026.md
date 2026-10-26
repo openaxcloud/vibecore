@@ -1,3 +1,8 @@
+---
+id: BUG-AGENT-OUTPUT-EVIDENCE-20261026
+section: "Génération et orchestration"
+---
+
 # Rapports des sous-agents : sortie, interruption et preuves de vérification
 
 ## Constats reproduits
@@ -91,3 +96,11 @@ ici. Aucun `app.ts`, permission, quota ou pipeline n'est modifié.
 
 Lot séparé de #806. Le seul raccordement de `api.chat.ts` concerne les nouveaux
 champs d'une annotation de fin de voie, pas la sélection du portfolio.
+
+## 💻 Codé
+
+Contrat de sortie et preuves distinctes ; PR #809 en validation, non déployée.
+
+## ✅ Testé live
+
+Non : tests isolés uniquement pour ce correctif. Le 503 production reste non diagnostiqué.
