@@ -88,17 +88,15 @@ export default function MarketingBounties() {
               </h1>
               <p className="mkt-lead max-w-2xl text-muted-foreground">{copy.hero.description}</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <Link href="/register">
-                  <Button size="lg" className="min-h-[44px] w-full sm:w-auto">
+                <Button asChild size="lg" className="min-h-[44px] w-full sm:w-auto">
+                  <Link href="/register">
                     {copy.hero.primary}
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href="/contact-sales">
-                  <Button size="lg" variant="outline" className="min-h-[44px] w-full sm:w-auto">
-                    {copy.hero.secondary}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="min-h-[44px] w-full sm:w-auto">
+                  <Link href="/contact-sales">{copy.hero.secondary}</Link>
+                </Button>
               </div>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] text-muted-foreground">
                 {copy.hero.points.map((point) => (
@@ -277,21 +275,24 @@ export default function MarketingBounties() {
               <h2 className="mkt-h2 font-bold">{copy.cta.title}</h2>
               <p className="mkt-lead text-white/90">{copy.cta.description}</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <Link href="/register">
-                  <Button size="lg" className="min-h-[44px] w-full bg-white text-[#F26207] hover:bg-white/90 sm:w-auto">
+                <Button
+                  asChild
+                  size="lg"
+                  className="min-h-[44px] w-full bg-white text-[#F26207] hover:bg-white/90 sm:w-auto"
+                >
+                  <Link href="/register">
                     {copy.cta.primary}
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href="/dashboard">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="min-h-[44px] w-full border-white/50 bg-transparent text-white hover:bg-white/10 sm:w-auto"
-                  >
-                    {copy.cta.secondary}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="min-h-[44px] w-full border-white/50 bg-transparent text-white hover:bg-white/10 sm:w-auto"
+                >
+                  <Link href="/dashboard">{copy.cta.secondary}</Link>
+                </Button>
               </div>
             </div>
           </div>

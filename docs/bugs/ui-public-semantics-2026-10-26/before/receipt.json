@@ -1,0 +1,7079 @@
+{
+  "base": "http://127.0.0.1:13999",
+  "phase": "before",
+  "observations": [
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 16,
+            "y": 686.5,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 686.5,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 698.5,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 258.453125,
+              "y": 700.5,
+              "width": 13.546875,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 16,
+            "y": 742.5,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 742.5,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 90.484375,
+              "y": 754.5,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 30.5,
+            "y": 6205.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 30.5,
+            "y": 6205.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 62.5,
+              "y": 6217.984375,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 241.515625,
+              "y": 6219.984375,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 30.5,
+            "y": 6261.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 30.5,
+            "y": 6261.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 257,
+          "scroll": 257,
+          "ranges": [
+            {
+              "x": 77.421875,
+              "y": 6273.984375,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "mainCount": 1,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 16,
+            "y": 587.03125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 587.03125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "client": 290,
+          "scroll": 290,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 599.03125,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 258.453125,
+              "y": 601.03125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 322.453125,
+            "y": 587.03125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "control": {
+            "x": 322.453125,
+            "y": 587.03125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "client": 203,
+          "scroll": 203,
+          "ranges": [
+            {
+              "x": 355.453125,
+              "y": 599.03125,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 130.90625,
+            "y": 4963.140625,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 130.90625,
+            "y": 4963.140625,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 162.90625,
+              "y": 4975.140625,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 341.921875,
+              "y": 4977.140625,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 405.921875,
+            "y": 4963.140625,
+            "width": 231.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 405.921875,
+            "y": 4963.140625,
+            "width": 231.171875,
+            "height": 44
+          },
+          "client": 229,
+          "scroll": 229,
+          "ranges": [
+            {
+              "x": 438.921875,
+              "y": 4975.140625,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "mainCount": 1,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 16,
+            "y": 814,
+            "width": 290.453125,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 814,
+            "width": 290.453125,
+            "height": 44
+          },
+          "client": 290,
+          "scroll": 290,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 826,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 258.453125,
+              "y": 828,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 322.453125,
+            "y": 814,
+            "width": 205.03125,
+            "height": 44
+          },
+          "control": {
+            "x": 322.453125,
+            "y": 814,
+            "width": 205.03125,
+            "height": 44
+          },
+          "client": 203,
+          "scroll": 203,
+          "ranges": [
+            {
+              "x": 355.453125,
+              "y": 826,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 258.90625,
+            "y": 3642.53125,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 258.90625,
+            "y": 3642.53125,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 290.90625,
+              "y": 3654.53125,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 469.921875,
+              "y": 3656.53125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 533.921875,
+            "y": 3642.53125,
+            "width": 231.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 533.921875,
+            "y": 3642.53125,
+            "width": 231.171875,
+            "height": 44
+          },
+          "client": 229,
+          "scroll": 229,
+          "ranges": [
+            {
+              "x": 566.921875,
+              "y": 3654.53125,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 144,
+            "y": 829.578125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "control": {
+            "x": 144,
+            "y": 829.578125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "client": 290,
+          "scroll": 290,
+          "ranges": [
+            {
+              "x": 176,
+              "y": 841.578125,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 386.453125,
+              "y": 843.578125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 450.453125,
+            "y": 829.578125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "control": {
+            "x": 450.453125,
+            "y": 829.578125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "client": 203,
+          "scroll": 203,
+          "ranges": [
+            {
+              "x": 483.453125,
+              "y": 841.578125,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 466.90625,
+            "y": 3551.046875,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 466.90625,
+            "y": 3551.046875,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 498.90625,
+              "y": 3563.046875,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 677.921875,
+              "y": 3565.046875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 741.921875,
+            "y": 3551.046875,
+            "width": 231.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 741.921875,
+            "y": 3551.046875,
+            "width": 231.171875,
+            "height": 44
+          },
+          "client": 229,
+          "scroll": 229,
+          "ranges": [
+            {
+              "x": 774.921875,
+              "y": 3563.046875,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 24,
+            "y": 798.125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 798.125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 810.125,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 24,
+            "y": 858.125,
+            "width": 272,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 858.125,
+            "width": 272,
+            "height": 44
+          },
+          "client": 270,
+          "scroll": 270,
+          "ranges": [
+            {
+              "x": 68.390625,
+              "y": 860.125,
+              "width": 183.21875,
+              "height": 19
+            },
+            {
+              "x": 101.515625,
+              "y": 880.125,
+              "width": 116.96875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 42.109375,
+            "y": 14153.640625,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 42.109375,
+            "y": 14153.640625,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 74.109375,
+              "y": 14165.640625,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 29.671875,
+            "y": 14213.640625,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 29.671875,
+            "y": 14213.640625,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 62.671875,
+              "y": 14225.640625,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 24,
+            "y": 619.03125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 619.03125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 631.03125,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 221.84375,
+            "y": 619.03125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "control": {
+            "x": 221.84375,
+            "y": 619.03125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "client": 368,
+          "scroll": 368,
+          "ranges": [
+            {
+              "x": 254.84375,
+              "y": 631.03125,
+              "width": 303.8125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 127.78125,
+            "y": 9589.671875,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 127.78125,
+            "y": 9589.671875,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 159.78125,
+              "y": 9601.671875,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 379.546875,
+            "y": 9589.671875,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 379.546875,
+            "y": 9589.671875,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 412.546875,
+              "y": 9601.671875,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 40,
+            "y": 924.328125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 40,
+            "y": 924.328125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 72,
+              "y": 936.328125,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 40,
+            "y": 984.328125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "control": {
+            "x": 40,
+            "y": 984.328125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "client": 368,
+          "scroll": 368,
+          "ranges": [
+            {
+              "x": 73,
+              "y": 996.328125,
+              "width": 303.8125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 255.78125,
+            "y": 7761.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 255.78125,
+            "y": 7761.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 287.78125,
+              "y": 7773.609375,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 507.546875,
+            "y": 7761.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 507.546875,
+            "y": 7761.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 540.546875,
+              "y": 7773.609375,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 120,
+            "y": 414.09375,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 120,
+            "y": 414.09375,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 152,
+              "y": 426.09375,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 317.84375,
+            "y": 414.09375,
+            "width": 369.8125,
+            "height": 44
+          },
+          "control": {
+            "x": 317.84375,
+            "y": 414.09375,
+            "width": 369.8125,
+            "height": 44
+          },
+          "client": 368,
+          "scroll": 368,
+          "ranges": [
+            {
+              "x": 350.84375,
+              "y": 426.09375,
+              "width": 303.8125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 463.78125,
+            "y": 6475.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 463.78125,
+            "y": 6475.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 495.78125,
+              "y": 6487.609375,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 715.546875,
+            "y": 6475.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 715.546875,
+            "y": 6475.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 748.546875,
+              "y": 6487.609375,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 16,
+            "y": 477.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 477.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 69.015625,
+              "y": 488.875,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 16,
+            "y": 537.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 537.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 41.953125,
+              "y": 548.875,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 16,
+            "y": 5077.125,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 5077.125,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 62.8125,
+              "y": 5088.125,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 16,
+            "y": 5137.125,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 5137.125,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 111.25,
+              "y": 5148.125,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 101.96875,
+            "y": 366.34375,
+            "width": 245.96875,
+            "height": 44
+          },
+          "control": {
+            "x": 101.96875,
+            "y": 366.34375,
+            "width": 245.96875,
+            "height": 44
+          },
+          "client": 246,
+          "scroll": 246,
+          "ranges": [
+            {
+              "x": 133.96875,
+              "y": 377.34375,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 363.9375,
+            "y": 366.34375,
+            "width": 302.09375,
+            "height": 44
+          },
+          "control": {
+            "x": 363.9375,
+            "y": 366.34375,
+            "width": 302.09375,
+            "height": 44
+          },
+          "client": 300,
+          "scroll": 300,
+          "ranges": [
+            {
+              "x": 396.9375,
+              "y": 377.34375,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 165.0625,
+            "y": 2795.59375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "control": {
+            "x": 165.0625,
+            "y": 2795.59375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "client": 258,
+          "scroll": 258,
+          "ranges": [
+            {
+              "x": 197.0625,
+              "y": 2806.59375,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 439.421875,
+            "y": 2795.59375,
+            "width": 163.5,
+            "height": 44
+          },
+          "control": {
+            "x": 439.421875,
+            "y": 2795.59375,
+            "width": 163.5,
+            "height": 44
+          },
+          "client": 162,
+          "scroll": 162,
+          "ranges": [
+            {
+              "x": 472.421875,
+              "y": 2806.59375,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 229.96875,
+            "y": 378.6875,
+            "width": 245.96875,
+            "height": 44
+          },
+          "control": {
+            "x": 229.96875,
+            "y": 378.6875,
+            "width": 245.96875,
+            "height": 44
+          },
+          "client": 246,
+          "scroll": 246,
+          "ranges": [
+            {
+              "x": 261.96875,
+              "y": 389.6875,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 491.9375,
+            "y": 378.6875,
+            "width": 302.09375,
+            "height": 44
+          },
+          "control": {
+            "x": 491.9375,
+            "y": 378.6875,
+            "width": 302.09375,
+            "height": 44
+          },
+          "client": 300,
+          "scroll": 300,
+          "ranges": [
+            {
+              "x": 524.9375,
+              "y": 389.6875,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 293.0625,
+            "y": 2402.6875,
+            "width": 258.359375,
+            "height": 44
+          },
+          "control": {
+            "x": 293.0625,
+            "y": 2402.6875,
+            "width": 258.359375,
+            "height": 44
+          },
+          "client": 258,
+          "scroll": 258,
+          "ranges": [
+            {
+              "x": 325.0625,
+              "y": 2413.6875,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 567.421875,
+            "y": 2402.6875,
+            "width": 163.5,
+            "height": 44
+          },
+          "control": {
+            "x": 567.421875,
+            "y": 2402.6875,
+            "width": 163.5,
+            "height": 44
+          },
+          "client": 162,
+          "scroll": 162,
+          "ranges": [
+            {
+              "x": 600.421875,
+              "y": 2413.6875,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 437.96875,
+            "y": 381.515625,
+            "width": 245.96875,
+            "height": 44
+          },
+          "control": {
+            "x": 437.96875,
+            "y": 381.515625,
+            "width": 245.96875,
+            "height": 44
+          },
+          "client": 246,
+          "scroll": 246,
+          "ranges": [
+            {
+              "x": 469.96875,
+              "y": 392.515625,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 699.9375,
+            "y": 381.515625,
+            "width": 302.09375,
+            "height": 44
+          },
+          "control": {
+            "x": 699.9375,
+            "y": 381.515625,
+            "width": 302.09375,
+            "height": 44
+          },
+          "client": 300,
+          "scroll": 300,
+          "ranges": [
+            {
+              "x": 732.9375,
+              "y": 392.515625,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 501.0625,
+            "y": 2218.859375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "control": {
+            "x": 501.0625,
+            "y": 2218.859375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "client": 258,
+          "scroll": 258,
+          "ranges": [
+            {
+              "x": 533.0625,
+              "y": 2229.859375,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 775.421875,
+            "y": 2218.859375,
+            "width": 163.5,
+            "height": 44
+          },
+          "control": {
+            "x": 775.421875,
+            "y": 2218.859375,
+            "width": 163.5,
+            "height": 44
+          },
+          "client": 162,
+          "scroll": 162,
+          "ranges": [
+            {
+              "x": 808.421875,
+              "y": 2229.859375,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 16,
+            "y": 686.5,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 686.5,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 698.5,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 258.453125,
+              "y": 700.5,
+              "width": 13.546875,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 16,
+            "y": 742.5,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 742.5,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 90.484375,
+              "y": 754.5,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 30.5,
+            "y": 6205.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 30.5,
+            "y": 6205.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 62.5,
+              "y": 6217.984375,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 241.515625,
+              "y": 6219.984375,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 30.5,
+            "y": 6261.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 30.5,
+            "y": 6261.984375,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 257,
+          "scroll": 257,
+          "ranges": [
+            {
+              "x": 77.421875,
+              "y": 6273.984375,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "mainCount": 1,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 16,
+            "y": 587.03125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 587.03125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "client": 290,
+          "scroll": 290,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 599.03125,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 258.453125,
+              "y": 601.03125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 322.453125,
+            "y": 587.03125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "control": {
+            "x": 322.453125,
+            "y": 587.03125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "client": 203,
+          "scroll": 203,
+          "ranges": [
+            {
+              "x": 355.453125,
+              "y": 599.03125,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 130.90625,
+            "y": 4963.140625,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 130.90625,
+            "y": 4963.140625,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 162.90625,
+              "y": 4975.140625,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 341.921875,
+              "y": 4977.140625,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 405.921875,
+            "y": 4963.140625,
+            "width": 231.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 405.921875,
+            "y": 4963.140625,
+            "width": 231.171875,
+            "height": 44
+          },
+          "client": 229,
+          "scroll": 229,
+          "ranges": [
+            {
+              "x": 438.921875,
+              "y": 4975.140625,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "mainCount": 1,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 16,
+            "y": 814,
+            "width": 290.453125,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 814,
+            "width": 290.453125,
+            "height": 44
+          },
+          "client": 290,
+          "scroll": 290,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 826,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 258.453125,
+              "y": 828,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 322.453125,
+            "y": 814,
+            "width": 205.03125,
+            "height": 44
+          },
+          "control": {
+            "x": 322.453125,
+            "y": 814,
+            "width": 205.03125,
+            "height": 44
+          },
+          "client": 203,
+          "scroll": 203,
+          "ranges": [
+            {
+              "x": 355.453125,
+              "y": 826,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 258.90625,
+            "y": 3642.53125,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 258.90625,
+            "y": 3642.53125,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 290.90625,
+              "y": 3654.53125,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 469.921875,
+              "y": 3656.53125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 533.921875,
+            "y": 3642.53125,
+            "width": 231.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 533.921875,
+            "y": 3642.53125,
+            "width": 231.171875,
+            "height": 44
+          },
+          "client": 229,
+          "scroll": 229,
+          "ranges": [
+            {
+              "x": 566.921875,
+              "y": 3654.53125,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Publier votre première mission",
+          "outer": {
+            "x": 144,
+            "y": 829.578125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "control": {
+            "x": 144,
+            "y": 829.578125,
+            "width": 290.453125,
+            "height": 44
+          },
+          "client": 290,
+          "scroll": 290,
+          "ranges": [
+            {
+              "x": 176,
+              "y": 841.578125,
+              "width": 202.453125,
+              "height": 19
+            },
+            {
+              "x": 386.453125,
+              "y": 843.578125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Parler à notre équipe",
+          "outer": {
+            "x": 450.453125,
+            "y": 829.578125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "control": {
+            "x": 450.453125,
+            "y": 829.578125,
+            "width": 205.03125,
+            "height": 44
+          },
+          "client": 203,
+          "scroll": 203,
+          "ranges": [
+            {
+              "x": 483.453125,
+              "y": 841.578125,
+              "width": 139.03125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer gratuitement",
+          "outer": {
+            "x": 466.90625,
+            "y": 3551.046875,
+            "width": 259.015625,
+            "height": 44
+          },
+          "control": {
+            "x": 466.90625,
+            "y": 3551.046875,
+            "width": 259.015625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 498.90625,
+              "y": 3563.046875,
+              "width": 171.015625,
+              "height": 19
+            },
+            {
+              "x": 677.921875,
+              "y": 3565.046875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Ouvrir le tableau de bord",
+          "outer": {
+            "x": 741.921875,
+            "y": 3551.046875,
+            "width": 231.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 741.921875,
+            "y": 3551.046875,
+            "width": 231.171875,
+            "height": 44
+          },
+          "client": 229,
+          "scroll": 229,
+          "ranges": [
+            {
+              "x": 774.921875,
+              "y": 3563.046875,
+              "width": 165.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 24,
+            "y": 798.125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 798.125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 810.125,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 24,
+            "y": 858.125,
+            "width": 272,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 858.125,
+            "width": 272,
+            "height": 44
+          },
+          "client": 270,
+          "scroll": 270,
+          "ranges": [
+            {
+              "x": 68.390625,
+              "y": 860.125,
+              "width": 183.21875,
+              "height": 19
+            },
+            {
+              "x": 101.515625,
+              "y": 880.125,
+              "width": 116.96875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 42.109375,
+            "y": 14153.640625,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 42.109375,
+            "y": 14153.640625,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 74.109375,
+              "y": 14165.640625,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 29.671875,
+            "y": 14213.640625,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 29.671875,
+            "y": 14213.640625,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 62.671875,
+              "y": 14225.640625,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 24,
+            "y": 619.03125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 619.03125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 631.03125,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 221.84375,
+            "y": 619.03125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "control": {
+            "x": 221.84375,
+            "y": 619.03125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "client": 368,
+          "scroll": 368,
+          "ranges": [
+            {
+              "x": 254.84375,
+              "y": 631.03125,
+              "width": 303.8125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 127.78125,
+            "y": 9589.671875,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 127.78125,
+            "y": 9589.671875,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 159.78125,
+              "y": 9601.671875,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 379.546875,
+            "y": 9589.671875,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 379.546875,
+            "y": 9589.671875,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 412.546875,
+              "y": 9601.671875,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 40,
+            "y": 924.328125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 40,
+            "y": 924.328125,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 72,
+              "y": 936.328125,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 40,
+            "y": 984.328125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "control": {
+            "x": 40,
+            "y": 984.328125,
+            "width": 369.8125,
+            "height": 44
+          },
+          "client": 368,
+          "scroll": 368,
+          "ranges": [
+            {
+              "x": 73,
+              "y": 996.328125,
+              "width": 303.8125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 255.78125,
+            "y": 7761.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 255.78125,
+            "y": 7761.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 287.78125,
+              "y": 7773.609375,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 507.546875,
+            "y": 7761.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 507.546875,
+            "y": 7761.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 540.546875,
+              "y": 7773.609375,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Parler à un expert",
+          "outer": {
+            "x": 120,
+            "y": 414.09375,
+            "width": 181.84375,
+            "height": 44
+          },
+          "control": {
+            "x": 120,
+            "y": 414.09375,
+            "width": 181.84375,
+            "height": 44
+          },
+          "client": 182,
+          "scroll": 182,
+          "ranges": [
+            {
+              "x": 152,
+              "y": 426.09375,
+              "width": 117.84375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter la documentation des déploiements",
+          "outer": {
+            "x": 317.84375,
+            "y": 414.09375,
+            "width": 369.8125,
+            "height": 44
+          },
+          "control": {
+            "x": 317.84375,
+            "y": 414.09375,
+            "width": 369.8125,
+            "height": 44
+          },
+          "client": 368,
+          "scroll": 368,
+          "ranges": [
+            {
+              "x": 350.84375,
+              "y": 426.09375,
+              "width": 303.8125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Réserver une consultation",
+          "outer": {
+            "x": 463.78125,
+            "y": 6475.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "control": {
+            "x": 463.78125,
+            "y": 6475.609375,
+            "width": 235.765625,
+            "height": 44
+          },
+          "client": 236,
+          "scroll": 236,
+          "ranges": [
+            {
+              "x": 495.78125,
+              "y": 6487.609375,
+              "width": 171.765625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Consulter les intégrations API",
+          "outer": {
+            "x": 715.546875,
+            "y": 6475.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "control": {
+            "x": 715.546875,
+            "y": 6475.609375,
+            "width": 260.65625,
+            "height": 44
+          },
+          "client": 259,
+          "scroll": 259,
+          "ranges": [
+            {
+              "x": 748.546875,
+              "y": 6487.609375,
+              "width": 194.65625,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 16,
+            "y": 477.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 477.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 69.015625,
+              "y": 488.875,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 16,
+            "y": 537.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 537.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 41.953125,
+              "y": 548.875,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 16,
+            "y": 5077.125,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 5077.125,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 62.8125,
+              "y": 5088.125,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 16,
+            "y": 5137.125,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 5137.125,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 111.25,
+              "y": 5148.125,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 101.96875,
+            "y": 366.34375,
+            "width": 245.96875,
+            "height": 44
+          },
+          "control": {
+            "x": 101.96875,
+            "y": 366.34375,
+            "width": 245.96875,
+            "height": 44
+          },
+          "client": 246,
+          "scroll": 246,
+          "ranges": [
+            {
+              "x": 133.96875,
+              "y": 377.34375,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 363.9375,
+            "y": 366.34375,
+            "width": 302.09375,
+            "height": 44
+          },
+          "control": {
+            "x": 363.9375,
+            "y": 366.34375,
+            "width": 302.09375,
+            "height": 44
+          },
+          "client": 300,
+          "scroll": 300,
+          "ranges": [
+            {
+              "x": 396.9375,
+              "y": 377.34375,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 165.0625,
+            "y": 2795.59375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "control": {
+            "x": 165.0625,
+            "y": 2795.59375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "client": 258,
+          "scroll": 258,
+          "ranges": [
+            {
+              "x": 197.0625,
+              "y": 2806.59375,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 439.421875,
+            "y": 2795.59375,
+            "width": 163.5,
+            "height": 44
+          },
+          "control": {
+            "x": 439.421875,
+            "y": 2795.59375,
+            "width": 163.5,
+            "height": 44
+          },
+          "client": 162,
+          "scroll": 162,
+          "ranges": [
+            {
+              "x": 472.421875,
+              "y": 2806.59375,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 229.96875,
+            "y": 378.6875,
+            "width": 245.96875,
+            "height": 44
+          },
+          "control": {
+            "x": 229.96875,
+            "y": 378.6875,
+            "width": 245.96875,
+            "height": 44
+          },
+          "client": 246,
+          "scroll": 246,
+          "ranges": [
+            {
+              "x": 261.96875,
+              "y": 389.6875,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 491.9375,
+            "y": 378.6875,
+            "width": 302.09375,
+            "height": 44
+          },
+          "control": {
+            "x": 491.9375,
+            "y": 378.6875,
+            "width": 302.09375,
+            "height": 44
+          },
+          "client": 300,
+          "scroll": 300,
+          "ranges": [
+            {
+              "x": 524.9375,
+              "y": 389.6875,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 293.0625,
+            "y": 2402.6875,
+            "width": 258.359375,
+            "height": 44
+          },
+          "control": {
+            "x": 293.0625,
+            "y": 2402.6875,
+            "width": 258.359375,
+            "height": 44
+          },
+          "client": 258,
+          "scroll": 258,
+          "ranges": [
+            {
+              "x": 325.0625,
+              "y": 2413.6875,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 567.421875,
+            "y": 2402.6875,
+            "width": 163.5,
+            "height": 44
+          },
+          "control": {
+            "x": 567.421875,
+            "y": 2402.6875,
+            "width": 163.5,
+            "height": 44
+          },
+          "client": 162,
+          "scroll": 162,
+          "ranges": [
+            {
+              "x": 600.421875,
+              "y": 2413.6875,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Collaborer gratuitement",
+          "outer": {
+            "x": 437.96875,
+            "y": 381.515625,
+            "width": 245.96875,
+            "height": 44
+          },
+          "control": {
+            "x": 437.96875,
+            "y": 381.515625,
+            "width": 245.96875,
+            "height": 44
+          },
+          "client": 246,
+          "scroll": 246,
+          "ranges": [
+            {
+              "x": 469.96875,
+              "y": 392.515625,
+              "width": 181.96875,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contacter l’équipe commerciale",
+          "outer": {
+            "x": 699.9375,
+            "y": 381.515625,
+            "width": 302.09375,
+            "height": 44
+          },
+          "control": {
+            "x": 699.9375,
+            "y": 381.515625,
+            "width": 302.09375,
+            "height": 44
+          },
+          "client": 300,
+          "scroll": 300,
+          "ranges": [
+            {
+              "x": 732.9375,
+              "y": 392.515625,
+              "width": 236.09375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Commencer l’essai gratuit",
+          "outer": {
+            "x": 501.0625,
+            "y": 2218.859375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "control": {
+            "x": 501.0625,
+            "y": 2218.859375,
+            "width": 258.359375,
+            "height": 44
+          },
+          "client": 258,
+          "scroll": 258,
+          "ranges": [
+            {
+              "x": 533.0625,
+              "y": 2229.859375,
+              "width": 194.359375,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "Voir les tarifs",
+          "outer": {
+            "x": 775.421875,
+            "y": 2218.859375,
+            "width": 163.5,
+            "height": 44
+          },
+          "control": {
+            "x": 775.421875,
+            "y": 2218.859375,
+            "width": 163.5,
+            "height": 44
+          },
+          "client": 162,
+          "scroll": 162,
+          "ranges": [
+            {
+              "x": 808.421875,
+              "y": 2229.859375,
+              "width": 97.5,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 1,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 16,
+            "y": 613.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 613.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 67.296875,
+              "y": 625.875,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 236.6875,
+              "y": 627.875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 16,
+            "y": 669.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 669.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 106.5625,
+              "y": 681.875,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 64.25,
+            "y": 5402.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 64.25,
+            "y": 5402.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 96.25,
+              "y": 5414.640625,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 207.75,
+              "y": 5416.640625,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 64.25,
+            "y": 5458.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 64.25,
+            "y": 5458.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 190,
+          "scroll": 190,
+          "ranges": [
+            {
+              "x": 104.6875,
+              "y": 5470.640625,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "mainCount": 1,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 16,
+            "y": 522.6875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 522.6875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "client": 249,
+          "scroll": 249,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 534.6875,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 217.390625,
+              "y": 536.6875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 281.390625,
+            "y": 522.6875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "control": {
+            "x": 281.390625,
+            "y": 522.6875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "client": 171,
+          "scroll": 171,
+          "ranges": [
+            {
+              "x": 314.390625,
+              "y": 534.6875,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 191.9375,
+            "y": 4605.8125,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 191.9375,
+            "y": 4605.8125,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 223.9375,
+              "y": 4617.8125,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 335.4375,
+              "y": 4619.8125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 399.4375,
+            "y": 4605.8125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "control": {
+            "x": 399.4375,
+            "y": 4605.8125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "client": 175,
+          "scroll": 175,
+          "ranges": [
+            {
+              "x": 432.4375,
+              "y": 4617.8125,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "mainCount": 1,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 16,
+            "y": 737.3125,
+            "width": 249.390625,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 737.3125,
+            "width": 249.390625,
+            "height": 44
+          },
+          "client": 249,
+          "scroll": 249,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 749.3125,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 217.390625,
+              "y": 751.3125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 281.390625,
+            "y": 737.3125,
+            "width": 172.859375,
+            "height": 44
+          },
+          "control": {
+            "x": 281.390625,
+            "y": 737.3125,
+            "width": 172.859375,
+            "height": 44
+          },
+          "client": 171,
+          "scroll": 171,
+          "ranges": [
+            {
+              "x": 314.390625,
+              "y": 749.3125,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 319.9375,
+            "y": 3354.453125,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 319.9375,
+            "y": 3354.453125,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 351.9375,
+              "y": 3366.453125,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 463.4375,
+              "y": 3368.453125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 527.4375,
+            "y": 3354.453125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "control": {
+            "x": 527.4375,
+            "y": 3354.453125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "client": 175,
+          "scroll": 175,
+          "ranges": [
+            {
+              "x": 560.4375,
+              "y": 3366.453125,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 1,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 144,
+            "y": 670.546875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "control": {
+            "x": 144,
+            "y": 670.546875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "client": 249,
+          "scroll": 249,
+          "ranges": [
+            {
+              "x": 176,
+              "y": 682.546875,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 345.390625,
+              "y": 684.546875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 409.390625,
+            "y": 670.546875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "control": {
+            "x": 409.390625,
+            "y": 670.546875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "client": 171,
+          "scroll": 171,
+          "ranges": [
+            {
+              "x": 442.390625,
+              "y": 682.546875,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 527.9375,
+            "y": 3202.703125,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 527.9375,
+            "y": 3202.703125,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 559.9375,
+              "y": 3214.703125,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 671.4375,
+              "y": 3216.703125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 735.4375,
+            "y": 3202.703125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "control": {
+            "x": 735.4375,
+            "y": 3202.703125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "client": 175,
+          "scroll": 175,
+          "ranges": [
+            {
+              "x": 768.4375,
+              "y": 3214.703125,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 24,
+            "y": 725.5,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 725.5,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 737.5,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 24,
+            "y": 785.5,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 785.5,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 57,
+              "y": 797.5,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 62.921875,
+            "y": 13529.375,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 62.921875,
+            "y": 13529.375,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 94.921875,
+              "y": 13541.375,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 49.609375,
+            "y": 13589.375,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 49.609375,
+            "y": 13589.375,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 82.609375,
+              "y": 13601.375,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 24,
+            "y": 525.6875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 525.6875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 537.6875,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 212.921875,
+            "y": 525.6875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 212.921875,
+            "y": 525.6875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 245.921875,
+              "y": 537.6875,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 168.515625,
+            "y": 9406.0625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 168.515625,
+            "y": 9406.0625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 200.515625,
+              "y": 9418.0625,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 378.6875,
+            "y": 9406.0625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 378.6875,
+            "y": 9406.0625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 411.6875,
+              "y": 9418.0625,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 40,
+            "y": 848.640625,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 40,
+            "y": 848.640625,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 72,
+              "y": 860.640625,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 228.921875,
+            "y": 848.640625,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 228.921875,
+            "y": 848.640625,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 261.921875,
+              "y": 860.640625,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 296.515625,
+            "y": 7407.890625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 296.515625,
+            "y": 7407.890625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 328.515625,
+              "y": 7419.890625,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 506.6875,
+            "y": 7407.890625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 506.6875,
+            "y": 7407.890625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 539.6875,
+              "y": 7419.890625,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 120,
+            "y": 672.546875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 120,
+            "y": 672.546875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 152,
+              "y": 684.546875,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 308.921875,
+            "y": 672.546875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 308.921875,
+            "y": 672.546875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 341.921875,
+              "y": 684.546875,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 504.515625,
+            "y": 6644.453125,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 504.515625,
+            "y": 6644.453125,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 536.515625,
+              "y": 6656.453125,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 714.6875,
+            "y": 6644.453125,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 714.6875,
+            "y": 6644.453125,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 747.6875,
+              "y": 6656.453125,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 16,
+            "y": 449.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 449.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 70.828125,
+              "y": 460.875,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 16,
+            "y": 509.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 509.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 109.6875,
+              "y": 520.875,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 16,
+            "y": 4530.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 4530.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 105.578125,
+              "y": 4541.875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 16,
+            "y": 4590.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 4590.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 114.4375,
+              "y": 4601.875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 171.515625,
+            "y": 366.34375,
+            "width": 242.328125,
+            "height": 44
+          },
+          "control": {
+            "x": 171.515625,
+            "y": 366.34375,
+            "width": 242.328125,
+            "height": 44
+          },
+          "client": 242,
+          "scroll": 242,
+          "ranges": [
+            {
+              "x": 203.515625,
+              "y": 377.34375,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 429.84375,
+            "y": 366.34375,
+            "width": 166.625,
+            "height": 44
+          },
+          "control": {
+            "x": 429.84375,
+            "y": 366.34375,
+            "width": 166.625,
+            "height": 44
+          },
+          "client": 165,
+          "scroll": 165,
+          "ranges": [
+            {
+              "x": 462.84375,
+              "y": 377.34375,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 211.015625,
+            "y": 2576.21875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 211.015625,
+            "y": 2576.21875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 243.015625,
+              "y": 2587.21875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 399.84375,
+            "y": 2576.21875,
+            "width": 157.125,
+            "height": 44
+          },
+          "control": {
+            "x": 399.84375,
+            "y": 2576.21875,
+            "width": 157.125,
+            "height": 44
+          },
+          "client": 155,
+          "scroll": 155,
+          "ranges": [
+            {
+              "x": 432.84375,
+              "y": 2587.21875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 299.515625,
+            "y": 378.6875,
+            "width": 242.328125,
+            "height": 44
+          },
+          "control": {
+            "x": 299.515625,
+            "y": 378.6875,
+            "width": 242.328125,
+            "height": 44
+          },
+          "client": 242,
+          "scroll": 242,
+          "ranges": [
+            {
+              "x": 331.515625,
+              "y": 389.6875,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 557.84375,
+            "y": 378.6875,
+            "width": 166.625,
+            "height": 44
+          },
+          "control": {
+            "x": 557.84375,
+            "y": 378.6875,
+            "width": 166.625,
+            "height": 44
+          },
+          "client": 165,
+          "scroll": 165,
+          "ranges": [
+            {
+              "x": 590.84375,
+              "y": 389.6875,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 339.015625,
+            "y": 2295.1875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 339.015625,
+            "y": 2295.1875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 371.015625,
+              "y": 2306.1875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 527.84375,
+            "y": 2295.1875,
+            "width": 157.125,
+            "height": 44
+          },
+          "control": {
+            "x": 527.84375,
+            "y": 2295.1875,
+            "width": 157.125,
+            "height": 44
+          },
+          "client": 155,
+          "scroll": 155,
+          "ranges": [
+            {
+              "x": 560.84375,
+              "y": 2306.1875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 507.515625,
+            "y": 381.515625,
+            "width": 242.328125,
+            "height": 44
+          },
+          "control": {
+            "x": 507.515625,
+            "y": 381.515625,
+            "width": 242.328125,
+            "height": 44
+          },
+          "client": 242,
+          "scroll": 242,
+          "ranges": [
+            {
+              "x": 539.515625,
+              "y": 392.515625,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 765.84375,
+            "y": 381.515625,
+            "width": 166.625,
+            "height": 44
+          },
+          "control": {
+            "x": 765.84375,
+            "y": 381.515625,
+            "width": 166.625,
+            "height": 44
+          },
+          "client": 165,
+          "scroll": 165,
+          "ranges": [
+            {
+              "x": 798.84375,
+              "y": 392.515625,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 547.015625,
+            "y": 2184.796875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 547.015625,
+            "y": 2184.796875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 579.015625,
+              "y": 2195.796875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 735.84375,
+            "y": 2184.796875,
+            "width": 157.125,
+            "height": 44
+          },
+          "control": {
+            "x": 735.84375,
+            "y": 2184.796875,
+            "width": 157.125,
+            "height": 44
+          },
+          "client": 155,
+          "scroll": 155,
+          "ranges": [
+            {
+              "x": 768.84375,
+              "y": 2195.796875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 1,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 16,
+            "y": 613.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 613.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 67.296875,
+              "y": 625.875,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 236.6875,
+              "y": 627.875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 16,
+            "y": 669.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 669.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 106.5625,
+              "y": 681.875,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 64.25,
+            "y": 5402.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 64.25,
+            "y": 5402.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 96.25,
+              "y": 5414.640625,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 207.75,
+              "y": 5416.640625,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 64.25,
+            "y": 5458.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 64.25,
+            "y": 5458.640625,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 190,
+          "scroll": 190,
+          "ranges": [
+            {
+              "x": 104.6875,
+              "y": 5470.640625,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "mainCount": 1,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 16,
+            "y": 522.6875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 522.6875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "client": 249,
+          "scroll": 249,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 534.6875,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 217.390625,
+              "y": 536.6875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 281.390625,
+            "y": 522.6875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "control": {
+            "x": 281.390625,
+            "y": 522.6875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "client": 171,
+          "scroll": 171,
+          "ranges": [
+            {
+              "x": 314.390625,
+              "y": 534.6875,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 191.9375,
+            "y": 4605.8125,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 191.9375,
+            "y": 4605.8125,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 223.9375,
+              "y": 4617.8125,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 335.4375,
+              "y": 4619.8125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 399.4375,
+            "y": 4605.8125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "control": {
+            "x": 399.4375,
+            "y": 4605.8125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "client": 175,
+          "scroll": 175,
+          "ranges": [
+            {
+              "x": 432.4375,
+              "y": 4617.8125,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "mainCount": 1,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 16,
+            "y": 737.3125,
+            "width": 249.390625,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 737.3125,
+            "width": 249.390625,
+            "height": 44
+          },
+          "client": 249,
+          "scroll": 249,
+          "ranges": [
+            {
+              "x": 48,
+              "y": 749.3125,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 217.390625,
+              "y": 751.3125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 281.390625,
+            "y": 737.3125,
+            "width": 172.859375,
+            "height": 44
+          },
+          "control": {
+            "x": 281.390625,
+            "y": 737.3125,
+            "width": 172.859375,
+            "height": 44
+          },
+          "client": 171,
+          "scroll": 171,
+          "ranges": [
+            {
+              "x": 314.390625,
+              "y": 749.3125,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 319.9375,
+            "y": 3354.453125,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 319.9375,
+            "y": 3354.453125,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 351.9375,
+              "y": 3366.453125,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 463.4375,
+              "y": 3368.453125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 527.4375,
+            "y": 3354.453125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "control": {
+            "x": 527.4375,
+            "y": 3354.453125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "client": 175,
+          "scroll": 175,
+          "ranges": [
+            {
+              "x": 560.4375,
+              "y": 3366.453125,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 1,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Launch your first bounty",
+          "outer": {
+            "x": 144,
+            "y": 670.546875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "control": {
+            "x": 144,
+            "y": 670.546875,
+            "width": 249.390625,
+            "height": 44
+          },
+          "client": 249,
+          "scroll": 249,
+          "ranges": [
+            {
+              "x": 176,
+              "y": 682.546875,
+              "width": 161.390625,
+              "height": 19
+            },
+            {
+              "x": 345.390625,
+              "y": 684.546875,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Talk to our team",
+          "outer": {
+            "x": 409.390625,
+            "y": 670.546875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "control": {
+            "x": 409.390625,
+            "y": 670.546875,
+            "width": 172.859375,
+            "height": 44
+          },
+          "client": 171,
+          "scroll": 171,
+          "ranges": [
+            {
+              "x": 442.390625,
+              "y": 682.546875,
+              "width": 106.859375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Get started free",
+          "outer": {
+            "x": 527.9375,
+            "y": 3202.703125,
+            "width": 191.5,
+            "height": 44
+          },
+          "control": {
+            "x": 527.9375,
+            "y": 3202.703125,
+            "width": 191.5,
+            "height": 44
+          },
+          "client": 192,
+          "scroll": 192,
+          "ranges": [
+            {
+              "x": 559.9375,
+              "y": 3214.703125,
+              "width": 103.5,
+              "height": 19
+            },
+            {
+              "x": 671.4375,
+              "y": 3216.703125,
+              "width": 16,
+              "height": 16
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/dashboard",
+          "text": "Open dashboard",
+          "outer": {
+            "x": 735.4375,
+            "y": 3202.703125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "control": {
+            "x": 735.4375,
+            "y": 3202.703125,
+            "width": 176.609375,
+            "height": 44
+          },
+          "client": 175,
+          "scroll": 175,
+          "ranges": [
+            {
+              "x": 768.4375,
+              "y": 3214.703125,
+              "width": 110.609375,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 24,
+            "y": 725.5,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 725.5,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 737.5,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 24,
+            "y": 785.5,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 785.5,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 57,
+              "y": 797.5,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 62.921875,
+            "y": 13529.375,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 62.921875,
+            "y": 13529.375,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 94.921875,
+              "y": 13541.375,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 49.609375,
+            "y": 13589.375,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 49.609375,
+            "y": 13589.375,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 82.609375,
+              "y": 13601.375,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 24,
+            "y": 525.6875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 24,
+            "y": 525.6875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 56,
+              "y": 537.6875,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 212.921875,
+            "y": 525.6875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 212.921875,
+            "y": 525.6875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 245.921875,
+              "y": 537.6875,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 168.515625,
+            "y": 9406.0625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 168.515625,
+            "y": 9406.0625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 200.515625,
+              "y": 9418.0625,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 378.6875,
+            "y": 9406.0625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 378.6875,
+            "y": 9406.0625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 411.6875,
+              "y": 9418.0625,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 40,
+            "y": 848.640625,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 40,
+            "y": 848.640625,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 72,
+              "y": 860.640625,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 228.921875,
+            "y": 848.640625,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 228.921875,
+            "y": 848.640625,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 261.921875,
+              "y": 860.640625,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 296.515625,
+            "y": 7407.890625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 296.515625,
+            "y": 7407.890625,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 328.515625,
+              "y": 7419.890625,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 506.6875,
+            "y": 7407.890625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 506.6875,
+            "y": 7407.890625,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 539.6875,
+              "y": 7419.890625,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/contact-sales",
+          "text": "Talk to an expert",
+          "outer": {
+            "x": 120,
+            "y": 672.546875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "control": {
+            "x": 120,
+            "y": 672.546875,
+            "width": 172.921875,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 152,
+              "y": 684.546875,
+              "width": 108.921875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Explore deployment docs",
+          "outer": {
+            "x": 308.921875,
+            "y": 672.546875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 308.921875,
+            "y": 672.546875,
+            "width": 231.828125,
+            "height": 44
+          },
+          "client": 230,
+          "scroll": 230,
+          "ranges": [
+            {
+              "x": 341.921875,
+              "y": 684.546875,
+              "width": 165.828125,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Book a consultation",
+          "outer": {
+            "x": 504.515625,
+            "y": 6644.453125,
+            "width": 194.171875,
+            "height": 44
+          },
+          "control": {
+            "x": 504.515625,
+            "y": 6644.453125,
+            "width": 194.171875,
+            "height": 44
+          },
+          "client": 194,
+          "scroll": 194,
+          "ranges": [
+            {
+              "x": 536.515625,
+              "y": 6656.453125,
+              "width": 130.171875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/docs",
+          "text": "Review API integrations",
+          "outer": {
+            "x": 714.6875,
+            "y": 6644.453125,
+            "width": 220.796875,
+            "height": 44
+          },
+          "control": {
+            "x": 714.6875,
+            "y": 6644.453125,
+            "width": 220.796875,
+            "height": 44
+          },
+          "client": 219,
+          "scroll": 219,
+          "ranges": [
+            {
+              "x": 747.6875,
+              "y": 6656.453125,
+              "width": 154.796875,
+              "height": 19
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "mainCount": 0,
+      "docWidth": 320,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 16,
+            "y": 449.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 449.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 70.828125,
+              "y": 460.875,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 16,
+            "y": 509.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 509.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 109.6875,
+              "y": 520.875,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 16,
+            "y": 4530.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 4530.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 288,
+          "scroll": 288,
+          "ranges": [
+            {
+              "x": 105.578125,
+              "y": 4541.875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 16,
+            "y": 4590.875,
+            "width": 288,
+            "height": 44
+          },
+          "control": {
+            "x": 16,
+            "y": 4590.875,
+            "width": 288,
+            "height": 44
+          },
+          "client": 286,
+          "scroll": 286,
+          "ranges": [
+            {
+              "x": 114.4375,
+              "y": 4601.875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "mainCount": 0,
+      "docWidth": 768,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 171.515625,
+            "y": 366.34375,
+            "width": 242.328125,
+            "height": 44
+          },
+          "control": {
+            "x": 171.515625,
+            "y": 366.34375,
+            "width": 242.328125,
+            "height": 44
+          },
+          "client": 242,
+          "scroll": 242,
+          "ranges": [
+            {
+              "x": 203.515625,
+              "y": 377.34375,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 429.84375,
+            "y": 366.34375,
+            "width": 166.625,
+            "height": 44
+          },
+          "control": {
+            "x": 429.84375,
+            "y": 366.34375,
+            "width": 166.625,
+            "height": 44
+          },
+          "client": 165,
+          "scroll": 165,
+          "ranges": [
+            {
+              "x": 462.84375,
+              "y": 377.34375,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 211.015625,
+            "y": 2576.21875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 211.015625,
+            "y": 2576.21875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 243.015625,
+              "y": 2587.21875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 399.84375,
+            "y": 2576.21875,
+            "width": 157.125,
+            "height": 44
+          },
+          "control": {
+            "x": 399.84375,
+            "y": 2576.21875,
+            "width": 157.125,
+            "height": 44
+          },
+          "client": 155,
+          "scroll": 155,
+          "ranges": [
+            {
+              "x": 432.84375,
+              "y": 2587.21875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "mainCount": 0,
+      "docWidth": 1024,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 299.515625,
+            "y": 378.6875,
+            "width": 242.328125,
+            "height": 44
+          },
+          "control": {
+            "x": 299.515625,
+            "y": 378.6875,
+            "width": 242.328125,
+            "height": 44
+          },
+          "client": 242,
+          "scroll": 242,
+          "ranges": [
+            {
+              "x": 331.515625,
+              "y": 389.6875,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 557.84375,
+            "y": 378.6875,
+            "width": 166.625,
+            "height": 44
+          },
+          "control": {
+            "x": 557.84375,
+            "y": 378.6875,
+            "width": 166.625,
+            "height": 44
+          },
+          "client": 165,
+          "scroll": 165,
+          "ranges": [
+            {
+              "x": 590.84375,
+              "y": 389.6875,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 339.015625,
+            "y": 2295.1875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 339.015625,
+            "y": 2295.1875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 371.015625,
+              "y": 2306.1875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 527.84375,
+            "y": 2295.1875,
+            "width": 157.125,
+            "height": 44
+          },
+          "control": {
+            "x": 527.84375,
+            "y": 2295.1875,
+            "width": 157.125,
+            "height": 44
+          },
+          "client": 155,
+          "scroll": 155,
+          "ranges": [
+            {
+              "x": 560.84375,
+              "y": 2306.1875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "mainCount": 0,
+      "docWidth": 1440,
+      "actions": [
+        {
+          "href": "/register",
+          "text": "Start Collaborating Free",
+          "outer": {
+            "x": 507.515625,
+            "y": 381.515625,
+            "width": 242.328125,
+            "height": 44
+          },
+          "control": {
+            "x": 507.515625,
+            "y": 381.515625,
+            "width": 242.328125,
+            "height": 44
+          },
+          "client": 242,
+          "scroll": 242,
+          "ranges": [
+            {
+              "x": 539.515625,
+              "y": 392.515625,
+              "width": 178.328125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/contact-sales",
+          "text": "Contact Sales",
+          "outer": {
+            "x": 765.84375,
+            "y": 381.515625,
+            "width": 166.625,
+            "height": 44
+          },
+          "control": {
+            "x": 765.84375,
+            "y": 381.515625,
+            "width": 166.625,
+            "height": 44
+          },
+          "client": 165,
+          "scroll": 165,
+          "ranges": [
+            {
+              "x": 798.84375,
+              "y": 392.515625,
+              "width": 100.625,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/register",
+          "text": "Start Free Trial",
+          "outer": {
+            "x": 547.015625,
+            "y": 2184.796875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "control": {
+            "x": 547.015625,
+            "y": 2184.796875,
+            "width": 172.828125,
+            "height": 44
+          },
+          "client": 173,
+          "scroll": 173,
+          "ranges": [
+            {
+              "x": 579.015625,
+              "y": 2195.796875,
+              "width": 108.828125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        },
+        {
+          "href": "/pricing",
+          "text": "View Pricing",
+          "outer": {
+            "x": 735.84375,
+            "y": 2184.796875,
+            "width": 157.125,
+            "height": 44
+          },
+          "control": {
+            "x": 735.84375,
+            "y": 2184.796875,
+            "width": 157.125,
+            "height": 44
+          },
+          "client": 155,
+          "scroll": 155,
+          "ranges": [
+            {
+              "x": 768.84375,
+              "y": 2195.796875,
+              "width": 91.125,
+              "height": 22
+            }
+          ],
+          "tag": "BUTTON"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com"
+    }
+  ],
+  "keyboard": [
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Publier votre première mission",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Parler à notre équipe",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Parler à un expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Consulter la documentation des déploiements",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaborer gratuitement",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contacter l’équipe commerciale",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/bounties",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Launch your first bounty",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Talk to our team",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/deployments",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Talk to an expert",
+          "href": "/contact-sales"
+        },
+        {
+          "tag": "A",
+          "text": "Explore deployment docs",
+          "href": "/docs"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    },
+    {
+      "route": "/marketing/teams",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "steps": [
+        {
+          "tag": "A",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Start Collaborating Free",
+          "href": "/register"
+        },
+        {
+          "tag": "A",
+          "text": "Contact Sales",
+          "href": "/contact-sales"
+        }
+      ]
+    }
+  ]
+}

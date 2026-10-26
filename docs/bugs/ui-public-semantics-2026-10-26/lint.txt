@@ -1,0 +1,7 @@
+
+/workspace/vibecore-ui-semantics-next/app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx
+  34:9  error  Expected line before comment               @blitz/lines-around-comment
+  42:9  error  Expected blank line before this statement  padding-line-between-statements
+
+✖ 2 problems (2 errors, 0 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.

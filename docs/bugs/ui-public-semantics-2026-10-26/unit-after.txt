@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-semantics-next
+
+ ✓ app/lib/i18n/catalogs/marketing-exact-partners-info.spec.tsx (12 tests) 185ms
+ ✓ app/components/marketing/ecode-exact/pages/public-navigation.spec.tsx (6 tests) 503ms
+ ✓ app/lib/i18n/catalogs/marketing-exact-agreement-team.spec.tsx (9 tests) 115ms
+
+ Test Files  3 passed (3)
+      Tests  27 passed (27)
+   Start at  04:12:35
+   Duration  4.92s (transform 3.29s, setup 93ms, collect 4.56s, tests 803ms, environment 313ms, prepare 188ms)
