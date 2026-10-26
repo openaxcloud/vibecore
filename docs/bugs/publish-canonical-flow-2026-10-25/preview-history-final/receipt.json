@@ -1,0 +1,153 @@
+{
+  "compiledProduct": "4a1bf49d6f8ef3553f376393d632f4e92dcbadba",
+  "runtimeSourceCommit": "5fbbcd07e26af1895cefb2f54fa80c209502c7c2",
+  "runtimeApiSourceQualification": "API process launched from5fbb; services/api byte-identical to334f9821a and4a1bf49d6 verified by git diff. Not relabeled as final web commit.",
+  "testSourceQualification": "Final Publish test has one lint-required blank line beyond4a commit; exact content hash included. No product source changed during build/run.",
+  "stats": {
+    "startTime": "2026-10-25T19:24:31.604Z",
+    "duration": 92341.879,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "legacy domains URL opens canonical deployment domains at 390px",
+      "status": "expected",
+      "durationMs": 5122
+    },
+    {
+      "title": "legacy document POST shows its validation error before returning to canonical domains",
+      "status": "expected",
+      "durationMs": 11268
+    },
+    {
+      "title": "top Publish, dashboard navigation and legacy bookmark open the same publish host",
+      "status": "expected",
+      "durationMs": 13646
+    },
+    {
+      "title": "real unavailable detection allows explicit mode override; double click sends one payload and error can be retried",
+      "status": "expected",
+      "durationMs": 70654
+    },
+    {
+      "title": "cancel and rollback require confirmation; Escape and Cancel send nothing",
+      "status": "expected",
+      "durationMs": 6867
+    },
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "status": "expected",
+      "durationMs": 8434
+    }
+  ],
+  "workers": 2,
+  "retries": 0,
+  "browser": "System Chromium154.0.8037.57; no claim of CI Chromium147 parity",
+  "sourceAndTestSha256": [
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "28b479db0483bbb9aac791c40b502f96919e9b932692592d5d015cce2d67ee91"
+    },
+    {
+      "path": "app/components/deploy/DeployPublishCard.tsx",
+      "sha256": "6cd5e4491d995b3bafd8d5e1c309aa3631b04411fe61af04113670eef80f848c"
+    },
+    {
+      "path": "app/components/deploy/useDeployPanelSession.ts",
+      "sha256": "f16d3b87604dcf7005d7aa7c4fc1fd923160e0a24b1d2bee410de6a7f13dc45b"
+    },
+    {
+      "path": "app/components/deploy/useDeploymentSubmit.tsx",
+      "sha256": "c2b9ee3898236da3a775883d00bb0c439a35edd2b80048a86f87568c933afc4b"
+    },
+    {
+      "path": "app/components/workbench/Preview.tsx",
+      "sha256": "aaa29cd0b3e381120dd51a78988198b89c1809d4db5499aa95cae0ab17585795"
+    },
+    {
+      "path": "tests/e2e/deploy-canonical-navigation.spec.ts",
+      "sha256": "ef93cdded03ca94cb5b66b59a361696a18fa80be082d01c5471869c4e4af337d"
+    },
+    {
+      "path": "tests/e2e/publish-canonical-flow.spec.ts",
+      "sha256": "645813649399796812d8dff2a084d1b4f5c48d432bf84d349be7b0cc0f9c0f4f"
+    },
+    {
+      "path": "tests/e2e/rpl-ide-panels-proof.spec.ts",
+      "sha256": "1ec147fc6eaa392b01610e0cbdfcc007cba6c02bbec31cebeb1a6a80adada496"
+    },
+    {
+      "path": "tests/e2e/helpers/panel-history-diagnostics.ts",
+      "sha256": "2dc56ebfa63f3c5835160563648ec2c64f2b4b82479dc87bb83ca40d02c8d6ad"
+    }
+  ],
+  "fullSourceFilesVerified": 3186,
+  "buildFilesVerified": 2308,
+  "artifactManifestSha256": "9b2be25ed27e65e7e0e40087e13ed0cd68e9fc63664bc596c4e23e9fd650ddd9",
+  "postRunSourceBuildMismatches": 0,
+  "real": [
+    "Compiled responsive navigation and legacy Domains POST400",
+    "Local auth/project/workspace APIs and ephemeral SQL/Redis",
+    "Unavailable detection/redetect and real ratecard",
+    "Original Back/Forward assertions with passive iframe diagnostics",
+    "Rollback confirmation after observed desktop readiness"
+  ],
+  "controlled": [
+    "Publication503 responses intercepted before API",
+    "Synthetic BUILDING/READY history and intercepted cancel/rollback actions"
+  ],
+  "notExecuted": [
+    "External deployment or DNS change",
+    "Production QA",
+    "Successful live framework detection",
+    "CI Chromium147 verification of final patch"
+  ],
+  "screenshots": ["managed-publish-mobile.png", "rollback-confirmation.png"],
+  "backObservation": {
+    "firstAttemptPassed": true,
+    "maxObservedHistoryLength": 4,
+    "extraJointHistoryEntriesObserved": 0,
+    "qualification": "Observed local sequence only; not CI147 proof",
+    "phases": [
+      {
+        "event": "before-back-1",
+        "idx": 2,
+        "length": 4,
+        "timeMs": 6612
+      },
+      {
+        "event": "after-back-1",
+        "idx": 1,
+        "length": 4,
+        "timeMs": 6663
+      },
+      {
+        "event": "before-back-2",
+        "idx": 1,
+        "length": 4,
+        "timeMs": 6664
+      },
+      {
+        "event": "after-back-2",
+        "idx": 0,
+        "length": 4,
+        "timeMs": 6725
+      },
+      {
+        "event": "before-forward",
+        "idx": 0,
+        "length": 4,
+        "timeMs": 7283
+      },
+      {
+        "event": "after-forward",
+        "idx": 1,
+        "length": 4,
+        "timeMs": 7340
+      }
+    ]
+  }
+}

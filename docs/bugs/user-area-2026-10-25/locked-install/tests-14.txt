@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/routes/account-settings.shouldRethrow.spec.ts (5 tests) 8ms
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 43ms
+ ✓ app/routes/billing.spend-usage.spec.ts (3 tests) 3ms
+
+ Test Files  3 passed (3)
+      Tests  14 passed (14)
+   Start at  20:35:09
+   Duration  4.55s (transform 2.14s, setup 249ms, collect 1.69s, tests 54ms, environment 0ms, prepare 478ms)
+

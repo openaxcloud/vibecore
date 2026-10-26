@@ -1,0 +1,429 @@
+{
+  "base": "http://127.0.0.1:8499",
+  "synthetic": true,
+  "observations": [
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [
+        44,
+        44,
+        44,
+        44,
+        44,
+        44
+      ],
+      "titles": [
+        {
+          "text": "React SaaS",
+          "title": "",
+          "scroll": 129,
+          "client": 129,
+          "clamp": "none"
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "title": "",
+          "scroll": 281,
+          "client": 281,
+          "clamp": "none"
+        },
+        {
+          "text": "API Fastify",
+          "title": "",
+          "scroll": 127,
+          "client": 127,
+          "clamp": "none"
+        },
+        {
+          "text": "Agent IA",
+          "title": "",
+          "scroll": 104,
+          "client": 104,
+          "clamp": "none"
+        },
+        {
+          "text": "Page d’atterrissage",
+          "title": "",
+          "scroll": 231,
+          "client": 231,
+          "clamp": "none"
+        },
+        {
+          "text": "Démarrage mobile",
+          "title": "",
+          "scroll": 224,
+          "client": 224,
+          "clamp": "none"
+        }
+      ]
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [],
+      "titles": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        }
+      ]
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [
+        44,
+        44,
+        44,
+        44,
+        44,
+        44
+      ],
+      "titles": [
+        {
+          "text": "React SaaS",
+          "title": "",
+          "scroll": 129,
+          "client": 129,
+          "clamp": "none"
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "title": "",
+          "scroll": 281,
+          "client": 281,
+          "clamp": "none"
+        },
+        {
+          "text": "API Fastify",
+          "title": "",
+          "scroll": 127,
+          "client": 127,
+          "clamp": "none"
+        },
+        {
+          "text": "Agent IA",
+          "title": "",
+          "scroll": 104,
+          "client": 104,
+          "clamp": "none"
+        },
+        {
+          "text": "Page d’atterrissage",
+          "title": "",
+          "scroll": 231,
+          "client": 231,
+          "clamp": "none"
+        },
+        {
+          "text": "Démarrage mobile",
+          "title": "",
+          "scroll": 224,
+          "client": 224,
+          "clamp": "none"
+        }
+      ]
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [],
+      "titles": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        }
+      ]
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [
+        44,
+        44,
+        44,
+        44,
+        44,
+        44
+      ],
+      "titles": [
+        {
+          "text": "React SaaS",
+          "title": "",
+          "scroll": 129,
+          "client": 129,
+          "clamp": "none"
+        },
+        {
+          "text": "Next dashboard",
+          "title": "",
+          "scroll": 191,
+          "client": 191,
+          "clamp": "none"
+        },
+        {
+          "text": "Fastify API",
+          "title": "",
+          "scroll": 127,
+          "client": 127,
+          "clamp": "none"
+        },
+        {
+          "text": "AI agent",
+          "title": "",
+          "scroll": 102,
+          "client": 102,
+          "clamp": "none"
+        },
+        {
+          "text": "Landing page",
+          "title": "",
+          "scroll": 163,
+          "client": 163,
+          "clamp": "none"
+        },
+        {
+          "text": "Mobile starter",
+          "title": "",
+          "scroll": 171,
+          "client": 171,
+          "clamp": "none"
+        }
+      ]
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [],
+      "titles": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        }
+      ]
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [
+        44,
+        44,
+        44,
+        44,
+        44,
+        44
+      ],
+      "titles": [
+        {
+          "text": "React SaaS",
+          "title": "",
+          "scroll": 129,
+          "client": 129,
+          "clamp": "none"
+        },
+        {
+          "text": "Next dashboard",
+          "title": "",
+          "scroll": 191,
+          "client": 191,
+          "clamp": "none"
+        },
+        {
+          "text": "Fastify API",
+          "title": "",
+          "scroll": 127,
+          "client": 127,
+          "clamp": "none"
+        },
+        {
+          "text": "AI agent",
+          "title": "",
+          "scroll": 102,
+          "client": 102,
+          "clamp": "none"
+        },
+        {
+          "text": "Landing page",
+          "title": "",
+          "scroll": 163,
+          "client": 163,
+          "clamp": "none"
+        },
+        {
+          "text": "Mobile starter",
+          "title": "",
+          "scroll": 171,
+          "client": 171,
+          "clamp": "none"
+        }
+      ]
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640,
+      "buttonHeights": [],
+      "titles": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "scroll": 194,
+          "client": 194,
+          "clamp": "2"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    }
+  ]
+}

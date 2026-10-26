@@ -1,0 +1,1159 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ❯ app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx (4 tests | 3 failed) 3492ms
+   × returns focus to the opener after Escape 1213ms
+     → expect(element).toHaveFocus()
+
+Expected element with focus:
+  <button
+  aria-label="Open mobile menu"
+  class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:bg-surface-hover-solid hover:text-foreground h-10 w-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 replit-button-press !h-11 !w-11 !min-h-11 !min-w-11 xl:hidden text-[var(--ecode-text)] dark:text-slate-100"
+>
+  <svg
+    class="lucide lucide-menu h-5 w-5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <line
+      x1="4"
+      x2="20"
+      y1="12"
+      y2="12"
+    />
+    <line
+      x1="4"
+      x2="20"
+      y1="6"
+      y2="6"
+    />
+    <line
+      x1="4"
+      x2="20"
+      y1="18"
+      y2="18"
+    />
+  </svg>
+</button>
+Received element with focus:
+  <body
+  style=""
+>
+  <div>
+    <header
+      aria-label="Site header"
+      class="sticky top-0 z-50 w-full"
+      role="banner"
+    >
+      <div
+        class="hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"
+        data-ecode-announcement="true"
+      >
+        <div
+          class="container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"
+        >
+          <div … />
+          <div … />
+        </div>
+      </div>
+      <nav
+        aria-label="Main navigation"
+        class="relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"
+      >
+        <div
+          aria-hidden="true"
+          class="absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"
+        />
+        <div
+          class="container-responsive-nav relative overflow-visible"
+        >
+          <div … />
+        </div>
+      </nav>
+    </header>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mdata-ecode-public-chrome[39m=[32m"homepage"[39m
+  [33mstyle[39m=[32m"font-size: 16px;"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body[39m
+    [33mstyle[39m=[32m""[39m
+  [36m>[39m
+    [36m<div>[39m
+      [36m<header[39m
+        [33maria-label[39m=[32m"Site header"[39m
+        [33mclass[39m=[32m"sticky top-0 z-50 w-full"[39m
+        [33mrole[39m=[32m"banner"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"[39m
+          [33mdata-ecode-announcement[39m=[32m"true"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-1 items-center gap-3"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)] hover:bg-secondary/80 border-border bg-surface-solid text-[var(--ecode-accent-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"[39m
+              [36m>[39m
+                [0mE-CODE[0m
+              [36m</div>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"min-w-0 font-medium leading-relaxed"[39m
+              [36m>[39m
+                [0mGenerated files, runtime feedback, previews, and release controls stay in one workspace.[0m
+              [36m</p>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-2"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Talk to an expert about E-Code for your team"[39m
+                [33mclass[39m=[32m"inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap text-[var(--ecode-accent-text)] hover:text-[var(--ecode-text)] dark:hover:text-white transition-colors"[39m
+              [36m>[39m
+                [0mTalk to an expert[0m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-chevron-right h-3 w-3"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dismiss announcement"[39m
+                [33mclass[39m=[32m"text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textSecondary-dark rounded-lg hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] p-1 flex !h-11 !w-11 !min-h-11 !min-w-11 shrink-0 items-center justify-center"[39m
+                [33mtabindex[39m=[32m"0"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"i-ph:x w-3 h-3"[39m
+                [36m/>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Main navigation"[39m
+          [33mclass[39m=[32m"relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive-nav relative overflow-visible"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex h-16 items-center justify-between overflow-visible"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-6 overflow-visible"[39m
+              [36m>[39m
+                [36m<a[39m
+                  [33maria-label[39m=[32m"E-Code home"[39m
+                  [33mclass[39m=[32m"inline-flex min-h-11 items-center"[39m
+                  [33mdata-discover[39m=[32m"true"[39m
+                  [33mhref[39m=[32m"/"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"cursor-pointer"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap"[39m
+                      [33mdir[39m=[32m"ltr"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"h-7 w-7 shrink-0"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mviewBox[39m=[32m"0 0 40 40"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<circle[39m
+                          [33mcx[39m=[32m"20"[39m
+                          [33mcy[39m=[32m"20"[39m
+                          [33mfill[39m=[32m"url(#ecode-logo-gradient)"[39m
+                          [33mr[39m=[32m"20"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28"[39m
+                          [33mstroke[39m=[32m"white"[39m
+                          [33mstroke-linecap[39m=[32m"round"[39m
+                          [33mstroke-linejoin[39m=[32m"round"[39m
+                          [33mstroke-width[39m=[32m"2.5"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M26 16 L30 20 L26 24"...
+   × returns focus to the opener after close button 1143ms
+     → expect(element).toHaveFocus()
+
+Expected element with focus:
+  <button
+  aria-label="Open mobile menu"
+  class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:bg-surface-hover-solid hover:text-foreground h-10 w-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 replit-button-press !h-11 !w-11 !min-h-11 !min-w-11 xl:hidden text-[var(--ecode-text)] dark:text-slate-100"
+>
+  <svg
+    class="lucide lucide-menu h-5 w-5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <line
+      x1="4"
+      x2="20"
+      y1="12"
+      y2="12"
+    />
+    <line
+      x1="4"
+      x2="20"
+      y1="6"
+      y2="6"
+    />
+    <line
+      x1="4"
+      x2="20"
+      y1="18"
+      y2="18"
+    />
+  </svg>
+</button>
+Received element with focus:
+  <body
+  style=""
+>
+  <div>
+    <header
+      aria-label="Site header"
+      class="sticky top-0 z-50 w-full"
+      role="banner"
+    >
+      <div
+        class="hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"
+        data-ecode-announcement="true"
+      >
+        <div
+          class="container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"
+        >
+          <div … />
+          <div … />
+        </div>
+      </div>
+      <nav
+        aria-label="Main navigation"
+        class="relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"
+      >
+        <div
+          aria-hidden="true"
+          class="absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"
+        />
+        <div
+          class="container-responsive-nav relative overflow-visible"
+        >
+          <div … />
+        </div>
+      </nav>
+    </header>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mdata-ecode-public-chrome[39m=[32m"homepage"[39m
+  [33mstyle[39m=[32m"font-size: 16px;"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body[39m
+    [33mstyle[39m=[32m""[39m
+  [36m>[39m
+    [36m<div>[39m
+      [36m<header[39m
+        [33maria-label[39m=[32m"Site header"[39m
+        [33mclass[39m=[32m"sticky top-0 z-50 w-full"[39m
+        [33mrole[39m=[32m"banner"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"[39m
+          [33mdata-ecode-announcement[39m=[32m"true"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-1 items-center gap-3"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)] hover:bg-secondary/80 border-border bg-surface-solid text-[var(--ecode-accent-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"[39m
+              [36m>[39m
+                [0mE-CODE[0m
+              [36m</div>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"min-w-0 font-medium leading-relaxed"[39m
+              [36m>[39m
+                [0mGenerated files, runtime feedback, previews, and release controls stay in one workspace.[0m
+              [36m</p>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-2"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Talk to an expert about E-Code for your team"[39m
+                [33mclass[39m=[32m"inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap text-[var(--ecode-accent-text)] hover:text-[var(--ecode-text)] dark:hover:text-white transition-colors"[39m
+              [36m>[39m
+                [0mTalk to an expert[0m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-chevron-right h-3 w-3"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dismiss announcement"[39m
+                [33mclass[39m=[32m"text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textSecondary-dark rounded-lg hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] p-1 flex !h-11 !w-11 !min-h-11 !min-w-11 shrink-0 items-center justify-center"[39m
+                [33mtabindex[39m=[32m"0"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"i-ph:x w-3 h-3"[39m
+                [36m/>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Main navigation"[39m
+          [33mclass[39m=[32m"relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive-nav relative overflow-visible"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex h-16 items-center justify-between overflow-visible"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-6 overflow-visible"[39m
+              [36m>[39m
+                [36m<a[39m
+                  [33maria-label[39m=[32m"E-Code home"[39m
+                  [33mclass[39m=[32m"inline-flex min-h-11 items-center"[39m
+                  [33mdata-discover[39m=[32m"true"[39m
+                  [33mhref[39m=[32m"/"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"cursor-pointer"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap"[39m
+                      [33mdir[39m=[32m"ltr"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"h-7 w-7 shrink-0"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mviewBox[39m=[32m"0 0 40 40"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<circle[39m
+                          [33mcx[39m=[32m"20"[39m
+                          [33mcy[39m=[32m"20"[39m
+                          [33mfill[39m=[32m"url(#ecode-logo-gradient)"[39m
+                          [33mr[39m=[32m"20"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28"[39m
+                          [33mstroke[39m=[32m"white"[39m
+                          [33mstroke-linecap[39m=[32m"round"[39m
+                          [33mstroke-linejoin[39m=[32m"round"[39m
+                          [33mstroke-width[39m=[32m"2.5"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M26 16 L30 20 L26 24"...
+   × closes the drawer at the desktop breakpoint and releases the page 1067ms
+     → expect(element).not.toBeInTheDocument()
+
+expected document not to contain element, found <div
+  aria-describedby="radix-:r8:"
+  aria-labelledby="radix-:r7:"
+  class="fixed z-50 flex h-dvh max-h-dvh flex-col overflow-hidden shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 sm:max-w-sm w-full sm:w-[380px] p-0 border-border bg-background xl:hidden right-0 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+  data-state="open"
+  dir="ltr"
+  id="radix-:r6:"
+  role="dialog"
+  style="pointer-events: auto;"
+  tabindex="-1"
+>
+  <div
+    class="sr-only flex flex-col space-y-2 text-center sm:text-left"
+  >
+    <h2
+      class="text-lg font-semibold text-foreground"
+      id="radix-:r7:"
+    >
+      Mobile navigation menu
+    </h2>
+    <p
+      class="text-sm text-muted-foreground"
+      id="radix-:r8:"
+    >
+      Navigate through E-Code platform sections
+    </p>
+  </div>
+  <div
+    class="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-4 py-3"
+  >
+    <div
+      class="flex items-center justify-between"
+    >
+      <div
+        class="flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap"
+        dir="ltr"
+      >
+        <svg
+          class="h-7 w-7 shrink-0"
+          fill="none"
+          viewBox="0 0 40 40"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle … />
+          <path … />
+          <path … />
+          <defs … />
+        </svg>
+        <span
+          class="font-bold text-[15px]"
+        >
+          E-Code
+        </span>
+      </div>
+      <button
+        aria-label="Close mobile menu"
+        class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:text-foreground h-10 w-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 replit-button-press !h-11 !w-11 !min-h-11 !min-w-11 hover:bg-muted"
+      >
+        <svg
+          class="lucide lucide-x h-4 w-4 text-muted-foreground"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path … />
+          <path … />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div
+    class="shrink-0 p-4 border-b border-border"
+  >
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:brightness-110 h-10 px-4 py-2 md:h-10 min-h-[44px] md:min-h-0 replit-button-press w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
+    >
+      Get started
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 border bg-surface-solid hover:text-foreground h-10 px-4 py-2 md:h-10 min-h-[44px] md:min-h-0 replit-button-press mt-2 w-full !min-h-11 border-border text-foreground hover:bg-muted"
+    >
+      Sign in
+    </button>
+  </div>
+  <div
+    class="relative overflow-hidden min-h-0 flex-1"
+    dir="ltr"
+    style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px;"
+  >
+    <style>
+      [data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}
+    </style>
+    <div
+      class="h-full w-full rounded-[inherit]"
+      data-radix-scroll-area-viewport=""
+      style="overflow-x: hidden; overflow-y: scroll;"
+    >
+      <div
+        style="min-width: 100%; display: table;"
+      >
+        <div
+          class="p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-1"
+        >
+          <div … />
+          <div … />
+          <div … />
+          <div … />
+        </div>
+      </div>
+    </div>
+  </div>
+</div> instead
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mdata-ecode-public-chrome[39m=[32m"homepage"[39m
+  [33mstyle[39m=[32m"font-size: 16px;"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body[39m
+    [33mdata-scroll-locked[39m=[32m"1"[39m
+    [33mstyle[39m=[32m"pointer-events: none;"[39m
+  [36m>[39m
+    [36m<span[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-radix-focus-guard[39m=[32m""[39m
+      [33mstyle[39m=[32m"outline: none; opacity: 0; position: fixed; pointer-events: none;"[39m
+      [33mtabindex[39m=[32m"0"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33maria-label[39m=[32m"Site header"[39m
+        [33mclass[39m=[32m"sticky top-0 z-50 w-full"[39m
+        [33mrole[39m=[32m"banner"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"[39m
+          [33mdata-ecode-announcement[39m=[32m"true"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-1 items-center gap-3"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)] hover:bg-secondary/80 border-border bg-surface-solid text-[var(--ecode-accent-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"[39m
+              [36m>[39m
+                [0mE-CODE[0m
+              [36m</div>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"min-w-0 font-medium leading-relaxed"[39m
+              [36m>[39m
+                [0mGenerated files, runtime feedback, previews, and release controls stay in one workspace.[0m
+              [36m</p>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-2"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Talk to an expert about E-Code for your team"[39m
+                [33mclass[39m=[32m"inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap text-[var(--ecode-accent-text)] hover:text-[var(--ecode-text)] dark:hover:text-white transition-colors"[39m
+              [36m>[39m
+                [0mTalk to an expert[0m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-chevron-right h-3 w-3"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dismiss announcement"[39m
+                [33mclass[39m=[32m"text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textSecondary-dark rounded-lg hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] p-1 flex !h-11 !w-11 !min-h-11 !min-w-11 shrink-0 items-center justify-center"[39m
+                [33mtabindex[39m=[32m"0"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"i-ph:x w-3 h-3"[39m
+                [36m/>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Main navigation"[39m
+          [33mclass[39m=[32m"relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive-nav relative overflow-visible"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex h-16 items-center justify-between overflow-visible"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-6 overflow-visible"[39m
+              [36m>[39m
+                [36m<a[39m
+                  [33maria-label[39m=[32m"E-Code home"[39m
+                  [33mclass[39m=[32m"inline-flex min-h-11 items-center"[39m
+                  [33mdata-discover[39m=[32m"true"[39m
+                  [33mhref[39m=[32m"/"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"cursor-pointer"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap"[39m
+                      [33mdir[39m=[32m"ltr"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"h-7 w-7 shrink-0"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mviewBox[39m=[32m"0 0 40 40"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<circle[39m
+                          [33mcx[39m=[32m"20"[39m
+                          [33mcy[39m=[32m"20"[39m
+                          [33mfill[39m=[32m"url(#ecode-logo-gradient)"[39m
+                          [33mr[39m=[32m"20"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                    ...
+   ✓ keeps the drawer open while the viewport remains below the desktop breakpoint 68ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx > returns focus to the opener after Escape
+ FAIL  app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx > returns focus to the opener after close button
+Error: expect(element).toHaveFocus()
+
+Expected element with focus:
+  <button
+  aria-label="Open mobile menu"
+  class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:bg-surface-hover-solid hover:text-foreground h-10 w-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 replit-button-press !h-11 !w-11 !min-h-11 !min-w-11 xl:hidden text-[var(--ecode-text)] dark:text-slate-100"
+>
+  <svg
+    class="lucide lucide-menu h-5 w-5"
+    fill="none"
+    height="24"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <line
+      x1="4"
+      x2="20"
+      y1="12"
+      y2="12"
+    />
+    <line
+      x1="4"
+      x2="20"
+      y1="6"
+      y2="6"
+    />
+    <line
+      x1="4"
+      x2="20"
+      y1="18"
+      y2="18"
+    />
+  </svg>
+</button>
+Received element with focus:
+  <body
+  style=""
+>
+  <div>
+    <header
+      aria-label="Site header"
+      class="sticky top-0 z-50 w-full"
+      role="banner"
+    >
+      <div
+        class="hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"
+        data-ecode-announcement="true"
+      >
+        <div
+          class="container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"
+        >
+          <div … />
+          <div … />
+        </div>
+      </div>
+      <nav
+        aria-label="Main navigation"
+        class="relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"
+      >
+        <div
+          aria-hidden="true"
+          class="absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"
+        />
+        <div
+          class="container-responsive-nav relative overflow-visible"
+        >
+          <div … />
+        </div>
+      </nav>
+    </header>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mdata-ecode-public-chrome[39m=[32m"homepage"[39m
+  [33mstyle[39m=[32m"font-size: 16px;"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body[39m
+    [33mstyle[39m=[32m""[39m
+  [36m>[39m
+    [36m<div>[39m
+      [36m<header[39m
+        [33maria-label[39m=[32m"Site header"[39m
+        [33mclass[39m=[32m"sticky top-0 z-50 w-full"[39m
+        [33mrole[39m=[32m"banner"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"[39m
+          [33mdata-ecode-announcement[39m=[32m"true"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-1 items-center gap-3"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)] hover:bg-secondary/80 border-border bg-surface-solid text-[var(--ecode-accent-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"[39m
+              [36m>[39m
+                [0mE-CODE[0m
+              [36m</div>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"min-w-0 font-medium leading-relaxed"[39m
+              [36m>[39m
+                [0mGenerated files, runtime feedback, previews, and release controls stay in one workspace.[0m
+              [36m</p>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-2"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Talk to an expert about E-Code for your team"[39m
+                [33mclass[39m=[32m"inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap text-[var(--ecode-accent-text)] hover:text-[var(--ecode-text)] dark:hover:text-white transition-colors"[39m
+              [36m>[39m
+                [0mTalk to an expert[0m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-chevron-right h-3 w-3"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dismiss announcement"[39m
+                [33mclass[39m=[32m"text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textSecondary-dark rounded-lg hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] p-1 flex !h-11 !w-11 !min-h-11 !min-w-11 shrink-0 items-center justify-center"[39m
+                [33mtabindex[39m=[32m"0"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"i-ph:x w-3 h-3"[39m
+                [36m/>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Main navigation"[39m
+          [33mclass[39m=[32m"relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive-nav relative overflow-visible"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex h-16 items-center justify-between overflow-visible"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-6 overflow-visible"[39m
+              [36m>[39m
+                [36m<a[39m
+                  [33maria-label[39m=[32m"E-Code home"[39m
+                  [33mclass[39m=[32m"inline-flex min-h-11 items-center"[39m
+                  [33mdata-discover[39m=[32m"true"[39m
+                  [33mhref[39m=[32m"/"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"cursor-pointer"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap"[39m
+                      [33mdir[39m=[32m"ltr"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"h-7 w-7 shrink-0"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mviewBox[39m=[32m"0 0 40 40"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<circle[39m
+                          [33mcx[39m=[32m"20"[39m
+                          [33mcy[39m=[32m"20"[39m
+                          [33mfill[39m=[32m"url(#ecode-logo-gradient)"[39m
+                          [33mr[39m=[32m"20"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28"[39m
+                          [33mstroke[39m=[32m"white"[39m
+                          [33mstroke-linecap[39m=[32m"round"[39m
+                          [33mstroke-linejoin[39m=[32m"round"[39m
+                          [33mstroke-width[39m=[32m"2.5"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M26 16 L30 20 L26 24"...
+ ❯ app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx:47:39
+     45|   else fireEvent.click(screen.getByRole('button', { name: 'Close mobil…
+     46|   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInT…
+     47|   await waitFor(() => expect(trigger).toHaveFocus());
+       |                                       ^
+     48|   expect(document.body).not.toHaveAttribute('data-scroll-locked');
+     49| });
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx > closes the drawer at the desktop breakpoint and releases the page
+Error: expect(element).not.toBeInTheDocument()
+
+expected document not to contain element, found <div
+  aria-describedby="radix-:r8:"
+  aria-labelledby="radix-:r7:"
+  class="fixed z-50 flex h-dvh max-h-dvh flex-col overflow-hidden shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 sm:max-w-sm w-full sm:w-[380px] p-0 border-border bg-background xl:hidden right-0 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+  data-state="open"
+  dir="ltr"
+  id="radix-:r6:"
+  role="dialog"
+  style="pointer-events: auto;"
+  tabindex="-1"
+>
+  <div
+    class="sr-only flex flex-col space-y-2 text-center sm:text-left"
+  >
+    <h2
+      class="text-lg font-semibold text-foreground"
+      id="radix-:r7:"
+    >
+      Mobile navigation menu
+    </h2>
+    <p
+      class="text-sm text-muted-foreground"
+      id="radix-:r8:"
+    >
+      Navigate through E-Code platform sections
+    </p>
+  </div>
+  <div
+    class="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-4 py-3"
+  >
+    <div
+      class="flex items-center justify-between"
+    >
+      <div
+        class="flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap"
+        dir="ltr"
+      >
+        <svg
+          class="h-7 w-7 shrink-0"
+          fill="none"
+          viewBox="0 0 40 40"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle … />
+          <path … />
+          <path … />
+          <defs … />
+        </svg>
+        <span
+          class="font-bold text-[15px]"
+        >
+          E-Code
+        </span>
+      </div>
+      <button
+        aria-label="Close mobile menu"
+        class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:text-foreground h-10 w-10 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 replit-button-press !h-11 !w-11 !min-h-11 !min-w-11 hover:bg-muted"
+      >
+        <svg
+          class="lucide lucide-x h-4 w-4 text-muted-foreground"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path … />
+          <path … />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div
+    class="shrink-0 p-4 border-b border-border"
+  >
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 hover:brightness-110 h-10 px-4 py-2 md:h-10 min-h-[44px] md:min-h-0 replit-button-press w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
+    >
+      Get started
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:pointer-events-none disabled:opacity-50 border bg-surface-solid hover:text-foreground h-10 px-4 py-2 md:h-10 min-h-[44px] md:min-h-0 replit-button-press mt-2 w-full !min-h-11 border-border text-foreground hover:bg-muted"
+    >
+      Sign in
+    </button>
+  </div>
+  <div
+    class="relative overflow-hidden min-h-0 flex-1"
+    dir="ltr"
+    style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px;"
+  >
+    <style>
+      [data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}
+    </style>
+    <div
+      class="h-full w-full rounded-[inherit]"
+      data-radix-scroll-area-viewport=""
+      style="overflow-x: hidden; overflow-y: scroll;"
+    >
+      <div
+        style="min-width: 100%; display: table;"
+      >
+        <div
+          class="p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-1"
+        >
+          <div … />
+          <div … />
+          <div … />
+          <div … />
+        </div>
+      </div>
+    </div>
+  </div>
+</div> instead
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mdata-ecode-public-chrome[39m=[32m"homepage"[39m
+  [33mstyle[39m=[32m"font-size: 16px;"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body[39m
+    [33mdata-scroll-locked[39m=[32m"1"[39m
+    [33mstyle[39m=[32m"pointer-events: none;"[39m
+  [36m>[39m
+    [36m<span[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-radix-focus-guard[39m=[32m""[39m
+      [33mstyle[39m=[32m"outline: none; opacity: 0; position: fixed; pointer-events: none;"[39m
+      [33mtabindex[39m=[32m"0"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33maria-label[39m=[32m"Site header"[39m
+        [33mclass[39m=[32m"sticky top-0 z-50 w-full"[39m
+        [33mrole[39m=[32m"banner"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"[39m
+          [33mdata-ecode-announcement[39m=[32m"true"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-1 items-center gap-3"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)] hover:bg-secondary/80 border-border bg-surface-solid text-[var(--ecode-accent-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"[39m
+              [36m>[39m
+                [0mE-CODE[0m
+              [36m</div>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"min-w-0 font-medium leading-relaxed"[39m
+              [36m>[39m
+                [0mGenerated files, runtime feedback, previews, and release controls stay in one workspace.[0m
+              [36m</p>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-2"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Talk to an expert about E-Code for your team"[39m
+                [33mclass[39m=[32m"inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap text-[var(--ecode-accent-text)] hover:text-[var(--ecode-text)] dark:hover:text-white transition-colors"[39m
+              [36m>[39m
+                [0mTalk to an expert[0m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-chevron-right h-3 w-3"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dismiss announcement"[39m
+                [33mclass[39m=[32m"text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textSecondary-dark rounded-lg hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] p-1 flex !h-11 !w-11 !min-h-11 !min-w-11 shrink-0 items-center justify-center"[39m
+                [33mtabindex[39m=[32m"0"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"i-ph:x w-3 h-3"[39m
+                [36m/>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Main navigation"[39m
+          [33mclass[39m=[32m"relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"container-responsive-nav relative overflow-visible"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex h-16 items-center justify-between overflow-visible"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-6 overflow-visible"[39m
+              [36m>[39m
+                [36m<a[39m
+                  [33maria-label[39m=[32m"E-Code home"[39m
+                  [33mclass[39m=[32m"inline-flex min-h-11 items-center"[39m
+                  [33mdata-discover[39m=[32m"true"[39m
+                  [33mhref[39m=[32m"/"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"cursor-pointer"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap"[39m
+                      [33mdir[39m=[32m"ltr"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"h-7 w-7 shrink-0"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mviewBox[39m=[32m"0 0 40 40"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<circle[39m
+                          [33mcx[39m=[32m"20"[39m
+                          [33mcy[39m=[32m"20"[39m
+                          [33mfill[39m=[32m"url(#ecode-logo-gradient)"[39m
+                          [33mr[39m=[32m"20"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                    ...
+ ❯ app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx:60:64
+     58|     listeners.forEach((listener) => listener({ matches: true } as Medi…
+     59|   });
+     60|   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInT…
+       |                                                                ^
+     61|   await waitFor(() => expect(screen.getByTestId('link-login')).toHaveF…
+     62|   expect(document.body).not.toHaveAttribute('data-scroll-locked');
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+   Start at  22:00:41
+   Duration  6.28s (transform 1.16s, setup 22ms, collect 621ms, tests 3.49s, environment 284ms, prepare 51ms)

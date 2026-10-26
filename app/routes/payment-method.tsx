@@ -1,6 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { Form, isRouteErrorResponse, useActionData, useLoaderData, useRouteError } from 'react-router';
+import { UserAreaRouteErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
 import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 import {
@@ -26,7 +28,26 @@ type PaymentFeedback = {
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: (data?.language === 'fr' ? billingFr : billingEn)['paymentMethod.meta.title'] },
 ];
-export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  if (
+    isRouteErrorResponse(error) &&
+    error.status >= 500 &&
+    error.data?.recovery === 'billing-email-draft' &&
+    typeof error.data.billingEmail === 'string'
+  ) {
+    return (
+      <PaymentMethodContent
+        billingEmail={error.data.billingEmail}
+        feedback={{ errorKey: 'paymentMethod.feedback.emailFailed' }}
+        recoveryError={error}
+      />
+    );
+  }
+
+  return <UserAreaRouteErrorBoundary />;
+}
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Array<{ id: string; billingEmail?: string }> }>(request, '/orgs');
@@ -52,6 +73,8 @@ export async function action({ request }: EnterpriseActionArgs) {
   const form = await request.formData();
   const intent = String(form.get('intent') ?? 'portal');
 
+  let validatedEmail: string | undefined;
+
   try {
     if (intent === 'billing-email') {
       const email = String(form.get('billingEmail') ?? '').trim();
@@ -62,6 +85,8 @@ export async function action({ request }: EnterpriseActionArgs) {
           { status: 400 },
         );
       }
+
+      validatedEmail = email;
 
       await apiRequest(request, `/orgs/${organization.id}/billing/email`, {
         method: 'PATCH',
@@ -83,6 +108,13 @@ export async function action({ request }: EnterpriseActionArgs) {
   } catch (error) {
     /* Preserve login/MFA redirects and route-boundary handling for server failures. */
     if (shouldRethrowActionError(error)) {
+      if (error.status >= 500 && validatedEmail !== undefined) {
+        throw Response.json(
+          { recovery: 'billing-email-draft', billingEmail: validatedEmail },
+          { status: error.status },
+        );
+      }
+
       throw error;
     }
 
@@ -105,9 +137,31 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function PaymentMethodPage() {
-  const { t } = useTranslation();
   const { billingEmail } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as PaymentFeedback | undefined;
+
+  return <PaymentMethodContent billingEmail={billingEmail} feedback={actionData} />;
+}
+
+function PaymentMethodContent({
+  billingEmail,
+  feedback: actionData,
+  recoveryError,
+}: {
+  billingEmail: string;
+  feedback?: PaymentFeedback;
+  recoveryError?: unknown;
+}) {
+  const { t } = useTranslation();
+  const recoveryAlert = useRef<HTMLParagraphElement>(null);
+  const recoverDraft = Boolean(recoveryError);
+
+  useEffect(() => {
+    if (recoverDraft) {
+      recoveryAlert.current?.focus();
+    }
+  }, [recoverDraft, recoveryError]);
+
   const actionError = actionData?.errorKey ? t(actionData.errorKey, actionData.values) : undefined;
   const actionStatus = actionData?.successKey ? t(actionData.successKey, actionData.values) : undefined;
   const billingEmailError = actionData?.field === 'billingEmail' ? actionError : undefined;
@@ -117,8 +171,18 @@ export default function PaymentMethodPage() {
       title={t('paymentMethod.page.title')}
       description={t('paymentMethod.page.description')}
       status={actionStatus}
-      error={actionData?.field ? undefined : actionError}
+      error={actionData?.field || recoverDraft ? undefined : actionError}
     >
+      {recoverDraft ? (
+        <p
+          ref={recoveryAlert}
+          role="alert"
+          tabIndex={-1}
+          className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
+        >
+          {actionError}
+        </p>
+      ) : null}
       <div className="space-y-8">
         <Form method="post" reloadDocument>
           <input type="hidden" name="intent" value="portal" />

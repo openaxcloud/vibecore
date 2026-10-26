@@ -1,0 +1,1576 @@
+{
+  "cases": [
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Politique de confidentialité",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Conditions d’utilisation",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Politique d’assistance",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contacter l’assistance",
+          "href": "/support"
+        },
+        {
+          "text": "Consulter la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Privacy Policy",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "privacy-collection",
+        "privacy-use",
+        "privacy-sharing",
+        "privacy-security",
+        "privacy-rights",
+        "privacy-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Terms of Service",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "privacy@e-code.ai",
+          "href": "mailto:privacy@e-code.ai"
+        }
+      ],
+      "ids": [
+        "terms-acceptance",
+        "terms-license",
+        "terms-accounts",
+        "terms-prohibited",
+        "terms-content",
+        "terms-privacy",
+        "terms-termination",
+        "terms-disclaimer",
+        "terms-contact"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Support Policy",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        },
+        {
+          "text": "Contact support",
+          "href": "/support"
+        },
+        {
+          "text": "Browse documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "support-policy-heading",
+        "support-policy-highlights-heading",
+        "support-policy-details-heading",
+        "support-policy-section-channels",
+        "support-policy-section-coverage",
+        "support-policy-section-targets",
+        "support-policy-section-security",
+        "support-policy-cta-heading"
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "light",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.5,
+        "bottom": 459.5,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/privacy?lang=fr"
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "light",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.5,
+        "bottom": 459.5,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/terms?lang=fr"
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "light",
+      "focus": {
+        "text": "Contacter l’assistance",
+        "href": "/support",
+        "top": 515.8125,
+        "bottom": 559.8125,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/support-policy?lang=fr"
+    },
+    {
+      "route": "/privacy",
+      "lang": "fr",
+      "theme": "dark",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.5,
+        "bottom": 459.5,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/privacy?lang=fr"
+    },
+    {
+      "route": "/terms",
+      "lang": "fr",
+      "theme": "dark",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.5,
+        "bottom": 459.5,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/terms?lang=fr"
+    },
+    {
+      "route": "/support-policy",
+      "lang": "fr",
+      "theme": "dark",
+      "focus": {
+        "text": "Contacter l’assistance",
+        "href": "/support",
+        "top": 515.8125,
+        "bottom": 559.8125,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/support-policy?lang=fr"
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "light",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.75,
+        "bottom": 459.75,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/privacy?lang=en"
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "light",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.625,
+        "bottom": 459.625,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/terms?lang=en"
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "light",
+      "focus": {
+        "text": "Contact support",
+        "href": "/support",
+        "top": 443.1875,
+        "bottom": 487.1875,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/support-policy?lang=en"
+    },
+    {
+      "route": "/privacy",
+      "lang": "en",
+      "theme": "dark",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.75,
+        "bottom": 459.75,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/privacy?lang=en"
+    },
+    {
+      "route": "/terms",
+      "lang": "en",
+      "theme": "dark",
+      "focus": {
+        "text": "privacy@e-code.ai",
+        "href": "mailto:privacy@e-code.ai",
+        "top": 440.625,
+        "bottom": 459.625,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/terms?lang=en"
+    },
+    {
+      "route": "/support-policy",
+      "lang": "en",
+      "theme": "dark",
+      "focus": {
+        "text": "Contact support",
+        "href": "/support",
+        "top": 443.1875,
+        "bottom": 487.1875,
+        "outline": "rgb(17, 24, 39) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:8999/support-policy?lang=en"
+    }
+  ],
+  "errors": [],
+  "mutations": []
+}

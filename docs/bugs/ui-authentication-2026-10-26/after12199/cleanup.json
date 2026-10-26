@@ -1,0 +1,29 @@
+[
+  {
+    "pid": 176814,
+    "startedAt": "2026-10-26T02:26:12Z",
+    "startTicks": "2525277",
+    "port": 11999,
+    "log": "/tmp/ui-auth-next/server.log",
+    "stoppedAt": "2026-10-26T02:45:25Z",
+    "connectionRefused": true
+  },
+  {
+    "pid": 186082,
+    "startedAt": "2026-10-26T02:43:43Z",
+    "startTicks": "2630347",
+    "port": 12199,
+    "log": "/tmp/ui-auth-next/server12199.log",
+    "stoppedAt": "2026-10-26T02:45:25Z",
+    "connectionRefused": true
+  },
+  {
+    "pid": 176799,
+    "startTicks": "2525152",
+    "port": 6199,
+    "startedAt": "2026-10-26T02:26:11.472Z",
+    "log": "/tmp/ui-auth-next/api.log",
+    "stoppedAt": "2026-10-26T02:45:25Z",
+    "connectionRefused": true
+  }
+]

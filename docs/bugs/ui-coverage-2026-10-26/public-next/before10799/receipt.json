@@ -1,0 +1,3575 @@
+{
+  "cases": [
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 320,
+      "overflow": [
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileApplication ExpoTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle de démarrage Expo pour créer des applications mobiles multiplateformes",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Expo",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégr",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webNext.js avec shadcn/uiTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application complète Next.js intégrant les composants shadcn/ui et leur système d",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsReactshadcn/uiTailwind CSS",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "shadcn/ui",
+          "left": 226.03125,
+          "right": 334.703125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applic",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webRemix TypeScriptTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Remix avec TypeScript pour créer des applications web complètes",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactRemixTypeScript",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 221.953125,
+          "right": 334.578125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, ",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webSaaS ReactTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et ",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactViteTypeScript",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau ",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webTableau de bord Next.jsTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des é",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsPrismaTailwind CSS",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant le",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webVite avec shadcn/uiTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application complète Vite intégrant les composants shadcn/ui et leur système de s",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Reactshadcn/uiTailwind CSSTypeScript",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une e",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webReact + Vite + TypeScriptTendance",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 266.1875,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle React propulsé par Vite pour une expérience de développement rapide",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactTypeScriptVite",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webVanilla + ViteTendance",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 266.1875,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Vite minimal pour les projets JavaScript sans framework",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Vite",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pou",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webVite + TypeScriptTendance",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 266.1875,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Vite avec une configuration TypeScript pour un développement fortement typé",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "TypeScriptVite",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et un",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webKit de démarrage AngularFacile",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Facile",
+          "left": 302.84375,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiques",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "AngularTypeScript",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et ",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileKit de démarrage mobileIntermédiaire",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Intermédiaire",
+          "left": 253.625,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface ut",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ExpoReactTypeScript",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 213.515625,
+          "right": 326.140625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conv",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webPage d’atterrissageFacile",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Facile",
+          "left": 302.84375,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soi",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "RemixTailwind CSSFramer Motion",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        }
+      ],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 320,
+      "overflow": [
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileApplication ExpoTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle de démarrage Expo pour créer des applications mobiles multiplateformes",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Expo",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégr",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webNext.js avec shadcn/uiTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application complète Next.js intégrant les composants shadcn/ui et leur système d",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsReactshadcn/uiTailwind CSS",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "shadcn/ui",
+          "left": 226.03125,
+          "right": 334.703125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applic",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webRemix TypeScriptTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Remix avec TypeScript pour créer des applications web complètes",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactRemixTypeScript",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 221.953125,
+          "right": 334.578125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, ",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webSaaS ReactTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et ",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactViteTypeScript",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau ",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webTableau de bord Next.jsTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des é",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsPrismaTailwind CSS",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant le",
+          "left": 16,
+          "right": 379.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webVite avec shadcn/uiTendance",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 257.78125,
+          "right": 354.859375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application complète Vite intégrant les composants shadcn/ui et leur système de s",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Reactshadcn/uiTailwind CSSTypeScript",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 354.859375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une e",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webReact + Vite + TypeScriptTendance",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 266.1875,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle React propulsé par Vite pour une expérience de développement rapide",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactTypeScriptVite",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webVanilla + ViteTendance",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 266.1875,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Vite minimal pour les projets JavaScript sans framework",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Vite",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pou",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webVite + TypeScriptTendance",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Tendance",
+          "left": 266.1875,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Vite avec une configuration TypeScript pour un développement fortement typé",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "TypeScriptVite",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et un",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webKit de démarrage AngularFacile",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Facile",
+          "left": 302.84375,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiques",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "AngularTypeScript",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et ",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileKit de démarrage mobileIntermédiaire",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Intermédiaire",
+          "left": 253.625,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface ut",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ExpoReactTypeScript",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 213.515625,
+          "right": 326.140625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conv",
+          "left": 16,
+          "right": 388.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Applications webPage d’atterrissageFacile",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Facile",
+          "left": 302.84375,
+          "right": 363.265625
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Modèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soi",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "RemixTailwind CSSFramer Motion",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficielGratuitPrêt pour l’IDEUtiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficielGratuitPrêt pour l’IDE",
+          "left": 41,
+          "right": 363.265625
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Utiliser ce modèle",
+          "left": 41,
+          "right": 363.265625
+        }
+      ],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 320,
+      "overflow": [
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOff",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileExpo AppTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Expo starter template for building cross-platform mobile apps",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Expo",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind ",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsNext dashboardTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Full-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operat",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsPrismaTailwind CSS",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with s",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsNext.js with shadcn/uiTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Next.js starter fullstack template integrated with shadcn/ui components and styling system",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsReactshadcn/uiTailwind CSS",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "shadcn/ui",
+          "left": 226.03125,
+          "right": 334.703125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authentica",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsReact SaaSTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Production SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactViteTypeScript",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsRemix TypeScriptTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Remix framework starter with TypeScript for full-stack web applications",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactRemixTypeScript",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 221.953125,
+          "right": 334.578125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsVite with shadcn/uiTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Vite starter fullstack template integrated with shadcn/ui components and styling system",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Reactshadcn/uiTailwind CSSTypeScript",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast d",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsReact + Vite + typescriptTrending",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 246.828125,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "React starter template powered by Vite for fast development experience",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactTypeScriptVite",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript project",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsVanilla + ViteTrending",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 246.828125,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Minimal Vite starter template for vanilla JavaScript projects",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Vite",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for t",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsVite + TypeScriptTrending",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 246.828125,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Vite starter template with TypeScript configuration for type-safe development",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "TypeScriptVite",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and b",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsAngular StarterEasy",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Easy",
+          "left": 287.34375,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "A modern Angular starter template with TypeScript support and best practices configuration",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "AngularTypeScript",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished conten",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsLanding pageEasy",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Easy",
+          "left": 287.34375,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Responsive marketing starter for conversion pages, polished content sections and productio",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "RemixTailwind CSSFramer Motion",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared fr",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileMobile starterMedium",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Medium",
+          "left": 264.765625,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Mobile app starter with Expo, React and TypeScript for shared frontend packages and device",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ExpoReactTypeScript",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 213.515625,
+          "right": 326.140625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        }
+      ],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 320,
+      "overflow": [
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOff",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileExpo AppTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Expo starter template for building cross-platform mobile apps",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Expo",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind ",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsNext dashboardTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Full-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operat",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsPrismaTailwind CSS",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with s",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsNext.js with shadcn/uiTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Next.js starter fullstack template integrated with shadcn/ui components and styling system",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Next.jsReactshadcn/uiTailwind CSS",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "shadcn/ui",
+          "left": 226.03125,
+          "right": 334.703125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authentica",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsReact SaaSTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Production SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactViteTypeScript",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsRemix TypeScriptTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Remix framework starter with TypeScript for full-stack web applications",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactRemixTypeScript",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 221.953125,
+          "right": 334.578125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]",
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/",
+          "left": 16,
+          "right": 366.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsVite with shadcn/uiTrending",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 248.53125,
+          "right": 341.8125
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Vite starter fullstack template integrated with shadcn/ui components and styling system",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Reactshadcn/uiTailwind CSSTypeScript",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 341.8125
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast d",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsReact + Vite + typescriptTrending",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 246.828125,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "React starter template powered by Vite for fast development experience",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ReactTypeScriptVite",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript project",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsVanilla + ViteTrending",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 246.828125,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Minimal Vite starter template for vanilla JavaScript projects",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "Vite",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for t",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsVite + TypeScriptTrending",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white",
+          "text": "Trending",
+          "left": 246.828125,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Vite starter template with TypeScript configuration for type-safe development",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "TypeScriptVite",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and b",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsAngular StarterEasy",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Easy",
+          "left": 287.34375,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "A modern Angular starter template with TypeScript support and best practices configuration",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "AngularTypeScript",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished conten",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "Web AppsLanding pageEasy",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Easy",
+          "left": 287.34375,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Responsive marketing starter for conversion pages, polished content sections and productio",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "RemixTailwind CSSFramer Motion",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "ARTICLE",
+          "class": "flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl border-[var(--ecode-border)]",
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared fr",
+          "left": 16,
+          "right": 365.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "flex items-start justify-between gap-4",
+          "text": "MobileMobile starterMedium",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]",
+          "text": "Medium",
+          "left": 264.765625,
+          "right": 340.109375
+        },
+        {
+          "tag": "P",
+          "class": "mt-5 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]",
+          "text": "Mobile app starter with Expo, React and TypeScript for shared frontend packages and device",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-6 flex flex-wrap gap-2",
+          "text": "ExpoReactTypeScript",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "SPAN",
+          "class": "inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]",
+          "text": "TypeScript",
+          "left": 213.515625,
+          "right": 326.140625
+        },
+        {
+          "tag": "DIV",
+          "class": "mt-auto pt-8",
+          "text": "OfficialFreeIDE-readyUse template",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "DIV",
+          "class": "mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]",
+          "text": "OfficialFreeIDE-ready",
+          "left": 41,
+          "right": 340.109375
+        },
+        {
+          "tag": "A",
+          "class": "inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition w-full bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90",
+          "text": "Use template",
+          "left": 41,
+          "right": 340.109375
+        }
+      ],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10799/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": []
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10799/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 0,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "route": "/templates",
+      "lang": "fr",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10799/templates?lang=fr&tag=typescript",
+      "afterBack": "http://127.0.0.1:10799/templates?lang=fr&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10799/templates?lang=fr&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10799/templates?lang=fr&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "fr",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10799/docs?lang=fr#agent-mentions",
+      "afterBack": "http://127.0.0.1:10799/docs?lang=fr#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 24.125,
+          "headingTop": 49.125,
+          "headerBottom": 111
+        },
+        "url": "http://127.0.0.1:10799/docs?lang=fr#agent-mentions"
+      }
+    },
+    {
+      "route": "/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10799/templates?lang=fr&tag=typescript",
+      "afterBack": "http://127.0.0.1:10799/templates?lang=fr&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10799/templates?lang=fr&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10799/templates?lang=fr&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "fr",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10799/docs?lang=fr#agent-mentions",
+      "afterBack": "http://127.0.0.1:10799/docs?lang=fr#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 24.125,
+          "headingTop": 49.125,
+          "headerBottom": 111
+        },
+        "url": "http://127.0.0.1:10799/docs?lang=fr#agent-mentions"
+      }
+    },
+    {
+      "route": "/templates",
+      "lang": "en",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10799/templates?lang=en&tag=typescript",
+      "afterBack": "http://127.0.0.1:10799/templates?lang=en&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10799/templates?lang=en&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10799/templates?lang=en&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "en",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10799/docs?lang=en#agent-mentions",
+      "afterBack": "http://127.0.0.1:10799/docs?lang=en#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 23.5,
+          "headingTop": 48.5,
+          "headerBottom": 111
+        },
+        "url": "http://127.0.0.1:10799/docs?lang=en#agent-mentions"
+      }
+    },
+    {
+      "route": "/templates",
+      "lang": "en",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10799/templates?lang=en&tag=typescript",
+      "afterBack": "http://127.0.0.1:10799/templates?lang=en&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10799/templates?lang=en&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10799/templates?lang=en&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "en",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10799/docs?lang=en#agent-mentions",
+      "afterBack": "http://127.0.0.1:10799/docs?lang=en#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 23.5,
+          "headingTop": 48.5,
+          "headerBottom": 111
+        },
+        "url": "http://127.0.0.1:10799/docs?lang=en#agent-mentions"
+      }
+    }
+  ],
+  "errors": [],
+  "mutations": [],
+  "dataRequests": [
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10799/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/docs.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10799/templates.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/docs.data?lang=fr",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/docs.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10799/templates.data?lang=en",
+    "http://127.0.0.1:10799/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10799/_root.data",
+    "http://127.0.0.1:10799/docs.data?lang=en"
+  ]
+}

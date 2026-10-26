@@ -47,6 +47,7 @@ import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate
 import { AgentMenuProvider } from '~/components/chat/AgentHeaderMenu';
 import { ComposerToolsProvider } from '~/components/chat/ComposerToolsState';
 import { IdePaletteProvider } from '~/components/chat/IdePaletteState';
+import { MobileOverlayFocusProvider } from '~/components/chat/MobileOverlayFocus';
 import { PendingComposerShell } from '~/components/chat/PendingComposerShell';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -194,41 +195,47 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <AgentMenuProvider
+          <MobileOverlayFocusProvider
             projectId={projectId}
             workspaceId={currentWorkspaceId}
             windowId={searchParams.get('peWindow') || 'window-main'}
           >
-            <ComposerToolsProvider
+            <AgentMenuProvider
               projectId={projectId}
               workspaceId={currentWorkspaceId}
               windowId={searchParams.get('peWindow') || 'window-main'}
             >
-              <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
-                <main className="h-dvh pt-9">
-                  <ClientOnly fallback={optimisticShell}>
-                    {() => (
-                      <ZoneErrorBoundary
-                        zone="editor"
-                        title={copy['projectIde.boundaryTitle']}
-                        boundaryId={`project:${projectId}:ide`}
-                      >
-                        <Suspense fallback={optimisticShell}>
-                          <ProjectIdeChat
-                            forceWorkbench
-                            projectIdeMode
-                            projectId={projectId}
-                            projectUrl={projectUrl}
-                            initialIdePanels={initialIdePanels}
-                          />
-                        </Suspense>
-                      </ZoneErrorBoundary>
-                    )}
-                  </ClientOnly>
-                </main>
-              </IdePaletteProvider>
-            </ComposerToolsProvider>
-          </AgentMenuProvider>
+              <ComposerToolsProvider
+                projectId={projectId}
+                workspaceId={currentWorkspaceId}
+                windowId={searchParams.get('peWindow') || 'window-main'}
+              >
+                <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
+                  <main className="h-dvh pt-9">
+                    <ClientOnly fallback={optimisticShell}>
+                      {() => (
+                        <ZoneErrorBoundary
+                          zone="editor"
+                          title={copy['projectIde.boundaryTitle']}
+                          boundaryId={`project:${projectId}:ide`}
+                        >
+                          <Suspense fallback={optimisticShell}>
+                            <ProjectIdeChat
+                              forceWorkbench
+                              projectIdeMode
+                              projectId={projectId}
+                              projectUrl={projectUrl}
+                              initialIdePanels={initialIdePanels}
+                            />
+                          </Suspense>
+                        </ZoneErrorBoundary>
+                      )}
+                    </ClientOnly>
+                  </main>
+                </IdePaletteProvider>
+              </ComposerToolsProvider>
+            </AgentMenuProvider>
+          </MobileOverlayFocusProvider>
         </div>
       </ProjectWorkspaceProvider>
     </CurrentWorkspaceProvider>
@@ -259,6 +266,7 @@ function IdeProjectTopBar({
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getProjectIdeCopy(language);
+  const [navigationSearchParams] = useSearchParams();
 
   const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
     formatProjectIdeCopy(template, values);
@@ -871,20 +879,14 @@ function IdeProjectTopBar({
               )}
             </button>
           )}
-          {/*
-           * Unify publish on ONE path (Replit-parity: a single publish flow).
-           * The most-visible Publish button MUST reach our auto-detecting deploy
-           * pipeline (server/static, provider='server' included) — NOT the
-           * external-provider wizard (Vercel/Netlify/…). That wizard used to be
-           * the default here (panel=deployments -> ProjectDeploymentsPanel), so a
-           * user clicking the top Publish never touched our server-deploy. Point
-           * it at the project Deployments PAGE, whose DeployPublishCard detects
-           * "express -> server deployment" and runs the snapshot->image->run
-           * pipeline; the external providers live under that page's Manage tab as
-           * an advanced option, no longer the default.
-           */}
+          {/* The primary publish entry shares the IDE deployment workflow. */}
           <Link
-            to={`/projects/${projectId}/deployments`}
+            to={withProjectSearch(projectUrl, {
+              panel: 'deployments',
+              searchParams: new URLSearchParams(
+                navigationSearchParams.has('workspace') ? { workspace: navigationSearchParams.get('workspace')! } : {},
+              ),
+            })}
             className="bolt-project-publish-button"
             title={
               (project.deploymentCount ?? 0) > 0 ? copy['projectIde.republish.title'] : copy['projectIde.publish.title']

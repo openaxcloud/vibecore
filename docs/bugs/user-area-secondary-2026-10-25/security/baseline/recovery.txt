@@ -1,0 +1,54 @@
+{
+  base: 'http://127.0.0.1:7299',
+  synthetic: true,
+  checks: [
+    {
+      lang: 'fr',
+      route: 'session-security',
+      error: 'Impossible de charger les sessions actives\n' +
+        '\n' +
+        'Aucune session n’a été révoquée. Vous pouvez toujours modifier la politique de l’organisation ci-dessous.\n' +
+        '\n' +
+        'Recharger les sessions',
+      unknownMfaNotDisabled: true,
+      retryRecovered: true
+    },
+    {
+      lang: 'fr',
+      route: 'security-settings',
+      error: 'Impossible de charger le statut de l’authentification à deux facteurs\n' +
+        '\n' +
+        'Nous ne déduisons pas si la protection est activée. Vos paramètres de sécurité restent inchangés.\n' +
+        '\n' +
+        'Relancer la vérification de sécurité',
+      unknownMfaNotDisabled: true,
+      retryRecovered: true
+    },
+    { lang: 'fr', keyboardBack: true },
+    {
+      lang: 'en',
+      route: 'session-security',
+      error: 'Active sessions could not load\n' +
+        '\n' +
+        'No session was revoked. You can still update the organization policy below.\n' +
+        '\n' +
+        'Retry loading sessions',
+      unknownMfaNotDisabled: true,
+      retryRecovered: true
+    },
+    {
+      lang: 'en',
+      route: 'security-settings',
+      error: 'Two-factor status could not load\n' +
+        '\n' +
+        'We will not guess whether protection is enabled. Your security settings are unchanged.\n' +
+        '\n' +
+        'Retry security check',
+      unknownMfaNotDisabled: true,
+      retryRecovered: true
+    },
+    { lang: 'en', keyboardBack: true }
+  ],
+  writes: [],
+  errors: []
+}

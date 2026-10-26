@@ -1,8 +1,10 @@
 import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
-import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { AgentWalkthrough } from '~/components/docs/AgentWalkthrough';
+import { EcodeExactPublicShell as PublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { buildPublicRouteMeta, getPublicRouteSeoCopy } from '~/lib/i18n/catalogs/public-route-seo';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+
+export const handle = { serverRenderedMarketing: true } as const;
 
 export function loader({ request }: LoaderFunctionArgs) {
   const locale = resolveRequestLocale(request);

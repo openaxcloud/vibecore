@@ -1,0 +1,13 @@
+{
+  "pid": 158383,
+  "startTicks": "1935728",
+  "port": 11299,
+  "cwd": "/workspace/vibecore-ui-coverage",
+  "log": "/tmp/ui-safecontent/baseline-server.log",
+  "api": "http://127.0.0.1:5499",
+  "build": "existing coverage build, no rebuild",
+  "args": [
+    "/workspace/vibecore-ui-coverage/node_modules/@react-router/serve/bin.js",
+    "/workspace/vibecore-ui-coverage/build/server/index.js"
+  ]
+}

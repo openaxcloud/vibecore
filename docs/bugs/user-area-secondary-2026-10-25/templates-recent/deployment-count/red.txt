@@ -1,0 +1,54 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ❯ app/lib/i18n/catalogs/user-area.spec.ts (8 tests | 2 failed) 19ms
+   ✓ user-area translation catalog > renders 0 deployments with only the French catalogue loaded 4ms
+   ✓ user-area translation catalog > renders 1 deployments with only the French catalogue loaded 1ms
+   ✓ user-area translation catalog > renders 2 deployments with only the French catalogue loaded 0ms
+   × user-area translation catalog > renders 1000000 deployments with only the French catalogue loaded 6ms
+     → expected 'Unavailable' to be '1000000 déploiements' // Object.is equality
+   ✓ user-area translation catalog > renders 1000001 deployments with only the French catalogue loaded 1ms
+   × user-area translation catalog > renders 1000000000 deployments with only the French catalogue loaded 1ms
+     → expected 'Unavailable' to be '1000000000 déploiements' // Object.is equality
+   ✓ user-area translation catalog > keeps English and French keys and interpolation tokens in exact parity 5ms
+   ✓ user-area translation catalog > uses reviewed French terminology while preserving technical identifiers 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/lib/i18n/catalogs/user-area.spec.ts > user-area translation catalog > renders 1000000 deployments with only the French catalogue loaded
+AssertionError: expected 'Unavailable' to be '1000000 déploiements' // Object.is equality
+
+Expected: "1000000 déploiements"
+Received: "Unavailable"
+
+ ❯ app/lib/i18n/catalogs/user-area.spec.ts:28:67
+     26|
+     27|     expect(i18n.hasResourceBundle('en', 'translation')).toBe(false);
+     28|     expect(i18n.t('userArea.project.deploymentCount', { count })).toBe…
+       |                                                                   ^
+     29|   });
+     30|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/lib/i18n/catalogs/user-area.spec.ts > user-area translation catalog > renders 1000000000 deployments with only the French catalogue loaded
+AssertionError: expected 'Unavailable' to be '1000000000 déploiements' // Object.is equality
+
+Expected: "1000000000 déploiements"
+Received: "Unavailable"
+
+ ❯ app/lib/i18n/catalogs/user-area.spec.ts:28:67
+     26|
+     27|     expect(i18n.hasResourceBundle('en', 'translation')).toBe(false);
+     28|     expect(i18n.t('userArea.project.deploymentCount', { count })).toBe…
+       |                                                                   ^
+     29|   });
+     30|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)
+   Start at  22:25:24
+   Duration  1.80s (transform 941ms, setup 19ms, collect 17ms, tests 19ms, environment 0ms, prepare 55ms)

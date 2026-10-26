@@ -1,0 +1,1236 @@
+{
+  "base": "http://127.0.0.1:6499",
+  "synthetic": true,
+  "browser": "154.0.8037.57",
+  "matrix": [
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "bounds": {
+        "client": 292,
+        "scroll": 292,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "bounds": {
+        "client": 332,
+        "scroll": 332,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "bounds": {
+        "client": 362,
+        "scroll": 362,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "bounds": {
+        "client": 802,
+        "scroll": 802,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "bounds": {
+        "client": 726,
+        "scroll": 726,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "bounds": {
+        "client": 778,
+        "scroll": 778,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "bounds": {
+        "client": 926,
+        "scroll": 926,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 640,
+      "height": 400,
+      "zoom": "200% layout equivalent only",
+      "dirtyNavigationEscape": true,
+      "keyboard": true,
+      "invalidTimezone": true
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "bounds": {
+        "client": 292,
+        "scroll": 292,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "bounds": {
+        "client": 332,
+        "scroll": 332,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "bounds": {
+        "client": 362,
+        "scroll": 362,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "bounds": {
+        "client": 802,
+        "scroll": 802,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "bounds": {
+        "client": 726,
+        "scroll": 726,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "bounds": {
+        "client": 778,
+        "scroll": 778,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "bounds": {
+        "client": 926,
+        "scroll": 926,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Compte",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Comptes connectés",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Données et confidentialité",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 640,
+      "height": 400,
+      "zoom": "200% layout equivalent only",
+      "dirtyNavigationEscape": true,
+      "keyboard": true,
+      "invalidTimezone": true
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "bounds": {
+        "client": 292,
+        "scroll": 292,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "bounds": {
+        "client": 332,
+        "scroll": 332,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "bounds": {
+        "client": 362,
+        "scroll": 362,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "bounds": {
+        "client": 802,
+        "scroll": 802,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "bounds": {
+        "client": 726,
+        "scroll": 726,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "bounds": {
+        "client": 778,
+        "scroll": 778,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "bounds": {
+        "client": 926,
+        "scroll": 926,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 640,
+      "height": 400,
+      "zoom": "200% layout equivalent only",
+      "dirtyNavigationEscape": true,
+      "keyboard": true,
+      "invalidTimezone": true
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "bounds": {
+        "client": 292,
+        "scroll": 292,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "bounds": {
+        "client": 332,
+        "scroll": 332,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "bounds": {
+        "client": 362,
+        "scroll": 362,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "bounds": {
+        "client": 802,
+        "scroll": 802,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "bounds": {
+        "client": 726,
+        "scroll": 726,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "bounds": {
+        "client": 778,
+        "scroll": 778,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "bounds": {
+        "client": 926,
+        "scroll": 926,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "bounds": {
+        "client": 924,
+        "scroll": 924,
+        "links": [
+          {
+            "text": "Account",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Connected accounts",
+            "inside": true,
+            "height": 44
+          },
+          {
+            "text": "Data & privacy",
+            "inside": true,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 640,
+      "height": 400,
+      "zoom": "200% layout equivalent only",
+      "dirtyNavigationEscape": true,
+      "keyboard": true,
+      "invalidTimezone": true
+    }
+  ],
+  "errors": []
+}

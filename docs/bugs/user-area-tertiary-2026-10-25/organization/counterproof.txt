@@ -1,0 +1,22 @@
+[
+  {
+    route: 'organization-roles',
+    before: { client: 262, scroll: 2547 },
+    after: { client: 262, scroll: 262 }
+  },
+  {
+    route: 'roles-and-permissions',
+    before: { client: 232, scroll: 2547 },
+    after: { client: 232, scroll: 232 }
+  },
+  {
+    route: 'organization-invitations',
+    before: { client: 2561, scroll: 2561 },
+    after: { client: 260, scroll: 260 }
+  },
+  {
+    route: 'invitations',
+    before: { client: 262, scroll: 2190 },
+    after: { client: 262, scroll: 262 }
+  }
+]

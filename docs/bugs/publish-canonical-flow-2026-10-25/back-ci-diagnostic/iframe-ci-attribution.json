@@ -1,0 +1,2259 @@
+{
+  "source": "GitHub Actions PR788 head5fbb, shard3; native browser events with sanitized URLs and no raw navigation keys",
+  "classification": "Application cause observed in CI, distinct from the earlier standalone mechanism-only probe",
+  "failedAttempts": [
+    0,
+    1
+  ],
+  "passedAttempt": 2,
+  "cause": "The same preview iframe element 5 switched from static srcdoc to the boot about:blank document and back to the identical 59-character static document. In both failed attempts those committed child navigations raised shared history length from 3 to 4 to 5 at top-level index1, before the move and cancellation. The successful attempt detached the old frame before the blank navigation committed and stayed at length3.",
+  "fix": "Give static, runtime, device-runtime and boot iframe modes distinct constant React keys. Preserve iframe refs, source attributes, sandbox, callbacks and stable-mode identity.",
+  "componentRegression": "Real Preview rendered with controlled nanostore files: static document \u2192 transiently empty files \u2192 static document. Before: restored frame was the boot DOM element. After: distinct elements; static sandbox unchanged; rerendering identical static files keeps the frame.",
+  "reports": [
+    {
+      "attempt": 0,
+      "browser": "147.0.7727.15",
+      "events": [
+        {
+          "timeMs": 155,
+          "event": "initial",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2
+        },
+        {
+          "timeMs": 210,
+          "event": "navigate:replace",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=preview",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 211,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2
+        },
+        {
+          "timeMs": 1023,
+          "event": "navigate:replace",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=preview",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 1023,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 2
+        },
+        {
+          "timeMs": 2309,
+          "event": "navigate:push",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 2309,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3
+        },
+        {
+          "timeMs": 4964,
+          "event": "before-move",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2309
+        },
+        {
+          "timeMs": 5444,
+          "event": "after-move",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2309
+        },
+        {
+          "timeMs": 5444,
+          "event": "preview-request-observed",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2309
+        },
+        {
+          "timeMs": 5444,
+          "event": "before-cancel-preview",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2309
+        },
+        {
+          "timeMs": 5889,
+          "event": "navigate:push",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 5,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 5889,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6
+        },
+        {
+          "timeMs": 5891,
+          "event": "after-cancel-preview",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "historyObservedAtMs": 5889
+        },
+        {
+          "timeMs": 5960,
+          "event": "preview-request-aborted",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "historyObservedAtMs": 5889
+        },
+        {
+          "timeMs": 5995,
+          "event": "before-back-1",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "historyObservedAtMs": 5889
+        },
+        {
+          "timeMs": 6047,
+          "event": "navigate:traverse",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": 1
+        },
+        {
+          "timeMs": 6048,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6
+        },
+        {
+          "timeMs": 6048,
+          "event": "popstate",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6
+        },
+        {
+          "timeMs": 6052,
+          "event": "after-back-1",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 6048
+        },
+        {
+          "timeMs": 6052,
+          "event": "before-back-2",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 6048
+        },
+        {
+          "timeMs": 6072,
+          "event": "after-back-2",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 6048
+        },
+        {
+          "timeMs": 11081,
+          "event": "finally",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 6048
+        }
+      ],
+      "frames": [
+        {
+          "timeMs": 144,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 179
+        },
+        {
+          "timeMs": 213,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 292
+        },
+        {
+          "timeMs": 886,
+          "event": "iframe-added",
+          "element": 1,
+          "preview": false,
+          "pane": -1,
+          "idx": null,
+          "length": 2,
+          "srcClass": "other"
+        },
+        {
+          "timeMs": 886,
+          "event": "frameattached",
+          "frame": 2,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 893
+        },
+        {
+          "timeMs": 1007,
+          "event": "framenavigated",
+          "frame": 2,
+          "parent": 1,
+          "main": false,
+          "urlClass": "other",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 1019
+        },
+        {
+          "timeMs": 1024,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1034
+        },
+        {
+          "timeMs": 1482,
+          "event": "frameattached",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1586
+        },
+        {
+          "timeMs": 1486,
+          "event": "framenavigated",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "blank",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1586
+        },
+        {
+          "timeMs": 1548,
+          "event": "iframe-added",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "blank"
+        },
+        {
+          "timeMs": 1883,
+          "event": "frameattached",
+          "frame": 4,
+          "parent": 2,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2026
+        },
+        {
+          "timeMs": 1959,
+          "event": "framenavigated",
+          "frame": 4,
+          "parent": 2,
+          "main": false,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2033
+        },
+        {
+          "timeMs": 1980,
+          "event": "iframe-attribute",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "attribute": "src",
+          "oldClass": "blank",
+          "newClass": "absent",
+          "oldHash": "e65d16aa",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 1980,
+          "event": "iframe-attribute",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "attribute": "srcdoc",
+          "oldClass": "absent",
+          "newClass": "other",
+          "oldHash": "811c9dc5",
+          "newHash": "4fd50ec6",
+          "valueLength": 59
+        },
+        {
+          "timeMs": 2026,
+          "event": "framenavigated",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2057
+        },
+        {
+          "timeMs": 2192,
+          "event": "iframe-removed",
+          "element": 2,
+          "preview": true,
+          "pane": -1,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 2222,
+          "event": "framedetached",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2262
+        },
+        {
+          "timeMs": 2313,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 2532
+        },
+        {
+          "timeMs": 2592,
+          "event": "frameattached",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 2707
+        },
+        {
+          "timeMs": 2656,
+          "event": "iframe-added",
+          "element": 3,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 2707,
+          "event": "framenavigated",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 2832
+        },
+        {
+          "timeMs": 3062,
+          "event": "framedetached",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 3239
+        },
+        {
+          "timeMs": 3067,
+          "event": "frameattached",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 3252
+        },
+        {
+          "timeMs": 3213,
+          "event": "iframe-removed",
+          "element": 3,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3213,
+          "event": "iframe-added",
+          "element": 4,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3239,
+          "event": "framenavigated",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 3390
+        },
+        {
+          "timeMs": 4045,
+          "event": "iframe-removed",
+          "element": 4,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 4048,
+          "event": "framedetached",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 4188
+        },
+        {
+          "timeMs": 4377,
+          "event": "frameattached",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 4490
+        },
+        {
+          "timeMs": 4432,
+          "event": "iframe-added",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 4491,
+          "event": "framenavigated",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 4506
+        },
+        {
+          "timeMs": 4750,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "attribute": "srcdoc",
+          "oldClass": "other",
+          "newClass": "absent",
+          "oldHash": "4fd50ec6",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 4750,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "attribute": "src",
+          "oldClass": "absent",
+          "newClass": "blank",
+          "oldHash": "811c9dc5",
+          "newHash": "e65d16aa",
+          "valueLength": 11
+        },
+        {
+          "timeMs": 4864,
+          "event": "framenavigated",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "blank",
+          "idx": 1,
+          "length": 4,
+          "sampledAtMs": 4944
+        },
+        {
+          "timeMs": 4923,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 4,
+          "attribute": "src",
+          "oldClass": "blank",
+          "newClass": "absent",
+          "oldHash": "e65d16aa",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 4923,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 4,
+          "attribute": "srcdoc",
+          "oldClass": "absent",
+          "newClass": "other",
+          "oldHash": "811c9dc5",
+          "newHash": "4fd50ec6",
+          "valueLength": 59
+        },
+        {
+          "timeMs": 4953,
+          "event": "framenavigated",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 4964
+        },
+        {
+          "timeMs": 5085,
+          "event": "framedetached",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 5400
+        },
+        {
+          "timeMs": 5087,
+          "event": "frameattached",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 5403
+        },
+        {
+          "timeMs": 5108,
+          "event": "iframe-removed",
+          "element": 5,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 5,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 5108,
+          "event": "iframe-added",
+          "element": 6,
+          "preview": true,
+          "pane": 1,
+          "idx": 1,
+          "length": 5,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 5400,
+          "event": "framenavigated",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 5443
+        },
+        {
+          "timeMs": 5739,
+          "event": "iframe-removed",
+          "element": 6,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 5,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 5765,
+          "event": "framedetached",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 5842
+        },
+        {
+          "timeMs": 5899,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 2,
+          "length": 6,
+          "sampledAtMs": 5949
+        },
+        {
+          "timeMs": 6051,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 6,
+          "sampledAtMs": 6069
+        },
+        {
+          "timeMs": 6070,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 6,
+          "sampledAtMs": 6100
+        }
+      ],
+      "omittedFrameEvents": 0
+    },
+    {
+      "attempt": 1,
+      "browser": "147.0.7727.15",
+      "events": [
+        {
+          "timeMs": 194,
+          "event": "initial",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2
+        },
+        {
+          "timeMs": 380,
+          "event": "navigate:replace",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=preview",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 381,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2
+        },
+        {
+          "timeMs": 1580,
+          "event": "navigate:replace",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=preview",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 1581,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 2
+        },
+        {
+          "timeMs": 4870,
+          "event": "navigate:push",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 4870,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3
+        },
+        {
+          "timeMs": 7023,
+          "event": "before-move",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 4870
+        },
+        {
+          "timeMs": 8460,
+          "event": "after-move",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 4870
+        },
+        {
+          "timeMs": 8460,
+          "event": "preview-request-observed",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 4870
+        },
+        {
+          "timeMs": 8460,
+          "event": "before-cancel-preview",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 4870
+        },
+        {
+          "timeMs": 9119,
+          "event": "navigate:push",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 5,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 9120,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6
+        },
+        {
+          "timeMs": 9145,
+          "event": "after-cancel-preview",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "historyObservedAtMs": 9120
+        },
+        {
+          "timeMs": 9450,
+          "event": "preview-request-aborted",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "historyObservedAtMs": 9120
+        },
+        {
+          "timeMs": 9564,
+          "event": "before-back-1",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "historyObservedAtMs": 9120
+        },
+        {
+          "timeMs": 9582,
+          "event": "navigate:traverse",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 6,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": 1
+        },
+        {
+          "timeMs": 9583,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6
+        },
+        {
+          "timeMs": 9583,
+          "event": "popstate",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6
+        },
+        {
+          "timeMs": 9650,
+          "event": "after-back-1",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 9583
+        },
+        {
+          "timeMs": 9651,
+          "event": "before-back-2",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 9583
+        },
+        {
+          "timeMs": 9690,
+          "event": "after-back-2",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 9583
+        },
+        {
+          "timeMs": 14716,
+          "event": "finally",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 6,
+          "historyObservedAtMs": 9583
+        }
+      ],
+      "frames": [
+        {
+          "timeMs": 181,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 441
+        },
+        {
+          "timeMs": 386,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 683
+        },
+        {
+          "timeMs": 1358,
+          "event": "iframe-added",
+          "element": 1,
+          "preview": false,
+          "pane": -1,
+          "idx": null,
+          "length": 2,
+          "srcClass": "other"
+        },
+        {
+          "timeMs": 1358,
+          "event": "frameattached",
+          "frame": 2,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 1444
+        },
+        {
+          "timeMs": 1511,
+          "event": "framenavigated",
+          "frame": 2,
+          "parent": 1,
+          "main": false,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1648
+        },
+        {
+          "timeMs": 1585,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1680
+        },
+        {
+          "timeMs": 2153,
+          "event": "frameattached",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2630
+        },
+        {
+          "timeMs": 2156,
+          "event": "framenavigated",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "blank",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2632
+        },
+        {
+          "timeMs": 2201,
+          "event": "iframe-added",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "blank"
+        },
+        {
+          "timeMs": 2593,
+          "event": "frameattached",
+          "frame": 4,
+          "parent": 2,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2770
+        },
+        {
+          "timeMs": 2744,
+          "event": "framenavigated",
+          "frame": 4,
+          "parent": 2,
+          "main": false,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 3074
+        },
+        {
+          "timeMs": 2919,
+          "event": "iframe-attribute",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "attribute": "src",
+          "oldClass": "blank",
+          "newClass": "absent",
+          "oldHash": "e65d16aa",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 2920,
+          "event": "iframe-attribute",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "attribute": "srcdoc",
+          "oldClass": "absent",
+          "newClass": "other",
+          "oldHash": "811c9dc5",
+          "newHash": "4fd50ec6",
+          "valueLength": 59
+        },
+        {
+          "timeMs": 3054,
+          "event": "framenavigated",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 3295
+        },
+        {
+          "timeMs": 3127,
+          "event": "framedetached",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 3480
+        },
+        {
+          "timeMs": 3134,
+          "event": "frameattached",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 3492
+        },
+        {
+          "timeMs": 3228,
+          "event": "iframe-removed",
+          "element": 2,
+          "preview": true,
+          "pane": -1,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3228,
+          "event": "iframe-added",
+          "element": 3,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3295,
+          "event": "framenavigated",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 3542
+        },
+        {
+          "timeMs": 3703,
+          "event": "framedetached",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 4133
+        },
+        {
+          "timeMs": 3712,
+          "event": "frameattached",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 4146
+        },
+        {
+          "timeMs": 3850,
+          "event": "iframe-removed",
+          "element": 3,
+          "preview": true,
+          "pane": -1,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3850,
+          "event": "iframe-added",
+          "element": 4,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3904,
+          "event": "framenavigated",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 4259
+        },
+        {
+          "timeMs": 4673,
+          "event": "iframe-removed",
+          "element": 4,
+          "preview": true,
+          "pane": -1,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 4709,
+          "event": "framedetached",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 4839
+        },
+        {
+          "timeMs": 4877,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 5104
+        },
+        {
+          "timeMs": 5919,
+          "event": "frameattached",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 6186
+        },
+        {
+          "timeMs": 5929,
+          "event": "iframe-added",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 6092,
+          "event": "framenavigated",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 6277
+        },
+        {
+          "timeMs": 6637,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "attribute": "srcdoc",
+          "oldClass": "other",
+          "newClass": "absent",
+          "oldHash": "4fd50ec6",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 6637,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "attribute": "src",
+          "oldClass": "absent",
+          "newClass": "blank",
+          "oldHash": "811c9dc5",
+          "newHash": "e65d16aa",
+          "valueLength": 11
+        },
+        {
+          "timeMs": 6663,
+          "event": "framenavigated",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "blank",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 6885
+        },
+        {
+          "timeMs": 6750,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 4,
+          "attribute": "src",
+          "oldClass": "blank",
+          "newClass": "absent",
+          "oldHash": "e65d16aa",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 6750,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 4,
+          "attribute": "srcdoc",
+          "oldClass": "absent",
+          "newClass": "other",
+          "oldHash": "811c9dc5",
+          "newHash": "4fd50ec6",
+          "valueLength": 59
+        },
+        {
+          "timeMs": 6859,
+          "event": "framenavigated",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 6902
+        },
+        {
+          "timeMs": 7612,
+          "event": "framedetached",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 8458
+        },
+        {
+          "timeMs": 7613,
+          "event": "frameattached",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 8459
+        },
+        {
+          "timeMs": 7657,
+          "event": "iframe-removed",
+          "element": 5,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 5,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 7657,
+          "event": "iframe-added",
+          "element": 6,
+          "preview": true,
+          "pane": 1,
+          "idx": 1,
+          "length": 5,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 7999,
+          "event": "framenavigated",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 8479
+        },
+        {
+          "timeMs": 9017,
+          "event": "iframe-removed",
+          "element": 6,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 5,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 9057,
+          "event": "framedetached",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 5,
+          "sampledAtMs": 9197
+        },
+        {
+          "timeMs": 9134,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 2,
+          "length": 6,
+          "sampledAtMs": 9406
+        },
+        {
+          "timeMs": 9589,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 6,
+          "sampledAtMs": 9673
+        },
+        {
+          "timeMs": 9679,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 6,
+          "sampledAtMs": 9741
+        }
+      ],
+      "omittedFrameEvents": 0
+    },
+    {
+      "attempt": 2,
+      "browser": "147.0.7727.15",
+      "events": [
+        {
+          "timeMs": 190,
+          "event": "initial",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2
+        },
+        {
+          "timeMs": 241,
+          "event": "navigate:replace",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=preview",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 241,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2
+        },
+        {
+          "timeMs": 990,
+          "event": "navigate:replace",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": null,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=preview",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 990,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 2
+        },
+        {
+          "timeMs": 2423,
+          "event": "navigate:push",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 2,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 2424,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3
+        },
+        {
+          "timeMs": 4765,
+          "event": "before-move",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2424
+        },
+        {
+          "timeMs": 5297,
+          "event": "after-move",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2424
+        },
+        {
+          "timeMs": 5298,
+          "event": "preview-request-observed",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2424
+        },
+        {
+          "timeMs": 5298,
+          "event": "before-cancel-preview",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2424
+        },
+        {
+          "timeMs": 5709,
+          "event": "after-cancel-preview",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "historyObservedAtMs": 2424
+        },
+        {
+          "timeMs": 5725,
+          "event": "navigate:push",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 3,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": -1
+        },
+        {
+          "timeMs": 5725,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 4
+        },
+        {
+          "timeMs": 5752,
+          "event": "preview-request-aborted",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 4,
+          "historyObservedAtMs": 5725
+        },
+        {
+          "timeMs": 5818,
+          "event": "before-back-1",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 4,
+          "historyObservedAtMs": 5725
+        },
+        {
+          "timeMs": 5822,
+          "event": "navigate:traverse",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 2,
+          "length": 4,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": 1
+        },
+        {
+          "timeMs": 5822,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4
+        },
+        {
+          "timeMs": 5822,
+          "event": "popstate",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4
+        },
+        {
+          "timeMs": 5830,
+          "event": "after-back-1",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4,
+          "historyObservedAtMs": 5822
+        },
+        {
+          "timeMs": 5830,
+          "event": "before-back-2",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4,
+          "historyObservedAtMs": 5822
+        },
+        {
+          "timeMs": 5846,
+          "event": "navigate:traverse",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4,
+          "destination": "/projects/:projectId/ide?panel=preview",
+          "destinationIndex": 0
+        },
+        {
+          "timeMs": 5846,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 4
+        },
+        {
+          "timeMs": 5846,
+          "event": "popstate",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 4
+        },
+        {
+          "timeMs": 5854,
+          "event": "after-back-2",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 4,
+          "historyObservedAtMs": 5846
+        },
+        {
+          "timeMs": 6359,
+          "event": "before-forward",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 4,
+          "historyObservedAtMs": 5846
+        },
+        {
+          "timeMs": 6392,
+          "event": "navigate:traverse",
+          "url": "/projects/:projectId/ide?panel=preview",
+          "idx": 0,
+          "length": 4,
+          "destination": "/projects/:projectId/ide?panel=deployments",
+          "destinationIndex": 1
+        },
+        {
+          "timeMs": 6392,
+          "event": "currententrychange",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4
+        },
+        {
+          "timeMs": 6392,
+          "event": "popstate",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4
+        },
+        {
+          "timeMs": 6395,
+          "event": "after-forward",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4,
+          "historyObservedAtMs": 6392
+        },
+        {
+          "timeMs": 6633,
+          "event": "finally",
+          "url": "/projects/:projectId/ide?panel=deployments",
+          "idx": 1,
+          "length": 4,
+          "historyObservedAtMs": 6392
+        }
+      ],
+      "frames": [
+        {
+          "timeMs": 180,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 275
+        },
+        {
+          "timeMs": 248,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 389
+        },
+        {
+          "timeMs": 860,
+          "event": "iframe-added",
+          "element": 1,
+          "preview": false,
+          "pane": -1,
+          "idx": null,
+          "length": 2,
+          "srcClass": "other"
+        },
+        {
+          "timeMs": 861,
+          "event": "frameattached",
+          "frame": 2,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": null,
+          "length": 2,
+          "sampledAtMs": 871
+        },
+        {
+          "timeMs": 991,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1006
+        },
+        {
+          "timeMs": 1020,
+          "event": "framenavigated",
+          "frame": 2,
+          "parent": 1,
+          "main": false,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1400
+        },
+        {
+          "timeMs": 1510,
+          "event": "frameattached",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1626
+        },
+        {
+          "timeMs": 1513,
+          "event": "framenavigated",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "blank",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 1626
+        },
+        {
+          "timeMs": 1560,
+          "event": "iframe-added",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "blank"
+        },
+        {
+          "timeMs": 1941,
+          "event": "frameattached",
+          "frame": 4,
+          "parent": 2,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2094
+        },
+        {
+          "timeMs": 2033,
+          "event": "framenavigated",
+          "frame": 4,
+          "parent": 2,
+          "main": false,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2109
+        },
+        {
+          "timeMs": 2049,
+          "event": "iframe-attribute",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "attribute": "src",
+          "oldClass": "blank",
+          "newClass": "absent",
+          "oldHash": "e65d16aa",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 2049,
+          "event": "iframe-attribute",
+          "element": 2,
+          "preview": true,
+          "pane": 0,
+          "idx": 0,
+          "length": 2,
+          "attribute": "srcdoc",
+          "oldClass": "absent",
+          "newClass": "other",
+          "oldHash": "811c9dc5",
+          "newHash": "4fd50ec6",
+          "valueLength": 59
+        },
+        {
+          "timeMs": 2100,
+          "event": "framenavigated",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2165
+        },
+        {
+          "timeMs": 2293,
+          "event": "iframe-removed",
+          "element": 2,
+          "preview": true,
+          "pane": -1,
+          "idx": 0,
+          "length": 2,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 2321,
+          "event": "framedetached",
+          "frame": 3,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 2,
+          "sampledAtMs": 2364
+        },
+        {
+          "timeMs": 2426,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 2579
+        },
+        {
+          "timeMs": 2619,
+          "event": "frameattached",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 2795
+        },
+        {
+          "timeMs": 2703,
+          "event": "iframe-added",
+          "element": 3,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 2787,
+          "event": "framenavigated",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 2884
+        },
+        {
+          "timeMs": 3030,
+          "event": "framedetached",
+          "frame": 5,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 3172
+        },
+        {
+          "timeMs": 3039,
+          "event": "frameattached",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 3175
+        },
+        {
+          "timeMs": 3132,
+          "event": "iframe-removed",
+          "element": 3,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3132,
+          "event": "iframe-added",
+          "element": 4,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3161,
+          "event": "framenavigated",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 3424
+        },
+        {
+          "timeMs": 3317,
+          "event": "iframe-removed",
+          "element": 4,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 3376,
+          "event": "framedetached",
+          "frame": 6,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 3462
+        },
+        {
+          "timeMs": 4184,
+          "event": "frameattached",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 4361
+        },
+        {
+          "timeMs": 4263,
+          "event": "iframe-added",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 4354,
+          "event": "framenavigated",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 4398
+        },
+        {
+          "timeMs": 4882,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "attribute": "srcdoc",
+          "oldClass": "other",
+          "newClass": "absent",
+          "oldHash": "4fd50ec6",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 4882,
+          "event": "iframe-attribute",
+          "element": 5,
+          "preview": true,
+          "pane": 0,
+          "idx": 1,
+          "length": 3,
+          "attribute": "src",
+          "oldClass": "absent",
+          "newClass": "blank",
+          "oldHash": "811c9dc5",
+          "newHash": "e65d16aa",
+          "valueLength": 11
+        },
+        {
+          "timeMs": 4926,
+          "event": "framedetached",
+          "frame": 7,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 5203
+        },
+        {
+          "timeMs": 4929,
+          "event": "frameattached",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 5203
+        },
+        {
+          "timeMs": 4937,
+          "event": "framenavigated",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "blank",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 5203
+        },
+        {
+          "timeMs": 4957,
+          "event": "iframe-removed",
+          "element": 5,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "blank"
+        },
+        {
+          "timeMs": 4957,
+          "event": "iframe-added",
+          "element": 6,
+          "preview": true,
+          "pane": 1,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "blank"
+        },
+        {
+          "timeMs": 5287,
+          "event": "iframe-attribute",
+          "element": 6,
+          "preview": true,
+          "pane": 1,
+          "idx": 1,
+          "length": 3,
+          "attribute": "src",
+          "oldClass": "blank",
+          "newClass": "absent",
+          "oldHash": "e65d16aa",
+          "newHash": "811c9dc5",
+          "valueLength": 0
+        },
+        {
+          "timeMs": 5287,
+          "event": "iframe-attribute",
+          "element": 6,
+          "preview": true,
+          "pane": 1,
+          "idx": 1,
+          "length": 3,
+          "attribute": "srcdoc",
+          "oldClass": "absent",
+          "newClass": "other",
+          "oldHash": "811c9dc5",
+          "newHash": "4fd50ec6",
+          "valueLength": 59
+        },
+        {
+          "timeMs": 5313,
+          "event": "framenavigated",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 5346
+        },
+        {
+          "timeMs": 5590,
+          "event": "iframe-removed",
+          "element": 6,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 3,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 5611,
+          "event": "framedetached",
+          "frame": 8,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 3,
+          "sampledAtMs": 5678
+        },
+        {
+          "timeMs": 5727,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 2,
+          "length": 4,
+          "sampledAtMs": 5741
+        },
+        {
+          "timeMs": 5825,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 4,
+          "sampledAtMs": 5842
+        },
+        {
+          "timeMs": 5848,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 0,
+          "length": 4,
+          "sampledAtMs": 5878
+        },
+        {
+          "timeMs": 5996,
+          "event": "frameattached",
+          "frame": 9,
+          "parent": 1,
+          "main": false,
+          "urlClass": "empty",
+          "idx": 0,
+          "length": 4,
+          "sampledAtMs": 6092
+        },
+        {
+          "timeMs": 6036,
+          "event": "iframe-added",
+          "element": 7,
+          "preview": true,
+          "pane": 1,
+          "idx": 0,
+          "length": 4,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 6078,
+          "event": "framenavigated",
+          "frame": 9,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 0,
+          "length": 4,
+          "sampledAtMs": 6126
+        },
+        {
+          "timeMs": 6394,
+          "event": "framenavigated",
+          "frame": 1,
+          "parent": null,
+          "main": true,
+          "urlClass": "other",
+          "idx": 1,
+          "length": 4,
+          "sampledAtMs": 6448
+        },
+        {
+          "timeMs": 6579,
+          "event": "iframe-removed",
+          "element": 7,
+          "preview": true,
+          "pane": -1,
+          "idx": 1,
+          "length": 4,
+          "srcClass": "absent"
+        },
+        {
+          "timeMs": 6582,
+          "event": "framedetached",
+          "frame": 9,
+          "parent": 1,
+          "main": false,
+          "urlClass": "srcdoc",
+          "idx": 1,
+          "length": 4,
+          "sampledAtMs": 6633
+        }
+      ],
+      "omittedFrameEvents": 0
+    }
+  ]
+}

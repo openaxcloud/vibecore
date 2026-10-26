@@ -1,0 +1,13 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/routes/userarea-ux-audit.spec.ts (52 tests) 145ms
+ ✓ app/routes/billing.feedback.spec.tsx (2 tests) 274ms
+ ✓ app/routes/billing.spec.ts (10 tests) 33ms
+ ✓ app/routes/billing.spend-usage.spec.ts (3 tests) 3ms
+
+ Test Files  4 passed (4)
+      Tests  67 passed (67)
+   Start at  20:49:57
+   Duration  3.40s (transform 1.66s, setup 179ms, collect 2.51s, tests 454ms, environment 586ms, prepare 238ms)
+

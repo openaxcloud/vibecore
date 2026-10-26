@@ -1,0 +1,33 @@
+{
+  "uniqueFiles": 27,
+  "uniqueTests": 154,
+  "files": {
+    "app/routes/organization-members.i18n.spec.tsx": 6,
+    "app/routes/api-keys.reauth.spec.ts": 5,
+    "app/routes/api-keys.i18n.spec.tsx": 5,
+    "app/components/marketing/ecode-exact/EcodeExactShell.honesty.spec.ts": 3,
+    "app/components/marketing/ecode-exact/EcodeExactShell.i18n.spec.tsx": 1,
+    "app/routes/support.i18n.spec.tsx": 5,
+    "app/routes/desktop-settings.i18n.spec.tsx": 4,
+    "app/components/settings/WorkspaceSettings.spec.tsx": 3,
+    "app/routes/support.loader.spec.ts": 6,
+    "app/routes/support.action.spec.ts": 4,
+    "app/routes/user-area-async-states.spec.ts": 9,
+    "app/routes/user-area-copy.spec.ts": 6,
+    "app/routes/plan-comparison.checkout-error.spec.ts": 5,
+    "app/routes/user-area-async-boundary.guard.spec.ts": 2,
+    "app/routes/dashboard_.templates.action.spec.ts": 5,
+    "app/routes/recent-projects.loader.spec.ts": 5,
+    "app/components/dashboard/SaaSLayout.spec.ts": 20,
+    "app/components/dashboard/ProjectPreviewMedia.spec.tsx": 6,
+    "app/lib/i18n/catalogs/user-area.spec.ts": 8,
+    "app/lib/i18n/runtime.spec.ts": 11,
+    "app/lib/i18n/runtime-resources.spec.ts": 7,
+    "app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx": 4,
+    "app/components/dashboard/vitrine-hors-racine.spec.ts": 3,
+    "app/components/marketing/ecode-exact/marketing-ux-audit.spec.ts": 8,
+    "app/components/marketing/ecode-public-theme.spec.ts": 5,
+    "app/components/marketing/solutions/solution-language-control.spec.ts": 2,
+    "app/components/marketing/ecode-exact/footer-column-gap.spec.ts": 6
+  }
+}

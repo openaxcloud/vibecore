@@ -126,6 +126,8 @@ env:
   GAR_LOCATION: ${{ vars.GAR_LOCATION }}
   GAR_REPO: vibecore-prod-containers
   FLEET_MEMBERSHIP: vibecore-prod-app
+  # Same existing membership location as scripts/ci/cluster.sh; avoid cross-region discovery.
+  FLEET_LOCATION: europe-west9
   HELM_RELEASE: vibecore
   HELM_NAMESPACE: vibecore
   # Must match infra/cloudbuild/*.yaml `_KMS_KEYRING` / `_KMS_KEY` — those are what
@@ -798,7 +800,7 @@ jobs:
           set -euo pipefail
           gcloud components install gke-gcloud-auth-plugin --quiet
           gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
-            --project="${GCP_PROJECT_ID}"
+            --project="${GCP_PROJECT_ID}" --location="${FLEET_LOCATION}"
           kubectl config current-context
 
       - name: Assert every rebuilt tier has a traceable build id
@@ -1455,7 +1457,7 @@ jobs:
           set -euo pipefail
           gcloud components install gke-gcloud-auth-plugin --quiet
           gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
-            --project="${GCP_PROJECT_ID}"
+            --project="${GCP_PROJECT_ID}" --location="${FLEET_LOCATION}"
           kubectl config current-context
 
       - name: Record current release revision (for rollback)

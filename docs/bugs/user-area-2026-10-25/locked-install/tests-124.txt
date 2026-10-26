@@ -1,0 +1,41 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/routes/userarea-ux-audit.spec.ts (52 tests) 215ms
+ ✓ app/routes/account-settings.data.i18n.spec.tsx (9 tests) 366ms
+ ✓ app/components/dashboard/ProjectCardMenu.i18n.spec.tsx (3 tests) 177ms
+ ✓ app/components/dashboard/ProjectCardMenu.keyboard.spec.tsx (3 tests) 395ms
+ ✓ app/routes/billing.feedback.spec.tsx (2 tests) 297ms
+ ✓ app/routes/account-settings.data.focus.spec.tsx (2 tests) 276ms
+ ✓ app/components/ui/SharedUiResidual.i18n.spec.tsx (1 test) 93ms
+ ✓ app/routes/projects.search-navigation.spec.tsx (8 tests) 4505ms
+   ✓ does not let the debounce cancel a slower navigation that clears the query  958ms
+   ✓ keeps newer typing when an earlier debounced query finishes loading  973ms
+   ✓ keeps a pending draft when switching the local status filter  903ms
+   ✓ clears an uncommitted draft when a link navigates to the current unfiltered URL  375ms
+   ✓ distinguishes an explicit PUSH from a pending local write to the same query  512ms
+ ✓ app/routes/billing.spec.ts (10 tests) 53ms
+ ✓ tests/guards/browser-system-deps.spec.ts (8 tests) 289ms
+ ✓ scripts/shell-quote-security.spec.mjs (10 tests) 22ms
+ ✓ scripts/compression-close-security.spec.mjs (1 test) 316ms
+   ✓ checks native compression cleanup with real HTTP clients and zlib streams  315ms
+ ✓ scripts/tinypool-security.spec.mjs (1 test) 502ms
+   ✓ runs both prototype-pollution regressions with real Tinypool workers  501ms
+ ✓ tests/guards/admin-dependances-production.spec.ts (1 test) 2646ms
+   ✓ l’installation de production réelle de l’admin retire le moteur de test  2645ms
+ ✓ scripts/ws-fragment-security.spec.mjs (1 test) 262ms
+ ✓ app/lib/runtime/vite-hmr-config.compilation.spec.ts (12 tests) 15000ms
+   ✓ actual generated HMR config compilation > compiles and loads object preserving user settings and proxy HMR  2385ms
+   ✓ actual generated HMR config compilation > compiles and loads plain function preserving user settings and proxy HMR  2431ms
+   ✓ actual generated HMR config compilation > compiles and loads function preserving user settings and proxy HMR  1464ms
+   ✓ actual generated HMR config compilation > compiles and loads zero-argument function preserving user settings and proxy HMR  1391ms
+   ✓ actual generated HMR config compilation > compiles and loads async function preserving user settings and proxy HMR  1477ms
+   ✓ actual generated HMR config compilation > compiles and loads promise preserving user settings and proxy HMR  1607ms
+   ✓ actual generated HMR config compilation > upgrades an already pinned legacy config and compiles it  858ms
+   ✓ actual generated HMR config compilation > builds a coherent module graph and rejects a missing export  3343ms
+
+ Test Files  16 passed (16)
+      Tests  124 passed (124)
+   Start at  20:34:19
+   Duration  22.61s (transform 3.16s, setup 487ms, collect 6.10s, tests 25.41s, environment 3.39s, prepare 1.43s)
+

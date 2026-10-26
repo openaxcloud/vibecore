@@ -1,0 +1,125 @@
+[
+  {
+    "panel": "files",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "ixture-033.ts\nU\nUntracked\nStage\nsrc/fixture-034.ts\nU\nUntracked\nStage\nsrc/fixture-035.ts\nU\nUntracked\nStage\nsrc/fixture-036.ts\nU\nUntracked\nStage\nsrc/fixture-037.ts\nU\nUntracked\nStage\nsrc/fixture-038.ts\nU\nUntracked\nStage\nsrc/fixture-039.ts\nU\nUntracked\nStage\nsrc/fixture-040.ts\nU\nUntracked\nStage\nsrc/fixture-041.ts\nU\nUntracked\nStage\nsrc/fixture-042.ts\nU\nUntracked\nStage\nsrc/fixture-043.ts\nU\nUntracked\nStage\nsrc/fixture-044.ts\nU\nUntracked\nStage\nsrc/fixture-045.ts\nU\nUntracked\nStage\nsrc/fixture-046.ts\nU\nUntracked\nStage\nsrc/fixture-047.ts\nU\nUntracked\nStage\nsrc/fixture-048.ts\nU\nUntracked\nStage\nsrc/fixture-049.ts\nU\nUntracked\nStage\nsrc/fixture-050.ts\nU\nUntracked\nStage\nsrc/fixture-051.ts\nU\nUntracked\nStage\nsrc/fixture-052.ts\nU\nUntracked\nStage\nsrc/fixture-053.ts\nU\nUntracked\nStage\nsrc/fixture-054.ts\nU\nUntracked\nStage\nsrc/fixture-055.ts\nU\nUntracked\nStage\nsrc/fixture-056.ts\nU\nUntracked\nStage\nsrc/fixture-057.ts\nU\nUntracked\nStage\nsrc/fixture-058.ts\nU\nUntracked\nStage\nsrc/fixture-059.ts\nU\nUntracked\nStage\nStatus guide:\nU\nUntracked\nUntracked\nM\nModified\nModified\nA\nAdded\nAdded\nD\nDeleted\nDeleted\nR\nRenamed\nRenamed\n!\nConflict\nConflict\nStaged\nSelect files above to stage changes.\nCommit message\nCommit as… (optional author override)\nCommit changes\nCommit & push\nCommit graph\nUP TO DATE WITH REMOTE\naecd465\nchore: initial scaffold\njust now - HEAD -> main - You\nInspect file (diff + blame)\nInspect\nSelect a changed file or enter a path to view its diff and blame.\nBranch actions\nPull request title\nSource branch\nTarget branch\nCreate GitHub PR\n\nConfigure a GitHub remote before creating a pull request.\n\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "editor",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": " preserved fixture content\n212\n Line 210: preserved fixture content\n213\n Line 211: preserved fixture content\n214\n Line 212: preserved fixture content\n215\n Line 213: preserved fixture content\n216\n Line 214: preserved fixture content\n217\n Line 215: preserved fixture content\n218\n Line 216: preserved fixture content\n219\n Line 217: preserved fixture content\n220\n Line 218: preserved fixture content\n221\n Line 219: preserved fixture content\n222\n Line 220: preserved fixture content\n223\n Line 221: preserved fixture content\n224\n Line 222: preserved fixture content\n225\n Line 223: preserved fixture content\n226\n Line 224: preserved fixture content\n227\n Line 225: preserved fixture content\n228\n Line 226: preserved fixture content\n229\n Line 227: preserved fixture content\n230\n Line 228: preserved fixture content\n231\n Line 229: preserved fixture content\n232\n Line 230: preserved fixture content\n233\n Line 231: preserved fixture content\n234\n Line 232: preserved fixture content\n235\n Line 233: preserved fixture content\n236\n Line 234: preserved fixture content\n237\n Line 235: preserved fixture content\n238\n Line 236: preserved fixture content\n239\n Line 237: preserved fixture content\n240\n Line 238: preserved fixture content\n241\n Line 239: preserved fixture content\n/\nPreparing your live preview\n\nE-Code is starting the dev server, scanning runtime ports, and wiring the webview automatically.\n\nBuilding dependencies\nApp files changed. Detecting preview port…\nView logs\n1\nBuilding dependencies\n2\nBuilding\n3\nStarting dev server\n4\nReady\n\nPreparing: Project preview\n\nLoading workspace git status…\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "problems",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "Problems\nConnection healthy\nProblems\n0\nerrors\n0\nwarnings\nNo problems detected\n\nRuntime diagnostics, preview errors, and warnings will appear here when they are reported.\n\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 390,
+        "width": 390,
+        "height": 852
+      }
+    ]
+  },
+  {
+    "panel": "terminal",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "Connection healthy\nAgent ready\nWorkspace context ready\nIdle\nContext loaded\nFiles ready\nPreview available\nAdd a feature\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "preview",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "Webview\nConnection healthy\n{\n}\n(\n)\n[\n]\n<\n>\n/\n\\\n=\n:\n;\n.\n,\n\"\n'\n`\n|\n&\nNo file selected.\n\nSelect a file\n\nChoose a file in the explorer to compare its changes.\n\n/\nWEBVIEW STARTUP\nBuilding dependencies\n\nStarting project workspace…\n\n1\nBuilding dependencies\n2\nBuilding\n3\nStarting dev server\n4\nReady\nView logs\nLoading workspace git status…\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "git",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "Checking the active session…\nConnection healthy\nAgent ready\nWorkspace context ready\nIdle\nContext loaded\nFiles ready\nPreview available\nAdd a feature\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "deployments",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "Publish\nConnection healthy\nOverview\nLogs\nDomains\nManage\nPublish your app\n\nConfigure how your app is published and who can access it.\n\nAdjust settings\nSee all usage\nCurrent status\nNot published\n\nNothing published yet.\n\nConnected domain(s)\nAdd a domain\n\nNo domain yet — publishing will create one.\n\nSharing\nPublic\n\nAnyone on the internet with the URL\n\nInfrastructure\nProvider\n—\nEnvironment\n—\nScaling\nNot specified\nPublish history\n\nNothing published yet.\n\nPublish\nCOMMIT HISTORY\naecd465chore: initial scaffold\nYou · Oct 26, 2026\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 390,
+        "width": 390,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "deployments",
+        "x": 0,
+        "right": 390,
+        "width": 390,
+        "height": 852
+      }
+    ]
+  },
+  {
+    "panel": "database",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "Database\nConnection healthy\nAll databases\nRefresh\n\nNo database yet\n\nProvision a managed Postgres database for this project. The schema browser, SQL editor, and backups will use it.\n\nCreate database\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 390,
+        "width": 390,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "database",
+        "x": 0,
+        "right": 390,
+        "width": 390,
+        "height": 852
+      }
+    ]
+  },
+  {
+    "panel": "secrets",
+    "width": 390,
+    "scrollWidth": 390,
+    "body": "Secrets\nConnection healthy\nSecrets\nNew Secret\nNo secrets yet\n\nSecrets are encrypted and injected into your app as environment variables.\n\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 390,
+        "width": 390,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "secrets",
+        "x": 0,
+        "right": 390,
+        "width": 390,
+        "height": 852
+      }
+    ]
+  }
+]

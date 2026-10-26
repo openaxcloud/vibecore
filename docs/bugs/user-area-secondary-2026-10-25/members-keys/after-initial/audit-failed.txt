@@ -1,0 +1,272 @@
+A [Error]: expect(received).toEqual(expected) // deep equality
+
+- Expected  -   1
++ Received  + 122
+
+- Array []
++ Array [
++   Object {
++     "lang": "fr",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1281
++ Received:    1741",
++     "route": "/api-keys",
++     "theme": "light",
++     "width": 1280,
++   },
++   Object {
++     "lang": "fr",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1441
++ Received:    1913",
++     "route": "/api-keys",
++     "theme": "light",
++     "width": 1440,
++   },
++   Object {
++     "lang": "fr",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1921
++ Received:    2153",
++     "route": "/api-keys",
++     "theme": "light",
++     "width": 1920,
++   },
++   Object {
++     "lang": "fr",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1281
++ Received:    1741",
++     "route": "/api-keys",
++     "theme": "dark",
++     "width": 1280,
++   },
++   Object {
++     "lang": "fr",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1441
++ Received:    1829",
++     "route": "/api-keys",
++     "theme": "dark",
++     "width": 1440,
++   },
++   Object {
++     "lang": "fr",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1921
++ Received:    2082",
++     "route": "/api-keys",
++     "theme": "dark",
++     "width": 1920,
++   },
++   Object {
++     "lang": "en",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1281
++ Received:    1656",
++     "route": "/api-keys",
++     "theme": "light",
++     "width": 1280,
++   },
++   Object {
++     "lang": "en",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1441
++ Received:    1744",
++     "route": "/api-keys",
++     "theme": "light",
++     "width": 1440,
++   },
++   Object {
++     "lang": "en",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1921
++ Received:    1998",
++     "route": "/api-keys",
++     "theme": "light",
++     "width": 1920,
++   },
++   Object {
++     "lang": "en",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1281
++ Received:    1656",
++     "route": "/api-keys",
++     "theme": "dark",
++     "width": 1280,
++   },
++   Object {
++     "lang": "en",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1441
++ Received:    1738",
++     "route": "/api-keys",
++     "theme": "dark",
++     "width": 1440,
++   },
++   Object {
++     "lang": "en",
++     "message": "expect(received).toBeLessThanOrEqual(expected)
++
++ Expected: <= 1921
++ Received:    1984",
++     "route": "/api-keys",
++     "theme": "dark",
++     "width": 1920,
++   },
++ ]
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /workspace/vibecore-ui-followup/docs/bugs/user-area-secondary-2026-10-25/members-keys/harness/audit.cjs:2:3727 {
+  matcherResult: {
+    actual: [
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object]
+    ],
+    expected: [],
+    message: 'expect(received).toEqual(expected) // deep equality\n' +
+      '\n' +
+      '- Expected  -   1\n' +
+      '+ Received  + 122\n' +
+      '\n' +
+      '- Array []\n' +
+      '+ Array [\n' +
+      '+   Object {\n' +
+      '+     "lang": "fr",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1281\n' +
+      '+ Received:    1741",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "light",\n' +
+      '+     "width": 1280,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "fr",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1441\n' +
+      '+ Received:    1913",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "light",\n' +
+      '+     "width": 1440,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "fr",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1921\n' +
+      '+ Received:    2153",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "light",\n' +
+      '+     "width": 1920,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "fr",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1281\n' +
+      '+ Received:    1741",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "dark",\n' +
+      '+     "width": 1280,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "fr",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1441\n' +
+      '+ Received:    1829",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "dark",\n' +
+      '+     "width": 1440,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "fr",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1921\n' +
+      '+ Received:    2082",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "dark",\n' +
+      '+     "width": 1920,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "en",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1281\n' +
+      '+ Received:    1656",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "light",\n' +
+      '+     "width": 1280,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "en",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1441\n' +
+      '+ Received:    1744",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "light",\n' +
+      '+     "width": 1440,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "en",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1921\n' +
+      '+ Received:    1998",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "light",\n' +
+      '+     "width": 1920,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "en",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1281\n' +
+      '+ Received:    1656",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "dark",\n' +
+      '+     "width": 1280,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "en",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1441\n' +
+      '+ Received:    1738",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "dark",\n' +
+      '+     "width": 1440,\n' +
+      '+   },\n' +
+      '+   Object {\n' +
+      '+     "lang": "en",\n' +
+      '+     "message": "expect(received).toBeLessThanOrEqual(expected)\n' +
+      '+\n' +
+      '+ Expected: <= 1921\n' +
+      '+ Received:    1984",\n' +
+      '+     "route": "/api-keys",\n' +
+      '+     "theme": "dark",\n' +
+      '+     "width": 1920,\n' +
+      '+   },\n' +
+      '+ ]',
+    name: 'toEqual',
+    pass: false
+  }
+}

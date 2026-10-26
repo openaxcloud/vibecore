@@ -1,0 +1,3850 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-26",
+  "baseCommit": "1714415cb",
+  "scope": "Public/marketing/auth/legal routes and aliases, including diagnostic/404/resource entries distinguished from UI pages. User-area/API inventory belongs to routes.json; no new browser run for this inventory.",
+  "routeDiscovery": "Official flatRoutes via installed @react-router/fs-routes7.18.0 and app/routes.ts; consumed /tmp/ui-coverage-routes-meta.json. Specs excluded per config.",
+  "summary": {
+    "routeModules": 118,
+    "locallyExercisedRouteModules": 13,
+    "notExercisedRouteModules": 105,
+    "knownSurfaceDefinitions": 58,
+    "productionValidatedRoutes": 0
+  },
+  "globalLimits": [
+    "Local historical build ports, not one comprehensive run on this base commit.",
+    "No production recipe, real authentication, financial action, external message or backend validation.",
+    "No coverage inherited by aliases, dynamic parameter values or sibling pages.",
+    "Native zoom recorded only for named routes/groups; no physical virtual keyboard/safeareas, real screenreader, Safari/Firefox.",
+    "Unit tests/static source checks are not browser evidence. Prior partial/failed harness receipts excluded from positive groups.",
+    "Counts overlap between phases; do not add them as unique tested pages."
+  ],
+  "routes": [
+    {
+      "sourcefile": "app/routes/_index.tsx",
+      "routePattern": "/",
+      "routeId": "routes/_index",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "public7799",
+        "public7899",
+        "public8299",
+        "zoom7799",
+        "zoom7899",
+        "contrast8999"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/matrix.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7899/matrix.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after8299-logical/receipt.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/zoom.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7899/zoom.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/contrast8999-body/receipt.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/interactions.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7899/interactions.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/"
+    },
+    {
+      "sourcefile": "app/routes/$.tsx",
+      "routePattern": "/*",
+      "routeId": "routes/$",
+      "parentId": "root",
+      "category": "not_found",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/*"
+    },
+    {
+      "sourcefile": "app/routes/$slug.tsx",
+      "routePattern": "/:slug",
+      "routeId": "routes/$slug",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "`/pricing${new URL(request.url).search}`, 301);",
+        "twin);"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed.",
+        "Root surface catalog; known slugs may redirect signed-in users to app twins; /plans→/pricing; unknown slug404. Static route precedence applies."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/:slug"
+    },
+    {
+      "sourcefile": "app/routes/about.tsx",
+      "routePattern": "/about",
+      "routeId": "routes/about",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/about"
+    },
+    {
+      "sourcefile": "app/routes/acceptable-use.tsx",
+      "routePattern": "/acceptable-use",
+      "routeId": "routes/acceptable-use",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/acceptable-use"
+    },
+    {
+      "sourcefile": "app/routes/accessibility.tsx",
+      "routePattern": "/accessibility",
+      "routeId": "routes/accessibility",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/accessibility"
+    },
+    {
+      "sourcefile": "app/routes/account-inactivity.tsx",
+      "routePattern": "/account-inactivity",
+      "routeId": "routes/account-inactivity",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/account-inactivity"
+    },
+    {
+      "sourcefile": "app/routes/advanced.$section.tsx",
+      "routePattern": "/advanced/:section",
+      "routeId": "routes/advanced.$section",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/advanced/:section"
+    },
+    {
+      "sourcefile": "app/routes/ai.tsx",
+      "routePattern": "/ai",
+      "routeId": "routes/ai",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/ai"
+    },
+    {
+      "sourcefile": "app/routes/ai-agent.tsx",
+      "routePattern": "/ai-agent",
+      "routeId": "routes/ai-agent",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "major9999",
+        "agent10099",
+        "agentdemo10099"
+      ],
+      "receiptPaths": [
+        "docs/bugs/ai-agent-hero-2026-10-25/receipt.json",
+        "docs/bugs/ai-agent-hero-2026-10-25/after10099/after-receipt.json",
+        "docs/bugs/ai-agent-hero-2026-10-25/after10099/after-agent-demo.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/ai-agent"
+    },
+    {
+      "sourcefile": "app/routes/ai-agent.studio.tsx",
+      "routePattern": "/ai-agent/studio",
+      "routeId": "routes/ai-agent.studio",
+      "parentId": "routes/ai-agent",
+      "category": "compatibility_redirect",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "'/ai-agent', 301);"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed.",
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI.",
+        "301 redirect /ai-agent, not a separate functioning studio."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/ai-agent/studio"
+    },
+    {
+      "sourcefile": "app/routes/ai-docs.tsx",
+      "routePattern": "/ai-docs",
+      "routeId": "routes/ai-docs",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/ai-docs"
+    },
+    {
+      "sourcefile": "app/routes/ai-documentation.tsx",
+      "routePattern": "/ai-documentation",
+      "routeId": "routes/ai-documentation",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/ai-documentation"
+    },
+    {
+      "sourcefile": "app/routes/auth.oauth.$provider.tsx",
+      "routePattern": "/auth/oauth/:provider",
+      "routeId": "routes/auth.oauth.$provider",
+      "parentId": "root",
+      "category": "authentication_action_or_redirect",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "outcome.redirectTo);",
+        "`/login?oauth=${provider}&error=not_configured`);",
+        "`/login?oauth=${provider}&error=not_configured`);",
+        "`/login?oauth=${provider}&error=not_configured`);",
+        "url.toString(), { headers });",
+        "'/login?oauth=unknown&error=unsupported_provider');"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/auth/oauth/:provider"
+    },
+    {
+      "sourcefile": "app/routes/auth.oauth.$provider.callback.tsx",
+      "routePattern": "/auth/oauth/:provider/callback",
+      "routeId": "routes/auth.oauth.$provider.callback",
+      "parentId": "routes/auth.oauth.$provider",
+      "category": "authentication_action_or_redirect",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "`/login?oauth=${provider}&error=invalid_callback`, {",
+        "`/account-settings/connected?linked=${provider}`, { headers: clearAuthCookies() });",
+        "destination, {",
+        "'/login?oauth=unknown&error=unsupported_provider');"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed.",
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/auth/oauth/:provider/callback"
+    },
+    {
+      "sourcefile": "app/routes/blog.tsx",
+      "routePattern": "/blog",
+      "routeId": "routes/blog",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/blog"
+    },
+    {
+      "sourcefile": "app/routes/blog.$slug.tsx",
+      "routePattern": "/blog/:slug",
+      "routeId": "routes/blog.$slug",
+      "parentId": "routes/blog",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/blog/:slug"
+    },
+    {
+      "sourcefile": "app/routes/bounties.tsx",
+      "routePattern": "/bounties",
+      "routeId": "routes/bounties",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/bounties"
+    },
+    {
+      "sourcefile": "app/routes/careers.tsx",
+      "routePattern": "/careers",
+      "routeId": "routes/careers",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/careers"
+    },
+    {
+      "sourcefile": "app/routes/case-studies.tsx",
+      "routePattern": "/case-studies",
+      "routeId": "routes/case-studies",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/case-studies"
+    },
+    {
+      "sourcefile": "app/routes/changelog.tsx",
+      "routePattern": "/changelog",
+      "routeId": "routes/changelog",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/changelog"
+    },
+    {
+      "sourcefile": "app/routes/changelog[.]xml.tsx",
+      "routePattern": "/changelog.xml",
+      "routeId": "routes/changelog[.]xml",
+      "parentId": "root",
+      "category": "public_resource",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Non-page resource; no responsive/browser page claim."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/changelog.xml"
+    },
+    {
+      "sourcefile": "app/routes/collaboration.tsx",
+      "routePattern": "/collaboration",
+      "routeId": "routes/collaboration",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/collaboration"
+    },
+    {
+      "sourcefile": "app/routes/commercial-agreement.tsx",
+      "routePattern": "/commercial-agreement",
+      "routeId": "routes/commercial-agreement",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/commercial-agreement"
+    },
+    {
+      "sourcefile": "app/routes/community.tsx",
+      "routePattern": "/community",
+      "routeId": "routes/community",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/community"
+    },
+    {
+      "sourcefile": "app/routes/community.post.$id.tsx",
+      "routePattern": "/community/post/:id",
+      "routeId": "routes/community.post.$id",
+      "parentId": "routes/community",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "'/community', { headers });"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed.",
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/community/post/:id"
+    },
+    {
+      "sourcefile": "app/routes/compare._index.tsx",
+      "routePattern": "/compare",
+      "routeId": "routes/compare._index",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/compare"
+    },
+    {
+      "sourcefile": "app/routes/compare.$slug.tsx",
+      "routePattern": "/compare/:slug",
+      "routeId": "routes/compare.$slug",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/compare/:slug"
+    },
+    {
+      "sourcefile": "app/routes/contact.tsx",
+      "routePattern": "/contact",
+      "routeId": "routes/contact",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "contact8999"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/contact/receipt.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/contact/navigation.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/contact"
+    },
+    {
+      "sourcefile": "app/routes/contact-sales.tsx",
+      "routePattern": "/contact-sales",
+      "routeId": "routes/contact-sales",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "contact8999"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/contact/receipt.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/contact/navigation.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/contact-sales"
+    },
+    {
+      "sourcefile": "app/routes/customers.tsx",
+      "routePattern": "/customers",
+      "routeId": "routes/customers",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/customers"
+    },
+    {
+      "sourcefile": "app/routes/data-deletion.tsx",
+      "routePattern": "/data-deletion",
+      "routeId": "routes/data-deletion",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/data-deletion"
+    },
+    {
+      "sourcefile": "app/routes/deleting-your-data.tsx",
+      "routePattern": "/deleting-your-data",
+      "routeId": "routes/deleting-your-data",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/deleting-your-data"
+    },
+    {
+      "sourcefile": "app/routes/demo.tsx",
+      "routePattern": "/demo",
+      "routeId": "routes/demo",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/demo"
+    },
+    {
+      "sourcefile": "app/routes/deployments.tsx",
+      "routePattern": "/deployments",
+      "routeId": "routes/deployments",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/deployments"
+    },
+    {
+      "sourcefile": "app/routes/desktop.tsx",
+      "routePattern": "/desktop",
+      "routeId": "routes/desktop",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/desktop"
+    },
+    {
+      "sourcefile": "app/routes/docs.tsx",
+      "routePattern": "/docs",
+      "routeId": "routes/docs",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/docs"
+    },
+    {
+      "sourcefile": "app/routes/dpa.tsx",
+      "routePattern": "/dpa",
+      "routeId": "routes/dpa",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/dpa"
+    },
+    {
+      "sourcefile": "app/routes/editor.$id.tsx",
+      "routePattern": "/editor/:id",
+      "routeId": "routes/editor.$id",
+      "parentId": "root",
+      "category": "compatibility_redirect",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "`/projects/${encodeURIComponent(params.id ?? '')}/ide${new URL(request.url).search}`, 301);"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/editor/:id"
+    },
+    {
+      "sourcefile": "app/routes/editor.new.tsx",
+      "routePattern": "/editor/new",
+      "routeId": "routes/editor.new",
+      "parentId": "root",
+      "category": "compatibility_redirect",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "'/projects/new', 301);"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/editor/new"
+    },
+    {
+      "sourcefile": "app/routes/enforcement.tsx",
+      "routePattern": "/enforcement",
+      "routeId": "routes/enforcement",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/enforcement"
+    },
+    {
+      "sourcefile": "app/routes/enterprise.tsx",
+      "routePattern": "/enterprise",
+      "routeId": "routes/enterprise",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "major9999"
+      ],
+      "receiptPaths": [
+        "docs/bugs/ai-agent-hero-2026-10-25/receipt.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/enterprise"
+    },
+    {
+      "sourcefile": "app/routes/explore.tsx",
+      "routePattern": "/explore",
+      "routeId": "routes/explore",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/explore"
+    },
+    {
+      "sourcefile": "app/routes/features.tsx",
+      "routePattern": "/features",
+      "routeId": "routes/features",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "marketing9599",
+        "features9799"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/marketing/receipt.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/marketing/after9799/after-features.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/features"
+    },
+    {
+      "sourcefile": "app/routes/forgot-password.tsx",
+      "routePattern": "/forgot-password",
+      "routeId": "routes/forgot-password",
+      "parentId": "root",
+      "category": "authentication",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/forgot-password"
+    },
+    {
+      "sourcefile": "app/routes/forum.tsx",
+      "routePattern": "/forum",
+      "routeId": "routes/forum",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/forum"
+    },
+    {
+      "sourcefile": "app/routes/gallery._index.tsx",
+      "routePattern": "/gallery",
+      "routeId": "routes/gallery._index",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/gallery"
+    },
+    {
+      "sourcefile": "app/routes/gallery.$slug.tsx",
+      "routePattern": "/gallery/:slug",
+      "routeId": "routes/gallery.$slug",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "`/login?returnTo=${encodeURIComponent(safeReturnTo(returnTo) ?? '/gallery')}`);"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/gallery/:slug"
+    },
+    {
+      "sourcefile": "app/routes/health.ts",
+      "routePattern": "/health",
+      "routeId": "routes/health",
+      "parentId": "root",
+      "category": "public_resource",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Non-page resource; no responsive/browser page claim."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/health"
+    },
+    {
+      "sourcefile": "app/routes/help.tsx",
+      "routePattern": "/help",
+      "routeId": "routes/help",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/help"
+    },
+    {
+      "sourcefile": "app/routes/help-center.tsx",
+      "routePattern": "/help-center",
+      "routeId": "routes/help-center",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/help-center"
+    },
+    {
+      "sourcefile": "app/routes/ide.$id.tsx",
+      "routePattern": "/ide/:id",
+      "routeId": "routes/ide.$id",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/ide/:id"
+    },
+    {
+      "sourcefile": "app/routes/ide.new.tsx",
+      "routePattern": "/ide/new",
+      "routeId": "routes/ide.new",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/ide/new"
+    },
+    {
+      "sourcefile": "app/routes/languages.tsx",
+      "routePattern": "/languages",
+      "routeId": "routes/languages",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/languages"
+    },
+    {
+      "sourcefile": "app/routes/legal.tsx",
+      "routePattern": "/legal",
+      "routeId": "routes/legal",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "marketing9599"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/marketing/receipt.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/legal"
+    },
+    {
+      "sourcefile": "app/routes/licensing.tsx",
+      "routePattern": "/licensing",
+      "routeId": "routes/licensing",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/licensing"
+    },
+    {
+      "sourcefile": "app/routes/login.tsx",
+      "routePattern": "/login",
+      "routeId": "routes/login",
+      "parentId": "root",
+      "category": "authentication",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "public7799",
+        "zoom7799",
+        "contrast8999"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/matrix.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/zoom.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/contrast8999-body/receipt.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/interactions.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [
+        "loginUrl.toString(), { status: 301 });",
+        "espace);",
+        "redirectTo, {"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/login"
+    },
+    {
+      "sourcefile": "app/routes/logout.tsx",
+      "routePattern": "/logout",
+      "routeId": "routes/logout",
+      "parentId": "root",
+      "category": "authentication_action_or_redirect",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "'/login', { headers: { 'Set-Cookie': clearSessionCookie() } });",
+        "'/login');"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/logout"
+    },
+    {
+      "sourcefile": "app/routes/marketing.$slug.tsx",
+      "routePattern": "/marketing/:slug",
+      "routeId": "routes/marketing.$slug",
+      "parentId": "root",
+      "category": "not_found",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [
+        "./$"
+      ],
+      "redirectExpressions": [],
+      "notes": [
+        "Re-export alias; no coverage inherited from its target."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/marketing/:slug"
+    },
+    {
+      "sourcefile": "app/routes/marketing.bounties.tsx",
+      "routePattern": "/marketing/bounties",
+      "routeId": "routes/marketing.bounties",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/marketing/bounties"
+    },
+    {
+      "sourcefile": "app/routes/marketing.deployments.tsx",
+      "routePattern": "/marketing/deployments",
+      "routeId": "routes/marketing.deployments",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/marketing/deployments"
+    },
+    {
+      "sourcefile": "app/routes/marketing.teams.tsx",
+      "routePattern": "/marketing/teams",
+      "routeId": "routes/marketing.teams",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/marketing/teams"
+    },
+    {
+      "sourcefile": "app/routes/marketplace.tsx",
+      "routePattern": "/marketplace",
+      "routeId": "routes/marketplace",
+      "parentId": "root",
+      "category": "layout",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/marketplace"
+    },
+    {
+      "sourcefile": "app/routes/marketplace._index.tsx",
+      "routePattern": "/marketplace/",
+      "routeId": "routes/marketplace._index",
+      "parentId": "routes/marketplace",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/marketplace"
+    },
+    {
+      "sourcefile": "app/routes/marketplace.templates.tsx",
+      "routePattern": "/marketplace/templates",
+      "routeId": "routes/marketplace.templates",
+      "parentId": "routes/marketplace",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [
+        "./templates"
+      ],
+      "redirectExpressions": [],
+      "notes": [
+        "Re-export alias; no coverage inherited from its target.",
+        "Anonymous catalog; valid web session redirects to /dashboard/templates. Authenticated catalog evidence does not cover this public route.",
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/marketplace/templates"
+    },
+    {
+      "sourcefile": "app/routes/mcp.tsx",
+      "routePattern": "/mcp",
+      "routeId": "routes/mcp",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/mcp"
+    },
+    {
+      "sourcefile": "app/routes/mobile.tsx",
+      "routePattern": "/mobile",
+      "routeId": "routes/mobile",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/mobile"
+    },
+    {
+      "sourcefile": "app/routes/mobile-workspace.$projectId.tsx",
+      "routePattern": "/mobile-workspace/:projectId",
+      "routeId": "routes/mobile-workspace.$projectId",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/mobile-workspace/:projectId"
+    },
+    {
+      "sourcefile": "app/routes/newsletter.tsx",
+      "routePattern": "/newsletter",
+      "routeId": "routes/newsletter",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/newsletter"
+    },
+    {
+      "sourcefile": "app/routes/newsletter-confirmed.tsx",
+      "routePattern": "/newsletter-confirmed",
+      "routeId": "routes/newsletter-confirmed",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/newsletter-confirmed"
+    },
+    {
+      "sourcefile": "app/routes/newsletter_.confirm.tsx",
+      "routePattern": "/newsletter/confirm",
+      "routeId": "routes/newsletter_.confirm",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/newsletter/confirm"
+    },
+    {
+      "sourcefile": "app/routes/newsletter_.unsubscribe.tsx",
+      "routePattern": "/newsletter/unsubscribe",
+      "routeId": "routes/newsletter_.unsubscribe",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/newsletter/unsubscribe"
+    },
+    {
+      "sourcefile": "app/routes/partners.tsx",
+      "routePattern": "/partners",
+      "routeId": "routes/partners",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/partners"
+    },
+    {
+      "sourcefile": "app/routes/polyglot.tsx",
+      "routePattern": "/polyglot",
+      "routeId": "routes/polyglot",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/polyglot"
+    },
+    {
+      "sourcefile": "app/routes/press.tsx",
+      "routePattern": "/press",
+      "routeId": "routes/press",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/press"
+    },
+    {
+      "sourcefile": "app/routes/pricing.tsx",
+      "routePattern": "/pricing",
+      "routeId": "routes/pricing",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "public7799",
+        "public7899",
+        "public8299",
+        "zoom7799",
+        "zoom7899",
+        "contrast8999"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/matrix.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7899/matrix.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after8299-logical/receipt.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/zoom.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7899/zoom.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/contrast8999-body/receipt.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/interactions.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7899/interactions.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/pricing"
+    },
+    {
+      "sourcefile": "app/routes/privacy.tsx",
+      "routePattern": "/privacy",
+      "routeId": "routes/privacy",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "legal8999",
+        "legal9599",
+        "legalzoom9599"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/legal/receipt.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/legal/after9599/acceptance-after-build.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/legal/after9599/zoom-after-build.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/privacy"
+    },
+    {
+      "sourcefile": "app/routes/product.tsx",
+      "routePattern": "/product",
+      "routeId": "routes/product",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/product"
+    },
+    {
+      "sourcefile": "app/routes/profile.$username.tsx",
+      "routePattern": "/profile/:username",
+      "routeId": "routes/profile.$username",
+      "parentId": "root",
+      "category": "compatibility_404",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Intentional loader404; this is not a functioning profile/product page."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/profile/:username"
+    },
+    {
+      "sourcefile": "app/routes/projects.share.$token.tsx",
+      "routePattern": "/projects/share/:token",
+      "routeId": "routes/projects.share.$token",
+      "parentId": "routes/projects",
+      "category": "public_share_token",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "legacyProjectIdePath(result.share.projectId), {"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed.",
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/projects/share/:token"
+    },
+    {
+      "sourcefile": "app/routes/register.tsx",
+      "routePattern": "/register",
+      "routeId": "routes/register",
+      "parentId": "root",
+      "category": "authentication",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [
+        "./signup"
+      ],
+      "redirectExpressions": [],
+      "notes": [
+        "Re-export alias; no coverage inherited from its target."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/register"
+    },
+    {
+      "sourcefile": "app/routes/report-abuse.tsx",
+      "routePattern": "/report-abuse",
+      "routeId": "routes/report-abuse",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/report-abuse"
+    },
+    {
+      "sourcefile": "app/routes/reset-password.tsx",
+      "routePattern": "/reset-password",
+      "routeId": "routes/reset-password",
+      "parentId": "root",
+      "category": "authentication",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/reset-password"
+    },
+    {
+      "sourcefile": "app/routes/runtime-test.tsx",
+      "routePattern": "/runtime-test",
+      "routeId": "routes/runtime-test",
+      "parentId": "root",
+      "category": "public_diagnostic",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/runtime-test"
+    },
+    {
+      "sourcefile": "app/routes/search.tsx",
+      "routePattern": "/search",
+      "routeId": "routes/search",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/search"
+    },
+    {
+      "sourcefile": "app/routes/security.tsx",
+      "routePattern": "/security",
+      "routeId": "routes/security",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/security"
+    },
+    {
+      "sourcefile": "app/routes/share.$token.tsx",
+      "routePattern": "/share/:token",
+      "routeId": "routes/share.$token",
+      "parentId": "root",
+      "category": "public_share_token",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/share/:token"
+    },
+    {
+      "sourcefile": "app/routes/signup.tsx",
+      "routePattern": "/signup",
+      "routeId": "routes/signup",
+      "parentId": "root",
+      "category": "authentication",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "public7799",
+        "zoom7799",
+        "contrast8999"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/matrix.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/zoom.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/contrast8999-body/receipt.json",
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/interactions.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [
+        "`${origineApplication}/register${requestUrl.search}`, { status: 301 });",
+        "espace);",
+        "postRegisterDestination(request), {"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/signup"
+    },
+    {
+      "sourcefile": "app/routes/sitemap[.]xml.tsx",
+      "routePattern": "/sitemap.xml",
+      "routeId": "routes/sitemap[.]xml",
+      "parentId": "root",
+      "category": "public_resource",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Non-page resource; no responsive/browser page claim."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/sitemap.xml"
+    },
+    {
+      "sourcefile": "app/routes/solutions._index.tsx",
+      "routePattern": "/solutions",
+      "routeId": "routes/solutions._index",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions"
+    },
+    {
+      "sourcefile": "app/routes/solutions.$slug.tsx",
+      "routePattern": "/solutions/:slug",
+      "routeId": "routes/solutions.$slug",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "`/solutions/${canonical}`, 308);"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed.",
+        "Known solution definitions and internal-ai→internal-ai-builder alias; unknown slug404; concrete route modules take precedence."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/:slug"
+    },
+    {
+      "sourcefile": "app/routes/solutions.app-builder.tsx",
+      "routePattern": "/solutions/app-builder",
+      "routeId": "routes/solutions.app-builder",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/app-builder"
+    },
+    {
+      "sourcefile": "app/routes/solutions.chatbot-builder.tsx",
+      "routePattern": "/solutions/chatbot-builder",
+      "routeId": "routes/solutions.chatbot-builder",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/chatbot-builder"
+    },
+    {
+      "sourcefile": "app/routes/solutions.dashboard-builder.tsx",
+      "routePattern": "/solutions/dashboard-builder",
+      "routeId": "routes/solutions.dashboard-builder",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/dashboard-builder"
+    },
+    {
+      "sourcefile": "app/routes/solutions.enterprise.tsx",
+      "routePattern": "/solutions/enterprise",
+      "routeId": "routes/solutions.enterprise",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/enterprise"
+    },
+    {
+      "sourcefile": "app/routes/solutions.freelancers.tsx",
+      "routePattern": "/solutions/freelancers",
+      "routeId": "routes/solutions.freelancers",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/freelancers"
+    },
+    {
+      "sourcefile": "app/routes/solutions.game-builder.tsx",
+      "routePattern": "/solutions/game-builder",
+      "routeId": "routes/solutions.game-builder",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/game-builder"
+    },
+    {
+      "sourcefile": "app/routes/solutions.internal-ai-builder.tsx",
+      "routePattern": "/solutions/internal-ai-builder",
+      "routeId": "routes/solutions.internal-ai-builder",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/internal-ai-builder"
+    },
+    {
+      "sourcefile": "app/routes/solutions.startups.tsx",
+      "routePattern": "/solutions/startups",
+      "routeId": "routes/solutions.startups",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/startups"
+    },
+    {
+      "sourcefile": "app/routes/solutions.website-builder.tsx",
+      "routePattern": "/solutions/website-builder",
+      "routeId": "routes/solutions.website-builder",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/solutions/website-builder"
+    },
+    {
+      "sourcefile": "app/routes/status.tsx",
+      "routePattern": "/status",
+      "routeId": "routes/status",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/status"
+    },
+    {
+      "sourcefile": "app/routes/strike-system.tsx",
+      "routePattern": "/strike-system",
+      "routeId": "routes/strike-system",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/strike-system"
+    },
+    {
+      "sourcefile": "app/routes/student-dpa.tsx",
+      "routePattern": "/student-dpa",
+      "routeId": "routes/student-dpa",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/student-dpa"
+    },
+    {
+      "sourcefile": "app/routes/subprocessors.tsx",
+      "routePattern": "/subprocessors",
+      "routeId": "routes/subprocessors",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/subprocessors"
+    },
+    {
+      "sourcefile": "app/routes/support-policy.tsx",
+      "routePattern": "/support-policy",
+      "routeId": "routes/support-policy",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "legal8999",
+        "support9799"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/legal/receipt.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/marketing/after9799/after-support.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/support-policy"
+    },
+    {
+      "sourcefile": "app/routes/sw[.]js.ts",
+      "routePattern": "/sw.js",
+      "routeId": "routes/sw[.]js",
+      "parentId": "root",
+      "category": "public_resource",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Non-page resource; no responsive/browser page claim."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/sw.js"
+    },
+    {
+      "sourcefile": "app/routes/team.tsx",
+      "routePattern": "/team",
+      "routeId": "routes/team",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/team"
+    },
+    {
+      "sourcefile": "app/routes/templates.tsx",
+      "routePattern": "/templates",
+      "routeId": "routes/templates",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [
+        "'/dashboard/templates', { headers });"
+      ],
+      "notes": [
+        "Redirect(s) or conditional redirect in loader; expressions retained, not executed.",
+        "Anonymous catalog; valid web session redirects to /dashboard/templates. Authenticated catalog evidence does not cover this public route."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/templates"
+    },
+    {
+      "sourcefile": "app/routes/templates_.languages.tsx",
+      "routePattern": "/templates/languages",
+      "routeId": "routes/templates_.languages",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/templates/languages"
+    },
+    {
+      "sourcefile": "app/routes/terms.tsx",
+      "routePattern": "/terms",
+      "routeId": "routes/terms",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "locally_exercised_limited",
+      "proofGroupIDs": [
+        "legal8999",
+        "legal9599",
+        "legalzoom9599"
+      ],
+      "receiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/legal/receipt.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/legal/after9599/acceptance-after-build.json",
+        "docs/bugs/user-area-tertiary-2026-10-25/legal/after9599/zoom-after-build.json"
+      ],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/terms"
+    },
+    {
+      "sourcefile": "app/routes/theme-validation.tsx",
+      "routePattern": "/theme-validation",
+      "routeId": "routes/theme-validation",
+      "parentId": "root",
+      "category": "public_diagnostic",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/theme-validation"
+    },
+    {
+      "sourcefile": "app/routes/trust-and-safety.tsx",
+      "routePattern": "/trust-and-safety",
+      "routeId": "routes/trust-and-safety",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/trust-and-safety"
+    },
+    {
+      "sourcefile": "app/routes/tutorials.tsx",
+      "routePattern": "/tutorials",
+      "routeId": "routes/tutorials",
+      "parentId": "root",
+      "category": "marketing_public",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/tutorials"
+    },
+    {
+      "sourcefile": "app/routes/u.$username.tsx",
+      "routePattern": "/u/:username",
+      "routeId": "routes/u.$username",
+      "parentId": "root",
+      "category": "compatibility_404",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Intentional loader404; this is not a functioning profile/product page."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/u/:username"
+    },
+    {
+      "sourcefile": "app/routes/u.$username.$projectname.tsx",
+      "routePattern": "/u/:username/:projectname",
+      "routeId": "routes/u.$username.$projectname",
+      "parentId": "routes/u.$username",
+      "category": "compatibility_404",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Intentional loader404; this is not a functioning profile/product page.",
+        "Nested route; parent rendering/guards matter. Module existence alone does not prove reachable UI."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/u/:username/:projectname"
+    },
+    {
+      "sourcefile": "app/routes/usage-limits.tsx",
+      "routePattern": "/usage-limits",
+      "routeId": "routes/usage-limits",
+      "parentId": "root",
+      "category": "legal_policy",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/usage-limits"
+    },
+    {
+      "sourcefile": "app/routes/user.$username.tsx",
+      "routePattern": "/user/:username",
+      "routeId": "routes/user.$username",
+      "parentId": "root",
+      "category": "compatibility_404",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [
+        "Intentional loader404; this is not a functioning profile/product page."
+      ],
+      "productionValidated": false,
+      "canonicalPattern": "/user/:username"
+    },
+    {
+      "sourcefile": "app/routes/verify-email.tsx",
+      "routePattern": "/verify-email",
+      "routeId": "routes/verify-email",
+      "parentId": "root",
+      "category": "authentication",
+      "coverageStatus": "not_exercised",
+      "proofGroupIDs": [],
+      "receiptPaths": [],
+      "aliases": [],
+      "redirectExpressions": [],
+      "notes": [],
+      "productionValidated": false,
+      "canonicalPattern": "/verify-email"
+    }
+  ],
+  "knownSurfaceDefinitions": [
+    {
+      "path": "/new",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/home",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/agent-activity",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/apps",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/teams",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/vnc",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/analytics",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/scalability",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/education",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/api-sdk",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/mobile-apps",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/profile",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/runtimes",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/runtime-diagnostics",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/search-advanced",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/secrets",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/workflows",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/ssh",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/security-scanner",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/dependencies",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/object-storage",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/usage-alerts",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/mobile-admin",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/account",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/cycles",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/powerups",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/badges",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/subscribe",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dedicated_route_precedes_catalog",
+      "dedicatedSource": "app/routes/subscribe.tsx",
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/plans",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/learn",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/themes",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/performance",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/sso-configuration",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/custom-roles",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/assistant",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/code-search",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/problems",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/database",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/console",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/shell",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/packages",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/kv-store",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/preview",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/authentication",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/extensions",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/integrations",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/networking",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/threads",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/referrals",
+      "catalog": "ecodeSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/:slug",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/advanced/mobile",
+      "catalog": "ecodeAdvancedSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/advanced/:section",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/advanced/sso",
+      "catalog": "ecodeAdvancedSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/advanced/:section",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/advanced/collaboration",
+      "catalog": "ecodeAdvancedSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/advanced/:section",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/advanced/storage",
+      "catalog": "ecodeAdvancedSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/advanced/:section",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/advanced/community",
+      "catalog": "ecodeAdvancedSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": "/advanced/:section",
+      "dispatch": "dynamic_catalog_route",
+      "dedicatedSource": null,
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/ai-agent/studio",
+      "catalog": "ecodeStandaloneSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": null,
+      "dispatch": "dedicated_route_precedes_catalog",
+      "dedicatedSource": "app/routes/ai-agent.studio.tsx",
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/editor/new",
+      "catalog": "ecodeStandaloneSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": null,
+      "dispatch": "dedicated_route_precedes_catalog",
+      "dedicatedSource": "app/routes/editor.new.tsx",
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/teams/new",
+      "catalog": "ecodeStandaloneSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": null,
+      "dispatch": "dedicated_route_precedes_catalog",
+      "dedicatedSource": "app/routes/teams.new.tsx",
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    },
+    {
+      "path": "/user/settings",
+      "catalog": "ecodeStandaloneSurfacePages",
+      "sourcefile": "app/components/marketing/EcodeSurfacePages.tsx",
+      "routePattern": null,
+      "dispatch": "dedicated_route_precedes_catalog",
+      "dedicatedSource": "app/routes/user.settings.tsx",
+      "coverageStatus": "not_exercised_as_catalog",
+      "note": "Do not infer rendered route from catalog alone; do not inherit evidence from similarly named app panel."
+    }
+  ],
+  "evidenceGroups": [
+    {
+      "id": "public7799",
+      "receiptPath": "docs/bugs/user-area-secondary-2026-10-25/public/after7799/matrix.json",
+      "kind": "geometry",
+      "scope": "Header/mobile-menu corrections; auth form layout. Before final footer/logical-margin adjustments.",
+      "caseCount": 176,
+      "routes": {
+        "/": {
+          "observations": 44,
+          "viewports": [
+            [
+              1024,
+              900
+            ],
+            [
+              1280,
+              900
+            ],
+            [
+              1440,
+              900
+            ],
+            [
+              1920,
+              900
+            ],
+            [
+              2560,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              360,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ],
+            [
+              820,
+              900
+            ],
+            [
+              844,
+              390
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/pricing": {
+          "observations": 44,
+          "viewports": [
+            [
+              1024,
+              900
+            ],
+            [
+              1280,
+              900
+            ],
+            [
+              1440,
+              900
+            ],
+            [
+              1920,
+              900
+            ],
+            [
+              2560,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              360,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ],
+            [
+              820,
+              900
+            ],
+            [
+              844,
+              390
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/login": {
+          "observations": 44,
+          "viewports": [
+            [
+              1024,
+              900
+            ],
+            [
+              1280,
+              900
+            ],
+            [
+              1440,
+              900
+            ],
+            [
+              1920,
+              900
+            ],
+            [
+              2560,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              360,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ],
+            [
+              820,
+              900
+            ],
+            [
+              844,
+              390
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/signup": {
+          "observations": 44,
+          "viewports": [
+            [
+              1024,
+              900
+            ],
+            [
+              1280,
+              900
+            ],
+            [
+              1440,
+              900
+            ],
+            [
+              1920,
+              900
+            ],
+            [
+              2560,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              360,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ],
+            [
+              820,
+              900
+            ],
+            [
+              844,
+              390
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "7799",
+      "interactionReceiptPaths": [
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7799/interactions.json"
+      ],
+      "interactionCounts": {
+        "menus": 2,
+        "forms": 4,
+        "navigation": 2
+      },
+      "interactionScope": "FR/EN menus: Escape/Fermer focus,320→1440,1279→1280 releases lock; Pricing period toggle/Home/Back. Login/Signup invalid-email native validation and draft preserved during resize; no valid authentication."
+    },
+    {
+      "id": "public7899",
+      "receiptPath": "docs/bugs/user-area-secondary-2026-10-25/public/after7899/matrix.json",
+      "kind": "geometry",
+      "scope": "Home/Pricing footer full-width comparison card; 46 links preserved. Excludes lazy sections not mounted by this initial geometry pass.",
+      "caseCount": 88,
+      "routes": {
+        "/": {
+          "observations": 44,
+          "viewports": [
+            [
+              1024,
+              900
+            ],
+            [
+              1280,
+              900
+            ],
+            [
+              1440,
+              900
+            ],
+            [
+              1920,
+              900
+            ],
+            [
+              2560,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              360,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ],
+            [
+              820,
+              900
+            ],
+            [
+              844,
+              390
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/pricing": {
+          "observations": 44,
+          "viewports": [
+            [
+              1024,
+              900
+            ],
+            [
+              1280,
+              900
+            ],
+            [
+              1440,
+              900
+            ],
+            [
+              1920,
+              900
+            ],
+            [
+              2560,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              360,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ],
+            [
+              820,
+              900
+            ],
+            [
+              844,
+              390
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "7899",
+      "interactionReceiptPaths": [
+        "docs/bugs/user-area-secondary-2026-10-25/public/after7899/interactions.json"
+      ],
+      "interactionCounts": {
+        "menus": 2,
+        "forms": 0,
+        "navigation": 2
+      },
+      "interactionScope": "FR/EN menus: Escape/Fermer focus,320→1440,1279→1280 releases lock; Pricing period toggle/Home/Back. Landscape844×390 reaches last menu button after40Tabs in each language; Escape restores trigger."
+    },
+    {
+      "id": "public8299",
+      "receiptPath": "docs/bugs/user-area-secondary-2026-10-25/public/after8299-logical/receipt.json",
+      "kind": "geometry",
+      "scope": "Targeted header logical margin, FR/EN/AR320/1440; not full Arabic product validation.",
+      "caseCount": 24,
+      "routes": {
+        "/": {
+          "observations": 12,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "ar",
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/pricing": {
+          "observations": 12,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "ar",
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "8299",
+      "interactionScope": "6menu groups FR/EN/AR ×light/dark: Escape/Fermer,320→1440,1279→1280, bodylock release and visible login focus. Not every page inherits this shared-header test."
+    },
+    {
+      "id": "zoom7799",
+      "receiptPath": "docs/bugs/user-area-secondary-2026-10-25/public/after7799/zoom.json",
+      "kind": "native_zoom_200",
+      "scope": "Home/Pricing/Login/Signup; Chromium native200%, physical1280 to CSS640, not pinch.",
+      "caseCount": 16,
+      "routes": {
+        "/": {
+          "observations": 4,
+          "viewports": [
+            [
+              640,
+              null
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/pricing": {
+          "observations": 4,
+          "viewports": [
+            [
+              640,
+              null
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/login": {
+          "observations": 4,
+          "viewports": [
+            [
+              640,
+              null
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/signup": {
+          "observations": 4,
+          "viewports": [
+            [
+              640,
+              null
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "7799"
+    },
+    {
+      "id": "zoom7899",
+      "receiptPath": "docs/bugs/user-area-secondary-2026-10-25/public/after7899/zoom.json",
+      "kind": "native_zoom_200",
+      "scope": "Home/Pricing after footer change; repeats overlapping cases, not additive unique coverage.",
+      "caseCount": 8,
+      "routes": {
+        "/": {
+          "observations": 4,
+          "viewports": [
+            [
+              640,
+              null
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/pricing": {
+          "observations": 4,
+          "viewports": [
+            [
+              640,
+              null
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "7899"
+    },
+    {
+      "id": "contrast8999",
+      "receiptPath": "docs/bugs/user-area-secondary-2026-10-25/public/contrast8999-body/receipt.json",
+      "kind": "contrast_simple_surfaces",
+      "scope": "16cases FR320/1440 light/dark; progressive scroll mounts9Home sections;1334samples measured/982excluded, min4.7975. Complex/translucent backgrounds excluded, not certification.",
+      "caseCount": 16,
+      "routes": {
+        "/": {
+          "observations": 4,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/pricing": {
+          "observations": 4,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/login": {
+          "observations": 4,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/signup": {
+          "observations": 4,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "8999"
+    },
+    {
+      "id": "contact8999",
+      "receiptPath": "docs/bugs/user-area-tertiary-2026-10-25/contact/receipt.json",
+      "kind": "geometry_and_interactions",
+      "scope": "Contact/Contact-sales; invalid/empty local form, draft resize, focus. Valid submission/backend not tested.",
+      "caseCount": 32,
+      "routes": {
+        "/contact": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/contact-sales": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "8999",
+      "interactionReceiptPaths": [
+        "docs/bugs/user-area-tertiary-2026-10-25/contact/navigation.json"
+      ],
+      "interactionScope": "8form groups FR/EN×themes: empty-submit focus name,3/4invalid fields, invalidemail, Tab message→submit with focus style,320→1440→390 draft preservation.4extra FR/EN×routes Back groups on default theme; no valid submission."
+    },
+    {
+      "id": "legal8999",
+      "receiptPath": "docs/bugs/user-area-tertiary-2026-10-25/legal/receipt.json",
+      "kind": "geometry_and_interactions",
+      "scope": "Privacy/Terms/Support-policy geometry, keyboard/resize/Back. Before deep-link fixes.",
+      "caseCount": 48,
+      "routes": {
+        "/privacy": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/terms": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/support-policy": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "8999",
+      "interactionScope": "Per route FR/EN×light/dark: focus first main link,Tab/Shift+Tab,320→1440→390 retains focus,logo→Home→Back returns route/h1; target link not activated unless local Home navigation."
+    },
+    {
+      "id": "legal9599",
+      "receiptPath": "docs/bugs/user-area-tertiary-2026-10-25/legal/after9599/acceptance-after-build.json",
+      "kind": "ssr_hash_back",
+      "scope": "Privacy/Terms contact-heading anchors, actual serverHTML, cold/hash/Back. Not all headings tested.",
+      "caseCount": 32,
+      "routes": {
+        "/privacy": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/terms": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "9599"
+    },
+    {
+      "id": "legalzoom9599",
+      "receiptPath": "docs/bugs/user-area-tertiary-2026-10-25/legal/after9599/zoom-after-build.json",
+      "kind": "native_zoom_200",
+      "scope": "Privacy/Terms FR/EN light only, physical1280×900 to CSS640×406; real header65px.",
+      "caseCount": 4,
+      "routes": {
+        "/privacy": {
+          "observations": 2,
+          "viewports": [
+            [
+              640,
+              406
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "light"
+          ]
+        },
+        "/terms": {
+          "observations": 2,
+          "viewports": [
+            [
+              640,
+              406
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "9599"
+    },
+    {
+      "id": "marketing9599",
+      "receiptPath": "docs/bugs/user-area-tertiary-2026-10-25/marketing/receipt.json",
+      "kind": "geometry_and_interactions",
+      "scope": "Legal/Features32geometry+8keyboard/resize/Back; Features code blocks intentionally horizontal scrollable.",
+      "caseCount": 32,
+      "routes": {
+        "/legal": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/features": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "9599",
+      "interactionScope": "Per route FR/EN×light/dark: focus first main link,Tab/Shift+Tab,320→1440→390 retains focus,logo→Home→Back returns route/h1; target link not activated unless local Home navigation."
+    },
+    {
+      "id": "support9799",
+      "receiptPath": "docs/bugs/user-area-tertiary-2026-10-25/marketing/after9799/after-support.json",
+      "kind": "ssr_hash_back",
+      "scope": "Support-policy CTA only:16cold/hash/Back cases. Other anchors explicitly not corrected/validated.",
+      "caseCount": 16,
+      "routes": {
+        "/support-policy": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "9799"
+    },
+    {
+      "id": "features9799",
+      "receiptPath": "docs/bugs/user-area-tertiary-2026-10-25/marketing/after9799/after-features.json",
+      "kind": "filter_keyboard_resize",
+      "scope": "4FR/EN×themes groups at320,6filters viaSpace, exclusive aria-pressed,13/5/1/4/2/1cards,resize1440→320.",
+      "caseCount": 4,
+      "routes": {
+        "/features": {
+          "observations": 4,
+          "viewports": [
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "9799"
+    },
+    {
+      "id": "major9999",
+      "receiptPath": "docs/bugs/ai-agent-hero-2026-10-25/receipt.json",
+      "kind": "geometry_and_interactions",
+      "scope": "Agent/Enterprise32geometry+8keyboard/resize/Back; Agent FR320 hero clipping found; Enterprise no content overflow detected.",
+      "caseCount": 32,
+      "routes": {
+        "/ai-agent": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        },
+        "/enterprise": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "9999",
+      "interactionScope": "Per route FR/EN×light/dark: focus first main link,Tab/Shift+Tab,320→1440→390 retains focus,logo→Home→Back returns route/h1; target link not activated unless local Home navigation."
+    },
+    {
+      "id": "agent10099",
+      "receiptPath": "docs/bugs/ai-agent-hero-2026-10-25/after10099/after-receipt.json",
+      "kind": "geometry_and_interactions",
+      "scope": "Agent16geometry+4keyboard/resize/Back; FR320 CTA fixed x16→304. root16px/h14=56 observed; desktop wrapping74 preserves minimum.",
+      "caseCount": 16,
+      "routes": {
+        "/ai-agent": {
+          "observations": 16,
+          "viewports": [
+            [
+              1440,
+              900
+            ],
+            [
+              320,
+              900
+            ],
+            [
+              390,
+              900
+            ],
+            [
+              768,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "10099",
+      "interactionScope": "Per route FR/EN×light/dark: focus first main link,Tab/Shift+Tab,320→1440→390 retains focus,logo→Home→Back returns route/h1; target link not activated unless local Home navigation."
+    },
+    {
+      "id": "agentdemo10099",
+      "receiptPath": "docs/bugs/ai-agent-hero-2026-10-25/after10099/after-agent-demo.json",
+      "kind": "demo_selection",
+      "scope": "4FR/EN×themes screenshot-selector groups at320, Space/ARIA exclusive/selectedimage/resize1440. Not realAI/IDE execution.",
+      "caseCount": 4,
+      "routes": {
+        "/ai-agent": {
+          "observations": 4,
+          "viewports": [
+            [
+              320,
+              900
+            ]
+          ],
+          "languages": [
+            "en",
+            "fr"
+          ],
+          "themes": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "environment": "local Chromium; anonymous/synthetic fixtures; production not tested",
+      "buildPort": "10099"
+    }
+  ],
+  "nextAuditCandidates": [
+    {
+      "route": "/templates",
+      "reason": "Anonymous discovery/catalog and category navigation remain unexercised; distinguish signed-in redirect from public listing."
+    },
+    {
+      "route": "/docs",
+      "reason": "Major help entry point linked from public primary actions; navigation/search/long-content responsive behavior not exercised."
+    }
+  ],
+  "crossScopeRoutes": [
+    {
+      "routePattern": "/project/:id",
+      "sourcefile": "app/routes/project.$id.tsx",
+      "reason": "Legacy redirect into authenticated project IDE; inventoried by global routes.json, not a marketing content page."
+    },
+    {
+      "routePattern": "/projects/:projectId/import/:source",
+      "sourcefile": "app/routes/projects.$projectId.import.$source.tsx",
+      "reason": "Marketing component nested under project routes; parent app access/rendering must be accounted for in global inventory."
+    },
+    {
+      "routePattern": "/projects/new",
+      "sourcefile": "app/routes/projects.new.tsx",
+      "reason": "Authenticated project creation, not public marketing despite metadata import."
+    }
+  ],
+  "excludedFalsePositiveEvidence": [
+    {
+      "path": "docs/bugs/user-area-secondary-2026-10-25/public/harness-diagnostic",
+      "reason": "Generic aria-pressed selector once attempted blocked PATCH preferences; no backend reached. Wrong pricing verdict withdrawn. Not included as successful behavior."
+    },
+    {
+      "path": "docs/bugs/user-area-secondary-2026-10-25/public/contrast8799/receipt.json",
+      "reason": "Initial612measurements exclude header/footer and unmounted lazyHome; superseded by separate body measurement, not added as unique coverage."
+    },
+    {
+      "path": "docs/bugs/user-area-tertiary-2026-10-25/contact/partial-receipt.json",
+      "reason": "Submit selector ambiguity stopped harness; rerun successful receipt only."
+    }
+  ]
+}

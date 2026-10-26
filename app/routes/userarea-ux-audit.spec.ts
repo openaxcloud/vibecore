@@ -1,7 +1,19 @@
+/** @vitest-environment jsdom */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
+import { MemoryRouter } from 'react-router';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import AccountSettingsLayout from './account-settings';
+import { createI18nInstance } from '~/lib/i18n/runtime';
+
+vi.mock('~/components/dashboard/SaaSLayout', () => ({
+  AppShell: ({ children }: { children: ReactNode }) => createElement('main', null, children),
+}));
+afterEach(cleanup);
 
 /*
  * Audit UX/UI de la zone utilisateur (chore/userarea-ux-audit) — garde-fous de
@@ -98,8 +110,18 @@ describe('/projects (liste)', () => {
     expect(source()).not.toContain('h-7 max-w-xs');
   });
 
-  it('les lignes de la vue liste sont des h3 sous le h2 de section (h1→h2→h3 dans les deux vues)', () => {
-    expect(source()).toContain('<h3 className="min-w-0 truncate text-sm font-semibold" title={project.name}>');
+  it('les titres complets de la vue liste se replient en h3 sous le h2 de section', () => {
+    const route = source();
+    const heading = route.match(/<h3 className="([^"]+)" title=\{project.name\}>\s*\{project.name\}\s*<\/h3>/);
+    expect(heading).not.toBeNull();
+
+    const classes = heading![1].split(/\s+/);
+    expect(classes).toEqual(
+      expect.arrayContaining(['min-w-0', 'max-w-full', 'break-words', 'text-sm', 'font-semibold']),
+    );
+    expect(classes).not.toContain('truncate');
+    expect(classes).not.toContain('whitespace-nowrap');
+    expect(route).toContain('<h2 className="sr-only">{t(\'projects.listHeading\')}</h2>');
   });
 
   it('la barre outils suit la convention de carte (shadow-sm + palier sm)', () => {
@@ -159,10 +181,30 @@ describe('/api-keys', () => {
 });
 
 describe('/account-settings (3 onglets)', () => {
-  it('les onglets annoncent aria-selected (role=tab sans état avant)', () => {
-    const source = read('app/routes/account-settings.tsx');
-    expect(source).toContain('aria-selected={end ? location.pathname === to : location.pathname.startsWith(to)}');
-  });
+  it.each(['/account-settings', '/account-settings/connected', '/account-settings/data'])(
+    'la navigation native annonce uniquement la destination active %s',
+    (pathname) => {
+      render(
+        createElement(
+          I18nextProvider,
+          { i18n: createI18nInstance('fr') },
+          createElement(MemoryRouter, { initialEntries: [pathname] }, createElement(AccountSettingsLayout)),
+        ),
+      );
+
+      const navigation = screen.getByRole('navigation', { name: 'Paramètres du compte' });
+      const links = navigation.querySelectorAll('a');
+      expect(links).toHaveLength(3);
+      expect(navigation.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+
+      for (const link of links) {
+        expect(link.getAttribute('aria-current')).toBe(link.getAttribute('href') === pathname ? 'page' : null);
+      }
+
+      expect(screen.queryByRole('tablist')).toBeNull();
+      expect(screen.queryByRole('tab')).toBeNull();
+    },
+  );
 
   it('les bandeaux profil utilisent les tokens success/error (gris neutre et icon-error avant)', () => {
     const source = read('app/routes/account-settings._index.tsx');

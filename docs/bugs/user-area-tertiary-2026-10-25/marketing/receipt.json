@@ -1,0 +1,1652 @@
+{
+  "cases": [
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        },
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Ressources juridiques",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Consulter le document",
+          "href": "/terms"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/privacy"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/security"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/licensing"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "Consulter le document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contacter le service juridique",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Signaler un abus",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        },
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Des fonctionnalités qui donnent plus de pouvoir aux développeurs",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Commencer à créer",
+          "href": "/signup"
+        },
+        {
+          "text": "Voir la documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "heading": "Features that empower developers",
+      "overflow": [
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        },
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "heading": "Features that empower developers",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "heading": "Features that empower developers",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "heading": "Features that empower developers",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Legal resources",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "View document",
+          "href": "/terms"
+        },
+        {
+          "text": "View document",
+          "href": "/privacy"
+        },
+        {
+          "text": "View document",
+          "href": "/subprocessors"
+        },
+        {
+          "text": "View document",
+          "href": "/dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/student-dpa"
+        },
+        {
+          "text": "View document",
+          "href": "/security"
+        },
+        {
+          "text": "View document",
+          "href": "/acceptable-use"
+        },
+        {
+          "text": "View document",
+          "href": "/enforcement"
+        },
+        {
+          "text": "View document",
+          "href": "/licensing"
+        },
+        {
+          "text": "View document",
+          "href": "/account-inactivity"
+        },
+        {
+          "text": "View document",
+          "href": "/data-deletion"
+        },
+        {
+          "text": "View document",
+          "href": "/report-abuse"
+        },
+        {
+          "text": "Contact Legal",
+          "href": "mailto:legal@e-code.ai"
+        },
+        {
+          "text": "Report Abuse",
+          "href": "/report-abuse"
+        }
+      ],
+      "ids": []
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "heading": "Features that empower developers",
+      "overflow": [
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        },
+        {
+          "tag": "CODE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App() {\n  return <Dashboard data={",
+          "class": "",
+          "left": 50,
+          "right": 321.53125
+        }
+      ],
+      "docWidth": 320,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "heading": "Features that empower developers",
+      "overflow": [],
+      "docWidth": 390,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "heading": "Features that empower developers",
+      "overflow": [],
+      "docWidth": 768,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "heading": "Features that empower developers",
+      "overflow": [],
+      "docWidth": 1440,
+      "links": [
+        {
+          "text": "Start building",
+          "href": "/signup"
+        },
+        {
+          "text": "View documentation",
+          "href": "/docs"
+        }
+      ],
+      "ids": [
+        "ide",
+        "multiplayer"
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "light",
+      "focus": {
+        "text": "Consulter le document",
+        "href": "/terms",
+        "top": 74,
+        "bottom": 118,
+        "outline": "rgb(15, 23, 41) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": false
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/legal?lang=fr"
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "light",
+      "focus": {
+        "text": "Commencer à créer",
+        "href": "/signup",
+        "top": 673.9375,
+        "bottom": 717.9375,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/features?lang=fr"
+    },
+    {
+      "route": "/legal",
+      "lang": "fr",
+      "theme": "dark",
+      "focus": {
+        "text": "Consulter le document",
+        "href": "/terms",
+        "top": 74,
+        "bottom": 118,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": false
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/legal?lang=fr"
+    },
+    {
+      "route": "/features",
+      "lang": "fr",
+      "theme": "dark",
+      "focus": {
+        "text": "Commencer à créer",
+        "href": "/signup",
+        "top": 673.9375,
+        "bottom": 717.9375,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/features?lang=fr"
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "light",
+      "focus": {
+        "text": "View document",
+        "href": "/terms",
+        "top": 554,
+        "bottom": 598,
+        "outline": "rgb(15, 23, 41) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/legal?lang=en"
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "light",
+      "focus": {
+        "text": "Start building",
+        "href": "/signup",
+        "top": 555.0625,
+        "bottom": 599.0625,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(242, 98, 7, 0.35) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/features?lang=en"
+    },
+    {
+      "route": "/legal",
+      "lang": "en",
+      "theme": "dark",
+      "focus": {
+        "text": "View document",
+        "href": "/terms",
+        "top": 554,
+        "bottom": 598,
+        "outline": "rgb(245, 249, 252) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/legal?lang=en"
+    },
+    {
+      "route": "/features",
+      "lang": "en",
+      "theme": "dark",
+      "focus": {
+        "text": "Start building",
+        "href": "/signup",
+        "top": 555.0625,
+        "bottom": 599.0625,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "shadow": "rgba(255, 122, 43, 0.4) 0px 0px 0px 2px",
+        "hit": true
+      },
+      "focusPreservedOnResize": true,
+      "backURL": "http://127.0.0.1:9599/features?lang=en"
+    }
+  ],
+  "errors": [],
+  "mutations": []
+}

@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { useMobileOverlayFocus } from './MobileOverlayFocus';
 import { IntegrationGithubVerification } from './IntegrationGithubVerification';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
 import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
@@ -129,6 +130,7 @@ import {
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   consumeDeployPanelView,
+  initializeLegacyDomainsSession,
   requestDeployPanelView,
   requestedDeployPanelView,
   type DeployPanelView,
@@ -338,6 +340,15 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
+import { DeploymentHistoryDetails } from '~/components/deploy/DeploymentHistoryDetails';
+import { DeployPublishCard } from '~/components/deploy/DeployPublishCard';
+import { useDeploymentSubmit } from '~/components/deploy/useDeploymentSubmit';
+import {
+  DEPLOY_POLL_INTERVAL_MS,
+  shouldPollDeployments,
+  deploymentStatusLabel,
+} from '~/routes/projects.$projectId.deployments.view';
 import { useDeployPanelSession } from '~/components/deploy/useDeployPanelSession';
 import { useProjectDomains } from '~/components/deploy/useProjectDomains';
 import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
@@ -348,7 +359,7 @@ import {
 } from '~/components/deploy/reparation-agent';
 import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
 import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
-import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
+import { causeDeLEchec, intentionDeRepublication, lignesDeJournal } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
@@ -2355,7 +2366,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectUrl,
       initialIdePanels,
     },
-    ref,
+    forwardedRef,
   ) => {
     const { t, i18n } = useTranslation();
     const language = resolvedBaseChatLanguage(i18n);
@@ -3017,7 +3028,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [mobileOverlayStorageKey],
     );
 
-    const mobileOverlayReturnFocusRef = useRef<HTMLElement | null>(null);
+    const {
+      rootRef: mobileFocusRootRef,
+      rememberOpener,
+      restoreOpener,
+    } = useMobileOverlayFocus(projectIdeMode && useMobileIde && clientHydrated, useMobileIde);
+    const ref = useCallback(
+      (node: HTMLDivElement | null) => {
+        mobileFocusRootRef.current = node;
+
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(node);
+        } else if (forwardedRef) {
+          forwardedRef.current = node;
+        }
+      },
+      [mobileFocusRootRef, forwardedRef],
+    );
 
     const blurActiveMobileControl = useCallback(() => {
       if (typeof document === 'undefined') {
@@ -3028,12 +3055,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (activeElement instanceof HTMLElement) {
         if (!activeElement.closest('[role="dialog"]')) {
-          mobileOverlayReturnFocusRef.current = activeElement;
+          rememberOpener(activeElement);
         }
 
         activeElement.blur();
       }
-    }, []);
+    }, [rememberOpener]);
 
     useEffect(() => {
       setClientHydrated(true);
@@ -3224,9 +3251,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       },
-      [closeMobileOverlays],
+      [closeMobileOverlays, restoreOpener],
     );
 
     const openMobileToolsSheet = useCallback(() => {
@@ -3476,7 +3503,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       };
 
       /*
@@ -3488,6 +3515,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape, true);
     }, [
       closeMobileOverlays,
+      restoreOpener,
       mobileAgentMenuOpen,
       mobileMoreMenuOpen,
       mobileTabSwitcherOpen,
@@ -6418,6 +6446,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [panelNavigation.state, appliedPanelNavigationId]);
 
+    const appliedDeployAliasRef = useRef<string>();
+
     useEffect(() => {
       if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
         return;
@@ -6468,14 +6498,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       if (isIdeWorkspacePanel(activeProjectPanel)) {
+        const opening = resolveProjectEditorToolOpen(activeProjectPanel as never);
+        const requestedView = searchParams.get('deployView');
+
+        const deployView =
+          opening.deployView ??
+          (opening.panel === 'deployments' && ['overview', 'logs', 'manage', 'domains'].includes(requestedView ?? '')
+            ? requestedView
+            : undefined);
+
+        const aliasNavigation = `${projectId}:${currentWorkspaceId}:${appliedPanelNavigationId}:${activeProjectPanel}:${deployView ?? ''}`;
+
+        if (deployView && appliedDeployAliasRef.current !== aliasNavigation) {
+          appliedDeployAliasRef.current = aliasNavigation;
+          requestDeployPanelView(deployView as DeployPanelView);
+        }
+
         if (useMobileIde) {
-          const target = ideMobileTarget(activeProjectPanel);
+          const target = ideMobileTarget(opening.panel as never);
           setMobileIdePanel(target.surface, { activeTabId: target.tabId });
 
           return;
         }
 
-        openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
+        openWorkspacePanel(opening.panel as IdeWorkspacePanel, { replaceUrl: false });
       }
     }, [
       activeProjectPanel,
@@ -11576,6 +11622,24 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
   return method === 'GET' || method === 'HEAD';
 }
 
+function ProjectDeploymentsServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  const { currentWorkspaceId } = useCurrentWorkspace();
+
+  const initialPayload =
+    !currentWorkspaceId || props.initialPayload?.data?.selectedWorkspaceId === currentWorkspaceId
+      ? props.initialPayload
+      : undefined;
+
+  return (
+    <ProjectIdeApiServicePanel
+      {...props}
+      key={`${props.projectId}:${currentWorkspaceId ?? ''}`}
+      requestedWorkspaceId={currentWorkspaceId}
+      initialPayload={initialPayload}
+    />
+  );
+}
+
 /*
  * BUG-IDE-013 — « Problèmes » n'est pas alimenté par `/ide-panel/:panel` mais
  * par le store `diagnostics`, côté client.
@@ -11588,11 +11652,30 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
  * l'enveloppe, donc aucun crochet n'est rendu conditionnel.
  */
 function ProjectIdeServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  if (props.panel === 'deployments') {
+    return <ProjectDeploymentsServicePanel {...props} />;
+  }
+
+  if (props.panel === 'domains') {
+    return <LegacyDomainsServicePanel projectId={props.projectId} />;
+  }
+
   if (props.panel === 'problems') {
     return <ProjectProblemsPanel />;
   }
 
   return <ProjectIdeApiServicePanel {...props} />;
+}
+
+/** Persisted panes keep their identity while rendering the canonical deployment host. */
+function LegacyDomainsServicePanel({ projectId }: { projectId?: string }) {
+  useEffect(() => {
+    if (projectId) {
+      initializeLegacyDomainsSession(projectId);
+    }
+  }, [projectId]);
+
+  return <ProjectIdeServicePanel projectId={projectId} panel="deployments" />;
 }
 
 function ProjectIdeApiServicePanel({
@@ -11601,12 +11684,14 @@ function ProjectIdeApiServicePanel({
   displayTitle,
   displayIcon,
   initialPayload,
+  requestedWorkspaceId,
 }: {
   projectId?: string;
   panel: string;
   displayTitle?: string;
   displayIcon?: string;
   initialPayload?: any;
+  requestedWorkspaceId?: string;
 }) {
   const { t } = useTranslation();
 
@@ -11614,7 +11699,10 @@ function ProjectIdeApiServicePanel({
    * Seed from SSR payload first, else the in-memory cache from a previous visit
    * to this tab (avoids a re-flash of the loading skeleton on tab switch).
    */
-  const panelCacheKey = projectId ? `${projectId}:${panel}` : undefined;
+  const panelCacheKey = projectId
+    ? `${projectId}:${panel}${requestedWorkspaceId ? `:${requestedWorkspaceId}` : ''}`
+    : undefined;
+
   const seededCache = readProjectPanelCache(panelCacheKey);
   const [payload, setPayload] = useState<any>(() => initialPayload ?? seededCache?.payload);
   const [error, setError] = useState<string>();
@@ -11641,7 +11729,11 @@ function ProjectIdeApiServicePanel({
 
   const title = displayTitle ?? panelTitle(panel, t);
   const icon = displayIcon ?? panelIcon(panel);
-  const refreshIntervalMs = projectPanelRefreshIntervalMs(panel);
+
+  const refreshIntervalMs =
+    panel === 'deployments' && shouldPollDeployments(payload?.data?.deployments)
+      ? DEPLOY_POLL_INTERVAL_MS
+      : projectPanelRefreshIntervalMs(panel);
 
   const rendersEmptyStateActions =
     panel === 'deployments' ||
@@ -11701,7 +11793,7 @@ function ProjectIdeApiServicePanel({
           setPayload((current: any) => (current?.status === 'error' ? undefined : current));
         }
 
-        panneauEnVol.retry(`${projectId}:${panel}`);
+        panneauEnVol.retry(panelCacheKey ?? `${projectId}:${panel}`);
       }
 
       if (loadingPanelRef.current) {
@@ -11718,7 +11810,7 @@ function ProjectIdeApiServicePanel({
        * A background database retry must not erase the only recovery action
        * while its replacement response is still pending.
        */
-      if (!['database', 'debugger'].includes(panel) || !options?.silent) {
+      if (!['database', 'debugger', 'deployments'].includes(panel) || !options?.silent) {
         setError(undefined);
       }
 
@@ -11744,11 +11836,14 @@ function ProjectIdeApiServicePanel({
          * de ré-entrance reste : les deux protections ne couvrent pas le même
          * cas.
          */
-        const partage = await panneauEnVol.run(`${projectId}:${panel}`, async (signal) => {
-          const reponse = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
-            headers: { accept: 'application/json' },
-            signal,
-          });
+        const partage = await panneauEnVol.run(panelCacheKey ?? `${projectId}:${panel}`, async (signal) => {
+          const reponse = await fetchPanel(
+            `/api/projects/${projectId}/ide-panel/${panel}${requestedWorkspaceId ? `?workspaceId=${encodeURIComponent(requestedWorkspaceId)}` : ''}`,
+            {
+              headers: { accept: 'application/json' },
+              signal,
+            },
+          );
 
           return { status: reponse.status, ok: reponse.ok, corps: await reponse.json() };
         });
@@ -11804,7 +11899,7 @@ function ProjectIdeApiServicePanel({
 
         // Cache the fresh payload so a later revisit to this tab renders instantly.
         if (projectId) {
-          writeProjectPanelCache(`${projectId}:${panel}`, { payload: result, lastLoadedAt: loadedAt });
+          writeProjectPanelCache(panelCacheKey!, { payload: result, lastLoadedAt: loadedAt });
         }
       } catch (requestError) {
         console.error('IDE panel request failed', { panel, requestError });
@@ -11821,7 +11916,7 @@ function ProjectIdeApiServicePanel({
         }
       }
     },
-    [fetchPanel, panel, projectId, t],
+    [fetchPanel, panel, projectId, requestedWorkspaceId, panelCacheKey, t],
   );
 
   useEffect(() => {
@@ -11830,9 +11925,7 @@ function ProjectIdeApiServicePanel({
      * payload or a cached payload from a previous visit to this tab — so the
      * refresh happens in the background instead of re-flashing the loader.
      */
-    const seeded =
-      Boolean(initialPayload) ||
-      Boolean(readProjectPanelCache(projectId ? `${projectId}:${panel}` : undefined)?.payload);
+    const seeded = Boolean(initialPayload) || Boolean(readProjectPanelCache(panelCacheKey)?.payload);
 
     if (initialPayload) {
       setPayload(initialPayload);
@@ -15053,7 +15146,7 @@ function ProjectIdePanelContent({
    * Deploy tab does, so such a tab is stale, never divergent.
    */
   if (panel === 'domains') {
-    return <ProjectDomainsPanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <LegacyDomainsServicePanel projectId={projectId} />;
   }
 
   if (panel === 'git') {
@@ -15140,6 +15233,7 @@ function ProjectDomainsPanel({
           <span className="bolt-project-domains-kicker">{t('chat.copy.domains_a0d641b3')}</span>
           <h3 id="domains-title">{t('chat.copy.productionRoutingDnsVerificationAndManaged_f5631fc2')}</h3>
           <p>{t('chat.copy.addAHostnamePublishTheDns_c1a019dd')}</p>
+          <p data-testid="project-domains-scope-notice">{t('projectDomains.scope.notice')}</p>
         </div>
         <div className="bolt-project-domain-target-card">
           <span>{t('chat.copy.deploymentTarget_aa5c28e3')}</span>
@@ -15274,9 +15368,11 @@ function DomainVerificationCard({
         <div>
           <span>{t('chat.copy.autoTls_b277ddf3')}</span>
           <strong>
-            {domain.sslStatus === 'dns_verified'
-              ? t('chat.copy.readyForCertificateProvisioning_e45d337a')
-              : t('chat.copy.waitingForDns_882e37ec')}
+            {domain.sslStatus === 'failed'
+              ? t('projectDomains.tls.failed')
+              : domain.sslStatus === 'dns_verified'
+                ? t('chat.copy.readyForCertificateProvisioning_e45d337a')
+                : t('chat.copy.waitingForDns_882e37ec')}
           </strong>
         </div>
         <div>
@@ -23835,6 +23931,13 @@ function ProjectDeploymentsPanel({
   const latestDeployment = deployments[0];
   const workspaceId = data.selectedWorkspaceId ?? data.workspaceId ?? data.workspace?.id ?? '';
 
+  const { submit: submitDeployment, confirmation } = useDeploymentSubmit(
+    onSubmit,
+    busy,
+    language,
+    `${projectId}:${workspaceId}`,
+  );
+
   const inferredFramework = detectFrameworkFromDeployConfig({
     buildCommand: latestDeployment?.buildCommand,
     outputDirectory: latestDeployment?.outputDirectory,
@@ -23894,8 +23997,8 @@ function ProjectDeploymentsPanel({
     const donnees = new FormData();
     donnees.set('intent', 'redeploy');
     donnees.set('deploymentId', intention.deploymentId);
-    onSubmit(donnees);
-  }, [deployments, onSubmit]);
+    submitDeployment(donnees);
+  }, [deployments, submitDeployment]);
 
   /* La même mise en mots que la fin de tour : une seule implémentation. */
   const ilYADepuis = useCallback(
@@ -23920,6 +24023,7 @@ function ProjectDeploymentsPanel({
 
   return (
     <div className="bolt-project-deploy-tool">
+      {confirmation}
       <PanelToolTabs
         tabs={
           [
@@ -23966,7 +24070,7 @@ function ProjectDeploymentsPanel({
               const donnees = new FormData();
               donnees.set('intent', 'cancel');
               donnees.set('deploymentId', deploymentId);
-              onSubmit(donnees);
+              submitDeployment(donnees);
             }}
             onReparerAvecAgent={demanderReparationParLAgent}
             carteTarifaire={(data as any).rateCard ?? null}
@@ -23991,7 +24095,7 @@ function ProjectDeploymentsPanel({
               const donnees = new FormData();
               donnees.set('intent', intent);
               donnees.set('deploymentId', deploymentId);
-              onSubmit(donnees);
+              submitDeployment(donnees);
             }}
           />
 
@@ -24043,12 +24147,10 @@ function ProjectDeploymentsPanel({
                         (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : '')}
                     </span>
                   </div>
-                  <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
+                  <em data-status={deployment.status}>{deploymentStatusLabel(deployment.status, language)}</em>
                 </header>
                 <pre aria-label={t('chat.copy.deploymentLogsForValue0_cffeb837', { value0: deployment.id })}>
-                  {(deployment.logs ?? [])
-                    .map((log: any) => `[${platformStateLabel(t, log.level ?? 'info')}] ${log.message}`)
-                    .join('\n') || t('chat.copy.noDeploymentLogsYet_8f8bec37')}
+                  {lignesDeJournal(deployment).join('\n') || t('chat.copy.noDeploymentLogsYet_8f8bec37')}
                 </pre>
               </article>
             ))
@@ -24093,7 +24195,7 @@ function ProjectDeploymentsPanel({
                           t('chat.copy.urlPending_6c60f919')}
                       </span>
                     </div>
-                    <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
+                    <em data-status={deployment.status}>{deploymentStatusLabel(deployment.status, language)}</em>
                   </header>
                   {causeDeLEchec(deployment) ? (
                     <p
@@ -24104,6 +24206,7 @@ function ProjectDeploymentsPanel({
                       {causeDeLEchec(deployment)}
                     </p>
                   ) : null}
+                  <DeploymentHistoryDetails deployment={deployment} />
                   <div className="bolt-project-deploy-actions">
                     {deployment.url ? (
                       <a href={deployment.url} target="_blank" rel="noreferrer">
@@ -24113,7 +24216,7 @@ function ProjectDeploymentsPanel({
                     <ProjectDeploymentAction
                       intent="redeploy"
                       deploymentId={deployment.id}
-                      onSubmit={onSubmit}
+                      onSubmit={submitDeployment}
                       busy={busy}
                     >
                       {t('chat.copy.redeploy_620446dc')}
@@ -24121,7 +24224,7 @@ function ProjectDeploymentsPanel({
                     <ProjectDeploymentAction
                       intent="rollback"
                       deploymentId={deployment.id}
-                      onSubmit={onSubmit}
+                      onSubmit={submitDeployment}
                       busy={busy || deployment.status !== 'READY' || Boolean(deployment.rollbackUnavailableReason)}
                     >
                       {t('chat.copy.rollback_f28daee2')}
@@ -24129,7 +24232,7 @@ function ProjectDeploymentsPanel({
                     <ProjectDeploymentAction
                       intent="cancel"
                       deploymentId={deployment.id}
-                      onSubmit={onSubmit}
+                      onSubmit={submitDeployment}
                       busy={busy || !['QUEUED', 'BUILDING'].includes(deployment.status)}
                     >
                       {t('chat.copy.cancel_77dfd213')}
@@ -24140,119 +24243,137 @@ function ProjectDeploymentsPanel({
             </section>
           ) : null}
 
-          <form onSubmit={onSubmit} className="bolt-project-deploy-wizard">
-            {workspaceId ? <input type="hidden" name="workspaceId" value={workspaceId} /> : null}
-            <h3>{t('chat.copy.deploymentWizard_3306b958')}</h3>
-            <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
-            <label>
-              {t('chat.copy.provider_7ceee3f3')}
-              {/*
-               * BUG-DEPLOY-PROVIDERS-UI-001 — la liste ne propose que ce
-               * qu'elle peut tenir. Un hébergeur sans identifiants reste
-               * visible mais désactivé, en nommant ce qu'il manque : on ne
-               * remplit plus tout l'assistant pour se heurter à un 503.
-               */}
-              <select name="provider" defaultValue={fournisseurInitial} data-testid="deploy-provider-select">
-                {fournisseurs.map(({ fournisseur, utilisable, manquantes }) => (
-                  <option
-                    key={fournisseur.id}
-                    value={fournisseur.id}
-                    disabled={!utilisable}
-                    data-configure={utilisable ? undefined : 'requis'}
-                  >
-                    {utilisable
-                      ? fournisseur.name
-                      : t('chat.copy.providerNeedsConfig_9a1c7f20', {
-                          provider: fournisseur.name,
-                          missing: manquantes.join(', '),
-                        })}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('chat.copy.environment_d443a118')}
-              <select name="environment" defaultValue="preview">
-                <option value="preview">{t('chat.copy.preview_f1fbb2b4')}</option>
-                <option value="staging">{t('chat.copy.staging_c9fb656c')}</option>
-                <option value="production">{t('chat.copy.production_df70fc79')}</option>
-              </select>
-            </label>
-            <label title={t('chat.copy.commandExecutedBeforeDeploymentToGenerate_87b85f3b')}>
-              <span>{t('chat.copy.buildCommand_2740bf0b')}</span>
-              <PanelInput
-                name="buildCommand"
-                defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND}
-                aria-label={t('chat.copy.buildCommand_2740bf0b')}
-              />
-              <small>{t('chat.copy.exampleNpmRunBuildPnpmBuild_cf3d34a0')}</small>
-            </label>
-            <label title={t('chat.copy.directoryContainingTheBuiltStaticAssets_26607c07')}>
-              <span>{t('chat.copy.outputDirectory_ba9028f4')}</span>
-              <PanelInput
-                name="outputDirectory"
-                defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
-                aria-label={t('chat.copy.outputDirectory_ba9028f4')}
-              />
-              <small>{t('chat.copy.forViteThisIsUsuallyDist_03b25ded')}</small>
-            </label>
-            <label title={t('chat.copy.detectedFrameworkUsedToChooseProvider_4dd054b6')}>
-              <span>{t('chat.copy.frameworkDetected_7a55cf59')}</span>
-              <PanelInput
-                name="framework"
-                placeholder={t('chat.copy.autoValue0_eef47a46', { value0: inferredFramework })}
-                aria-label={t('chat.copy.frameworkDetected_7a55cf59')}
-              />
-              <small>{t('chat.copy.leaveBlankToLetECode_d7db4b95')}</small>
-            </label>
-            <label title={t('chat.copy.gitBranchOrWorkspaceBranchUsed_90c55da3')}>
-              <span>{t('chat.copy.branch_1627510b')}</span>
-              <PanelInput
-                name="branch"
-                placeholder={project.gitDefaultBranch ?? t('chat.copy.main_b28b7af6')}
-                aria-label={t('chat.copy.deploymentBranch_1e947167')}
-              />
-              <small>{t('chat.copy.defaultsToTheProjectBranchWhen_3964715b')}</small>
-            </label>
-            <label title={t('chat.copy.optionalGitRemoteUrlUsedBy_d9896847')}>
-              <span>{t('chat.copy.repositoryUrl_ca38850c')}</span>
-              <PanelInput
-                name="repositoryUrl"
-                defaultValue={project.gitRepositoryUrl ?? ''}
-                aria-label={t('chat.copy.repositoryUrl_ca38850c')}
-              />
-            </label>
-            <label title={t('chat.copy.optionalDomainToAttachToThe_839fb219')}>
-              <span>{t('chat.copy.customDomain_0354c889')}</span>
-              <PanelInput
-                name="customDomain"
-                aria-label={t('chat.copy.customDomain_0354c889')}
-                placeholder={codeExample('app.example.com')}
-              />
-            </label>
-            <label title={t('chat.copy.plainEnvironmentVariablesAddedForThis_0d76b791')}>
-              <span>{t('chat.copy.environmentVariables_1173b2e1')}</span>
-              <textarea
-                name="envVars"
-                placeholder={t('chat.copy.keyValueAnotherKeyValue_36d39107')}
-                aria-label={t('chat.copy.environmentVariables_1173b2e1')}
-              />
-              <small>{t('chat.copy.useKeyValuePairsOnePer_0a98c277')}</small>
-            </label>
-            <label title={t('chat.copy.commaSeparatedNamesOfExistingProject_93f64262')}>
-              <span>{t('chat.copy.secretsToInject_5712dba7')}</span>
-              <PanelInput
-                name="injectSecrets"
-                placeholder={t('chat.copy.databaseUrlStripeSecretKey_42eb88dc')}
-                aria-label={t('chat.copy.secretsToInject_5712dba7')}
-              />
-            </label>
-            <label className="bolt-project-checkbox-row">
-              <input name="previewDeployment" type="checkbox" defaultChecked />
-              {t('chat.copy.createPreviewUrlForNonProduction_9d087457')}
-            </label>
-            <PanelButton disabled={busy}>{t('chat.copy.deployProject_9e37b103')}</PanelButton>
-          </form>
+          {projectId ? (
+            <DeployPublishCard
+              key={`${projectId}:${workspaceId}`}
+              projectId={projectId}
+              workspaceId={workspaceId}
+              busy={busy}
+              building={shouldPollDeployments(deployments)}
+              onSubmit={submitDeployment}
+            />
+          ) : null}
+          <details>
+            <summary className="cursor-pointer py-2">{t('baseChatAst.deployment.otherProviders')}</summary>
+            <form onSubmit={submitDeployment} className="bolt-project-deploy-wizard">
+              {workspaceId ? <input type="hidden" name="workspaceId" value={workspaceId} /> : null}
+              <h3>{t('chat.copy.deploymentWizard_3306b958')}</h3>
+              <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
+              <label>
+                {t('chat.copy.provider_7ceee3f3')}
+                {/*
+                 * BUG-DEPLOY-PROVIDERS-UI-001 — la liste ne propose que ce
+                 * qu'elle peut tenir. Un hébergeur sans identifiants reste
+                 * visible mais désactivé, en nommant ce qu'il manque : on ne
+                 * remplit plus tout l'assistant pour se heurter à un 503.
+                 */}
+                <select name="provider" defaultValue={fournisseurInitial} data-testid="deploy-provider-select">
+                  {fournisseurs.map(({ fournisseur, utilisable, manquantes }) => (
+                    <option
+                      key={fournisseur.id}
+                      value={fournisseur.id}
+                      disabled={!utilisable}
+                      data-configure={utilisable ? undefined : 'requis'}
+                    >
+                      {utilisable
+                        ? fournisseur.name
+                        : t('chat.copy.providerNeedsConfig_9a1c7f20', {
+                            provider: fournisseur.name,
+                            missing: manquantes.join(', '),
+                          })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t('chat.copy.environment_d443a118')}
+                <select name="environment" defaultValue="preview">
+                  <option value="preview">{t('chat.copy.preview_f1fbb2b4')}</option>
+                  <option value="staging">{t('chat.copy.staging_c9fb656c')}</option>
+                  <option value="production">{t('chat.copy.production_df70fc79')}</option>
+                </select>
+              </label>
+              <details className="col-span-full">
+                <summary className="cursor-pointer py-2">{t('baseChatAst.deployment.advancedSettings')}</summary>
+                <div className="grid gap-3">
+                  <label title={t('chat.copy.commandExecutedBeforeDeploymentToGenerate_87b85f3b')}>
+                    <span>{t('chat.copy.buildCommand_2740bf0b')}</span>
+                    <PanelInput
+                      name="buildCommand"
+                      defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND}
+                      aria-label={t('chat.copy.buildCommand_2740bf0b')}
+                    />
+                    <small>{t('chat.copy.exampleNpmRunBuildPnpmBuild_cf3d34a0')}</small>
+                  </label>
+                  <label title={t('chat.copy.directoryContainingTheBuiltStaticAssets_26607c07')}>
+                    <span>{t('chat.copy.outputDirectory_ba9028f4')}</span>
+                    <PanelInput
+                      name="outputDirectory"
+                      defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
+                      aria-label={t('chat.copy.outputDirectory_ba9028f4')}
+                    />
+                    <small>{t('chat.copy.forViteThisIsUsuallyDist_03b25ded')}</small>
+                  </label>
+                  <label title={t('chat.copy.detectedFrameworkUsedToChooseProvider_4dd054b6')}>
+                    <span>{t('chat.copy.frameworkDetected_7a55cf59')}</span>
+                    <PanelInput
+                      name="framework"
+                      placeholder={t('chat.copy.autoValue0_eef47a46', { value0: inferredFramework })}
+                      aria-label={t('chat.copy.frameworkDetected_7a55cf59')}
+                    />
+                    <small>{t('chat.copy.leaveBlankToLetECode_d7db4b95')}</small>
+                  </label>
+                  <label title={t('chat.copy.gitBranchOrWorkspaceBranchUsed_90c55da3')}>
+                    <span>{t('chat.copy.branch_1627510b')}</span>
+                    <PanelInput
+                      name="branch"
+                      placeholder={project.gitDefaultBranch ?? t('chat.copy.main_b28b7af6')}
+                      aria-label={t('chat.copy.deploymentBranch_1e947167')}
+                    />
+                    <small>{t('chat.copy.defaultsToTheProjectBranchWhen_3964715b')}</small>
+                  </label>
+                  <label title={t('chat.copy.optionalGitRemoteUrlUsedBy_d9896847')}>
+                    <span>{t('chat.copy.repositoryUrl_ca38850c')}</span>
+                    <PanelInput
+                      name="repositoryUrl"
+                      defaultValue={project.gitRepositoryUrl ?? ''}
+                      aria-label={t('chat.copy.repositoryUrl_ca38850c')}
+                    />
+                  </label>
+                  <label title={t('chat.copy.optionalDomainToAttachToThe_839fb219')}>
+                    <span>{t('chat.copy.customDomain_0354c889')}</span>
+                    <PanelInput
+                      name="customDomain"
+                      aria-label={t('chat.copy.customDomain_0354c889')}
+                      placeholder={codeExample('app.example.com')}
+                    />
+                  </label>
+                  <label title={t('chat.copy.plainEnvironmentVariablesAddedForThis_0d76b791')}>
+                    <span>{t('chat.copy.environmentVariables_1173b2e1')}</span>
+                    <textarea
+                      name="envVars"
+                      placeholder={t('chat.copy.keyValueAnotherKeyValue_36d39107')}
+                      aria-label={t('chat.copy.environmentVariables_1173b2e1')}
+                    />
+                    <small>{t('chat.copy.useKeyValuePairsOnePer_0a98c277')}</small>
+                  </label>
+                  <label title={t('chat.copy.commaSeparatedNamesOfExistingProject_93f64262')}>
+                    <span>{t('chat.copy.secretsToInject_5712dba7')}</span>
+                    <PanelInput
+                      name="injectSecrets"
+                      placeholder={t('chat.copy.databaseUrlStripeSecretKey_42eb88dc')}
+                      aria-label={t('chat.copy.secretsToInject_5712dba7')}
+                    />
+                  </label>
+                  <label className="bolt-project-checkbox-row">
+                    <input name="previewDeployment" type="checkbox" defaultChecked />
+                    {t('chat.copy.createPreviewUrlForNonProduction_9d087457')}
+                  </label>
+                </div>
+              </details>
+              <PanelButton disabled={busy}>{t('chat.copy.deployProject_9e37b103')}</PanelButton>
+            </form>
+          </details>
         </>
       ) : null}
     </div>

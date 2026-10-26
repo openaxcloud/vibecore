@@ -1,0 +1,27 @@
+[
+  {
+    "id": "routes/teams.$id",
+    "file": "routes/teams.$id.tsx",
+    "path": "teams/:id",
+    "children": [
+      {
+        "id": "routes/teams.$id.settings",
+        "file": "routes/teams.$id.settings.tsx",
+        "path": "settings"
+      }
+    ],
+    "parentId": "root"
+  },
+  {
+    "id": "routes/teams.$id.settings",
+    "file": "routes/teams.$id.settings.tsx",
+    "path": "settings",
+    "parentId": "routes/teams.$id"
+  },
+  {
+    "id": "routes/teams.new",
+    "file": "routes/teams.new.tsx",
+    "path": "teams/new",
+    "parentId": "root"
+  }
+]

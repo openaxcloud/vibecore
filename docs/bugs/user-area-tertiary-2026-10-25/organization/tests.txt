@@ -1,0 +1,13 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-org
+
+ ✓ app/routes/roles-and-permissions.action.spec.ts (8 tests) 1025ms
+   ✓ roles-and-permissions route action > reports success inline when the role is created  1014ms
+ ✓ app/routes/invitations.loader.spec.ts (14 tests) 1037ms
+   ✓ invitations loader graceful degradation > returns full management state with custom roles when both calls succeed  1012ms
+ ✓ app/routes/invitations.i18n.spec.tsx (11 tests) 405ms
+
+ Test Files  3 passed (3)
+      Tests  33 passed (33)
+   Start at  23:05:35
+   Duration  3.37s (transform 1.68s, setup 111ms, collect 500ms, tests 2.47s, environment 541ms, prepare 216ms)

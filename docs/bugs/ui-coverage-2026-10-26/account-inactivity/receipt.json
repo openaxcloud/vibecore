@@ -1,0 +1,1375 @@
+{
+  "base": "http://127.0.0.1:10899",
+  "startedAt": "2026-10-26T00:26:28.368Z",
+  "route": "/account-inactivity",
+  "cases": [
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 320,
+      "viewportWidth": 320,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 16,
+          "right": 304,
+          "top": 159
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 304,
+          "top": 474.125
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 304,
+          "top": 713.125
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 304,
+          "top": 924.5
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 304,
+          "top": 1135.875
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 111
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 16,
+          "right": 374,
+          "top": 113
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 374,
+          "top": 384.25
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 374,
+          "top": 583.5
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 374,
+          "top": 775
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 374,
+          "top": 966.5
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 65
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 844,
+      "viewportWidth": 844,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 24,
+          "right": 820,
+          "top": 182
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 820,
+          "top": 365.625
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 820,
+          "top": 505.25
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 820,
+          "top": 625
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 820,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 820,
+      "viewportWidth": 820,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 24,
+          "right": 796,
+          "top": 182
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 796,
+          "top": 365.625
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 796,
+          "top": 505.25
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 796,
+          "top": 625
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 796,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 272,
+          "right": 1168,
+          "top": 206
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 272,
+          "right": 1168,
+          "top": 376.0625
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 272,
+          "right": 1168,
+          "top": 490.125
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 272,
+          "right": 1168,
+          "top": 604.1875
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 272,
+          "right": 1168,
+          "top": 718.25
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 320,
+      "viewportWidth": 320,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 16,
+          "right": 304,
+          "top": 159
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 304,
+          "top": 474.125
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 304,
+          "top": 713.125
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 304,
+          "top": 924.5
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 304,
+          "top": 1135.875
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 111
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 16,
+          "right": 374,
+          "top": 113
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 374,
+          "top": 384.25
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 374,
+          "top": 583.5
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 374,
+          "top": 775
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 374,
+          "top": 966.5
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 65
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 844,
+      "viewportWidth": 844,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 24,
+          "right": 820,
+          "top": 182
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 820,
+          "top": 365.625
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 820,
+          "top": 505.25
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 820,
+          "top": 625
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 820,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 820,
+      "viewportWidth": 820,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 24,
+          "right": 796,
+          "top": 182
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 796,
+          "top": 365.625
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 796,
+          "top": 505.25
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 796,
+          "top": 625
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 796,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "h1Count": 1,
+      "title": "Politique d’inactivité du compte",
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Politique d’inactivité du compte",
+          "id": "",
+          "x": 272,
+          "right": 1168,
+          "top": 206
+        },
+        {
+          "text": "1. Période d’inactivité",
+          "id": "account-inactivity-period",
+          "x": 272,
+          "right": 1168,
+          "top": 376.0625
+        },
+        {
+          "text": "2. Les comptes payants ne sont pas concernés",
+          "id": "account-inactivity-paid",
+          "x": 272,
+          "right": 1168,
+          "top": 490.125
+        },
+        {
+          "text": "3. Ce qui est considéré comme une activité",
+          "id": "account-inactivity-activity",
+          "x": 272,
+          "right": 1168,
+          "top": 604.1875
+        },
+        {
+          "text": "4. Préavis et conservation de votre compte",
+          "id": "account-inactivity-notice",
+          "x": 272,
+          "right": 1168,
+          "top": 718.25
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 320,
+      "viewportWidth": 320,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 16,
+          "right": 304,
+          "top": 159
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 304,
+          "top": 430.25
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 304,
+          "top": 649.375
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 304,
+          "top": 860.75
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 304,
+          "top": 1052.25
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 111
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 16,
+          "right": 374,
+          "top": 113
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 374,
+          "top": 332.375
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 374,
+          "top": 511.75
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 374,
+          "top": 671.25
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 374,
+          "top": 810.875
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 65
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 844,
+      "viewportWidth": 844,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 24,
+          "right": 820,
+          "top": 182
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 820,
+          "top": 365.625
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 820,
+          "top": 505.25
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 820,
+          "top": 625
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 820,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 820,
+      "viewportWidth": 820,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 24,
+          "right": 796,
+          "top": 182
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 796,
+          "top": 365.625
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 796,
+          "top": 505.25
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 796,
+          "top": 625
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 796,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 272,
+          "right": 1168,
+          "top": 206
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 272,
+          "right": 1168,
+          "top": 376.0625
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 272,
+          "right": 1168,
+          "top": 490.125
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 272,
+          "right": 1168,
+          "top": 604.1875
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 272,
+          "right": 1168,
+          "top": 701.21875
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 320,
+      "viewportWidth": 320,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 16,
+          "right": 304,
+          "top": 159
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 304,
+          "top": 430.25
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 304,
+          "top": 649.375
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 304,
+          "top": 860.75
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 304,
+          "top": 1052.25
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 111
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 390,
+      "viewportWidth": 390,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 16,
+          "right": 374,
+          "top": 113
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 16,
+          "right": 374,
+          "top": 332.375
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 16,
+          "right": 374,
+          "top": 511.75
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 16,
+          "right": 374,
+          "top": 671.25
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 16,
+          "right": 374,
+          "top": 810.875
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 65
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 844,
+      "viewportWidth": 844,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 24,
+          "right": 820,
+          "top": 182
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 820,
+          "top": 365.625
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 820,
+          "top": 505.25
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 820,
+          "top": 625
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 820,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 820,
+      "viewportWidth": 820,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 24,
+          "right": 796,
+          "top": 182
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 24,
+          "right": 796,
+          "top": 365.625
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 24,
+          "right": 796,
+          "top": 505.25
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 24,
+          "right": 796,
+          "top": 625
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 24,
+          "right": 796,
+          "top": 744.75
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "h1Count": 1,
+      "title": "Account Inactivity Policy",
+      "documentWidth": 1440,
+      "viewportWidth": 1440,
+      "fields": 0,
+      "headings": [
+        {
+          "text": "Account Inactivity Policy",
+          "id": "",
+          "x": 272,
+          "right": 1168,
+          "top": 206
+        },
+        {
+          "text": "1. Inactivity period",
+          "id": "account-inactivity-period",
+          "x": 272,
+          "right": 1168,
+          "top": 376.0625
+        },
+        {
+          "text": "2. Paid accounts are exempt",
+          "id": "account-inactivity-paid",
+          "x": 272,
+          "right": 1168,
+          "top": 490.125
+        },
+        {
+          "text": "3. What counts as activity",
+          "id": "account-inactivity-activity",
+          "x": 272,
+          "right": 1168,
+          "top": 604.1875
+        },
+        {
+          "text": "4. Notice and keeping your account",
+          "id": "account-inactivity-notice",
+          "x": 272,
+          "right": 1168,
+          "top": 701.21875
+        }
+      ],
+      "overflows": [],
+      "links": [
+        {
+          "href": "mailto:support@e-code.ai",
+          "text": "support@e-code.ai"
+        }
+      ],
+      "headerBottom": 110
+    }
+  ],
+  "interactions": [
+    {
+      "language": "fr",
+      "theme": "light",
+      "initial": {
+        "focused": true,
+        "href": "mailto:support@e-code.ai",
+        "rect": {
+          "x": 16,
+          "y": 430.75,
+          "width": 283.015625,
+          "height": 38.875,
+          "top": 430.75,
+          "right": 299.015625,
+          "bottom": 469.625,
+          "left": 16
+        }
+      },
+      "landscape": {
+        "focused": true,
+        "rect": {
+          "x": 223.421875,
+          "y": 872.25,
+          "width": 123.796875,
+          "height": 19,
+          "top": 872.25,
+          "right": 347.21875,
+          "bottom": 891.25,
+          "left": 223.421875
+        }
+      },
+      "afterTab": {
+        "tag": "BUTTON",
+        "text": "Contacter l’équipe commerciale",
+        "href": null
+      },
+      "beforeBack": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "afterBack": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "cookies": [
+        "ecode_theme",
+        "vibecore-lang"
+      ],
+      "note": "No text input exists; resize while focused, no pretend typing. Mailto never activated."
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "initial": {
+        "focused": true,
+        "href": "mailto:support@e-code.ai",
+        "rect": {
+          "x": 16,
+          "y": 430.75,
+          "width": 283.015625,
+          "height": 38.875,
+          "top": 430.75,
+          "right": 299.015625,
+          "bottom": 469.625,
+          "left": 16
+        }
+      },
+      "landscape": {
+        "focused": true,
+        "rect": {
+          "x": 223.421875,
+          "y": 872.25,
+          "width": 123.796875,
+          "height": 19,
+          "top": 872.25,
+          "right": 347.21875,
+          "bottom": 891.25,
+          "left": 223.421875
+        }
+      },
+      "afterTab": {
+        "tag": "BUTTON",
+        "text": "Contacter l’équipe commerciale",
+        "href": null
+      },
+      "beforeBack": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "afterBack": "http://127.0.0.1:10899/account-inactivity?lang=fr",
+      "cookies": [
+        "ecode_theme",
+        "vibecore-lang"
+      ],
+      "note": "No text input exists; resize while focused, no pretend typing. Mailto never activated."
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "initial": {
+        "focused": true,
+        "href": "mailto:support@e-code.ai",
+        "rect": {
+          "x": 165.078125,
+          "y": 440.25,
+          "width": 123.796875,
+          "height": 19,
+          "top": 440.25,
+          "right": 288.875,
+          "bottom": 459.25,
+          "left": 165.078125
+        }
+      },
+      "landscape": {
+        "focused": true,
+        "rect": {
+          "x": 173.078125,
+          "y": 852.375,
+          "width": 123.796875,
+          "height": 19,
+          "top": 852.375,
+          "right": 296.875,
+          "bottom": 871.375,
+          "left": 173.078125
+        }
+      },
+      "afterTab": {
+        "tag": "BUTTON",
+        "text": "Talk to sales",
+        "href": null
+      },
+      "beforeBack": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "afterBack": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "cookies": [
+        "ecode_theme",
+        "vibecore-lang"
+      ],
+      "note": "No text input exists; resize while focused, no pretend typing. Mailto never activated."
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "initial": {
+        "focused": true,
+        "href": "mailto:support@e-code.ai",
+        "rect": {
+          "x": 165.078125,
+          "y": 440.25,
+          "width": 123.796875,
+          "height": 19,
+          "top": 440.25,
+          "right": 288.875,
+          "bottom": 459.25,
+          "left": 165.078125
+        }
+      },
+      "landscape": {
+        "focused": true,
+        "rect": {
+          "x": 173.078125,
+          "y": 852.375,
+          "width": 123.796875,
+          "height": 19,
+          "top": 852.375,
+          "right": 296.875,
+          "bottom": 871.375,
+          "left": 173.078125
+        }
+      },
+      "afterTab": {
+        "tag": "BUTTON",
+        "text": "Talk to sales",
+        "href": null
+      },
+      "beforeBack": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "afterBack": "http://127.0.0.1:10899/account-inactivity?lang=en",
+      "cookies": [
+        "ecode_theme",
+        "vibecore-lang"
+      ],
+      "note": "No text input exists; resize while focused, no pretend typing. Mailto never activated."
+    }
+  ],
+  "errors": [],
+  "blockedMutations": [],
+  "blockedExternal": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "scope": "Anonymous public policy; no deletion/deactivation/authentication or mail sent.",
+  "finishedAt": "2026-10-26T00:27:43.558Z"
+}

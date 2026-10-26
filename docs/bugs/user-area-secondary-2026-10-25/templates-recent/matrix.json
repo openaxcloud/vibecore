@@ -1,0 +1,3053 @@
+{
+  "base": "http://127.0.0.1:8199",
+  "synthetic": true,
+  "observations": [
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 102.578125,
+          "height": 96,
+          "client": 103,
+          "scroll": 103,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 126.609375,
+          "height": 64,
+          "client": 127,
+          "scroll": 127,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 165.796875,
+          "height": 64,
+          "client": 166,
+          "scroll": 166,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 183.015625,
+          "height": 64,
+          "client": 183,
+          "scroll": 183,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 172.578125,
+          "height": 64,
+          "client": 173,
+          "scroll": 173,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 230.984375,
+          "height": 32,
+          "client": 231,
+          "scroll": 231,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 223.875,
+          "height": 32,
+          "client": 224,
+          "scroll": 224,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 204.578125,
+          "height": 64,
+          "client": 205,
+          "scroll": 205,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 230.984375,
+          "height": 32,
+          "client": 231,
+          "scroll": 231,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 223.875,
+          "height": 32,
+          "client": 224,
+          "scroll": 224,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 192.578125,
+          "height": 64,
+          "client": 193,
+          "scroll": 193,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 230.984375,
+          "height": 32,
+          "client": 231,
+          "scroll": 231,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 223.875,
+          "height": 32,
+          "client": 224,
+          "scroll": 224,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 120.078125,
+          "height": 96,
+          "client": 120,
+          "scroll": 120,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 181.015625,
+          "height": 64,
+          "client": 181,
+          "scroll": 181,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 200.515625,
+          "height": 64,
+          "client": 201,
+          "scroll": 201,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 471.640625
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 783.640625
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1095.640625
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 471.640625
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 783.640625
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1095.640625
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 193.5,
+          "height": 42,
+          "client": 194,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 193.5,
+          "height": 64,
+          "client": 194,
+          "scroll": 194,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 263.5,
+          "height": 42,
+          "client": 264,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 263.5,
+          "height": 64,
+          "client": 264,
+          "scroll": 264,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 221,
+          "height": 36,
+          "client": 221,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 221,
+          "height": 64,
+          "client": 221,
+          "scroll": 221,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 102.578125,
+          "height": 96,
+          "client": 103,
+          "scroll": 103,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 126.609375,
+          "height": 64,
+          "client": 127,
+          "scroll": 127,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 165.796875,
+          "height": 64,
+          "client": 166,
+          "scroll": 166,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 183.015625,
+          "height": 64,
+          "client": 183,
+          "scroll": 183,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 180.875
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 172.578125,
+          "height": 64,
+          "client": 173,
+          "scroll": 173,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 230.984375,
+          "height": 32,
+          "client": 231,
+          "scroll": 231,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 223.875,
+          "height": 32,
+          "client": 224,
+          "scroll": 224,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 204.578125,
+          "height": 64,
+          "client": 205,
+          "scroll": 205,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 230.984375,
+          "height": 32,
+          "client": 231,
+          "scroll": 231,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 223.875,
+          "height": 32,
+          "client": 224,
+          "scroll": 224,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 192.578125,
+          "height": 64,
+          "client": 193,
+          "scroll": 193,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 230.984375,
+          "height": 32,
+          "client": 231,
+          "scroll": 231,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 223.875,
+          "height": 32,
+          "client": 224,
+          "scroll": 224,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Tableau de bord Next.js",
+          "width": 120.078125,
+          "height": 96,
+          "client": 120,
+          "scroll": 120,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "API Fastify",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Agent IA",
+          "width": 104.265625,
+          "height": 32,
+          "client": 104,
+          "scroll": 104,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Page d’atterrissage",
+          "width": 181.015625,
+          "height": 64,
+          "client": 181,
+          "scroll": 181,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Démarrage mobile",
+          "width": 200.515625,
+          "height": 64,
+          "client": 201,
+          "scroll": 201,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 491.9375
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 803.9375
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1115.9375
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 491.9375
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 803.9375
+        },
+        {
+          "text": "Utiliser le modèle",
+          "width": 144.875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1115.9375
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 193.5,
+          "height": 42,
+          "client": 194,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 193.5,
+          "height": 64,
+          "client": 194,
+          "scroll": 194,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 263.5,
+          "height": 42,
+          "client": 264,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 263.5,
+          "height": 64,
+          "client": 264,
+          "scroll": 264,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 221,
+          "height": 36,
+          "client": 221,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 221,
+          "height": 64,
+          "client": 221,
+          "scroll": 221,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 169.5625,
+          "height": 64,
+          "client": 170,
+          "scroll": 170,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 191.28125,
+          "height": 32,
+          "client": 191,
+          "scroll": 191,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 191.28125,
+          "height": 32,
+          "client": 191,
+          "scroll": 191,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 191.28125,
+          "height": 32,
+          "client": 191,
+          "scroll": 191,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 187.0625,
+          "height": 64,
+          "client": 187,
+          "scroll": 187,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 567
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 879
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1191
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 567
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 879
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1191
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 193.5,
+          "height": 42,
+          "client": 194,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 193.5,
+          "height": 64,
+          "client": 194,
+          "scroll": 194,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 263.5,
+          "height": 42,
+          "client": 264,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 263.5,
+          "height": 64,
+          "client": 264,
+          "scroll": 264,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 221,
+          "height": 36,
+          "client": 221,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 221,
+          "height": 64,
+          "client": 221,
+          "scroll": 221,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 169.5625,
+          "height": 64,
+          "client": 170,
+          "scroll": 170,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 153.546875
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 191.28125,
+          "height": 32,
+          "client": 191,
+          "scroll": 191,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 354
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 191.28125,
+          "height": 32,
+          "client": 191,
+          "scroll": 191,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 393
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 801
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 191.28125,
+          "height": 32,
+          "client": 191,
+          "scroll": 191,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 381
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 777
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/dashboard/templates",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "React SaaS",
+          "width": 128.953125,
+          "height": 32,
+          "client": 129,
+          "scroll": 129,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Next dashboard",
+          "width": 187.0625,
+          "height": 64,
+          "client": 187,
+          "scroll": 187,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Fastify API",
+          "width": 127.5,
+          "height": 32,
+          "client": 128,
+          "scroll": 128,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "AI agent",
+          "width": 102.203125,
+          "height": 32,
+          "client": 102,
+          "scroll": 102,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Landing page",
+          "width": 162.609375,
+          "height": 32,
+          "client": 163,
+          "scroll": 163,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        },
+        {
+          "text": "Mobile starter",
+          "width": 170.984375,
+          "height": 32,
+          "client": 171,
+          "scroll": 171,
+          "overflowWrap": "normal",
+          "lineClamp": "none",
+          "title": ""
+        }
+      ],
+      "cta": [
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 588.75
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 900.75
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1212.75
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 588.75
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 900.75
+        },
+        {
+          "text": "Use template",
+          "width": 117.546875,
+          "height": 36,
+          "minHeight": "36px",
+          "right": 1212.75
+        }
+      ],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 800,
+      "documentWidth": 320,
+      "viewport": 320,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 193.5,
+          "height": 42,
+          "client": 194,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 193.5,
+          "height": 64,
+          "client": 194,
+          "scroll": 194,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "viewport": 390,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 263.5,
+          "height": 42,
+          "client": 264,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 263.5,
+          "height": 64,
+          "client": 264,
+          "scroll": 264,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "viewport": 844,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1000,
+      "documentWidth": 820,
+      "viewport": 820,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 265.5,
+          "height": 42,
+          "client": 266,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 265.5,
+          "height": 64,
+          "client": 266,
+          "scroll": 266,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    },
+    {
+      "route": "/recent-projects",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "h3": [
+        {
+          "text": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789",
+          "width": 221,
+          "height": 36,
+          "client": 221,
+          "scroll": 3962,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "ProjetSynthétiqueSansEspaceExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789ExtremementLong0123456789"
+        },
+        {
+          "text": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet",
+          "width": 221,
+          "height": 64,
+          "client": 221,
+          "scroll": 221,
+          "overflowWrap": "normal",
+          "lineClamp": "2",
+          "title": "Projet synthétique avec beaucoup de mots pour vérifier le titre en français et en anglais sans ouvrir le projet"
+        }
+      ],
+      "cta": [],
+      "searchInputs": []
+    }
+  ],
+  "blocked": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    }
+  ],
+  "errors": []
+}

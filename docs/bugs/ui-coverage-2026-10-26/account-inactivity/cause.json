@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "selector": "html:has([data-ecode-static-shell]), html:has([data-ecode-static-shell]) body, html[data-ecode-public-chrome=\"homepage\"], html[data-ecode-public-chrome=\"homepage\"] body",
+      "style": "overflow-x: clip;",
+      "media": "",
+      "active": true
+    },
+    {
+      "selector": "html, body",
+      "style": "overflow: hidden;",
+      "media": "(max-height: 499px)",
+      "active": true
+    }
+  ],
+  "stages": [
+    {
+      "bodyTop": 600,
+      "scrollY": 0,
+      "overflowY": "auto",
+      "lastHeadingTop": 144.75
+    }
+  ]
+}

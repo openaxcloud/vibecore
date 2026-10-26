@@ -1,0 +1,295 @@
+{
+  "base": "http://127.0.0.1:7099",
+  "synthetic": true,
+  "writes": [],
+  "checks": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "geometry": {
+        "x": 14.814170837402344,
+        "y": 455,
+        "width": 214.37165069580078,
+        "height": 194.88330078125
+      },
+      "scrollBefore": 320,
+      "scrollAfter": 320,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "geometry": {
+        "x": 109.81407928466797,
+        "y": 455,
+        "width": 214.37183380126953,
+        "height": 194.88348388671875
+      },
+      "scrollBefore": 107,
+      "scrollAfter": 107,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "geometry": {
+        "x": 565.41796875,
+        "y": 525,
+        "width": 217.1640625,
+        "height": 197.42193603515625
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "geometry": {
+        "x": 1072.6318359375,
+        "y": 485,
+        "width": 212.736328125,
+        "height": 190.49566650390625
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "geometry": {
+        "x": 16.5233154296875,
+        "y": 455,
+        "width": 210.953369140625,
+        "height": 191.7757568359375
+      },
+      "scrollBefore": 320,
+      "scrollAfter": 320,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "geometry": {
+        "x": 112.5,
+        "y": 455,
+        "width": 209,
+        "height": 190
+      },
+      "scrollBefore": 107,
+      "scrollAfter": 107,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "geometry": {
+        "x": 568.5233764648438,
+        "y": 525,
+        "width": 210.9532470703125,
+        "height": 191.77569580078125
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "geometry": {
+        "x": 1073.5233154296875,
+        "y": 485,
+        "width": 210.953369140625,
+        "height": 188.899169921875
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "geometry": {
+        "x": 17.5,
+        "y": 455,
+        "width": 209,
+        "height": 190
+      },
+      "scrollBefore": 249,
+      "scrollAfter": 249,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "geometry": {
+        "x": 94.5233154296875,
+        "y": 455,
+        "width": 210.953369140625,
+        "height": 191.7757568359375
+      },
+      "scrollBefore": 107,
+      "scrollAfter": 107,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "geometry": {
+        "x": 569.5,
+        "y": 525,
+        "width": 209,
+        "height": 190
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "geometry": {
+        "x": 1074.5,
+        "y": 485,
+        "width": 209,
+        "height": 187.1500244140625
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "geometry": {
+        "x": 17.5,
+        "y": 455,
+        "width": 209,
+        "height": 190
+      },
+      "scrollBefore": 249,
+      "scrollAfter": 249,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "geometry": {
+        "x": 95.5,
+        "y": 455,
+        "width": 209,
+        "height": 190
+      },
+      "scrollBefore": 107,
+      "scrollAfter": 107,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "geometry": {
+        "x": 569.5,
+        "y": 525,
+        "width": 209,
+        "height": 190
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "geometry": {
+        "x": 1074.5,
+        "y": 485,
+        "width": 209,
+        "height": 187.1500244140625
+      },
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "escapeFocus": true,
+      "outsideDismissal": true,
+      "renameDraftEscape": true,
+      "renameInitiallyFocused": true,
+      "deleteConfirmationCancelled": true
+    }
+  ]
+}

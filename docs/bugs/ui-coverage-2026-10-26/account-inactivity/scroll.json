@@ -1,0 +1,810 @@
+[
+  {
+    "lang": "fr",
+    "theme": "light",
+    "stages": [
+      {
+        "name": "initial",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": 365.625
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": 505.25
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 625
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>Afin de sécuriser la plateforme et de libérer les ressources inutilisées, E-Code peut supprimer les comptes gratuits restés inactifs pendant une période prolongée. Cette politique précise ce qui constitue une inactivité, le préavis que vous recevez et la manière de maintenir votre compte actif.</"
+      },
+      {
+        "name": "wheel600",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": 365.625
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": 505.25
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 625
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>Afin de sécuriser la plateforme et de libérer les ressources inutilisées, E-Code peut supprimer les comptes gratuits restés inactifs pendant une période prolongée. Cette politique précise ce qui constitue une inactivité, le préavis que vous recevez et la manière de maintenir votre compte actif.</"
+      },
+      {
+        "name": "PageDown",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": 365.625
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": 505.25
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 625
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>Afin de sécuriser la plateforme et de libérer les ressources inutilisées, E-Code peut supprimer les comptes gratuits restés inactifs pendant une période prolongée. Cette politique précise ce qui constitue une inactivité, le préavis que vous recevez et la manière de maintenir votre compte actif.</"
+      },
+      {
+        "name": "lastHeadingScrollIntoView",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 566,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": -200.375
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": -60.75
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 59
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 178.75
+          }
+        ],
+        "hit": "<p>Avant toute suppression pour inactivité, nous envoyons un préavis à l’adresse e-mail associée au compte. Pour maintenir votre compte actif, il vous suffit de vous connecter. Si vous souhaitez conserver un projet que vous n’utilisez plus, exportez-le ou téléchargez vos données avant l’expiration d"
+      }
+    ]
+  },
+  {
+    "lang": "fr",
+    "theme": "dark",
+    "stages": [
+      {
+        "name": "initial",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": 365.625
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": 505.25
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 625
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>Afin de sécuriser la plateforme et de libérer les ressources inutilisées, E-Code peut supprimer les comptes gratuits restés inactifs pendant une période prolongée. Cette politique précise ce qui constitue une inactivité, le préavis que vous recevez et la manière de maintenir votre compte actif.</"
+      },
+      {
+        "name": "wheel600",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": 365.625
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": 505.25
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 625
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>Afin de sécuriser la plateforme et de libérer les ressources inutilisées, E-Code peut supprimer les comptes gratuits restés inactifs pendant une période prolongée. Cette politique précise ce qui constitue une inactivité, le préavis que vous recevez et la manière de maintenir votre compte actif.</"
+      },
+      {
+        "name": "PageDown",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": 365.625
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": 505.25
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 625
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>Afin de sécuriser la plateforme et de libérer les ressources inutilisées, E-Code peut supprimer les comptes gratuits restés inactifs pendant une période prolongée. Cette politique précise ce qui constitue une inactivité, le préavis que vous recevez et la manière de maintenir votre compte actif.</"
+      },
+      {
+        "name": "lastHeadingScrollIntoView",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3408,
+            "top": 566,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 854,
+            "scroll": 854,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Période d’inactivité",
+            "top": -200.375
+          },
+          {
+            "text": "2. Les comptes payants ne sont pas concernés",
+            "top": -60.75
+          },
+          {
+            "text": "3. Ce qui est considéré comme une activité",
+            "top": 59
+          },
+          {
+            "text": "4. Préavis et conservation de votre compte",
+            "top": 178.75
+          }
+        ],
+        "hit": "<p>Avant toute suppression pour inactivité, nous envoyons un préavis à l’adresse e-mail associée au compte. Pour maintenir votre compte actif, il vous suffit de vous connecter. Si vous souhaitez conserver un projet que vous n’utilisez plus, exportez-le ou téléchargez vos données avant l’expiration d"
+      }
+    ]
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "stages": [
+      {
+        "name": "initial",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": 365.625
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": 505.25
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 625
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>To keep the platform secure and to free unused resources, E-Code may remove free accounts that have been inactive for an extended period. This policy explains what counts as inactivity, the notice you receive, and how to keep your account active.</p>"
+      },
+      {
+        "name": "wheel600",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": 365.625
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": 505.25
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 625
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>To keep the platform secure and to free unused resources, E-Code may remove free accounts that have been inactive for an extended period. This policy explains what counts as inactivity, the notice you receive, and how to keep your account active.</p>"
+      },
+      {
+        "name": "PageDown",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": 365.625
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": 505.25
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 625
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>To keep the platform secure and to free unused resources, E-Code may remove free accounts that have been inactive for an extended period. This policy explains what counts as inactivity, the notice you receive, and how to keep your account active.</p>"
+      },
+      {
+        "name": "lastHeadingScrollIntoView",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 566,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": -200.375
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": -60.75
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 59
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 178.75
+          }
+        ],
+        "hit": "<p>Before any deletion for inactivity, we send advance notice to the email address on the account. To keep your account active, simply sign in. If you want to preserve a project you no longer use, export it or download your data before the inactivity period elapses. Deletion for inactivity is irreve"
+      }
+    ]
+  },
+  {
+    "lang": "en",
+    "theme": "dark",
+    "stages": [
+      {
+        "name": "initial",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": 365.625
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": 505.25
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 625
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>To keep the platform secure and to free unused resources, E-Code may remove free accounts that have been inactive for an extended period. This policy explains what counts as inactivity, the notice you receive, and how to keep your account active.</p>"
+      },
+      {
+        "name": "wheel600",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": 365.625
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": 505.25
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 625
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>To keep the platform secure and to free unused resources, E-Code may remove free accounts that have been inactive for an extended period. This policy explains what counts as inactivity, the notice you receive, and how to keep your account active.</p>"
+      },
+      {
+        "name": "PageDown",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": 365.625
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": 505.25
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 625
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 744.75
+          }
+        ],
+        "hit": "<p>To keep the platform secure and to free unused resources, E-Code may remove free accounts that have been inactive for an extended period. This policy explains what counts as inactivity, the notice you receive, and how to keep your account active.</p>"
+      },
+      {
+        "name": "lastHeadingScrollIntoView",
+        "scrollY": 0,
+        "roots": [
+          {
+            "tag": "HTML",
+            "height": 390,
+            "scroll": 390,
+            "top": 0,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "BODY",
+            "height": 390,
+            "scroll": 3292,
+            "top": 566,
+            "overflowY": "hidden",
+            "position": "static"
+          },
+          {
+            "tag": "MAIN",
+            "height": 834,
+            "scroll": 834,
+            "top": 0,
+            "overflowY": "visible",
+            "position": "static"
+          }
+        ],
+        "sections": [
+          {
+            "text": "1. Inactivity period",
+            "top": -200.375
+          },
+          {
+            "text": "2. Paid accounts are exempt",
+            "top": -60.75
+          },
+          {
+            "text": "3. What counts as activity",
+            "top": 59
+          },
+          {
+            "text": "4. Notice and keeping your account",
+            "top": 178.75
+          }
+        ],
+        "hit": "<p>Before any deletion for inactivity, we send advance notice to the email address on the account. To keep your account active, simply sign in. If you want to preserve a project you no longer use, export it or download your data before the inactivity period elapses. Deletion for inactivity is irreve"
+      }
+    ]
+  }
+]

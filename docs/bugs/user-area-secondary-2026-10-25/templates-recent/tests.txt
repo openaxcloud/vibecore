@@ -1,0 +1,13 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ✓ app/routes/dashboard_.templates.action.spec.ts (5 tests) 13ms
+ ✓ app/routes/recent-projects.loader.spec.ts (5 tests) 1000ms
+   ✓ recent-projects loader > renders an empty grid when the API omits the projects array  983ms
+ ✓ app/components/dashboard/SaaSLayout.spec.ts (20 tests) 24ms
+ ✓ app/components/dashboard/ProjectPreviewMedia.spec.tsx (6 tests) 185ms
+
+ Test Files  4 passed (4)
+      Tests  36 passed (36)
+   Start at  22:19:47
+   Duration  3.81s (transform 2.00s, setup 145ms, collect 2.23s, tests 1.22s, environment 324ms, prepare 249ms)

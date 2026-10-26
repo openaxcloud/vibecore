@@ -402,7 +402,9 @@ export default function OrganizationRolesPage() {
                 key={role.id}
                 className="border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0 sm:px-6"
               >
-                <div className="font-medium text-bolt-elements-textPrimary">{role.name}</div>
+                <div className="break-words [overflow-wrap:anywhere] font-medium text-bolt-elements-textPrimary">
+                  {role.name}
+                </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {role.permissions.map((permission) => (
                     <span

@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:153489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:153489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › ../../tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:58:5 › public policy remains scrollable with wheel and PageDown in a short landscape viewport (6.8s)
+
+
+  1) [chromium] › ../../tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:58:5 › public policy remains scrollable with wheel and PageDown in a short landscape viewport
+
+    Error: wheel moves policy content after one gesture
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m100[39m
+    Received:   [31m0[39m
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      89 |     }
+      90 |
+    > 91 |     await expect
+         |     ^
+      92 |       .poll(
+      93 |         async () => topBefore - (await lastParagraph.evaluate((node) => node.getBoundingClientRect().top)),
+      94 |         { message: `${input} moves policy content after one gesture`, timeout: 5_000 },
+        at /tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:91:5
+
+    Error Context: ../../tmp/ui-scroll-regression/results/ecode-marketing-content-pu-6284c--a-short-landscape-viewport-chromium/error-context.md
+
+  1 failed
+    [chromium] › ../../tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:58:5 › public policy remains scrollable with wheel and PageDown in a short landscape viewport

@@ -1,0 +1,67 @@
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  AmazonBedrock
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Anthropic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cerebras
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cohere
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Deepseek
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Fireworks
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Github
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Google
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Groq
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  HuggingFace
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Hyperbolic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  LMStudio
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Mistral
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Moonshot
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Ollama
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAILike
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenRouter
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Perplexity
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Together
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  xAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Z.ai
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+[react-router-serve] http://localhost:13099 (http://127.0.0.1:13099)
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /gallery?lang=fr 200 - - 131.405 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=6dbee09b 200 - - 5.176 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 46.328 ms
+GET /__manifest?paths=%2F%2C%2Fabout%2C%2Facceptable-use%2C%2Faccount-inactivity%2C%2Fai%2C%2Fai-agent%2C%2Fblog%2C%2Fcareers%2C%2Fcollaboration%2C%2Fcommunity%2C%2Fcompare%2C%2Fcompare%2Faws-cloud9%2C%2Fcompare%2Fcodesandbox%2C%2Fcompare%2Fgithub-codespaces%2C%2Fcompare%2Fglitch%2C%2Fcompare%2Fheroku%2C%2Fcontact-sales%2C%2Fdeleting-your-data%2C%2Fdesktop%2C%2Fdocs%2C%2Fdpa%2C%2Ffeatures%2C%2Fforum%2C%2Fgallery%2C%2Fgallery%2Fsynthetic-gallery%2C%2Flicensing%2C%2Fmarketing%2C%2Fmarketing%2Fbounties%2C%2Fmarketing%2Fdeployments%2C%2Fmarketing%2Fteams%2C%2Fmarketplace%2C%2Fmcp%2C%2Fmobile%2C%2Fnewsletter%2C%2Fnewsletter-confirmed%2C%2Fnewsletter%2Funsubscribe%2C%2Fpartners%2C%2Fpolyglot%2C%2Fpress%2C%2Fpricing%2C%2Fprivacy%2C%2Freport-abuse%2C%2Fsecurity%2C%2Fstatus%2C%2Fstrike-system%2C%2Fstudent-dpa%2C%2Fsubprocessors%2C%2Fsupport-policy%2C%2Fteam%2C%2Ftemplates%2C%2Ftemplates%2Flanguages%2C%2Fterms%2C%2Ftrust-and-safety%2C%2Fusage-limits&version=6dbee09b 200 - - 47.051 ms
+GET /gallery/synthetic-gallery.data 200 - - 21.346 ms
+GET /gallery.data?lang=fr 200 - - 6.129 ms
+GET /gallery?lang=fr 200 - - 17.271 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=6dbee09b 200 - - 5.604 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.607 ms
+GET /__manifest?paths=%2F%2C%2Fabout%2C%2Facceptable-use%2C%2Faccount-inactivity%2C%2Fai%2C%2Fai-agent%2C%2Fblog%2C%2Fcareers%2C%2Fcollaboration%2C%2Fcommunity%2C%2Fcompare%2C%2Fcompare%2Faws-cloud9%2C%2Fcompare%2Fcodesandbox%2C%2Fcompare%2Fgithub-codespaces%2C%2Fcompare%2Fglitch%2C%2Fcompare%2Fheroku%2C%2Fcontact-sales%2C%2Fdeleting-your-data%2C%2Fdesktop%2C%2Fdocs%2C%2Fdpa%2C%2Ffeatures%2C%2Fforum%2C%2Fgallery%2C%2Fgallery%2Fsynthetic-gallery%2C%2Flicensing%2C%2Fmarketing%2C%2Fmarketing%2Fbounties%2C%2Fmarketing%2Fdeployments%2C%2Fmarketing%2Fteams%2C%2Fmarketplace%2C%2Fmcp%2C%2Fmobile%2C%2Fnewsletter%2C%2Fnewsletter-confirmed%2C%2Fnewsletter%2Funsubscribe%2C%2Fpartners%2C%2Fpolyglot%2C%2Fpress%2C%2Fpricing%2C%2Fprivacy%2C%2Freport-abuse%2C%2Fsecurity%2C%2Fstatus%2C%2Fstrike-system%2C%2Fstudent-dpa%2C%2Fsubprocessors%2C%2Fsupport-policy%2C%2Fteam%2C%2Ftemplates%2C%2Ftemplates%2Flanguages%2C%2Fterms%2C%2Ftrust-and-safety%2C%2Fusage-limits&version=6dbee09b 200 - - 38.865 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /gallery/synthetic-gallery.data 200 - - 6.739 ms
+GET /gallery.data?lang=fr 200 - - 9.774 ms
+GET /gallery?lang=en 200 - - 19.860 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=6dbee09b 200 - - 2.289 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.814 ms
+GET /__manifest?paths=%2F%2C%2Fabout%2C%2Facceptable-use%2C%2Faccount-inactivity%2C%2Fai%2C%2Fai-agent%2C%2Fblog%2C%2Fcareers%2C%2Fcollaboration%2C%2Fcommunity%2C%2Fcompare%2C%2Fcompare%2Faws-cloud9%2C%2Fcompare%2Fcodesandbox%2C%2Fcompare%2Fgithub-codespaces%2C%2Fcompare%2Fglitch%2C%2Fcompare%2Fheroku%2C%2Fcontact-sales%2C%2Fdeleting-your-data%2C%2Fdesktop%2C%2Fdocs%2C%2Fdpa%2C%2Ffeatures%2C%2Fforum%2C%2Fgallery%2C%2Fgallery%2Fsynthetic-gallery%2C%2Flicensing%2C%2Fmarketing%2C%2Fmarketing%2Fbounties%2C%2Fmarketing%2Fdeployments%2C%2Fmarketing%2Fteams%2C%2Fmarketplace%2C%2Fmcp%2C%2Fmobile%2C%2Fnewsletter%2C%2Fnewsletter-confirmed%2C%2Fnewsletter%2Funsubscribe%2C%2Fpartners%2C%2Fpolyglot%2C%2Fpress%2C%2Fpricing%2C%2Fprivacy%2C%2Freport-abuse%2C%2Fsecurity%2C%2Fstatus%2C%2Fstrike-system%2C%2Fstudent-dpa%2C%2Fsubprocessors%2C%2Fsupport-policy%2C%2Fteam%2C%2Ftemplates%2C%2Ftemplates%2Flanguages%2C%2Fterms%2C%2Ftrust-and-safety%2C%2Fusage-limits&version=6dbee09b 200 - - 15.784 ms
+GET /gallery/synthetic-gallery.data 200 - - 7.587 ms
+GET /gallery.data?lang=en 200 - - 11.734 ms
+GET /gallery?lang=en 200 - - 22.480 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=6dbee09b 200 - - 3.995 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 4.797 ms
+GET /__manifest?paths=%2F%2C%2Fabout%2C%2Facceptable-use%2C%2Faccount-inactivity%2C%2Fai%2C%2Fai-agent%2C%2Fblog%2C%2Fcareers%2C%2Fcollaboration%2C%2Fcommunity%2C%2Fcompare%2C%2Fcompare%2Faws-cloud9%2C%2Fcompare%2Fcodesandbox%2C%2Fcompare%2Fgithub-codespaces%2C%2Fcompare%2Fglitch%2C%2Fcompare%2Fheroku%2C%2Fcontact-sales%2C%2Fdeleting-your-data%2C%2Fdesktop%2C%2Fdocs%2C%2Fdpa%2C%2Ffeatures%2C%2Fforum%2C%2Fgallery%2C%2Fgallery%2Fsynthetic-gallery%2C%2Flicensing%2C%2Fmarketing%2C%2Fmarketing%2Fbounties%2C%2Fmarketing%2Fdeployments%2C%2Fmarketing%2Fteams%2C%2Fmarketplace%2C%2Fmcp%2C%2Fmobile%2C%2Fnewsletter%2C%2Fnewsletter-confirmed%2C%2Fnewsletter%2Funsubscribe%2C%2Fpartners%2C%2Fpolyglot%2C%2Fpress%2C%2Fpricing%2C%2Fprivacy%2C%2Freport-abuse%2C%2Fsecurity%2C%2Fstatus%2C%2Fstrike-system%2C%2Fstudent-dpa%2C%2Fsubprocessors%2C%2Fsupport-policy%2C%2Fteam%2C%2Ftemplates%2C%2Ftemplates%2Flanguages%2C%2Fterms%2C%2Ftrust-and-safety%2C%2Fusage-limits&version=6dbee09b 200 - - 27.679 ms
+GET /gallery/synthetic-gallery.data 200 - - 6.266 ms
+GET /gallery.data?lang=en 200 - - 5.614 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+GET /gallery?lang=fr 200 - - 32.007 ms
+GET /sw.js 200 - - 3.951 ms
+GET /__manifest?paths=%2Fapi%2C%2Fapi%2Fimpersonation&version=6dbee09b 200 - - 6.480 ms
+GET /api/impersonation.data?_routes=routes%2Fapi.impersonation 200 - - 5.495 ms
+GET /__manifest?paths=%2F%2C%2Fabout%2C%2Facceptable-use%2C%2Faccount-inactivity%2C%2Fai%2C%2Fai-agent%2C%2Fblog%2C%2Fcareers%2C%2Fcollaboration%2C%2Fcommunity%2C%2Fcompare%2C%2Fcompare%2Faws-cloud9%2C%2Fcompare%2Fcodesandbox%2C%2Fcompare%2Fgithub-codespaces%2C%2Fcompare%2Fglitch%2C%2Fcompare%2Fheroku%2C%2Fcontact-sales%2C%2Fdeleting-your-data%2C%2Fdesktop%2C%2Fdocs%2C%2Fdpa%2C%2Ffeatures%2C%2Fforum%2C%2Fgallery%2C%2Fgallery%2Fsynthetic-gallery%2C%2Flicensing%2C%2Fmarketing%2C%2Fmarketing%2Fbounties%2C%2Fmarketing%2Fdeployments%2C%2Fmarketing%2Fteams%2C%2Fmarketplace%2C%2Fmcp%2C%2Fmobile%2C%2Fnewsletter%2C%2Fnewsletter-confirmed%2C%2Fnewsletter%2Funsubscribe%2C%2Fpartners%2C%2Fpolyglot%2C%2Fpress%2C%2Fpricing%2C%2Fprivacy%2C%2Freport-abuse%2C%2Fsecurity%2C%2Fstatus%2C%2Fstrike-system%2C%2Fstudent-dpa%2C%2Fsubprocessors%2C%2Fsupport-policy%2C%2Fteam%2C%2Ftemplates%2C%2Ftemplates%2Flanguages%2C%2Fterms%2C%2Ftrust-and-safety%2C%2Fusage-limits&version=6dbee09b 200 - - 18.829 ms
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms
+
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Found 0 locked files and 0 locked folders for chat ID: default
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m FilesStore [39m[49m Loaded locked items in 0ms

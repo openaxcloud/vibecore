@@ -1,0 +1,14 @@
+[
+  {
+    "lang": "fr",
+    "error": "Aller au contenu\nMenu\nFactures\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nFactures\n\nConsultez les factures, leur état de paiement et les reçus à télécharger.\n\nImpossible de charger les factures\n\nL’historique des factures est masqué car la dernière requête a échoué. Vos données de facturation n’ont pas été modifiées.\n\nRecharger les factures\n\nGérez les informations de paiement et téléchargez les reçus dans le portail client Stripe.",
+    "recoveryVisible": true,
+    "keyboardRetry": true
+  },
+  {
+    "lang": "en",
+    "error": "Skip to content\nMenu\nInvoices\n\nWORKSPACE CONSOLE\n\nInvoices\n\nView invoices, payment status and downloadable receipts.\n\nInvoices could not load\n\nInvoice history is hidden because the latest request failed. Your billing data was not changed.\n\nReload invoices\n\nManage payment details and download receipts in the Stripe customer portal.",
+    "recoveryVisible": true,
+    "keyboardRetry": true
+  }
+]

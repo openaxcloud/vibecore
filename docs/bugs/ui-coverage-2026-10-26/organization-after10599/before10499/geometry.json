@@ -1,0 +1,218 @@
+[
+  {
+    "tag": "TABLE",
+    "cls": "w-full min-w-[36rem] border-collapse text-sm",
+    "right": 537.5,
+    "width": 504,
+    "text": "EndpointÉtatDernière livraisonActionshttps://example.test/sy",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "THEAD",
+    "cls": "",
+    "right": 537.5,
+    "width": 504,
+    "text": "EndpointÉtatDernière livraisonActions",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "TR",
+    "cls": "border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-left",
+    "right": 537.5,
+    "width": 504,
+    "text": "EndpointÉtatDernière livraisonActions",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "TH",
+    "cls": "px-4 py-2.5 font-medium text-bolt-elements-textSecondary",
+    "right": 357.125,
+    "width": 131.71875,
+    "text": "Dernière livraison",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "TH",
+    "cls": "px-4 py-2.5 font-medium text-bolt-elements-textSecondary",
+    "right": 537.5,
+    "width": 180.375,
+    "text": "Actions",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "SPAN",
+    "cls": "sr-only",
+    "right": 371.125,
+    "width": 1,
+    "text": "Actions",
+    "overflow": "hidden",
+    "position": "absolute"
+  },
+  {
+    "tag": "TBODY",
+    "cls": "",
+    "right": 537.5,
+    "width": 504,
+    "text": "https://example.test/synthetic-long-path-synthetic-long-path",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "TR",
+    "cls": "border-b border-bolt-elements-borderColor last:border-b-0",
+    "right": 537.5,
+    "width": 504,
+    "text": "https://example.test/synthetic-long-path-synthetic-long-path",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "TD",
+    "cls": "px-4 py-3",
+    "right": 357.125,
+    "width": 131.71875,
+    "text": "Dernière livraison le 24 oct. 2026, 00:00",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "SPAN",
+    "cls": "inline-flex items-center gap-1 text-xs text-bolt-elements-textSecondary",
+    "right": 343.125,
+    "width": 103.71875,
+    "text": "Dernière livraison le 24 oct. 2026, 00:00",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "TD",
+    "cls": "px-4 py-3",
+    "right": 537.5,
+    "width": 180.375,
+    "text": "Envoyer un événement de testSupprimer",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "DIV",
+    "cls": "flex flex-wrap items-center justify-end gap-2",
+    "right": 523.5,
+    "width": 152.375,
+    "text": "Envoyer un événement de testSupprimer",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "FORM",
+    "cls": "",
+    "right": 523.5,
+    "width": 152.375,
+    "text": "Envoyer un événement de test",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "BUTTON",
+    "cls": "inline-flex min-h-[44px] items-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 text-left text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--vc-ide-accent-action)] hover:text-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60",
+    "right": 523.5,
+    "width": 152.375,
+    "text": "Envoyer un événement de test",
+    "overflow": "visible",
+    "position": "relative"
+  },
+  {
+    "tag": "svg",
+    "cls": {},
+    "right": 390.921875,
+    "width": 8.296875,
+    "text": "",
+    "overflow": "hidden",
+    "position": "static"
+  },
+  {
+    "tag": "path",
+    "cls": {},
+    "right": 390.2313232421875,
+    "width": 6.91485595703125,
+    "text": "",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "path",
+    "cls": {},
+    "right": 390.17999267578125,
+    "width": 3.781982421875,
+    "text": "",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "FORM",
+    "cls": "",
+    "right": 523.5,
+    "width": 100.265625,
+    "text": "Supprimer",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "BUTTON",
+    "cls": "inline-flex min-h-[44px] items-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 text-left text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)] disabled:cursor-not-allowed disabled:opacity-60",
+    "right": 523.5,
+    "width": 100.265625,
+    "text": "Supprimer",
+    "overflow": "visible",
+    "position": "relative"
+  },
+  {
+    "tag": "svg",
+    "cls": {},
+    "right": 446.984375,
+    "width": 12.25,
+    "text": "",
+    "overflow": "hidden",
+    "position": "static"
+  },
+  {
+    "tag": "path",
+    "cls": {},
+    "right": 445.453125,
+    "width": 9.1875,
+    "text": "",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "path",
+    "cls": {},
+    "right": 444.4322814941406,
+    "width": 7.14581298828125,
+    "text": "",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "path",
+    "cls": {},
+    "right": 442.9010314941406,
+    "width": 4.08331298828125,
+    "text": "",
+    "overflow": "visible",
+    "position": "static"
+  },
+  {
+    "tag": "SPAN",
+    "cls": "bolt-route-loader-bar",
+    "right": 354.6368103027344,
+    "width": 134.390625,
+    "text": "",
+    "overflow": "visible",
+    "position": "absolute"
+  }
+]

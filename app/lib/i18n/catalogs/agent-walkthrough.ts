@@ -55,8 +55,7 @@ export interface AgentWalkthroughCopy {
     i18n: WalkthroughSectionCopy;
   };
   prerequisites: readonly { title: string; detail: string }[];
-  captionBeforePath: string;
-  captionAfterPath: string;
+  illustrationCaption: string;
   previewLabel: string;
   title: string;
   description: string;
@@ -267,8 +266,7 @@ export const agentWalkthroughEn: AgentWalkthroughCopy = {
       detail: 'Successful patches apply automatically; failed validation remains reviewable.',
     },
   ],
-  captionBeforePath: 'UI mockup — replace it with a real screenshot at',
-  captionAfterPath: 'after capture.',
+  illustrationCaption: 'Illustration of how this feature works.',
   previewLabel: 'preview',
   title: 'Agent panel walkthrough',
   description:
@@ -486,8 +484,7 @@ export const agentWalkthroughFr: AgentWalkthroughCopy = {
       detail: 'Les patchs valides s’appliquent automatiquement ; les échecs restent révisables.',
     },
   ],
-  captionBeforePath: 'Maquette de l’interface — remplacez-la par une vraie capture dans',
-  captionAfterPath: 'après la capture.',
+  illustrationCaption: 'Schéma explicatif du fonctionnement de cette fonctionnalité.',
   previewLabel: 'aperçu',
   title: 'Guide du panneau de l’agent',
   description:

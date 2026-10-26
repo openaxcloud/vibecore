@@ -1,0 +1,76 @@
+{
+  "base": "http://127.0.0.1:6299",
+  "synthetic": true,
+  "checks": [
+    {
+      "lang": "fr",
+      "feedRetry": true
+    },
+    {
+      "lang": "fr",
+      "feedKeyboardBack": true
+    },
+    {
+      "lang": "fr",
+      "preferencesRollback": true,
+      "error": "Les préférences n’ont pas été enregistrées\n\nImpossible d’enregistrer les préférences de notification. Vos paramètres précédents restent actifs.\n\nRéessayer"
+    },
+    {
+      "lang": "fr",
+      "usageRetry": true
+    },
+    {
+      "lang": "fr",
+      "usageSubmitFailure": {
+        "input": "123",
+        "section": "<div class=\"mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-2 text-xs text-[var(--status-error-text)]\">Impossible de mettre à jour la limite du membre. Réessayez.</div>",
+        "focus": "<input type=\"number\" name=\"limitDollars\" min=\"0\" step=\"any\" placeholder=\"Aucune limite\" aria-label=\"Limite de dépenses de Synthétique FR English long content UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789 en euros\" class=\"min-h-[44px] w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-[16px] text-bolt-elements-textPrimary sm:text-sm\" value=\"50\">",
+        "alerts": 0
+      }
+    },
+    {
+      "lang": "en",
+      "feedRetry": true
+    },
+    {
+      "lang": "en",
+      "feedKeyboardBack": true
+    },
+    {
+      "lang": "en",
+      "preferencesRollback": true,
+      "error": "Preferences were not saved\n\nCould not save notification preferences. Your previous settings remain active.\n\nTry again"
+    },
+    {
+      "lang": "en",
+      "usageRetry": true
+    },
+    {
+      "lang": "en",
+      "usageSubmitFailure": {
+        "input": "123",
+        "section": "<div class=\"mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-2 text-xs text-[var(--status-error-text)]\">Could not update the member limit. Please try again.</div>",
+        "focus": "<input type=\"number\" name=\"limitDollars\" min=\"0\" step=\"any\" placeholder=\"No limit\" aria-label=\"Spend limit for Synthétique FR English long content UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789UnbrokenSynthetic0123456789 in euros\" class=\"min-h-[44px] w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-[16px] text-bolt-elements-textPrimary sm:text-sm\" value=\"50\">",
+        "alerts": 0
+      }
+    }
+  ],
+  "writes": [
+    {
+      "method": "PATCH",
+      "url": "http://127.0.0.1:6299/api/user/preferences"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:6299/usage.data?lang=fr"
+    },
+    {
+      "method": "PATCH",
+      "url": "http://127.0.0.1:6299/api/user/preferences"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:6299/usage.data?lang=en"
+    }
+  ]
+}

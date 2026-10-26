@@ -1,0 +1,20 @@
+--- a/app/routes/enterprise-sso-settings.tsx
++++ b/app/routes/enterprise-sso-settings.tsx
+@@ -355,7 +355,7 @@
+             type="submit"
+             variant="secondary"
+             size="sm"
+-            className="!h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
++            className="!h-auto !min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+             disabled={oidcTest.state !== 'idle'}
+           >
+             {oidcTest.state !== 'idle'
+@@ -435,7 +435,7 @@
+             type="submit"
+             variant="secondary"
+             size="sm"
+-            className="!h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
++            className="!h-auto !min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
+             disabled={samlTest.state !== 'idle'}
+           >
+             {samlTest.state !== 'idle'

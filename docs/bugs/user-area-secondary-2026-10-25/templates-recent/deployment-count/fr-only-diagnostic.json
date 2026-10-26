@@ -1,0 +1,62 @@
+[
+  {
+    "patch": false,
+    "count": 0,
+    "text": "Aucun déploiement"
+  },
+  {
+    "patch": false,
+    "count": 1,
+    "text": "1 déploiement"
+  },
+  {
+    "patch": false,
+    "count": 2,
+    "text": "2 déploiements"
+  },
+  {
+    "patch": false,
+    "count": 1000000,
+    "text": "Unavailable"
+  },
+  {
+    "patch": false,
+    "count": 1000001,
+    "text": "1000001 déploiements"
+  },
+  {
+    "patch": false,
+    "count": 1000000000,
+    "text": "Unavailable"
+  },
+  {
+    "patch": true,
+    "count": 0,
+    "text": "Aucun déploiement"
+  },
+  {
+    "patch": true,
+    "count": 1,
+    "text": "1 déploiement"
+  },
+  {
+    "patch": true,
+    "count": 2,
+    "text": "2 déploiements"
+  },
+  {
+    "patch": true,
+    "count": 1000000,
+    "text": "1000000 déploiements"
+  },
+  {
+    "patch": true,
+    "count": 1000001,
+    "text": "1000001 déploiements"
+  },
+  {
+    "patch": true,
+    "count": 1000000000,
+    "text": "1000000000 déploiements"
+  }
+]

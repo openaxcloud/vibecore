@@ -129,7 +129,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 const BLUE_CTA =
-  'inline-flex min-h-11 items-center justify-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-4 py-2 text-center text-sm font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-4 py-2 text-center text-sm font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function OrganizationSwitcherPage() {
   const { i18n } = useTranslation();
@@ -166,7 +166,7 @@ export default function OrganizationSwitcherPage() {
 
       <RadixDialog.Root open={createOpen} onOpenChange={setCreateOpen}>
         {createOpen ? (
-          <Dialog onClose={() => setCreateOpen(false)} onBackdrop={() => setCreateOpen(false)}>
+          <Dialog restoreOpenerFocus onClose={() => setCreateOpen(false)} onBackdrop={() => setCreateOpen(false)}>
             <div className="p-6">
               <DialogTitle asChild>
                 <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
@@ -210,7 +210,7 @@ export default function OrganizationSwitcherPage() {
                   <button
                     type="button"
                     onClick={() => setCreateOpen(false)}
-                    className="inline-flex min-h-11 items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                    className="inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
                   >
                     {copy['organizationAccess.switcher.cancel']}
                   </button>

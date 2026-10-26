@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ✓ app/routes/organization-members.i18n.spec.tsx (6 tests) 242ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  22:18:25
+   Duration  3.19s (transform 1.41s, setup 21ms, collect 421ms, tests 242ms, environment 273ms, prepare 60ms)

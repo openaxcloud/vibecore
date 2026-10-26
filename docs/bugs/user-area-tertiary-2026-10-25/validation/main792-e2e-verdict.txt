@@ -1,0 +1,6 @@
+2026-10-25T23:16:52.6307905Z   fichiers de specs attendus : 87
+2026-10-25T23:16:52.6310079Z   fichiers de specs vus      : 87
+2026-10-25T23:16:52.6316809Z   tests reported : 507
+2026-10-25T23:16:52.6317253Z   failing        : 0
+2026-10-25T23:16:52.6318117Z   waived failures      : 0
+2026-10-25T23:16:52.6318563Z   flaky (passed on retry): 0

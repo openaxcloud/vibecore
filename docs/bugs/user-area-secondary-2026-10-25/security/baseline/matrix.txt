@@ -1,0 +1,30 @@
+40 observations [
+  {
+    lang: 'fr',
+    theme: 'light',
+    dialog: { rect: [Object], focusInside: true },
+    escapeFocus: true,
+    draftPreserved: true
+  },
+  {
+    lang: 'fr',
+    theme: 'dark',
+    dialog: { rect: [Object], focusInside: true },
+    escapeFocus: true,
+    draftPreserved: true
+  },
+  {
+    lang: 'en',
+    theme: 'light',
+    dialog: { rect: [Object], focusInside: true },
+    escapeFocus: true,
+    draftPreserved: true
+  },
+  {
+    lang: 'en',
+    theme: 'dark',
+    dialog: { rect: [Object], focusInside: true },
+    escapeFocus: true,
+    draftPreserved: true
+  }
+]

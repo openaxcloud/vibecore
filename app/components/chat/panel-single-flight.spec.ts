@@ -55,7 +55,8 @@ describe('chargement des panneaux — appels en vol mutualisés', () => {
 
     // le fetch doit être DANS la fonction mutualisée, pas à côté
     const iRun = corps.indexOf('panneauEnVol.run(');
-    const iFetch = corps.indexOf('fetchPanel(`/api/projects/');
+    const iFetch = corps.indexOf('fetchPanel(');
+    expect(corps).toContain('`/api/projects/${projectId}/ide-panel/${panel}');
     expect(iFetch, 'appel réseau introuvable').toBeGreaterThan(-1);
     expect(iFetch, 'le fetch est hors de la mise en commun').toBeGreaterThan(iRun);
   });
@@ -78,4 +79,9 @@ describe('limite assumée de ce garde', () => {
   it('BaseChat.tsx est hors typage — un « 0 erreur » ne prouve rien ici', () => {
     expect(SOURCE.split('\n').slice(0, 4).join('\n')).toContain('@ts-nocheck');
   });
+});
+
+it('explicit Retry invalidates the same workspace-scoped request as load', () => {
+  expect(SOURCE).toContain('panneauEnVol.retry(panelCacheKey ?? `${projectId}:${panel}`)');
+  expect(SOURCE).not.toContain('panneauEnVol.retry(`${projectId}:${panel}`)');
 });

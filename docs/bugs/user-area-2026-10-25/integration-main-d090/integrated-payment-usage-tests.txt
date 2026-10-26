@@ -1,0 +1,17 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/routes/payment-method.recovery-ui.spec.tsx (1 test) 425ms
+   ✓ payment email draft through the real route error boundary > retains the draft and focuses the error after 503, then retries the same value successfully  424ms
+ ✓ app/routes/usage.feedback.spec.tsx (2 tests) 592ms
+   ✓ usage member limit failure recovery > announces repeated failures and preserves the draft in fr  441ms
+ ✓ app/routes/upgrade.i18n.spec.tsx (11 tests) 413ms
+ ✓ app/routes/notifications.async-actions.spec.tsx (4 tests) 577ms
+ ✓ app/routes/payment-method.reauth.spec.ts (5 tests) 8ms
+ ✓ app/routes/payment-method.recovery.spec.ts (8 tests) 30ms
+ ✓ app/routes/upgrade.mfa-redirect.spec.ts (3 tests) 17ms
+
+ Test Files  7 passed (7)
+      Tests  34 passed (34)
+   Start at  21:47:12
+   Duration  11.02s (transform 5.83s, setup 321ms, collect 9.81s, tests 2.06s, environment 3.11s, prepare 894ms)

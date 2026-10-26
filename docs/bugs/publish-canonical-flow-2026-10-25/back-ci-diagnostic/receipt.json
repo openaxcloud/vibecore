@@ -1,0 +1,787 @@
+{
+  "status": "CI Back failure remains unresolved; no product change or waiver",
+  "ci": {
+    "head": "385694a98de5408ca92bfb88d2c49864fe894950",
+    "test": "rpl-ide-panels-proof.spec.ts:408 interrupted move navigation cannot swallow a later browser Back",
+    "failureLine": 488,
+    "expected": "panel=preview",
+    "received": "panel=deployments",
+    "attemptsFailed": 3
+  },
+  "local": {
+    "compiledProduct": "663d9d36de23799cb2b441c48ac286d1d86a1ba3",
+    "browser": "System Chromium154.0.8037.57",
+    "playwright": "1.59.1",
+    "expectedBundledBrowser": "Chrome147.0.7727.15 revision1217",
+    "buildFileCount": 2307,
+    "buildMismatchCount": 0,
+    "instrumentedExact": {
+      "startTime": "2026-10-25T17:57:04.725Z",
+      "duration": 27859.699,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "unmodifiedFiveRepeats": {
+      "startTime": "2026-10-25T18:00:50.896Z",
+      "duration": 123162.769,
+      "expected": 5,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cpu4Stress": {
+      "stats": {
+        "startTime": "2026-10-25T18:03:32.222Z",
+        "duration": 44254.837999999996,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "failure": "Earlier line473: preview request not aborted; never reached Back assertion488"
+    },
+    "network200Stress": {
+      "stats": {
+        "startTime": "2026-10-25T18:06:50.851Z",
+        "duration": 28359.025999999998,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "result": "First Back reached preview and aborted still-pending Deploy request; no second Back needed"
+    },
+    "click120Stress": {
+      "stats": {
+        "startTime": "2026-10-25T18:11:58.284Z",
+        "duration": 32653.356999999996,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "onlyActionChange": "Deployment click held120ms between down and up; Back assertions unchanged",
+      "historyBeforeInterruption": {
+        "idx": 1,
+        "length": 3
+      },
+      "historyBeforeBack": {
+        "idx": 2,
+        "length": 4
+      },
+      "result": "Two Back traversals returned to previewidx0; no extra deployment entries"
+    },
+    "cpu4InstrumentedProbe": {
+      "baseRevision": "385694a98de5408ca92bfb88d2c49864fe894950",
+      "isolation": "Separate detached worktree and compiled server; observation-only callbacks, no production patch",
+      "result": "One pass, 19.2 seconds, no retry; original cancellation and Back/Forward assertions retained",
+      "observations": "Deployment click reached selectPaneTab and setProjectPanelSearchParam. Pending router state was loading toward preview, and redundant-navigation decision was false. Cancellation succeeded; history moved from deployment index 2 through index 1 to preview index 0, then Forward returned to deployment index 1.",
+      "limit": "This successful instrumented run does not reproduce the earlier CPU4 line473 failure, prove or exclude an intermittent stale-reference race, or explain CI line488. No speculative product correction."
+    }
+  },
+  "chronologies": {
+    "normal": [
+      {
+        "timeMs": 20084,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 20597,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 22501,
+        "event": "pushState:before",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "next": "/projects/:projectId/ide?panel=deployments",
+        "nextIdx": 1
+      },
+      {
+        "timeMs": 22501,
+        "event": "navigate",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "push"
+      },
+      {
+        "timeMs": 22501,
+        "event": "pushState:after",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 22683,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 23075,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 23472,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 23950,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 24094,
+        "event": "pushState:before",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "next": "/projects/:projectId/ide?panel=deployments",
+        "nextIdx": 2
+      },
+      {
+        "timeMs": 24094,
+        "event": "navigate",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "push"
+      },
+      {
+        "timeMs": 24095,
+        "event": "pushState:after",
+        "idx": 2,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 24212,
+        "event": "navigate",
+        "idx": 2,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 24213,
+        "event": "popstate",
+        "idx": 1,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 24255,
+        "event": "navigate",
+        "idx": 1,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 24255,
+        "event": "popstate",
+        "idx": 0,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=preview"
+      },
+      {
+        "timeMs": 24581,
+        "event": "navigate",
+        "idx": 0,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 24582,
+        "event": "popstate",
+        "idx": 1,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      }
+    ],
+    "cpu4": [
+      {
+        "timeMs": 20056,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 22353,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 26885,
+        "event": "pushState:before",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "next": "/projects/:projectId/ide?panel=deployments",
+        "nextIdx": 1
+      },
+      {
+        "timeMs": 26886,
+        "event": "navigate",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "push"
+      },
+      {
+        "timeMs": 26889,
+        "event": "pushState:after",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 29900,
+        "event": "pointerdown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 29916,
+        "event": "mousedown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 30015,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 30026,
+        "event": "click",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 31516,
+        "event": "pointerdown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 31521,
+        "event": "mousedown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 31576,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 31676,
+        "event": "click",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 33226,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 34145,
+        "event": "pointerdown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 34152,
+        "event": "mousedown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 34205,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 34296,
+        "event": "click",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 39906,
+        "event": "pushState:before",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "next": "/projects/:projectId/ide?panel=preview",
+        "nextIdx": 2
+      },
+      {
+        "timeMs": 39906,
+        "event": "navigate",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "push"
+      },
+      {
+        "timeMs": 39916,
+        "event": "pushState:after",
+        "idx": 2,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=preview"
+      }
+    ],
+    "network200": [
+      {
+        "timeMs": 20099,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 20949,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 22964,
+        "event": "pushState:before",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "next": "/projects/:projectId/ide?panel=deployments",
+        "nextIdx": 1
+      },
+      {
+        "timeMs": 22964,
+        "event": "navigate",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "push"
+      },
+      {
+        "timeMs": 22965,
+        "event": "pushState:after",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 23175,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 23553,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 23982,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 24246,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 24520,
+        "event": "navigate",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 24521,
+        "event": "popstate",
+        "idx": 0,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=preview"
+      },
+      {
+        "timeMs": 25047,
+        "event": "navigate",
+        "idx": 0,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 25047,
+        "event": "popstate",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      }
+    ],
+    "click120": [
+      {
+        "timeMs": 25082,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 25578,
+        "event": "navigate",
+        "idx": null,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "replace"
+      },
+      {
+        "timeMs": 27497,
+        "event": "pushState:before",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "next": "/projects/:projectId/ide?panel=deployments",
+        "nextIdx": 1
+      },
+      {
+        "timeMs": 27497,
+        "event": "navigate",
+        "idx": 0,
+        "historyLength": 2,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "push"
+      },
+      {
+        "timeMs": 27497,
+        "event": "pushState:after",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 27663,
+        "event": "pointerdown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 27665,
+        "event": "mousedown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 27683,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 27703,
+        "event": "click",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 28053,
+        "event": "pointerdown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 28054,
+        "event": "mousedown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 28067,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 28086,
+        "event": "click",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 28468,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": ""
+      },
+      {
+        "timeMs": 28948,
+        "event": "pointerdown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 28950,
+        "event": "mousedown",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 28961,
+        "event": "focusin",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 29101,
+        "event": "click",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "panel": "deployments"
+      },
+      {
+        "timeMs": 29204,
+        "event": "pushState:before",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "next": "/projects/:projectId/ide?panel=deployments",
+        "nextIdx": 2
+      },
+      {
+        "timeMs": 29205,
+        "event": "navigate",
+        "idx": 1,
+        "historyLength": 3,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "push"
+      },
+      {
+        "timeMs": 29205,
+        "event": "pushState:after",
+        "idx": 2,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 29360,
+        "event": "navigate",
+        "idx": 2,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 29361,
+        "event": "popstate",
+        "idx": 1,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      },
+      {
+        "timeMs": 29402,
+        "event": "navigate",
+        "idx": 1,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments",
+        "destination": "/projects/:projectId/ide?panel=preview",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 29402,
+        "event": "popstate",
+        "idx": 0,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=preview"
+      },
+      {
+        "timeMs": 29682,
+        "event": "navigate",
+        "idx": 0,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=preview",
+        "destination": "/projects/:projectId/ide?panel=deployments",
+        "navigationType": "traverse"
+      },
+      {
+        "timeMs": 29684,
+        "event": "popstate",
+        "idx": 1,
+        "historyLength": 4,
+        "url": "/projects/:projectId/ide?panel=deployments"
+      }
+    ]
+  },
+  "blocker": {
+    "action": "Install matching Playwright bundled Chromium into temporary QA directory",
+    "target": "https://cdn.playwright.dev/builds/cft/147.0.7727.15/linux64/chrome-linux64.zip",
+    "result": "Denied HTTP403 Domain forbidden; browser not installed",
+    "attempts": "One installer command; downloader performed its internal retry cycle. No alternate host, bypass or subsequent manual retry."
+  },
+  "limits": [
+    "CI browser unavailable locally; local passes do not supersede CI failure",
+    "No reproduction of line488 yet; CPU4 failure is a distinct earlier precondition",
+    "Other two CI cases reported flaky/passed on retry are not requalified by these Back-only tests",
+    "No CI rerun, product patch, deployment or real client data mutation",
+    "No mainb502 baseline build comparison: target CI failure not reproduced locally, so causal A/B would not be informative yet"
+  ],
+  "nextRequiredEvidence": "CI-environment navigation history instrumentation; local stress stopped without reproducing line488",
+  "ciObserverValidation": {
+    "stats": {
+      "startTime": "2026-10-25T18:18:24.247Z",
+      "duration": 27039.66,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "product": "Existing compiled663d9d3, no rebuild",
+    "browser": "154.0.8037.57",
+    "events": 31,
+    "consoleJsonBytes": 5161,
+    "consolePrefix": "PANEL_HISTORY_DIAGNOSTIC",
+    "historyMutationsIntercepted": false,
+    "extraAwaitBetweenBackCalls": false,
+    "assertionsOrBackCountChanged": false,
+    "outputSanitization": "Only normalized project/alias paths and preview/deployments panel names; no raw identifiers or arbitrary query values",
+    "sourceSha256": [
+      {
+        "path": "tests/e2e/rpl-ide-panels-proof.spec.ts",
+        "sha256": "1ec147fc6eaa392b01610e0cbdfcc007cba6c02bbec31cebeb1a6a80adada496"
+      },
+      {
+        "path": "tests/e2e/helpers/panel-history-diagnostics.ts",
+        "sha256": "f765f8efc8dcd861a48b0bc5f0910703a67183a47275042add24d860df95e648"
+      }
+    ],
+    "localReport": "ci-observer-local.json",
+    "lint": "passed",
+    "publicKeyNormalization": "K1,K2,... preserve identity/equality/order; raw history keys remain only in private local logs"
+  }
+}

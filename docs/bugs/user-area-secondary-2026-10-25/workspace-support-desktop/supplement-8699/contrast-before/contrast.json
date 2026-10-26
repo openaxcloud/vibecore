@@ -1,0 +1,372 @@
+{
+  "base": "http://127.0.0.1:8699",
+  "language": "fr",
+  "synthetic": true,
+  "observations": [
+    {
+      "variant": "support",
+      "theme": "light",
+      "width": 320,
+      "contrast": {
+        "count": 25,
+        "excludedComplex": 0,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "support",
+      "theme": "light",
+      "width": 1440,
+      "contrast": {
+        "count": 29,
+        "excludedComplex": 23,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "workspace-settings",
+      "theme": "light",
+      "width": 320,
+      "contrast": {
+        "count": 35,
+        "excludedComplex": 0,
+        "min": 3.0247890555836343,
+        "failures": [
+          {
+            "tag": "A",
+            "href": "/settings",
+            "text": "Ouvrir les paramètres des modèles et fournisseurs",
+            "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+            "color": "rgb(242, 98, 7)",
+            "bg": [
+              246,
+              248,
+              251,
+              255
+            ],
+            "ratio": 3.0247890555836343,
+            "font": "13px",
+            "weight": "400",
+            "threshold": 4.5,
+            "complex": false
+          }
+        ],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(242, 98, 7)",
+          "bg": [
+            246,
+            248,
+            251,
+            255
+          ],
+          "ratio": 3.0247890555836343,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    },
+    {
+      "variant": "workspace-settings",
+      "theme": "light",
+      "width": 1440,
+      "contrast": {
+        "count": 39,
+        "excludedComplex": 20,
+        "min": 3.0247890555836343,
+        "failures": [
+          {
+            "tag": "A",
+            "href": "/settings",
+            "text": "Ouvrir les paramètres des modèles et fournisseurs",
+            "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+            "color": "rgb(242, 98, 7)",
+            "bg": [
+              246,
+              248,
+              251,
+              255
+            ],
+            "ratio": 3.0247890555836343,
+            "font": "13px",
+            "weight": "400",
+            "threshold": 4.5,
+            "complex": false
+          }
+        ],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(242, 98, 7)",
+          "bg": [
+            246,
+            248,
+            251,
+            255
+          ],
+          "ratio": 3.0247890555836343,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    },
+    {
+      "variant": "desktop-settings",
+      "theme": "light",
+      "width": 320,
+      "contrast": {
+        "count": 8,
+        "excludedComplex": 0,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "desktop-settings",
+      "theme": "light",
+      "width": 1440,
+      "contrast": {
+        "count": 12,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "desktop-ready",
+      "theme": "light",
+      "width": 320,
+      "contrast": {
+        "count": 26,
+        "excludedComplex": 0,
+        "min": 7.577663953533317,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "desktop-ready",
+      "theme": "light",
+      "width": 1440,
+      "contrast": {
+        "count": 30,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "support",
+      "theme": "dark",
+      "width": 320,
+      "contrast": {
+        "count": 25,
+        "excludedComplex": 0,
+        "min": 5.453855316132378,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "support",
+      "theme": "dark",
+      "width": 1440,
+      "contrast": {
+        "count": 29,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "workspace-settings",
+      "theme": "dark",
+      "width": 320,
+      "contrast": {
+        "count": 35,
+        "excludedComplex": 0,
+        "min": 5.9431409821352315,
+        "failures": [],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(242, 98, 7)",
+          "bg": [
+            10,
+            15,
+            28,
+            255
+          ],
+          "ratio": 5.9431409821352315,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    },
+    {
+      "variant": "workspace-settings",
+      "theme": "dark",
+      "width": 1440,
+      "contrast": {
+        "count": 39,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(242, 98, 7)",
+          "bg": [
+            10,
+            15,
+            28,
+            255
+          ],
+          "ratio": 5.9431409821352315,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    },
+    {
+      "variant": "desktop-settings",
+      "theme": "dark",
+      "width": 320,
+      "contrast": {
+        "count": 8,
+        "excludedComplex": 0,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "desktop-settings",
+      "theme": "dark",
+      "width": 1440,
+      "contrast": {
+        "count": 12,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "desktop-ready",
+      "theme": "dark",
+      "width": 320,
+      "contrast": {
+        "count": 26,
+        "excludedComplex": 0,
+        "min": 6.563295481632953,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    },
+    {
+      "variant": "desktop-ready",
+      "theme": "dark",
+      "width": 1440,
+      "contrast": {
+        "count": 30,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": null
+      }
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    }
+  ]
+}

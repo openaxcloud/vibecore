@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/routes/payment-method.reauth.spec.ts (5 tests) 7ms
+ ✓ app/routes/payment-method.recovery-ui.spec.tsx (1 test) 234ms
+ ✓ app/routes/payment-method.recovery.spec.ts (8 tests) 12ms
+
+ Test Files  3 passed (3)
+      Tests  14 passed (14)
+   Start at  21:29:48
+   Duration  3.21s (transform 1.74s, setup 121ms, collect 1.67s, tests 253ms, environment 376ms, prepare 269ms)

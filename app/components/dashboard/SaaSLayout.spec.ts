@@ -100,7 +100,7 @@ describe('public marketing brand', () => {
     expect(layoutSource).toContain('vc-app-shell-title text-[28px] font-semibold leading-[36px]');
     expect(layoutSource).toContain('repeat(auto-fit, minmax(min(100%, 19rem), 1fr))');
     expect(layoutSource).toContain('max-w-[26rem]');
-    expect(layoutSource).toContain('line-clamp-2 min-h-12 text-base leading-6');
+    expect(layoutSource).toContain('line-clamp-2 min-h-12 break-words text-base leading-6');
     expect(layoutSource).toContain('inline-flex min-h-[44px] w-full items-center justify-between');
     expect(layoutSource).toContain("t('userArea.project.activity')");
     expect(stylesSource).toContain('.vc-user-area-shell .vc-app-shell-title');

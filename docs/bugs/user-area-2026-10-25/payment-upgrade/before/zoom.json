@@ -1,0 +1,82 @@
+[
+  {
+    "route": "/upgrade",
+    "lang": "fr",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  },
+  {
+    "route": "/payment-method",
+    "lang": "fr",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  },
+  {
+    "route": "/upgrade",
+    "lang": "fr",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  },
+  {
+    "route": "/payment-method",
+    "lang": "fr",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  },
+  {
+    "route": "/upgrade",
+    "lang": "en",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  },
+  {
+    "route": "/payment-method",
+    "lang": "en",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  },
+  {
+    "route": "/upgrade",
+    "lang": "en",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  },
+  {
+    "route": "/payment-method",
+    "lang": "en",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640
+  }
+]

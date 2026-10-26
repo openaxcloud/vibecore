@@ -396,7 +396,12 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                   {filteredTemplates.length === 1 ? copy.matchSingular : copy.matchPlural} {copy.matchSuffix}
                 </p>
               ) : null}
-              <div className={classNames('grid gap-5 md:grid-cols-2 xl:grid-cols-3', isFiltering ? 'mt-5' : 'mt-10')}>
+              <div
+                className={classNames(
+                  'grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3',
+                  isFiltering ? 'mt-5' : 'mt-10',
+                )}
+              >
                 {/* Filtering mixes featured and regular cards; the curated view keeps its featured styling. */}
                 {visibleTemplates.map((template) => (
                   <TemplateMarketingCard
@@ -446,7 +451,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         {secondaryTemplates.length > 0 ? (
           <section className="container-responsive py-16 sm:py-24">
             <SectionHeader eyebrow={copy.more.eyebrow} title={copy.more.title} description={copy.more.description} />
-            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {secondaryTemplates.map((template) => (
                 <TemplateMarketingCard key={template.id} template={template} />
               ))}
@@ -837,14 +842,14 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
   return (
     <article
       className={classNames(
-        'flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl',
+        'flex min-w-0 min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl',
         featured
           ? 'border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]'
           : 'border-[var(--ecode-border)]',
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-4">
           <span
             className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)]"
             aria-hidden
@@ -854,7 +859,7 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
               style={primaryBrand ? { color: primaryBrand.color } : { color: 'var(--ecode-accent)' }}
             />
           </span>
-          <div>
+          <div className="min-w-0 [overflow-wrap:anywhere]">
             <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[var(--ecode-text-muted)]">
               {template.categoryName}
             </p>
@@ -892,7 +897,7 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
         })}
       </div>
       <div className="mt-auto pt-8">
-        <div className="mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]">
+        <div className="mb-4 flex flex-wrap items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]">
           <span className="inline-flex items-center gap-1">
             <Sparkles className="h-4 w-4" aria-hidden />
             {copy.official}

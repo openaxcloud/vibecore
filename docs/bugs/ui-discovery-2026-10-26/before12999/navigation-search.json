@@ -1,0 +1,49 @@
+{
+  "groups": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:12999/gallery?lang=fr",
+      "backCardVisible": true,
+      "searchBack": {
+        "url": "http://127.0.0.1:12999/search?q=api&lang=fr",
+        "input": "api"
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:12999/gallery?lang=fr",
+      "backCardVisible": true,
+      "searchBack": {
+        "url": "http://127.0.0.1:12999/search?q=api&lang=fr",
+        "input": "api"
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:12999/gallery?lang=en",
+      "backCardVisible": true,
+      "searchBack": {
+        "url": "http://127.0.0.1:12999/search?q=api&lang=en",
+        "input": "api"
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:12999/gallery?lang=en",
+      "backCardVisible": true,
+      "searchBack": {
+        "url": "http://127.0.0.1:12999/search?q=api&lang=en",
+        "input": "api"
+      }
+    }
+  ],
+  "errors": []
+}

@@ -528,8 +528,8 @@ export const projectNav = [
   { labelKey: 'userArea.navigation.secrets', suffix: '/secrets', icon: Lock },
   { labelKey: 'userArea.navigation.collaborators', suffix: '/collaborators', icon: Users },
   { labelKey: 'userArea.navigation.snapshots', suffix: '/snapshots', icon: Layers },
-  { labelKey: 'userArea.navigation.deployments', suffix: '/deployments', icon: Rocket },
-  { labelKey: 'userArea.navigation.customDomains', suffix: '/domains', icon: Globe2 },
+  { labelKey: 'userArea.navigation.deployments', suffix: '/ide?panel=deployments', icon: Rocket },
+  { labelKey: 'userArea.navigation.customDomains', suffix: '/ide?panel=domains', icon: Globe2 },
   { labelKey: 'userArea.navigation.logs', suffix: '/logs', icon: Terminal },
   { labelKey: 'userArea.navigation.activity', suffix: '/activity', icon: Activity },
   { labelKey: 'userArea.navigation.git', suffix: '/git', icon: GitBranch },
@@ -1191,7 +1191,12 @@ export function AppShell({
               title={displayedTitle}
             />
           ) : null}
-          <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
+          <div
+            className={classNames(
+              'mx-auto max-w-7xl py-6 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))] lg:py-8',
+              contentClassName,
+            )}
+          >
             {!hideHeader ? (
               <div
                 className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"
@@ -1205,7 +1210,7 @@ export function AppShell({
                     <h1 className="vc-app-shell-title text-[28px] font-semibold leading-[36px] tracking-normal sm:text-[32px] sm:leading-[40px]">
                       {displayedTitle}
                     </h1>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">
+                    <p className="mt-2 max-w-3xl break-words [overflow-wrap:anywhere] text-sm leading-6 text-bolt-elements-textSecondary">
                       {displayedDescription}
                     </p>
                   </div>
@@ -1718,7 +1723,7 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
             {renaming ? (
               <ProjectRenameForm project={project} onDone={() => setRenaming(false)} />
             ) : (
-              <CardTitle className="line-clamp-2 min-h-12 text-base leading-6" title={project.name}>
+              <CardTitle className="line-clamp-2 min-h-12 break-words text-base leading-6" title={project.name}>
                 {project.name}
               </CardTitle>
             )}
@@ -1969,7 +1974,7 @@ export function TemplateGallery({
               <Form method="post" action="/dashboard/templates">
                 <input type="hidden" name="templateName" value={template.id} />
                 <input type="hidden" name="name" value={t(template.nameKey)} />
-                <Button type="submit" variant="outline" className="min-h-[44px]">
+                <Button type="submit" variant="outline" className="!min-h-[44px]">
                   {t('userArea.template.use')}
                 </Button>
               </Form>
@@ -2339,7 +2344,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => rememberCommand(command.to)}
               className={classNames(
-                'flex min-h-[44px] items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
+                'flex min-h-[44px] min-w-0 items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
                 index === activeIndex && 'bg-bolt-elements-background-depth-3',
               )}
             >
@@ -2349,7 +2354,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
                   <span className="shrink-0 text-xs text-bolt-elements-textTertiary">{command.hint}</span>
                 ) : null}
               </span>
-              <span className="text-xs text-bolt-elements-textTertiary">{t('userArea.command.enter')}</span>
+              <span className="shrink-0 text-xs text-bolt-elements-textTertiary">{t('userArea.command.enter')}</span>
             </Link>
           ))
         )}
@@ -2422,7 +2427,7 @@ function TopBar({
 
   return (
     <header
-      className="sticky top-0 z-10 flex h-[56px] items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6"
+      className="sticky top-0 z-10 flex h-[calc(56px+env(safe-area-inset-top,0px))] items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 pt-[env(safe-area-inset-top,0px)] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] backdrop-blur-xl sm:pl-[max(1.5rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.5rem,env(safe-area-inset-right,0px))]"
       data-vc-tour-target="tools"
     >
       <button

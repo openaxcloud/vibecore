@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DEPLOY_REQUEST_TIMEOUT_MS } from './projects.$projectId.deployments.view';
 import { shouldRestoreDatabase } from './snapshot-restore-database';
 import {
   apiRequest,
@@ -1719,12 +1720,15 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
       await apiRequest(request, `/projects/${projectId}/deployments/${encodeURIComponent(deploymentId)}/${intent}`, {
         method: 'POST',
+        ...(intent === 'redeploy' ? { signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS) } : {}),
       });
     } else {
       await apiRequest(request, `/projects/${projectId}/deployments`, {
         method: 'POST',
+        signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS),
         body: JSON.stringify({
           provider: body.provider || 'static',
+          machineSize: body.machineSize || undefined,
           environment: body.environment || 'preview',
           buildCommand: body.buildCommand || 'npm run build',
           outputDirectory: body.outputDirectory || 'dist',

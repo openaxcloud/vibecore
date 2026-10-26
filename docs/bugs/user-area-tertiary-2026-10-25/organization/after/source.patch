@@ -1,0 +1,58 @@
+diff --git a/app/routes/invitations.tsx b/app/routes/invitations.tsx
+index ec83a6f1f..f2dd12314 100644
+--- a/app/routes/invitations.tsx
++++ b/app/routes/invitations.tsx
+@@ -555,7 +555,9 @@ export default function InvitationsPage() {
+                       <p className="break-all font-medium text-bolt-elements-textPrimary">{invite.email}</p>
+                       <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
+                         <Badge variant="outline" size="md" className="max-w-full whitespace-normal break-words">
+-                          {invitationRoleLabel(invite.roleKey, roles, language)}
++                          <span className="min-w-0 [overflow-wrap:anywhere]">
++                            {invitationRoleLabel(invite.roleKey, roles, language)}
++                          </span>
+                         </Badge>
+                         <span className="break-words [overflow-wrap:anywhere]">
+                           {interpolateInvitationsCopy(copy['invitations.invitation.expires'], {
+diff --git a/app/routes/organization-invitations.tsx b/app/routes/organization-invitations.tsx
+index 93e8cbf54..a92da4a35 100644
+--- a/app/routes/organization-invitations.tsx
++++ b/app/routes/organization-invitations.tsx
+@@ -288,7 +288,7 @@ export default function OrganizationInvitationsPage() {
+                     <div className="min-w-0">
+                       <div className="break-all font-medium text-bolt-elements-textPrimary">{invite.email}</div>
+                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
+-                        <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
++                        <span className="max-w-full [overflow-wrap:anywhere] rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
+                           {roleLabel(invite.roleKey)}
+                         </span>
+                         <span>
+diff --git a/app/routes/organization-roles.tsx b/app/routes/organization-roles.tsx
+index f4bbce4f1..4005e7868 100644
+--- a/app/routes/organization-roles.tsx
++++ b/app/routes/organization-roles.tsx
+@@ -402,7 +402,9 @@ export default function OrganizationRolesPage() {
+                 key={role.id}
+                 className="border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0 sm:px-6"
+               >
+-                <div className="font-medium text-bolt-elements-textPrimary">{role.name}</div>
++                <div className="break-words [overflow-wrap:anywhere] font-medium text-bolt-elements-textPrimary">
++                  {role.name}
++                </div>
+                 <div className="mt-2 flex flex-wrap gap-1.5">
+                   {role.permissions.map((permission) => (
+                     <span
+diff --git a/app/routes/roles-and-permissions.tsx b/app/routes/roles-and-permissions.tsx
+index dbcac0aef..a6b5c80ff 100644
+--- a/app/routes/roles-and-permissions.tsx
++++ b/app/routes/roles-and-permissions.tsx
+@@ -164,7 +164,9 @@ export default function RolesAndPermissionsPage() {
+       <div className="mt-6 overflow-hidden rounded-md border border-bolt-elements-borderColor text-sm">
+         {roles.map((role) => (
+           <div key={role.key} className="border-b border-bolt-elements-borderColor p-3 last:border-b-0">
+-            <div className="font-medium text-bolt-elements-textPrimary">{role.name}</div>
++            <div className="break-words [overflow-wrap:anywhere] font-medium text-bolt-elements-textPrimary">
++              {role.name}
++            </div>
+             <div className="mt-2 flex flex-wrap gap-2 text-xs text-bolt-elements-textSecondary">
+               {role.permissions.map((permission) => (
+                 <span key={permission} className="rounded border border-bolt-elements-borderColor px-2 py-1">

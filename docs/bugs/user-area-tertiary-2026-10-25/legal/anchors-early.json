@@ -1,0 +1,76 @@
+[
+  {
+    "route": "privacy",
+    "id": "privacy-contact",
+    "width": 320,
+    "text": "Nous contacter",
+    "top": 1961,
+    "bottom": 1993,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "clip": "auto",
+    "margin": "0px"
+  },
+  {
+    "route": "privacy",
+    "id": "privacy-contact",
+    "width": 1440,
+    "text": "Nous contacter",
+    "top": -0.21875,
+    "bottom": 31.78125,
+    "headerBottom": 110,
+    "scrollY": 1344,
+    "clip": "auto",
+    "margin": "0px",
+    "atCenter": "P"
+  },
+  {
+    "route": "terms",
+    "id": "terms-contact",
+    "width": 320,
+    "text": "9. Coordonnées",
+    "top": 2601.875,
+    "bottom": 2633.875,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "clip": "auto",
+    "margin": "0px"
+  },
+  {
+    "route": "terms",
+    "id": "terms-contact",
+    "width": 1440,
+    "text": "9. Coordonnées",
+    "top": 192.8125,
+    "bottom": 224.8125,
+    "headerBottom": 110,
+    "scrollY": 1344,
+    "clip": "auto",
+    "margin": "0px",
+    "atCenter": "H2"
+  },
+  {
+    "route": "support-policy",
+    "id": "support-policy-details-heading",
+    "width": 320,
+    "text": "Fonctionnement de l’assistance E-Code",
+    "top": 1178.8125,
+    "bottom": 1179.8125,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "clip": "rect(0px, 0px, 0px, 0px)",
+    "margin": "0px"
+  },
+  {
+    "route": "support-policy",
+    "id": "support-policy-details-heading",
+    "width": 1440,
+    "text": "Fonctionnement de l’assistance E-Code",
+    "top": -453.484375,
+    "bottom": -452.484375,
+    "headerBottom": 110,
+    "scrollY": 1344,
+    "clip": "rect(0px, 0px, 0px, 0px)",
+    "margin": "0px"
+  }
+]

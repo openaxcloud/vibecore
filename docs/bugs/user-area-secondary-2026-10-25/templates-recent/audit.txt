@@ -1,0 +1,7 @@
+{
+  observations: 40,
+  errors: [],
+  overflows: 0,
+  shortCTAs: 20,
+  titleOverflow: 20
+}

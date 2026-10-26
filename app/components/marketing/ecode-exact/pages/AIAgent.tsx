@@ -135,7 +135,7 @@ export default function AiAgent() {
           </div>
 
           <div className="container-responsive max-w-7xl relative">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="text-center lg:text-left">
                 <Badge
                   variant="default"
@@ -158,12 +158,17 @@ export default function AiAgent() {
                   <Button
                     size="lg"
                     onClick={handleGetStarted}
-                    className="text-[15px] px-8 h-14 shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-primary to-primary/90"
+                    className="text-[15px] whitespace-normal px-8 py-3 h-auto min-h-14 md:min-h-14 shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-primary to-primary/90"
                   >
                     {copy.launchStudio}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
-                  <Button size="lg" variant="outline" className="text-[15px] px-8 h-14" asChild>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-[15px] whitespace-normal px-8 py-3 h-auto min-h-14 md:min-h-14"
+                    asChild
+                  >
                     <a href="#agent-demo">
                       {copy.watchLiveDemo}
                       <PlayCircle className="ml-2 h-5 w-5" />

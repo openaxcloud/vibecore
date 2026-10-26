@@ -1,0 +1,605 @@
+{
+  "base": "http://127.0.0.1:8399",
+  "synthetic": true,
+  "observations": [
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 262,
+          "scroll": 262,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 262,
+          "scroll": 262,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 262,
+          "scroll": 262,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 262,
+          "scroll": 262,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 164,
+          "scroll": 321
+        },
+        {
+          "text": "Membres de l’organisation",
+          "title": null,
+          "client": 129,
+          "scroll": 212
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 302,
+          "scroll": 302,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 302,
+          "scroll": 302,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 302,
+          "scroll": 302,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 302,
+          "scroll": 302,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        },
+        {
+          "text": "Membres de l’organisation",
+          "title": null,
+          "client": 169,
+          "scroll": 212
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 332,
+          "scroll": 332,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 332,
+          "scroll": 332,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 332,
+          "scroll": 332,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 332,
+          "scroll": 332,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        },
+        {
+          "text": "Membres de l’organisation",
+          "title": null,
+          "client": 199,
+          "scroll": 212
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 470,
+          "scroll": 470,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 470,
+          "scroll": 470,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 313,
+          "scroll": 313,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 313,
+          "scroll": 313,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 394,
+          "scroll": 394,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 394,
+          "scroll": 394,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 237,
+          "scroll": 237,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 237,
+          "scroll": 237,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 446,
+          "scroll": 446,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 446,
+          "scroll": 446,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 289,
+          "scroll": 289,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 289,
+          "scroll": 289,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 594,
+          "scroll": 594,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 594,
+          "scroll": 594,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 437,
+          "scroll": 437,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 437,
+          "scroll": 437,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": []
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Espace de travail SaaS",
+          "title": null,
+          "client": 7,
+          "scroll": 114
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 172,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 179,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/organization-members",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Membres de l’organisation",
+      "overflow": [],
+      "identities": [
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789SyntheticLongUnbrokenDisplayName0123456789"
+        },
+        {
+          "client": 602,
+          "scroll": 602,
+          "text": "long.synthetic.member.address.with.many.parts@example.test · Propriétaire"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "Membre synthétique avec un très long nom pour recette uniquement"
+        },
+        {
+          "client": 449,
+          "scroll": 449,
+          "text": "second.long.member.address@example.test · Membre"
+        }
+      ],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 179,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 164,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": [
+        {
+          "text": "Camille Exemple Utilisateur synthétique uniquement",
+          "title": null,
+          "client": 188,
+          "scroll": 321
+        }
+      ]
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": []
+    },
+    {
+      "route": "/api-keys",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1741,
+      "title": "Clés API",
+      "overflow": [],
+      "identities": [],
+      "truncated": [
+        {
+          "text": "Espace de travail SaaS",
+          "title": null,
+          "client": 7,
+          "scroll": 114
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "mutations": [],
+  "interactions": []
+}

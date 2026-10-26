@@ -1,0 +1,2 @@
+11:13PM INF scan completed in 36.6s
+11:13PM WRN leaks found: 1
