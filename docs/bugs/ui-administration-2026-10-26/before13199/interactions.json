@@ -1,0 +1,541 @@
+{
+  "recoveries": [
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "status": 503,
+      "method": "focused retry Enter",
+      "errorText": "Aller au contenu\nMenu\nEspace de travail\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nEspace de travail\n\nCette page de l’espace de travail est temporairement indisponible.\n\nRetour au tableau de bord\nImpossible de charger Espace de travail\n\nLa dernière requête a échoué. Cette page reste masquée afin de ne pas afficher de données incomplètes. Aucune donnée n’a été modifiée.\n\nRéessayer\nChargement d’E-Code…",
+      "recoveredTitle": "Administration de la facturation"
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "status": 503,
+      "method": "focused retry Enter",
+      "errorText": "Aller au contenu\nMenu\nEspace de travail\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nEspace de travail\n\nCette page de l’espace de travail est temporairement indisponible.\n\nRetour au tableau de bord\nImpossible de charger Espace de travail\n\nLa dernière requête a échoué. Cette page reste masquée afin de ne pas afficher de données incomplètes. Aucune donnée n’a été modifiée.\n\nRéessayer\nChargement d’E-Code…",
+      "recoveredTitle": "Fournisseurs OAuth"
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "status": 503,
+      "method": "focused retry Enter",
+      "errorText": "Aller au contenu\nMenu\nEspace de travail\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nEspace de travail\n\nCette page de l’espace de travail est temporairement indisponible.\n\nRetour au tableau de bord\nImpossible de charger Espace de travail\n\nLa dernière requête a échoué. Cette page reste masquée afin de ne pas afficher de données incomplètes. Aucune donnée n’a été modifiée.\n\nRéessayer\nChargement d’E-Code…",
+      "recoveredTitle": "Configuration Stripe"
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "status": 200,
+      "method": "browser reload",
+      "errorText": "Aller au contenu\nMenu\nPortefeuilles de crédits\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nPortefeuilles de crédits\n\nConsultez les soldes, plafonds budgétaires et seuils d’arrêt des organisations. Chaque crédit ou débit ci-dessous crée un ajustement auditable dans le registre et met à jour le solde de façon atomique.\n\nPortefeuilles des organisations\nImpossible de charger les portefeuilles de crédits\n\nAucun portefeuille n’a été modifié. Rechargez ce panneau pour obtenir les soldes les plus récents. Vous pouvez tout de même saisir manuellement l’ID d’une organisation ci-dessous.\n\nRecharger les portefeuilles\nAjuster un solde\n\nConfirmez l’organisation, le sens et le montant en USD. Le motif est enregistré définitivement dans le registre des crédits.\n\nID de l’organisation\nSens\nCréditer (ajouter des fonds)\nDébiter (retirer des fonds)\nMontant (USD)\nMotif (enregistré dans le journal d’audit)\nConfirmez avec votre mot de passe\nAppliquer l’ajustement\nChargement d’E-Code…",
+      "recoveredTitle": "Portefeuilles de crédits"
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "fr",
+      "status": 503,
+      "method": "browser reload",
+      "errorText": "Aller au contenu\nE-Code\nEN\nFR\nERREUR 503\nUne erreur est survenue\n\nUne erreur inattendue a interrompu cette page. Réessayez ou revenez à une page connue.\n\nRetour à l’accueil\nAccéder au tableau de bord\nConsulter le centre d’aide\nPrompt, code, aperçu, mise en ligne\nCréez des logiciels inspectables avec votre équipe\n\nE-Code réunit les fichiers générés, les retours d’exécution, l’état de l’aperçu et les contrôles de mise en ligne, du premier prompt à l’application en production.\n\nContacter l’équipe commerciale\nCommencer à créer\n\nCODE SOURCE\n\nVisible et exportable\n\nCYCLE DU PROJET\n\nDe l’aperçu au déploiement\n\nPRODUIT\nAgent IA\nIDE\nMultijoueur\nApplication mobile\nApplication de bureau\nCollaboration\nIntégrations MCP\nServices applicatifs polyglottes\nÉquipes\nDéploiements\nTarifs\nMissions\nPlateforme IA\nRESSOURCES\nDocumentation\nBlog\nCommunauté\nModèles\nPlace de marché\nLangages\nÉtat des services\nForum\nNEWSLETTER\nS’inscrire\nENTREPRISE\nÀ propos\nCarrières\nPresse\nPartenaires\nContacter l’équipe commerciale\nMENTIONS LÉGALES\nConditions d’utilisation\nConfidentialité\nSous-traitants\nDPA\nDPA pour les étudiants aux États-Unis\nSécurité\nConfiance et sécurité\nUtilisation acceptable\nSignaler un abus\nSystème d’avertissements\nUtilisation et limites\nPolitique d’assistance\nLicences\nInactivité du compte\nSuppression de vos données\n\nComparer les plateformes\n\nDécouvrez comment E-Code se compare aux autres clouds de développement.\n\nE-Code face à GitHub Codespaces\nE-Code face à Glitch\nE-Code face à Heroku\nE-Code face à CodeSandbox\nE-Code face à AWS Cloud9\nLes fichiers source restent visibles pour être révisés et exportés.\nLes liens d’aperçu et les contrôles de déploiement partagent le même espace.\nLes modifications de l’agent restent reliées aux fichiers et aux retours d’exécution.\nE-Code\n© 2026 E-Code.AI (Snatc",
+      "recoveredTitle": "Vue d’ensemble de l’administration"
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "status": 503,
+      "method": "focused retry Enter",
+      "errorText": "Skip to content\nMenu\nWorkspace\n\nWORKSPACE CONSOLE\n\nWorkspace\n\nThis workspace page is temporarily unavailable.\n\nBack to dashboard\nWorkspace could not load\n\nThe latest request failed, so this page is hidden to avoid showing incomplete data. No data was changed.\n\nTry again\nLoading E-Code…",
+      "recoveredTitle": "Billing administration"
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "status": 503,
+      "method": "focused retry Enter",
+      "errorText": "Skip to content\nMenu\nWorkspace\n\nWORKSPACE CONSOLE\n\nWorkspace\n\nThis workspace page is temporarily unavailable.\n\nBack to dashboard\nWorkspace could not load\n\nThe latest request failed, so this page is hidden to avoid showing incomplete data. No data was changed.\n\nTry again\nLoading E-Code…",
+      "recoveredTitle": "OAuth providers"
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "status": 503,
+      "method": "focused retry Enter",
+      "errorText": "Skip to content\nMenu\nWorkspace\n\nWORKSPACE CONSOLE\n\nWorkspace\n\nThis workspace page is temporarily unavailable.\n\nBack to dashboard\nWorkspace could not load\n\nThe latest request failed, so this page is hidden to avoid showing incomplete data. No data was changed.\n\nTry again\nLoading E-Code…",
+      "recoveredTitle": "Stripe configuration"
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "status": 200,
+      "method": "browser reload",
+      "errorText": "Skip to content\nMenu\nCredit wallets\n\nWORKSPACE CONSOLE\n\nCredit wallets\n\nReview organization balances, budget caps and service-shutdown thresholds. Every credit or debit below creates an auditable ledger adjustment and updates the balance atomically.\n\nOrganization wallets\nCredit wallets could not load\n\nNo wallet was changed. Reload this panel to retrieve the latest balances. You can still enter an organization ID manually below.\n\nReload wallets\nAdjust a balance\n\nConfirm the organization, direction and USD amount. The reason is permanently recorded in the credit ledger.\n\nOrganization ID\nDirection\nCredit (add funds)\nDebit (remove funds)\nAmount (USD)\nReason (recorded in the audit trail)\nConfirm with your password\nApply adjustment\nLoading E-Code…",
+      "recoveredTitle": "Credit wallets"
+    },
+    {
+      "path": "/admin/overview",
+      "lang": "en",
+      "status": 503,
+      "method": "browser reload",
+      "errorText": "Skip to content\nE-Code\nEN\nFR\nERROR 503\nSomething went wrong\n\nAn unexpected error interrupted this page. Try again, or head back to a known place.\n\nBack to homepage\nGo to dashboard\nVisit the help center\nPrompt, code, preview, deploy\nBuild inspectable software with your team\n\nE-Code keeps generated files, runtime feedback, preview state, and release controls together from the first prompt to the live application.\n\nTalk to sales\nStart building\n\nSOURCE CODE\n\nVisible and exportable\n\nPROJECT WORKFLOW\n\nPreview through deployment\n\nPRODUCT\nAI Agent\nIDE\nMultiplayer\nMobile App\nDesktop App\nCollaboration\nMCP Integrations\nPolyglot Backends\nTeams\nDeployments\nPricing\nBounties\nAI Platform\nRESOURCES\nDocs\nBlog\nCommunity\nTemplates\nMarketplace\nLanguages\nStatus\nForum\nNEWSLETTER\nSubscribe\nCOMPANY\nAbout\nCareers\nPress\nPartners\nContact Sales\nLEGAL\nTerms\nPrivacy\nSubprocessors\nDPA\nUS Student DPA\nSecurity\nTrust & Safety\nAcceptable Use\nReport Abuse\nStrike System\nUsage & Limits\nSupport Policy\nLicensing\nAccount Inactivity\nDeleting Your Data\n\nCompare platforms\n\nSee how E-Code compares with other development clouds.\n\nE-Code vs GitHub Codespaces\nE-Code vs Glitch\nE-Code vs Heroku\nE-Code vs CodeSandbox\nE-Code vs AWS Cloud9\nSource files remain visible for review and export.\nPreview links and deployment controls share one workspace.\nAgent changes stay connected to files and runtime feedback.\nE-Code\n© 2026 E-Code.AI (Snatch Group Limited). All rights reserved.\nEmail preferences\nNewsletter\nLoading E-Code…",
+      "recoveredTitle": "Admin overview"
+    }
+  ],
+  "drafts": [
+    {
+      "path": "/admin/billing",
+      "lang": "fr",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "INPUT",
+        "name": "key"
+      }
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "fr",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "INPUT",
+        "name": "clientSecret"
+      }
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "fr",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "INPUT",
+        "name": "price:synthetic:stripePriceId"
+      }
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "fr",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "SELECT",
+        "name": "direction"
+      }
+    },
+    {
+      "path": "/admin/billing",
+      "lang": "en",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "INPUT",
+        "name": "key"
+      }
+    },
+    {
+      "path": "/admin/oauth-providers",
+      "lang": "en",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "INPUT",
+        "name": "clientSecret"
+      }
+    },
+    {
+      "path": "/admin/stripe",
+      "lang": "en",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "INPUT",
+        "name": "price:synthetic:stripePriceId"
+      }
+    },
+    {
+      "path": "/admin/wallets",
+      "lang": "en",
+      "resizeDraft": true,
+      "focusAfterTab": {
+        "tag": "SELECT",
+        "name": "direction"
+      }
+    }
+  ],
+  "denials": [
+    {
+      "lang": "fr",
+      "status": 200,
+      "url": "http://127.0.0.1:13199/login?returnTo=%2Fadmin%2Fbilling%3Flang%3Dfr"
+    },
+    {
+      "lang": "en",
+      "status": 200,
+      "url": "http://127.0.0.1:13199/login?returnTo=%2Fadmin%2Fbilling%3Flang%3Den"
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}

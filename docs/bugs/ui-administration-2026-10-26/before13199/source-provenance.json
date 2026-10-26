@@ -1,0 +1,27 @@
+{
+  "app/routes/admin._index.tsx": {
+    "priority": "b533d5d5ff7ae329a76b3e7f97d150ff44bef3328e831fe85760972980e3aae5",
+    "orgNext": "b533d5d5ff7ae329a76b3e7f97d150ff44bef3328e831fe85760972980e3aae5"
+  },
+  "app/routes/admin.$section.tsx": {
+    "priority": "578276127f9636685efda7d147f43f8e7e1a48775807d0ae411f49dab366544c",
+    "orgNext": "578276127f9636685efda7d147f43f8e7e1a48775807d0ae411f49dab366544c"
+  },
+  "app/routes/admin.billing.tsx": {
+    "priority": "6e2491310496ba48f78af2ba6811c440e6a52182041638f4f5fec31304eb0cb8",
+    "orgNext": "6e2491310496ba48f78af2ba6811c440e6a52182041638f4f5fec31304eb0cb8"
+  },
+  "app/routes/admin.oauth-providers.tsx": {
+    "priority": "d34455f6269b011e4744ad4e3b68d4c163083184e9ae5881ab9c3a941cd4e3e3",
+    "orgNext": "d34455f6269b011e4744ad4e3b68d4c163083184e9ae5881ab9c3a941cd4e3e3"
+  },
+  "app/routes/admin.stripe.tsx": {
+    "priority": "5016cd7a8f8bf3859cd020a7b436998ce2b740184e67538d38f7ce851ff2675f",
+    "orgNext": "5016cd7a8f8bf3859cd020a7b436998ce2b740184e67538d38f7ce851ff2675f"
+  },
+  "app/routes/admin.wallets.tsx": {
+    "priority": "728c07b2fcec5ac46aaacb617c5f5565e20774ce205ce7b852e8a5aba57f93c9",
+    "orgNext": "728c07b2fcec5ac46aaacb617c5f5565e20774ce205ce7b852e8a5aba57f93c9"
+  },
+  "buildSHA256": "369c60095e6598e1a9cf388a1af16123c3e8a3424a717757ae60bc458025614a"
+}

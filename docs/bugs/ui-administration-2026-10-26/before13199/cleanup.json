@@ -1,0 +1,20 @@
+[
+  {
+    "pid": 190765,
+    "startTicks": "2764282",
+    "signal": "SIGTERM",
+    "origin": "server-origin.json"
+  },
+  {
+    "pid": 190750,
+    "startTicks": "2764157",
+    "signal": "SIGTERM",
+    "origin": "api-origin.json"
+  },
+  {
+    "pid": 190765,
+    "startTicks": "2764282",
+    "signal": "SIGKILL",
+    "reason": "Port closed after SIGTERM; same owned process remained"
+  }
+]

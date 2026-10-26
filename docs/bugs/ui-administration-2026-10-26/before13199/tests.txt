@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-admin-next
+
+ ✓ app/routes/admin.billing.i18n.spec.tsx (9 tests) 457ms
+ ✓ app/routes/admin.billing.spec.ts (9 tests) 25ms
+
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
+   Start at  03:09:55
+   Duration  4.91s (transform 2.81s, setup 95ms, collect 1.73s, tests 483ms, environment 521ms, prepare 310ms)
+

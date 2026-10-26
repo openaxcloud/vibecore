@@ -1,0 +1,64 @@
+{
+  "before": {
+    "viewport": 320,
+    "html": 320,
+    "body": 1743,
+    "elements": [
+      {
+        "tag": "SELECT",
+        "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierW",
+        "width": 1695,
+        "right": 1742.5,
+        "client": 1693,
+        "scroll": 1693,
+        "parent": 225,
+        "display": "block",
+        "maxWidth": "100%",
+        "overflowWrap": "normal"
+      },
+      {
+        "tag": "STRONG",
+        "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierW",
+        "width": 1421.359375,
+        "right": 1480.359375,
+        "client": 1421,
+        "scroll": 1421,
+        "parent": 202,
+        "display": "block",
+        "maxWidth": "none",
+        "overflowWrap": "break-word"
+      }
+    ]
+  },
+  "after": {
+    "viewport": 320,
+    "html": 320,
+    "body": 320,
+    "elements": [
+      {
+        "tag": "SELECT",
+        "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierW",
+        "width": 225,
+        "right": 272.5,
+        "client": 223,
+        "scroll": 223,
+        "parent": 225,
+        "display": "block",
+        "maxWidth": "100%",
+        "overflowWrap": "normal"
+      },
+      {
+        "tag": "STRONG",
+        "text": "SyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierWithoutSpacesSyntheticIdentifierW",
+        "width": 202,
+        "right": 261,
+        "client": 202,
+        "scroll": 202,
+        "parent": 202,
+        "display": "block",
+        "maxWidth": "100%",
+        "overflowWrap": "break-word"
+      }
+    ]
+  }
+}
