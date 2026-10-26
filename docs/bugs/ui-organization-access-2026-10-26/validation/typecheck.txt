@@ -1,0 +1,27 @@
+
+> vibecore@1.0.0 typecheck /workspace/vibecore-ui-org-next
+> node scripts/typecheck.mjs
+
+[typecheck] web app
+[typecheck] web app passed in 48.5s
+[typecheck] node scripts
+services/api/src/app.ts(14,8): error TS2307: Cannot find module '@e-code/sdk' or its corresponding type declarations.
+services/api/src/app.ts(100,8): error TS2307: Cannot find module '@vibecore/k8s-client' or its corresponding type declarations.
+services/api/src/app.ts(101,93): error TS2307: Cannot find module '@vibecore/observability' or its corresponding type declarations.
+services/api/src/app.ts(102,53): error TS2307: Cannot find module '@vibecore/rbac' or its corresponding type declarations.
+services/api/src/app.ts(122,35): error TS2307: Cannot find module '@vibecore/template-catalog/server' or its corresponding type declarations.
+services/api/src/app.ts(123,27): error TS2307: Cannot find module '@xmldom/xmldom' or its corresponding type declarations.
+services/api/src/app.ts(142,27): error TS2307: Cannot find module 'xml-crypto' or its corresponding type declarations.
+services/api/src/app.ts(4444,47): error TS7006: Parameter 'permission' implicitly has an 'any' type.
+services/api/src/app.ts(4474,46): error TS7006: Parameter 'permission' implicitly has an 'any' type.
+services/api/src/app.ts(7112,33): error TS7006: Parameter 'demoFile' implicitly has an 'any' type.
+services/api/src/app.ts(9202,37): error TS2307: Cannot find module 'gpt-tokenizer' or its corresponding type declarations.
+services/api/src/app.ts(31826,59): error TS7006: Parameter 'alert' implicitly has an 'any' type.
+services/api/src/app.ts(37913,58): error TS7006: Parameter 'gen' implicitly has an 'any' type.
+services/api/src/object-storage.ts(14,25): error TS2307: Cannot find module '@google-cloud/storage' or its corresponding type declarations.
+services/api/src/prisma-store.ts(2,54): error TS2307: Cannot find module '@vibecore/audit' or its corresponding type declarations.
+services/api/src/prisma-store.ts(6,53): error TS2307: Cannot find module '@vibecore/rbac' or its corresponding type declarations.
+services/api/src/store.ts(1,54): error TS2307: Cannot find module '@vibecore/audit' or its corresponding type declarations.
+services/api/src/store.ts(4,53): error TS2307: Cannot find module '@vibecore/rbac' or its corresponding type declarations.
+[typecheck] node scripts failed with exit code 2
+ ELIFECYCLE  Command failed with exit code 1.
