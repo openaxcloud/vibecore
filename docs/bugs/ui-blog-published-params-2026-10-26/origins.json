@@ -1,0 +1,18 @@
+[
+  {
+    "role": "api",
+    "pid": 224419,
+    "startTicks": "3538913",
+    "port": 7199,
+    "log": "/tmp/ui-blog-published-params/api.log",
+    "startedAt": "2026-10-26T05:15:09Z"
+  },
+  {
+    "role": "app",
+    "pid": 224420,
+    "startTicks": "3538913",
+    "port": 14299,
+    "log": "/tmp/ui-blog-published-params/app.log",
+    "startedAt": "2026-10-26T05:15:09Z"
+  }
+]

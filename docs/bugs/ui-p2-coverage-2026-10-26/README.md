@@ -107,3 +107,5 @@ Le lien du registre éditorial a été corrigé vers before13399/route-map.json 
 Les assertions de consolidation vérifient357IDs uniques,66IDs disjoints initialement non exercés,29matches rendus +un alias, comptes1276/8/32, langues/thèmes, absence d'erreurs déclarées et de mutations. L'état « partiel » ne masque aucun défaut ouvert. La consolidation est intégrée au lot local. La réserve de recette locale du Hero est levée par13899 ; aucune validation main/live n'est déduite du comptage.
 
 Complément final : l’échec intermédiaire13799 (CTA22px sur écran≥768) est conservé. La source corrigée c2823890d est vérifiée sur13899 sans injection CSS ; cette recette ne rejoue pas les1276 observations des autres pages. Le fichier open-defects.json conserve aussi le suivi du Hero désormais corrigé localement, avec livraison encore distincte.
+
+Complément Blog : les trois slugs publiés ont été exercés sur le build produit inchangécc5574,132 observations/12 groupes, FR/EN clair/sombre sur11formats. Deux paramètres nouveaux, zéro nouvelle route. Contenus comparés au catalogue ; cartes et contrat Newsletter restent ouverts. Preuves : ../ui-blog-published-params-2026-10-26/.
