@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -52,6 +52,7 @@ vi.mock('~/utils/logger', () => ({
 }));
 vi.mock('~/utils/constants', () => ({ WORK_DIR: '/workspace' }));
 
+import { AgentLaneSummary } from './AgentLaneSummary';
 import { AssistantMessage } from './AssistantMessage';
 import {
   formatAssistantCost,
@@ -241,4 +242,170 @@ describe('AssistantMessage i18n', () => {
     await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('Impossible de copier le message.'));
     expect(toastMocks.error).not.toHaveBeenCalledWith(expect.stringContaining('Clipboard API'));
   });
+});
+
+describe('parallel agents — synthetic presentation fixtures', () => {
+  afterEach(cleanup);
+
+  it.each(['fr', 'en'] as const)(
+    'keeps partial consensus separate from completed QA and preserves original reports (%s)',
+    (language) => {
+      const copy = getAssistantMessageCopy(language);
+      const raw = JSON.stringify({ architecture_notes: 'Synthetic architecture', summary: 'Synthetic useful summary' });
+      render(
+        <I18nextProvider i18n={createI18nInstance(language)}>
+          <AssistantMessage
+            content="Synthetic fixture"
+            parts={undefined}
+            addToolResult={() => undefined}
+            annotations={[
+              {
+                type: 'agentOrchestration',
+                mode: 'parallel-subagents',
+                reason: 'synthetic fixture',
+                roles: [
+                  { id: 'architect', title: 'Architect', responsibility: 'Architecture' },
+                  { id: 'backend', title: 'Backend', responsibility: 'Backend' },
+                  { id: 'qa', title: 'QA', responsibility: 'QA' },
+                ],
+              },
+              {
+                type: 'agentExecution',
+                runId: 'synthetic-only',
+                status: 'partial',
+                results: [
+                  { roleId: 'architect', status: 'complete', summary: raw },
+                  { roleId: 'backend', status: 'failed', summary: 'The agent returned an empty response.' },
+                  { roleId: 'qa', status: 'complete', summary: 'Synthetic checks finished' },
+                ],
+                consensus: {
+                  algorithm: 'QUORUM',
+                  outcome: 'PARTIAL',
+                  agreementScore: 0.25,
+                  threshold: 0.75,
+                  rounds: 1,
+                  durationMs: 1,
+                  claimVotes: [
+                    {
+                      type: 'verification',
+                      claim: 'Synthetic test declaration',
+                      supporters: ['qa'],
+                      dissenters: [],
+                      agreementRatio: 0.25,
+                      decision: 'inconclusive',
+                    },
+                  ],
+                  conflicts: [],
+                },
+              },
+            ]}
+          />
+        </I18nextProvider>,
+      );
+
+      const qa = screen.getByTestId('agent-lane-qa');
+      expect(qa.textContent).toContain(copy['assistantMessage.lanes.taskFinished']);
+      expect(qa.getAttribute('data-state')).toBe('complete');
+      expect(screen.getByText(copy['assistantMessage.lanes.notValidated'])).toBeTruthy();
+      expect(screen.getByText(copy['assistantMessage.lanes.unverifiedClaims'])).toBeTruthy();
+      expect(screen.getByText('Synthetic test declaration')).toBeTruthy();
+      expect(screen.getByTestId('agent-lanes-panel').textContent).toContain('25');
+      expect(screen.getByText(copy['assistantMessage.lanes.emptyResponse'])).toBeTruthy();
+      expect(screen.getByText('Synthetic useful summary')).toBeTruthy();
+
+      const original = within(screen.getByTestId('agent-lane-architect')).getByText(raw);
+      const disclosure = original.closest('details')!;
+      expect(disclosure.open).toBe(false);
+      fireEvent.click(disclosure.querySelector('summary')!);
+      expect(disclosure.open).toBe(true);
+      expect(original.textContent).toBe(raw);
+      expect(
+        within(screen.getByTestId('agent-lane-backend'))
+          .getByText('The agent returned an empty response.')
+          .closest('details'),
+      ).toBeTruthy();
+    },
+  );
+
+  it('keeps interrupted lanes stopped without changing their terminal state', () => {
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content="Synthetic stopped fixture"
+          parts={undefined}
+          addToolResult={() => undefined}
+          annotations={[{ type: 'agentLaneStream', roleId: 'qa', kind: 'start', title: 'QA' }]}
+        />
+      </I18nextProvider>,
+    );
+    expect(screen.getByTestId('agent-lane-qa').getAttribute('data-state')).toBe('failed');
+    expect(screen.getByTestId('agent-lane-qa').textContent).toContain('arrêté');
+    expect(screen.queryByText('Tâche terminée')).toBeNull();
+  });
+});
+
+describe('synthetic agent report details', () => {
+  afterEach(cleanup);
+
+  it.each(['fr', 'en'] as const)('retains incomplete JSON, unknown errors and long text (%s)', (language) => {
+    const copy = getAssistantMessageCopy(language);
+    const incomplete = '{"architecture_notes":"Synthetic unfinished';
+    const { rerender } = render(<AgentLaneSummary value={incomplete} copy={copy} />);
+    expect(screen.getByTestId('agent-lane-apercu').textContent).toBe(copy['assistantMessage.lanes.structured']);
+    expect(screen.getByText(incomplete).closest('details')?.open).toBe(false);
+
+    const longError = 'Synthetic unknown provider error. '.repeat(20);
+    rerender(<AgentLaneSummary value={longError} copy={copy} />);
+    expect(screen.getByTestId('agent-lane-apercu').textContent).toBe(longError);
+    expect(document.querySelector('details pre')?.textContent).toBe(longError);
+    rerender(<AgentLaneSummary value="Synthetic short unknown error" copy={copy} />);
+    expect(screen.getByTestId('agent-lane-apercu').textContent).toBe('Synthetic short unknown error');
+    expect(document.querySelector('details pre')?.textContent).toBe('Synthetic short unknown error');
+    expect(document.querySelector('details')?.open).toBe(false);
+  });
+});
+
+describe('synthetic optional lane output contract', () => {
+  afterEach(cleanup);
+
+  it.each(['fr', 'en'] as const)(
+    'reads supported states and preserves emitted-not-applied metadata (%s)',
+    (language) => {
+      const copy = getAssistantMessageCopy(language);
+      const { rerender } = render(<AgentLaneSummary value="Synthetic report" copy={copy} />);
+      expect(screen.getByTestId('agent-lane-output').textContent).toBe('');
+
+      for (const outputState of ['empty', 'actions_without_report', 'report', 'invalid_report', 'interrupted']) {
+        rerender(
+          <AgentLaneSummary
+            value="Synthetic original"
+            copy={copy}
+            result={{
+              outputState,
+              emittedFiles: ['src/synthetic.ts'],
+              verificationState: 'not_observed',
+              verification: ['Model says tests passed'],
+            }}
+          />,
+        );
+        expect(screen.getByTestId('agent-lane-output').textContent).toContain(
+          copy[`assistantMessage.lanes.output.${outputState}` as keyof typeof copy],
+        );
+        expect(screen.getByTestId('agent-lane-output').textContent).toContain(
+          formatAssistantMessageCopy(copy['assistantMessage.lanes.emittedFiles'], { count: 1 }),
+        );
+        expect(document.querySelector('details pre')?.textContent).toBe('Synthetic original');
+        expect(screen.getByText('src/synthetic.ts').closest('details')).toBeTruthy();
+        expect(screen.queryByText('Model says tests passed')).toBeNull();
+      }
+      rerender(
+        <AgentLaneSummary
+          value="Synthetic"
+          copy={copy}
+          result={{ outputState: { bad: true }, emittedFiles: ['valid', 3], verificationState: 'observed' }}
+        />,
+      );
+      expect(screen.getByTestId('agent-lane-output').textContent).toBe('');
+    },
+  );
 });

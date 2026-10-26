@@ -1,0 +1,35 @@
+[
+  {
+    "theme": "light",
+    "width": 390,
+    "height": 240,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ],
+    "cards": [
+      {
+        "id": "synthetic-error",
+        "position": "relative",
+        "transform": "none",
+        "bodyOpacity": "1",
+        "pointer": "none"
+      },
+      {
+        "id": "preview-build-started",
+        "position": "relative",
+        "transform": "none",
+        "bodyOpacity": "1",
+        "pointer": "none"
+      },
+      {
+        "id": "synthetic-rich",
+        "position": "relative",
+        "transform": "none",
+        "bodyOpacity": "1",
+        "pointer": "none"
+      }
+    ]
+  }
+]
