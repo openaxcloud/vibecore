@@ -1,6 +1,8 @@
 # Auth7 — contrats et plan de recette
 
-Base isolée /workspace/vibecore-ui-auth-next :05c4e412e0ad21b77a36a26dad5091f7d7bf9bde (merge main3eb70894 + correctifs UI locaux). Dépendances existantes partagées par symlink, aucune installation. Les30 PR ouvertes ont été inspectées via leurs fichiers GitHub : aucun chevauchement avec Auth7, signup ou composantsauth, reçu open-pr-files.json. Aucune source modifiée.
+Worktree isolé : `/workspace/vibecore-ui-auth-next`.
+
+Révision Git : `05c4e412e0ad21b77a36a26dad5091f7d7bf9bde` (merge main3eb70894 + correctifs UI locaux). Dépendances existantes partagées par symlink, aucune installation. Les30 PR ouvertes ont été inspectées via leurs fichiers GitHub : aucun chevauchement avec Auth7, signup ou composantsauth, reçu open-pr-files.json. Aucune source modifiée.
 
 | Route allouée | GET | POST / effets éventuels | Plan de fixture |
 |---|---|---|---|

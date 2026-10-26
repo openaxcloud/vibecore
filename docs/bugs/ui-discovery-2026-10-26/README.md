@@ -20,7 +20,7 @@ La première mesure galerie dans `interactions.json` est **invalide pour certifi
 
 Contrepreuve DOM,4groupes : overflow-wrap:anywhere sur le titre et les tags, max-width100% sur tags suppriment ces deux dépassements. Voir `interactions.json.counterproof`, capture avant `_gallery-320.png` et `gallery-card-proposed.png`. La capture proposée est une **injection CSS de diagnostic**, pas un build corrigé.
 
-Correction autorisée et revue par le parent : uniquement deux classes dans `app/routes/gallery._index.tsx`, sans tronquer ou supprimer le texte, sans changer composant partagé, navigation, API ou action. Sept tests existants Galerie SSR/detail passent ; lint ciblé et Prettier passent. Aucun test de source miroir ajouté pour prétendre démontrer une cascade CSS ; recette compilée après consolidation encore requise. Aucun build lancé ici pendant les travaux Auth/Org concurrents.
+Correction autorisée et revue par le parent : uniquement deux classes dans `app/routes/gallery._index.tsx`, sans tronquer ou supprimer le texte, sans changer composant partagé, navigation, API ou action. Sept tests existants Galerie SSR/detail passent ; lint ciblé et Prettier passent. Aucun test de source miroir ajouté pour prétendre démontrer une cascade CSS ; recette compilée encore requise à cette étape initiale, puis effectuée après consolidation : voir la section finale after13099 ci-dessous. Aucun build lancé ici pendant les travaux Auth/Org concurrents.
 
 ## Preuves et limites
 
