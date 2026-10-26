@@ -65,6 +65,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 
 import 'virtual:uno.css';
 
+import { useIdeToastLayout } from './components/ui/useIdeToastLayout';
 import { AppErrorBoundary } from './components/ui/PanelBoundary';
 import { GlobalTooltip } from './components/ui/GlobalTooltip';
 
@@ -889,11 +890,13 @@ function AppBootFallback({ ide, overlay = false }: { ide: boolean; overlay?: boo
 }
 
 function AppToastContainer() {
+  const compactIde = useIdeToastLayout();
   const theme = useStore(themeStore);
   const { t } = useTranslation();
 
   return (
     <ToastContainer
+      className={compactIde ? 'vc-ide-compact-toasts' : undefined}
       closeButton={({ closeToast }) => {
         return (
           <button
@@ -934,7 +937,7 @@ function AppToastContainer() {
       autoClose={4000}
       limit={3}
       stacked
-      newestOnTop={false}
+      newestOnTop={compactIde}
       theme={theme}
     />
   );

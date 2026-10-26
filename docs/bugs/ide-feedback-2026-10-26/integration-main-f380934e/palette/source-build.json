@@ -1,0 +1,9 @@
+{
+  "head": "d24ec3a2b5dfacea3f52978f89ae78417f648388",
+  "bundle": "/workspace/vibecore-ui-ide-local-recovery/build/server/index.js",
+  "bundleSHA256": "f829ae61464bfdf8c105d5c459420f4a9c11d8524c516c4edafd1248cfd17093",
+  "baseChatSHA256": "49112a84fa0bcb65ff9d9cd3f71c150867437cd0bb9923e8dd26cd530d03d6b3",
+  "chatChunks": [
+    "Chat.client-BH-ZNCiR.js"
+  ]
+}

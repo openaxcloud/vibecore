@@ -1,0 +1,22 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ide-feedback
+
+ ✓ app/components/ui/useIdeToastLayout.spec.tsx (3 tests) 121ms
+ ✓ app/components/chat/applied-files-toast-honnete.spec.tsx (12 tests) 112ms
+ ✓ app/components/chat/AssistantMessage.i18n.spec.tsx (14 tests) 615ms
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 74ms
+ ✓ app/utils/toast-batcher.spec.ts (11 tests) 39ms
+ ✓ app/components/chat/agent-lane-state.spec.ts (14 tests) 10ms
+ ✓ app/components/dashboard/ProjectPreviewMedia.spec.tsx (13 tests) 663ms
+ ✓ app/root.hydration.spec.ts (8 tests) 14ms
+ ✓ app/root.route-loader.spec.ts (14 tests) 4ms
+ ✓ app/root.boot-splash.spec.ts (4 tests) 18ms
+ ✓ app/components/chat/applied-files-toast-buffer.spec.ts (6 tests) 14ms
+ ✓ app/lib/perf/root-route-graph.spec.ts (3 tests) 4ms
+ ✓ app/components/chat/agent-003-consensus-rejete.spec.ts (4 tests) 3ms
+ ✓ app/root.locale-meta.spec.ts (9 tests) 12ms
+
+ Test Files  14 passed (14)
+      Tests  121 passed (121)
+   Start at  06:08:45
+   Duration  16.14s (transform 10.13s, setup 1.15s, collect 15.53s, tests 1.71s, environment 3.32s, prepare 2.25s)

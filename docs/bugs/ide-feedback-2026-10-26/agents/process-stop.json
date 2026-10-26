@@ -1,0 +1,28 @@
+[
+  {
+    "pid": 230203,
+    "cmd": [
+      "node",
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/corepack",
+      "pnpm",
+      "exec",
+      "vite",
+      "--config",
+      "/tmp/ui-agent-lanes-browser/vite.config.mjs"
+    ],
+    "startTicks": "3776496",
+    "absentAfterTermination": true
+  },
+  {
+    "pid": 230215,
+    "cmd": [
+      "node",
+      "./node_modules/.bin/../vite/bin/vite.js",
+      "--config",
+      "/tmp/ui-agent-lanes-browser/vite.config.mjs"
+    ],
+    "startTicks": "3776527",
+    "absentAfterTermination": false,
+    "stateAfterTERM": "Z"
+  }
+]

@@ -14,6 +14,10 @@ const copy = {
     providerStreamFailed: 'The AI provider stream failed. Please try again.',
     modelUnknown: 'The model "{model}" is not in the AI gateway catalog.',
     agentEmptyResponse: 'The agent returned an empty response.',
+    agentActionsWithoutReport: 'The agent emitted actions without a valid report. Execution has not been observed.',
+    agentInvalidReport: 'The agent returned content without a valid summary report.',
+    agentInterruptedResponse:
+      'The agent response was interrupted. Received content is preserved; execution has not been observed.',
     consensusEmptySummary: 'No sub-agent produced a usable summary.',
     consensusFileOverlap: 'Sub-agents claiming ownership of {path}: {count}.',
     consensusRiskDisagreement: 'Risk "{risk}" — reporting roles: {supporters}; other roles: {dissenters}.',
@@ -49,6 +53,10 @@ const copy = {
     providerStreamFailed: 'Le flux du fournisseur d’IA a échoué. Veuillez réessayer.',
     modelUnknown: 'Le modèle « {model} » ne figure pas dans le catalogue de la passerelle d’IA.',
     agentEmptyResponse: 'L’agent a renvoyé une réponse vide.',
+    agentActionsWithoutReport: 'L’agent a émis des actions sans rapport valide. Aucune exécution n’a été observée.',
+    agentInvalidReport: 'L’agent a renvoyé du contenu sans rapport de synthèse valide.',
+    agentInterruptedResponse:
+      'La réponse de l’agent a été interrompue. Le contenu reçu est conservé ; aucune exécution n’a été observée.',
     consensusEmptySummary: 'Aucun sous-agent n’a produit de synthèse exploitable.',
     consensusFileOverlap: '{count} sous-agents revendiquent le fichier {path}.',
     consensusRiskDisagreement:
@@ -84,17 +92,20 @@ export function normalizeAiGatewayLocale(value: unknown): AiGatewayLocale | unde
   }
 
   const primary = value.trim().toLowerCase().split(/[-_]/)[0];
+
   return primary === 'fr' ? 'fr' : primary === 'en' ? 'en' : undefined;
 }
 
 export function aiGatewayLocaleFromHeader(value: string | readonly string[] | null | undefined): AiGatewayLocale {
   const header = typeof value === 'string' ? value : value ? [...value].join(',') : '';
+
   const match = header
     .split(',')
     .map((entry, index) => {
       const [tag, ...parameters] = entry.trim().split(';');
       const qualityValue = parameters.find((parameter) => parameter.trim().toLowerCase().startsWith('q='));
       const quality = qualityValue ? Number.parseFloat(qualityValue.trim().slice(2)) : 1;
+
       return { locale: normalizeAiGatewayLocale(tag), quality: Number.isFinite(quality) ? quality : 0, index };
     })
     .filter(

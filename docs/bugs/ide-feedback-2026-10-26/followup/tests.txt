@@ -1,0 +1,48 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ide-feedback-next
+
+ ✓ app/components/ui/useIdeToastLayout.spec.tsx (6 tests) 60ms
+ ✓ app/components/chat/AssistantMessage.i18n.spec.tsx (22 tests) 768ms
+ ✓ app/components/workbench/usePreviewStartNotice.spec.tsx (3 tests) 20ms
+ ✓ app/components/dashboard/ProjectPreviewMedia.spec.tsx (13 tests) 393ms
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 56ms
+ ✓ app/components/chat/applied-files-toast-honnete.spec.tsx (12 tests) 97ms
+ ✓ app/root.boot-splash.spec.ts (4 tests) 4ms
+ ✓ app/utils/toast-batcher.spec.ts (11 tests) 26ms
+ ✓ app/components/chat/applied-files-toast-buffer.spec.ts (6 tests) 6ms
+stdout | app/components/workbench/Preview.start-notice.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+ ✓ app/root.hydration.spec.ts (8 tests) 15ms
+ ✓ app/components/workbench/Preview.start-notice.spec.tsx (2 tests) 212ms
+ ✓ app/components/chat/agent-lane-state.spec.ts (14 tests) 4ms
+ ✓ app/lib/perf/root-route-graph.spec.ts (3 tests) 11ms
+ ✓ app/root.route-loader.spec.ts (14 tests) 13ms
+ ✓ app/components/chat/agent-003-consensus-rejete.spec.ts (4 tests) 5ms
+ ✓ app/root.locale-meta.spec.ts (9 tests) 19ms
+
+ Test Files  16 passed (16)
+      Tests  137 passed (137)
+   Start at  06:33:31
+   Duration  12.66s (transform 7.76s, setup 623ms, collect 11.22s, tests 1.71s, environment 2.55s, prepare 1.70s)

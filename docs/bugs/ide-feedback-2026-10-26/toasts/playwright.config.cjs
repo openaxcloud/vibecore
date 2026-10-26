@@ -1,0 +1,1 @@
+module.exports={testDir:'/workspace/vibecore-ui-ide-feedback/tests/e2e',testMatch:'bandeau-toast-visible.spec.ts',workers:1,retries:0,reporter:'list',use:{headless:true,launchOptions:{executablePath:'/usr/bin/chromium',args:['--no-sandbox']}}};
