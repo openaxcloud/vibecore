@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-504 entrées.
+505 entrées.
 
 ## Sans section
 
@@ -653,6 +653,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-PUBLIC-TEMPLATES-CARD-CLIPPING-20261026](docs/bugs/BUG-PUBLIC-TEMPLATES-CARD-CLIPPING-20261026.md) — Catalogue public Templates : cartes et liens d’action coupés sur petit mobile. — 📤 Dispatché : ☑ 26/10/2026 — Mission UI globale, lot local isolé ; périmètre revu avec le parent. · 💻 Codé : ☐ Sur main. Correctif local uniquement ; aucune fusion ni livraison déclarée par cette fiche. · ✅ Testé live : ☐ En production. Chromium local et données synthétiques uniquement ; aucune authentification production, mutat
 - [BUG-SHORT-HEIGHT-PAGE-SCROLL-20261026](docs/bugs/BUG-SHORT-HEIGHT-PAGE-SCROLL-20261026.md) — À faible hauteur, le verrou de défilement destiné à l'IDE s'applique aussi aux pages publiques et utilisateur. — 📤 Dispatché : ☑ 26/10/2026 — Audit UI local demandé, cause et proposition partagées avec le parent et ui_remaining. Vérifica · 💻 Codé : ☐ Sur main. Correctif local appliqué et compilé par le parent, union de deux sélecteurs seulement ; pas encore · ✅ Testé live : ☐ En production. Aucun compte, suppression/désactivation ou backend réel utilisé. Fusion de #796 rapportée sép
 - [BUG-USERAREA-HEADER-SAFEAREA-20261026](docs/bugs/BUG-USERAREA-HEADER-SAFEAREA-20261026.md) — Header de la zone utilisateur : contrôles dans les marges sûres simulées portrait et paysage. — 📤 Dispatché : ☑ 26/10/2026 — Mission UI globale, lot local isolé ; périmètre revu avec le parent. · 💻 Codé : ☐ Sur main. Correctif local uniquement ; aucune fusion ni livraison déclarée par cette fiche. · ✅ Testé live : ☐ En production. Chromium local et données synthétiques uniquement ; aucune authentification production, mutat
+- [BUG-IDE-TAB-FOCUS-20261026](docs/bugs/BUG-IDE-TAB-FOCUS-20261026.md) — Sur main #797, le test `ide-panel-visibility.spec.ts:83`, cas « panel visibility 390px › tabs closes with Escape and restores focus », constate le menu fermé ma — 📤 Dispatché : 26/10/2026 — audit des panneaux IDE, branche dédiée depuis main `798fa0f251dec690f81ebd11f0c43eae76c98ba6`. · 💻 Codé : ☐ — correctif local en validation, aucun correctif de ce lot livré. · ✅ Testé live : ☐ — aucune recette authentifiée en production ni Safari matériel.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

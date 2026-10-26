@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { useMobileOverlayFocus } from './MobileOverlayFocus';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
 import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
 import {
@@ -3026,7 +3027,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [mobileOverlayStorageKey],
     );
 
-    const mobileOverlayReturnFocusRef = useRef<HTMLElement | null>(null);
+    const {
+      rootRef: mobileFocusRootRef,
+      rememberOpener,
+      restoreOpener,
+    } = useMobileOverlayFocus(projectIdeMode && useMobileIde && clientHydrated, useMobileIde);
+    const setChatRootRef = useCallback(
+      (node: HTMLDivElement | null) => {
+        mobileFocusRootRef.current = node;
+
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      },
+      [mobileFocusRootRef, ref],
+    );
 
     const blurActiveMobileControl = useCallback(() => {
       if (typeof document === 'undefined') {
@@ -3037,12 +3054,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (activeElement instanceof HTMLElement) {
         if (!activeElement.closest('[role="dialog"]')) {
-          mobileOverlayReturnFocusRef.current = activeElement;
+          rememberOpener(activeElement);
         }
 
         activeElement.blur();
       }
-    }, []);
+    }, [rememberOpener]);
 
     useEffect(() => {
       setClientHydrated(true);
@@ -3233,9 +3250,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       },
-      [closeMobileOverlays],
+      [closeMobileOverlays, restoreOpener],
     );
 
     const openMobileToolsSheet = useCallback(() => {
@@ -3485,7 +3502,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       };
 
       /*
@@ -3497,6 +3514,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape, true);
     }, [
       closeMobileOverlays,
+      restoreOpener,
       mobileAgentMenuOpen,
       mobileMoreMenuOpen,
       mobileTabSwitcherOpen,
@@ -10146,7 +10164,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const baseChat = (
       <div
-        ref={ref}
+        ref={setChatRootRef}
         className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden bolt-responsive-ide', {
           'bolt-responsive-ide-mobile': useMobileIde,
           'bolt-responsive-ide-tablet-landscape': layout.isTabletLandscape,

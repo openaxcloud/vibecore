@@ -1,0 +1,116 @@
+[
+  {
+    "panel": "files",
+    "dom": {
+      "innerWidth": 720,
+      "outerWidth": 1440,
+      "devicePixelRatio": 2,
+      "scrollWidth": 720
+    },
+    "viewport": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 720,
+      "clientHeight": 456.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "panel": "editor",
+    "dom": {
+      "innerWidth": 720,
+      "outerWidth": 1440,
+      "devicePixelRatio": 2,
+      "scrollWidth": 720
+    },
+    "viewport": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 720,
+      "clientHeight": 456.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "panel": "git",
+    "dom": {
+      "innerWidth": 720,
+      "outerWidth": 1440,
+      "devicePixelRatio": 2,
+      "scrollWidth": 720
+    },
+    "viewport": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 720,
+      "clientHeight": 456.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "panel": "deployments",
+    "dom": {
+      "innerWidth": 720,
+      "outerWidth": 1440,
+      "devicePixelRatio": 2,
+      "scrollWidth": 720
+    },
+    "viewport": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 720,
+      "clientHeight": 456.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "panel": "database",
+    "dom": {
+      "innerWidth": 720,
+      "outerWidth": 1440,
+      "devicePixelRatio": 2,
+      "scrollWidth": 720
+    },
+    "viewport": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 720,
+      "clientHeight": 456.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "panel": "secrets",
+    "dom": {
+      "innerWidth": 720,
+      "outerWidth": 1440,
+      "devicePixelRatio": 2,
+      "scrollWidth": 720
+    },
+    "viewport": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 720,
+      "clientHeight": 456.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  }
+]

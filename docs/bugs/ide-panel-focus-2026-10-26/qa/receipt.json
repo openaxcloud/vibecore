@@ -1,0 +1,81 @@
+{
+  "compiledProduct": "798fa0f251dec690f81ebd11f0c43eae76c98ba6",
+  "browser": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "runtime": "Local compiled web with isolated API/PostgreSQL/Redis; disposable local accounts and imported fixture files",
+  "sourceManifestSHA256": "646f6962273bda07ab53a609175d1a38cef837d8397e14a1ee58deec6aaed3db",
+  "buildManifestSHA256": "fe9483304b17a84a15a17ae4914e9aa1f5af143d3adb6caea906cd8ea0646087",
+  "runs": {
+    "settled-matrix": {
+      "stats": {
+        "startTime": "2026-10-26T02:07:03.386Z",
+        "duration": 93343.89600000001,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "retries": 0,
+      "resultSHA256": "00f0e383c46f850ea7e4048828176f756aa9dba1fc018905f9e3185d2fb0347a"
+    },
+    "git-settled": {
+      "stats": {
+        "startTime": "2026-10-26T02:09:05.798Z",
+        "duration": 19251.834,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "retries": 0,
+      "resultSHA256": "541800d62121b95459f18f2a9d825380b093b2368bb13b114c9be75ec8780602"
+    },
+    "error": {
+      "stats": {
+        "startTime": "2026-10-26T02:08:57.438Z",
+        "duration": 23114.536,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "retries": 0,
+      "resultSHA256": "16f77d7e551db959eb6d1f8d999f8946bbdeee12e40a8113056813691c4830e7"
+    },
+    "zoom": {
+      "stats": {
+        "startTime": "2026-10-26T02:09:36.818Z",
+        "duration": 17458.941,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "retries": 0,
+      "resultSHA256": "aafa49f79e9f72257416ade8d691056b6e01be7db662afdf30105f333c680552"
+    },
+    "interaction": {
+      "stats": {
+        "startTime": "2026-10-26T02:10:36.842Z",
+        "duration": 19946.745,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "retries": 0,
+      "resultSHA256": "0a54cedf356e9b3e603d42723cf8a4dbf05b4e12f28b59fa22d70ffd0944a074"
+    }
+  },
+  "synthetic": "Database GET503 held until explicit retry; all subsequent successful reads used real isolated API. Git discard cancelled, no mutation POST. No provider publication/DNS/credentials/client projects.",
+  "limits": [
+    "Not authenticated production QA; Chromium only, no physical Safari",
+    "Light theme captured; no claim of exhaustive theme or provider coverage",
+    "Initial shell screenshots did not await all panels; replaced by settled matrix and Git-specific ready marker",
+    "First one-shot database503 recovered automatically before alert assertion (4 failed non-probative harness cases); maintained outage corrected harness, not product",
+    "Native zoom via Chromium settingsPrivate.setDefaultZoom(2); CDP confirms zoom2 and720CSS/1440outer; extension probes failed to start, preferences probe remainedzoom1, no proof claimed",
+    "Playwright screenshot clipped native zoom; final capture uses CDP Page.captureScreenshot without clip",
+    "No source code change in this QA subtask; no production merge requested"
+  ],
+  "dependencyReuse": "Existing node_modules reused. All tracked packages/ files compared byte-for-byte against resolved /workspace/vibecore package sources: zero differences.",
+  "proofScan": "gitleaks8.21.2 no-git scan of QA docs: no leaks found"
+}
