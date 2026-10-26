@@ -1,0 +1,104 @@
+[
+  {
+    "width": 390,
+    "kind": "tabs",
+    "log": [
+      "chunkHeld",
+      "openedInPendingShell",
+      "chunkReleased",
+      "triggerDetachedOnHandoff",
+      "sheetRestored"
+    ],
+    "state": {
+      "triggerFocused": true,
+      "active": "<button type=\"button\" class=\"bolt-mobile-replit-icon-tab\" aria-label=\"Open tab switcher\" data-testid=\"button-tab-switcher\" title=\"Open tab switcher\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Open tab switcher\"><span class=\"i-ph:squares-four\" aria-hidden=\"true\"></span></button>",
+      "oldConnected": false,
+      "events": [
+        {
+          "t": 2872.4649999961257,
+          "type": "focusin",
+          "target": "button-tab-switcher"
+        },
+        {
+          "t": 2885.85000000149,
+          "type": "keydown",
+          "key": "Enter",
+          "target": "button-tab-switcher"
+        },
+        {
+          "t": 2886.835000000894,
+          "type": "click",
+          "target": "button-tab-switcher"
+        },
+        {
+          "t": 3399.344999998808,
+          "type": "focusin",
+          "target": "input-search-tabs"
+        },
+        {
+          "t": 3408.365000002086,
+          "type": "keydown",
+          "key": "Escape",
+          "target": "input-search-tabs"
+        },
+        {
+          "t": 3410.015000000596,
+          "type": "focusin",
+          "target": "button-tab-switcher"
+        }
+      ]
+    },
+    "passed": true
+  },
+  {
+    "width": 1180,
+    "kind": "panels",
+    "log": [
+      "chunkHeld",
+      "openedInPendingShell",
+      "chunkReleased",
+      "triggerDetachedOnHandoff",
+      "sheetRestored"
+    ],
+    "state": {
+      "triggerFocused": true,
+      "active": "<button type=\"button\" aria-label=\"More options\" aria-haspopup=\"dialog\" aria-expanded=\"false\" data-testid=\"button-more\" data-vc-auto-title=\"true\" data-vc-tooltip=\"More options\" data-vc-title-stash=\"More options\" title=\"More options\"><span class=\"i-ph:dots-three-vertical-bold\" aria-hidden=\"true\"></spa",
+      "oldConnected": false,
+      "events": [
+        {
+          "t": 1968.9799999967217,
+          "type": "focusin",
+          "target": "button-more"
+        },
+        {
+          "t": 2023.2749999985099,
+          "type": "keydown",
+          "key": "Enter",
+          "target": "button-more"
+        },
+        {
+          "t": 2024.734999999404,
+          "type": "click",
+          "target": "button-more"
+        },
+        {
+          "t": 3437.890000000596,
+          "type": "focusin",
+          "target": "mobile-more-menu-close"
+        },
+        {
+          "t": 3488.619999997318,
+          "type": "keydown",
+          "key": "Escape",
+          "target": "mobile-more-menu-close"
+        },
+        {
+          "t": 3489.570000000298,
+          "type": "focusin",
+          "target": "button-more"
+        }
+      ]
+    },
+    "passed": true
+  }
+]
