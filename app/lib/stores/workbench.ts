@@ -3764,7 +3764,20 @@ export class WorkbenchStore {
         return;
       }
 
+      const writeRuntime = this.#runtime;
+      const writeBinding = this.#projectStorageBinding;
+      const writeProject = this.#projectId;
+
+      const writeScopeIsCurrent = () =>
+        this.#runtime === writeRuntime &&
+        this.#projectStorageBinding === writeBinding &&
+        this.#projectId === writeProject;
+
       await this.#createAutomaticSnapshotBeforeLargeAiChange(data);
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
 
       const fullPath = path.join(this.#runtime.workdir, data.action.filePath);
 
@@ -3848,6 +3861,12 @@ export class WorkbenchStore {
 
       await artifact.runner.runAction(data);
 
+      const writeReceipt = artifact.runner.consumeConfirmedFileWrite?.(data.actionId);
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
+
       const completedAction = artifact.runner.actions.get()[data.actionId];
 
       if (completedAction?.status === 'failed') {
@@ -3883,7 +3902,11 @@ export class WorkbenchStore {
        * l'appel est différé.
        */
       const cheminEcrit = data.action.filePath;
-      const confirmation = await confirmWriteWithinDeadline(() => this.#runtime.readFile(cheminEcrit));
+      const confirmation = await confirmWriteWithinDeadline(() => writeRuntime.readFile(cheminEcrit));
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
 
       if (confirmation !== 'confirmed') {
         const message =
@@ -3910,6 +3933,21 @@ export class WorkbenchStore {
       await this.loadRuntimeFiles('.').catch(() => {
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.refreshSkipped'));
       });
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
+
+      if (
+        writeReceipt &&
+        writeReceipt.runtime === writeRuntime &&
+        !writeReceipt.abortSignal.aborted &&
+        !data.fermetureDeSecours &&
+        completedAction?.status === 'complete' &&
+        writeScopeIsCurrent()
+      ) {
+        confirmerEcritureDeMessage(data.messageId, writeReceipt.filePath, `${data.artifactId}:${data.actionId}`);
+      }
 
       const writtenFile = this.#filesStore.getFile(fullPath);
       this.#editorStore.updateFile(fullPath, writtenFile?.content ?? data.action.content);

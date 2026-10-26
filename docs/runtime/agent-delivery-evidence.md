@@ -11,7 +11,7 @@ Quatre notions restent distinctes :
 - `agentExecution.results[].files` : chemins annoncés dans le rapport du modèle.
 - `emittedFiles` : actions de fichiers complètes observées dans le flux.
 - `cheminsAttribuesParLesLanes(messageId)` : autorisations attribuées par l'arbitre.
-- `cheminsEcritsParLesLanes(messageId)` : propositions appliquées puis confirmées
+- `cheminsEcritsParLesLanes(messageId)` : écritures appliquées puis confirmées
   par relecture du runtime, coordinateur et sous-agents inclus.
 
 Le dernier lecteur renvoie `undefined` en l'absence d'observation (historique,
@@ -20,12 +20,23 @@ confirmation d'écriture. Il ne faut pas convertir `undefined` en zéro écrit.
 Les chemins confirmés préservent la casse du runtime Linux ; l'arbitrage garde
 sa normalisation conservatrice indépendante.
 
-Le raccord strict couvre les propositions de fichiers acceptées, utilisées
-notamment dans les modes Agent/Edit de l'IDE projet. Le chemin historique sans
-revue ne vérifie actuellement que la lisibilité du fichier ; il reste inconnu
-dans ce registre plutôt que d'être compté comme appliqué ou comme zéro écrit.
-Instrumenter ce chemin avec une confirmation du contenu effectivement écrit
-reste un travail distinct avant de revendiquer une couverture de tous les modes.
+Le raccord strict couvre les propositions acceptées et les écritures finales du
+chemin direct sans revue. Dans ce dernier, `ActionRunner` confirme immédiatement
+par relecture le payload envoyé avec succès à `runtime.writeFile`, après
+normalisation/réparation et avant la réconciliation des imports. Il conserve
+uniquement des métadonnées temporaires, consommables une fois par
+`consumeConfirmedFileWrite(actionId)` et bornées à 32 actions. Le contenu n'est
+pas conservé dans ce registre. Le Workbench contrôle l'annulation, l'identité du
+runtime, du projet et de sa liaison avant de publier la confirmation.
+
+Un flux encore partiel, une fermeture de secours, une annulation ou une
+confirmation incertaine ne produit pas de reçu. Une lecture incertaine ne rejoue
+jamais l'écriture. Les placeholders et les écritures de réconciliation ne
+deviennent pas des fichiers générés confirmés. Sans reçu strict, ce chemin reste
+inconnu, jamais faussement « zéro écrit ». La preuve est historique : une
+réconciliation ultérieure peut légitimement modifier le même fichier.
+Une fermeture dédoublonnée après un fragment streaming identique ne requalifie
+pas ce fragment en écriture finale confirmée : elle reste sans reçu.
 
 L'interface peut s'abonner à l'atom `confirmationsEcritureVersion` pour recalculer
 les compteurs après confirmation ou invalidation. Elle doit distinguer une
@@ -73,9 +84,14 @@ dernier reçu pertinent et préserver l'état inconnu des anciennes conversation
 `status: complete` reste un rapport valide. `verificationState: not_observed`
 ne permet jamais d'afficher une exécution de tests comme vérifiée.
 
-Validation locale : 145 tests ciblés, dont le SDK réel avec fournisseur simulé
+Validation du contrat initial : 145 tests ciblés, dont le SDK réel avec fournisseur simulé
 sans réseau, les deux segments de la route réelle avec frontière modèle simulée,
 le workbench et un vrai fichier temporaire via les handlers de l'agent. Build
 web/SSR, typage officiel et lint réussis. Aucun appel AI payant ni changement
 de projet client. Les causes du 503 de preview et du solde fournisseur historique
 restent non établies.
+
+Extension du chemin direct : 147 tests ciblés réussis, dont des fichiers
+temporaires réellement écrits et relus, la divergence concurrente, les échecs
+d'écriture, l'arrêt, le changement de runtime et l'exclusion des placeholders.
+La réparation est simulée à sa frontière fournisseur, sans appel AI payant.
