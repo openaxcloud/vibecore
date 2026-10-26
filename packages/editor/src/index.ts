@@ -22,9 +22,18 @@ import type * as MonacoTypes from 'monaco-editor';
 import { createElement, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 import { formatEditorCopy, getEditorCopy, type EditorCopy } from './editor-copy.js';
-import { claimDesktopEditorFocus, registerDesktopEditorFocus, useDesktopEditorFocus } from './desktop-editor-focus.js';
+import {
+  claimDesktopEditorFocus,
+  registerDesktopEditorFocus,
+  trackDesktopEditorComposition,
+  useDesktopEditorFocus,
+} from './desktop-editor-focus.js';
 
-export { DesktopEditorFocusProvider, useDesktopEditorFocusHandoff } from './desktop-editor-focus.js';
+export {
+  DesktopEditorFocusProvider,
+  useDesktopEditorFocusHandoff,
+  useDesktopEditorComposing,
+} from './desktop-editor-focus.js';
 
 function readEditorUiLanguage(): string {
   if (typeof document !== 'undefined' && document.documentElement.lang) {
@@ -1288,6 +1297,9 @@ export function DesktopCodeEditor({
 
         (globalThis as any).__vibecoreStartupMark?.('monaco-create-ready');
         editorRef.current = editor;
+        const composition = trackDesktopEditorComposition(focusState);
+        const compositionStart = editor.onDidCompositionStart(composition.start);
+        const compositionEnd = editor.onDidCompositionEnd(composition.end);
 
         /*
          * The selected document can change while the module is loading. Refs
@@ -1371,6 +1383,9 @@ export function DesktopCodeEditor({
         }
 
         editor.onDidDispose(() => {
+          compositionStart.dispose();
+          compositionEnd.dispose();
+          composition.dispose();
           disposable.dispose();
           selectionDisposable.dispose();
           providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());

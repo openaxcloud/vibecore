@@ -7,6 +7,7 @@ import {
   DesktopEditorFocusProvider,
   preloadDesktopCodeEditor,
   useDesktopEditorFocusHandoff,
+  useDesktopEditorComposing,
 } from './index.js';
 
 type TestUri = { path: string; toString: () => string };
@@ -24,6 +25,8 @@ type TestEditor = {
   updateOptions: ReturnType<typeof vi.fn>;
   disposed: boolean;
   input: HTMLTextAreaElement;
+  startComposition(): void;
+  endComposition(): void;
   viewState: { column: number; scrollTop: number };
   focusedViewState?: { column: number; scrollTop: number };
 };
@@ -110,9 +113,21 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
         let model = options.model;
         let onChange: () => void = () => undefined;
         let onDispose: () => void = () => undefined;
+        let onCompositionStart = () => undefined as void;
+        let onCompositionEnd = () => undefined as void;
 
         const editor = {
           input,
+          startComposition: () => onCompositionStart(),
+          endComposition: () => onCompositionEnd(),
+          onDidCompositionStart: (callback: () => void) => {
+            onCompositionStart = callback;
+            return disposable();
+          },
+          onDidCompositionEnd: (callback: () => void) => {
+            onCompositionEnd = callback;
+            return disposable();
+          },
           viewState: { column: 1, scrollTop: 0 },
           focusedViewState: undefined as TestEditor['focusedViewState'],
           saveViewState: () => ({ ...editor.viewState }),
@@ -492,4 +507,76 @@ it('does not restore focus when a borrowed model still has old content but incom
   expect(document.activeElement).not.toBe(replacement.input);
   mounted.unmount();
   model.dispose();
+});
+
+function compositionStatus() {
+  return createElement('output', { 'data-testid': 'composition-status' }, String(useDesktopEditorComposing()));
+}
+
+function compositionTree(visible = true, scope = 'project-a') {
+  return createElement(DesktopEditorFocusProvider, {
+    key: scope,
+    children: [
+      visible ? createElement(DesktopCodeEditor, { key: 'editor', filePath: '/composition.txt', value: 'IME' }) : null,
+      createElement(compositionStatus, { key: 'status' }),
+    ],
+  });
+}
+
+it('reports only native composition activity, not focus or ordinary typing', async () => {
+  const mounted = render(compositionTree());
+  const editor = await newestEditor();
+  editor.input.focus();
+  act(() => editor.getModel().setValue('ordinary typing'));
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+  act(() => editor.startComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  act(() => {
+    editor.getModel().setValue('日本');
+    editor.endComposition();
+  });
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+  expect(editor.getValue()).toBe('日本');
+});
+
+it('clears composition when its editor is disposed and never carries it into another scope', async () => {
+  const mounted = render(compositionTree());
+  act(() => pendingMonaco.created.find((editor) => !editor.disposed)?.startComposition());
+
+  const initial = await newestEditor();
+  act(() => initial.startComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  mounted.rerender(compositionTree(false));
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+  mounted.rerender(compositionTree());
+
+  const next = await newestEditor();
+  act(() => next.startComposition());
+  mounted.rerender(compositionTree(true, 'project-b'));
+  await newestEditor();
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
+});
+
+it('keeps simultaneous compositions independent within the same provider', async () => {
+  const mounted = render(
+    createElement(DesktopEditorFocusProvider, {
+      children: [
+        createElement(DesktopCodeEditor, { key: 'a', filePath: '/composition-a.txt', value: 'A' }),
+        createElement(DesktopCodeEditor, { key: 'b', filePath: '/composition-b.txt', value: 'B' }),
+        createElement(compositionStatus, { key: 'status' }),
+      ],
+    }),
+  );
+  await waitFor(() => expect(pendingMonaco.created.filter((editor) => !editor.disposed)).toHaveLength(2));
+
+  const [first, second] = pendingMonaco.created.filter((editor) => !editor.disposed);
+  act(() => {
+    first.startComposition();
+    second.startComposition();
+  });
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  act(() => first.endComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('true');
+  act(() => second.endComposition());
+  expect(mounted.getByTestId('composition-status').textContent).toBe('false');
 });
