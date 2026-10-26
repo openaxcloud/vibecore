@@ -1,0 +1,1 @@
+Revue indépendante final_review favorable avant adoption. HandlesSSR existants, pas de global navigateur au rendu, catalogues déterministes ; marge144px supérieure aux headers mesurés. Recette compilée ultérieure32cas et4zooms positifs.

@@ -1,0 +1,142 @@
+{
+  "base": "http://127.0.0.1:8699",
+  "language": "fr",
+  "synthetic": true,
+  "observations": [
+    {
+      "variant": "workspace-settings",
+      "theme": "light",
+      "width": 320,
+      "contrast": {
+        "count": 35,
+        "excludedComplex": 0,
+        "min": 5.732743138708298,
+        "failures": [],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(169, 65, 0)",
+          "bg": [
+            246,
+            248,
+            251,
+            255
+          ],
+          "ratio": 5.732743138708298,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    },
+    {
+      "variant": "workspace-settings",
+      "theme": "light",
+      "width": 1440,
+      "contrast": {
+        "count": 39,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(169, 65, 0)",
+          "bg": [
+            246,
+            248,
+            251,
+            255
+          ],
+          "ratio": 5.732743138708298,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    },
+    {
+      "variant": "workspace-settings",
+      "theme": "dark",
+      "width": 320,
+      "contrast": {
+        "count": 35,
+        "excludedComplex": 0,
+        "min": 6.889960578617143,
+        "failures": [],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(255, 138, 61)",
+          "bg": [
+            10,
+            15,
+            28,
+            255
+          ],
+          "ratio": 8.155506965081472,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    },
+    {
+      "variant": "workspace-settings",
+      "theme": "dark",
+      "width": 1440,
+      "contrast": {
+        "count": 39,
+        "excludedComplex": 20,
+        "min": 5.178415705888697,
+        "failures": [],
+        "modelSettingsLink": {
+          "tag": "A",
+          "href": "/settings",
+          "text": "Ouvrir les paramètres des modèles et fournisseurs",
+          "className": "w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent,#F26207)] hover:underline",
+          "color": "rgb(255, 138, 61)",
+          "bg": [
+            10,
+            15,
+            28,
+            255
+          ],
+          "ratio": 8.155506965081472,
+          "font": "13px",
+          "weight": "400",
+          "threshold": 4.5,
+          "complex": false
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ✓ app/lib/i18n/catalogs/user-area.spec.ts (8 tests) 20ms
+ ✓ app/lib/i18n/runtime.spec.ts (11 tests) 144ms
+ ✓ app/lib/i18n/runtime-resources.spec.ts (7 tests) 89ms
+
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+   Start at  22:25:32
+   Duration  2.76s (transform 1.06s, setup 92ms, collect 889ms, tests 253ms, environment 0ms, prepare 196ms)

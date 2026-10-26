@@ -1,0 +1,316 @@
+{
+  "base": "http://127.0.0.1:11099",
+  "stages": [
+    {
+      "name": "initial",
+      "field": {
+        "x": 43,
+        "top": 460,
+        "right": 573.328125,
+        "bottom": 504,
+        "height": 44,
+        "value": "",
+        "focused": false
+      },
+      "html": {
+        "overflow": "visible",
+        "scroll": 0
+      },
+      "body": {
+        "overflow": "visible",
+        "scroll": 0
+      },
+      "hit": "P",
+      "header": [
+        {
+          "x": 47,
+          "right": 91,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 436.3125,
+          "right": 587.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 598,
+          "right": 642,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 653.5,
+          "right": 697.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 697.5,
+          "right": 741.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 753,
+          "right": 797,
+          "top": 5.5,
+          "bottom": 49.5
+        }
+      ]
+    },
+    {
+      "name": "wheel",
+      "field": {
+        "x": 43,
+        "top": 260,
+        "right": 573.328125,
+        "bottom": 304,
+        "height": 44,
+        "value": "",
+        "focused": false
+      },
+      "html": {
+        "overflow": "visible",
+        "scroll": 200
+      },
+      "body": {
+        "overflow": "visible",
+        "scroll": 0
+      },
+      "hit": "svg",
+      "header": [
+        {
+          "x": 47,
+          "right": 91,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 436.3125,
+          "right": 587.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 598,
+          "right": 642,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 653.5,
+          "right": 697.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 697.5,
+          "right": 741.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 753,
+          "right": 797,
+          "top": 5.5,
+          "bottom": 49.5
+        }
+      ]
+    },
+    {
+      "name": "PageDown-body",
+      "field": {
+        "x": 43,
+        "top": -81,
+        "right": 573.328125,
+        "bottom": -37,
+        "height": 44,
+        "value": "",
+        "focused": false
+      },
+      "html": {
+        "overflow": "visible",
+        "scroll": 541
+      },
+      "body": {
+        "overflow": "visible",
+        "scroll": 0
+      },
+      "hit": "LABEL",
+      "header": [
+        {
+          "x": 47,
+          "right": 91,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 436.3125,
+          "right": 587.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 598,
+          "right": 642,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 653.5,
+          "right": 697.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 697.5,
+          "right": 741.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 753,
+          "right": 797,
+          "top": 5.5,
+          "bottom": 49.5
+        }
+      ]
+    },
+    {
+      "name": "draft-after-resize",
+      "field": {
+        "x": 43,
+        "top": 358,
+        "right": 573.328125,
+        "bottom": 402,
+        "height": 44,
+        "value": "192.0.2.5",
+        "focused": true
+      },
+      "html": {
+        "overflow": "visible",
+        "scroll": 102
+      },
+      "body": {
+        "overflow": "visible",
+        "scroll": 0
+      },
+      "hit": "H2",
+      "header": [
+        {
+          "x": 47,
+          "right": 91,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 436.3125,
+          "right": 587.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 598,
+          "right": 642,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 653.5,
+          "right": 697.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 697.5,
+          "right": 741.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 753,
+          "right": 797,
+          "top": 5.5,
+          "bottom": 49.5
+        }
+      ]
+    },
+    {
+      "name": "draft-after-wheel",
+      "field": {
+        "x": 43,
+        "top": 208,
+        "right": 573.328125,
+        "bottom": 252,
+        "height": 44,
+        "value": "192.0.2.5",
+        "focused": true
+      },
+      "html": {
+        "overflow": "visible",
+        "scroll": 252
+      },
+      "body": {
+        "overflow": "visible",
+        "scroll": 0
+      },
+      "hit": "BUTTON",
+      "header": [
+        {
+          "x": 47,
+          "right": 91,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 436.3125,
+          "right": 587.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 598,
+          "right": 642,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 653.5,
+          "right": 697.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 697.5,
+          "right": 741.5,
+          "top": 5.5,
+          "bottom": 49.5
+        },
+        {
+          "x": 753,
+          "right": 797,
+          "top": 5.5,
+          "bottom": 49.5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "dialog": {
+    "x": 162,
+    "right": 682,
+    "top": 70.7109375,
+    "bottom": 319.2890625
+  },
+  "switcherEscape": true
+}

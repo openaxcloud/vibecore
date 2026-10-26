@@ -1,0 +1,23 @@
+{
+  "serverContainsTarget": false,
+  "serverContainsH1": false,
+  "events": [
+    {
+      "type": "DOMContentLoaded",
+      "time": 519.089999999851,
+      "target": false,
+      "scrollY": 0
+    },
+    {
+      "type": "target-mounted",
+      "time": 897.6899999994785,
+      "target": true,
+      "scrollY": 0
+    }
+  ],
+  "final": {
+    "scrollY": 0,
+    "hash": "#privacy-contact",
+    "targetTop": 1961
+  }
+}

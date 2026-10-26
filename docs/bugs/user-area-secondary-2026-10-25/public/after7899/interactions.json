@@ -1,0 +1,78 @@
+{
+  "base": "http://127.0.0.1:7899",
+  "mutations": [],
+  "errors": [],
+  "menus": [
+    {
+      "lang": "fr",
+      "first": "Fermer le menu mobile",
+      "escape": {
+        "tag": "BUTTON",
+        "label": "Ouvrir le menu mobile"
+      },
+      "desktop": {
+        "bodyPointerEvents": "auto",
+        "locked": false,
+        "dialogs": [],
+        "focus": "BUTTON",
+        "hiddenBodyChildren": 1
+      },
+      "clickable": true,
+      "breakpoint1279To1280": true,
+      "closeButtonFocus": true,
+      "landscape": {
+        "width": 844,
+        "height": 390,
+        "tabsToLastButton": 40,
+        "lastBounds": {
+          "x": 481,
+          "y": 299.75,
+          "width": 347,
+          "height": 61.75
+        }
+      }
+    },
+    {
+      "lang": "en",
+      "first": "Close mobile menu",
+      "escape": {
+        "tag": "BUTTON",
+        "label": "Open mobile menu"
+      },
+      "desktop": {
+        "bodyPointerEvents": "auto",
+        "locked": false,
+        "dialogs": [],
+        "focus": "BUTTON",
+        "hiddenBodyChildren": 1
+      },
+      "clickable": true,
+      "breakpoint1279To1280": true,
+      "closeButtonFocus": true,
+      "landscape": {
+        "width": 844,
+        "height": 390,
+        "tabsToLastButton": 40,
+        "lastBounds": {
+          "x": 481,
+          "y": 299.75,
+          "width": 347,
+          "height": 61.75
+        }
+      }
+    }
+  ],
+  "forms": [],
+  "navigation": [
+    {
+      "lang": "fr",
+      "pricingToggle": true,
+      "homeAndBack": true
+    },
+    {
+      "lang": "en",
+      "pricingToggle": true,
+      "homeAndBack": true
+    }
+  ]
+}

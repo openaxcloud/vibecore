@@ -1,0 +1,4 @@
+{ privateAPI: 'object', zoomAPI: 'function' }
+before { innerWidth: 1440, devicePixelRatio: 1, scale: 1 }
+zoom 1
+after { innerWidth: 378, devicePixelRatio: 3.801784038543701, scale: 1 }

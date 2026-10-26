@@ -1,0 +1,92 @@
+{
+  "cases": [
+    {
+      "width": 320,
+      "resizeDuringRetry": true,
+      "fallbackWhileRetryLoading": true,
+      "image": {
+        "complete": true,
+        "naturalWidth": 320,
+        "width": 288,
+        "src": "/api/projects/synthetic-320/thumbnail?thumbnailRetry=1"
+      }
+    },
+    {
+      "width": 390,
+      "resizeDuringRetry": true,
+      "fallbackWhileRetryLoading": true,
+      "image": {
+        "complete": true,
+        "naturalWidth": 320,
+        "width": 358,
+        "src": "/api/projects/synthetic-390/thumbnail?thumbnailRetry=1"
+      }
+    },
+    {
+      "width": 820,
+      "resizeDuringRetry": true,
+      "fallbackWhileRetryLoading": true,
+      "image": {
+        "complete": true,
+        "naturalWidth": 320,
+        "width": 788,
+        "src": "/api/projects/synthetic-820/thumbnail?thumbnailRetry=1"
+      }
+    },
+    {
+      "width": 1440,
+      "resizeDuringRetry": true,
+      "fallbackWhileRetryLoading": true,
+      "image": {
+        "complete": true,
+        "naturalWidth": 320,
+        "width": 1408,
+        "src": "/api/projects/synthetic-1440/thumbnail?thumbnailRetry=1"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "width": 320,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-320/thumbnail",
+      "status": 204
+    },
+    {
+      "width": 320,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-320/thumbnail?thumbnailRetry=1",
+      "status": 200
+    },
+    {
+      "width": 390,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-390/thumbnail",
+      "status": 204
+    },
+    {
+      "width": 390,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-390/thumbnail?thumbnailRetry=1",
+      "status": 200
+    },
+    {
+      "width": 820,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-820/thumbnail",
+      "status": 204
+    },
+    {
+      "width": 820,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-820/thumbnail?thumbnailRetry=1",
+      "status": 200
+    },
+    {
+      "width": 1440,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-1440/thumbnail",
+      "status": 204
+    },
+    {
+      "width": 1440,
+      "url": "http://127.0.0.1:14399/api/projects/synthetic-1440/thumbnail?thumbnailRetry=1",
+      "status": 200
+    }
+  ],
+  "writes": [],
+  "errors": []
+}

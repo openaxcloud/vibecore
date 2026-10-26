@@ -1,0 +1,135 @@
+[
+  {
+    "run": "final-targeted",
+    "case": "Chromium composition stable",
+    "attachment": "composition-evidence.json",
+    "data": {
+      "scenario": "stable",
+      "original": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "final": "# Keyboard fixture日本Z\nTab indents until navigation mode is enabled.\n",
+      "searchValue": null,
+      "oldInputConnected": true,
+      "documentFocused": true
+    }
+  },
+  {
+    "run": "final-targeted",
+    "case": "Chromium composition handoff",
+    "attachment": "composition-evidence.json",
+    "data": {
+      "scenario": "handoff",
+      "original": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "final": "# Keyboard fixture日本Z\nTab indents until navigation mode is enabled.\n",
+      "searchValue": null,
+      "oldInputConnected": false,
+      "documentFocused": true
+    }
+  },
+  {
+    "run": "final-targeted",
+    "case": "Chromium composition outside",
+    "attachment": "composition-evidence.json",
+    "data": {
+      "scenario": "outside",
+      "original": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "final": null,
+      "searchValue": "README",
+      "oldInputConnected": false,
+      "documentFocused": true
+    }
+  },
+  {
+    "run": "final-targeted",
+    "case": "editor focus handoff respects active editor",
+    "attachment": "editor-handoff-evidence.json",
+    "data": {
+      "moveOutside": false,
+      "oldInputConnected": false,
+      "focused": true,
+      "originalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "finalModel": "# Keyboard fixturehandoff\nTab indents until navigation mode is enabled.\n"
+    }
+  },
+  {
+    "run": "final-targeted",
+    "case": "editor focus handoff respects focus moved outside",
+    "attachment": "editor-handoff-evidence.json",
+    "data": {
+      "moveOutside": true,
+      "oldInputConnected": false,
+      "focused": false,
+      "originalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "finalModel": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n"
+    }
+  },
+  {
+    "run": "composition-native",
+    "case": "Chromium composition handoff",
+    "attachment": "composition-evidence.json",
+    "data": {
+      "scenario": "handoff",
+      "original": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "final": "# Keyboard fixture日本Z\nTab indents until navigation mode is enabled.\n",
+      "searchValue": null,
+      "oldInputConnected": false,
+      "documentFocused": true
+    }
+  },
+  {
+    "run": "composition-native",
+    "case": "Chromium composition handoff",
+    "attachment": "composition-after-metrics.json",
+    "data": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 1440,
+      "clientHeight": 856.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "run": "composition-native",
+    "case": "Chromium composition outside",
+    "attachment": "composition-evidence.json",
+    "data": {
+      "scenario": "outside",
+      "original": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "final": null,
+      "searchValue": "README",
+      "oldInputConnected": false,
+      "documentFocused": true
+    }
+  },
+  {
+    "run": "composition-native",
+    "case": "Chromium composition outside",
+    "attachment": "composition-after-metrics.json",
+    "data": {
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "clientWidth": 1440,
+      "clientHeight": 856.5,
+      "scale": 1,
+      "zoom": 2
+    }
+  },
+  {
+    "run": "final-fast",
+    "case": "continuous keys outside=false",
+    "attachment": "continuous-evidence.json",
+    "data": {
+      "outside": false,
+      "original": "# Keyboard fixture\nTab indents until navigation mode is enabled.\n",
+      "final": "# Keyboard fixtureabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\nTab indents until navigation mode is enabled.\n",
+      "expected": "# Keyboard fixtureabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\nTab indents until navigation mode is enabled.\n",
+      "prefix": "",
+      "observedKeydownCount": 65,
+      "rawEventLogOmitted": true
+    }
+  }
+]

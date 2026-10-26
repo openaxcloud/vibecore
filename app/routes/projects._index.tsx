@@ -1,8 +1,15 @@
 import { Grid2X2, List, SearchX } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
-import { useLoaderData, useRevalidator, useSearchParams } from 'react-router';
+import {
+  useLoaderData,
+  useLocation,
+  useNavigation,
+  useNavigationType,
+  useRevalidator,
+  useSearchParams,
+} from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { ProjectCardMenu, ProjectRenameForm } from '~/components/dashboard/ProjectCardMenu';
 import {
@@ -124,9 +131,14 @@ export default function ProjectsPage() {
   const { t } = useTranslation();
   const { projects, failedOrganizationCount, organizationCount } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('q') ?? '');
+  const urlQuery = searchParams.get('q') ?? '';
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const pendingLocalQuery = useRef<string | null>(null);
+  const [query, setQuery] = useState(urlQuery);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const revalidator = useRevalidator();
+  const navigation = useNavigation();
   const retrying = revalidator.state !== 'idle';
   const allOrganizationsFailed = organizationCount > 0 && failedOrganizationCount === organizationCount;
 
@@ -134,11 +146,33 @@ export default function ProjectsPage() {
   const statusFilter: LifecycleFilter = isLifecycleFilter(statusParam) ? statusParam : 'all';
 
   /*
+   * Back/Forward and same-route links can change the URL without remounting.
+   * Our own debounced result must not erase typing that continued during its load.
+   * History navigation always restores its query, even during an in-flight write.
+   */
+  useEffect(() => {
+    const expectedQuery = pendingLocalQuery.current;
+    pendingLocalQuery.current = null;
+
+    if (navigationType === 'REPLACE' && expectedQuery === urlQuery) {
+      return;
+    }
+
+    setQuery((current) => (current.trim() === urlQuery ? current : urlQuery));
+  }, [location.key, navigationType, urlQuery]);
+
+  /*
    * Keep ?q= in sync with the input, debounced 150ms so typing doesn't spam
    * history (replace) and shared URLs restore the same filtered view.
    */
   useEffect(() => {
+    // Never replace an incoming history entry with the previous query.
+    if (navigation.state !== 'idle' || query.trim() === urlQuery) {
+      return undefined;
+    }
+
     const handle = window.setTimeout(() => {
+      pendingLocalQuery.current = query.trim();
       setSearchParams(
         (params) => {
           const next = new URLSearchParams(params);
@@ -157,9 +191,10 @@ export default function ProjectsPage() {
     }, 150);
 
     return () => window.clearTimeout(handle);
-  }, [query, setSearchParams]);
+  }, [navigation.state, query, setSearchParams, urlQuery]);
 
   const setStatusFilter = (filter: LifecycleFilter) => {
+    pendingLocalQuery.current = urlQuery;
     setSearchParams(
       (params) => {
         const next = new URLSearchParams(params);
@@ -338,16 +373,16 @@ function ProjectListRow({ project }: { project: ProjectCard }) {
 
   return (
     <div className="flex flex-col gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-3 sm:flex-row sm:items-center">
         <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
           <ProjectPreviewMedia project={project} className="h-full w-full object-cover" />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 w-full flex-1 sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2">
             {renaming ? (
               <ProjectRenameForm project={project} onDone={() => setRenaming(false)} className="max-w-xs" />
             ) : (
-              <h3 className="min-w-0 truncate text-sm font-semibold" title={project.name}>
+              <h3 className="min-w-0 max-w-full break-words text-sm font-semibold" title={project.name}>
                 {project.name}
               </h3>
             )}

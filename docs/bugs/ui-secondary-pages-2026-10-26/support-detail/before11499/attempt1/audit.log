@@ -1,0 +1,32 @@
+fr light 320 0
+fr light 360 0
+fr light 390 0
+fr light 844 0
+fr light 768 0
+fr light 820 0
+fr light 1024 0
+fr light 1280 0
+fr light 1440 0
+fr light 1920 0
+fr light 2560 0
+locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('main a[href^="/support"]').first()[22m
+[2m    - locator resolved to <a href="/support" title="Assistance" aria-current="page" data-discover="true" aria-label="Assistance" class="vc-sidebar-nav-item group relative flex items-center rounded-md text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] h-[44px] w-[44px] justify-center px-0 vc-sidebar-nav-item--active text-bolt-elements-textPrimary">…</a>[22m
+[2m  - attempting click action[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is not visible[22m
+[2m    - retrying click action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and stable[22m
+[2m      - element is not visible[22m
+[2m    - retrying click action[22m
+[2m      - waiting 100ms[22m
+[2m    56 × waiting for element to be visible, enabled and stable[22m
+[2m       - element is not visible[22m
+[2m     - retrying click action[22m
+[2m       - waiting 500ms[22m
+
+    at /tmp/ui-support-detail-next/audit.cjs:1:2957 {
+  name: 'TimeoutError'
+}

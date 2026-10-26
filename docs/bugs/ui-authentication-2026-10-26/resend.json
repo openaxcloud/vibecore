@@ -1,0 +1,51 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "status": 503,
+      "cooldownDuring": "Nouvel envoi disponible dans 61 secondes",
+      "enabledAfter61SyntheticSeconds": true
+    },
+    {
+      "lang": "fr",
+      "status": 200,
+      "cooldownDuring": "Nouvel envoi disponible dans 61 secondes",
+      "enabledAfter61SyntheticSeconds": true
+    },
+    {
+      "lang": "en",
+      "status": 503,
+      "cooldownDuring": "Resend available in 61 seconds",
+      "enabledAfter61SyntheticSeconds": true
+    },
+    {
+      "lang": "en",
+      "status": 200,
+      "cooldownDuring": "Resend available in 61 seconds",
+      "enabledAfter61SyntheticSeconds": true
+    }
+  ],
+  "posts": [
+    {
+      "path": "/verify-email.data",
+      "method": "POST",
+      "lang": "fr"
+    },
+    {
+      "path": "/verify-email.data",
+      "method": "POST",
+      "lang": "fr"
+    },
+    {
+      "path": "/verify-email.data",
+      "method": "POST",
+      "lang": "en"
+    },
+    {
+      "path": "/verify-email.data",
+      "method": "POST",
+      "lang": "en"
+    }
+  ],
+  "blocked": []
+}

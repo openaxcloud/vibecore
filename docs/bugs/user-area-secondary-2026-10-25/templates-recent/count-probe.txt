@@ -1,0 +1,10 @@
+[
+  { lang: 'fr', count: 1, unavailable: false },
+  { lang: 'fr', count: 2, unavailable: false },
+  { lang: 'fr', count: 1000000, unavailable: true },
+  { lang: 'fr', count: 1000000000, unavailable: true },
+  { lang: 'en', count: 1, unavailable: false },
+  { lang: 'en', count: 2, unavailable: false },
+  { lang: 'en', count: 1000000, unavailable: false },
+  { lang: 'en', count: 1000000000, unavailable: false }
+]

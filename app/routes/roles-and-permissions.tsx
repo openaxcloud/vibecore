@@ -145,7 +145,7 @@ export default function RolesAndPermissionsPage() {
             {permissions.map((permission) => (
               <label
                 key={permission}
-                className="flex min-h-11 items-center gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textPrimary"
+                className="flex min-h-[44px] items-center gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textPrimary"
               >
                 <input
                   type="checkbox"
@@ -164,7 +164,9 @@ export default function RolesAndPermissionsPage() {
       <div className="mt-6 overflow-hidden rounded-md border border-bolt-elements-borderColor text-sm">
         {roles.map((role) => (
           <div key={role.key} className="border-b border-bolt-elements-borderColor p-3 last:border-b-0">
-            <div className="font-medium text-bolt-elements-textPrimary">{role.name}</div>
+            <div className="break-words [overflow-wrap:anywhere] font-medium text-bolt-elements-textPrimary">
+              {role.name}
+            </div>
             <div className="mt-2 flex flex-wrap gap-2 text-xs text-bolt-elements-textSecondary">
               {role.permissions.map((permission) => (
                 <span key={permission} className="rounded border border-bolt-elements-borderColor px-2 py-1">

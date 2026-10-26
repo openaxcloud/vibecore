@@ -1,0 +1,46 @@
+[
+  {
+    "lang": "fr",
+    "theme": "light",
+    "url": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions",
+    "ssrTarget": false,
+    "top": 1313.125,
+    "headingTop": 1338.125,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "innerHeight": 900
+  },
+  {
+    "lang": "fr",
+    "theme": "dark",
+    "url": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions",
+    "ssrTarget": false,
+    "top": 1313.125,
+    "headingTop": 1338.125,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "innerHeight": 900
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "url": "http://127.0.0.1:10899/docs?lang=en#agent-mentions",
+    "ssrTarget": false,
+    "top": 1213.5,
+    "headingTop": 1238.5,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "innerHeight": 900
+  },
+  {
+    "lang": "en",
+    "theme": "dark",
+    "url": "http://127.0.0.1:10899/docs?lang=en#agent-mentions",
+    "ssrTarget": false,
+    "top": 1213.5,
+    "headingTop": 1238.5,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "innerHeight": 900
+  }
+]

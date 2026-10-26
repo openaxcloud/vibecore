@@ -1,0 +1,37 @@
+
+Running 1 test using 1 worker
+
+(node:152992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:152992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › ../../tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:58:5 › public policy remains scrollable with wheel and PageDown in a short landscape viewport (6.2s)
+
+
+  1) [chromium] › ../../tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:58:5 › public policy remains scrollable with wheel and PageDown in a short landscape viewport
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('heading-account-inactivity')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByTestId('heading-account-inactivity')[22m
+
+
+      63 |   for (const input of ['wheel', 'PageDown'] as const) {
+      64 |     await page.goto('/account-inactivity?lang=fr', { waitUntil: 'networkidle' });
+    > 65 |     await expect(page.getByTestId('heading-account-inactivity')).toBeVisible();
+         |                                                                  ^
+      66 |
+      67 |     const lastParagraph = page.locator('main article section').last().locator('p').last();
+      68 |     await expect(lastParagraph).toBeAttached();
+        at /tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:65:66
+
+    Error Context: ../../tmp/ui-scroll-regression/results/ecode-marketing-content-pu-6284c--a-short-landscape-viewport-chromium/error-context.md
+
+  1 failed
+    [chromium] › ../../tmp/ui-scroll-regression/ecode-marketing-content.spec.ts:58:5 › public policy remains scrollable with wheel and PageDown in a short landscape viewport

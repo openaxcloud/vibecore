@@ -1,0 +1,38 @@
+{
+  "cases": [
+    {
+      "route": "docs",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "top": 144.125,
+      "bottom": 912.6953125,
+      "headerHeight": 65,
+      "headerBottom": 65,
+      "innerHeight": 406,
+      "margin": "144px"
+    },
+    {
+      "route": "docs",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "outerWidth": 1280,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 640,
+      "top": 143.75,
+      "bottom": 912.3203125,
+      "headerHeight": 65,
+      "headerBottom": 65,
+      "innerHeight": 406,
+      "margin": "144px"
+    }
+  ],
+  "errors": [],
+  "mutations": []
+}

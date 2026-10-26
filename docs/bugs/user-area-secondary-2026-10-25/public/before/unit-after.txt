@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ✓ app/components/marketing/ecode-exact/EcodeExactShell.honesty.spec.ts (3 tests) 5ms
+ ✓ app/components/marketing/ecode-exact/EcodeExactShell.i18n.spec.tsx (1 test) 200ms
+ ✓ app/components/marketing/ecode-exact/EcodeExactShell.mobile-navigation.spec.tsx (4 tests) 522ms
+
+ Test Files  3 passed (3)
+      Tests  8 passed (8)
+   Start at  22:01:01
+   Duration  3.45s (transform 1.33s, setup 69ms, collect 1.36s, tests 727ms, environment 609ms, prepare 174ms)

@@ -1,0 +1,568 @@
+{
+  "base": "http://127.0.0.1:7099",
+  "browser": "154.0.8037.57",
+  "synthetic": true,
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "geometry": {
+        "width": 360,
+        "scroll": 360,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "geometry": {
+        "width": 844,
+        "scroll": 844,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "geometry": {
+        "width": 768,
+        "scroll": 768,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "geometry": {
+        "width": 820,
+        "scroll": 820,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "geometry": {
+        "width": 1024,
+        "scroll": 1024,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "geometry": {
+        "width": 1920,
+        "scroll": 1920,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "geometry": {
+        "width": 2560,
+        "scroll": 2560,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "errorFocusedAndVisible": {
+        "x": 14,
+        "y": 335,
+        "width": 292,
+        "height": 70
+      },
+      "repeatedError": true,
+      "draftPreserved": true,
+      "reflow640": true,
+      "reducedHeight320": true,
+      "pinch200": {
+        "scale": 2,
+        "width": 195,
+        "height": 422
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "geometry": {
+        "width": 360,
+        "scroll": 360,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "geometry": {
+        "width": 844,
+        "scroll": 844,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "geometry": {
+        "width": 768,
+        "scroll": 768,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "geometry": {
+        "width": 820,
+        "scroll": 820,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "geometry": {
+        "width": 1024,
+        "scroll": 1024,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "geometry": {
+        "width": 1920,
+        "scroll": 1920,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "geometry": {
+        "width": 2560,
+        "scroll": 2560,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "errorFocusedAndVisible": {
+        "x": 14,
+        "y": 335,
+        "width": 292,
+        "height": 70
+      },
+      "repeatedError": true,
+      "draftPreserved": true,
+      "reflow640": true,
+      "reducedHeight320": true,
+      "pinch200": {
+        "scale": 2,
+        "width": 195,
+        "height": 422
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "geometry": {
+        "width": 360,
+        "scroll": 360,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "geometry": {
+        "width": 844,
+        "scroll": 844,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "geometry": {
+        "width": 768,
+        "scroll": 768,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "geometry": {
+        "width": 820,
+        "scroll": 820,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "geometry": {
+        "width": 1024,
+        "scroll": 1024,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "geometry": {
+        "width": 1920,
+        "scroll": 1920,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 2560,
+      "height": 1440,
+      "geometry": {
+        "width": 2560,
+        "scroll": 2560,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "errorFocusedAndVisible": {
+        "x": 14,
+        "y": 319,
+        "width": 292,
+        "height": 70
+      },
+      "repeatedError": true,
+      "draftPreserved": true,
+      "reflow640": true,
+      "reducedHeight320": true,
+      "pinch200": {
+        "scale": 2,
+        "width": 195,
+        "height": 422
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "geometry": {
+        "width": 360,
+        "scroll": 360,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "geometry": {
+        "width": 844,
+        "scroll": 844,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "geometry": {
+        "width": 768,
+        "scroll": 768,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "geometry": {
+        "width": 820,
+        "scroll": 820,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "geometry": {
+        "width": 1024,
+        "scroll": 1024,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "geometry": {
+        "width": 1920,
+        "scroll": 1920,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 2560,
+      "height": 1440,
+      "geometry": {
+        "width": 2560,
+        "scroll": 2560,
+        "overflow": []
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "errorFocusedAndVisible": {
+        "x": 14,
+        "y": 319,
+        "width": 292,
+        "height": 70
+      },
+      "repeatedError": true,
+      "draftPreserved": true,
+      "reflow640": true,
+      "reducedHeight320": true,
+      "pinch200": {
+        "scale": 2,
+        "width": 195,
+        "height": 422
+      }
+    }
+  ],
+  "errors": []
+}

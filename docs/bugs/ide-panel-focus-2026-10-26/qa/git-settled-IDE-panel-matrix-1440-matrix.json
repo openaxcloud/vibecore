@@ -1,0 +1,26 @@
+[
+  {
+    "panel": "git",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "ed\nfixture-014.ts\nU\nUntracked\nfixture-015.ts\nU\nUntracked\nfixture-016.ts\nU\nUntracked\nfixture-017.ts\nU\nUntracked\nfixture-018.ts\nU\nUntracked\nfixture-019.ts\nU\nUntracked\nfixture-020.ts\nU\nUntracked\nfixture-021.ts\nU\nUntracked\nfixture-022.ts\nU\nUntracked\nfixture-023.ts\nU\nUntracked\nfixture-024.ts\nU\nUntracked\nfixture-025.ts\nU\nUntracked\nfixture-026.ts\nU\nUntracked\nfixture-027.ts\nU\nUntracked\nfixture-028.ts\nU\nUntracked\nfixture-029.ts\nU\nUntracked\nfixture-030.ts\nU\nUntracked\nfixture-031.ts\nU\nUntracked\nfixture-032.ts\nU\nUntracked\nfixture-033.ts\nU\nUntracked\nfixture-034.ts\nU\nUntracked\nfixture-035.ts\nU\nUntracked\nfixture-036.ts\nU\nUntracked\nfixture-037.ts\nU\nUntracked\nfixture-038.ts\nU\nUntracked\nfixture-039.ts\nU\nUntracked\nfixture-040.ts\nU\nUntracked\nfixture-041.ts\nU\nUntracked\nfixture-042.ts\nU\nUntracked\nfixture-043.ts\nU\nUntracked\nfixture-044.ts\nU\nUntracked\nfixture-045.ts\nU\nUntracked\nfixture-046.ts\nU\nUntracked\nfixture-047.ts\nU\nUntracked\nfixture-048.ts\nU\nUntracked\nfixture-049.ts\nU\nUntracked\nfixture-050.ts\nU\nUntracked\nfixture-051.ts\nU\nUntracked\nfixture-052.ts\nU\nUntracked\nfixture-053.ts\nU\nUntracked\nfixture-054.ts\nU\nUntracked\nfixture-055.ts\nU\nUntracked\nfixture-056.ts\nU\nUntracked\nfixture-057.ts\nU\nUntracked\nfixture-058.ts\nU\nUntracked\nfixture-059.ts\nU\nUntracked\nmain.tsx\nstyles.css\nindex.html\npackage.json\nREADME.md\nM\nModified\nvite.config.ts\nProject assistant\n1\nGet preview running\nImprove project/README.md\nAdd a feature\nReview changes\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n61\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nMarkdown\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "git",
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 792
+      }
+    ]
+  }
+]

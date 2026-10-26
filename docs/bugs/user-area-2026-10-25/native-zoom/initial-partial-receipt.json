@@ -1,0 +1,75 @@
+{
+  "base": "http://127.0.0.1:6099",
+  "synthetic": true,
+  "zoomFactor": 2,
+  "pref": {
+    "partition": {
+      "default_zoom_level": {
+        "x": 3.8017840169239308
+      }
+    }
+  },
+  "observations": [
+    {
+      "route": "/dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/projects",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/billing",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    }
+  ],
+  "interactions": [
+    {
+      "route": "/billing",
+      "lang": "fr",
+      "theme": "light",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": false
+    }
+  ],
+  "writes": [],
+  "errors": []
+}

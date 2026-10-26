@@ -1,0 +1,152 @@
+[
+  {
+    "theme": "light",
+    "patched": true,
+    "width": 390,
+    "height": 844,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 160,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "light",
+    "patched": true,
+    "width": 844,
+    "height": 390,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 254,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "light",
+    "patched": true,
+    "width": 820,
+    "height": 1180,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 160,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "light",
+    "patched": true,
+    "width": 1440,
+    "height": 900,
+    "focused": "Afficher les détails",
+    "visible": false,
+    "scroll": 0,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "light",
+    "patched": true,
+    "width": 390,
+    "height": 844,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 139,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "dark",
+    "patched": true,
+    "width": 390,
+    "height": 844,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 160,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "dark",
+    "patched": true,
+    "width": 844,
+    "height": 390,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 254,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "dark",
+    "patched": true,
+    "width": 820,
+    "height": 1180,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 160,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "dark",
+    "patched": true,
+    "width": 1440,
+    "height": 900,
+    "focused": "Afficher les détails",
+    "visible": false,
+    "scroll": 0,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  },
+  {
+    "theme": "dark",
+    "patched": true,
+    "width": 390,
+    "height": 844,
+    "focused": "Afficher les détails",
+    "visible": true,
+    "scroll": 139,
+    "pageY": 0,
+    "ids": [
+      "preview-build-started",
+      "synthetic-error",
+      "synthetic-rich"
+    ]
+  }
+]

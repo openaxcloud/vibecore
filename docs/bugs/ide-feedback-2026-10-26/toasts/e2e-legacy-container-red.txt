@@ -1,0 +1,57 @@
+
+Running 4 tests using 1 worker
+
+(node:234370) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:234370) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/e2e/bandeau-toast-visible.spec.ts:148:3 › le bandeau des fichiers appliqués est peint — téléphone 390 (594ms)
+  ✓  2 tests/e2e/bandeau-toast-visible.spec.ts:148:3 › le bandeau des fichiers appliqués est peint — bureau 1440 (370ms)
+  ✘  3 tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 390 (539ms)
+(node:234703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:234703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 844 (942ms)
+
+
+  1) tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 390
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      195 |   test(`compact notifications preserve painting, pass-through and reachable actions at ${width}`, async ({ page }) => {
+      196 |     const measured = await monter(page, width, height, true);
+    > 197 |     expect(measured.texteLaissePasser).toBe(true);
+          |                                        ^
+      198 |     const list = page.locator('.Toastify__toast-container');
+      199 |     expect(await list.evaluate((element) => element.clientHeight)).toBeLessThanOrEqual(
+      200 |       Math.min(240, height * 0.32) + 1,
+        at /workspace/vibecore-ui-ide-feedback/tests/e2e/bandeau-toast-visible.spec.ts:197:40
+
+    Error Context: test-results/bandeau-toast-visible-comp-521a0-nd-reachable-actions-at-390/error-context.md
+
+  2) tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 844
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      195 |   test(`compact notifications preserve painting, pass-through and reachable actions at ${width}`, async ({ page }) => {
+      196 |     const measured = await monter(page, width, height, true);
+    > 197 |     expect(measured.texteLaissePasser).toBe(true);
+          |                                        ^
+      198 |     const list = page.locator('.Toastify__toast-container');
+      199 |     expect(await list.evaluate((element) => element.clientHeight)).toBeLessThanOrEqual(
+      200 |       Math.min(240, height * 0.32) + 1,
+        at /workspace/vibecore-ui-ide-feedback/tests/e2e/bandeau-toast-visible.spec.ts:197:40
+
+    Error Context: test-results/bandeau-toast-visible-comp-40535-nd-reachable-actions-at-844/error-context.md
+
+  2 failed
+    tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 390
+    tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 844
+  2 passed (5.0s)

@@ -1,0 +1,306 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "all": 13,
+      "states": [
+        {
+          "text": "Tout",
+          "count": 13,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Développement",
+          "count": 5,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Collaboration",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Infrastructure",
+          "count": 4,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Sécurité",
+          "count": 2,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Analyses",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        }
+      ],
+      "code": [
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        },
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        }
+      ],
+      "tab": [
+        {
+          "tag": "PRE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App("
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Tout"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Développement"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaboration"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "all": 13,
+      "states": [
+        {
+          "text": "Tout",
+          "count": 13,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Développement",
+          "count": 5,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Collaboration",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Infrastructure",
+          "count": 4,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Sécurité",
+          "count": 2,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Analyses",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        }
+      ],
+      "code": [
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        },
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        }
+      ],
+      "tab": [
+        {
+          "tag": "PRE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App("
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Tout"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Développement"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaboration"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "all": 13,
+      "states": [
+        {
+          "text": "All",
+          "count": 13,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Development",
+          "count": 5,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Collaboration",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Infrastructure",
+          "count": 4,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Security",
+          "count": 2,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Analytics",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        }
+      ],
+      "code": [
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        },
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        }
+      ],
+      "tab": [
+        {
+          "tag": "PRE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App("
+        },
+        {
+          "tag": "BUTTON",
+          "text": "All"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Development"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaboration"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "all": 13,
+      "states": [
+        {
+          "text": "All",
+          "count": 13,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Development",
+          "count": 5,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Collaboration",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Infrastructure",
+          "count": 4,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Security",
+          "count": 2,
+          "pressed": "true",
+          "selected": null
+        },
+        {
+          "text": "Analytics",
+          "count": 1,
+          "pressed": "true",
+          "selected": null
+        }
+      ],
+      "code": [
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        },
+        {
+          "width": 252,
+          "scrollWidth": 304,
+          "scrollLeft": 52,
+          "overflow": "auto"
+        }
+      ],
+      "tab": [
+        {
+          "tag": "PRE",
+          "text": "import { Dashboard } from \"./components\";\nexport default function App("
+        },
+        {
+          "tag": "BUTTON",
+          "text": "All"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Development"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Collaboration"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "mutations": []
+}

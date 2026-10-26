@@ -1,0 +1,20 @@
+{
+  "sha": "ef65c1e68bfdd203c4a0a56eedc427ad22053368",
+  "e2e": {
+    "id": 40242629375,
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/openaxcloud/vibecore/actions/runs/40242629375",
+    "jobVerdict": "507 tests /87 specs,0 failures,0 waived failures,0 flaky",
+    "lastJobCompletedAt": "2026-10-25T23:16:55Z"
+  },
+  "deployment": {
+    "id": 40242629544,
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/openaxcloud/vibecore/actions/runs/40242629544",
+    "pendingJob": 121317674575,
+    "step": "Verify required checks are green for this exact commit"
+  },
+  "note": "Snapshot pending, not a terminal deployment verdict. No bypass or rerun attempted."
+}

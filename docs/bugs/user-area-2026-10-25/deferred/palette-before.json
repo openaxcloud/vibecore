@@ -1,0 +1,274 @@
+[
+  {
+    "text": "Créer un projetActionEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Créer un projetAction",
+        "left": 36,
+        "right": 178.203125,
+        "width": 142.203125
+      },
+      {
+        "text": "Créer un projet",
+        "left": 36,
+        "right": 135.65625,
+        "width": 99.65625
+      },
+      {
+        "text": "Action",
+        "left": 142.65625,
+        "right": 178.203125,
+        "width": 35.546875
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  },
+  {
+    "text": "Ouvrir les projets récentsActionEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Ouvrir les projets récentsAction",
+        "left": 36,
+        "right": 243.84375,
+        "width": 207.84375
+      },
+      {
+        "text": "Ouvrir les projets récents",
+        "left": 36,
+        "right": 201.296875,
+        "width": 165.296875
+      },
+      {
+        "text": "Action",
+        "left": 208.296875,
+        "right": 243.84375,
+        "width": 35.546875
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  },
+  {
+    "text": "Importer un dépôt GitHubActionEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Importer un dépôt GitHubAction",
+        "left": 36,
+        "right": 251.34375,
+        "width": 215.34375
+      },
+      {
+        "text": "Importer un dépôt GitHub",
+        "left": 36,
+        "right": 208.796875,
+        "width": 172.796875
+      },
+      {
+        "text": "Action",
+        "left": 215.796875,
+        "right": 251.34375,
+        "width": 35.546875
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  },
+  {
+    "text": "Afficher l’utilisationActionEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Afficher l’utilisationAction",
+        "left": 36,
+        "right": 203.96875,
+        "width": 167.96875
+      },
+      {
+        "text": "Afficher l’utilisation",
+        "left": 36,
+        "right": 161.421875,
+        "width": 125.421875
+      },
+      {
+        "text": "Action",
+        "left": 168.421875,
+        "right": 203.96875,
+        "width": 35.546875
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  },
+  {
+    "text": "Inviter un membre de l’équipeActionEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Inviter un membre de l’équipeAction",
+        "left": 36,
+        "right": 276.359375,
+        "width": 240.359375
+      },
+      {
+        "text": "Inviter un membre de l’équipe",
+        "left": 36,
+        "right": 233.8125,
+        "width": 197.8125
+      },
+      {
+        "text": "Action",
+        "left": 240.8125,
+        "right": 276.359375,
+        "width": 35.546875
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  },
+  {
+    "text": "Renouveler une clé APIActionEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Renouveler une clé APIAction",
+        "left": 36,
+        "right": 229.734375,
+        "width": 193.734375
+      },
+      {
+        "text": "Renouveler une clé API",
+        "left": 36,
+        "right": 187.1875,
+        "width": 151.1875
+      },
+      {
+        "text": "Action",
+        "left": 194.1875,
+        "right": 229.734375,
+        "width": 35.546875
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  },
+  {
+    "text": "Paramètres de l’espace de travailParamètresEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Paramètres de l’espace de travailParamètres",
+        "left": 36,
+        "right": 322.90625,
+        "width": 286.90625
+      },
+      {
+        "text": "Paramètres de l’espace de travail",
+        "left": 36,
+        "right": 250.90625,
+        "width": 214.90625
+      },
+      {
+        "text": "Paramètres",
+        "left": 257.90625,
+        "right": 322.90625,
+        "width": 65
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  },
+  {
+    "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789ProjetEntrée",
+    "left": 25.5,
+    "right": 1343.15625,
+    "width": 1317.65625,
+    "available": 269,
+    "scroll": 1318,
+    "parts": [
+      {
+        "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789Projet",
+        "left": 36,
+        "right": 1295.96875,
+        "width": 1259.96875
+      },
+      {
+        "text": "Application de démonstration synthétique — très longue description du projet pour contrôler la navigation et ResponsiveLongUnbrokenProjectName012345678901234567890123456789",
+        "left": 36,
+        "right": 1255.53125,
+        "width": 1219.53125
+      },
+      {
+        "text": "Projet",
+        "left": 1262.53125,
+        "right": 1295.96875,
+        "width": 33.4375
+      },
+      {
+        "text": "Entrée",
+        "left": 1295.96875,
+        "right": 1332.65625,
+        "width": 36.6875
+      }
+    ]
+  }
+]

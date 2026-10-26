@@ -1,0 +1,127 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=fr",
+      "docWidth": 320,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=fr",
+      "docWidth": 844,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=fr",
+      "docWidth": 1440,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=fr",
+      "docWidth": 320,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=fr",
+      "docWidth": 844,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=fr",
+      "docWidth": 1440,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=en",
+      "docWidth": 320,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=en",
+      "docWidth": 844,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=en",
+      "docWidth": 1440,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=en",
+      "docWidth": 320,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=en",
+      "docWidth": 844,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "url": "http://127.0.0.1:11499/support/synthetic-ticket?lang=en",
+      "docWidth": 1440,
+      "overflow": [],
+      "subject": "Diagnostic synthétique — récupération et affichage de messages longs ReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspaceReferenceSansEspace"
+    }
+  ],
+  "interactions": [],
+  "errors": [],
+  "mutations": []
+}

@@ -1,0 +1,75 @@
+Scope: 34 of 36 workspace projects
+apps/admin typecheck$ tsc --noEmit
+packages/audit typecheck$ tsc --noEmit
+packages/auth typecheck$ tsc --noEmit
+packages/billing typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/audit typecheck: Done
+packages/auth typecheck: Done
+packages/config typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/connector-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/billing typecheck: Done
+packages/database typecheck$ tsc --noEmit
+packages/connector-sdk typecheck: Done
+packages/editor typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts src/index.spec.ts src/desktop-editor.spec.ts src/mobile-editor.spec.tsx src/monaco-editor-ambient.d.ts
+packages/config typecheck: Done
+packages/k8s-client typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/k8s-client typecheck: Done
+packages/observability typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+apps/admin typecheck: Done
+packages/quota typecheck$ tsc --noEmit
+packages/observability typecheck: Done
+packages/rbac typecheck$ tsc --noEmit
+packages/quota typecheck: Done
+packages/runtime-contract typecheck$ tsc --noEmit
+packages/editor typecheck: Done
+packages/sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/rbac typecheck: Done
+packages/security typecheck$ tsc --noEmit
+packages/runtime-contract typecheck: Done
+packages/shared typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/sdk typecheck: Done
+packages/template-catalog typecheck$ tsc --noEmit
+packages/template-catalog typecheck: Done
+packages/ui typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts
+packages/security typecheck: Done
+packages/workspace-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/shared typecheck: Done
+services/preview-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+packages/ui typecheck: Done
+packages/workspace-sdk typecheck: Done
+services/preview-proxy typecheck: Done
+packages/database typecheck: Done
+apps/mobile typecheck$ tsc --noEmit
+packages/runtime-remote typecheck$ tsc --noEmit
+packages/runtime-webcontainer typecheck$ tsc --noEmit
+packages/sandbox-runtime typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/sandbox-runtime typecheck: Done
+services/ai-gateway typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts
+packages/runtime-remote typecheck: Done
+services/api typecheck$ tsc --noEmit -p tsconfig.json
+packages/runtime-webcontainer typecheck: Done
+services/connector-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+apps/mobile typecheck: Done
+services/screenshotter typecheck$ tsc --noEmit -p tsconfig.json
+services/screenshotter typecheck: Done
+services/worker typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts src/enqueue-cli.ts
+services/worker typecheck: Done
+services/workspace-agent typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts
+services/workspace-agent typecheck: Done
+services/ai-gateway typecheck: Done
+services/connector-proxy typecheck: Done
+services/api typecheck: src/tests/mcp-marketplace.spec.ts(156,13): error TS2589: Type instantiation is excessively deep and possibly infinite.
+services/api typecheck: src/tests/mcp-marketplace.spec.ts(156,28): error TS2345: Argument of type 'PrismaClient<{ adapter: PrismaPg; log: ({ emit: "stdout"; level: "error"; } | { emit: "stdout"; level: "warn"; })[]; transactionOptions: { timeout: number; maxWait: number; }; }, "error" | "warn", DefaultArgs>' is not assignable to parameter of type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+services/api typecheck:   The types of '$on(...).$transaction' are incompatible between these types.
+services/api typecheck:     Type '{ <P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { maxWait?: number | undefined; timeout?: number | undefined; isolationLevel?: import("/workspace/vibecore-ui-next/packages/database/generated/client/index").Prisma.TransactionIsolationLevel | undefined; } | undefined): Promise<...>; <R>(fn: (prisma: O...' is not assignable to type '{ <P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { maxWait?: number | undefined; timeout?: number | undefined; isolationLevel?: import("/workspace/vibecore-ui-priority/packages/database/generated/client/index").Prisma.TransactionIsolationLevel | undefined; } | undefined): Promise<...>; <R>(fn: (prism...'.
+services/api typecheck:       Types of parameters 'arg' and 'fn' are incompatible.
+services/api typecheck:         Type '(prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$use" | "$extends">) => Promise<...>' is not assignable to type 'any[]'.
+services/api typecheck: src/tests/mcp-marketplace.spec.ts(462,28): error TS2345: Argument of type 'PrismaClient<{ adapter: PrismaPg; log: ({ emit: "stdout"; level: "error"; } | { emit: "stdout"; level: "warn"; })[]; transactionOptions: { timeout: number; maxWait: number; }; }, "error" | "warn", DefaultArgs>' is not assignable to parameter of type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+services/api typecheck:   The types of '$on(...).$transaction' are incompatible between these types.
+services/api typecheck:     Type '{ <P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { maxWait?: number | undefined; timeout?: number | undefined; isolationLevel?: import("/workspace/vibecore-ui-next/packages/database/generated/client/index").Prisma.TransactionIsolationLevel | undefined; } | undefined): Promise<...>; <R>(fn: (prisma: O...' is not assignable to type '{ <P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { maxWait?: number | undefined; timeout?: number | undefined; isolationLevel?: import("/workspace/vibecore-ui-priority/packages/database/generated/client/index").Prisma.TransactionIsolationLevel | undefined; } | undefined): Promise<...>; <R>(fn: (prism...'.
+services/api typecheck:       Types of parameters 'arg' and 'fn' are incompatible.
+services/api typecheck:         Type '(prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$use" | "$extends">) => Promise<...>' is not assignable to type 'any[]'.
+services/api typecheck: Failed
+/workspace/vibecore-ui-priority/services/api:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @vibecore/api@ typecheck: `tsc --noEmit -p tsconfig.json`
+Exit status 2

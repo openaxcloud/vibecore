@@ -1,0 +1,50 @@
+{
+  route: '/support/synthetic-ticket',
+  theme: 'light',
+  requestedWindowWidth: 640,
+  innerWidth: 320,
+  innerHeight: 406,
+  outerWidth: 640,
+  outerHeight: 900,
+  dpr: 2,
+  scale: 1,
+  scrollX: 0,
+  scrollY: 1851.5,
+  rect: {
+    x: 29,
+    y: 326.625,
+    width: 262,
+    height: 44,
+    top: 326.625,
+    right: 291,
+    bottom: 370.625,
+    left: 29
+  },
+  minHeight: '44px',
+  visiblePoint: '<button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-bac'
+}
+{
+  route: '/quota-exceeded',
+  theme: 'dark',
+  requestedWindowWidth: 390,
+  innerWidth: 250,
+  innerHeight: 406,
+  outerWidth: 500,
+  outerHeight: 900,
+  dpr: 2,
+  scale: 1,
+  scrollX: 0,
+  scrollY: 253,
+  rect: {
+    x: 32.5,
+    y: 323,
+    width: 185,
+    height: 44,
+    top: 323,
+    right: 217.5,
+    bottom: 367,
+    left: 32.5
+  },
+  minHeight: '44px',
+  visiblePoint: '<a class="inline-flex min-h-[44px] w-full items-center justify-center whitespace-normal break-words rounded-md px-4 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto border border-bolt-elements-borderColor '
+}

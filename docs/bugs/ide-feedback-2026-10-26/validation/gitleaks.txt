@@ -1,0 +1,10 @@
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m6:10AM[0m [32mINF[0m 1 commits scanned.
+[90m6:10AM[0m [32mINF[0m scan completed in 42.6ms
+[90m6:10AM[0m [32mINF[0m no leaks found

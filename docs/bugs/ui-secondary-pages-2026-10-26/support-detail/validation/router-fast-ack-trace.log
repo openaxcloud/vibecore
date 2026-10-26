@@ -1,0 +1,41 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+stdout | app/routes/support-ticket-draft-navigation.spec.tsx > records hook-visible fast redirect and immediate loader
+ROUTER_TRACE fast-success [{"state":"idle"},{"state":"submitting","method":"POST"},{"state":"idle"}]
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx (11 tests | 1 failed | 10 skipped) 126ms
+   ↓ support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation
+   ↓ support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation
+   ↓ support reply navigation with a real data router > retains the draft across locale-query GET revalidation
+   ↓ support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit
+   ↓ support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies
+   ↓ support reply navigation with a real data router > clears a reply only after successful redirect and reload
+   ↓ observed router acknowledgment transitions > records hook-visible transitions for success
+   ↓ observed router acknowledgment transitions > records hook-visible transitions for 400
+   ↓ observed router acknowledgment transitions > records hook-visible transitions for 503
+   ↓ observed router acknowledgment transitions > records hook-visible transitions for abort-get
+   × records hook-visible fast redirect and immediate loader 126ms
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > records hook-visible fast redirect and immediate loader
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:75:381
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 skipped (11)
+   Start at  01:35:39
+   Duration  2.70s (transform 1.11s, setup 20ms, collect 420ms, tests 126ms, environment 286ms, prepare 73ms)

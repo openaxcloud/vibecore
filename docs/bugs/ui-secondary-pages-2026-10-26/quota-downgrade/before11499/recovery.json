@@ -1,0 +1,204 @@
+{
+  "base": "http://127.0.0.1:11499",
+  "cases": [
+    {
+      "lang": "fr",
+      "status": 503,
+      "responseStatus": 503,
+      "state": {
+        "text": "Menu\nEspace de travail\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nEspace de travail\n\nCette page de l’espace de travail est temporairement indisponible.\n\nRetour au tableau de bord\nImpossible de charger Espace de travail\n\nLa dernière requête a échoué. Cette page reste masquée afin de ne pas afficher de données incomplètes. Aucune donnée n’a été modifiée.\n\nRéessayer",
+        "buttons": [
+          {
+            "text": "Menu",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "EN",
+            "type": "button"
+          },
+          {
+            "text": "FR",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "Réessayer",
+            "type": "button"
+          }
+        ],
+        "links": [
+          {
+            "text": "Rechercher⌘K",
+            "href": "/command-palette"
+          },
+          {
+            "text": "Retour au tableau de bord",
+            "href": "/dashboard"
+          }
+        ],
+        "width": 320
+      },
+      "recovery": "keyboard retry",
+      "recovered": true
+    },
+    {
+      "lang": "fr",
+      "status": 403,
+      "responseStatus": 200,
+      "state": {
+        "text": "Menu\nChanger pour une formule inférieure\n\nCONSOLE DE L’ESPACE DE TRAVAIL\n\nChanger pour une formule inférieure\n\nVérifiez une formule inférieure avant de planifier le changement d’abonnement.\n\nLes informations de formule et de prix sont réservées aux propriétaires et aux administrateurs de facturation de l’organisation. Demandez à un propriétaire de modifier la formule, ou vérifiez votre rôle sur la page de facturation.",
+        "buttons": [
+          {
+            "text": "Menu",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "EN",
+            "type": "button"
+          },
+          {
+            "text": "FR",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          }
+        ],
+        "links": [
+          {
+            "text": "Rechercher⌘K",
+            "href": "/command-palette"
+          },
+          {
+            "text": "page de facturation",
+            "href": "/billing"
+          }
+        ],
+        "width": 320
+      },
+      "recovery": "browser reload",
+      "recovered": true
+    },
+    {
+      "lang": "en",
+      "status": 503,
+      "responseStatus": 503,
+      "state": {
+        "text": "Menu\nWorkspace\n\nWORKSPACE CONSOLE\n\nWorkspace\n\nThis workspace page is temporarily unavailable.\n\nBack to dashboard\nWorkspace could not load\n\nThe latest request failed, so this page is hidden to avoid showing incomplete data. No data was changed.\n\nTry again",
+        "buttons": [
+          {
+            "text": "Menu",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "EN",
+            "type": "button"
+          },
+          {
+            "text": "FR",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "Try again",
+            "type": "button"
+          }
+        ],
+        "links": [
+          {
+            "text": "Search⌘K",
+            "href": "/command-palette"
+          },
+          {
+            "text": "Back to dashboard",
+            "href": "/dashboard"
+          }
+        ],
+        "width": 320
+      },
+      "recovery": "browser reload",
+      "recovered": true
+    },
+    {
+      "lang": "en",
+      "status": 403,
+      "responseStatus": 200,
+      "state": {
+        "text": "Menu\nDowngrade\n\nWORKSPACE CONSOLE\n\nDowngrade\n\nReview a lower plan before scheduling a subscription change.\n\nPlan and price details are available to organization owners and billing administrators only. Ask an owner to change the plan, or check your role on the billing page.",
+        "buttons": [
+          {
+            "text": "Menu",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          },
+          {
+            "text": "EN",
+            "type": "button"
+          },
+          {
+            "text": "FR",
+            "type": "button"
+          },
+          {
+            "text": "",
+            "type": "button"
+          }
+        ],
+        "links": [
+          {
+            "text": "Search⌘K",
+            "href": "/command-palette"
+          },
+          {
+            "text": "billing page",
+            "href": "/billing"
+          }
+        ],
+        "width": 320
+      },
+      "recovery": "browser reload",
+      "recovered": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ]
+}

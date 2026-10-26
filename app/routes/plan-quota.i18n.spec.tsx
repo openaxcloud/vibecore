@@ -242,9 +242,9 @@ describe('localized quota surface', () => {
     const upgrade = screen.getByRole('link', { name: 'Changer d’offre' });
     const compare = screen.getByRole('link', { name: 'Comparer les offres' });
 
-    expect(upgrade.className).toContain('min-h-11');
+    expect(upgrade.className).toContain('min-h-[44px]');
     expect(upgrade.className).toContain('w-full');
-    expect(compare.className).toContain('min-h-11');
+    expect(compare.className).toContain('min-h-[44px]');
     expect(compare.className).toContain('w-full');
 
     await act(async () => {

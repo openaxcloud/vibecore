@@ -71,7 +71,16 @@ export interface AgentRunResult {
   summary: string;
   files?: string[];
   risks?: string[];
+
+  /** Model declarations, never proof that a command or test ran. */
   verification?: string[];
+  outputState?: 'empty' | 'actions_without_report' | 'report' | 'invalid_report' | 'interrupted';
+
+  /** Paths observed in complete emitted file actions, not filesystem writes. */
+  emittedFiles?: string[];
+
+  /** Only an external execution receipt could establish observed verification. */
+  verificationState?: 'not_observed';
 }
 
 export interface AgentRunResponse {
@@ -545,9 +554,42 @@ export function retirerLesBlocsDAction(contenu: string): string {
  * Un resume est une phrase, pas un depot. Si le rapport manque, l'ancien code
  * repliait sur `content.trim()` — ce qui, maintenant que le contenu porte des
  * fichiers entiers, deverserait une base de code dans la colonne `summary` et
- * dans le panneau. On replie sur la prose seule, et on la borne.
+ * dans le panneau. Un rapport invalide reçoit désormais un message localisé ;
+ * seule une synthèse structurée valide est affichée, avec une taille bornée.
  */
 const LONGUEUR_MAX_RESUME = 2_000;
+
+/** Observe the wire payload only; this neither applies files nor executes tools. */
+function observedActions(content: string): { emittedFiles: string[]; hasCompleteActions: boolean } {
+  const paths = new Set<string>();
+
+  let hasCompleteActions = false;
+
+  const completeActions = /<boltAction\b([^>]*?)>(?:(?!<boltAction\b)[\s\S])*?<\/boltAction\s*>/gi;
+
+  for (const action of content.matchAll(completeActions)) {
+    const attributes = action[1];
+
+    const type = /(?:^|\s)type\s*=\s*(["'])(.*?)\1/i.exec(attributes)?.[2]?.toLowerCase();
+
+    if (type && ['shell', 'start', 'diff', 'supabase'].includes(type)) {
+      hasCompleteActions = true;
+    }
+
+    if (type !== 'file') {
+      continue;
+    }
+
+    const path = /(?:^|\s)filePath\s*=\s*(["'])(.*?)\1/i.exec(attributes)?.[2]?.trim();
+
+    if (path) {
+      paths.add(path);
+      hasCompleteActions = true;
+    }
+  }
+
+  return { emittedFiles: [...paths], hasCompleteActions };
+}
 
 function normalizeAgentOutput(
   roleId: AgentRoleId,
@@ -556,27 +598,39 @@ function normalizeAgentOutput(
 ): AgentRunResult {
   const horsActions = retirerLesBlocsDAction(content);
   const parsed = parseJsonObject(horsActions);
+  const { emittedFiles, hasCompleteActions } = observedActions(content);
+  const evidence = { emittedFiles, verificationState: 'not_observed' as const };
 
   if (!parsed || typeof parsed.summary !== 'string' || !parsed.summary.trim()) {
-    /*
-     * Le role a peut-etre ECRIT sans rapporter. C'est un demi-succes, pas un
-     * echec : les fichiers sont dans le flux et le navigateur les posera. On
-     * rend donc `partial` — et le lot 4 le rendra visible a l'ecran.
-     */
+    const outputState = !content.trim() ? 'empty' : hasCompleteActions ? 'actions_without_report' : 'invalid_report';
+
+    const messageKey =
+      outputState === 'empty'
+        ? 'agentEmptyResponse'
+        : outputState === 'actions_without_report'
+          ? 'agentActionsWithoutReport'
+          : 'agentInvalidReport';
+
     return {
       roleId,
       status: 'partial',
-      summary: horsActions.slice(0, LONGUEUR_MAX_RESUME) || aiGatewayMessage('agentEmptyResponse', locale),
+      outputState,
+      summary: aiGatewayMessage(messageKey, locale),
+      ...evidence,
     };
   }
 
   return {
     roleId,
+
+    // Complete describes the report contract, not task completion or QA evidence.
     status: 'complete',
-    summary: parsed.summary,
+    outputState: 'report',
+    summary: parsed.summary.trim().slice(0, LONGUEUR_MAX_RESUME),
     files: stringArray(parsed.files),
     risks: stringArray(parsed.risks),
     verification: stringArray(parsed.verification),
+    ...evidence,
   };
 }
 
@@ -634,6 +688,9 @@ export async function executeAgentRun(input: {
           result: {
             roleId: role.id,
             status: 'failed',
+            outputState: 'interrupted',
+            emittedFiles: [],
+            verificationState: 'not_observed',
             summary: localizedAiGatewayError(error, input.request.locale ?? 'en', 'agentExecutionFailed'),
           },
         };
@@ -825,10 +882,21 @@ export async function* executeAgentRunStream(input: {
         results.push(result);
         emit({ type: 'lane-done', roleId: role.id, result });
       } catch (error) {
+        const observed = normalizeAgentOutput(role.id, content, input.request.locale);
+
+        const hasUsefulOutput = Boolean(
+          observed.outputState === 'actions_without_report' ||
+            observed.emittedFiles?.length ||
+            retirerLesBlocsDAction(content).trim(),
+        );
+
         const result: AgentRunResult = {
-          roleId: role.id,
-          status: 'failed',
-          summary: localizedAiGatewayError(error, input.request.locale ?? 'en', 'agentExecutionFailed'),
+          ...observed,
+          status: hasUsefulOutput ? 'partial' : 'failed',
+          outputState: 'interrupted',
+          summary: hasUsefulOutput
+            ? aiGatewayMessage('agentInterruptedResponse', input.request.locale)
+            : localizedAiGatewayError(error, input.request.locale ?? 'en', 'agentExecutionFailed'),
         };
         results.push(result);
         emit({ type: 'lane-done', roleId: role.id, result });

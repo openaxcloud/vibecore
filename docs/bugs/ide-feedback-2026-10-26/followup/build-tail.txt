@@ -1,0 +1,20 @@
+build/server/assets/TerminalTabs-ULxH5mtf.js                      46.58 kB
+build/server/assets/GitLabTab-DYs0u2KV.js                         49.71 kB
+build/server/assets/VercelTab-CjTkipCs.js                         59.84 kB
+build/server/assets/SupabaseTab-B4aA6WMp.js                       62.13 kB
+build/server/assets/NetlifyTab-C9XajQWm.js                        75.22 kB
+build/server/assets/DataTab-U7wkQHoO.js                          102.32 kB
+build/server/assets/GitHubTab-Ddot_-y0.js                        107.84 kB
+build/server/assets/LocalProvidersTab-CualTjDY.js                110.13 kB
+build/server/assets/server-build-BOkgsAld.js                  10,239.29 kB
+
+✓ 5 assets cleaned from React Router server build.
+build/client/assets/index-D5lHKWwp.css
+build/client/assets/tailwind-compat-Bwh-BmjE.css
+build/client/assets/xterm-LZoznX6r.css
+build/client/assets/ReactToastify-tlSLHgLC.css
+build/server/assets/server-build-B-3O7Dvw.css
+✓ 1 asset moved from React Router server build to client assets.
+build/client/assets/server-build-B-3O7Dvw.css
+
+✓ built in 22.73s

@@ -1,0 +1,482 @@
+[
+  {
+    "phase": "before",
+    "width": 320,
+    "lang": "ar",
+    "dir": "rtl",
+    "direction": "rtl",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 320,
+      "height": 65,
+      "top": 0,
+      "right": 320,
+      "bottom": 65,
+      "left": 0
+    },
+    "links": [
+      {
+        "name": "الصفحة الرئيسية لـ E-Code",
+        "width": 89.796875,
+        "left": 214.203125,
+        "right": 304
+      },
+      {
+        "name": "فاتح. التبديل إلى المظهر الداكن",
+        "width": 44,
+        "left": 170.203125,
+        "right": 214.203125
+      },
+      {
+        "name": "English",
+        "width": 44,
+        "left": 117.203125,
+        "right": 161.203125
+      },
+      {
+        "name": "French",
+        "width": 44,
+        "left": 73.203125,
+        "right": 117.203125
+      },
+      {
+        "name": "تسجيل الدخول",
+        "width": 44,
+        "left": 20.203125,
+        "right": 64.203125
+      },
+      {
+        "name": "فتح قائمة الهاتف",
+        "width": 44,
+        "left": -31.796875,
+        "right": 12.203125
+      }
+    ],
+    "actions": {
+      "css": "flex items-center gap-2 sm:gap-4",
+      "left": -31.796875,
+      "right": 214.203125,
+      "ml": "0px",
+      "mr": "0px"
+    }
+  },
+  {
+    "phase": "before",
+    "width": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "direction": "rtl",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 110,
+      "top": 0,
+      "right": 1440,
+      "bottom": 110,
+      "left": 0
+    },
+    "links": [
+      {
+        "name": "الصفحة الرئيسية لـ E-Code",
+        "width": 89.796875,
+        "left": 1238.203125,
+        "right": 1328
+      },
+      {
+        "name": "المنتج",
+        "width": 82.1875,
+        "left": 1132.015625,
+        "right": 1214.203125
+      },
+      {
+        "name": "الحلول",
+        "width": 84.4375,
+        "left": 1043.578125,
+        "right": 1128.015625
+      },
+      {
+        "name": "الموارد",
+        "width": 84.40625,
+        "left": 955.171875,
+        "right": 1039.578125
+      },
+      {
+        "name": "الشركة",
+        "width": 84.4375,
+        "left": 866.734375,
+        "right": 951.171875
+      },
+      {
+        "name": "الأسعار",
+        "width": 80.96875,
+        "left": 781.765625,
+        "right": 862.734375
+      },
+      {
+        "name": "الفرق",
+        "width": 72.296875,
+        "left": 705.46875,
+        "right": 777.765625
+      },
+      {
+        "name": "فاتح. التبديل إلى المظهر الداكن",
+        "width": 68.234375,
+        "left": 381.890625,
+        "right": 450.125
+      },
+      {
+        "name": "English",
+        "width": 44,
+        "left": 320.890625,
+        "right": 364.890625
+      },
+      {
+        "name": "French",
+        "width": 44,
+        "left": 276.890625,
+        "right": 320.890625
+      },
+      {
+        "name": "تسجيل الدخول",
+        "width": 56,
+        "left": 203.890625,
+        "right": 259.890625
+      },
+      {
+        "name": "ابدأ الآن",
+        "width": 75.890625,
+        "left": 112,
+        "right": 187.890625
+      }
+    ],
+    "actions": {
+      "css": "flex items-center gap-2 sm:gap-4",
+      "left": 112,
+      "right": 450.125,
+      "ml": "0px",
+      "mr": "0px"
+    }
+  },
+  {
+    "phase": "after",
+    "width": 320,
+    "lang": "ar",
+    "dir": "rtl",
+    "direction": "rtl",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 320,
+      "height": 111,
+      "top": 0,
+      "right": 320,
+      "bottom": 111,
+      "left": 0
+    },
+    "links": [
+      {
+        "name": "الصفحة الرئيسية لـ E-Code",
+        "width": 89.796875,
+        "left": 214.203125,
+        "right": 304
+      },
+      {
+        "name": "فاتح. التبديل إلى المظهر الداكن",
+        "width": 44,
+        "left": 260,
+        "right": 304
+      },
+      {
+        "name": "English",
+        "width": 44,
+        "left": 207,
+        "right": 251
+      },
+      {
+        "name": "French",
+        "width": 44,
+        "left": 163,
+        "right": 207
+      },
+      {
+        "name": "تسجيل الدخول",
+        "width": 44,
+        "left": 110,
+        "right": 154
+      },
+      {
+        "name": "فتح قائمة الهاتف",
+        "width": 44,
+        "left": 58,
+        "right": 102
+      }
+    ],
+    "actions": {
+      "css": "ml-auto flex items-center gap-2 sm:gap-4",
+      "left": 58,
+      "right": 304,
+      "ml": "42px",
+      "mr": "0px"
+    }
+  },
+  {
+    "phase": "logical-counterproof",
+    "width": 320,
+    "lang": "ar",
+    "dir": "rtl",
+    "direction": "rtl",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 320,
+      "height": 111,
+      "top": 0,
+      "right": 320,
+      "bottom": 111,
+      "left": 0
+    },
+    "links": [
+      {
+        "name": "الصفحة الرئيسية لـ E-Code",
+        "width": 89.796875,
+        "left": 214.203125,
+        "right": 304
+      },
+      {
+        "name": "فاتح. التبديل إلى المظهر الداكن",
+        "width": 44,
+        "left": 218,
+        "right": 262
+      },
+      {
+        "name": "English",
+        "width": 44,
+        "left": 165,
+        "right": 209
+      },
+      {
+        "name": "French",
+        "width": 44,
+        "left": 121,
+        "right": 165
+      },
+      {
+        "name": "تسجيل الدخول",
+        "width": 44,
+        "left": 68,
+        "right": 112
+      },
+      {
+        "name": "فتح قائمة الهاتف",
+        "width": 44,
+        "left": 16,
+        "right": 60
+      }
+    ],
+    "actions": {
+      "css": "ml-auto flex items-center gap-2 sm:gap-4",
+      "left": 16,
+      "right": 262,
+      "ml": "0px",
+      "mr": "42px"
+    }
+  },
+  {
+    "phase": "after",
+    "width": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "direction": "rtl",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 110,
+      "top": 0,
+      "right": 1440,
+      "bottom": 110,
+      "left": 0
+    },
+    "links": [
+      {
+        "name": "الصفحة الرئيسية لـ E-Code",
+        "width": 89.796875,
+        "left": 1238.203125,
+        "right": 1328
+      },
+      {
+        "name": "المنتج",
+        "width": 82.1875,
+        "left": 1132.015625,
+        "right": 1214.203125
+      },
+      {
+        "name": "الحلول",
+        "width": 84.4375,
+        "left": 1043.578125,
+        "right": 1128.015625
+      },
+      {
+        "name": "الموارد",
+        "width": 84.40625,
+        "left": 955.171875,
+        "right": 1039.578125
+      },
+      {
+        "name": "الشركة",
+        "width": 84.4375,
+        "left": 866.734375,
+        "right": 951.171875
+      },
+      {
+        "name": "الأسعار",
+        "width": 80.96875,
+        "left": 781.765625,
+        "right": 862.734375
+      },
+      {
+        "name": "الفرق",
+        "width": 72.296875,
+        "left": 705.46875,
+        "right": 777.765625
+      },
+      {
+        "name": "فاتح. التبديل إلى المظهر الداكن",
+        "width": 68.234375,
+        "left": 637.234375,
+        "right": 705.46875
+      },
+      {
+        "name": "English",
+        "width": 44,
+        "left": 576.234375,
+        "right": 620.234375
+      },
+      {
+        "name": "French",
+        "width": 44,
+        "left": 532.234375,
+        "right": 576.234375
+      },
+      {
+        "name": "تسجيل الدخول",
+        "width": 56,
+        "left": 459.234375,
+        "right": 515.234375
+      },
+      {
+        "name": "ابدأ الآن",
+        "width": 75.890625,
+        "left": 367.34375,
+        "right": 443.234375
+      }
+    ],
+    "actions": {
+      "css": "ml-auto flex items-center gap-2 sm:gap-4",
+      "left": 367.34375,
+      "right": 705.46875,
+      "ml": "255.344px",
+      "mr": "0px"
+    }
+  },
+  {
+    "phase": "logical-counterproof",
+    "width": 1440,
+    "lang": "ar",
+    "dir": "rtl",
+    "direction": "rtl",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 110,
+      "top": 0,
+      "right": 1440,
+      "bottom": 110,
+      "left": 0
+    },
+    "links": [
+      {
+        "name": "الصفحة الرئيسية لـ E-Code",
+        "width": 89.796875,
+        "left": 1238.203125,
+        "right": 1328
+      },
+      {
+        "name": "المنتج",
+        "width": 82.1875,
+        "left": 1132.015625,
+        "right": 1214.203125
+      },
+      {
+        "name": "الحلول",
+        "width": 84.4375,
+        "left": 1043.578125,
+        "right": 1128.015625
+      },
+      {
+        "name": "الموارد",
+        "width": 84.40625,
+        "left": 955.171875,
+        "right": 1039.578125
+      },
+      {
+        "name": "الشركة",
+        "width": 84.4375,
+        "left": 866.734375,
+        "right": 951.171875
+      },
+      {
+        "name": "الأسعار",
+        "width": 80.96875,
+        "left": 781.765625,
+        "right": 862.734375
+      },
+      {
+        "name": "الفرق",
+        "width": 72.296875,
+        "left": 705.46875,
+        "right": 777.765625
+      },
+      {
+        "name": "فاتح. التبديل إلى المظهر الداكن",
+        "width": 68.234375,
+        "left": 381.890625,
+        "right": 450.125
+      },
+      {
+        "name": "English",
+        "width": 44,
+        "left": 320.890625,
+        "right": 364.890625
+      },
+      {
+        "name": "French",
+        "width": 44,
+        "left": 276.890625,
+        "right": 320.890625
+      },
+      {
+        "name": "تسجيل الدخول",
+        "width": 56,
+        "left": 203.890625,
+        "right": 259.890625
+      },
+      {
+        "name": "ابدأ الآن",
+        "width": 75.890625,
+        "left": 112,
+        "right": 187.890625
+      }
+    ],
+    "actions": {
+      "css": "ml-auto flex items-center gap-2 sm:gap-4",
+      "left": 112,
+      "right": 450.125,
+      "ml": "0px",
+      "mr": "255.344px"
+    }
+  }
+]

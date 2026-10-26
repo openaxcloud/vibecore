@@ -1,0 +1,266 @@
+{
+  "stages": [
+    {
+      "name": "initial",
+      "field": {
+        "top": 460,
+        "bottom": 504
+      },
+      "active": "BODY",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 0,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": null,
+          "top": 0,
+          "client": 1137,
+          "scroll": 1137,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<p class=\"mt-2 max-w-3xl break-words [overflow-wrap:anywhere] text-sm leading-6 text-bolt-elements-textSecondary\">Politique de sécurité de référence pour OrganisationSynthétiqueSyntheticOrganisationSansEspaceOrganisationSynthétiqueSyntheticOrganisati"
+    },
+    {
+      "name": "initial-wheel",
+      "field": {
+        "top": 460,
+        "bottom": 504
+      },
+      "active": "BODY",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 0,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": null,
+          "top": 0,
+          "client": 1137,
+          "scroll": 1137,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<p class=\"mt-2 max-w-3xl break-words [overflow-wrap:anywhere] text-sm leading-6 text-bolt-elements-textSecondary\">Politique de sécurité de référence pour OrganisationSynthétiqueSyntheticOrganisationSansEspaceOrganisationSynthétiqueSyntheticOrganisati"
+    },
+    {
+      "name": "pageDown-heading",
+      "field": {
+        "top": 460,
+        "bottom": 504
+      },
+      "active": "BODY",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 0,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": null,
+          "top": 0,
+          "client": 1137,
+          "scroll": 1137,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<p class=\"mt-2 max-w-3xl break-words [overflow-wrap:anywhere] text-sm leading-6 text-bolt-elements-textSecondary\">Politique de sécurité de référence pour OrganisationSynthétiqueSyntheticOrganisationSansEspaceOrganisationSynthétiqueSyntheticOrganisati"
+    },
+    {
+      "name": "after-focus-resize",
+      "field": {
+        "top": 358,
+        "bottom": 402
+      },
+      "active": "INPUT",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 102,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": null,
+          "top": 0,
+          "client": 1137,
+          "scroll": 1137,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<h2 class=\"break-words text-base font-semibold text-bolt-elements-textPrimary\">Liste d’adresses IP autorisées</h2>"
+    },
+    {
+      "name": "counterproof-body-auto-wheel",
+      "field": {
+        "top": 260,
+        "bottom": 304
+      },
+      "active": "INPUT",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 200,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 0,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": null,
+          "top": 0,
+          "client": 1137,
+          "scroll": 1137,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-plus h-4 w-4\" aria-hidden=\"true\"><path d=\"M5 12h"
+    },
+    {
+      "name": "counterproof-pageDown",
+      "field": {
+        "top": -81,
+        "bottom": -37
+      },
+      "active": "BODY",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 541,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 0,
+          "client": 390,
+          "scroll": 1137,
+          "overflowX": "clip",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": null,
+          "top": 0,
+          "client": 1137,
+          "scroll": 1137,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<label class=\"flex min-h-[44px] cursor-pointer items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4\"><input type=\"checkbox\" name=\"requireMfaForAdmins\" class=\"mt-0.5 h-4 w-4 shrink-0 rounded bord"
+    }
+  ],
+  "rules": [
+    {
+      "selector": "html:has(.vc-app-shell-grid), html:has(.vc-app-shell-grid) body",
+      "style": "overflow-x: clip;"
+    },
+    {
+      "selector": "html, body",
+      "style": "overflow: hidden;"
+    }
+  ]
+}

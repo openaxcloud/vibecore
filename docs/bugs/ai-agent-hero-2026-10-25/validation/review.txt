@@ -1,0 +1,1 @@
+Revue indépendante final_review : correctiflocalcohérent, actions/ancres/textepréservés ; réserve md:min-h-0 duButton. Réserve traitée par md:min-h-14 explicite surlesdeuxCTA, recette compiléefinale vérifie hauteurparrapportà3,5rem. Le premierbuildprécède cetteultimecorrection ; seulfinal-build correspondauhashsourcejoint.

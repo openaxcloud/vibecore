@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-next
+
+ ✓ app/components/dashboard/ProjectCardMenu.i18n.spec.tsx (3 tests) 307ms
+ ✓ app/routes/userarea-ux-audit.spec.ts (52 tests) 217ms
+ ✓ app/components/dashboard/ProjectCardMenu.keyboard.spec.tsx (3 tests) 454ms
+
+ Test Files  3 passed (3)
+      Tests  58 passed (58)
+   Start at  21:47:36
+   Duration  5.26s (transform 2.43s, setup 167ms, collect 2.36s, tests 978ms, environment 1.67s, prepare 315ms)

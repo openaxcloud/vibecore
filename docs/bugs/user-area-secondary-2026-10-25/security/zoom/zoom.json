@@ -1,0 +1,102 @@
+[
+  {
+    "route": "/session-security",
+    "lang": "fr",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/security-settings",
+    "lang": "fr",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": []
+  },
+  {
+    "route": "/session-security",
+    "lang": "fr",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/security-settings",
+    "lang": "fr",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": []
+  },
+  {
+    "route": "/session-security",
+    "lang": "en",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/security-settings",
+    "lang": "en",
+    "theme": "light",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": []
+  },
+  {
+    "route": "/session-security",
+    "lang": "en",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": [
+      44,
+      44
+    ]
+  },
+  {
+    "route": "/security-settings",
+    "lang": "en",
+    "theme": "dark",
+    "innerWidth": 640,
+    "outerWidth": 1280,
+    "dpr": 2,
+    "visualScale": 1,
+    "scrollWidth": 640,
+    "buttonHeights": []
+  }
+]

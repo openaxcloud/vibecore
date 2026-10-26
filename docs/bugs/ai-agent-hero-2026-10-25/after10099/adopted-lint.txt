@@ -1,0 +1,6 @@
+
+/workspace/vibecore-ui-major/app/components/marketing/ecode-exact/pages/AIAgent.tsx
+  166:26  error  Replace `·size="lg"·variant="outline"·className="text-[15px]·whitespace-normal·px-8·py-3·h-auto·min-h-14"·asChild` with `⏎····················size="lg"⏎····················variant="outline"⏎····················className="text-[15px]·whitespace-normal·px-8·py-3·h-auto·min-h-14"⏎····················asChild⏎··················`  prettier/prettier
+
+✖ 1 problem (1 error, 0 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.

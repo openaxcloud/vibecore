@@ -1,0 +1,17 @@
+[
+  {
+    "file": "server-process.json",
+    "pid": 141394,
+    "startTicksMatched": true,
+    "signal": "SIGTERM",
+    "secondSignal": "SIGKILL after SIGTERM closed port but process remained; same startTicks rechecked",
+    "finalPIDAbsent": true
+  },
+  {
+    "file": "api-process.json",
+    "pid": 141379,
+    "startTicksMatched": true,
+    "signal": "SIGTERM",
+    "finalPIDAbsent": true
+  }
+]

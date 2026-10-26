@@ -1,0 +1,358 @@
+{
+  "base": "http://127.0.0.1:6199",
+  "synthetic": true,
+  "zoomFactor": 2,
+  "pref": {
+    "partition": {
+      "default_zoom_level": {
+        "x": 3.8017840169239308
+      }
+    }
+  },
+  "observations": [
+    {
+      "route": "/dashboard",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/projects",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/billing",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "fr",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/dashboard",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/projects",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "fr",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/dashboard",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/projects",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/billing",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "en",
+      "theme": "light",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/dashboard",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/projects",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/billing",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "en",
+      "theme": "dark",
+      "innerWidth": 640,
+      "innerHeight": 356,
+      "outerWidth": 1280,
+      "outerHeight": 800,
+      "dpr": 2,
+      "visualScale": 1,
+      "scrollWidth": 640
+    }
+  ],
+  "interactions": [
+    {
+      "route": "/billing",
+      "lang": "fr",
+      "theme": "light",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": false
+    },
+    {
+      "route": "/account-settings",
+      "lang": "fr",
+      "theme": "light",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": true
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "fr",
+      "theme": "light",
+      "dialogScrollable": true,
+      "escapeFocus": true
+    },
+    {
+      "route": "/billing",
+      "lang": "fr",
+      "theme": "dark",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": false
+    },
+    {
+      "route": "/account-settings",
+      "lang": "fr",
+      "theme": "dark",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": true
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "fr",
+      "theme": "dark",
+      "dialogScrollable": true,
+      "escapeFocus": true
+    },
+    {
+      "route": "/billing",
+      "lang": "en",
+      "theme": "light",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": false
+    },
+    {
+      "route": "/account-settings",
+      "lang": "en",
+      "theme": "light",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": true
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "en",
+      "theme": "light",
+      "dialogScrollable": true,
+      "escapeFocus": true
+    },
+    {
+      "route": "/billing",
+      "lang": "en",
+      "theme": "dark",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": false
+    },
+    {
+      "route": "/account-settings",
+      "lang": "en",
+      "theme": "dark",
+      "nativeZoomPreserved": true,
+      "draftPreserved": true,
+      "resizePhysical": "1280→1600→1280",
+      "navigationCancelled": true
+    },
+    {
+      "route": "/account-settings/data",
+      "lang": "en",
+      "theme": "dark",
+      "dialogScrollable": true,
+      "escapeFocus": true
+    }
+  ],
+  "writes": [],
+  "errors": []
+}

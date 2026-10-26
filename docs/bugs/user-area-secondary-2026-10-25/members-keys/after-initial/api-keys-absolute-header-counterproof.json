@@ -1,0 +1,207 @@
+{
+  "fresh": {
+    "innerWidth": 1280,
+    "doc": 1833,
+    "body": 1280,
+    "overflow": [
+      {
+        "tag": "SPAN",
+        "class": "bolt-route-loader-bar",
+        "text": "",
+        "rect": {
+          "left": 821.5223388671875,
+          "right": 1359.1160888671875,
+          "width": 537.59375
+        }
+      }
+    ]
+  },
+  "absoluteChildren": [
+    {
+      "tag": "SPAN",
+      "cl": "sr-only",
+      "text": "Actions",
+      "left": 1831.71875,
+      "right": 1832.71875,
+      "offsetParent": "BODY"
+    }
+  ],
+  "ancestors": [
+    {
+      "tag": "DIV",
+      "cl": "hidden max-w-full overflow-x-auto overscroll-x-contain xl:block",
+      "client": 922,
+      "scroll": 1638,
+      "ox": "auto",
+      "oy": "auto",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "SECTION",
+      "cl": "min-w-0 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm",
+      "client": 922,
+      "scroll": 922,
+      "ox": "hidden",
+      "oy": "hidden",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "DIV",
+      "cl": "min-w-0 space-y-6",
+      "client": 924,
+      "scroll": 924,
+      "ox": "visible",
+      "oy": "visible",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "DIV",
+      "cl": "mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8",
+      "client": 960,
+      "scroll": 960,
+      "ox": "visible",
+      "oy": "visible",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "SECTION",
+      "cl": "min-w-0 outline-none",
+      "client": 1040,
+      "scroll": 1040,
+      "ox": "visible",
+      "oy": "visible",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "DIV",
+      "cl": "vc-app-shell-grid grid min-h-[100dvh] lg:grid-cols-[240px_1fr]",
+      "client": 1280,
+      "scroll": 1280,
+      "ox": "visible",
+      "oy": "visible",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "MAIN",
+      "cl": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+      "client": 1280,
+      "scroll": 1280,
+      "ox": "visible",
+      "oy": "visible",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "BODY",
+      "cl": "h-full w-full",
+      "client": 1280,
+      "scroll": 1280,
+      "ox": "clip",
+      "oy": "visible",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    },
+    {
+      "tag": "HTML",
+      "cl": "light",
+      "client": 1280,
+      "scroll": 1833,
+      "ox": "clip",
+      "oy": "visible",
+      "position": "static",
+      "transform": "none",
+      "zoom": "1",
+      "contain": "none"
+    }
+  ],
+  "immediate": {
+    "innerWidth": 1280,
+    "doc": 1741,
+    "body": 1280,
+    "overflow": []
+  },
+  "settled": {
+    "innerWidth": 1280,
+    "doc": 1833,
+    "body": 1280,
+    "overflow": []
+  },
+  "proposals": [
+    {
+      "name": "relative",
+      "innerWidth": 1280,
+      "doc": 1280,
+      "body": 1280,
+      "overflow": [
+        {
+          "tag": "SPAN",
+          "class": "bolt-route-loader-bar",
+          "text": "",
+          "rect": {
+            "left": 752.698974609375,
+            "right": 1290.292724609375,
+            "width": 537.59375
+          }
+        }
+      ]
+    },
+    {
+      "name": "paint",
+      "innerWidth": 1280,
+      "doc": 1280,
+      "body": 1280,
+      "overflow": [
+        {
+          "tag": "SPAN",
+          "class": "bolt-route-loader-bar",
+          "text": "",
+          "rect": {
+            "left": 763.6436157226562,
+            "right": 1301.2373046875,
+            "width": 537.5936889648438
+          }
+        }
+      ]
+    },
+    {
+      "name": "name-wrap",
+      "innerWidth": 1280,
+      "doc": 1280,
+      "body": 1280,
+      "overflow": [
+        {
+          "tag": "SPAN",
+          "class": "bolt-route-loader-bar",
+          "text": "",
+          "rect": {
+            "left": 797.96240234375,
+            "right": 1335.55615234375,
+            "width": 537.59375
+          }
+        }
+      ]
+    }
+  ]
+}

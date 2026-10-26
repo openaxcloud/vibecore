@@ -1,0 +1,82 @@
+{
+  "baseSHA": "798fa0f251dec690f81ebd11f0c43eae76c98ba6",
+  "build": "working tree with final three product-file hashes below; API source remains baseSHA unchanged",
+  "productSHA256": {
+    "app/components/chat/MobileOverlayFocus.tsx": "03358a16f6fbc4f5ce52c9727d49f1eaca797d2a9e32ac5c90a853f2708c5f4d",
+    "app/components/chat/BaseChat.tsx": "036e6aa90ad684b65a3e25bf423278ee38a9f8bc45dbd780926e97d784477754",
+    "app/routes/projects.$projectId.ide.tsx": "a868916381d2bd0a068da74b9e3a45a7e743013cda192fe5f769ca24799456da"
+  },
+  "sourceManifestSHA256": "8cf77c8a3cc4a903af70ccadc73b9686d9590078f3b081c5ea0f4eccaf8b74cb",
+  "buildManifestSHA256": "3779a283677e41b012d9594e172b1510087a15d45df459398c8fd739d2fbacc8",
+  "browser": "Chromium154 local, not CI147 or hardware Safari",
+  "stats": {
+    "startTime": "2026-10-26T02:17:02.594Z",
+    "duration": 39772.727000000006,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 390px > tabs menu survives shell replacement (en, open)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 7599
+    },
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 390px > tabs menu survives shell replacement (en, closed)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6159
+    },
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 820px > tabs menu survives shell replacement (en, open)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 8069
+    },
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 820px > tabs menu survives shell replacement (en, closed)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6284
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 390px > panels closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 10467
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 390px > tabs closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 10917
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 1180px > panels closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 9210
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 1180px > tabs closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6405
+    }
+  ],
+  "unitTests": {
+    "focus": 9,
+    "relatedUniqueTotalIncludingFocus": 89,
+    "index": 6
+  },
+  "typecheck": "tsconfig.web.json strict passed; broad tsconfig.json attempt exceeded default4GiB heap, not claimed passed",
+  "review": "independent focus_review approved after stale opener null correction;9tests independently passed",
+  "limits": [
+    "No authenticated production browser QA",
+    "No provider publication, DNS or client project mutation",
+    "Does not preserve tab search text during loading-shell replacement"
+  ]
+}

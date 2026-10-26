@@ -1,0 +1,15 @@
+# Agent report presentation — synthetic component evidence
+
+Source: /workspace/vibecore-ui-ide-feedback, four local UI/test files; no orchestration changes.
+30 passing tests: AssistantMessage.i18n.spec.tsx (12), agent-lane-state.spec.ts (14), agent-003-consensus-rejete.spec.ts (4). Log: /tmp/agent-lanes-presentation-tests.log. Four-file ESLint exit0; git diff --check exit0.
+
+Browser: /usr/bin/chromium, standalone actual AgentLaneSummary with repository UnoCSS. Eight cases: FR/EN × 320/390/820/1440, height900. No backend; all nonlocal requests blocked. Four synthetic reports: structured useful summary, incomplete JSON, recognized empty response, long unknown error. Each checks four44px disclosures initially closed, Tab then Enter open, resize320↔820 retaining disclosure/focus, Enter close, no document overflow. Captures and receipt.json. Light unthemed harness only, not production shell typography/contrast. The displayed interrupted67%/partial25% labels are explicit fixture context, not an orchestration run; actual AssistantMessage annotation rendering covered by jsdom tests. No production, Run/retry, financial/API actions or full IDE claim.
+
+Rerun: from worktree pnpm exec vite --config /tmp/ui-agent-lanes-browser/vite.config.mjs; node /tmp/ui-agent-lanes-browser/check.cjs. Server was stopped with recorded PID/startTicks in process-stop.json. No system/dependency installation.
+
+## Final independent-review correction
+Disclosure now exists for every original report, including short prose: no inaccessible clamped text and no44px row inserted when streamed text becomes long/JSON. Final receipt replaces initial receipt with8 rerun cases. Each also changes Short →119character unbroken text →long prose →JSON in the same mounted component: section height131.921875px and scrollY100 remain unchanged across all4 values, summary44px. This establishes closed-disclosure stability in this isolated harness, not full conversation scroll behavior. All30 tests rerun green; updated short-original assertion verifies complete source remains available. Final process termination tracked separately in process-final-stop.json.
+
+## Optional output contract follow-up
+Final source reads only guarded result.outputState (five known states) and result.emittedFiles (all-string arrays). Files are explicitly emitted, application NOT confirmed. Unknown/missing values are not observed QA. No shared/backend type changes. Existing consensus claimVotes carry an explicit unverified-model-declarations notice; agreedVerificationClaims not consumed pending exact published location/type. No acceptedVerification interpretation.
+32 tests now pass (14 render,14 state,4 consensus). Latest8case browser receipt uses absent metadata for Short, actions_without_report for prose, interrupted for JSON, one synthetic emitted file. Two reserved lines keep height/scroll invariant across those transitions; originals always reachable. Sources and scripts are final; old30test/131.9px paragraphs above describe preceding phases, not latest geometry.

@@ -321,7 +321,7 @@ export default function OrganizationSiemPage() {
               <p className="text-sm text-bolt-elements-textSecondary">{copy['organizationSiem.list.empty']}</p>
             </div>
           ) : (
-            <div className="mt-4 overflow-x-auto rounded-lg border border-bolt-elements-borderColor">
+            <div className="relative mt-4 overflow-x-auto rounded-lg border border-bolt-elements-borderColor">
               <table className="w-full min-w-[36rem] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-left">

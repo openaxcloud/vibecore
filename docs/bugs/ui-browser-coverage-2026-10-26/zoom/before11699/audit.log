@@ -1,0 +1,14 @@
+A [Error]: expect(received).toBeGreaterThanOrEqual(expected)
+
+Expected: >= 44
+Received:    36
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /tmp/ui-browser-zoom-next/audit.cjs:3:1279 {
+  matcherResult: {
+    message: 'expect(received).toBeGreaterThanOrEqual(expected)\n' +
+      '\n' +
+      'Expected: >= 44\n' +
+      'Received:    36',
+    pass: false
+  }
+}

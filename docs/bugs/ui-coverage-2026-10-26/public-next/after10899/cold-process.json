@@ -1,0 +1,8 @@
+[
+  {
+    "pid": 150479,
+    "startTicks": "1819520",
+    "cmd": "node /tmp/ui-coverage-public-next/cold.cjs ",
+    "recordedAt": "2026-10-26T00:28:43.004430+00:00"
+  }
+]

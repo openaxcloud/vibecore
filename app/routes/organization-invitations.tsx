@@ -288,7 +288,7 @@ export default function OrganizationInvitationsPage() {
                     <div className="min-w-0">
                       <div className="break-all font-medium text-bolt-elements-textPrimary">{invite.email}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
-                        <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
+                        <span className="max-w-full [overflow-wrap:anywhere] rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
                           {roleLabel(invite.roleKey)}
                         </span>
                         <span>

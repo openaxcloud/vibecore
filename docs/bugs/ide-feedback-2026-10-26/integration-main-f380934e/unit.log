@@ -1,0 +1,290 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ide-local-recovery
+
+ ✓ app/components/chat/MobileOverlayFocus.spec.tsx (9 tests) 186ms
+ ✓ app/components/chat/AssistantMessage.i18n.spec.tsx (22 tests) 763ms
+ ✓ app/components/dashboard/ProjectPreviewMedia.spec.tsx (13 tests) 553ms
+stdout | app/components/chat/Artifact.demarrage.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+ ✓ app/components/chat/Artifact.demarrage.spec.tsx (3 tests) 301ms
+stdout | app/components/workbench/Preview.start-notice.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+ ✓ app/components/workbench/Preview.start-notice.spec.tsx (2 tests) 321ms
+stdout | app/components/chat/Artifact.i18n.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/components/chat/Artifact.i18n.spec.tsx
+INFO Debug logger initialized
+
+ ✓ app/components/chat/Artifact.i18n.spec.tsx (2 tests) 267ms
+stdout | app/components/chat/Artifact.density.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/components/chat/Artifact.density.spec.tsx
+INFO Debug logger initialized
+
+ ✓ app/components/chat/Artifact.density.spec.tsx (3 tests) 165ms
+ ✓ app/components/ui/useIdeToastLayout.spec.tsx (6 tests) 128ms
+ ✓ app/components/workbench/usePreviewStartNotice.spec.tsx (3 tests) 27ms
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 53ms
+ ✓ app/components/chat/applied-files-toast-honnete.spec.tsx (12 tests) 407ms
+   ✓ le relais entre le calcul du constat et son affichage existe vraiment > aucun appelant de production n’a été oublié dans la liste ci-dessus  380ms
+ ✓ app/utils/toast-batcher.spec.ts (11 tests) 14ms
+ ✓ app/root.hydration.spec.ts (8 tests) 9ms
+stdout | app/routes/api.chat.portfolio-generation.spec.ts
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Anthropic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cerebras
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Cohere
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Deepseek
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Fireworks
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Google
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Groq
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  HuggingFace
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Hyperbolic
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Mistral
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Moonshot
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Ollama
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenRouter
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  OpenAILike
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Perplexity
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  xAI
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Together
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  LMStudio
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  AmazonBedrock
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Github
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m LLMManager [39m[49m Registering Provider:  Z.ai
+
+ ✓ app/root.route-loader.spec.ts (14 tests) 5ms
+ ✓ app/lib/perf/root-route-graph.spec.ts (3 tests) 4ms
+ ✓ app/styles/agent-action-list-density.spec.ts (9 tests) 12ms
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m Total message length: 18, words
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"entree","finishReason":"stop","caracteres":213}
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m usage {"promptTokens":10,"completionTokens":10,"totalTokens":20}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"cache.metadata.shape","projectId":"synthetic-project","usageKeys":["promptTokens","completionTokens","totalTokens"],"usagePrompt":10,"providerMetadataKeys":[],"shape":{}}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.completion.usage","projectId":"synthetic-project","chatMode":"build","finishReason":"stop","provider":"Anthropic","model":"claude-opus-5","promptTokens":10,"completionTokens":10,"totalTokens":20,"cachedPromptTokens":0,"cacheWriteTokens":0,"timestamp":"2026-10-26T08:17:02.757Z"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-mcp"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.flux.verdict","projectId":"synthetic-project","mode":"lite","octets":553,"chunks":4,"premierContenuMs":65,"dernierChunkMs":65,"executeRenduMs":42,"premierDebutMs":35,"enVolAvantAttente":1,"enVolApres":0,"segments":0,"delaiDepasse":false,"dureeMs":68}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.stream.closed","projectId":"synthetic-project","octets":629,"chunks":5,"premierContenuMs":65,"dernierChunkMs":68,"executeRenduMs":42,"dureeMs":69}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m Total message length: 15, words
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"entree","finishReason":"stop","caracteres":213}
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m usage {"promptTokens":10,"completionTokens":10,"totalTokens":20}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"cache.metadata.shape","projectId":"synthetic-project","usageKeys":["promptTokens","completionTokens","totalTokens"],"usagePrompt":10,"providerMetadataKeys":[],"shape":{}}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.completion.usage","projectId":"synthetic-project","chatMode":"build","finishReason":"stop","provider":"Anthropic","model":"claude-opus-5","promptTokens":10,"completionTokens":10,"totalTokens":20,"cachedPromptTokens":0,"cacheWriteTokens":0,"timestamp":"2026-10-26T08:17:02.777Z"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-mcp"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.flux.verdict","projectId":"synthetic-project","mode":"lite","octets":552,"chunks":4,"premierContenuMs":5,"dernierChunkMs":5,"executeRenduMs":4,"premierDebutMs":4,"enVolAvantAttente":1,"enVolApres":0,"segments":0,"delaiDepasse":false,"dureeMs":6}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > EN: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.stream.closed","projectId":"synthetic-project","octets":628,"chunks":5,"premierContenuMs":5,"dernierChunkMs":6,"executeRenduMs":4,"dureeMs":6}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m Total message length: 327, words
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"entree","finishReason":"stop","caracteres":213}
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m usage {"promptTokens":10,"completionTokens":10,"totalTokens":20}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"cache.metadata.shape","projectId":"synthetic-project","usageKeys":["promptTokens","completionTokens","totalTokens"],"usagePrompt":10,"providerMetadataKeys":[],"shape":{}}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.completion.usage","projectId":"synthetic-project","chatMode":"build","finishReason":"stop","provider":"Anthropic","model":"claude-opus-5","promptTokens":10,"completionTokens":10,"totalTokens":20,"cachedPromptTokens":0,"cacheWriteTokens":0,"timestamp":"2026-10-26T08:17:02.783Z"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-mcp"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.flux.verdict","projectId":"synthetic-project","mode":"lite","octets":552,"chunks":4,"premierContenuMs":3,"dernierChunkMs":3,"executeRenduMs":2,"premierDebutMs":2,"enVolAvantAttente":1,"enVolApres":0,"segments":0,"delaiDepasse":false,"dureeMs":4}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > FR wrapped: fresh portfolio intent reaches generation intact instead of a static unrelated site
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.stream.closed","projectId":"synthetic-project","octets":628,"chunks":5,"premierContenuMs":3,"dernierChunkMs":5,"executeRenduMs":2,"dureeMs":5}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m Total message length: 18, words
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"entree","finishReason":"stop","caracteres":213}
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m usage {"promptTokens":10,"completionTokens":10,"totalTokens":20}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"cache.metadata.shape","projectId":"synthetic-project","usageKeys":["promptTokens","completionTokens","totalTokens"],"usagePrompt":10,"providerMetadataKeys":[],"shape":{}}
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.completion.usage","projectId":"synthetic-project","chatMode":"build","finishReason":"stop","provider":"Anthropic","model":"claude-opus-5","promptTokens":10,"completionTokens":10,"totalTokens":20,"cachedPromptTokens":0,"cacheWriteTokens":0,"timestamp":"2026-10-26T08:17:02.789Z"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-flushUsage"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"avant-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-memoire"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.onfinish.jalon","projectId":"synthetic-project","segment":0,"etape":"apres-mcp"}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.flux.verdict","projectId":"synthetic-project","mode":"lite","octets":552,"chunks":4,"premierContenuMs":3,"dernierChunkMs":3,"executeRenduMs":3,"premierDebutMs":2,"enVolAvantAttente":1,"enVolApres":0,"segments":0,"delaiDepasse":false,"dureeMs":5}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > existing workspace and user request reach generation without rewriting files to a starter template
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.stream.closed","projectId":"synthetic-project","octets":628,"chunks":5,"premierContenuMs":3,"dernierChunkMs":5,"executeRenduMs":3,"dureeMs":7}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > quota refusal still blocks both generation and any portfolio artifact
+[48;2;119;130;141m[38;2;255;255;255m DEBUG [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m Total message length: 18, words
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > quota refusal still blocks both generation and any portfolio artifact
+[48;2;255;219;108m[38;2;0;0;0m WARN [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.quota.blocked","projectId":"synthetic-project","code":"QUOTA_EXCEEDED","statusCode":429}
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > quota refusal still blocks both generation and any portfolio artifact
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m stream onError code=QUOTA_EXCEEDED (quota)
+
+stdout | app/routes/api.chat.portfolio-generation.spec.ts > quota refusal still blocks both generation and any portfolio artifact
+[48;2;19;137;253m[38;2;255;255;255m INFO [39m[49m [48;2;119;130;141m[38;2;255;255;255m api.chat [39m[49m {"event":"chat.stream.closed","projectId":"synthetic-project","octets":689,"chunks":3,"premierContenuMs":0,"dernierChunkMs":4,"executeRenduMs":0,"dureeMs":4}
+
+ ✓ app/routes/api.chat.portfolio-generation.spec.ts (5 tests) 124ms
+ ✓ app/components/chat/applied-files-toast-buffer.spec.ts (6 tests) 6ms
+ ✓ app/components/chat/agent-003-consensus-rejete.spec.ts (4 tests) 5ms
+ ✓ app/root.boot-splash.spec.ts (4 tests) 5ms
+ ✓ app/components/chat/agent-lane-state.spec.ts (14 tests) 7ms
+ ✓ app/root.locale-meta.spec.ts (9 tests) 9ms
+
+ Test Files  22 passed (22)
+      Tests  168 passed (168)
+   Start at  08:16:48
+   Duration  17.80s (transform 10.14s, setup 1.05s, collect 20.41s, tests 3.37s, environment 6.01s, prepare 3.29s)
+

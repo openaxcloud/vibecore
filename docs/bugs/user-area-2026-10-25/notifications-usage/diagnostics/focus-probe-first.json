@@ -1,0 +1,33 @@
+{
+  "base": "http://127.0.0.1:6699",
+  "synthetic": true,
+  "checks": [
+    {
+      "lang": "fr",
+      "feedRetry": true
+    },
+    {
+      "lang": "fr",
+      "feedKeyboardBack": true
+    },
+    {
+      "lang": "fr",
+      "preferencesRollback": true,
+      "error": "Les préférences n’ont pas été enregistrées\n\nImpossible d’enregistrer les préférences de notification. Vos paramètres précédents restent actifs.\n\nRéessayer"
+    },
+    {
+      "lang": "fr",
+      "usageRetry": true
+    }
+  ],
+  "writes": [
+    {
+      "method": "PATCH",
+      "url": "http://127.0.0.1:6699/api/user/preferences"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:6699/usage.data?lang=fr"
+    }
+  ]
+}

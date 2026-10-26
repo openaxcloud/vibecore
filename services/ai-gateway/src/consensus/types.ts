@@ -27,7 +27,12 @@ export interface ConsensusConflict {
 export interface ConsolidatedResult {
   summary: string;
   acceptedRisks: string[];
+
+  /** Executed checks only. Report-only consensus cannot populate this field. */
   acceptedVerification: string[];
+
+  /** Model declarations with sufficient agreement, not execution evidence. */
+  agreedVerificationClaims?: string[];
   acceptedFiles: string[];
   rejectedClaims: { claim: string; type: ClaimType }[];
   perRoleSummaries: { roleId: AgentRoleId; summary: string; status: AgentRunResult['status'] }[];

@@ -1,0 +1,10 @@
+{
+  "harnessPid": 142235,
+  "startedAt": "2026-10-26T00:12:01.319Z",
+  "children": [
+    {
+      "pid": 142247,
+      "startTicks": "1720122"
+    }
+  ]
+}

@@ -1,0 +1,358 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.125,
+        "headingTop": 169.125,
+        "headerBottom": 111,
+        "scrollY": 1169,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.125,
+        "headingTop": 169.125,
+        "headerBottom": 111,
+        "scrollY": 1169,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.484375,
+        "headingTop": 169.484375,
+        "headerBottom": 111,
+        "scrollY": 7613,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.484375,
+        "headingTop": 169.484375,
+        "headerBottom": 111,
+        "scrollY": 7613,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 541,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 541,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3627,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3627,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.125,
+        "headingTop": 169.125,
+        "headerBottom": 111,
+        "scrollY": 1169,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.125,
+        "headingTop": 169.125,
+        "headerBottom": 111,
+        "scrollY": 1169,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.484375,
+        "headingTop": 169.484375,
+        "headerBottom": 111,
+        "scrollY": 7613,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.484375,
+        "headingTop": 169.484375,
+        "headerBottom": 111,
+        "scrollY": 7613,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 541,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 541,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=fr#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3627,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3627,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.5,
+        "headingTop": 168.5,
+        "headerBottom": 111,
+        "scrollY": 1070,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.5,
+        "headingTop": 168.5,
+        "headerBottom": 111,
+        "scrollY": 1070,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.96875,
+        "headingTop": 168.96875,
+        "headerBottom": 111,
+        "scrollY": 7097,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.96875,
+        "headingTop": 168.96875,
+        "headerBottom": 111,
+        "scrollY": 7097,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 521,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 521,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3607,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3607,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.5,
+        "headingTop": 168.5,
+        "headerBottom": 111,
+        "scrollY": 1070,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.5,
+        "headingTop": 168.5,
+        "headerBottom": 111,
+        "scrollY": 1070,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.96875,
+        "headingTop": 168.96875,
+        "headerBottom": 111,
+        "scrollY": 7097,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.96875,
+        "headingTop": 168.96875,
+        "headerBottom": 111,
+        "scrollY": 7097,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "hash": "agent-mentions",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-mentions",
+      "ssrTarget": true,
+      "cold": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 521,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 144.09375,
+        "headingTop": 169.09375,
+        "headerBottom": 110,
+        "scrollY": 521,
+        "innerHeight": 900
+      }
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "hash": "agent-i18n",
+      "url": "http://127.0.0.1:11099/docs?lang=en#agent-i18n",
+      "ssrTarget": true,
+      "cold": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3607,
+        "innerHeight": 900
+      },
+      "back": {
+        "top": 143.796875,
+        "headingTop": 168.796875,
+        "headerBottom": 110,
+        "scrollY": 3607,
+        "innerHeight": 900
+      }
+    }
+  ],
+  "errors": [],
+  "mutations": []
+}

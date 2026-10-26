@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+stdout | app/routes/support-ticket-draft-navigation.spec.tsx > records hook-visible fast redirect and immediate loader
+ROUTER_TRACE fast-success [{"state":"idle"},{"state":"submitting","method":"POST"},{"state":"idle"}] SUBSCRIBED [{"state":"idle","actionData":null},{"state":"submitting","method":"POST","actionData":null},{"state":"loading","method":"POST","actionData":null},{"state":"idle","actionData":null}]
+
+ ✓ app/routes/support-ticket-draft-navigation.spec.tsx (11 tests | 10 skipped) 114ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 10 skipped (11)
+   Start at  01:37:28
+   Duration  2.65s (transform 1.08s, setup 20ms, collect 418ms, tests 114ms, environment 288ms, prepare 58ms)

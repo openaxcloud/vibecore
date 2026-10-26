@@ -1,0 +1,41 @@
+{
+  "base": "ea2ff01c5cf6ffc5116f6ae98e9aaa4a43a807af",
+  "files": [
+    {
+      "path": "app/components/dashboard/SaaSLayout.tsx",
+      "sha256": "d72e202420f95a6d6a51cd3a3d1853f3fdc105e72aa7b4c33a8ecbbda6860ab3"
+    },
+    {
+      "path": "app/components/docs/AgentWalkthrough.tsx",
+      "sha256": "0555c4648c8d4a69b1edb4a8e31e1b801c6508f6fcc119d91bddceee38d3798f"
+    },
+    {
+      "path": "app/components/marketing/EcodePublicResourcePages.tsx",
+      "sha256": "0c2b9701e4c828d21b9e7349eabb10d2332f33ede6fec004db515c79d5af3053"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/agent-walkthrough.ts",
+      "sha256": "3cf0ade4b166aaa43784cb04996e26f7453070e43cd6bcd2c6189dfeb3dff0bb"
+    },
+    {
+      "path": "app/routes/docs.tsx",
+      "sha256": "e93527aa3d73ad989da11aca2ddd93a3c9d1042cbaaebddf2ab1d421e9d3d07b"
+    },
+    {
+      "path": "app/routes/organization-siem.tsx",
+      "sha256": "0f7a0ddd9095f255c3f47f70bace2e018dd588720e8bb3a7c49f905995f726fe"
+    },
+    {
+      "path": "app/routes/organization-switcher.tsx",
+      "sha256": "9d811c837b40f3e0a24568f237f12b9b263755f38bc6d8bcd99557a6ab57eee3"
+    },
+    {
+      "path": "app/styles/index.scss",
+      "sha256": "d9be3646fb7de05f401c931b054c393dda7af67073209491b94df2340f56c13a"
+    },
+    {
+      "path": "tests/e2e/ecode-marketing-content.spec.ts",
+      "sha256": "c01256def2c938589b16662787505ddbc0f498687664ac77ab39e79b4e8d19ec"
+    }
+  ]
+}

@@ -1,0 +1,1023 @@
+{
+  "base": "http://127.0.0.1:7599",
+  "synthetic": true,
+  "observations": [
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Factures",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "fr",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Comparer les offres",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "light",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/invoices",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Invoices",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 740,
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 360,
+      "scrollWidth": 360,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 844,
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 390,
+      "width": 844,
+      "scrollWidth": 844,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1024,
+      "width": 768,
+      "scrollWidth": 768,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1180,
+      "width": 820,
+      "scrollWidth": 820,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 768,
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 800,
+      "width": 1280,
+      "scrollWidth": 1280,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 900,
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1080,
+      "width": 1920,
+      "scrollWidth": 1920,
+      "title": "Compare plans",
+      "overflow": []
+    },
+    {
+      "route": "/plan-comparison",
+      "lang": "en",
+      "theme": "dark",
+      "height": 1440,
+      "width": 2560,
+      "scrollWidth": 2560,
+      "title": "Compare plans",
+      "overflow": []
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      "method": "GET"
+    }
+  ],
+  "interactions": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "keyboard": {
+        "next": "Choisir la formule Team",
+        "noSubmit": true
+      },
+      "backToInvoices": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "keyboard": {
+        "next": "Choisir la formule Team",
+        "noSubmit": true
+      },
+      "backToInvoices": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "keyboard": {
+        "next": "Choose Team",
+        "noSubmit": true
+      },
+      "backToInvoices": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "keyboard": {
+        "next": "Choose Team",
+        "noSubmit": true
+      },
+      "backToInvoices": true
+    }
+  ]
+}

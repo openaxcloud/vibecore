@@ -1,0 +1,570 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "states": [
+        {
+          "name": "Espace de travail IDE\nAffiché\n\nAgent et éditeur\n\nL’agent échange à gauche pendant qu’il écrit le code dans l’éditeur et met à jour l’arborescence en direct.",
+          "selectedImage": "/ecode-static/assets/product/ide.png"
+        },
+        {
+          "name": "Gestion de versions\nAffiché\n\nFlux Git intégré\n\nUn véritable panneau Git : branche, changements, bouton Commit orange et graphe des commits.",
+          "selectedImage": "/ecode-static/assets/product/ide-git.png"
+        },
+        {
+          "name": "Déployer\nAffiché\n\nDéploiements dans l’IDE\n\nPubliez dans le cloud directement depuis le panneau Déploiements, sans terminal ni changement de contexte.",
+          "selectedImage": "/ecode-static/assets/product/ide-deploy.png"
+        }
+      ],
+      "geometry": [
+        {
+          "text": "Espace de travail IDE\n\nAgent et éditeur\n\nL’agent échange à gauche pendant qu’il écrit le code dans l’éditeur et met à jour l’arborescence en direct.",
+          "left": 41,
+          "right": 295.828125,
+          "width": 254.828125,
+          "scrollWidth": 255,
+          "clientWidth": 255,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Aperçu de l’agent et de l’éditeur",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "Espace de travail IDE",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "Agent et éditeur",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "L’agent échange à gauche pendant qu’il écrit le code dans l’éditeur et met à jour l’arborescence en direct.",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            }
+          ]
+        },
+        {
+          "text": "Gestion de versions\n\nFlux Git intégré\n\nUn véritable panneau Git : branche, changements, bouton Commit orange et graphe des commits.",
+          "left": 41,
+          "right": 295.828125,
+          "width": 254.828125,
+          "scrollWidth": 255,
+          "clientWidth": 255,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Aperçu du flux Git intégré",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "Gestion de versions",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "Flux Git intégré",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "Un véritable panneau Git : branche, changements, bouton Commit orange et graphe des commits.",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            }
+          ]
+        },
+        {
+          "text": "Déployer\nAffiché\n\nDéploiements dans l’IDE\n\nPubliez dans le cloud directement depuis le panneau Déploiements, sans terminal ni changement de contexte.",
+          "left": 41,
+          "right": 295.828125,
+          "width": 254.828125,
+          "scrollWidth": 253,
+          "clientWidth": 253,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Aperçu des déploiements dans l’IDE",
+              "left": 54,
+              "right": 134
+            },
+            {
+              "tag": "SPAN",
+              "text": "Déployer",
+              "alt": null,
+              "left": 146,
+              "right": 221.359375
+            },
+            {
+              "tag": "SPAN",
+              "text": "Affiché",
+              "alt": null,
+              "left": 221.359375,
+              "right": 282.828125
+            },
+            {
+              "tag": "P",
+              "text": "Déploiements dans l’IDE",
+              "alt": null,
+              "left": 146,
+              "right": 282.828125
+            },
+            {
+              "tag": "P",
+              "text": "Publiez dans le cloud directement depuis le panneau Déploiements, sans terminal ni changement de contexte.",
+              "alt": null,
+              "left": 146,
+              "right": 282.828125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "states": [
+        {
+          "name": "Espace de travail IDE\nAffiché\n\nAgent et éditeur\n\nL’agent échange à gauche pendant qu’il écrit le code dans l’éditeur et met à jour l’arborescence en direct.",
+          "selectedImage": "/ecode-static/assets/product/ide.png"
+        },
+        {
+          "name": "Gestion de versions\nAffiché\n\nFlux Git intégré\n\nUn véritable panneau Git : branche, changements, bouton Commit orange et graphe des commits.",
+          "selectedImage": "/ecode-static/assets/product/ide-git.png"
+        },
+        {
+          "name": "Déployer\nAffiché\n\nDéploiements dans l’IDE\n\nPubliez dans le cloud directement depuis le panneau Déploiements, sans terminal ni changement de contexte.",
+          "selectedImage": "/ecode-static/assets/product/ide-deploy.png"
+        }
+      ],
+      "geometry": [
+        {
+          "text": "Espace de travail IDE\n\nAgent et éditeur\n\nL’agent échange à gauche pendant qu’il écrit le code dans l’éditeur et met à jour l’arborescence en direct.",
+          "left": 41,
+          "right": 295.828125,
+          "width": 254.828125,
+          "scrollWidth": 255,
+          "clientWidth": 255,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Aperçu de l’agent et de l’éditeur",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "Espace de travail IDE",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "Agent et éditeur",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "L’agent échange à gauche pendant qu’il écrit le code dans l’éditeur et met à jour l’arborescence en direct.",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            }
+          ]
+        },
+        {
+          "text": "Gestion de versions\n\nFlux Git intégré\n\nUn véritable panneau Git : branche, changements, bouton Commit orange et graphe des commits.",
+          "left": 41,
+          "right": 295.828125,
+          "width": 254.828125,
+          "scrollWidth": 255,
+          "clientWidth": 255,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Aperçu du flux Git intégré",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "Gestion de versions",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "Flux Git intégré",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            },
+            {
+              "tag": "P",
+              "text": "Un véritable panneau Git : branche, changements, bouton Commit orange et graphe des commits.",
+              "alt": null,
+              "left": 145,
+              "right": 283.828125
+            }
+          ]
+        },
+        {
+          "text": "Déployer\nAffiché\n\nDéploiements dans l’IDE\n\nPubliez dans le cloud directement depuis le panneau Déploiements, sans terminal ni changement de contexte.",
+          "left": 41,
+          "right": 295.828125,
+          "width": 254.828125,
+          "scrollWidth": 253,
+          "clientWidth": 253,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Aperçu des déploiements dans l’IDE",
+              "left": 54,
+              "right": 134
+            },
+            {
+              "tag": "SPAN",
+              "text": "Déployer",
+              "alt": null,
+              "left": 146,
+              "right": 221.359375
+            },
+            {
+              "tag": "SPAN",
+              "text": "Affiché",
+              "alt": null,
+              "left": 221.359375,
+              "right": 282.828125
+            },
+            {
+              "tag": "P",
+              "text": "Déploiements dans l’IDE",
+              "alt": null,
+              "left": 146,
+              "right": 282.828125
+            },
+            {
+              "tag": "P",
+              "text": "Publiez dans le cloud directement depuis le panneau Déploiements, sans terminal ni changement de contexte.",
+              "alt": null,
+              "left": 146,
+              "right": 282.828125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "states": [
+        {
+          "name": "IDE workspace\nViewing\n\nAgent + Editor\n\nThe agent chats on the left while it writes code in the editor and updates the file tree live.",
+          "selectedImage": "/ecode-static/assets/product/ide.png"
+        },
+        {
+          "name": "Version control\nViewing\n\nBuilt-in Git workflow\n\nReal Git panel: branch, working tree, the orange Commit button, and the commit graph.",
+          "selectedImage": "/ecode-static/assets/product/ide-git.png"
+        },
+        {
+          "name": "Deploy\nViewing\n\nIn-IDE Deployments\n\nShip to the cloud straight from the Deployments panel—no terminal, no context switch.",
+          "selectedImage": "/ecode-static/assets/product/ide-deploy.png"
+        }
+      ],
+      "geometry": [
+        {
+          "text": "IDE workspace\n\nAgent + Editor\n\nThe agent chats on the left while it writes code in the editor and updates the file tree live.",
+          "left": 41,
+          "right": 288.1875,
+          "width": 247.1875,
+          "scrollWidth": 247,
+          "clientWidth": 247,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Agent and editor preview",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "IDE workspace",
+              "alt": null,
+              "left": 145,
+              "right": 257.921875
+            },
+            {
+              "tag": "P",
+              "text": "Agent + Editor",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            },
+            {
+              "tag": "P",
+              "text": "The agent chats on the left while it writes code in the editor and updates the file tree live.",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            }
+          ]
+        },
+        {
+          "text": "Version control\n\nBuilt-in Git workflow\n\nReal Git panel: branch, working tree, the orange Commit button, and the commit graph.",
+          "left": 41,
+          "right": 288.1875,
+          "width": 247.1875,
+          "scrollWidth": 247,
+          "clientWidth": 247,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Built-in Git workflow preview",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "Version control",
+              "alt": null,
+              "left": 145,
+              "right": 260.359375
+            },
+            {
+              "tag": "P",
+              "text": "Built-in Git workflow",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            },
+            {
+              "tag": "P",
+              "text": "Real Git panel: branch, working tree, the orange Commit button, and the commit graph.",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            }
+          ]
+        },
+        {
+          "text": "Deploy\nViewing\n\nIn-IDE Deployments\n\nShip to the cloud straight from the Deployments panel—no terminal, no context switch.",
+          "left": 41,
+          "right": 288.1875,
+          "width": 247.1875,
+          "scrollWidth": 245,
+          "clientWidth": 245,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "In-IDE Deployments preview",
+              "left": 54,
+              "right": 134
+            },
+            {
+              "tag": "SPAN",
+              "text": "Deploy",
+              "alt": null,
+              "left": 146,
+              "right": 207.671875
+            },
+            {
+              "tag": "SPAN",
+              "text": "Viewing",
+              "alt": null,
+              "left": 207.671875,
+              "right": 275.1875
+            },
+            {
+              "tag": "P",
+              "text": "In-IDE Deployments",
+              "alt": null,
+              "left": 146,
+              "right": 275.1875
+            },
+            {
+              "tag": "P",
+              "text": "Ship to the cloud straight from the Deployments panel—no terminal, no context switch.",
+              "alt": null,
+              "left": 146,
+              "right": 275.1875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "states": [
+        {
+          "name": "IDE workspace\nViewing\n\nAgent + Editor\n\nThe agent chats on the left while it writes code in the editor and updates the file tree live.",
+          "selectedImage": "/ecode-static/assets/product/ide.png"
+        },
+        {
+          "name": "Version control\nViewing\n\nBuilt-in Git workflow\n\nReal Git panel: branch, working tree, the orange Commit button, and the commit graph.",
+          "selectedImage": "/ecode-static/assets/product/ide-git.png"
+        },
+        {
+          "name": "Deploy\nViewing\n\nIn-IDE Deployments\n\nShip to the cloud straight from the Deployments panel—no terminal, no context switch.",
+          "selectedImage": "/ecode-static/assets/product/ide-deploy.png"
+        }
+      ],
+      "geometry": [
+        {
+          "text": "IDE workspace\n\nAgent + Editor\n\nThe agent chats on the left while it writes code in the editor and updates the file tree live.",
+          "left": 41,
+          "right": 288.1875,
+          "width": 247.1875,
+          "scrollWidth": 247,
+          "clientWidth": 247,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Agent and editor preview",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "IDE workspace",
+              "alt": null,
+              "left": 145,
+              "right": 257.921875
+            },
+            {
+              "tag": "P",
+              "text": "Agent + Editor",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            },
+            {
+              "tag": "P",
+              "text": "The agent chats on the left while it writes code in the editor and updates the file tree live.",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            }
+          ]
+        },
+        {
+          "text": "Version control\n\nBuilt-in Git workflow\n\nReal Git panel: branch, working tree, the orange Commit button, and the commit graph.",
+          "left": 41,
+          "right": 288.1875,
+          "width": 247.1875,
+          "scrollWidth": 247,
+          "clientWidth": 247,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "Built-in Git workflow preview",
+              "left": 53,
+              "right": 133
+            },
+            {
+              "tag": "SPAN",
+              "text": "Version control",
+              "alt": null,
+              "left": 145,
+              "right": 260.359375
+            },
+            {
+              "tag": "P",
+              "text": "Built-in Git workflow",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            },
+            {
+              "tag": "P",
+              "text": "Real Git panel: branch, working tree, the orange Commit button, and the commit graph.",
+              "alt": null,
+              "left": 145,
+              "right": 276.1875
+            }
+          ]
+        },
+        {
+          "text": "Deploy\nViewing\n\nIn-IDE Deployments\n\nShip to the cloud straight from the Deployments panel—no terminal, no context switch.",
+          "left": 41,
+          "right": 288.1875,
+          "width": 247.1875,
+          "scrollWidth": 245,
+          "clientWidth": 245,
+          "children": [
+            {
+              "tag": "IMG",
+              "text": "",
+              "alt": "In-IDE Deployments preview",
+              "left": 54,
+              "right": 134
+            },
+            {
+              "tag": "SPAN",
+              "text": "Deploy",
+              "alt": null,
+              "left": 146,
+              "right": 207.671875
+            },
+            {
+              "tag": "SPAN",
+              "text": "Viewing",
+              "alt": null,
+              "left": 207.671875,
+              "right": 275.1875
+            },
+            {
+              "tag": "P",
+              "text": "In-IDE Deployments",
+              "alt": null,
+              "left": 146,
+              "right": 275.1875
+            },
+            {
+              "tag": "P",
+              "text": "Ship to the cloud straight from the Deployments panel—no terminal, no context switch.",
+              "alt": null,
+              "left": 146,
+              "right": 275.1875
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "mutations": []
+}

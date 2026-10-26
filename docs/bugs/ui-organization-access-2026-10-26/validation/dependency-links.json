@@ -1,0 +1,78 @@
+[
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/preview-proxy/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/preview-proxy/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/screenshotter/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/screenshotter/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/api/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/api/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/worker/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/worker/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/workspace-manager/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/workspace-manager/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/connector-proxy/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/connector-proxy/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/workspace-agent/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/workspace-agent/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/services/ai-gateway/node_modules",
+    "target": "/workspace/vibecore-ui-next/services/ai-gateway/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/apps/admin/node_modules",
+    "target": "/workspace/vibecore-ui-next/apps/admin/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/apps/mobile/node_modules",
+    "target": "/workspace/vibecore-ui-next/apps/mobile/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/template-catalog/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/template-catalog/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/runtime-webcontainer/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/runtime-webcontainer/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/workspace-sdk/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/workspace-sdk/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/sdk/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/sdk/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/k8s-client/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/k8s-client/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/database/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/database/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/runtime-remote/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/runtime-remote/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/sandbox-runtime/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/sandbox-runtime/node_modules"
+  },
+  {
+    "link": "/workspace/vibecore-ui-org-next/packages/connector-sdk/node_modules",
+    "target": "/workspace/vibecore-ui-next/packages/connector-sdk/node_modules"
+  }
+]

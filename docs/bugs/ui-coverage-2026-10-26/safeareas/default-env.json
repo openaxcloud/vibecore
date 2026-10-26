@@ -1,0 +1,13 @@
+{
+  "version": "154.0.8037.57",
+  "priorUnsupportedProbe": {
+    "version": "154.0.8037.57",
+    "error": "Error: cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found"
+  },
+  "defaultComputed": {
+    "top": "0px",
+    "bottom": "0px",
+    "left": "0px",
+    "right": "0px"
+  }
+}

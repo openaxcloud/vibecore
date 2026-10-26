@@ -1,0 +1,415 @@
+{
+  "sha": "798fa0f251dec690f81ebd11f0c43eae76c98ba6",
+  "source": "real isolated IDE, held GET ide-state, no response substitution",
+  "browser": "Chromium 154 local",
+  "tests": [
+    {
+      "test": "tabs menu survives shell replacement (en, open)",
+      "status": "failed",
+      "retry": 0,
+      "durationMs": 7570,
+      "events": [
+        {
+          "time": 1106.2450000047684,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1106.460000000894,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1200.640000000596,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": false,
+            "rects": 0,
+            "display": ""
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1200.695000000298,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1218.9250000044703,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1219.0350000038743,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1648.8550000041723,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": false,
+            "rects": 0,
+            "display": ""
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1649.320000000298,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1674.6450000032783,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1674.679999999702,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        }
+      ]
+    },
+    {
+      "test": "tabs menu survives shell replacement (en, closed)",
+      "status": "failed",
+      "retry": 0,
+      "durationMs": 7601,
+      "events": [
+        {
+          "time": 1123.2600000053644,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1123.405000001192,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1201.1750000044703,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": false,
+            "rects": 0,
+            "display": ""
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1201.2250000014901,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1216.5500000044703,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1216.609999999404,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1515.0500000044703,
+          "kind": "focus-call",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "INPUT",
+            "testid": "input-search-tabs",
+            "cls": "",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1516.5,
+          "kind": "focus-after",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          }
+        },
+        {
+          "time": 1646.8150000050664,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": false,
+            "rects": 0,
+            "display": ""
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1647.3150000050664,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1663.2450000047684,
+          "kind": "trigger-replaced",
+          "keyboard": null,
+          "target": null,
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        },
+        {
+          "time": 1663.2750000059605,
+          "kind": "trigger-current",
+          "keyboard": null,
+          "target": {
+            "tag": "BUTTON",
+            "testid": "button-tab-switcher",
+            "cls": "bolt-mobile-replit-icon-tab",
+            "connected": true,
+            "rects": 1,
+            "display": "flex"
+          },
+          "active": {
+            "tag": "BODY",
+            "testid": null,
+            "cls": "h-full w-full",
+            "connected": true,
+            "rects": 1,
+            "display": "block"
+          }
+        }
+      ]
+    }
+  ]
+}

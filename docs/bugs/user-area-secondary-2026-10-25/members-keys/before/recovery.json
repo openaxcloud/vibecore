@@ -1,0 +1,32 @@
+[
+  {
+    "lang": "fr",
+    "route": "/organization-members",
+    "retryKeyboard": true
+  },
+  {
+    "lang": "fr",
+    "route": "/api-keys",
+    "retryKeyboard": true,
+    "keyboardTableScroll": {
+      "left": 18,
+      "width": 922,
+      "scroll": 1638
+    }
+  },
+  {
+    "lang": "en",
+    "route": "/organization-members",
+    "retryKeyboard": true
+  },
+  {
+    "lang": "en",
+    "route": "/api-keys",
+    "retryKeyboard": true,
+    "keyboardTableScroll": {
+      "left": 18,
+      "width": 922,
+      "scroll": 1540
+    }
+  }
+]

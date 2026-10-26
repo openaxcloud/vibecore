@@ -1,0 +1,14 @@
+[
+  {
+    lang: 'fr',
+    route: '/api-keys',
+    retryKeyboard: true,
+    keyboardTableScroll: { left: 15, width: 922, scroll: 1638 }
+  },
+  {
+    lang: 'en',
+    route: '/api-keys',
+    retryKeyboard: true,
+    keyboardTableScroll: { left: 39, width: 922, scroll: 1540 }
+  }
+]

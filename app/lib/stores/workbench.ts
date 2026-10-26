@@ -43,6 +43,7 @@ import {
 import { recordAgentRepairEvent } from '~/lib/persistence/agentRepairEventSync';
 import { getRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { foldCommandExitCode } from '~/lib/runtime/command-exit';
+import { workspaceLogLines } from '~/lib/runtime/workspace-command-log';
 import { ActionRunner, actionApresReprise } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
@@ -82,7 +83,14 @@ import {
   patchContentFingerprint,
   type PatchAdmission,
 } from '~/lib/stores/agent-patch-flood-guard';
-import { decoderLane } from '~/lib/runtime/agent-lane-writes';
+import {
+  decoderLane,
+  observerEcrituresDeMessage,
+  confirmerEcritureDeMessage,
+  confirmationCouranteDuChemin,
+  invaliderConfirmationDeMessage,
+  reinitialiserConfirmationsEcriture,
+} from '~/lib/runtime/agent-lane-writes';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
 import { fusionnerATroisVoies } from '~/utils/fusion-a-trois-voies';
 import { KeyedMutex } from '~/lib/common/keyed-mutex';
@@ -214,8 +222,6 @@ const WORKSPACE_LOG_FLUSH_INTERVAL_MS = 100;
  */
 const PREVIEW_SETUP_RETRY_ATTEMPTS = 3;
 const PREVIEW_SETUP_RETRY_BASE_DELAY_MS = 1000;
-const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
-const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
 
 /*
  * Sampling window for the AI streaming-action runner. Each token chunk
@@ -267,19 +273,6 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   }
 
   return Buffer.from(binary, 'binary').toString('base64');
-}
-
-function workspaceLogLines(event: CommandEvent | string) {
-  const rawLine = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
-
-  return rawLine
-    .split(/\r?\n/)
-    .map((line) => line.trimEnd())
-    .filter((line) => {
-      const normalizedLine = line.replace(ANSI_ESCAPE_SEQUENCE, '').trim();
-
-      return normalizedLine.length > 0 && !WORKSPACE_LOG_NOISE_PATTERNS.some((pattern) => pattern.test(normalizedLine));
-    });
 }
 
 export class WorkbenchStore {
@@ -598,6 +591,7 @@ export class WorkbenchStore {
       return;
     }
 
+    reinitialiserConfirmationsEcriture();
     this.#projectStorageBinding++;
     this.#projectStorageSaveVersions.clear();
     this.#runtime = runtime;
@@ -706,6 +700,7 @@ export class WorkbenchStore {
   }
 
   #resetProjectScopedState(clearUnsavedFiles = true) {
+    reinitialiserConfirmationsEcriture();
     this.agentPatchProposals.set({});
     this.#enregistrementsDeLAgent.clear();
     this.#agentPatchOriginals.clear();
@@ -3010,6 +3005,7 @@ export class WorkbenchStore {
           return 'ignored';
         }
 
+        confirmerEcritureDeMessage(proposal.messageId, proposal.relativePath, proposal.id);
         this.#agentPatchOriginals.delete(proposal.actionId);
         this.resetAllFileModifications();
         this.agentPatchProposals.setKey(proposalId, {
@@ -3151,11 +3147,14 @@ export class WorkbenchStore {
   }
 
   /**
-   * Revert an already-accepted agent patch by re-running the original file
-   * content through the artifact action runner. Lets the "Undo" toast button
+   * Revert an already-accepted agent patch through the existing action runner
+   * under the same per-file mutex as apply, confirming sanitized runtime bytes. Lets the "Undo" toast button
    * roll back a silent auto-apply without going through the snapshots panel.
    */
   async revertAgentPatchProposal(proposalId: string) {
+    const binding = this.#projectStorageBinding;
+    const runtime = this.#runtime;
+    const scopeIsCurrent = () => binding === this.#projectStorageBinding && runtime === this.#runtime;
     const proposal = this.agentPatchProposals.get()[proposalId];
 
     if (!proposal || proposal.status !== 'accepted') {
@@ -3169,46 +3168,86 @@ export class WorkbenchStore {
       return;
     }
 
-    try {
-      const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
-
-      if (fileExistsInEditor) {
-        this.#editorStore.updateFile(proposal.filePath, proposal.originalContent);
-        await this.saveFile(proposal.filePath);
+    await this.#agentPatchApplyMutex.run(proposal.filePath, async () => {
+      if (!scopeIsCurrent()) {
+        return;
       }
 
-      /*
-       * runAction throws (unreachable "Action not found") if the actionId was
-       * never registered, so the on-disk revert silently failed — only the editor
-       * buffer was rolled back. Register the synthetic revert action first.
-       */
-      const revertAction = {
-        artifactId: proposal.artifactId,
-        messageId: proposal.messageId,
-        actionId: `${proposal.actionId}-revert`,
-        action: {
-          type: 'file' as const,
-          filePath: proposal.relativePath,
-          content: proposal.originalContent,
-        },
-      };
-      artifact.runner.addAction(revertAction);
-      await artifact.runner.runAction(revertAction, false);
+      const currentReceipt = confirmationCouranteDuChemin(proposal.relativePath);
+      const parentMessageId = decoderLane(proposal.messageId)?.messageId ?? proposal.messageId;
 
-      this.agentPatchProposals.setKey(proposalId, {
-        ...proposal,
-        status: 'reverted',
-        updatedAt: new Date().toISOString(),
-      });
-      this.#syncAgentPatchProposalToServer(proposalId);
-      this.#emitFileApplied(proposal.relativePath, 'agent', {
-        artifactId: proposal.artifactId,
-        actionId: `${proposal.actionId}-revert`,
-      });
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.reverted', { file: proposal.relativePath }));
-    } catch {
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.revertFailed', { file: proposal.relativePath }));
-    }
+      if (
+        currentReceipt &&
+        (currentReceipt.receiptId !== proposal.id || currentReceipt.messageId !== parentMessageId)
+      ) {
+        const message = workbenchText('workbenchRuntime.patch.conflitUtilisateur', { file: proposal.relativePath });
+        this.appendWorkspaceLog(message);
+        toast.warning(message, { toastId: `revert-conflict-${proposal.id}` });
+
+        return;
+      }
+
+      try {
+        const expectedContent = sanitizeFileContent(proposal.originalContent, proposal.relativePath).sanitized;
+        const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
+
+        if (fileExistsInEditor) {
+          this.#editorStore.updateFile(proposal.filePath, proposal.originalContent);
+          await this.saveFile(proposal.filePath);
+
+          if (!scopeIsCurrent()) {
+            return;
+          }
+        }
+
+        // Preserve the established runner path and its write protections.
+        const revertAction = {
+          artifactId: proposal.artifactId,
+          messageId: proposal.messageId,
+          actionId: `${proposal.actionId}-revert`,
+          action: {
+            type: 'file' as const,
+            filePath: proposal.relativePath,
+            content: proposal.originalContent,
+          },
+        };
+        artifact.runner.addAction(revertAction);
+        await artifact.runner.runAction(revertAction, false);
+
+        if (!scopeIsCurrent()) {
+          return;
+        }
+
+        const confirmed = await confirmAcceptedAgentFile(runtime, proposal.relativePath, expectedContent);
+
+        if (!scopeIsCurrent()) {
+          return;
+        }
+
+        if (!confirmed) {
+          throw Object.assign(new Error(), { code: 'AGENT_WRITE_NOT_CONFIRMED' });
+        }
+
+        invaliderConfirmationDeMessage(proposal.messageId, proposal.relativePath, proposal.id);
+        this.agentPatchProposals.setKey(proposalId, {
+          ...proposal,
+          status: 'reverted',
+          updatedAt: new Date().toISOString(),
+        });
+        this.#syncAgentPatchProposalToServer(proposalId);
+        this.#emitFileApplied(proposal.relativePath, 'agent', {
+          artifactId: proposal.artifactId,
+          actionId: `${proposal.actionId}-revert`,
+        });
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.reverted', { file: proposal.relativePath }));
+      } catch {
+        if (!scopeIsCurrent()) {
+          return;
+        }
+
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.revertFailed', { file: proposal.relativePath }));
+      }
+    });
   }
 
   async #createProjectAgentCheckpoint(label: string) {
@@ -3466,6 +3505,10 @@ export class WorkbenchStore {
   }
 
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
+    if (this.agentPatchReviewRequired.get() && !this.#reloadedMessages.contient(messageId)) {
+      observerEcrituresDeMessage(messageId);
+    }
+
     const artifact = this.#getArtifact(id);
 
     if (artifact) {
@@ -3707,7 +3750,20 @@ export class WorkbenchStore {
         return;
       }
 
+      const writeRuntime = this.#runtime;
+      const writeBinding = this.#projectStorageBinding;
+      const writeProject = this.#projectId;
+
+      const writeScopeIsCurrent = () =>
+        this.#runtime === writeRuntime &&
+        this.#projectStorageBinding === writeBinding &&
+        this.#projectId === writeProject;
+
       await this.#createAutomaticSnapshotBeforeLargeAiChange(data);
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
 
       const fullPath = path.join(this.#runtime.workdir, data.action.filePath);
 
@@ -3791,6 +3847,12 @@ export class WorkbenchStore {
 
       await artifact.runner.runAction(data);
 
+      const writeReceipt = artifact.runner.consumeConfirmedFileWrite?.(data.actionId);
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
+
       const completedAction = artifact.runner.actions.get()[data.actionId];
 
       if (completedAction?.status === 'failed') {
@@ -3826,7 +3888,11 @@ export class WorkbenchStore {
        * l'appel est différé.
        */
       const cheminEcrit = data.action.filePath;
-      const confirmation = await confirmWriteWithinDeadline(() => this.#runtime.readFile(cheminEcrit));
+      const confirmation = await confirmWriteWithinDeadline(() => writeRuntime.readFile(cheminEcrit));
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
 
       if (confirmation !== 'confirmed') {
         const message =
@@ -3853,6 +3919,21 @@ export class WorkbenchStore {
       await this.loadRuntimeFiles('.').catch(() => {
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.refreshSkipped'));
       });
+
+      if (!writeScopeIsCurrent()) {
+        return;
+      }
+
+      if (
+        writeReceipt &&
+        writeReceipt.runtime === writeRuntime &&
+        !writeReceipt.abortSignal.aborted &&
+        !data.fermetureDeSecours &&
+        completedAction?.status === 'complete' &&
+        writeScopeIsCurrent()
+      ) {
+        confirmerEcritureDeMessage(data.messageId, writeReceipt.filePath, `${data.artifactId}:${data.actionId}`);
+      }
 
       const writtenFile = this.#filesStore.getFile(fullPath);
       this.#editorStore.updateFile(fullPath, writtenFile?.content ?? data.action.content);
@@ -4012,6 +4093,8 @@ export class WorkbenchStore {
         return;
       }
     }
+
+    observerEcrituresDeMessage(data.messageId);
 
     /*
      * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — admission control BEFORE a proposal is

@@ -1,0 +1,10 @@
+--- a/app/components/marketing/EcodeProductMarketingPages.tsx
++++ b/app/components/marketing/EcodeProductMarketingPages.tsx
+@@ -710,6 +710,7 @@
+                 key={tab.id}
+                 type="button"
+                 variant={activeTab === tab.id ? 'default' : 'outline'}
++                aria-pressed={activeTab === tab.id}
+                 onClick={() => setActiveTab(tab.id)}
+               >
+                 {tab.label}

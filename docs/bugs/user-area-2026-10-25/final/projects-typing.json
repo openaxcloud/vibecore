@@ -1,0 +1,18 @@
+{
+  "base": "http://127.0.0.1:5899",
+  "phase": "final",
+  "synthetic": true,
+  "delayMs": 350,
+  "requests": [
+    "/projects.data?lang=fr&q=A",
+    "/projects.data?lang=fr&q=Application"
+  ],
+  "afterEarlierResponse": {
+    "value": "Application",
+    "url": "http://127.0.0.1:5899/projects?lang=fr&q=A"
+  },
+  "final": {
+    "value": "Application",
+    "url": "http://127.0.0.1:5899/projects?lang=fr&q=Application"
+  }
+}

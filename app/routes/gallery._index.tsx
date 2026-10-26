@@ -159,7 +159,7 @@ function GalleryCardLink({ card, copy, language }: { card: GalleryCard; copy: Pu
           ) : null}
         </div>
 
-        <h3 className="mt-3 text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent)]">
+        <h3 className="mt-3 [overflow-wrap:anywhere] text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent)]">
           {card.title}
         </h3>
         <p className="mt-1.5 line-clamp-3 flex-1 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
@@ -171,7 +171,7 @@ function GalleryCardLink({ card, copy, language }: { card: GalleryCard; copy: Pu
             {card.tags.slice(0, 4).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-[var(--ecode-background)] px-2 py-0.5 text-[11px] text-[var(--ecode-text-muted)]"
+                className="max-w-full rounded-full bg-[var(--ecode-background)] px-2 py-0.5 text-[11px] text-[var(--ecode-text-muted)] [overflow-wrap:anywhere]"
               >
                 {tag}
               </span>

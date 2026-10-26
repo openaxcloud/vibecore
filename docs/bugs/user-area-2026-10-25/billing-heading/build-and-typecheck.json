@@ -1,0 +1,13 @@
+{
+  "baseCommit": "b94d975b33c157ed86f2618ea98f38b630a497bd",
+  "productDelta": [
+    "app/routes/billing.tsx: responsive wrapper around existing actions"
+  ],
+  "billingSourceSha256": "9810532f787c23391aa1084992eb08305799945808f4298750194119b3d8f945",
+  "buildSha256": "1c82f20e3f904e088b734848d4f000607ab7bd0ce61d120e699f8fe401051ce1",
+  "buildExit": 0,
+  "strictWebTypecheckExit": 0,
+  "targetedTests": 67,
+  "targetedLintExit": 0,
+  "browserBase": "http://127.0.0.1:6199"
+}

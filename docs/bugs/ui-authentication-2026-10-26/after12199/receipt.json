@@ -1,0 +1,682 @@
+{
+  "observations": [
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 239,
+      "buttonLeft": 241.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 97,
+      "inputRight": 291,
+      "viewport": 320,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 614.484375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 309,
+      "buttonLeft": 311.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 27,
+      "inputRight": 361,
+      "viewport": 390,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 614.484375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 604.5,
+      "buttonLeft": 607.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 656.5,
+      "viewport": 844,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "button": {
+        "x": 187.5,
+        "y": 478.4375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 592.5,
+      "buttonLeft": 595.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 644.5,
+      "viewport": 820,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1000,
+      "button": {
+        "x": 175.5,
+        "y": 648.59375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 524.59375,
+      "buttonLeft": 528.09375,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 576.59375,
+      "viewport": 1440,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "button": {
+        "x": 114.59375,
+        "y": 642.359375,
+        "width": 192.109375,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 239,
+      "buttonLeft": 241.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 97,
+      "inputRight": 291,
+      "viewport": 320,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 614.484375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 309,
+      "buttonLeft": 311.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 27,
+      "inputRight": 361,
+      "viewport": 390,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 614.484375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 604.5,
+      "buttonLeft": 607.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 656.5,
+      "viewport": 844,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "button": {
+        "x": 187.5,
+        "y": 478.4375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 592.5,
+      "buttonLeft": 595.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 644.5,
+      "viewport": 820,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1000,
+      "button": {
+        "x": 175.5,
+        "y": 648.59375,
+        "width": 224.140625,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 524.59375,
+      "buttonLeft": 528.09375,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 576.59375,
+      "viewport": 1440,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "button": {
+        "x": 114.59375,
+        "y": 642.359375,
+        "width": 192.109375,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 239,
+      "buttonLeft": 241.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 97,
+      "inputRight": 291,
+      "viewport": 320,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 615.1875,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 309,
+      "buttonLeft": 311.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 27,
+      "inputRight": 361,
+      "viewport": 390,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 605.25,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 604.5,
+      "buttonLeft": 607.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 656.5,
+      "viewport": 844,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "button": {
+        "x": 187.5,
+        "y": 498.3125,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 592.5,
+      "buttonLeft": 595.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 644.5,
+      "viewport": 820,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1000,
+      "button": {
+        "x": 175.5,
+        "y": 658.53125,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "light",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 524.59375,
+      "buttonLeft": 528.09375,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 576.59375,
+      "viewport": 1440,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "button": {
+        "x": 114.59375,
+        "y": 630.671875,
+        "width": 152.171875,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 239,
+      "buttonLeft": 241.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 97,
+      "inputRight": 291,
+      "viewport": 320,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 615.1875,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 309,
+      "buttonLeft": 311.75,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 27,
+      "inputRight": 361,
+      "viewport": 390,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "button": {
+        "x": 29,
+        "y": 605.25,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 604.5,
+      "buttonLeft": 607.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 656.5,
+      "viewport": 844,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "button": {
+        "x": 187.5,
+        "y": 498.3125,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 592.5,
+      "buttonLeft": 595.25,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 644.5,
+      "viewport": 820,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1000,
+      "button": {
+        "x": 175.5,
+        "y": 658.53125,
+        "width": 177.53125,
+        "height": 44
+      },
+      "focus": true
+    },
+    {
+      "route": "/reset-password",
+      "lang": "en",
+      "theme": "dark",
+      "width": 44,
+      "height": 44,
+      "paddingRight": "52px",
+      "textRight": 524.59375,
+      "buttonLeft": 528.09375,
+      "selectionStart": 45,
+      "selectionEnd": 45,
+      "scrollLeft": 0,
+      "inputRight": 576.59375,
+      "viewport": 1440,
+      "keyboardReveal": true
+    },
+    {
+      "route": "/verify-email",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "button": {
+        "x": 114.59375,
+        "y": 630.671875,
+        "width": 152.171875,
+        "height": 44
+      },
+      "focus": true
+    }
+  ],
+  "interactions": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "resizeDraftPreserved": true,
+      "cooldownSyntheticSeconds": 61,
+      "disabledButton": {
+        "x": 29,
+        "y": 659.296875,
+        "width": 262,
+        "height": 44
+      },
+      "reenabled": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "resizeDraftPreserved": true,
+      "cooldownSyntheticSeconds": 61,
+      "disabledButton": {
+        "x": 29,
+        "y": 659.296875,
+        "width": 262,
+        "height": 44
+      },
+      "reenabled": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "resizeDraftPreserved": true,
+      "cooldownSyntheticSeconds": 61,
+      "disabledButton": {
+        "x": 29,
+        "y": 650.0625,
+        "width": 214.25,
+        "height": 44
+      },
+      "reenabled": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "resizeDraftPreserved": true,
+      "cooldownSyntheticSeconds": 61,
+      "disabledButton": {
+        "x": 29,
+        "y": 650.0625,
+        "width": 214.25,
+        "height": 44
+      },
+      "reenabled": true
+    }
+  ],
+  "posts": [
+    {
+      "path": "/verify-email.data",
+      "lang": "fr",
+      "theme": "light"
+    },
+    {
+      "path": "/verify-email.data",
+      "lang": "fr",
+      "theme": "dark"
+    },
+    {
+      "path": "/verify-email.data",
+      "lang": "en",
+      "theme": "light"
+    },
+    {
+      "path": "/verify-email.data",
+      "lang": "en",
+      "theme": "dark"
+    }
+  ],
+  "errors": [],
+  "blocked": []
+}

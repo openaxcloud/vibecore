@@ -7,6 +7,7 @@ interface DropdownProps {
   children: ReactNode;
   align?: 'start' | 'center' | 'end';
   sideOffset?: number;
+  modal?: boolean;
 }
 
 interface DropdownItemProps {
@@ -33,9 +34,9 @@ export const DropdownItem = ({ children, onSelect, className }: DropdownItemProp
 
 export const DropdownSeparator = () => <DropdownMenu.Separator className="h-px bg-bolt-elements-borderColor my-1" />;
 
-export const Dropdown = ({ trigger, children, align = 'end', sideOffset = 5 }: DropdownProps) => {
+export const Dropdown = ({ trigger, children, align = 'end', sideOffset = 5, modal = true }: DropdownProps) => {
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root modal={modal}>
       <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>

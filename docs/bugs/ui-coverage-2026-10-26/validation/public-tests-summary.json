@@ -1,0 +1,69 @@
+{
+  "recordedOn": "2026-10-26",
+  "worktree": "/workspace/vibecore-ui-coverage",
+  "evidenceType": "Transcription des sorties tools.exec_command/tools.write_stdin de cette session ; aucun fichier log brut des tests n'a été conservé.",
+  "rerunPerformedForThisSummary": false,
+  "runs": [
+    {
+      "label": "Templates/Docs : trois fichiers approuvés, avant delta route SSR",
+      "toolSessionId": 45075,
+      "terminalOutputChunkId": "96e6c7",
+      "reportedStartAtUTC": "2026-10-26 00:23:23",
+      "reportedDurationSeconds": 6.69,
+      "exitCode": 0,
+      "vitestVersion": "3.2.6",
+      "testFilesPassed": 8,
+      "testsPassed": 85,
+      "files": [
+        {"path":"app/routes/userarea-ux-audit.spec.ts","passed":52},
+        {"path":"app/components/marketing/PublicTemplateTags.i18n.spec.tsx","passed":2},
+        {"path":"app/components/marketing/ecode-public-theme.spec.ts","passed":5},
+        {"path":"app/runtime-branding.spec.ts","passed":8},
+        {"path":"app/lib/i18n/catalogs/marketing-community-tags.spec.tsx","passed":1},
+        {"path":"app/components/docs/AgentWalkthrough.i18n.spec.tsx","passed":2},
+        {"path":"app/lib/i18n/catalogs/marketing-remaining.spec.tsx","passed":5},
+        {"path":"app/lib/i18n/catalogs/marketing-community-route.spec.tsx","passed":10}
+      ]
+    },
+    {
+      "label": "Docs SSR : après delta docs.tsx, avant tri final des imports",
+      "toolSessionId": 6794,
+      "terminalOutputChunkId": "af6fe3",
+      "reportedStartAtUTC": "2026-10-26 00:32:12",
+      "reportedDurationSeconds": 4.11,
+      "exitCode": 0,
+      "exitCodeCaveat": "Commande shell groupée : le lint précédent avait une erreur import/order ; le dernier processus Vitest a terminé avec code0. Ne pas interpréter le code shell comme lint vert. L'ordre des imports a ensuite été corrigé et le lint ciblé final a réussi séparément.",
+      "vitestVersion": "3.2.6",
+      "testFilesPassed": 3,
+      "testsPassed": 17,
+      "files": [
+        {"path":"app/lib/i18n/document-seo.spec.ts","passed":7},
+        {"path":"app/components/docs/AgentWalkthrough.i18n.spec.tsx","passed":2},
+        {"path":"app/routes/public-route-seo.i18n.spec.tsx","passed":8}
+      ]
+    }
+  ],
+  "deduplicated": {
+    "distinctTestFiles": 10,
+    "distinctTests": 100,
+    "executions": 102,
+    "calculation": "85 + 17 - 2 AgentWalkthrough déjà exécutés = 100 tests distincts, dans 8 + 3 - 1 = 10 fichiers.",
+    "overlap": [{"path":"app/components/docs/AgentWalkthrough.i18n.spec.tsx","tests":2}],
+    "caveat":"Ces validations sont séquentielles sur deux états locaux, pas une seule invocation de 100 tests sur la tête finale. Aucun nouveau test ni fichier de test modifié dans ce périmètre. Le tri final d'import n'a pas déclenché de nouvelle invocation Vitest."
+  },
+  "lint": [
+    {
+      "paths":["app/components/marketing/EcodePublicResourcePages.tsx","app/components/docs/AgentWalkthrough.tsx","app/lib/i18n/catalogs/agent-walkthrough.ts"],
+      "result":"passed",
+      "exitCode":0,
+      "toolOutputChunkId":"00a4ea"
+    },
+    {
+      "paths":["app/routes/docs.tsx"],
+      "initialResult":"1 erreur import/order, corrigée par ESLint --fix",
+      "finalResult":"ESLint --fix sans diagnostic, puis Prettier --check conforme",
+      "exitCode":0,
+      "toolOutputChunkId":"6fc163"
+    }
+  ]
+}

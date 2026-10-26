@@ -1,0 +1,109 @@
+{
+  "before": {
+    "card": {
+      "width": 132,
+      "height": 596,
+      "x": 16,
+      "right": 148
+    },
+    "gridItemClass": "sm:col-span-2 lg:col-span-4",
+    "texts": [
+      {
+        "text": "Comparer les plateformes",
+        "client": 82,
+        "scroll": 85
+      },
+      {
+        "text": "Découvrez comment E-Code se compare aux autres clouds de développement.",
+        "client": 82,
+        "scroll": 92
+      }
+    ],
+    "links": [
+      {
+        "text": "E-Code face à GitHub Codespaces",
+        "width": 93.125,
+        "right": 134.125,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à Glitch",
+        "width": 82,
+        "right": 123,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à Heroku",
+        "width": 82,
+        "right": 123,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à CodeSandbox",
+        "width": 103.859375,
+        "right": 144.859375,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à AWS Cloud9",
+        "width": 82,
+        "right": 123,
+        "exceedsCard": false
+      }
+    ]
+  },
+  "after": {
+    "card": {
+      "width": 288,
+      "height": 386,
+      "x": 16,
+      "right": 304
+    },
+    "gridItemClass": "sm:col-span-2 lg:col-span-4",
+    "texts": [
+      {
+        "text": "Comparer les plateformes",
+        "client": 238,
+        "scroll": 238
+      },
+      {
+        "text": "Découvrez comment E-Code se compare aux autres clouds de développement.",
+        "client": 238,
+        "scroll": 238
+      }
+    ],
+    "links": [
+      {
+        "text": "E-Code face à GitHub Codespaces",
+        "width": 215.109375,
+        "right": 256.109375,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à Glitch",
+        "width": 137.453125,
+        "right": 178.453125,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à Heroku",
+        "width": 146.484375,
+        "right": 187.484375,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à CodeSandbox",
+        "width": 182.875,
+        "right": 223.875,
+        "exceedsCard": false
+      },
+      {
+        "text": "E-Code face à AWS Cloud9",
+        "width": 172.671875,
+        "right": 213.671875,
+        "exceedsCard": false
+      }
+    ]
+  },
+  "kind": "DOM counterproof only"
+}

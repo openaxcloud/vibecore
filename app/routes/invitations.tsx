@@ -555,7 +555,9 @@ export default function InvitationsPage() {
                       <p className="break-all font-medium text-bolt-elements-textPrimary">{invite.email}</p>
                       <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
                         <Badge variant="outline" size="md" className="max-w-full whitespace-normal break-words">
-                          {invitationRoleLabel(invite.roleKey, roles, language)}
+                          <span className="min-w-0 [overflow-wrap:anywhere]">
+                            {invitationRoleLabel(invite.roleKey, roles, language)}
+                          </span>
                         </Badge>
                         <span className="break-words [overflow-wrap:anywhere]">
                           {interpolateInvitationsCopy(copy['invitations.invitation.expires'], {

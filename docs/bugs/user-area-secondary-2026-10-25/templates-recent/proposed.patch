@@ -1,0 +1,20 @@
+--- a/app/components/dashboard/SaaSLayout.tsx
++++ b/app/components/dashboard/SaaSLayout.tsx
+@@ -1718,7 +1718,7 @@
+             {renaming ? (
+               <ProjectRenameForm project={project} onDone={() => setRenaming(false)} />
+             ) : (
+-              <CardTitle className="line-clamp-2 min-h-12 text-base leading-6" title={project.name}>
++              <CardTitle className="line-clamp-2 min-h-12 break-words text-base leading-6" title={project.name}>
+                 {project.name}
+               </CardTitle>
+             )}
+@@ -1969,7 +1969,7 @@
+               <Form method="post" action="/dashboard/templates">
+                 <input type="hidden" name="templateName" value={template.id} />
+                 <input type="hidden" name="name" value={t(template.nameKey)} />
+-                <Button type="submit" variant="outline" className="min-h-[44px]">
++                <Button type="submit" variant="outline" className="!min-h-[44px]">
+                   {t('userArea.template.use')}
+                 </Button>
+               </Form>

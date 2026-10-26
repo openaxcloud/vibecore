@@ -67,7 +67,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
               transition={{ duration: 0.15 }}
               type="button"
               onClick={onClear}
-              className="absolute right-0 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textSecondary"
+              className="absolute right-0 inset-y-0 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textSecondary"
               aria-label={t('sharedUi.clearSearch')}
             >
               <span className="i-ph:x w-3.5 h-3.5" />

@@ -1,0 +1,35 @@
+A [Error]: expect(locator).toBeVisible() failed
+
+Locator: locator('main input[type=checkbox]').first()
+Expected: visible
+Timeout: 15000ms
+Error: element(s) not found
+
+Call log:
+  - Expect "to.be.visible" with timeout 15000ms
+  - waiting for locator('main input[type=checkbox]').first()
+
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /tmp/ui-audit-next-org/targets/check.cjs:2:1071 {
+  matcherResult: {
+    message: 'expect(locator).toBeVisible() failed\n' +
+      '\n' +
+      "Locator: locator('main input[type=checkbox]').first()\n" +
+      'Expected: visible\n' +
+      'Timeout: 15000ms\n' +
+      'Error: element(s) not found\n' +
+      '\n' +
+      'Call log:\n' +
+      '  - Expect "to.be.visible" with timeout 15000ms\n' +
+      "  - waiting for locator('main input[type=checkbox]').first()\n",
+    pass: false,
+    actual: undefined,
+    name: 'toBeVisible',
+    expected: 'visible',
+    log: [
+      '  - Expect "to.be.visible" with timeout 15000ms',
+      "  - waiting for locator('main input[type=checkbox]').first()"
+    ],
+    timeout: 15000
+  }
+}

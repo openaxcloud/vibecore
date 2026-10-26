@@ -1,0 +1,191 @@
+[
+  {
+    "width": 320,
+    "before": {
+      "titleWidth": 255,
+      "titleHeight": 72,
+      "lineHeight": 36,
+      "lines": 2,
+      "actionsWidth": 255,
+      "heroHeight": 308,
+      "scrollWidth": 320
+    },
+    "after": {
+      "titleWidth": 255,
+      "titleHeight": 72,
+      "lineHeight": 36,
+      "lines": 2,
+      "actionsWidth": 255,
+      "heroHeight": 309,
+      "scrollWidth": 320
+    }
+  },
+  {
+    "width": 360,
+    "before": {
+      "titleWidth": 295,
+      "titleHeight": 72,
+      "lineHeight": 36,
+      "lines": 2,
+      "actionsWidth": 295,
+      "heroHeight": 308,
+      "scrollWidth": 360
+    },
+    "after": {
+      "titleWidth": 295,
+      "titleHeight": 72,
+      "lineHeight": 36,
+      "lines": 2,
+      "actionsWidth": 295,
+      "heroHeight": 309,
+      "scrollWidth": 360
+    }
+  },
+  {
+    "width": 390,
+    "before": {
+      "titleWidth": 325,
+      "titleHeight": 72,
+      "lineHeight": 36,
+      "lines": 2,
+      "actionsWidth": 325,
+      "heroHeight": 288,
+      "scrollWidth": 390
+    },
+    "after": {
+      "titleWidth": 325,
+      "titleHeight": 72,
+      "lineHeight": 36,
+      "lines": 2,
+      "actionsWidth": 325,
+      "heroHeight": 289,
+      "scrollWidth": 390
+    }
+  },
+  {
+    "width": 640,
+    "before": {
+      "titleWidth": 211.5625,
+      "titleHeight": 160,
+      "lineHeight": 40,
+      "lines": 4,
+      "actionsWidth": 328.4375,
+      "heroHeight": 314,
+      "scrollWidth": 640
+    },
+    "after": {
+      "titleWidth": 378.96875,
+      "titleHeight": 80,
+      "lineHeight": 40,
+      "lines": 2,
+      "actionsWidth": 161.03125,
+      "heroHeight": 194,
+      "scrollWidth": 640
+    }
+  },
+  {
+    "width": 768,
+    "before": {
+      "titleWidth": 339.5625,
+      "titleHeight": 80,
+      "lineHeight": 40,
+      "lines": 2,
+      "actionsWidth": 328.4375,
+      "heroHeight": 194,
+      "scrollWidth": 768
+    },
+    "after": {
+      "titleWidth": 506.96875,
+      "titleHeight": 80,
+      "lineHeight": 40,
+      "lines": 2,
+      "actionsWidth": 161.03125,
+      "heroHeight": 194,
+      "scrollWidth": 768
+    }
+  },
+  {
+    "width": 820,
+    "before": {
+      "titleWidth": 391.5625,
+      "titleHeight": 80,
+      "lineHeight": 40,
+      "lines": 2,
+      "actionsWidth": 328.4375,
+      "heroHeight": 194,
+      "scrollWidth": 820
+    },
+    "after": {
+      "titleWidth": 558.96875,
+      "titleHeight": 40,
+      "lineHeight": 40,
+      "lines": 1,
+      "actionsWidth": 161.03125,
+      "heroHeight": 154,
+      "scrollWidth": 820
+    }
+  },
+  {
+    "width": 1024,
+    "before": {
+      "titleWidth": 539.5625,
+      "titleHeight": 40,
+      "lineHeight": 40,
+      "lines": 1,
+      "actionsWidth": 328.4375,
+      "heroHeight": 154,
+      "scrollWidth": 1024
+    },
+    "after": {
+      "titleWidth": 538.5625,
+      "titleHeight": 40,
+      "lineHeight": 40,
+      "lines": 1,
+      "actionsWidth": 329.4375,
+      "heroHeight": 154,
+      "scrollWidth": 1024
+    }
+  },
+  {
+    "width": 1280,
+    "before": {
+      "titleWidth": 554.5625,
+      "titleHeight": 40,
+      "lineHeight": 40,
+      "lines": 1,
+      "actionsWidth": 319.4375,
+      "heroHeight": 146,
+      "scrollWidth": 1280
+    },
+    "after": {
+      "titleWidth": 552.5625,
+      "titleHeight": 40,
+      "lineHeight": 40,
+      "lines": 1,
+      "actionsWidth": 321.4375,
+      "heroHeight": 146,
+      "scrollWidth": 1280
+    }
+  },
+  {
+    "width": 1440,
+    "before": {
+      "titleWidth": 554.5625,
+      "titleHeight": 40,
+      "lineHeight": 40,
+      "lines": 1,
+      "actionsWidth": 319.4375,
+      "heroHeight": 146,
+      "scrollWidth": 1440
+    },
+    "after": {
+      "titleWidth": 552.5625,
+      "titleHeight": 40,
+      "lineHeight": 40,
+      "lines": 1,
+      "actionsWidth": 321.4375,
+      "heroHeight": 146,
+      "scrollWidth": 1440
+    }
+  }
+]

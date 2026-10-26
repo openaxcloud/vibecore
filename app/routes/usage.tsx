@@ -1,4 +1,5 @@
 import { Activity, Boxes, Database, Sparkles } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
@@ -166,6 +167,19 @@ export default function UsagePage() {
   const limitFor = (userId: string) => memberLimits?.limits.find((limit) => limit.userId === userId)?.limitCents;
   const actionSuccess = actionData?.successKey ? t(actionData.successKey) : undefined;
   const actionError = actionData?.errorKey ? t(actionData.errorKey) : undefined;
+  const actionErrorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!actionError || !actionErrorRef.current) {
+      return;
+    }
+
+    const bounds = actionErrorRef.current.getBoundingClientRect();
+
+    if (bounds.top < 0 || bounds.bottom > window.innerHeight) {
+      actionErrorRef.current.focus();
+    }
+  }, [actionData, actionError]);
 
   const label = (value: string, fallback: BillingMessageKey = 'billing.label.recordedActivity') =>
     billingDisplayName(value, data.language, fallback);
@@ -346,12 +360,12 @@ export default function UsagePage() {
              * il forçait un défilement horizontal dans un écran de 390px, et le
              * message d'alerte de quota comme son bouton « Augmenter les limites »
              * sortaient du cadre visible : on ne voyait plus QUE la partie gauche
-             * du tableau. Les deux colonnes de chiffres se resserrent au lieu de
-             * pousser le contenu hors de l'écran.
+             * du tableau. Sur mobile, le libellé occupe sa propre ligne pour laisser
+             * la moitié de la largeur à chaque colonne de chiffres.
              */}
             <div className="min-w-0 sm:min-w-[420px]">
-              <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary sm:grid-cols-[1fr_120px_120px]">
-                <span>{t('usage.table.quota')}</span>
+              <div className="grid grid-cols-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary sm:grid-cols-[1fr_120px_120px]">
+                <span className="col-span-2 sm:col-span-1">{t('usage.table.quota')}</span>
                 <span className="text-right">{t('usage.table.used')}</span>
                 <span className="text-right">{t('usage.table.limit')}</span>
               </div>
@@ -368,8 +382,8 @@ export default function UsagePage() {
                     key={quota}
                     className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm last:border-b-0"
                   >
-                    <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] sm:grid-cols-[1fr_120px_120px]">
-                      <span className="min-w-0 break-words">
+                    <div className="grid grid-cols-2 sm:grid-cols-[1fr_120px_120px]">
+                      <span className="col-span-2 min-w-0 break-words sm:col-span-1">
                         {quotaLabel}
                         {override ? (
                           <span className="ml-2 inline-flex rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] uppercase text-bolt-elements-textTertiary">
@@ -377,10 +391,10 @@ export default function UsagePage() {
                           </span>
                         ) : null}
                       </span>
-                      <span className="text-right text-bolt-elements-textSecondary">
+                      <span className="min-w-0 break-words text-right text-bolt-elements-textSecondary">
                         {formatBillingNumber(usedValue, data.language)}
                       </span>
-                      <span className="text-right text-bolt-elements-textSecondary">
+                      <span className="min-w-0 break-words text-right text-bolt-elements-textSecondary">
                         {formatBillingNumber(effectiveLimit, data.language)}
                       </span>
                     </div>
@@ -440,7 +454,7 @@ export default function UsagePage() {
                     <span className="text-bolt-elements-textPrimary">
                       {label(override.key, 'billing.label.planAllowance')}
                     </span>
-                    <span className="text-bolt-elements-textSecondary">
+                    <span className="min-w-0 max-w-full break-words text-bolt-elements-textSecondary">
                       {t('usage.overrides.limit', {
                         limit: formatBillingNumber(override.limit, data.language),
                       })}
@@ -481,7 +495,12 @@ export default function UsagePage() {
             </div>
           ) : null}
           {actionError ? (
-            <div className="mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-2 text-xs text-[var(--status-error-text)]">
+            <div
+              ref={actionErrorRef}
+              role="alert"
+              tabIndex={-1}
+              className="mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-2 text-xs text-[var(--status-error-text)]"
+            >
               {actionError}
             </div>
           ) : null}

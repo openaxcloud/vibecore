@@ -1,0 +1,14 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-followup
+
+ ✓ app/routes/support.i18n.spec.tsx (5 tests) 134ms
+ ✓ app/routes/desktop-settings.i18n.spec.tsx (4 tests) 173ms
+ ✓ app/components/settings/WorkspaceSettings.spec.tsx (3 tests) 212ms
+ ✓ app/routes/support.loader.spec.ts (6 tests) 826ms
+   ✓ support loader re-auth handling > re-throws a 302 login redirect instead of degrading into a banner  821ms
+ ✓ app/routes/support.action.spec.ts (4 tests) 17ms
+
+ Test Files  5 passed (5)
+      Tests  22 passed (22)
+   Start at  21:59:03
+   Duration  4.03s (transform 1.93s, setup 95ms, collect 2.06s, tests 1.36s, environment 873ms, prepare 327ms)

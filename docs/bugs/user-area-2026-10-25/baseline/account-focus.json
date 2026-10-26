@@ -1,0 +1,25 @@
+[
+  {
+    "phase": "open",
+    "focus": "<input id=\"confirm\" name=\"confirm\" type=\"text\" autocomplete=\"off\" placeholder=\"camille.longue.adresse.de.recette@example.test\" class=\"mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-[16px] text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none sm:text-sm\" value=\"\">"
+  },
+  {
+    "phase": "escape",
+    "focus": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\"><a href=\"#main-content\" class=\"fixed left-4 top-",
+    "restored": false
+  },
+  {
+    "phase": "resize",
+    "draft": "unfinished",
+    "dialog": {
+      "x": 173.80349731445312,
+      "y": 58.20207214355469,
+      "width": 507.0353698730469,
+      "height": 278.7018585205078
+    }
+  },
+  {
+    "phase": "connected",
+    "text": "Chargement d’E-Code"
+  }
+]
