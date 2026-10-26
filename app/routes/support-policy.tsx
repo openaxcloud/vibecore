@@ -2,10 +2,12 @@ import { ArrowRight, CheckCircle2, LifeBuoy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 
-import { PublicShell } from '~/components/dashboard/SaaSLayout';
+import { EcodeExactPublicShell as PublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { getMarketingExactSupportPolicyCopy } from '~/lib/i18n/catalogs/marketing-exact-support-policy';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { MARKETING_SITE_URL, socialMetaTags } from '~/utils/social-meta';
+
+export const handle = { serverRenderedMarketing: true } as const;
 
 const SUPPORT_POLICY_ROUTES = {
   primary: '/support',
@@ -183,7 +185,7 @@ export default function SupportPolicyPage() {
               <div className="min-w-0 max-w-2xl">
                 <h2
                   id="support-policy-cta-heading"
-                  className="break-words text-2xl font-bold [overflow-wrap:anywhere] sm:text-3xl"
+                  className="scroll-mt-36 break-words text-2xl font-bold [overflow-wrap:anywhere] sm:text-3xl"
                 >
                   {copy.cta.title}
                 </h2>

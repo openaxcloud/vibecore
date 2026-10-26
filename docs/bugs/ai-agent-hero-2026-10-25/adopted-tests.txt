@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-major
+
+ ✓ app/lib/i18n/catalogs/marketing-exact-ai.spec.tsx (4 tests) 154ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:40:15
+   Duration  5.18s (transform 2.69s, setup 24ms, collect 904ms, tests 154ms, environment 0ms, prepare 59ms)

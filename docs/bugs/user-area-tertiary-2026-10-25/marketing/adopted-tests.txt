@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-org
+
+ ✓ app/lib/i18n/catalogs/marketing-exact-support-policy.spec.tsx (7 tests) 459ms
+ ✓ app/components/marketing/EcodeProductMarketingPages.spec.ts (7 tests) 4ms
+
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+   Start at  23:22:01
+   Duration  5.36s (transform 3.23s, setup 116ms, collect 2.07s, tests 463ms, environment 397ms, prepare 195ms)

@@ -1,0 +1,465 @@
+<!DOCTYPE html><html lang="fr" dir="ltr" data-theme="dark"><head><meta charSet="utf-8"/><link rel="preload" href="/assets/catalogue-fr-public-3e1940709b.json" as="fetch" crossorigin="anonymous"/><link rel="preload" href="/assets/catalogue-fr-app-1ce8f12152.json" as="fetch" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/><meta name="theme-color" content="#0a0f1c"/><meta name="mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="E-Code"/><link rel="manifest" href="/manifest.fr.webmanifest"/><link rel="canonical" href="http://127.0.0.1:9499/organization-roles"/><link rel="alternate" hrefLang="en" href="http://127.0.0.1:9499/organization-roles"/><link rel="alternate" hrefLang="fr" href="http://127.0.0.1:9499/organization-roles?lang=fr"/><link rel="alternate" hrefLang="x-default" href="http://127.0.0.1:9499/organization-roles"/><meta name="description" content="Créez, testez et déployez des applications de production avec les agents IA E-Code."/><meta property="og:type" content="website"/><meta property="og:site_name" content="E-Code"/><meta property="og:url" content="http://127.0.0.1:9499/organization-roles"/><meta property="og:title" content="Rôles de l’organisation - E-Code"/><meta property="og:description" content="Créez, testez et déployez des applications de production avec les agents IA E-Code."/><meta property="og:locale" content="fr_FR"/><meta property="og:locale:alternate" content="en_US"/><meta property="og:image" content="https://e-code.ai/social_preview_index.jpg"/><meta property="og:image:alt" content="Rôles de l’organisation - E-Code"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="Rôles de l’organisation - E-Code"/><meta name="twitter:description" content="Créez, testez et déployez des applications de production avec les agents IA E-Code."/><meta name="twitter:image" content="https://e-code.ai/social_preview_index.jpg"/><meta name="twitter:image:alt" content="Rôles de l’organisation - E-Code"/><script>window.addEventListener('ecode:hydrated', function () {
+setTutorialKitTheme();
+markDismissedAnnouncement();
+markSidebarCollapsed();
+}, { once: true });
+
+/*
+* User-area sidebar (dashboard AppShell): reflect the persisted
+* collapsed/expanded choice on <html> immediately after hydration. Mirrors the precedence in
+* useSidebarController (explicit choice, else auto-collapse on narrow
+* viewports). Kept in sync with app/components/dashboard/sidebar-collapse.ts.
+*/
+function markSidebarCollapsed() {
+try {
+var stored = localStorage.getItem('ecode:sidebar-collapsed');
+
+if (stored !== 'true' && stored !== 'false') {
+stored = localStorage.getItem('vibecore:app-sidebar-collapsed');
+}
+
+var collapsed;
+
+if (stored === 'true' || stored === 'false') {
+collapsed = stored === 'true';
+} else {
+collapsed = !!(window.matchMedia && window.matchMedia('(max-width: 1279.98px)').matches);
+}
+
+document.documentElement.setAttribute('data-ecode-sidebar-collapsed', String(collapsed));
+} catch (e) {
+// Storage blocked — the sidebar just renders with the default state.
+}
+}
+
+/*
+* Marketing announcement bar: if this campaign was already dismissed, flag
+* <html> before first paint so the CSS rule hides the bar with no flash.
+* Kept in sync with app/components/marketing/ecode-exact/announcement.ts.
+*/
+function markDismissedAnnouncement() {
+try {
+if (localStorage.getItem('ecode:announcement-dismissed:enterprise-cloud-governance') === '1') {
+document.documentElement.setAttribute('data-ecode-announcement-dismissed', 'true');
+}
+} catch (e) {
+// Storage blocked — the bar just shows.
+}
+}
+
+function isEcodePublicMarketingPath(pathname) {
+const exactPaths = new Set([
+'/',
+'/about',
+'/acceptable-use',
+'/accessibility',
+'/ai',
+'/ai-agent',
+'/ai-agent/studio',
+'/ai-documentation',
+'/ai-docs',
+'/blog',
+'/bounties',
+'/careers',
+'/case-studies',
+'/changelog',
+'/collaboration',
+'/commercial-agreement',
+'/community',
+'/contact',
+'/contact-sales',
+'/customers',
+'/demo',
+'/deployments',
+'/desktop',
+'/docs',
+'/dpa',
+'/editor/new',
+'/enterprise',
+'/explore',
+'/features',
+'/forum',
+'/help',
+'/help-center',
+'/ide/new',
+'/languages',
+'/legal',
+'/marketing/bounties',
+'/marketing/deployments',
+'/marketing/teams',
+'/marketplace',
+'/marketplace/templates',
+'/mcp',
+'/mobile',
+'/newsletter',
+'/newsletter-confirmed',
+'/partners',
+'/polyglot',
+'/press',
+'/pricing',
+'/privacy',
+'/product',
+'/report-abuse',
+'/runtime-test',
+'/search',
+'/security',
+'/status',
+'/student-dpa',
+'/subprocessors',
+'/team',
+'/templates',
+'/terms',
+'/theme-validation',
+'/tutorials',
+]);
+const prefixes = [
+'/advanced/',
+'/blog/',
+'/case-studies/',
+'/community/',
+'/compare/',
+'/editor/',
+'/ide/',
+'/marketplace/',
+'/mobile-workspace/',
+'/newsletter/',
+'/solutions/',
+'/templates/',
+'/u/',
+];
+
+return exactPaths.has(pathname) || prefixes.some((prefix) => pathname.startsWith(prefix));
+}
+
+function readPersistedTheme() {
+/*
+* Safari Private Browsing / storage-partitioned / cookies-blocked contexts
+* throw a SecurityError synchronously on localStorage access. This runs in an
+* inline <head> script before hydration, so an uncaught throw would abort the
+* rest of setTutorialKitTheme() (theme reconciliation, public-marketing chrome,
+* theme-color meta). Swallow it and fall back to the default.
+*/
+try {
+return localStorage.getItem('bolt_theme');
+} catch (e) {
+return null;
+}
+}
+
+/*
+* Read the cross-domain theme cookie (Domain=.e-code.ai). This is the shared
+* source of truth that lets a light/dark choice made on the marketing site
+* (e-code.ai) carry over to the app + IDE (app.e-code.ai) — localStorage is
+* partitioned per origin and cannot. Kept in sync with readThemeCookie() in
+* app/lib/stores/theme-cookie.ts.
+*/
+function readThemeCookie() {
+try {
+var cookies = document.cookie ? document.cookie.split(';') : [];
+
+for (var i = 0; i < cookies.length; i++) {
+var pair = cookies[i];
+var eq = pair.indexOf('=');
+
+if (eq === -1) {
+continue;
+}
+
+if (pair.slice(0, eq).trim() === 'ecode_theme') {
+return decodeURIComponent(pair.slice(eq + 1).trim());
+}
+}
+} catch (e) {
+return null;
+}
+
+return null;
+}
+
+function prefersDarkScheme() {
+try {
+return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+} catch (e) {
+return false;
+}
+}
+
+function setTutorialKitTheme() {
+const publicMarketingRoute = isEcodePublicMarketingPath(window.location.pathname);
+
+/*
+* Unified precedence (must mirror resolveInitialTheme in
+* app/lib/stores/theme.ts): read the stored PREFERENCE (light|dark|system)
+* from the shared cookie, else per-origin localStorage; an explicit
+* light/dark applies as-is, system (or nothing stored) follows the OS
+* prefers-color-scheme. Marketing routes no longer force light — the shared
+* preference governs every surface so the theme stays the same across
+* e-code.ai, app.e-code.ai and the IDE.
+*/
+function asPreference(value) {
+return value === 'light' || value === 'dark' || value === 'system' ? value : null;
+}
+
+const preference = asPreference(readThemeCookie()) || asPreference(readPersistedTheme());
+
+let theme;
+
+if (preference === 'light' || preference === 'dark') {
+theme = preference;
+} else {
+// system preference (or nothing stored) follows the OS.
+theme = prefersDarkScheme() ? 'dark' : 'light';
+}
+
+const root = document.querySelector('html');
+const firstApplication = !root?.hasAttribute('data-ecode-theme-ready');
+
+root?.setAttribute('data-theme', theme);
+root?.classList.toggle('dark', theme === 'dark');
+root?.classList.toggle('light', theme === 'light');
+root && (root.style.colorScheme = theme);
+if (publicMarketingRoute) {
+root?.setAttribute('data-ecode-public-chrome', 'homepage');
+root && (root.style.fontSize = '16px');
+}
+refreshChromeMeta('theme-color', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
+refreshChromeMeta('apple-mobile-web-app-status-bar-style', theme === 'dark' ? 'black-translucent' : 'default');
+
+if (firstApplication && root) {
+root.setAttribute('data-ecode-theme-ready', 'true');
+
+try {
+performance.mark('ecode-theme-applied');
+} catch (e) {
+// Performance marks are optional; the DOM marker remains authoritative.
+}
+}
+}
+
+/*
+* iOS Safari only tints the address bar / bottom toolbar when the theme-color
+* meta node is (re)parsed, so we remove + re-insert it instead of mutating
+* content in place. Keep this in sync with applyThemeToDocument in
+* app/lib/stores/theme.ts.
+*/
+function refreshChromeMeta(name, content) {
+var head = document.head;
+
+if (!head) {
+return;
+}
+
+/*
+* Update the EXISTING server-rendered meta IN PLACE — do NOT remove +
+* re-append. The handler runs immediately after React hydrates; retaining
+* theme-color / status-bar metas and appending fresh ones moves them to the
+* end of <head>, so the pre-hydration meta order no longer matches the
+* server HTML and React aborts hydration with a mismatch (#418/#423) on every
+* page, re-rendering the whole document client-side. Mutating content in
+* place keeps the head order identical. (The RUNTIME theme toggle in
+* app/lib/stores/theme.ts still re-inserts the node for iOS chrome re-tint,
+* which is safe because it runs after hydration.)
+*/
+var existing = head.querySelector('meta[name="' + name + '"]');
+
+if (existing) {
+existing.setAttribute('content', content);
+
+return;
+}
+
+var meta = document.createElement('meta');
+meta.setAttribute('name', name);
+meta.setAttribute('content', content);
+head.appendChild(meta);
+}
+
+// Resolve the persisted/system preference while the parser is still in
+// <head>, before the SSR splash can paint. The hydration event reapplies the
+// same value after React commits and handles the remaining document state.
+setTutorialKitTheme();</script><title>Rôles de l’organisation - E-Code</title><link rel="stylesheet" href="/assets/root-CUM3N0wj.css"/><link rel="icon" href="/favicon.svg" type="image/svg+xml"/><link rel="apple-touch-icon" href="/apple-touch-icon.png"/><link rel="stylesheet" href="/assets/ReactToastify-tlSLHgLC.css"/><link rel="stylesheet" href="/assets/tailwind-compat-Bwh-BmjE.css"/><link rel="stylesheet" href="/assets/index-CW3AvRMq.css"/><link rel="stylesheet" href="/assets/xterm-LZoznX6r.css"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap"/></head><body class="h-full w-full"><main class="ecode-app-boot-splash" data-ecode-boot-splash="" aria-label="Chargement d’E-Code" aria-live="polite" role="status"><span class="ecode-app-boot-content"><span class="ecode-app-boot-logo" aria-hidden="true"><span class="ecode-app-boot-halo"></span><svg width="56" height="56" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision" focusable="false" data-ecode-boot-mark="" data-theme-variant="auto" aria-hidden="true"><style>
+  [data-ecode-boot-mark] [data-ecode-mark-variant] {
+    display: none;
+  }
+
+  [data-ecode-boot-mark][data-theme-variant=&quot;light&quot;] [data-ecode-mark-variant=&quot;light&quot;],
+  [data-ecode-boot-mark][data-theme-variant=&quot;dark&quot;] [data-ecode-mark-variant=&quot;dark&quot;],
+  [data-ecode-boot-mark][data-theme-variant=&quot;auto&quot;] [data-ecode-mark-variant=&quot;dark&quot;] {
+    display: inline;
+  }
+
+  [data-theme=&quot;light&quot;] [data-ecode-boot-mark][data-theme-variant=&quot;auto&quot;] [data-ecode-mark-variant=&quot;dark&quot;] {
+    display: none;
+  }
+
+  [data-theme=&quot;light&quot;] [data-ecode-boot-mark][data-theme-variant=&quot;auto&quot;] [data-ecode-mark-variant=&quot;light&quot;] {
+    display: inline;
+  }
+
+  [data-theme=&quot;dark&quot;] [data-ecode-boot-mark][data-theme-variant=&quot;auto&quot;] [data-ecode-mark-variant=&quot;light&quot;] {
+    display: none;
+  }
+
+  [data-theme=&quot;dark&quot;] [data-ecode-boot-mark][data-theme-variant=&quot;auto&quot;] [data-ecode-mark-variant=&quot;dark&quot;] {
+    display: inline;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=&quot;auto&quot;] [data-ecode-mark-variant=&quot;dark&quot;] {
+      display: none;
+    }
+
+    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=&quot;auto&quot;] [data-ecode-mark-variant=&quot;light&quot;] {
+      display: inline;
+    }
+  }
+</style><defs><linearGradient id="ecode-boot-light-Rib5" x1="5" y1="3" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop stop-color="#E65300"></stop><stop offset="1" stop-color="#F77F12"></stop></linearGradient><linearGradient id="ecode-boot-dark-Rib5" x1="4" y1="2" x2="36" y2="38" gradientUnits="userSpaceOnUse"><stop stop-color="#F26207"></stop><stop offset="1" stop-color="#F99D25"></stop></linearGradient></defs><g data-ecode-mark-variant="light"><circle cx="20" cy="20" r="20" fill="url(#ecode-boot-light-Rib5)"></circle><circle cx="20" cy="20" r="19.25" stroke="#A93600" stroke-opacity="0.42" stroke-width="0.75"></circle><path d="M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M26 16 L30 20 L26 24" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></g><g data-ecode-mark-variant="dark"><circle cx="20" cy="20" r="20" fill="url(#ecode-boot-dark-Rib5)"></circle><circle cx="20" cy="20" r="19.25" stroke="#FFD0A0" stroke-opacity="0.34" stroke-width="0.75"></circle><path d="M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M26 16 L30 20 L26 24" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></g></svg></span><span class="ecode-app-boot-label">Chargement d’E-Code</span></span></main><script>((storageKey2, restoreKey) => {
+    if (!window.history.state || !window.history.state.key) {
+      let key = Math.random().toString(32).slice(2);
+      window.history.replaceState({ key }, "");
+    }
+    try {
+      let positions = JSON.parse(sessionStorage.getItem(storageKey2) || "{}");
+      let storedY = positions[restoreKey || window.history.state.key];
+      if (typeof storedY === "number") {
+        window.scrollTo(0, storedY);
+      }
+    } catch (error) {
+      console.error(error);
+      sessionStorage.removeItem(storageKey2);
+    }
+  })("react-router-scroll-positions", null)</script><link rel="modulepreload" href="/assets/entry.client-BTqRntyZ.js"/><link rel="modulepreload" href="/assets/vendor-react--f7qNH3z.js"/><link rel="modulepreload" href="/assets/catalogues-client-D-h7Kz-X.js"/><link rel="modulepreload" href="/assets/api.integrations.api-key._provider.configure-C943qy1P.js"/><link rel="modulepreload" href="/assets/root-R0Fx3xSe.js"/><link rel="modulepreload" href="/assets/vendor-vite-helpers-CLcXU_4U.js"/><link rel="modulepreload" href="/assets/ide-archive-bootstrap-IXUNgro6.js"/><link rel="modulepreload" href="/assets/command-palette-DB9gHEk2.js"/><link rel="modulepreload" href="/assets/marketing-landing-templates-video-BRwHi4DC.js"/><link rel="modulepreload" href="/assets/signup-DcIqfd1M.js"/><link rel="modulepreload" href="/assets/LandingWorkflow-BCl74gw7.js"/><link rel="modulepreload" href="/assets/PanelBoundary-Bowe9hOB.js"/><link rel="modulepreload" href="/assets/template-tech-icon-BeJrWkA1.js"/><link rel="modulepreload" href="/assets/vendor-icons-SefTZh68.js"/><link rel="modulepreload" href="/assets/account-settings._index-DNXnF_ja.js"/><link rel="modulepreload" href="/assets/Badge-ZzFeLDId.js"/><link rel="modulepreload" href="/assets/public-route-seo-Dvbij6CC.js"/><link rel="modulepreload" href="/assets/Card-OxDYU5sL.js"/><link rel="modulepreload" href="/assets/ConnectionsTab-BSOxOFHT.js"/><link rel="modulepreload" href="/assets/RelativeTime-8Xl93JUO.js"/><link rel="modulepreload" href="/assets/ServiceStatusTab-aHw8fjKX.js"/><link rel="modulepreload" href="/assets/use-connector-popup-BNoH6hd-.js"/><link rel="modulepreload" href="/assets/organization-roles-CM8b6v73.js"/><link rel="modulepreload" href="/assets/roles-and-permissions-b5Oy9I6U.js"/><link rel="modulepreload" href="/assets/teams._id.settings-cIidN4Kr.js"/><link rel="modulepreload" href="/assets/support-Cu42vbyw.js"/><link rel="modulepreload" href="/assets/NotificationsTab-DwU5Xdr5.js"/><link rel="modulepreload" href="/assets/plan-comparison-CVcwoQ7R.js"/><link rel="modulepreload" href="/assets/projects._projectId.snapshots-B2jHVbSd.js"/><link rel="modulepreload" href="/assets/upgrade-Dco3MGPW.js"/><link rel="modulepreload" href="/assets/marketing-community-route-CiarAIpN.js"/><script>window.__reactRouterContext = {"basename":"/","future":{"unstable_optimizeDeps":false,"v8_passThroughRequests":false,"v8_trailingSlashAwareDataRequests":false,"unstable_previewServerPrerendering":false,"v8_middleware":false,"v8_splitRouteModules":false,"v8_viteEnvironmentApi":false},"routeDiscovery":{"mode":"lazy","manifestPath":"/__manifest"},"ssr":true,"isSpaMode":false};window.__reactRouterContext.stream = new ReadableStream({start(controller){window.__reactRouterContext.streamController = controller;}}).pipeThrough(new TextEncoderStream());</script><script type="module" async="">;
+import * as route0 from "/assets/root-R0Fx3xSe.js";
+import * as route1 from "/assets/organization-roles-CM8b6v73.js";
+  window.__reactRouterManifest = {
+  "entry": {
+    "module": "/assets/entry.client-BTqRntyZ.js",
+    "imports": [
+      "/assets/vendor-react--f7qNH3z.js",
+      "/assets/catalogues-client-D-h7Kz-X.js",
+      "/assets/api.integrations.api-key._provider.configure-C943qy1P.js"
+    ],
+    "css": []
+  },
+  "routes": {
+    "root": {
+      "id": "root",
+      "path": "",
+      "hasAction": false,
+      "hasLoader": true,
+      "hasClientAction": false,
+      "hasClientLoader": false,
+      "hasClientMiddleware": false,
+      "hasDefaultExport": true,
+      "hasErrorBoundary": true,
+      "module": "/assets/root-R0Fx3xSe.js",
+      "imports": [
+        "/assets/vendor-react--f7qNH3z.js",
+        "/assets/catalogues-client-D-h7Kz-X.js",
+        "/assets/api.integrations.api-key._provider.configure-C943qy1P.js",
+        "/assets/vendor-vite-helpers-CLcXU_4U.js",
+        "/assets/ide-archive-bootstrap-IXUNgro6.js",
+        "/assets/command-palette-DB9gHEk2.js",
+        "/assets/marketing-landing-templates-video-BRwHi4DC.js",
+        "/assets/signup-DcIqfd1M.js",
+        "/assets/LandingWorkflow-BCl74gw7.js",
+        "/assets/PanelBoundary-Bowe9hOB.js",
+        "/assets/template-tech-icon-BeJrWkA1.js",
+        "/assets/vendor-icons-SefTZh68.js",
+        "/assets/account-settings._index-DNXnF_ja.js",
+        "/assets/Badge-ZzFeLDId.js",
+        "/assets/public-route-seo-Dvbij6CC.js",
+        "/assets/Card-OxDYU5sL.js",
+        "/assets/ConnectionsTab-BSOxOFHT.js",
+        "/assets/RelativeTime-8Xl93JUO.js",
+        "/assets/ServiceStatusTab-aHw8fjKX.js",
+        "/assets/use-connector-popup-BNoH6hd-.js"
+      ],
+      "css": [
+        "/assets/root-CUM3N0wj.css"
+      ]
+    },
+    "routes/organization-roles": {
+      "id": "routes/organization-roles",
+      "parentId": "root",
+      "path": "organization-roles",
+      "hasAction": true,
+      "hasLoader": true,
+      "hasClientAction": false,
+      "hasClientLoader": false,
+      "hasClientMiddleware": false,
+      "hasDefaultExport": true,
+      "hasErrorBoundary": false,
+      "module": "/assets/organization-roles-CM8b6v73.js",
+      "imports": [
+        "/assets/roles-and-permissions-b5Oy9I6U.js",
+        "/assets/vendor-react--f7qNH3z.js",
+        "/assets/teams._id.settings-cIidN4Kr.js",
+        "/assets/api.integrations.api-key._provider.configure-C943qy1P.js",
+        "/assets/account-settings._index-DNXnF_ja.js",
+        "/assets/Badge-ZzFeLDId.js",
+        "/assets/signup-DcIqfd1M.js",
+        "/assets/vendor-icons-SefTZh68.js",
+        "/assets/command-palette-DB9gHEk2.js",
+        "/assets/vendor-vite-helpers-CLcXU_4U.js",
+        "/assets/template-tech-icon-BeJrWkA1.js",
+        "/assets/public-route-seo-Dvbij6CC.js",
+        "/assets/LandingWorkflow-BCl74gw7.js",
+        "/assets/Card-OxDYU5sL.js",
+        "/assets/ConnectionsTab-BSOxOFHT.js",
+        "/assets/RelativeTime-8Xl93JUO.js",
+        "/assets/ServiceStatusTab-aHw8fjKX.js",
+        "/assets/marketing-landing-templates-video-BRwHi4DC.js",
+        "/assets/PanelBoundary-Bowe9hOB.js",
+        "/assets/use-connector-popup-BNoH6hd-.js",
+        "/assets/support-Cu42vbyw.js",
+        "/assets/NotificationsTab-DwU5Xdr5.js",
+        "/assets/plan-comparison-CVcwoQ7R.js",
+        "/assets/projects._projectId.snapshots-B2jHVbSd.js",
+        "/assets/upgrade-Dco3MGPW.js",
+        "/assets/marketing-community-route-CiarAIpN.js"
+      ],
+      "css": []
+    },
+    "routes/_index": {
+      "id": "routes/_index",
+      "parentId": "root",
+      "index": true,
+      "hasAction": false,
+      "hasLoader": true,
+      "hasClientAction": false,
+      "hasClientLoader": false,
+      "hasClientMiddleware": false,
+      "hasDefaultExport": true,
+      "hasErrorBoundary": false,
+      "module": "/assets/_index-D_xXVD0N.js",
+      "imports": [
+        "/assets/vendor-react--f7qNH3z.js",
+        "/assets/contact-3uSGk_dm.js",
+        "/assets/EcodeExactShell-DPwX9Fzg.js",
+        "/assets/vendor-vite-helpers-CLcXU_4U.js",
+        "/assets/marketing-landing-templates-video-BRwHi4DC.js",
+        "/assets/LandingCTA-aQVa9-48.js",
+        "/assets/signup-DcIqfd1M.js",
+        "/assets/vendor-icons-SefTZh68.js",
+        "/assets/api.integrations.api-key._provider.configure-C943qy1P.js",
+        "/assets/LandingVideo-CDDL5Yi0.js",
+        "/assets/public-route-seo-Dvbij6CC.js",
+        "/assets/LandingWorkflow-BCl74gw7.js",
+        "/assets/LandingTestimonials-ctW9XZLr.js",
+        "/assets/dpa-07Ujw3HO.js",
+        "/assets/marketing-landing-remaining-2fgq4dVw.js",
+        "/assets/terms-CAEdDaPm.js",
+        "/assets/Badge-ZzFeLDId.js",
+        "/assets/PanelBoundary-Bowe9hOB.js",
+        "/assets/use-connector-popup-BNoH6hd-.js"
+      ],
+      "css": []
+    }
+  },
+  "url": "/assets/manifest-fc1fa91f.js",
+  "version": "fc1fa91f"
+};
+  window.__reactRouterRouteModules = {"root":route0,"routes/organization-roles":route1};
+
+import("/assets/entry.client-BTqRntyZ.js");</script></body></html><!--$--><script>window.__reactRouterContext.streamController.enqueue("[{\"_1\":2,\"_3\":-5,\"_4\":-5},\"loaderData\",{\"_5\":6,\"_7\":8},\"actionData\",\"errors\",\"root\",{\"_50\":51,\"_52\":53,\"_54\":10,\"_55\":10,\"_56\":57},\"routes/organization-roles\",{\"_9\":10,\"_11\":12,\"_13\":14,\"_15\":16,\"_17\":18},\"forbidden\",false,\"orgId\",\"synthetic-org\",\"customRoles\",[38],\"grantablePermissions\",[19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37],\"callerRoleKey\",\"owner\",\"org:read\",\"org:update\",\"members:manage\",\"projects:read\",\"projects:write\",\"workspaces:read\",\"workspaces:write\",\"billing:read\",\"billing:manage\",\"admin:read\",\"admin:write\",\"audit:export\",\"enterprise:read\",\"enterprise:write\",\"roles:manage\",\"scim:manage\",\"security:manage\",\"support:write\",\"usage:read\",{\"_39\":40,\"_41\":42,\"_43\":44,\"_45\":46,\"_47\":48},\"id\",\"role-synthetic\",\"key\",\"synthetic_custom\",\"name\",\"OrganisationSynthétiqueLongueSansEspaceSyntheticOrganisationLongNameOrganisationSynthétiqueLongueSansEspaceSyntheticOrganisationLongNameOrganisationSynthétiqueLongueSansEspaceSyntheticOrganisationLongNameOrganisationSynthétiqueLongueSansEspaceSyntheticOrganisationLongNameOrganisationSynthétiqueLongueSansEspaceSyntheticOrganisationLongName\",\"permissions\",[49],\"createdAt\",\"2026-10-01T00:00:00Z\",\"audit:read\",\"language\",\"fr\",\"localeSource\",\"query\",\"privateCapabilityRoute\",\"suppressRootSeo\",\"seo\",{\"_58\":59,\"_60\":59,\"_61\":62},\"canonical\",\"http://127.0.0.1:9499/organization-roles\",\"english\",\"french\",\"http://127.0.0.1:9499/organization-roles?lang=fr\"]\n");</script><!--$--><script>window.__reactRouterContext.streamController.close();</script><!--/$--><!--/$-->

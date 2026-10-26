@@ -1,0 +1,122 @@
+[
+  {
+    "theme": "light",
+    "docWidth": 320,
+    "overflowRoot": "clip",
+    "overflowBody": "clip",
+    "controls": [
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "left": 16,
+        "right": 342.671875,
+        "whiteSpace": "nowrap",
+        "ancestors": [
+          {
+            "class": "flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8",
+            "width": 326.671875,
+            "minWidth": "0px",
+            "grid": "none"
+          },
+          {
+            "class": "text-center lg:text-left",
+            "width": 326.671875,
+            "minWidth": "auto",
+            "grid": "none"
+          },
+          {
+            "class": "grid lg:grid-cols-2 gap-16 items-center",
+            "width": 288,
+            "minWidth": "0px",
+            "grid": "326.672px"
+          }
+        ]
+      },
+      {
+        "text": "Voir la démonstration en direct",
+        "left": 16,
+        "right": 342.671875,
+        "whiteSpace": "nowrap",
+        "ancestors": [
+          {
+            "class": "flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8",
+            "width": 326.671875,
+            "minWidth": "0px",
+            "grid": "none"
+          },
+          {
+            "class": "text-center lg:text-left",
+            "width": 326.671875,
+            "minWidth": "auto",
+            "grid": "none"
+          },
+          {
+            "class": "grid lg:grid-cols-2 gap-16 items-center",
+            "width": 288,
+            "minWidth": "0px",
+            "grid": "326.672px"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "docWidth": 320,
+    "overflowRoot": "clip",
+    "overflowBody": "clip",
+    "controls": [
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "left": 16,
+        "right": 342.671875,
+        "whiteSpace": "nowrap",
+        "ancestors": [
+          {
+            "class": "flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8",
+            "width": 326.671875,
+            "minWidth": "0px",
+            "grid": "none"
+          },
+          {
+            "class": "text-center lg:text-left",
+            "width": 326.671875,
+            "minWidth": "auto",
+            "grid": "none"
+          },
+          {
+            "class": "grid lg:grid-cols-2 gap-16 items-center",
+            "width": 288,
+            "minWidth": "0px",
+            "grid": "326.672px"
+          }
+        ]
+      },
+      {
+        "text": "Voir la démonstration en direct",
+        "left": 16,
+        "right": 342.671875,
+        "whiteSpace": "nowrap",
+        "ancestors": [
+          {
+            "class": "flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8",
+            "width": 326.671875,
+            "minWidth": "0px",
+            "grid": "none"
+          },
+          {
+            "class": "text-center lg:text-left",
+            "width": 326.671875,
+            "minWidth": "auto",
+            "grid": "none"
+          },
+          {
+            "class": "grid lg:grid-cols-2 gap-16 items-center",
+            "width": 288,
+            "minWidth": "0px",
+            "grid": "326.672px"
+          }
+        ]
+      }
+    ]
+  }
+]

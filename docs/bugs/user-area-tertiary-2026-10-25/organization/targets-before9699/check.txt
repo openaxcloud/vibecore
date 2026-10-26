@@ -1,0 +1,114 @@
+{
+  "cases": 12,
+  "errors": [],
+  "summary": [
+    {
+      "route": "organization-roles",
+      "lang": "fr",
+      "width": 320,
+      "tested": 19,
+      "minHeight": 51.875,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "organization-roles",
+      "lang": "fr",
+      "width": 768,
+      "tested": 19,
+      "minHeight": 51.875,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "organization-roles",
+      "lang": "fr",
+      "width": 1440,
+      "tested": 19,
+      "minHeight": 47.03125,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "organization-roles",
+      "lang": "en",
+      "width": 320,
+      "tested": 19,
+      "minHeight": 51.875,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "organization-roles",
+      "lang": "en",
+      "width": 768,
+      "tested": 19,
+      "minHeight": 51.875,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "organization-roles",
+      "lang": "en",
+      "width": 1440,
+      "tested": 19,
+      "minHeight": 47.03125,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "roles-and-permissions",
+      "lang": "fr",
+      "width": 320,
+      "tested": 19,
+      "minHeight": 44,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "roles-and-permissions",
+      "lang": "fr",
+      "width": 768,
+      "tested": 19,
+      "minHeight": 44,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "roles-and-permissions",
+      "lang": "fr",
+      "width": 1440,
+      "tested": 19,
+      "minHeight": 33,
+      "below44": 19,
+      "restored": true
+    },
+    {
+      "route": "roles-and-permissions",
+      "lang": "en",
+      "width": 320,
+      "tested": 19,
+      "minHeight": 44,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "roles-and-permissions",
+      "lang": "en",
+      "width": 768,
+      "tested": 19,
+      "minHeight": 44,
+      "below44": 0,
+      "restored": true
+    },
+    {
+      "route": "roles-and-permissions",
+      "lang": "en",
+      "width": 1440,
+      "tested": 19,
+      "minHeight": 33,
+      "below44": 19,
+      "restored": true
+    }
+  ]
+}

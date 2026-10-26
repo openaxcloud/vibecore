@@ -21,8 +21,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ i18n: { language, resolvedLanguage: language } }),
 }));
 
-vi.mock('~/components/dashboard/SaaSLayout', () => ({
-  PublicShell: ({ children }: { children: ReactNode }) => <div data-testid="public-shell">{children}</div>,
+vi.mock('~/components/marketing/ecode-exact/EcodeExactShell', () => ({
+  EcodeExactPublicShell: ({ children }: { children: ReactNode }) => <div data-testid="public-shell">{children}</div>,
 }));
 
 function leafPaths(value: unknown, path: string[] = []): string[] {

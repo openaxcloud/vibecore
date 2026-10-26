@@ -1,0 +1,77 @@
+[
+  {
+    "route": "privacy",
+    "id": "privacy-contact",
+    "width": 320,
+    "text": "Nous contacter",
+    "top": 1961,
+    "bottom": 1993,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "clip": "auto",
+    "margin": "0px"
+  },
+  {
+    "route": "privacy",
+    "id": "privacy-contact",
+    "width": 1440,
+    "text": "Nous contacter",
+    "top": -0.21875,
+    "bottom": 31.78125,
+    "headerBottom": 110,
+    "scrollY": 1344,
+    "clip": "auto",
+    "margin": "0px",
+    "atCenter": "P"
+  },
+  {
+    "route": "terms",
+    "id": "terms-contact",
+    "width": 320,
+    "text": "9. Coordonnées",
+    "top": 2601.875,
+    "bottom": 2633.875,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "clip": "auto",
+    "margin": "0px"
+  },
+  {
+    "route": "terms",
+    "id": "terms-contact",
+    "width": 1440,
+    "text": "9. Coordonnées",
+    "top": 192.8125,
+    "bottom": 224.8125,
+    "headerBottom": 110,
+    "scrollY": 1344,
+    "clip": "auto",
+    "margin": "0px",
+    "atCenter": "H2"
+  },
+  {
+    "route": "support-policy",
+    "id": "support-policy-cta-heading",
+    "width": 320,
+    "text": "Obtenez l’assistance adaptée",
+    "top": 3693.5625,
+    "bottom": 3789.5625,
+    "headerBottom": 111,
+    "scrollY": 0,
+    "clip": "auto",
+    "margin": "0px"
+  },
+  {
+    "route": "support-policy",
+    "id": "support-policy-cta-heading",
+    "width": 1440,
+    "text": "Obtenez l’assistance adaptée",
+    "top": 533.640625,
+    "bottom": 569.640625,
+    "headerBottom": 110,
+    "scrollY": 1344,
+    "clip": "auto",
+    "margin": "0px",
+    "atCenter": "H2"
+  }
+]

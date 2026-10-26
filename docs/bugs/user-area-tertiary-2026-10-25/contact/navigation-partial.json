@@ -1,0 +1,22 @@
+[
+  {
+    "route": "/contact",
+    "lang": "fr",
+    "focus": {
+      "top": 192.65625,
+      "bottom": 232.65625,
+      "hit": true
+    },
+    "backURL": "http://127.0.0.1:8999/contact?lang=fr"
+  },
+  {
+    "route": "/contact",
+    "lang": "en",
+    "focus": {
+      "top": 153.71875,
+      "bottom": 193.71875,
+      "hit": true
+    },
+    "backURL": "http://127.0.0.1:8999/contact?lang=en"
+  }
+]

@@ -5,6 +5,8 @@ import { getMarketingExactPrivacyTermsCopy } from '~/lib/i18n/catalogs/marketing
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { socialMetaTags } from '~/utils/social-meta';
 
+export const handle = { serverRenderedMarketing: true } as const;
+
 export function loader({ request }: LoaderFunctionArgs) {
   return { language: resolveRequestLocale(request).language };
 }

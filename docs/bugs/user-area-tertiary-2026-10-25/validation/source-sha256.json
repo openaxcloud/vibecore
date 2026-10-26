@@ -1,0 +1,48 @@
+{
+  "files": [
+    {
+      "path": "app/components/marketing/EcodeProductMarketingPages.tsx",
+      "sha256": "c508f6f1c20b8ec302786782d69f9d11c4dcd7f39bf53229edda3e02ff3a4452"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Privacy.tsx",
+      "sha256": "f7a8627dca12eee7c9c4e6949c9448ef3bcf135af3541c5fd73cbc9312c352e4"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Terms.tsx",
+      "sha256": "69e169406576cad700de6153cb34a4e66ae2e880caec9fb0f25e6eff9f86ce5c"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/marketing-exact-support-policy.spec.tsx",
+      "sha256": "2c72686c922554b44c9a4608208c0a752b7d33c8aa1e0eb6504a97d5deaf2c5e"
+    },
+    {
+      "path": "app/routes/invitations.tsx",
+      "sha256": "6b75eea884a18cb1d0adc167c1850616c4568ab23023059ca40aaed31fd6dee2"
+    },
+    {
+      "path": "app/routes/organization-invitations.tsx",
+      "sha256": "e0b011cb56d6a0335c5b9a3e53e4143ccebf158fc01718dc14d3251b799c0019"
+    },
+    {
+      "path": "app/routes/organization-roles.tsx",
+      "sha256": "8deadaf556a735f0df0c924e47e15708cceead87bb42ad7174739dec288dee37"
+    },
+    {
+      "path": "app/routes/privacy.tsx",
+      "sha256": "8ec8fd2994df704a92a5134dfe8d05db377f02e850cbcc244473e43c352d6a94"
+    },
+    {
+      "path": "app/routes/roles-and-permissions.tsx",
+      "sha256": "38572b40a24e00c51ea22c67a0b55db482c4550fd916c73b6d83daffc25aeabd"
+    },
+    {
+      "path": "app/routes/support-policy.tsx",
+      "sha256": "80f479cc1dfc9993dd65f130dba563c0ecf99d0b141f799ca095b48653f7f200"
+    },
+    {
+      "path": "app/routes/terms.tsx",
+      "sha256": "e9665dc5608716ca24d676376488d2686ab2653ef2b3ab45af7f9584c71821df"
+    }
+  ]
+}

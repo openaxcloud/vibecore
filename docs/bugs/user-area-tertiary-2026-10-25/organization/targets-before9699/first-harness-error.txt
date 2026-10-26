@@ -1,0 +1,7 @@
+locator.screenshot: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('fieldset')
+
+    at /tmp/ui-audit-next-org/targets/check.cjs:2:2128 {
+  name: 'TimeoutError'
+}

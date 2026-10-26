@@ -1,0 +1,8 @@
+RUN  v3.2.6 /workspace/vibecore-ui-major
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 19ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  23:47:01
+   Duration  1.85s (transform 979ms, setup 24ms, collect 12ms, tests 19ms, environment 0ms, prepare 56ms)

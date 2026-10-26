@@ -710,6 +710,7 @@ export function EcodeFeaturesPage() {
                 key={tab.id}
                 type="button"
                 variant={activeTab === tab.id ? 'default' : 'outline'}
+                aria-pressed={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.label}

@@ -1,0 +1,1 @@
+Revue indépendante final_review favorable : coquilleSupport importée directement identique au wrapperfinal précédent, SSRlocal sansglobalnavigateur au rendu ; aria-pressed lié au filtreexistant ; min-height44pxlocal. AutresancresSupport noncorrigées/nonrevendiquées. Recettescompiléesfinales consignées séparément.
