@@ -45,7 +45,8 @@ vi.mock('~/lib/enterprise-api.server', async (importOriginal) => {
   };
 });
 
-vi.mock('react-i18next', () => ({
+vi.mock('react-i18next', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-i18next')>()),
   useTranslation: () => ({
     i18n: { language: testState.language, resolvedLanguage: testState.language },
     t: (key: string) => key,
@@ -69,6 +70,11 @@ vi.mock('react-router', async (importOriginal) => {
     useRouteError: () => testState.routeError,
   };
 });
+
+// Navigation behavior is exercised with the real data router in support-ticket-draft-navigation.spec.tsx.
+vi.mock('~/lib/use-unsaved-guard', () => ({
+  useUnsavedChangesGuard: () => ({ state: 'unblocked' }),
+}));
 
 vi.mock('~/components/dashboard/SaaSLayout', () => ({
   AppShell: ({ children, description, title }: { children: React.ReactNode; description: string; title: string }) => (
@@ -156,14 +162,18 @@ function loaderArgs(
 
 function actionArgs(
   body: string,
-  { id = 'ticket-1', url = 'https://e-code.ai/support/ticket-1?lang=fr' }: { id?: string; url?: string } = {},
+  {
+    id = 'ticket-1',
+    url = 'https://e-code.ai/support/ticket-1?lang=fr',
+    accept = 'text/html',
+  }: { id?: string; url?: string; accept?: string } = {},
 ): Parameters<typeof action>[0] {
   return {
     context: {},
     params: { id },
     request: new Request(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      headers: { 'content-type': 'application/x-www-form-urlencoded', Accept: accept },
       body: new URLSearchParams({ body }).toString(),
     }),
   } as Parameters<typeof action>[0];
@@ -438,6 +448,33 @@ describe('support ticket detail loader and action', () => {
     expect(result.data).toEqual({ errorCode: 'rateLimited' });
     expect(JSON.stringify(result.data)).not.toContain(rawError);
     expect(new Headers(result.init.headers).get('Retry-After')).toBe('30');
+  });
+
+  it('acknowledges a data submission only after the API has accepted it, without echoing message text', async () => {
+    testState.firstOrganization.mockResolvedValue({ id: 'org-1' });
+
+    let acceptMessage!: (value: unknown) => void;
+    testState.apiRequest.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          acceptMessage = resolve;
+        }),
+    );
+
+    let settled = false;
+
+    const pending = action(actionArgs('Synthetic private reply', { accept: '*/*' })).then((result) => {
+      settled = true;
+      return result;
+    });
+    await vi.waitFor(() => expect(testState.apiRequest).toHaveBeenCalledOnce());
+    expect(settled).toBe(false);
+    acceptMessage({ message: { id: 'synthetic-accepted' } });
+
+    const result = (await pending) as unknown as { data: { sent: true }; init: { headers: HeadersInit } };
+    expect(result.data).toEqual({ sent: true });
+    expect(JSON.stringify(result.data)).not.toContain('Synthetic private reply');
+    expect(new Headers(result.init.headers).get('Cache-Control')).toBe('private, no-store');
   });
 
   it('rethrows action re-auth redirects before accepting message input', async () => {

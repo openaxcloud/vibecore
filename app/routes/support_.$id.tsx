@@ -1,11 +1,13 @@
 import { ArrowLeft, LifeBuoy, MessageSquare } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Form,
   Link,
   useActionData,
   useLoaderData,
+  useLocation,
+  useParams,
   useNavigation,
   useRevalidator,
   useRouteError,
@@ -16,6 +18,7 @@ import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/Asyn
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
   apiRequest,
@@ -42,6 +45,7 @@ import {
 } from '~/lib/i18n/catalogs/support-ticket-detail';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { useUnsavedChangesGuard } from '~/lib/use-unsaved-guard';
 
 const MAX_MESSAGE_LENGTH = 10_000;
 
@@ -387,7 +391,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     return json({ errorCode: code }, { status: actionErrorStatus(code), headers });
   }
 
-  return redirect(ticketPath(ticketId, language), { headers });
+  if (request.headers.get('Accept')?.includes('text/html')) {
+    return redirect(ticketPath(ticketId, language), { headers });
+  }
+
+  return json({ sent: true as const }, { headers });
 }
 
 function MessageBubble({ message, language }: { message: TicketMessage; language: SupportTicketDetailLanguage }) {
@@ -420,15 +428,21 @@ function TicketConversation({
   copy,
   language,
   actionError,
+  reply,
+  onReplyChange,
+  onReplySubmit,
 }: {
   ticket: Ticket;
   messages: TicketMessage[];
   copy: SupportTicketDetailCopy;
   language: SupportTicketDetailLanguage;
   actionError?: string;
+  reply: string;
+  onReplyChange: (value: string) => void;
+  onReplySubmit: () => void;
 }) {
   const navigation = useNavigation();
-  const [messageLength, setMessageLength] = useState(0);
+  const messageLength = reply.length;
   const normalizedStatus = ticket.status.trim().toUpperCase();
   const closed = normalizedStatus === 'CLOSED';
   const sending = navigation.state !== 'idle' && navigation.formMethod?.toLowerCase() === 'post';
@@ -536,6 +550,7 @@ function TicketConversation({
       ) : (
         <Form
           method="post"
+          onSubmit={onReplySubmit}
           className="grid min-w-0 gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-5"
         >
           <label htmlFor="ticket-reply" className="break-words text-sm font-medium">
@@ -550,7 +565,8 @@ function TicketConversation({
             placeholder={copy['supportTicketDetail.reply.placeholder']}
             aria-describedby={`support-ticket-reply-count${actionError ? ' support-ticket-reply-error' : ''}`}
             aria-invalid={fieldError || undefined}
-            onChange={(event) => setMessageLength(event.currentTarget.value.length)}
+            value={reply}
+            onChange={(event) => onReplyChange(event.currentTarget.value)}
             className="min-h-28 w-full min-w-0 resize-y rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm outline-none placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:ring-2 focus:ring-bolt-elements-borderColorActive"
           />
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -578,7 +594,11 @@ function TicketConversation({
 
 export default function SupportTicketPage() {
   const { ticket, messages, loadState, loadErrorCode, language: loaderLanguage } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { errorCode?: SupportTicketDetailActionErrorCode } | undefined;
+
+  const actionData = useActionData<typeof action>() as
+    | { errorCode?: SupportTicketDetailActionErrorCode; sent?: true }
+    | undefined;
+
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const { i18n } = useTranslation();
@@ -587,6 +607,34 @@ export default function SupportTicketPage() {
   const loading = revalidator.state !== 'idle' || navigation.state === 'loading';
   const actionError = supportTicketDetailActionError(actionData?.errorCode, language, MAX_MESSAGE_LENGTH);
   const descriptor = supportTicketDetailLoadError(loadErrorCode ?? 'unavailable', language);
+  const params = useParams();
+  const location = useLocation();
+  const ticketId = params.id ?? ticket?.id ?? '';
+  const [draft, setDraft] = useState({ ticketId, body: '' });
+  const pendingReply = useRef<{ ticketId: string; body: string } | null>(null);
+  const consumedAcknowledgment = useRef<typeof actionData>(undefined);
+  const reply = draft.ticketId === ticketId ? draft.body : '';
+  const blocker = useUnsavedChangesGuard(reply.length > 0);
+  const changingPage = Boolean(navigation.location && navigation.location.pathname !== location.pathname);
+
+  useEffect(() => {
+    if (!actionData?.sent || consumedAcknowledgment.current === actionData) {
+      return;
+    }
+
+    consumedAcknowledgment.current = actionData;
+
+    const submitted = pendingReply.current;
+    pendingReply.current = null;
+
+    if (!submitted || submitted.ticketId !== ticketId) {
+      return;
+    }
+
+    setDraft((current) =>
+      current.ticketId === submitted.ticketId && current.body === submitted.body ? { ...current, body: '' } : current,
+    );
+  }, [actionData, ticketId]);
 
   return (
     <AppShell
@@ -601,7 +649,7 @@ export default function SupportTicketPage() {
         {copy['supportTicketDetail.back']}
       </Link>
 
-      {loading ? (
+      {loading && (!ticket || changingPage) ? (
         <AsyncPanelSkeleton label={copy['supportTicketDetail.load.loading']} rows={4} className="mx-auto max-w-3xl" />
       ) : loadState === 'error' || !ticket ? (
         <AsyncPanelError
@@ -613,14 +661,39 @@ export default function SupportTicketPage() {
           className="mx-auto max-w-3xl"
         />
       ) : (
-        <TicketConversation
-          ticket={ticket}
-          messages={messages}
-          copy={copy}
-          language={language}
-          actionError={actionError}
-        />
+        <div aria-busy={loading}>
+          {loading ? (
+            <span className="sr-only" role="status" aria-label={copy['supportTicketDetail.load.loading']}>
+              {copy['supportTicketDetail.load.loading']}
+            </span>
+          ) : null}
+          <TicketConversation
+            ticket={ticket}
+            messages={messages}
+            copy={copy}
+            language={language}
+            actionError={actionError}
+            reply={reply}
+            onReplyChange={(body) => setDraft({ ticketId, body })}
+            onReplySubmit={() => {
+              pendingReply.current = { ticketId, body: reply };
+            }}
+          />
+        </div>
       )}
+      <ConfirmationDialog
+        isOpen={blocker.state === 'blocked'}
+        onClose={() => blocker.reset?.()}
+        onConfirm={() => {
+          pendingReply.current = null;
+          setDraft({ ticketId, body: '' });
+          blocker.proceed?.();
+        }}
+        title={copy['supportTicketDetail.unsaved.title']}
+        description={copy['supportTicketDetail.unsaved.description']}
+        confirmLabel={copy['supportTicketDetail.unsaved.confirm']}
+        variant="destructive"
+      />
     </AppShell>
   );
 }
