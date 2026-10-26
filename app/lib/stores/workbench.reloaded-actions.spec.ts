@@ -285,6 +285,34 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     });
   });
 
+  it('keeps direct-runner writes unknown when proposal review is disabled', async () => {
+    const store = new WorkbenchStore();
+    const file = fileAction('direct-unobserved');
+    file.action.filePath = 'docs/direct.md';
+    file.action.content = 'direct runtime content\n';
+    store.setAgentPatchReviewRequired(false);
+    store.addArtifact(artifactData('direct-unobserved'));
+    expect(cheminsEcritsParLesLanes('direct-unobserved')).toBeUndefined();
+    await store._addAction(file);
+    await store._runAction(file);
+    expect(runtimeFiles.get('docs/direct.md')).toBe('direct runtime content\n');
+    expect(cheminsEcritsParLesLanes('direct-unobserved')).toBeUndefined();
+  });
+
+  it('starts observing a resumed proposal even when ordinary proposal review is disabled', async () => {
+    const store = new WorkbenchStore();
+    store.setAgentPatchReviewRequired(false);
+    store.reprendreLeTourInterrompu('resumed-proposal');
+    store.addArtifact(artifactData('resumed-proposal'));
+    expect(cheminsEcritsParLesLanes('resumed-proposal')).toBeUndefined();
+
+    const file = fileAction('resumed-proposal');
+    await store._addAction(file);
+    await store._runAction(file);
+    expect(store.agentPatchProposals.get()['artifact-1:file-1'].status).toBe('pending');
+    expect(cheminsEcritsParLesLanes('resumed-proposal')).toEqual([]);
+  });
+
   it.each(['assistant-confirmed', 'assistant-confirmed::lane:frontend'])(
     'records %s only after read-back; confirmed revert removes its receipt',
     async (messageId) => {

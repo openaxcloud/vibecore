@@ -3519,7 +3519,7 @@ export class WorkbenchStore {
   }
 
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
-    if (!this.#reloadedMessages.contient(messageId)) {
+    if (this.agentPatchReviewRequired.get() && !this.#reloadedMessages.contient(messageId)) {
       observerEcrituresDeMessage(messageId);
     }
 
@@ -4069,6 +4069,8 @@ export class WorkbenchStore {
         return;
       }
     }
+
+    observerEcrituresDeMessage(data.messageId);
 
     /*
      * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — admission control BEFORE a proposal is

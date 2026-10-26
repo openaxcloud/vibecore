@@ -19,6 +19,13 @@ confirmation d'écriture. Il ne faut pas convertir `undefined` en zéro écrit.
 Les chemins confirmés préservent la casse du runtime Linux ; l'arbitrage garde
 sa normalisation conservatrice indépendante.
 
+Le raccord strict couvre les propositions de fichiers acceptées, utilisées
+notamment dans les modes Agent/Edit de l'IDE projet. Le chemin historique sans
+revue ne vérifie actuellement que la lisibilité du fichier ; il reste inconnu
+dans ce registre plutôt que d'être compté comme appliqué ou comme zéro écrit.
+Instrumenter ce chemin avec une confirmation du contenu effectivement écrit
+reste un travail distinct avant de revendiquer une couverture de tous les modes.
+
 L'interface peut s'abonner à l'atom `confirmationsEcritureVersion` pour recalculer
 les compteurs après confirmation ou invalidation. Elle doit distinguer une
 livraison encore en cours d'une livraison terminée avec des fichiers manquants :
@@ -65,7 +72,7 @@ dernier reçu pertinent et préserver l'état inconnu des anciennes conversation
 `status: complete` reste un rapport valide. `verificationState: not_observed`
 ne permet jamais d'afficher une exécution de tests comme vérifiée.
 
-Validation locale : 143 tests ciblés, dont le SDK réel avec fournisseur simulé
+Validation locale : 145 tests ciblés, dont le SDK réel avec fournisseur simulé
 sans réseau, les deux segments de la route réelle avec frontière modèle simulée,
 le workbench et un vrai fichier temporaire via les handlers de l'agent. Build
 web/SSR, typage officiel et lint réussis. Aucun appel AI payant ni changement
