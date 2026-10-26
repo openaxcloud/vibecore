@@ -3,5 +3,8 @@ import { redirect, requirePlatformAdmin, type EnterpriseLoaderArgs } from '~/lib
 export async function loader({ request }: EnterpriseLoaderArgs) {
   await requirePlatformAdmin(request);
 
-  return redirect('/admin/overview');
+  const language = new URL(request.url).searchParams.get('lang');
+  const query = language === null ? '' : `?${new URLSearchParams({ lang: language })}`;
+
+  return redirect(`/admin/overview${query}`);
 }
