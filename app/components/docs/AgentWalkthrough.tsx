@@ -469,13 +469,13 @@ function FeatureSection({ entry, copy }: FeatureSectionProps) {
   const Icon = entry.icon;
 
   return (
-    <section id={`agent-${entry.id}`} className="bolt-feature-doc-section">
+    <section id={`agent-${entry.id}`} className="bolt-feature-doc-section" style={{ scrollMarginTop: '9rem' }}>
       <div className="bolt-feature-doc-header">
         <span className="bolt-feature-doc-icon" aria-hidden>
           <Icon className="h-5 w-5" />
         </span>
         <div>
-          <h3 className="text-xl font-semibold text-bolt-elements-textPrimary">{entry.title}</h3>
+          <h2 className="text-xl font-semibold text-bolt-elements-textPrimary">{entry.title}</h2>
           <p className="text-sm text-bolt-elements-textSecondary">{entry.tagline}</p>
         </div>
       </div>
@@ -505,9 +505,7 @@ function FeatureSection({ entry, copy }: FeatureSectionProps) {
         </div>
         <figure className="bolt-feature-doc-preview" aria-label={`${entry.title} ${copy.previewLabel}`}>
           {entry.preview}
-          <figcaption className="bolt-feature-doc-caption">
-            {copy.captionBeforePath} <code>{`/public/marketing/agent-${entry.id}.png`}</code> {copy.captionAfterPath}
-          </figcaption>
+          <figcaption className="bolt-feature-doc-caption">{copy.illustrationCaption}</figcaption>
         </figure>
       </div>
     </section>
@@ -523,7 +521,7 @@ export function AgentWalkthrough() {
   return (
     <div id="agent-walkthrough" className="bolt-feature-doc-walkthrough">
       <header className="bolt-feature-doc-walkthrough-head">
-        <h2 className="text-2xl font-semibold tracking-normal text-bolt-elements-textPrimary">{copy.title}</h2>
+        <h1 className="text-2xl font-semibold tracking-normal text-bolt-elements-textPrimary">{copy.title}</h1>
         <p className="mt-2 max-w-2xl text-sm text-bolt-elements-textSecondary">{copy.description}</p>
       </header>
       <nav className="bolt-feature-doc-anchors" aria-label={copy.navigationLabel}>
@@ -534,7 +532,7 @@ export function AgentWalkthrough() {
         ))}
       </nav>
       <aside className="bolt-feature-doc-prereqs" aria-label={copy.prerequisitesLabel}>
-        <h3 className="text-base font-semibold text-bolt-elements-textPrimary">{copy.beforeYouStart}</h3>
+        <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{copy.beforeYouStart}</h2>
         <ul>
           {copy.prerequisites.map(({ title, detail }) => (
             <li key={title}>

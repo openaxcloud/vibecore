@@ -1,0 +1,114 @@
+{
+  "note": "DOM CSSOM diagnostic only; proposed IDE selector unvalidated on IDE, no source edit.",
+  "stages": [
+    {
+      "name": "scoped-wheel600",
+      "scrollY": 600,
+      "bodyTop": 0,
+      "rootY": "visible",
+      "bodyY": "visible",
+      "lock": null,
+      "dialog": false,
+      "active": "<body class=\"h-full w-full\"><div class=\"flex min-h-screen flex-col bg-background text-foreground\" data-testid=\"page-account-inactivity\"><header role=\"banner\" aria-label=\"En-tête du site\" class=\"sticky top-0 z-50 w-full\">"
+    },
+    {
+      "name": "scoped-PageDown",
+      "scrollY": 941,
+      "bodyTop": 0,
+      "rootY": "visible",
+      "bodyY": "visible",
+      "lock": null,
+      "dialog": false,
+      "active": "<body class=\"h-full w-full\"><div class=\"flex min-h-screen flex-col bg-background text-foreground\" data-testid=\"page-account-inactivity\"><header role=\"banner\" aria-label=\"En-tête du site\" class=\"sticky top-0 z-50 w-full\">"
+    },
+    {
+      "name": "menu-open",
+      "scrollY": 0,
+      "bodyTop": 0,
+      "rootY": "visible",
+      "bodyY": "hidden",
+      "lock": "1",
+      "dialog": true,
+      "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:poi"
+    },
+    {
+      "name": "menu-open-wheel",
+      "scrollY": 0,
+      "bodyTop": 0,
+      "rootY": "visible",
+      "bodyY": "hidden",
+      "lock": "1",
+      "dialog": true,
+      "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:poi"
+    },
+    {
+      "name": "menu-Escape",
+      "scrollY": 0,
+      "bodyTop": 0,
+      "rootY": "visible",
+      "bodyY": "visible",
+      "lock": null,
+      "dialog": false,
+      "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:poi"
+    },
+    {
+      "name": "after-close-wheel",
+      "scrollY": 600,
+      "bodyTop": 0,
+      "rootY": "visible",
+      "bodyY": "visible",
+      "lock": null,
+      "dialog": false,
+      "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:poi"
+    }
+  ],
+  "root": {
+    "htmlAttrs": [
+      [
+        "lang",
+        "fr"
+      ],
+      [
+        "dir",
+        "ltr"
+      ],
+      [
+        "data-theme",
+        "light"
+      ],
+      [
+        "class",
+        "light"
+      ],
+      [
+        "data-ecode-theme-ready",
+        "true"
+      ],
+      [
+        "style",
+        "color-scheme: light; font-size: 16px;"
+      ],
+      [
+        "data-ecode-hydrated",
+        "true"
+      ],
+      [
+        "data-ecode-sidebar-collapsed",
+        "true"
+      ],
+      [
+        "data-ecode-public-chrome",
+        "homepage"
+      ]
+    ],
+    "bodyAttrs": [
+      [
+        "class",
+        "h-full w-full"
+      ]
+    ]
+  },
+  "changed": [
+    "html, body { overflow: hidden; }"
+  ]
+}

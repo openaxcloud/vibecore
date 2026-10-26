@@ -1,0 +1,811 @@
+{
+  "version": "154.0.8037.57",
+  "simulation": "CDP safe-area env override; NOT physical iOS, NOT real virtual keyboard",
+  "observations": [
+    {
+      "route": "organization-security",
+      "width": 320,
+      "height": 900,
+      "insets": {
+        "top": 44,
+        "bottom": 34,
+        "left": 0,
+        "right": 0
+      },
+      "page": {
+        "env": {
+          "top": 44,
+          "bottom": 34,
+          "left": 0,
+          "right": 0
+        },
+        "document": 320,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 14,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 58,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 207.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 251.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 262,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 306,
+            "bottom": 49.5
+          },
+          {
+            "text": "Adresse IP ou bloc CIDR",
+            "x": 32.5,
+            "y": 681.5,
+            "width": 255,
+            "height": 44,
+            "right": 287.5,
+            "bottom": 725.5
+          },
+          {
+            "text": "Ajouter",
+            "x": 32.5,
+            "y": 732.5,
+            "width": 255,
+            "height": 44,
+            "right": 287.5,
+            "bottom": 776.5
+          },
+          {
+            "text": "Retirer 2001:db8:1234:5678:abcd:abcd:abcd:abcd/128",
+            "x": 44,
+            "y": 834,
+            "width": 232,
+            "height": 44,
+            "right": 276,
+            "bottom": 878
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 32.5,
+        "y": 681.5,
+        "width": 255,
+        "height": 44,
+        "right": 287.5,
+        "bottom": 725.5
+      },
+      "dialog": null,
+      "draftResizeRestored": true
+    },
+    {
+      "route": "organization-security",
+      "width": 390,
+      "height": 844,
+      "insets": {
+        "top": 44,
+        "bottom": 34,
+        "left": 0,
+        "right": 0
+      },
+      "page": {
+        "env": {
+          "top": 44,
+          "bottom": 34,
+          "left": 0,
+          "right": 0
+        },
+        "document": 390,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 14,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 58,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 277.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 321.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 332,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 376,
+            "bottom": 49.5
+          },
+          {
+            "text": "Adresse IP ou bloc CIDR",
+            "x": 32.5,
+            "y": 601.5,
+            "width": 325,
+            "height": 44,
+            "right": 357.5,
+            "bottom": 645.5
+          },
+          {
+            "text": "Ajouter",
+            "x": 32.5,
+            "y": 652.5,
+            "width": 325,
+            "height": 44,
+            "right": 357.5,
+            "bottom": 696.5
+          },
+          {
+            "text": "Retirer 2001:db8:1234:5678:abcd:abcd:abcd:abcd/128",
+            "x": 44,
+            "y": 754,
+            "width": 302,
+            "height": 44,
+            "right": 346,
+            "bottom": 798
+          },
+          {
+            "text": "Retirer 192.0.2.0/24",
+            "x": 44,
+            "y": 836,
+            "width": 302,
+            "height": 44,
+            "right": 346,
+            "bottom": 880
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 32.5,
+        "y": 601.5,
+        "width": 325,
+        "height": 44,
+        "right": 357.5,
+        "bottom": 645.5
+      },
+      "dialog": null,
+      "draftResizeRestored": true
+    },
+    {
+      "route": "organization-security",
+      "width": 844,
+      "height": 390,
+      "insets": {
+        "top": 0,
+        "bottom": 21,
+        "left": 47,
+        "right": 47
+      },
+      "page": {
+        "env": {
+          "top": 0,
+          "bottom": 21,
+          "left": 47,
+          "right": 47
+        },
+        "document": 844,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 21,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 65,
+            "bottom": 49.5
+          },
+          {
+            "text": "Ouvrir la palette de commandes",
+            "x": 462.3125,
+            "y": 5.5,
+            "width": 151.1875,
+            "height": 44,
+            "right": 613.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 624,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 668,
+            "bottom": 49.5
+          },
+          {
+            "text": "Anglais",
+            "x": 679.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 723.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Langue actuelle : Français",
+            "x": 723.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 767.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 779,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 823,
+            "bottom": 49.5
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 43,
+        "y": 358,
+        "width": 530.328125,
+        "height": 44,
+        "right": 573.328125,
+        "bottom": 402
+      },
+      "dialog": null,
+      "draftResizeRestored": true
+    },
+    {
+      "route": "organization-security",
+      "width": 820,
+      "height": 1180,
+      "insets": {
+        "top": 44,
+        "bottom": 34,
+        "left": 0,
+        "right": 0
+      },
+      "page": {
+        "env": {
+          "top": 44,
+          "bottom": 34,
+          "left": 0,
+          "right": 0
+        },
+        "document": 820,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 21,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 65,
+            "bottom": 49.5
+          },
+          {
+            "text": "Ouvrir la palette de commandes",
+            "x": 438.3125,
+            "y": 5.5,
+            "width": 151.1875,
+            "height": 44,
+            "right": 589.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 600,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 644,
+            "bottom": 49.5
+          },
+          {
+            "text": "Anglais",
+            "x": 655.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 699.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Langue actuelle : Français",
+            "x": 699.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 743.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 755,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 799,
+            "bottom": 49.5
+          },
+          {
+            "text": "Adresse IP ou bloc CIDR",
+            "x": 43,
+            "y": 460,
+            "width": 530.328125,
+            "height": 44,
+            "right": 573.328125,
+            "bottom": 504
+          },
+          {
+            "text": "Ajouter",
+            "x": 580.328125,
+            "y": 460,
+            "width": 90.671875,
+            "height": 44,
+            "right": 671,
+            "bottom": 504
+          },
+          {
+            "text": "Retirer 2001:db8:1234:5678:abcd:abcd:abcd:abcd/128",
+            "x": 591.640625,
+            "y": 522.5,
+            "width": 67.859375,
+            "height": 44,
+            "right": 659.5,
+            "bottom": 566.5
+          },
+          {
+            "text": "Retirer 192.0.2.0/24",
+            "x": 591.640625,
+            "y": 581.5,
+            "width": 67.859375,
+            "height": 44,
+            "right": 659.5,
+            "bottom": 625.5
+          },
+          {
+            "text": "",
+            "x": 43,
+            "y": 717.5,
+            "width": 307,
+            "height": 44,
+            "right": 350,
+            "bottom": 761.5
+          },
+          {
+            "text": "",
+            "x": 364,
+            "y": 717.5,
+            "width": 307,
+            "height": 44,
+            "right": 671,
+            "bottom": 761.5
+          },
+          {
+            "text": "",
+            "x": 58,
+            "y": 835.25,
+            "width": 14,
+            "height": 14,
+            "right": 72,
+            "bottom": 849.25
+          },
+          {
+            "text": "",
+            "x": 58,
+            "y": 931.25,
+            "width": 14,
+            "height": 14,
+            "right": 72,
+            "bottom": 945.25
+          },
+          {
+            "text": "Enregistrer les paramètres de sécurité",
+            "x": 43,
+            "y": 1050,
+            "width": 297.8125,
+            "height": 44,
+            "right": 340.8125,
+            "bottom": 1094
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 43,
+        "y": 460,
+        "width": 530.328125,
+        "height": 44,
+        "right": 573.328125,
+        "bottom": 504
+      },
+      "dialog": null,
+      "draftResizeRestored": true
+    },
+    {
+      "route": "organization-switcher",
+      "width": 320,
+      "height": 900,
+      "insets": {
+        "top": 44,
+        "bottom": 34,
+        "left": 0,
+        "right": 0
+      },
+      "page": {
+        "env": {
+          "top": 44,
+          "bottom": 34,
+          "left": 0,
+          "right": 0
+        },
+        "document": 320,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 14,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 58,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 207.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 251.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 262,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 306,
+            "bottom": 49.5
+          },
+          {
+            "text": "Nouvelle organisation",
+            "x": 32.5,
+            "y": 255.5,
+            "width": 172.71875,
+            "height": 44,
+            "right": 205.21875,
+            "bottom": 299.5
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 34,
+        "y": 441.1640625,
+        "width": 252,
+        "height": 44,
+        "right": 286,
+        "bottom": 485.1640625
+      },
+      "dialog": {
+        "x": 12,
+        "y": 280.3359375,
+        "width": 296,
+        "height": 339.328125,
+        "right": 308,
+        "bottom": 619.6640625,
+        "scroll": 337,
+        "client": 337
+      },
+      "draftResizeRestored": true
+    },
+    {
+      "route": "organization-switcher",
+      "width": 390,
+      "height": 844,
+      "insets": {
+        "top": 44,
+        "bottom": 34,
+        "left": 0,
+        "right": 0
+      },
+      "page": {
+        "env": {
+          "top": 44,
+          "bottom": 34,
+          "left": 0,
+          "right": 0
+        },
+        "document": 390,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 14,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 58,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 277.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 321.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 332,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 376,
+            "bottom": 49.5
+          },
+          {
+            "text": "Nouvelle organisation",
+            "x": 32.5,
+            "y": 235.5,
+            "width": 172.71875,
+            "height": 44,
+            "right": 205.21875,
+            "bottom": 279.5
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 34,
+        "y": 403.2265625,
+        "width": 322,
+        "height": 44,
+        "right": 356,
+        "bottom": 447.2265625
+      },
+      "dialog": {
+        "x": 12,
+        "y": 262.2734375,
+        "width": 366,
+        "height": 319.453125,
+        "right": 378,
+        "bottom": 581.7265625,
+        "scroll": 317,
+        "client": 317
+      },
+      "draftResizeRestored": true
+    },
+    {
+      "route": "organization-switcher",
+      "width": 844,
+      "height": 390,
+      "insets": {
+        "top": 0,
+        "bottom": 21,
+        "left": 47,
+        "right": 47
+      },
+      "page": {
+        "env": {
+          "top": 0,
+          "bottom": 21,
+          "left": 47,
+          "right": 47
+        },
+        "document": 844,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 21,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 65,
+            "bottom": 49.5
+          },
+          {
+            "text": "Ouvrir la palette de commandes",
+            "x": 462.3125,
+            "y": 5.5,
+            "width": 151.1875,
+            "height": 44,
+            "right": 613.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 624,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 668,
+            "bottom": 49.5
+          },
+          {
+            "text": "Anglais",
+            "x": 679.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 723.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Langue actuelle : Français",
+            "x": 723.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 767.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 779,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 823,
+            "bottom": 49.5
+          },
+          {
+            "text": "Nouvelle organisation",
+            "x": 628.28125,
+            "y": 99,
+            "width": 172.71875,
+            "height": 44,
+            "right": 801,
+            "bottom": 143
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 184,
+        "y": 191.7890625,
+        "width": 476,
+        "height": 44,
+        "right": 660,
+        "bottom": 235.7890625
+      },
+      "dialog": {
+        "x": 162,
+        "y": 70.7109375,
+        "width": 520,
+        "height": 248.578125,
+        "right": 682,
+        "bottom": 319.2890625,
+        "scroll": 247,
+        "client": 247
+      },
+      "draftResizeRestored": true
+    },
+    {
+      "route": "organization-switcher",
+      "width": 820,
+      "height": 1180,
+      "insets": {
+        "top": 44,
+        "bottom": 34,
+        "left": 0,
+        "right": 0
+      },
+      "page": {
+        "env": {
+          "top": 44,
+          "bottom": 34,
+          "left": 0,
+          "right": 0
+        },
+        "document": 820,
+        "controls": [
+          {
+            "text": "Ouvrir le menu de navigation",
+            "x": 21,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 65,
+            "bottom": 49.5
+          },
+          {
+            "text": "Ouvrir la palette de commandes",
+            "x": 438.3125,
+            "y": 5.5,
+            "width": 151.1875,
+            "height": 44,
+            "right": 589.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Aide et visite guidée",
+            "x": 600,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 644,
+            "bottom": 49.5
+          },
+          {
+            "text": "Anglais",
+            "x": 655.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 699.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Langue actuelle : Français",
+            "x": 699.5,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 743.5,
+            "bottom": 49.5
+          },
+          {
+            "text": "Notifications",
+            "x": 755,
+            "y": 5.5,
+            "width": 44,
+            "height": 44,
+            "right": 799,
+            "bottom": 49.5
+          },
+          {
+            "text": "Nouvelle organisation",
+            "x": 604.28125,
+            "y": 99,
+            "width": 172.71875,
+            "height": 44,
+            "right": 777,
+            "bottom": 143
+          }
+        ],
+        "bottomNav": []
+      },
+      "focused": {
+        "x": 172,
+        "y": 586.7890625,
+        "width": 476,
+        "height": 44,
+        "right": 648,
+        "bottom": 630.7890625
+      },
+      "dialog": {
+        "x": 150,
+        "y": 465.7109375,
+        "width": 520,
+        "height": 248.578125,
+        "right": 670,
+        "bottom": 714.2890625,
+        "scroll": 247,
+        "client": 247
+      },
+      "draftResizeRestored": true
+    }
+  ],
+  "errors": []
+}

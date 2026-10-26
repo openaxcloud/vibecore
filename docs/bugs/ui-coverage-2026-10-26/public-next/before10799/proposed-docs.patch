@@ -1,0 +1,77 @@
+--- a/app/components/docs/AgentWalkthrough.tsx
++++ b/app/components/docs/AgentWalkthrough.tsx
+@@ -469,13 +469,13 @@
+   const Icon = entry.icon;
+
+   return (
+-    <section id={`agent-${entry.id}`} className="bolt-feature-doc-section">
++    <section id={`agent-${entry.id}`} className="bolt-feature-doc-section" style={{ scrollMarginTop: '9rem' }}>
+       <div className="bolt-feature-doc-header">
+         <span className="bolt-feature-doc-icon" aria-hidden>
+           <Icon className="h-5 w-5" />
+         </span>
+         <div>
+-          <h3 className="text-xl font-semibold text-bolt-elements-textPrimary">{entry.title}</h3>
++          <h2 className="text-xl font-semibold text-bolt-elements-textPrimary">{entry.title}</h2>
+           <p className="text-sm text-bolt-elements-textSecondary">{entry.tagline}</p>
+         </div>
+       </div>
+@@ -506,7 +506,7 @@
+         <figure className="bolt-feature-doc-preview" aria-label={`${entry.title} ${copy.previewLabel}`}>
+           {entry.preview}
+           <figcaption className="bolt-feature-doc-caption">
+-            {copy.captionBeforePath} <code>{`/public/marketing/agent-${entry.id}.png`}</code> {copy.captionAfterPath}
++            {copy.illustrationCaption}
+           </figcaption>
+         </figure>
+       </div>
+@@ -523,7 +523,7 @@
+   return (
+     <div id="agent-walkthrough" className="bolt-feature-doc-walkthrough">
+       <header className="bolt-feature-doc-walkthrough-head">
+-        <h2 className="text-2xl font-semibold tracking-normal text-bolt-elements-textPrimary">{copy.title}</h2>
++        <h1 className="text-2xl font-semibold tracking-normal text-bolt-elements-textPrimary">{copy.title}</h1>
+         <p className="mt-2 max-w-2xl text-sm text-bolt-elements-textSecondary">{copy.description}</p>
+       </header>
+       <nav className="bolt-feature-doc-anchors" aria-label={copy.navigationLabel}>
+@@ -534,7 +534,7 @@
+         ))}
+       </nav>
+       <aside className="bolt-feature-doc-prereqs" aria-label={copy.prerequisitesLabel}>
+-        <h3 className="text-base font-semibold text-bolt-elements-textPrimary">{copy.beforeYouStart}</h3>
++        <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{copy.beforeYouStart}</h2>
+         <ul>
+           {copy.prerequisites.map(({ title, detail }) => (
+             <li key={title}>
+--- a/app/lib/i18n/catalogs/agent-walkthrough.ts
++++ b/app/lib/i18n/catalogs/agent-walkthrough.ts
+@@ -55,8 +55,7 @@
+     i18n: WalkthroughSectionCopy;
+   };
+   prerequisites: readonly { title: string; detail: string }[];
+-  captionBeforePath: string;
+-  captionAfterPath: string;
++  illustrationCaption: string;
+   previewLabel: string;
+   title: string;
+   description: string;
+@@ -267,8 +266,7 @@
+       detail: 'Successful patches apply automatically; failed validation remains reviewable.',
+     },
+   ],
+-  captionBeforePath: 'UI mockup — replace it with a real screenshot at',
+-  captionAfterPath: 'after capture.',
++  illustrationCaption: 'Illustration of how this feature works.',
+   previewLabel: 'preview',
+   title: 'Agent panel walkthrough',
+   description:
+@@ -486,8 +484,7 @@
+       detail: 'Les patchs valides s’appliquent automatiquement ; les échecs restent révisables.',
+     },
+   ],
+-  captionBeforePath: 'Maquette de l’interface — remplacez-la par une vraie capture dans',
+-  captionAfterPath: 'après la capture.',
++  illustrationCaption: 'Schéma explicatif du fonctionnement de cette fonctionnalité.',
+   previewLabel: 'aperçu',
+   title: 'Guide du panneau de l’agent',
+   description:

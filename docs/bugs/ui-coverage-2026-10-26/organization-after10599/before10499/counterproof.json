@@ -1,0 +1,34 @@
+[
+  {
+    "route": "organization-siem",
+    "change": "table scroll container position relative",
+    "before": 371,
+    "after": 320
+  },
+  {
+    "route": "organization-security",
+    "change": "description overflow-wrap anywhere",
+    "before": {
+      "client": 255,
+      "scroll": 2330
+    },
+    "after": {
+      "client": 255,
+      "scroll": 255
+    }
+  },
+  {
+    "route": "organization-switcher",
+    "change": "CTA minimum44px",
+    "before": 33,
+    "after": 44
+  },
+  {
+    "route": "organization-switcher",
+    "focusAfterEscape": {
+      "tag": "BODY",
+      "text": "Aller au contenuE-CodeEspace de travail SaaSN"
+    },
+    "expectedOpenerFocused": false
+  }
+]

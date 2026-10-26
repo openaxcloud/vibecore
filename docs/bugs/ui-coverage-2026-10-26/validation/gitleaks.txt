@@ -1,0 +1,2 @@
+12:41AM INF scan completed in 27.7s
+12:41AM INF no leaks found

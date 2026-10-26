@@ -1,0 +1,38 @@
+{
+  "synthetic": true,
+  "route": "/projects/synthetic-safearea-project/ide?lang=fr",
+  "blocked": [
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "GET https://stackblitz.com/headless?coep=credentialless&version=1.6.1-internal.1"
+  ],
+  "errors": [],
+  "bootShell": 1,
+  "loaded": {
+    "projectShell": 1,
+    "responsiveIde": 1,
+    "selectorMatchesHtml": true,
+    "selectorMatchesBody": true,
+    "rootOverflow": "hidden",
+    "bodyOverflow": "hidden",
+    "nav": {
+      "top": 318,
+      "bottom": 390,
+      "left": 0,
+      "right": 844,
+      "width": 844,
+      "height": 72
+    }
+  },
+  "scopedCounterproof": {
+    "changed": 1,
+    "rootOverflow": "hidden",
+    "bodyOverflow": "hidden",
+    "nav": {
+      "top": 318,
+      "bottom": 390,
+      "width": 844,
+      "height": 72
+    }
+  }
+}

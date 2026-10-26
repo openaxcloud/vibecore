@@ -1,0 +1,266 @@
+{
+  "stages": [
+    {
+      "name": "initial",
+      "field": {
+        "top": 460,
+        "bottom": 504
+      },
+      "active": "BODY",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 0,
+          "client": 390,
+          "scroll": 1444,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": "--vc-product-tour-height: 307px;",
+          "top": 0,
+          "client": 1444,
+          "scroll": 1444,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<aside class=\"vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimar"
+    },
+    {
+      "name": "initial-wheel",
+      "field": {
+        "top": 460,
+        "bottom": 504
+      },
+      "active": "BODY",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 0,
+          "client": 390,
+          "scroll": 1444,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": "--vc-product-tour-height: 307px;",
+          "top": 0,
+          "client": 1444,
+          "scroll": 1444,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<aside class=\"vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimar"
+    },
+    {
+      "name": "pageDown-heading",
+      "field": {
+        "top": -67,
+        "bottom": -23
+      },
+      "active": "SECTION",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 527,
+          "client": 390,
+          "scroll": 1444,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": "--vc-product-tour-height: 307px;",
+          "top": 0,
+          "client": 1444,
+          "scroll": 1444,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<aside class=\"vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimar"
+    },
+    {
+      "name": "after-focus-resize",
+      "field": {
+        "top": -22,
+        "bottom": 22
+      },
+      "active": "INPUT",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": null,
+          "top": 482,
+          "client": 390,
+          "scroll": 1444,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": "--vc-product-tour-height: 307px;",
+          "top": 0,
+          "client": 1444,
+          "scroll": 1444,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<aside class=\"vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimar"
+    },
+    {
+      "name": "counterproof-body-auto-wheel",
+      "field": {
+        "top": -22,
+        "bottom": 22
+      },
+      "active": "INPUT",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": "overflow-y: auto;",
+          "top": 482,
+          "client": 390,
+          "scroll": 1444,
+          "overflowX": "clip",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": "--vc-product-tour-height: 307px;",
+          "top": 0,
+          "client": 1444,
+          "scroll": 1444,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<aside class=\"vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimar"
+    },
+    {
+      "name": "counterproof-pageDown",
+      "field": {
+        "top": -22,
+        "bottom": 22
+      },
+      "active": "INPUT",
+      "scrolling": "HTML",
+      "roots": [
+        {
+          "tag": "HTML",
+          "class": "light",
+          "style": "color-scheme: light;",
+          "top": 0,
+          "client": 390,
+          "scroll": 390,
+          "overflowX": "clip",
+          "overflowY": "hidden"
+        },
+        {
+          "tag": "BODY",
+          "class": "h-full w-full",
+          "style": "overflow-y: auto;",
+          "top": 482,
+          "client": 390,
+          "scroll": 1444,
+          "overflowX": "clip",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "MAIN",
+          "class": "vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary",
+          "style": "--vc-product-tour-height: 307px;",
+          "top": 0,
+          "client": 1444,
+          "scroll": 1444,
+          "overflowX": "visible",
+          "overflowY": "visible"
+        }
+      ],
+      "hit": "<aside class=\"vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimar"
+    }
+  ],
+  "rules": [
+    {
+      "selector": "html:has(.vc-app-shell-grid), html:has(.vc-app-shell-grid) body",
+      "style": "overflow-x: clip;"
+    },
+    {
+      "selector": "html, body",
+      "style": "overflow: hidden;"
+    }
+  ]
+}

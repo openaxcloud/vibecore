@@ -1,0 +1,4 @@
+fr light PASS
+fr dark PASS
+en light PASS
+en dark PASS

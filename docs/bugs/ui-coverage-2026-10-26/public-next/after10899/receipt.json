@@ -1,0 +1,2971 @@
+{
+  "cases": [
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 112,
+          "right": 504,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 64
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 112
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 84
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 56
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 84
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 56
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Démarrez plus vite avec des modèles E-Code prêts pour la production",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 112,
+          "right": 504,
+          "text": "MobileApplication ExpoTendanceModèle de démarrage Expo pour créer des applications mobiles multiplateformesExpoOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webNext.js avec shadcn/uiTendanceModèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de stylesNext.jsReactshadcn/uiTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webRemix TypeScriptTendanceModèle Remix avec TypeScript pour créer des applications web complètesReactRemixTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webSaaS ReactTendanceModèle SaaS de production avec React, Vite, TypeScript, un tableau de bord authentifié et une structure prête au déploiement.ReactViteTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webTableau de bord Next.jsTendanceModèle d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels connectés à une base de données.Next.jsPrismaTailwind CSSOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webVite avec shadcn/uiTendanceModèle d’application complète Vite intégrant les composants shadcn/ui et leur système de stylesReactshadcn/uiTailwind CSSTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webReact + Vite + TypeScriptTendanceModèle React propulsé par Vite pour une expérience de développement rapideReactTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Applications webVanilla + ViteTendanceModèle Vite minimal pour les projets JavaScript sans frameworkViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webVite + TypeScriptTendanceModèle Vite avec une configuration TypeScript pour un développement fortement typéTypeScriptViteOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Applications webKit de démarrage AngularFacileModèle Angular moderne avec TypeScript et une configuration conforme aux bonnes pratiquesAngularTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "MobileKit de démarrage mobileIntermédiaireModèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.ExpoReactTypeScriptOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Applications webPage d’atterrissageFacileModèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.RemixTailwind CSSFramer MotionOfficielGratuitPrêt pour l’IDEUtiliser ce modèle"
+        }
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 64
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 112
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 84
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 56
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 84
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 56
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=fr",
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Guide du panneau de l’agent",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Guide du panneau de l’agent",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Avant de commencer",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ mentions de fichiers",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ commandes slash",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Checklist avant exécution",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Application automatique et récupération des patchs",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Branches de conversation",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Partage de conversations en lecture seule",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Présence en direct",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Interface française et anglaise",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité.",
+        "Schéma explicatif du fonctionnement de cette fonctionnalité."
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 112,
+          "right": 504,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 64
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 56
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 304,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 16,
+          "right": 374,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 24,
+          "right": 374,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 24,
+          "right": 374,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 394,
+          "right": 744,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/templates",
+      "url": "http://127.0.0.1:10899/templates?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Start faster with production-ready E-Code templates",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [],
+      "cards": [
+        {
+          "left": 112,
+          "right": 504,
+          "text": "MobileExpo AppTrendingExpo starter template for building cross-platform mobile appsExpoOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsNext dashboardTrendingFull-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.Next.jsPrismaTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Web AppsNext.js with shadcn/uiTrendingNext.js starter fullstack template integrated with shadcn/ui components and styling systemNext.jsReactshadcn/uiTailwind CSSOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Web AppsReact SaaSTrendingProduction SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.ReactViteTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsRemix TypeScriptTrendingRemix framework starter with TypeScript for full-stack web applicationsReactRemixTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Web AppsVite with shadcn/uiTrendingVite starter fullstack template integrated with shadcn/ui components and styling systemReactshadcn/uiTailwind CSSTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Web AppsReact + Vite + typescriptTrendingReact starter template powered by Vite for fast development experienceReactTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsVanilla + ViteTrendingMinimal Vite starter template for vanilla JavaScript projectsViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "Web AppsVite + TypeScriptTrendingVite starter template with TypeScript configuration for type-safe developmentTypeScriptViteOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 112,
+          "right": 504,
+          "text": "Web AppsAngular StarterEasyA modern Angular starter template with TypeScript support and best practices configurationAngularTypeScriptOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 524,
+          "right": 916,
+          "text": "Web AppsLanding pageEasyResponsive marketing starter for conversion pages, polished content sections and production-ready routing.RemixTailwind CSSFramer MotionOfficialFreeIDE-readyUse template"
+        },
+        {
+          "left": 936,
+          "right": 1328,
+          "text": "MobileMobile starterMediumMobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.ExpoReactTypeScriptOfficialFreeIDE-readyUse template"
+        }
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 320,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 64
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 56
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 390,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 56
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 768,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    },
+    {
+      "route": "/docs",
+      "url": "http://127.0.0.1:10899/docs?lang=en",
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "anonymous": true,
+      "initialCookies": [],
+      "h1": 1,
+      "heading": "Agent panel walkthrough",
+      "docWidth": 1440,
+      "overflow": [],
+      "anchors": [
+        "#agent-mentions",
+        "#agent-slash",
+        "#agent-plan",
+        "#agent-patch-review",
+        "#agent-branches",
+        "#agent-share",
+        "#agent-presence",
+        "#agent-i18n"
+      ],
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Agent panel walkthrough",
+          "size": "24px",
+          "height": 32
+        },
+        {
+          "tag": "H2",
+          "text": "Before you start",
+          "size": "16px",
+          "height": 24
+        },
+        {
+          "tag": "H2",
+          "text": "@ file mentions",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "/ slash commands",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Plan-first checklist",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Auto-apply and patch recovery",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Conversation branches",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Share read-only conversations",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "Live presence",
+          "size": "20px",
+          "height": 28
+        },
+        {
+          "tag": "H2",
+          "text": "French and English UI",
+          "size": "20px",
+          "height": 28
+        }
+      ],
+      "captions": [
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works.",
+        "Illustration of how this feature works."
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "route": "/templates",
+      "lang": "fr",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10899/templates?lang=fr&tag=typescript",
+      "afterBack": "http://127.0.0.1:10899/templates?lang=fr&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10899/templates?lang=fr&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10899/templates?lang=fr&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "fr",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions",
+      "afterBack": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 144.125,
+          "headingTop": 169.125,
+          "headerBottom": 111
+        },
+        "coldHash": {
+          "top": 144.125,
+          "headingTop": 169.125,
+          "headerBottom": 111,
+          "scrollY": 1169
+        },
+        "url": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions"
+      }
+    },
+    {
+      "route": "/templates",
+      "lang": "fr",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10899/templates?lang=fr&tag=typescript",
+      "afterBack": "http://127.0.0.1:10899/templates?lang=fr&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10899/templates?lang=fr&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10899/templates?lang=fr&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "fr",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions",
+      "afterBack": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 144.125,
+          "headingTop": 169.125,
+          "headerBottom": 111
+        },
+        "coldHash": {
+          "top": 144.125,
+          "headingTop": 169.125,
+          "headerBottom": 111,
+          "scrollY": 1169
+        },
+        "url": "http://127.0.0.1:10899/docs?lang=fr#agent-mentions"
+      }
+    },
+    {
+      "route": "/templates",
+      "lang": "en",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10899/templates?lang=en&tag=typescript",
+      "afterBack": "http://127.0.0.1:10899/templates?lang=en&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10899/templates?lang=en&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10899/templates?lang=en&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "en",
+      "theme": "light",
+      "beforeBack": "http://127.0.0.1:10899/docs?lang=en#agent-mentions",
+      "afterBack": "http://127.0.0.1:10899/docs?lang=en#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 143.5,
+          "headingTop": 168.5,
+          "headerBottom": 111
+        },
+        "coldHash": {
+          "top": 143.5,
+          "headingTop": 168.5,
+          "headerBottom": 111,
+          "scrollY": 1070
+        },
+        "url": "http://127.0.0.1:10899/docs?lang=en#agent-mentions"
+      }
+    },
+    {
+      "route": "/templates",
+      "lang": "en",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10899/templates?lang=en&tag=typescript",
+      "afterBack": "http://127.0.0.1:10899/templates?lang=en&tag=typescript",
+      "details": {
+        "noMatchURL": "http://127.0.0.1:10899/templates?lang=en&q=zzzz-no-synthetic-template-match",
+        "filterURL": "http://127.0.0.1:10899/templates?lang=en&tag=typescript",
+        "filterName": "TypeScript",
+        "focusAfterTab": "React"
+      }
+    },
+    {
+      "route": "/docs",
+      "lang": "en",
+      "theme": "dark",
+      "beforeBack": "http://127.0.0.1:10899/docs?lang=en#agent-mentions",
+      "afterBack": "http://127.0.0.1:10899/docs?lang=en#agent-mentions",
+      "details": {
+        "anchorCount": 8,
+        "anchor": {
+          "top": 143.5,
+          "headingTop": 168.5,
+          "headerBottom": 111
+        },
+        "coldHash": {
+          "top": 143.5,
+          "headingTop": 168.5,
+          "headerBottom": 111,
+          "scrollY": 1070
+        },
+        "url": "http://127.0.0.1:10899/docs?lang=en#agent-mentions"
+      }
+    }
+  ],
+  "errors": [],
+  "mutations": [],
+  "dataRequests": [
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10899/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/docs.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10899/templates.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/templates.data?lang=fr&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/docs.data?lang=fr",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10899/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/docs.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en&q=zzzz-no-synthetic-template-match",
+    "http://127.0.0.1:10899/templates.data?lang=en",
+    "http://127.0.0.1:10899/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10899/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/templates.data?lang=en&tag=typescript",
+    "http://127.0.0.1:10899/_root.data",
+    "http://127.0.0.1:10899/docs.data?lang=en"
+  ]
+}
