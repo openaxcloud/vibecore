@@ -1,0 +1,1106 @@
+{
+  "rows": [
+    {
+      "width": 2048,
+      "lang": "fr",
+      "zoom": false,
+      "tab": "usage",
+      "rect": {
+        "x": 552,
+        "y": 125,
+        "width": 1196.53125,
+        "height": 694.328125,
+        "top": 125,
+        "right": 1748.53125,
+        "bottom": 819.328125,
+        "left": 552
+      },
+      "scrollWidth": 1197,
+      "clientWidth": 1197,
+      "inner": 2048,
+      "outer": 2048,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 848,
+            "y": 293.546875,
+            "width": 900.53125,
+            "height": 450.578125,
+            "top": 293.546875,
+            "right": 1748.53125,
+            "bottom": 744.125,
+            "left": 848
+          },
+          "columns": "442.266px 442.266px"
+        }
+      ],
+      "table": [
+        {
+          "width": 406,
+          "scroll": 406,
+          "tabIndex": 0
+        }
+      ],
+      "fields": [],
+      "tableFocused": true
+    },
+    {
+      "width": 2048,
+      "lang": "fr",
+      "zoom": false,
+      "tab": "memory",
+      "rect": {
+        "x": 552,
+        "y": 125,
+        "width": 1196.53125,
+        "height": 694.328125,
+        "top": 125,
+        "right": 1748.53125,
+        "bottom": 819.328125,
+        "left": 552
+      },
+      "scrollWidth": 1197,
+      "clientWidth": 1197,
+      "inner": 2048,
+      "outer": 2048,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 848,
+            "y": 293.546875,
+            "width": 900.53125,
+            "height": 460.109375,
+            "top": 293.546875,
+            "right": 1748.53125,
+            "bottom": 753.65625,
+            "left": 848
+          },
+          "columns": "442.266px 442.266px"
+        }
+      ],
+      "table": [],
+      "fields": [
+        {
+          "rect": {
+            "x": 876,
+            "y": 384.375,
+            "width": 18,
+            "height": 38,
+            "top": 384.375,
+            "right": 894,
+            "bottom": 422.375,
+            "left": 876
+          },
+          "type": "INPUT"
+        },
+        {
+          "rect": {
+            "x": 865,
+            "y": 505.625,
+            "width": 408.265625,
+            "height": 112,
+            "top": 505.625,
+            "right": 1273.265625,
+            "bottom": 617.625,
+            "left": 865
+          },
+          "type": "TEXTAREA"
+        },
+        {
+          "rect": {
+            "x": 865,
+            "y": 652.65625,
+            "width": 199.125,
+            "height": 38,
+            "top": 652.65625,
+            "right": 1064.125,
+            "bottom": 690.65625,
+            "left": 865
+          },
+          "type": "SELECT"
+        },
+        {
+          "rect": {
+            "x": 1074.125,
+            "y": 652.65625,
+            "width": 199.140625,
+            "height": 38,
+            "top": 652.65625,
+            "right": 1273.265625,
+            "bottom": 690.65625,
+            "left": 1074.125
+          },
+          "type": "INPUT"
+        }
+      ],
+      "draftPreserved": true
+    },
+    {
+      "width": 1536,
+      "lang": "fr",
+      "zoom": false,
+      "tab": "usage",
+      "rect": {
+        "x": 423.046875,
+        "y": 125,
+        "width": 815.40625,
+        "height": 908.5625,
+        "top": 125,
+        "right": 1238.453125,
+        "bottom": 1033.5625,
+        "left": 423.046875
+      },
+      "scrollWidth": 815,
+      "clientWidth": 815,
+      "inner": 1536,
+      "outer": 1536,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 423.046875,
+            "y": 582.984375,
+            "width": 815.40625,
+            "height": 450.578125,
+            "top": 582.984375,
+            "right": 1238.453125,
+            "bottom": 1033.5625,
+            "left": 423.046875
+          },
+          "columns": "399.703px 399.703px"
+        }
+      ],
+      "table": [
+        {
+          "width": 364,
+          "scroll": 400,
+          "tabIndex": 0
+        }
+      ],
+      "fields": [],
+      "tableFocused": true
+    },
+    {
+      "width": 1536,
+      "lang": "fr",
+      "zoom": false,
+      "tab": "memory",
+      "rect": {
+        "x": 423.046875,
+        "y": 125,
+        "width": 815.40625,
+        "height": 989.125,
+        "top": 125,
+        "right": 1238.453125,
+        "bottom": 1114.125,
+        "left": 423.046875
+      },
+      "scrollWidth": 815,
+      "clientWidth": 815,
+      "inner": 1536,
+      "outer": 1536,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 423.046875,
+            "y": 582.984375,
+            "width": 815.40625,
+            "height": 531.140625,
+            "top": 582.984375,
+            "right": 1238.453125,
+            "bottom": 1114.125,
+            "left": 423.046875
+          },
+          "columns": "399.703px 399.703px"
+        }
+      ],
+      "table": [],
+      "fields": [
+        {
+          "rect": {
+            "x": 451.046875,
+            "y": 673.8125,
+            "width": 18,
+            "height": 38,
+            "top": 673.8125,
+            "right": 469.046875,
+            "bottom": 711.8125,
+            "left": 451.046875
+          },
+          "type": "INPUT"
+        },
+        {
+          "rect": {
+            "x": 440.046875,
+            "y": 795.0625,
+            "width": 365.703125,
+            "height": 112,
+            "top": 795.0625,
+            "right": 805.75,
+            "bottom": 907.0625,
+            "left": 440.046875
+          },
+          "type": "TEXTAREA"
+        },
+        {
+          "rect": {
+            "x": 440.046875,
+            "y": 942.09375,
+            "width": 365.703125,
+            "height": 38,
+            "top": 942.09375,
+            "right": 805.75,
+            "bottom": 980.09375,
+            "left": 440.046875
+          },
+          "type": "SELECT"
+        },
+        {
+          "rect": {
+            "x": 440.046875,
+            "y": 1013.125,
+            "width": 365.703125,
+            "height": 38,
+            "top": 1013.125,
+            "right": 805.75,
+            "bottom": 1051.125,
+            "left": 440.046875
+          },
+          "type": "INPUT"
+        }
+      ],
+      "draftPreserved": true
+    },
+    {
+      "width": 1280,
+      "lang": "fr",
+      "zoom": false,
+      "tab": "usage",
+      "rect": {
+        "x": 410,
+        "y": 125,
+        "width": 587.65625,
+        "height": 1495.109375,
+        "top": 125,
+        "right": 997.65625,
+        "bottom": 1620.109375,
+        "left": 410
+      },
+      "scrollWidth": 588,
+      "clientWidth": 588,
+      "inner": 1280,
+      "outer": 1280,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 410,
+            "y": 815.203125,
+            "width": 587.65625,
+            "height": 804.90625,
+            "top": 815.203125,
+            "right": 997.65625,
+            "bottom": 1620.109375,
+            "left": 410
+          },
+          "columns": "587.656px"
+        }
+      ],
+      "table": [
+        {
+          "width": 552,
+          "scroll": 552,
+          "tabIndex": 0
+        }
+      ],
+      "fields": [],
+      "tableFocused": true
+    },
+    {
+      "width": 1280,
+      "lang": "fr",
+      "zoom": false,
+      "tab": "memory",
+      "rect": {
+        "x": 410,
+        "y": 4,
+        "width": 587.65625,
+        "height": 1328.1875,
+        "top": 4,
+        "right": 997.65625,
+        "bottom": 1332.1875,
+        "left": 410
+      },
+      "scrollWidth": 588,
+      "clientWidth": 588,
+      "inner": 1280,
+      "outer": 1280,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 410,
+            "y": 694.203125,
+            "width": 587.65625,
+            "height": 637.984375,
+            "top": 694.203125,
+            "right": 997.65625,
+            "bottom": 1332.1875,
+            "left": 410
+          },
+          "columns": "587.656px"
+        }
+      ],
+      "table": [],
+      "fields": [
+        {
+          "rect": {
+            "x": 438,
+            "y": 785.03125,
+            "width": 18,
+            "height": 38,
+            "top": 785.03125,
+            "right": 456,
+            "bottom": 823.03125,
+            "left": 438
+          },
+          "type": "INPUT"
+        },
+        {
+          "rect": {
+            "x": 427,
+            "y": 906.28125,
+            "width": 553.65625,
+            "height": 112,
+            "top": 906.28125,
+            "right": 980.65625,
+            "bottom": 1018.28125,
+            "left": 427
+          },
+          "type": "TEXTAREA"
+        },
+        {
+          "rect": {
+            "x": 427,
+            "y": 1053.3125,
+            "width": 271.828125,
+            "height": 38,
+            "top": 1053.3125,
+            "right": 698.828125,
+            "bottom": 1091.3125,
+            "left": 427
+          },
+          "type": "SELECT"
+        },
+        {
+          "rect": {
+            "x": 708.828125,
+            "y": 1053.3125,
+            "width": 271.828125,
+            "height": 38,
+            "top": 1053.3125,
+            "right": 980.65625,
+            "bottom": 1091.3125,
+            "left": 708.828125
+          },
+          "type": "INPUT"
+        }
+      ],
+      "draftPreserved": true
+    },
+    {
+      "width": 2048,
+      "lang": "en",
+      "zoom": false,
+      "tab": "usage",
+      "rect": {
+        "x": 552,
+        "y": 125,
+        "width": 1196.53125,
+        "height": 680.140625,
+        "top": 125,
+        "right": 1748.53125,
+        "bottom": 805.140625,
+        "left": 552
+      },
+      "scrollWidth": 1197,
+      "clientWidth": 1197,
+      "inner": 2048,
+      "outer": 2048,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 848,
+            "y": 293.546875,
+            "width": 900.53125,
+            "height": 436.390625,
+            "top": 293.546875,
+            "right": 1748.53125,
+            "bottom": 729.9375,
+            "left": 848
+          },
+          "columns": "442.266px 442.266px"
+        }
+      ],
+      "table": [
+        {
+          "width": 406,
+          "scroll": 406,
+          "tabIndex": 0
+        }
+      ],
+      "fields": [],
+      "tableFocused": true
+    },
+    {
+      "width": 2048,
+      "lang": "en",
+      "zoom": false,
+      "tab": "memory",
+      "rect": {
+        "x": 552,
+        "y": 125,
+        "width": 1196.53125,
+        "height": 680.140625,
+        "top": 125,
+        "right": 1748.53125,
+        "bottom": 805.140625,
+        "left": 552
+      },
+      "scrollWidth": 1197,
+      "clientWidth": 1197,
+      "inner": 2048,
+      "outer": 2048,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 848,
+            "y": 293.546875,
+            "width": 900.53125,
+            "height": 460.109375,
+            "top": 293.546875,
+            "right": 1748.53125,
+            "bottom": 753.65625,
+            "left": 848
+          },
+          "columns": "442.266px 442.266px"
+        }
+      ],
+      "table": [],
+      "fields": [
+        {
+          "rect": {
+            "x": 876,
+            "y": 384.375,
+            "width": 18,
+            "height": 38,
+            "top": 384.375,
+            "right": 894,
+            "bottom": 422.375,
+            "left": 876
+          },
+          "type": "INPUT"
+        },
+        {
+          "rect": {
+            "x": 865,
+            "y": 505.625,
+            "width": 408.265625,
+            "height": 112,
+            "top": 505.625,
+            "right": 1273.265625,
+            "bottom": 617.625,
+            "left": 865
+          },
+          "type": "TEXTAREA"
+        },
+        {
+          "rect": {
+            "x": 865,
+            "y": 652.65625,
+            "width": 199.125,
+            "height": 38,
+            "top": 652.65625,
+            "right": 1064.125,
+            "bottom": 690.65625,
+            "left": 865
+          },
+          "type": "SELECT"
+        },
+        {
+          "rect": {
+            "x": 1074.125,
+            "y": 652.65625,
+            "width": 199.140625,
+            "height": 38,
+            "top": 652.65625,
+            "right": 1273.265625,
+            "bottom": 690.65625,
+            "left": 1074.125
+          },
+          "type": "INPUT"
+        }
+      ],
+      "draftPreserved": true
+    },
+    {
+      "width": 1536,
+      "lang": "en",
+      "zoom": false,
+      "tab": "usage",
+      "rect": {
+        "x": 423.046875,
+        "y": 125,
+        "width": 815.40625,
+        "height": 877.34375,
+        "top": 125,
+        "right": 1238.453125,
+        "bottom": 1002.34375,
+        "left": 423.046875
+      },
+      "scrollWidth": 815,
+      "clientWidth": 815,
+      "inner": 1536,
+      "outer": 1536,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 423.046875,
+            "y": 551.765625,
+            "width": 815.40625,
+            "height": 450.578125,
+            "top": 551.765625,
+            "right": 1238.453125,
+            "bottom": 1002.34375,
+            "left": 423.046875
+          },
+          "columns": "399.703px 399.703px"
+        }
+      ],
+      "table": [
+        {
+          "width": 364,
+          "scroll": 400,
+          "tabIndex": 0
+        }
+      ],
+      "fields": [],
+      "tableFocused": true
+    },
+    {
+      "width": 1536,
+      "lang": "en",
+      "zoom": false,
+      "tab": "memory",
+      "rect": {
+        "x": 423.046875,
+        "y": 125,
+        "width": 815.40625,
+        "height": 957.90625,
+        "top": 125,
+        "right": 1238.453125,
+        "bottom": 1082.90625,
+        "left": 423.046875
+      },
+      "scrollWidth": 815,
+      "clientWidth": 815,
+      "inner": 1536,
+      "outer": 1536,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 423.046875,
+            "y": 551.765625,
+            "width": 815.40625,
+            "height": 531.140625,
+            "top": 551.765625,
+            "right": 1238.453125,
+            "bottom": 1082.90625,
+            "left": 423.046875
+          },
+          "columns": "399.703px 399.703px"
+        }
+      ],
+      "table": [],
+      "fields": [
+        {
+          "rect": {
+            "x": 451.046875,
+            "y": 642.59375,
+            "width": 18,
+            "height": 38,
+            "top": 642.59375,
+            "right": 469.046875,
+            "bottom": 680.59375,
+            "left": 451.046875
+          },
+          "type": "INPUT"
+        },
+        {
+          "rect": {
+            "x": 440.046875,
+            "y": 763.84375,
+            "width": 365.703125,
+            "height": 112,
+            "top": 763.84375,
+            "right": 805.75,
+            "bottom": 875.84375,
+            "left": 440.046875
+          },
+          "type": "TEXTAREA"
+        },
+        {
+          "rect": {
+            "x": 440.046875,
+            "y": 910.875,
+            "width": 365.703125,
+            "height": 38,
+            "top": 910.875,
+            "right": 805.75,
+            "bottom": 948.875,
+            "left": 440.046875
+          },
+          "type": "SELECT"
+        },
+        {
+          "rect": {
+            "x": 440.046875,
+            "y": 981.90625,
+            "width": 365.703125,
+            "height": 38,
+            "top": 981.90625,
+            "right": 805.75,
+            "bottom": 1019.90625,
+            "left": 440.046875
+          },
+          "type": "INPUT"
+        }
+      ],
+      "draftPreserved": true
+    },
+    {
+      "width": 1280,
+      "lang": "en",
+      "zoom": false,
+      "tab": "usage",
+      "rect": {
+        "x": 410,
+        "y": 125,
+        "width": 587.65625,
+        "height": 1480.921875,
+        "top": 125,
+        "right": 997.65625,
+        "bottom": 1605.921875,
+        "left": 410
+      },
+      "scrollWidth": 588,
+      "clientWidth": 588,
+      "inner": 1280,
+      "outer": 1280,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 410,
+            "y": 801.015625,
+            "width": 587.65625,
+            "height": 804.90625,
+            "top": 801.015625,
+            "right": 997.65625,
+            "bottom": 1605.921875,
+            "left": 410
+          },
+          "columns": "587.656px"
+        }
+      ],
+      "table": [
+        {
+          "width": 552,
+          "scroll": 552,
+          "tabIndex": 0
+        }
+      ],
+      "fields": [],
+      "tableFocused": true
+    },
+    {
+      "width": 1280,
+      "lang": "en",
+      "zoom": false,
+      "tab": "memory",
+      "rect": {
+        "x": 410,
+        "y": 19,
+        "width": 587.65625,
+        "height": 1314,
+        "top": 19,
+        "right": 997.65625,
+        "bottom": 1333,
+        "left": 410
+      },
+      "scrollWidth": 588,
+      "clientWidth": 588,
+      "inner": 1280,
+      "outer": 1280,
+      "dpr": 1,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 410,
+            "y": 695.015625,
+            "width": 587.65625,
+            "height": 637.984375,
+            "top": 695.015625,
+            "right": 997.65625,
+            "bottom": 1333,
+            "left": 410
+          },
+          "columns": "587.656px"
+        }
+      ],
+      "table": [],
+      "fields": [
+        {
+          "rect": {
+            "x": 438,
+            "y": 785.84375,
+            "width": 18,
+            "height": 38,
+            "top": 785.84375,
+            "right": 456,
+            "bottom": 823.84375,
+            "left": 438
+          },
+          "type": "INPUT"
+        },
+        {
+          "rect": {
+            "x": 427,
+            "y": 907.09375,
+            "width": 553.65625,
+            "height": 112,
+            "top": 907.09375,
+            "right": 980.65625,
+            "bottom": 1019.09375,
+            "left": 427
+          },
+          "type": "TEXTAREA"
+        },
+        {
+          "rect": {
+            "x": 427,
+            "y": 1054.125,
+            "width": 271.828125,
+            "height": 38,
+            "top": 1054.125,
+            "right": 698.828125,
+            "bottom": 1092.125,
+            "left": 427
+          },
+          "type": "SELECT"
+        },
+        {
+          "rect": {
+            "x": 708.828125,
+            "y": 1054.125,
+            "width": 271.828125,
+            "height": 38,
+            "top": 1054.125,
+            "right": 980.65625,
+            "bottom": 1092.125,
+            "left": 708.828125
+          },
+          "type": "INPUT"
+        }
+      ],
+      "draftPreserved": true
+    },
+    {
+      "width": 2048,
+      "lang": "fr",
+      "zoom": true,
+      "tab": "usage",
+      "rect": {
+        "x": 30.71875,
+        "y": 72.5703125,
+        "width": 962.5625,
+        "height": 1069.4375,
+        "top": 72.5703125,
+        "right": 993.28125,
+        "bottom": 1142.0078125,
+        "left": 30.71875
+      },
+      "scrollWidth": 963,
+      "clientWidth": 963,
+      "inner": 1024,
+      "outer": 2048,
+      "dpr": 2,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 30.71875,
+            "y": 367.890625,
+            "width": 962.5625,
+            "height": 774.1171875,
+            "top": 367.890625,
+            "right": 993.28125,
+            "bottom": 1142.0078125,
+            "left": 30.71875
+          },
+          "columns": "962.562px"
+        }
+      ],
+      "table": [
+        {
+          "width": 923,
+          "scroll": 923,
+          "tabIndex": 0
+        }
+      ],
+      "fields": [],
+      "tableFocused": true
+    },
+    {
+      "width": 2048,
+      "lang": "fr",
+      "zoom": true,
+      "tab": "memory",
+      "rect": {
+        "x": 30.71875,
+        "y": 71.0703125,
+        "width": 962.5625,
+        "height": 1032.421875,
+        "top": 71.0703125,
+        "right": 993.28125,
+        "bottom": 1103.4921875,
+        "left": 30.71875
+      },
+      "scrollWidth": 963,
+      "clientWidth": 963,
+      "inner": 1024,
+      "outer": 2048,
+      "dpr": 2,
+      "scale": 1,
+      "className": "bolt-project-settings-hub _panel_btgap_1",
+      "grids": [
+        {
+          "rect": {
+            "x": 30.71875,
+            "y": 366.390625,
+            "width": 962.5625,
+            "height": 737.1015625,
+            "top": 366.390625,
+            "right": 993.28125,
+            "bottom": 1103.4921875,
+            "left": 30.71875
+          },
+          "columns": "962.562px"
+        }
+      ],
+      "table": [],
+      "fields": [
+        {
+          "rect": {
+            "x": 60.71875,
+            "y": 445.625,
+            "width": 18,
+            "height": 38,
+            "top": 445.625,
+            "right": 78.71875,
+            "bottom": 483.625,
+            "left": 60.71875
+          },
+          "type": "INPUT"
+        },
+        {
+          "rect": {
+            "x": 49.71875,
+            "y": 574.5703125,
+            "width": 924.5625,
+            "height": 135.59375,
+            "top": 574.5703125,
+            "right": 974.28125,
+            "bottom": 710.1640625,
+            "left": 49.71875
+          },
+          "type": "TEXTAREA"
+        },
+        {
+          "rect": {
+            "x": 49.71875,
+            "y": 748.0390625,
+            "width": 457.28125,
+            "height": 38,
+            "top": 748.0390625,
+            "right": 507,
+            "bottom": 786.0390625,
+            "left": 49.71875
+          },
+          "type": "SELECT"
+        },
+        {
+          "rect": {
+            "x": 517,
+            "y": 748.0390625,
+            "width": 457.28125,
+            "height": 38,
+            "top": 748.0390625,
+            "right": 974.28125,
+            "bottom": 786.0390625,
+            "left": 517
+          },
+          "type": "INPUT"
+        }
+      ],
+      "draftPreserved": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-safearea-project/ide-state"
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "rows": [
+    {
+      "width": 2048,
+      "initialFocus": true,
+      "escapeCloseAndFocus": true,
+      "nestedEscapeKeepsMenu": true,
+      "parentEscapeRestoresFocus": true,
+      "geometry": {
+        "rect": {
+          "x": 234,
+          "y": 774.5,
+          "width": 260,
+          "height": 228,
+          "top": 774.5,
+          "right": 494,
+          "bottom": 1002.5,
+          "left": 234
+        },
+        "inner": 2048,
+        "buttons": [
+          {
+            "text": "Design palette",
+            "hit": true
+          },
+          {
+            "text": "MCP tools",
+            "hit": true
+          },
+          {
+            "text": "Fetch URL",
+            "hit": true
+          },
+          {
+            "text": "Open Supabase",
+            "hit": true
+          },
+          {
+            "text": "Enhance prompt",
+            "hit": true
+          },
+          {
+            "text": "Show agent settings",
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "width": 1536,
+      "initialFocus": true,
+      "escapeCloseAndFocus": true,
+      "nestedEscapeKeepsMenu": true,
+      "parentEscapeRestoresFocus": true,
+      "geometry": {
+        "rect": {
+          "x": 105.046875,
+          "y": 774.5,
+          "width": 260,
+          "height": 228,
+          "top": 774.5,
+          "right": 365.046875,
+          "bottom": 1002.5,
+          "left": 105.046875
+        },
+        "inner": 1536,
+        "buttons": [
+          {
+            "text": "Design palette",
+            "hit": true
+          },
+          {
+            "text": "MCP tools",
+            "hit": true
+          },
+          {
+            "text": "Fetch URL",
+            "hit": true
+          },
+          {
+            "text": "Open Supabase",
+            "hit": true
+          },
+          {
+            "text": "Enhance prompt",
+            "hit": true
+          },
+          {
+            "text": "Show agent settings",
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "width": 1280,
+      "initialFocus": true,
+      "escapeCloseAndFocus": true,
+      "nestedEscapeKeepsMenu": true,
+      "parentEscapeRestoresFocus": true,
+      "geometry": {
+        "rect": {
+          "x": 92,
+          "y": 774.5,
+          "width": 260,
+          "height": 228,
+          "top": 774.5,
+          "right": 352,
+          "bottom": 1002.5,
+          "left": 92
+        },
+        "inner": 1280,
+        "buttons": [
+          {
+            "text": "Design palette",
+            "hit": true
+          },
+          {
+            "text": "MCP tools",
+            "hit": true
+          },
+          {
+            "text": "Fetch URL",
+            "hit": true
+          },
+          {
+            "text": "Open Supabase",
+            "hit": true
+          },
+          {
+            "text": "Enhance prompt",
+            "hit": true
+          },
+          {
+            "text": "Show agent settings",
+            "hit": true
+          }
+        ]
+      }
+    }
+  ],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "POST",
+      "path": "/api/mcp-update-config"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "POST",
+      "path": "/api/mcp-update-config"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "POST",
+      "path": "/api/mcp-update-config"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    },
+    {
+      "method": "GET",
+      "path": "/supabase"
+    }
+  ],
+  "errors": []
+}

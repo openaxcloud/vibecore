@@ -26,11 +26,13 @@ Validation intégrée : 60 tests dans 12 fichiers ; build client/SSR et typage w
 ## Incidents qui restent ouverts
 
 - Les cinq captures Library sont reconnues, mais leur téléchargement a échoué. Cette session n'a inspecté que ses propres captures synthétiques ; les descriptions utilisateur viennent du parent.
-- Le titre natif peut encore être réinjecté par `BaseChat.syncIconTitles` pendant une mutation DOM. Le correctif évite la duplication des aides personnalisées ; il ne prétend pas régler entièrement le titre natif. BaseChat et FileTree ont des travaux concurrents réservés.
-- Settings Usage/Memory : patch isolé préparé et revu, mais non appliqué à BaseChat dans ce lot. Il ne change que des classes locales conditionnelles et la navigation clavier du tableau ; publication à coordonner avec #808. Les autres onglets Project/Account restent hors correction.
+- La réinjection du titre natif a été corrigée après intégration de main #808 pour les contrôles ayant un `aria-label` indépendant ; les titres servant seuls de nom accessible sont conservés. Voir le rapport d’intégration ci-dessous. FileTree reste inchangé.
+- Settings Usage/Memory : correction appliquée après intégration de #808, avec classes locales conditionnelles et défilement clavier du tableau. Les autres onglets Project/Account restent hors correction.
 - Les trois reprises de la CI de PR #807 et la chaîne de capture/stockage des vignettes restent des incidents distincts. La CI de main #807 verte ne les clôt pas.
 - Pas de Safari physique, lecteur d'écran, clavier virtuel matériel, ni recette authentifiée des projets clients. Les contrôles de menu desktop mesurent 34 px ; aucune revendication de cible 44 px sur tout le menu desktop.
 
 Les rapports de sous-composants gardent leur chronologie : le rapport menu mentionne le toast encore ouvert au moment de sa rédaction ; le dossier `toast` contient sa correction ultérieure. Les chemins `/tmp` cités décrivent les preuves locales, et ne sont pas des fichiers produit.
 
 Cette archive est une sélection de reçus et de captures avant/après, **pas un harness navigateur complet exécutable**. Les scripts `prepare.cjs`, `check.cjs`, `actions.cjs`, les traces intermédiaires et les journaux cités par les rapports de sous-composants restent dans leurs dossiers `/tmp/ui-agent-panel-width`, `/tmp/ui-file-action-layout` et `/tmp/ui-toast-panel-after`. Les tests unitaires produit sont bien versionnés avec ce lot.
+
+[État après intégration de main #808, validations et correction Escape](integration-main-70f40edb/README.md). Cette section actualise les propositions initiales ; aucun raccordement #812 n’est inclus.

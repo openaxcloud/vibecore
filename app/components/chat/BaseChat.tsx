@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
 import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
 import { useSecurityScanSession } from './SecurityScanSession';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
@@ -5702,6 +5703,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         );
 
         tooltipTargets.forEach((target) => {
+          if (
+            target.getAttribute('data-vc-radix-tooltip') === 'true' ||
+            target.getAttribute('data-vc-tooltip-hidden') === 'true'
+          ) {
+            // Keep a title-only accessible name until the control provides its own label.
+            if (!target.getAttribute('aria-label')?.trim()) {
+              return;
+            }
+
+            target.removeAttribute('title');
+            target.removeAttribute('data-vc-auto-title');
+            target.removeAttribute('data-vc-tooltip');
+            delete target.dataset.vcTitleStash;
+
+            return;
+          }
+
           const label = (target.getAttribute('aria-label') || target.getAttribute('title') || '').trim();
 
           if (!label) {
@@ -5757,7 +5775,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (ideRoot) {
         observer.observe(ideRoot, {
           attributes: true,
-          attributeFilter: ['aria-label'],
+          attributeFilter: ['aria-label', 'data-vc-radix-tooltip', 'data-vc-tooltip-hidden'],
           childList: true,
           subtree: true,
         });
@@ -16403,7 +16421,10 @@ function ProjectSettingsPanel({
   }
 
   return (
-    <div className="bolt-project-settings-hub" data-testid="settings-hub-panel">
+    <div
+      className={`bolt-project-settings-hub ${settingsTab === 'usage' || settingsTab === 'memory' ? settingsPanelStyles.panel : ''}`}
+      data-testid="settings-hub-panel"
+    >
       <header>
         <div>
           <h3>{t('chat.copy.accountSettings_e3270761')}</h3>
@@ -16717,7 +16738,7 @@ function ProjectSettingsPanel({
           )}
 
           {settingsTab === 'usage' && (
-            <div className="bolt-project-settings-grid">
+            <div className={`bolt-project-settings-grid ${settingsPanelStyles.responsiveGrid}`}>
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
                   <h4>{t('chat.copy.billingPlan_c8f1555a')}</h4>
@@ -16743,7 +16764,8 @@ function ProjectSettingsPanel({
                 />
                 {limitEntries.length ? (
                   <div
-                    className="bolt-project-usage-limits"
+                    className={`bolt-project-usage-limits ${settingsPanelStyles.limits}`}
+                    tabIndex={0}
                     role="table"
                     aria-label={t('chat.copy.billingLimits_44423a56')}
                   >
@@ -16982,7 +17004,7 @@ function ProjectSettingsPanel({
           )}
 
           {settingsTab === 'memory' && (
-            <div className="bolt-project-settings-grid">
+            <div className={`bolt-project-settings-grid ${settingsPanelStyles.responsiveGrid}`}>
               <form onSubmit={saveMemory} className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
                   <h4>{t('chat.copy.persistentAgentMemory_46293406')}</h4>
