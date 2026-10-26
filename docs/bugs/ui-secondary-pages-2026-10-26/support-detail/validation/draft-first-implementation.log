@@ -1,0 +1,208 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx (11 tests | 5 failed) 665ms
+   ✓ support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation 223ms
+   × support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation 68ms
+     → expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:r5:"
+  aria-labelledby="radix-:r4:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:r3:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+   ✓ support reply navigation with a real data router > retains the draft across locale-query GET revalidation 35ms
+   × support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit 41ms
+     → expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:rb:"
+  aria-labelledby="radix-:ra:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:r9:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+   × support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies 114ms
+     → expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:rh:"
+  aria-labelledby="radix-:rg:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:rf:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+   ✓ support reply navigation with a real data router > clears a reply only after explicit success acknowledgment, retaining content during delayed reload 48ms
+   ✓ support explicit acknowledgment and draft identity > clears after a fast successful action even when loading renders coalesce 26ms
+   × support explicit acknowledgment and draft identity > preserves edits made while POST is pending 36ms
+     → expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:rq:"
+  aria-labelledby="radix-:rp:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:ro:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+   ✓ support explicit acknowledgment and draft identity > does not reuse a previous acknowledgment during a second submission 27ms
+   ✓ support explicit acknowledgment and draft identity > keeps the draft after POST is aborted by a same-path locale GET 19ms
+   × support explicit acknowledgment and draft identity > does not resurrect explicitly discarded text when returning from another ticket 25ms
+     → expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:r13:"
+  aria-labelledby="radix-:r12:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:r11:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation
+Error: expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:r5:"
+  aria-labelledby="radix-:r4:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:r3:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:98:47
+     96|     expect(screen.getByRole('textbox')).toHaveValue(draft);
+     97|     fireEvent.click(screen.getByRole('link', { name: 'Back to support'…
+     98|     expect(await screen.findByRole('dialog')).toBeVisible();
+       |                                               ^
+     99|   });
+    100|   it('retains the draft across locale-query GET revalidation', async (…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit
+Error: expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:rb:"
+  aria-labelledby="radix-:ra:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:r9:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:121:47
+    119|     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    120|     fireEvent.click(screen.getByRole('link', { name: 'Back to support'…
+    121|     expect(await screen.findByRole('dialog')).toBeVisible();
+       |                                               ^
+    122|     await act(async () => response.resolve(data({ errorCode: 'unavaila…
+    123|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies
+Error: expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:rh:"
+  aria-labelledby="radix-:rg:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:rf:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:133:47
+    131|     type(reply);
+    132|     fireEvent.click(screen.getByRole('link', { name: 'Back to support'…
+    133|     expect(await screen.findByRole('dialog')).toBeVisible();
+       |                                               ^
+    134|     fireEvent.keyDown(document, { key: 'Escape' });
+    135|     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeI…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support explicit acknowledgment and draft identity > preserves edits made while POST is pending
+Error: expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:rq:"
+  aria-labelledby="radix-:rp:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:ro:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:188:47
+    186|     expect(field).toHaveValue('Additional unsent text');
+    187|     fireEvent.click(screen.getByRole('link', { name: 'Back to support'…
+    188|     expect(await screen.findByRole('dialog')).toBeVisible();
+       |                                               ^
+    189|   });
+    190|   it('does not reuse a previous acknowledgment during a second submiss…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support explicit acknowledgment and draft identity > does not resurrect explicitly discarded text when returning from another ticket
+Error: expect(element).toBeVisible()
+
+Received element is not visible:
+  <div
+  aria-describedby="radix-:r13:"
+  aria-labelledby="radix-:r12:"
+  class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none"
+  data-state="open"
+  id="radix-:r11:"
+  role="dialog"
+  style="opacity: 0; transform: translateX(-50%) translateY(-40%) scale(0.96); pointer-events: auto;"
+  tabindex="-1"
+/>
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:225:47
+    223|       void router.navigate('/support/ticket-2');
+    224|     });
+    225|     expect(await screen.findByRole('dialog')).toBeVisible();
+       |                                               ^
+    226|     fireEvent.click(screen.getByRole('button', { name: 'Discard reply'…
+    227|     await waitFor(() => expect(router.state.location.pathname).toBe('/…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 6 passed (11)
+   Start at  01:45:26
+   Duration  3.52s (transform 1.21s, setup 28ms, collect 631ms, tests 665ms, environment 269ms, prepare 51ms)

@@ -1,0 +1,303 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+stderr | app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation
+No `HydrateFallback` element provided to render during initial hydration
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx (6 tests | 6 failed) 6048ms
+   × support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation 1026ms
+     → Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation 1005ms
+     → Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > retains the draft across locale-query GET revalidation 1004ms
+     → Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit 1004ms
+     → Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies 1004ms
+     → Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > clears a reply only after successful redirect and reload 1004ms
+     → Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation
+TestingLibraryElementError: Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ setup app/routes/support-ticket-draft-navigation.spec.tsx:16:30
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:25:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > retains the draft across locale-query GET revalidation
+TestingLibraryElementError: Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ setup app/routes/support-ticket-draft-navigation.spec.tsx:16:30
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:33:82
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit
+TestingLibraryElementError: Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ setup app/routes/support-ticket-draft-navigation.spec.tsx:16:30
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:38:83
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies
+TestingLibraryElementError: Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ setup app/routes/support-ticket-draft-navigation.spec.tsx:16:30
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:43:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > clears a reply only after successful redirect and reload
+TestingLibraryElementError: Unable to find role="textbox"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ setup app/routes/support-ticket-draft-navigation.spec.tsx:16:30
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:49:118
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 6 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+TypeError: RequestInit: Expected signal ("AbortSignal {}") to be an instance of AbortSignal.
+ ❯ Object.webidl.errors.exception node:internal/deps/undici/undici:4859:14
+ ❯ Object.AbortSignal node:internal/deps/undici/undici:5118:31
+ ❯ node:internal/deps/undici/undici:12701:41
+ ❯ node:internal/deps/undici/undici:5170:16
+ ❯ Object.RequestInit node:internal/deps/undici/undici:5152:21
+ ❯ new Request node:internal/deps/undici/undici:12063:34
+ ❯ createClientSideRequest ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:5291:10
+ ❯ startNavigation ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1999:19
+ ❯ Object.initialize ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1651:7
+ ❯ Module.createMemoryRouter ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:6681:6
+
+This error originated in "app/routes/support-ticket-draft-navigation.spec.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "preserves draft after action 400 and delayed loader revalidation". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+TypeError: RequestInit: Expected signal ("AbortSignal {}") to be an instance of AbortSignal.
+ ❯ Object.webidl.errors.exception node:internal/deps/undici/undici:4859:14
+ ❯ Object.AbortSignal node:internal/deps/undici/undici:5118:31
+ ❯ node:internal/deps/undici/undici:12701:41
+ ❯ node:internal/deps/undici/undici:5170:16
+ ❯ Object.RequestInit node:internal/deps/undici/undici:5152:21
+ ❯ new Request node:internal/deps/undici/undici:12063:34
+ ❯ createClientSideRequest ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:5291:10
+ ❯ startNavigation ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1999:19
+ ❯ Object.initialize ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1651:7
+ ❯ Module.createMemoryRouter ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:6681:6
+
+This error originated in "app/routes/support-ticket-draft-navigation.spec.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "preserves draft after action 503 and delayed loader revalidation". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+TypeError: RequestInit: Expected signal ("AbortSignal {}") to be an instance of AbortSignal.
+ ❯ Object.webidl.errors.exception node:internal/deps/undici/undici:4859:14
+ ❯ Object.AbortSignal node:internal/deps/undici/undici:5118:31
+ ❯ node:internal/deps/undici/undici:12701:41
+ ❯ node:internal/deps/undici/undici:5170:16
+ ❯ Object.RequestInit node:internal/deps/undici/undici:5152:21
+ ❯ new Request node:internal/deps/undici/undici:12063:34
+ ❯ createClientSideRequest ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:5291:10
+ ❯ startNavigation ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1999:19
+ ❯ Object.initialize ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1651:7
+ ❯ Module.createMemoryRouter ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:6681:6
+
+This error originated in "app/routes/support-ticket-draft-navigation.spec.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "retains the draft across locale-query GET revalidation". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+TypeError: RequestInit: Expected signal ("AbortSignal {}") to be an instance of AbortSignal.
+ ❯ Object.webidl.errors.exception node:internal/deps/undici/undici:4859:14
+ ❯ Object.AbortSignal node:internal/deps/undici/undici:5118:31
+ ❯ node:internal/deps/undici/undici:12701:41
+ ❯ node:internal/deps/undici/undici:5170:16
+ ❯ Object.RequestInit node:internal/deps/undici/undici:5152:21
+ ❯ new Request node:internal/deps/undici/undici:12063:34
+ ❯ createClientSideRequest ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:5291:10
+ ❯ startNavigation ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1999:19
+ ❯ Object.initialize ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1651:7
+ ❯ Module.createMemoryRouter ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:6681:6
+
+This error originated in "app/routes/support-ticket-draft-navigation.spec.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "keeps the guard active while POST awaits acknowledgment and permits same-path submit". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+TypeError: RequestInit: Expected signal ("AbortSignal {}") to be an instance of AbortSignal.
+ ❯ Object.webidl.errors.exception node:internal/deps/undici/undici:4859:14
+ ❯ Object.AbortSignal node:internal/deps/undici/undici:5118:31
+ ❯ node:internal/deps/undici/undici:12701:41
+ ❯ node:internal/deps/undici/undici:5170:16
+ ❯ Object.RequestInit node:internal/deps/undici/undici:5152:21
+ ❯ new Request node:internal/deps/undici/undici:12063:34
+ ❯ createClientSideRequest ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:5291:10
+ ❯ startNavigation ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1999:19
+ ❯ Object.initialize ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1651:7
+ ❯ Module.createMemoryRouter ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:6681:6
+
+This error originated in "app/routes/support-ticket-draft-navigation.spec.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+TypeError: RequestInit: Expected signal ("AbortSignal {}") to be an instance of AbortSignal.
+ ❯ Object.webidl.errors.exception node:internal/deps/undici/undici:4859:14
+ ❯ Object.AbortSignal node:internal/deps/undici/undici:5118:31
+ ❯ node:internal/deps/undici/undici:12701:41
+ ❯ node:internal/deps/undici/undici:5170:16
+ ❯ Object.RequestInit node:internal/deps/undici/undici:5152:21
+ ❯ new Request node:internal/deps/undici/undici:12063:34
+ ❯ createClientSideRequest ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:5291:10
+ ❯ startNavigation ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1999:19
+ ❯ Object.initialize ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:1651:7
+ ❯ Module.createMemoryRouter ../vibecore-ui-next/node_modules/.pnpm/react-router@7.18.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/react-router/dist/development/chunk-4ZMWKKQ3.mjs:6681:6
+
+This error originated in "app/routes/support-ticket-draft-navigation.spec.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "clears a reply only after successful redirect and reload". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+     Errors  6 errors
+   Start at  01:30:36
+   Duration  8.58s (transform 1.11s, setup 19ms, collect 386ms, tests 6.05s, environment 283ms, prepare 68ms)
