@@ -1,0 +1,142 @@
+[
+  {
+    "panel": "files",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "ixture-033.ts\nU\nUntracked\nStage\nsrc/fixture-034.ts\nU\nUntracked\nStage\nsrc/fixture-035.ts\nU\nUntracked\nStage\nsrc/fixture-036.ts\nU\nUntracked\nStage\nsrc/fixture-037.ts\nU\nUntracked\nStage\nsrc/fixture-038.ts\nU\nUntracked\nStage\nsrc/fixture-039.ts\nU\nUntracked\nStage\nsrc/fixture-040.ts\nU\nUntracked\nStage\nsrc/fixture-041.ts\nU\nUntracked\nStage\nsrc/fixture-042.ts\nU\nUntracked\nStage\nsrc/fixture-043.ts\nU\nUntracked\nStage\nsrc/fixture-044.ts\nU\nUntracked\nStage\nsrc/fixture-045.ts\nU\nUntracked\nStage\nsrc/fixture-046.ts\nU\nUntracked\nStage\nsrc/fixture-047.ts\nU\nUntracked\nStage\nsrc/fixture-048.ts\nU\nUntracked\nStage\nsrc/fixture-049.ts\nU\nUntracked\nStage\nsrc/fixture-050.ts\nU\nUntracked\nStage\nsrc/fixture-051.ts\nU\nUntracked\nStage\nsrc/fixture-052.ts\nU\nUntracked\nStage\nsrc/fixture-053.ts\nU\nUntracked\nStage\nsrc/fixture-054.ts\nU\nUntracked\nStage\nsrc/fixture-055.ts\nU\nUntracked\nStage\nsrc/fixture-056.ts\nU\nUntracked\nStage\nsrc/fixture-057.ts\nU\nUntracked\nStage\nsrc/fixture-058.ts\nU\nUntracked\nStage\nsrc/fixture-059.ts\nU\nUntracked\nStage\nStatus guide:\nU\nUntracked\nUntracked\nM\nModified\nModified\nA\nAdded\nAdded\nD\nDeleted\nDeleted\nR\nRenamed\nRenamed\n!\nConflict\nConflict\nStaged\nSelect files above to stage changes.\nCommit message\nCommit as… (optional author override)\nCommit changes\nCommit & push\nCommit graph\nUP TO DATE WITH REMOTE\n8942b41\nchore: initial scaffold\njust now - HEAD -> main - You\nInspect file (diff + blame)\nInspect\nSelect a changed file or enter a path to view its diff and blame.\nBranch actions\nPull request title\nSource branch\nTarget branch\nCreate GitHub PR\n\nConfigure a GitHub remote before creating a pull request.\n\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "editor",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Editor\nConnection healthy\nRun\nReview\n{\n}\n(\n)\n[\n]\n<\n>\n/\n\\\n=\n:\n;\n.\n,\n\"\n'\n`\n|\n&\nNo file selected.\n\nSelect a file\n\nChoose a file in the explorer to compare its changes.\n\n/\nPreparing your live preview\n\nE-Code is starting the dev server, scanning runtime ports, and wiring the webview automatically.\n\nBuilding dependencies\nStarting project workspace…\nView logs\n1\nBuilding dependencies\n2\nBuilding\n3\nStarting dev server\n4\nReady\n\nPreparing: Project preview\n\nLoading workspace git status…\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "problems",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Checking the active session…\nProblems\nConnection healthy\nProblems\n0\nerrors\n0\nwarnings\nNo problems detected\n\nRuntime diagnostics, preview errors, and warnings will appear here when they are reported.\n\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      }
+    ]
+  },
+  {
+    "panel": "terminal",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Shell\nConnection healthy\n~/workspace: bash\nConnecting to workspace…\n \n\nSelect a file\n\nChoose a file in the explorer to compare its changes.\n\n/\nPreparing your live preview\n\nE-Code is starting the dev server, scanning runtime ports, and wiring the webview automatically.\n\nBuilding dependencies\nStarting project workspace…\nView logs\n1\nBuilding dependencies\n2\nBuilding\n3\nStarting dev server\n4\nReady\n\nPreparing: Project preview\n\nLoading workspace git status…\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "preview",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Webview\nConnection healthy\n{\n}\n(\n)\n[\n]\n<\n>\n/\n\\\n=\n:\n;\n.\n,\n\"\n'\n`\n|\n&\nNo file selected.\n\nSelect a file\n\nChoose a file in the explorer to compare its changes.\n\n/\nWEBVIEW STARTUP\nBuilding dependencies\n\nStarting project workspace…\n\n1\nBuilding dependencies\n2\nBuilding\n3\nStarting dev server\n4\nReady\nView logs\nLoading workspace git status…\nLoading E-Code…",
+    "surfaces": []
+  },
+  {
+    "panel": "git",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Git\nConnection healthy\nLoading workspace git status…\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "git",
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      }
+    ]
+  },
+  {
+    "panel": "deployments",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Publish\nConnection healthy\nOverview\nLogs\nDomains\nManage\nPublish your app\n\nConfigure how your app is published and who can access it.\n\nAdjust settings\nSee all usage\nCurrent status\nNot published\n\nNothing published yet.\n\nConnected domain(s)\nAdd a domain\n\nNo domain yet — publishing will create one.\n\nSharing\nPublic\n\nAnyone on the internet with the URL\n\nInfrastructure\nProvider\n—\nEnvironment\n—\nScaling\nNot specified\nPublish history\n\nNothing published yet.\n\nPublish\nCOMMIT HISTORY\n8942b41chore: initial scaffold\nYou · Oct 26, 2026\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "deployments",
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      }
+    ]
+  },
+  {
+    "panel": "database",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Database\nConnection healthy\nAll databases\nRefresh\n\nNo database yet\n\nProvision a managed Postgres database for this project. The schema browser, SQL editor, and backups will use it.\n\nCreate database\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "database",
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      }
+    ]
+  },
+  {
+    "panel": "secrets",
+    "width": 320,
+    "scrollWidth": 320,
+    "body": "Secrets\nConnection healthy\nSecrets\nNew Secret\nNo secrets yet\n\nSecrets are encrypted and injected into your app as environment variables.\n\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "secrets",
+        "x": 0,
+        "right": 320,
+        "width": 320,
+        "height": 852
+      }
+    ]
+  }
+]

@@ -47,6 +47,7 @@ import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate
 import { AgentMenuProvider } from '~/components/chat/AgentHeaderMenu';
 import { ComposerToolsProvider } from '~/components/chat/ComposerToolsState';
 import { IdePaletteProvider } from '~/components/chat/IdePaletteState';
+import { MobileOverlayFocusProvider } from '~/components/chat/MobileOverlayFocus';
 import { PendingComposerShell } from '~/components/chat/PendingComposerShell';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -194,41 +195,47 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <AgentMenuProvider
+          <MobileOverlayFocusProvider
             projectId={projectId}
             workspaceId={currentWorkspaceId}
             windowId={searchParams.get('peWindow') || 'window-main'}
           >
-            <ComposerToolsProvider
+            <AgentMenuProvider
               projectId={projectId}
               workspaceId={currentWorkspaceId}
               windowId={searchParams.get('peWindow') || 'window-main'}
             >
-              <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
-                <main className="h-dvh pt-9">
-                  <ClientOnly fallback={optimisticShell}>
-                    {() => (
-                      <ZoneErrorBoundary
-                        zone="editor"
-                        title={copy['projectIde.boundaryTitle']}
-                        boundaryId={`project:${projectId}:ide`}
-                      >
-                        <Suspense fallback={optimisticShell}>
-                          <ProjectIdeChat
-                            forceWorkbench
-                            projectIdeMode
-                            projectId={projectId}
-                            projectUrl={projectUrl}
-                            initialIdePanels={initialIdePanels}
-                          />
-                        </Suspense>
-                      </ZoneErrorBoundary>
-                    )}
-                  </ClientOnly>
-                </main>
-              </IdePaletteProvider>
-            </ComposerToolsProvider>
-          </AgentMenuProvider>
+              <ComposerToolsProvider
+                projectId={projectId}
+                workspaceId={currentWorkspaceId}
+                windowId={searchParams.get('peWindow') || 'window-main'}
+              >
+                <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
+                  <main className="h-dvh pt-9">
+                    <ClientOnly fallback={optimisticShell}>
+                      {() => (
+                        <ZoneErrorBoundary
+                          zone="editor"
+                          title={copy['projectIde.boundaryTitle']}
+                          boundaryId={`project:${projectId}:ide`}
+                        >
+                          <Suspense fallback={optimisticShell}>
+                            <ProjectIdeChat
+                              forceWorkbench
+                              projectIdeMode
+                              projectId={projectId}
+                              projectUrl={projectUrl}
+                              initialIdePanels={initialIdePanels}
+                            />
+                          </Suspense>
+                        </ZoneErrorBoundary>
+                      )}
+                    </ClientOnly>
+                  </main>
+                </IdePaletteProvider>
+              </ComposerToolsProvider>
+            </AgentMenuProvider>
+          </MobileOverlayFocusProvider>
         </div>
       </ProjectWorkspaceProvider>
     </CurrentWorkspaceProvider>

@@ -1,0 +1,178 @@
+[
+  {
+    "panel": "files",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "ed\nfixture-014.ts\nU\nUntracked\nfixture-015.ts\nU\nUntracked\nfixture-016.ts\nU\nUntracked\nfixture-017.ts\nU\nUntracked\nfixture-018.ts\nU\nUntracked\nfixture-019.ts\nU\nUntracked\nfixture-020.ts\nU\nUntracked\nfixture-021.ts\nU\nUntracked\nfixture-022.ts\nU\nUntracked\nfixture-023.ts\nU\nUntracked\nfixture-024.ts\nU\nUntracked\nfixture-025.ts\nU\nUntracked\nfixture-026.ts\nU\nUntracked\nfixture-027.ts\nU\nUntracked\nfixture-028.ts\nU\nUntracked\nfixture-029.ts\nU\nUntracked\nfixture-030.ts\nU\nUntracked\nfixture-031.ts\nU\nUntracked\nfixture-032.ts\nU\nUntracked\nfixture-033.ts\nU\nUntracked\nfixture-034.ts\nU\nUntracked\nfixture-035.ts\nU\nUntracked\nfixture-036.ts\nU\nUntracked\nfixture-037.ts\nU\nUntracked\nfixture-038.ts\nU\nUntracked\nfixture-039.ts\nU\nUntracked\nfixture-040.ts\nU\nUntracked\nfixture-041.ts\nU\nUntracked\nfixture-042.ts\nU\nUntracked\nfixture-043.ts\nU\nUntracked\nfixture-044.ts\nU\nUntracked\nfixture-045.ts\nU\nUntracked\nfixture-046.ts\nU\nUntracked\nfixture-047.ts\nU\nUntracked\nfixture-048.ts\nU\nUntracked\nfixture-049.ts\nU\nUntracked\nfixture-050.ts\nU\nUntracked\nfixture-051.ts\nU\nUntracked\nfixture-052.ts\nU\nUntracked\nfixture-053.ts\nU\nUntracked\nfixture-054.ts\nU\nUntracked\nfixture-055.ts\nU\nUntracked\nfixture-056.ts\nU\nUntracked\nfixture-057.ts\nU\nUntracked\nfixture-058.ts\nU\nUntracked\nfixture-059.ts\nU\nUntracked\nmain.tsx\nstyles.css\nindex.html\npackage.json\nREADME.md\nM\nModified\nvite.config.ts\nProject assistant\n1\nGet preview running\nImprove project/README.md\nAdd a feature\nReview changes\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n61\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nMarkdown\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      }
+    ]
+  },
+  {
+    "panel": "editor",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "Checking the active session…\nWORKSPACE\nPanel visibility 1792980478599-2tjv2aqcmqg\n›\nPROJECT\nPanel visibility audit\n›\nBRANCH\nmain\nResources\nInvite\nRun\nPublish\nConnection healthy\nLibrary\nCtrl+P\nSearch\nGit\nPackages\nDatabase\nSecrets\nDeployments\nMonitoring\nSettings\nCtrl+,\nAll tools\nCtrl+T\nEditor\n×\nWebview\nNo file selected\nMinimap\nDefinition\nReferences\nFormat\nRename\nRefactor\nSave\nWelcome to your project\n\nOpen a tool or ask the agent to get started.\n\nOpen Files\nCtrl+P\nOpen Shell (Terminal)\nCtrl+`\nView Preview\nCtrl+↵\nAll commands\nCtrl+K\nRecent\nNo files loaded yet.\nLibrary\n0 files\nSearch\n\nLoading workspace files…\n\nProvisioning your workspace. Files will appear here once it is ready.\n\nNew chat\nAdd a feature\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nProject\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      }
+    ]
+  },
+  {
+    "panel": "problems",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "Checking the active session…\nWORKSPACE\nPanel visibility 1792980478599-2tjv2aqcmqg\n›\nPROJECT\nPanel visibility audit\n›\nBRANCH\nmain\nResources\nInvite\nRun\nPublish\nConnection healthy\nLibrary\nCtrl+P\nSearch\nGit\nPackages\nDatabase\nSecrets\nDeployments\nMonitoring\nSettings\nCtrl+,\nAll tools\nCtrl+T\nEditor\n×\nWebview\nNo file selected\nMinimap\nDefinition\nReferences\nFormat\nRename\nRefactor\nSave\nWelcome to your project\n\nOpen a tool or ask the agent to get started.\n\nOpen Files\nCtrl+P\nOpen Shell (Terminal)\nCtrl+`\nView Preview\nCtrl+↵\nAll commands\nCtrl+K\nRecent\nNo files loaded yet.\nLibrary\n0 files\nSearch\n\nLoading workspace files…\n\nProvisioning your workspace. Files will appear here once it is ready.\n\nProject assistant\nAdd a feature\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nProject\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      }
+    ]
+  },
+  {
+    "panel": "terminal",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "Checking the active session…\nWORKSPACE\nPanel visibility 1792980478599-2tjv2aqcmqg\n›\nPROJECT\nPanel visibility audit\n›\nBRANCH\nmain\nResources\nInvite\nRun\nPublish\nConnection healthy\nLibrary\nCtrl+P\nSearch\nGit\nPackages\nDatabase\nSecrets\nDeployments\nMonitoring\nSettings\nCtrl+,\nAll tools\nCtrl+T\nEditor\n×\nWebview\nShell\n×\n~/workspace: bash\nConnecting to workspace…\n \nRuntime panels\nLibrary\n0 files\nSearch\n\nLoading workspace files…\n\nProvisioning your workspace. Files will appear here once it is ready.\n\nNew chat\nAdd a feature\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nProject\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      }
+    ]
+  },
+  {
+    "panel": "preview",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "Checking the active session…\nWORKSPACE\nPanel visibility 1792980478599-2tjv2aqcmqg\n›\nPROJECT\nPanel visibility audit\n›\nBRANCH\nmain\nResources\nInvite\nRun\nPublish\nConnection healthy\nLibrary\nCtrl+P\nSearch\nGit\nPackages\nDatabase\nSecrets\nDeployments\nMonitoring\nSettings\nCtrl+,\nAll tools\nCtrl+T\nEditor\n×\nWebview\n/\nCopy\nDesktop\nTablet\nMobile\nCustom width\nDevTools\nInspect to code\nOpen\nWEBVIEW STARTUP\nBuilding dependencies\n\nStarting project workspace…\n\n1\nBuilding dependencies\n2\nBuilding\n3\nStarting dev server\n4\nReady\nView logs\nLibrary\n0 files\nSearch\n\nLoading workspace files…\n\nProvisioning your workspace. Files will appear here once it is ready.\n\nNew chat\nAdd a feature\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nProject\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      }
+    ]
+  },
+  {
+    "panel": "git",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "ed\nfixture-014.ts\nU\nUntracked\nfixture-015.ts\nU\nUntracked\nfixture-016.ts\nU\nUntracked\nfixture-017.ts\nU\nUntracked\nfixture-018.ts\nU\nUntracked\nfixture-019.ts\nU\nUntracked\nfixture-020.ts\nU\nUntracked\nfixture-021.ts\nU\nUntracked\nfixture-022.ts\nU\nUntracked\nfixture-023.ts\nU\nUntracked\nfixture-024.ts\nU\nUntracked\nfixture-025.ts\nU\nUntracked\nfixture-026.ts\nU\nUntracked\nfixture-027.ts\nU\nUntracked\nfixture-028.ts\nU\nUntracked\nfixture-029.ts\nU\nUntracked\nfixture-030.ts\nU\nUntracked\nfixture-031.ts\nU\nUntracked\nfixture-032.ts\nU\nUntracked\nfixture-033.ts\nU\nUntracked\nfixture-034.ts\nU\nUntracked\nfixture-035.ts\nU\nUntracked\nfixture-036.ts\nU\nUntracked\nfixture-037.ts\nU\nUntracked\nfixture-038.ts\nU\nUntracked\nfixture-039.ts\nU\nUntracked\nfixture-040.ts\nU\nUntracked\nfixture-041.ts\nU\nUntracked\nfixture-042.ts\nU\nUntracked\nfixture-043.ts\nU\nUntracked\nfixture-044.ts\nU\nUntracked\nfixture-045.ts\nU\nUntracked\nfixture-046.ts\nU\nUntracked\nfixture-047.ts\nU\nUntracked\nfixture-048.ts\nU\nUntracked\nfixture-049.ts\nU\nUntracked\nfixture-050.ts\nU\nUntracked\nfixture-051.ts\nU\nUntracked\nfixture-052.ts\nU\nUntracked\nfixture-053.ts\nU\nUntracked\nfixture-054.ts\nU\nUntracked\nfixture-055.ts\nU\nUntracked\nfixture-056.ts\nU\nUntracked\nfixture-057.ts\nU\nUntracked\nfixture-058.ts\nU\nUntracked\nfixture-059.ts\nU\nUntracked\nmain.tsx\nstyles.css\nindex.html\npackage.json\nREADME.md\nM\nModified\nvite.config.ts\nProject assistant\n1\nGet preview running\nImprove project/README.md\nAdd a feature\nReview changes\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n61\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nMarkdown\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "git",
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 792
+      }
+    ]
+  },
+  {
+    "panel": "deployments",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "WORKSPACE\nPanel visibility 1792980478599-2tjv2aqcmqg\n›\nPROJECT\nPanel visibility audit\n›\nBRANCH\nmain\nResources\nInvite\nRun\nPublish\nConnection healthy\nLibrary\nCtrl+P\nSearch\nGit\nPackages\nDatabase\nSecrets\nDeployments\nMonitoring\nSettings\nCtrl+,\nAll tools\nCtrl+T\nEditor\n×\nWebview\nPublish\n×\nPublish\nOverview\nLogs\nDomains\nManage\nPublish your app\n\nConfigure how your app is published and who can access it.\n\nAdjust settings\nSee all usage\nCurrent status\nNot published\n\nNothing published yet.\n\nConnected domain(s)\nAdd a domain\n\nNo domain yet — publishing will create one.\n\nSharing\nPublic\n\nAnyone on the internet with the URL\n\nInfrastructure\nProvider\n—\nEnvironment\n—\nScaling\nNot specified\nPublish history\n\nNothing published yet.\n\nPublish\nCOMMIT HISTORY\nbb08e92chore: initial scaffold\nYou · Oct 26, 2026\nLibrary\n0 files\nSearch\n\nLoading workspace files…\n\nProvisioning your workspace. Files will appear here once it is ready.\n\nProject assistant\n1\nAdd a feature\nPrepare deploy\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nProject\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "deployments",
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 792
+      }
+    ]
+  },
+  {
+    "panel": "database",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "\nLibrary\nCtrl+P\n67\nSearch\nGit\nPackages\nDatabase\nSecrets\nDeployments\nMonitoring\nSettings\nCtrl+,\nAll tools\nCtrl+T\nREADME.md\n×\nWebview\nDatabase\n×\nDatabase\nAll databases\nRefresh\n\nNo database yet\n\nProvision a managed Postgres database for this project. The schema browser, SQL editor, and backups will use it.\n\nCreate database\nLibrary\n67 files\nSearch\nsrc\nApp.tsx\nfixture-000.ts\nfixture-001.ts\nfixture-002.ts\nfixture-003.ts\nfixture-004.ts\nfixture-005.ts\nfixture-006.ts\nfixture-007.ts\nfixture-008.ts\nfixture-009.ts\nfixture-010.ts\nfixture-011.ts\nfixture-012.ts\nfixture-013.ts\nfixture-014.ts\nfixture-015.ts\nfixture-016.ts\nfixture-017.ts\nfixture-018.ts\nfixture-019.ts\nfixture-020.ts\nfixture-021.ts\nfixture-022.ts\nfixture-023.ts\nfixture-024.ts\nfixture-025.ts\nfixture-026.ts\nfixture-027.ts\nfixture-028.ts\nfixture-029.ts\nfixture-030.ts\nfixture-031.ts\nfixture-032.ts\nfixture-033.ts\nfixture-034.ts\nfixture-035.ts\nfixture-036.ts\nfixture-037.ts\nfixture-038.ts\nfixture-039.ts\nfixture-040.ts\nfixture-041.ts\nfixture-042.ts\nfixture-043.ts\nfixture-044.ts\nfixture-045.ts\nfixture-046.ts\nfixture-047.ts\nfixture-048.ts\nfixture-049.ts\nfixture-050.ts\nfixture-051.ts\nfixture-052.ts\nfixture-053.ts\nfixture-054.ts\nfixture-055.ts\nfixture-056.ts\nfixture-057.ts\nfixture-058.ts\nfixture-059.ts\nmain.tsx\nstyles.css\nindex.html\npackage.json\nREADME.md\nvite.config.ts\nProject assistant\n1\nGet preview running\nImprove project/README.md\nAdd a feature\nAdd smoke tests\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nMarkdown\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "database",
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 792
+      }
+    ]
+  },
+  {
+    "panel": "secrets",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "body": "WORKSPACE\nPanel visibility 1792980478599-2tjv2aqcmqg\n›\nPROJECT\nPanel visibility audit\n›\nBRANCH\nmain\nResources\nInvite\nRun\nPublish\nConnection healthy\nLibrary\nCtrl+P\nSearch\nGit\nPackages\nDatabase\nSecrets\nDeployments\nMonitoring\nSettings\nCtrl+,\nAll tools\nCtrl+T\nEditor\n×\nWebview\nSecrets\n×\nSecrets\nSecrets\nNew Secret\nNo secrets yet\n\nSecrets are encrypted and injected into your app as environment variables.\n\nLibrary\n0 files\nSearch\n\nLoading workspace files…\n\nProvisioning your workspace. Files will appear here once it is ready.\n\nProject assistant\n1\nAdd a feature\nFind next best step\nAgent\nPower\n\nThe right balance.\n\nReconnecting\nGit\nmain\n0↑ 0↓\nProblems\n0\n0\nWorkspace\nStarting\nPreview\nDetecting\nDev: starting\nLn 1, Col 1\nSpaces: 2\nUTF-8\nProject\nLoading E-Code…",
+    "surfaces": [
+      {
+        "id": null,
+        "panel": null,
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 832
+      },
+      {
+        "id": "ide-service-panel",
+        "panel": "secrets",
+        "x": 397,
+        "right": 1158.265625,
+        "width": 761.265625,
+        "height": 792
+      }
+    ]
+  }
+]
