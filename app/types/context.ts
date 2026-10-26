@@ -29,6 +29,9 @@ export type ContextAnnotation =
         files?: string[];
         risks?: string[];
         verification?: string[];
+        outputState?: 'empty' | 'actions_without_report' | 'report' | 'invalid_report' | 'interrupted';
+        emittedFiles?: string[];
+        verificationState?: 'not_observed';
       }>;
       consensus?: {
         algorithm: 'QUORUM' | 'BYZANTINE_PBFT' | 'WEIGHTED_PLURALITY';
@@ -45,6 +48,14 @@ export type ContextAnnotation =
           agreementRatio: number;
           decision: 'accepted' | 'rejected' | 'inconclusive';
         }>;
+        consolidated?: {
+          summary: string;
+          acceptedRisks: string[];
+          acceptedVerification: string[];
+          agreedVerificationClaims?: string[];
+          acceptedFiles: string[];
+          rejectedClaims: Array<{ claim: string; type: 'risk' | 'verification' | 'file' }>;
+        };
         conflicts: Array<{
           type: 'file-overlap' | 'risk-disagreement' | 'verification-gap' | 'role-failure';
           description: string;
@@ -113,6 +124,9 @@ export type ContextAnnotation =
       roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
       status: 'complete' | 'partial' | 'failed';
       summary: string;
+      outputState?: 'empty' | 'actions_without_report' | 'report' | 'invalid_report' | 'interrupted';
+      emittedFiles?: string[];
+      verificationState?: 'not_observed';
     };
 
 export type ProgressAnnotation = {

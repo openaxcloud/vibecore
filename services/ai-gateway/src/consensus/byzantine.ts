@@ -139,7 +139,9 @@ export class ByzantineConsensus implements ConsensusEngine {
           .map((r) => `[${r.roleId}] ${r.summary}`)
           .join('\n\n') || aiGatewayMessage('consensusEmptySummary', input.locale),
       acceptedRisks: accepted.filter((v) => v.type === 'risk').map((v) => v.claim),
-      acceptedVerification: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
+      // Consensus votes establish agreement on declarations, never execution.
+      acceptedVerification: [],
+      agreedVerificationClaims: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
       acceptedFiles: accepted.filter((v) => v.type === 'file').map((v) => v.claim),
       rejectedClaims: finalVotes
         .filter((v) => v.decision === 'rejected')
