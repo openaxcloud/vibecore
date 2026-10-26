@@ -1,0 +1,21 @@
+{
+  "baseline": "62a072e972c24aa899c93b87429fdb30f5097f7c",
+  "files": {
+    "report.md": "f551d144f54be1bf534801ac2f62021f7c42b29f1efce9f946fe9a74f5304dc2",
+    "build-verification.json": "f239c86832e2ab03a7bc6418b2428a2775941f0eb45d74d070c4e5fb13fba983",
+    "continuous-results.json": "001e14dd3adb59f78081833e7974619dcb35182077eafdcea150010e01b72848",
+    "fast-results.json": "4903e6b57c124462006e0a46fec31238c37d0368afc84d416fa445e8340d3067",
+    "ime-results.json": "7b5ce8b0dade22e041b5ed1ccf379a2d3f5d3d6b38024cedd2764ac2bc271b15",
+    "ime-resume-results.json": "51a9c8949f9016899e1a45a5431be4c51a8f9da665c1e572e086b21b8fd914c7",
+    "ime-focus-results.json": "5a9778835512d36f9f4ba81700b2765eade49003374e9026a38c008c0819482f",
+    "inside.json": "e2ff8c2b1fa8b60caab775e9a1c11a9e7522ea5f260810aa09ba3440292a1429",
+    "outside.json": "c7fa67bf7c1cc17826123114fce8563e2d6873a1d17fc253adc419b5f9e8726c",
+    "fast-control.json": "ef562d6567d67ec4c1737ded659e0fe5f1b6881ef4513af91cd524ab5d1eab4a",
+    "ime-resume-control.json": "3368a626b328feae9695a115772f68c59bbd72066db9693b21828fa49ddd0b6b",
+    "ime-resume-handoff.json": "31ca4bd498a34e1c03af96d38be9b700c5c45a8d4ce28d84596b89726fd3dc7a",
+    "ime-focus.json": "b65b331a9cd0d34d4607f1cad6733bdb2a082c9489c2b03f94c71d638ecde2ae"
+  },
+  "productChanged": false,
+  "stackLive": true,
+  "productionValidated": false
+}
