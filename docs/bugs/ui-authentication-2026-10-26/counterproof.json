@@ -1,0 +1,134 @@
+[
+  {
+    "route": "reset-password",
+    "width": 320,
+    "before": {
+      "button": {
+        "width": 28,
+        "height": 28,
+        "left": 257.75,
+        "right": 285.75
+      },
+      "input": {
+        "right": 291,
+        "paddingRight": "38.5px"
+      },
+      "textRight": 252.5,
+      "buttonClass": "flex h-8 w-8 items-center justify-center rounded-md text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] absolute right-1.5 top-1/2 -translate-y-1/2"
+    },
+    "after": {
+      "button": {
+        "width": 44,
+        "height": 44,
+        "left": 241.75,
+        "right": 285.75
+      },
+      "input": {
+        "right": 291,
+        "paddingRight": "52px"
+      },
+      "textRight": 239,
+      "buttonClass": "flex h-8 w-8 items-center justify-center rounded-md text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] absolute right-1.5 top-1/2 -translate-y-1/2 vc-auth-input-action"
+    },
+    "kind": "DOM counterproof only, not compiled change"
+  },
+  {
+    "route": "verify-email",
+    "width": 320,
+    "before": {
+      "button": {
+        "width": 224.140625,
+        "height": 19.875,
+        "left": 29,
+        "right": 253.140625
+      },
+      "input": {
+        "right": 0,
+        "paddingRight": "0px"
+      },
+      "textRight": 0,
+      "buttonClass": "vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60"
+    },
+    "after": {
+      "button": {
+        "width": 224.140625,
+        "height": 44,
+        "left": 29,
+        "right": 253.140625
+      },
+      "input": {
+        "right": 0,
+        "paddingRight": "0px"
+      },
+      "textRight": 0,
+      "buttonClass": "vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60 inline-flex"
+    },
+    "kind": "DOM counterproof only, not compiled change"
+  },
+  {
+    "route": "reset-password",
+    "width": 1440,
+    "before": {
+      "button": {
+        "width": 24,
+        "height": 24,
+        "left": 548.09375,
+        "right": 572.09375
+      },
+      "input": {
+        "right": 576.59375,
+        "paddingRight": "33px"
+      },
+      "textRight": 543.59375,
+      "buttonClass": "flex h-8 w-8 items-center justify-center rounded-md text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] absolute right-1.5 top-1/2 -translate-y-1/2"
+    },
+    "after": {
+      "button": {
+        "width": 44,
+        "height": 44,
+        "left": 528.09375,
+        "right": 572.09375
+      },
+      "input": {
+        "right": 576.59375,
+        "paddingRight": "52px"
+      },
+      "textRight": 524.59375,
+      "buttonClass": "flex h-8 w-8 items-center justify-center rounded-md text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)] absolute right-1.5 top-1/2 -translate-y-1/2 vc-auth-input-action"
+    },
+    "kind": "DOM counterproof only, not compiled change"
+  },
+  {
+    "route": "verify-email",
+    "width": 1440,
+    "before": {
+      "button": {
+        "width": 192.109375,
+        "height": 17.03125,
+        "left": 114.59375,
+        "right": 306.703125
+      },
+      "input": {
+        "right": 0,
+        "paddingRight": "0px"
+      },
+      "textRight": 0,
+      "buttonClass": "vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60"
+    },
+    "after": {
+      "button": {
+        "width": 192.109375,
+        "height": 44,
+        "left": 114.59375,
+        "right": 306.703125
+      },
+      "input": {
+        "right": 0,
+        "paddingRight": "0px"
+      },
+      "textRight": 0,
+      "buttonClass": "vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60 inline-flex"
+    },
+    "kind": "DOM counterproof only, not compiled change"
+  }
+]

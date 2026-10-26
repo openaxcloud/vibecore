@@ -1,0 +1,15 @@
+protocol cases 27
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok([301,302,303,503].includes(r.status))
+
+    at request (/tmp/ui-auth-next/protocols.cjs:1:446)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async /tmp/ui-auth-next/protocols.cjs:1:3167 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

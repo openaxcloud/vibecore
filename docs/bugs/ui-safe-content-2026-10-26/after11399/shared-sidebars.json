@@ -1,0 +1,176 @@
+{
+  "interactions": [],
+  "shared": [
+    {
+      "route": "projects/new",
+      "safe": false,
+      "pad": {
+        "left": "0px",
+        "right": "0px"
+      }
+    },
+    {
+      "route": "organization-siem",
+      "safe": false,
+      "left": 40,
+      "client": 253,
+      "scroll": 504,
+      "doc": 320
+    },
+    {
+      "route": "projects/new",
+      "safe": true,
+      "pad": {
+        "left": "0px",
+        "right": "0px"
+      }
+    },
+    {
+      "route": "organization-siem",
+      "safe": true,
+      "left": 40,
+      "client": 253,
+      "scroll": 504,
+      "doc": 320
+    }
+  ],
+  "sidebars": [
+    {
+      "width": 1024,
+      "safe": false,
+      "expanded": true,
+      "padLeft": 21,
+      "padRight": 21,
+      "rem": 14,
+      "field": {
+        "x": 283,
+        "right": 813.328125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 240
+      },
+      "doc": 1024
+    },
+    {
+      "width": 1024,
+      "safe": false,
+      "expanded": false,
+      "padLeft": 21,
+      "padRight": 21,
+      "rem": 14,
+      "field": {
+        "x": 99,
+        "right": 629.328125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 56
+      },
+      "doc": 1024
+    },
+    {
+      "width": 1024,
+      "safe": true,
+      "expanded": true,
+      "padLeft": 47,
+      "padRight": 47,
+      "rem": 14,
+      "field": {
+        "x": 309,
+        "right": 839.328125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 240
+      },
+      "doc": 1024
+    },
+    {
+      "width": 1024,
+      "safe": true,
+      "expanded": false,
+      "padLeft": 47,
+      "padRight": 47,
+      "rem": 14,
+      "field": {
+        "x": 125,
+        "right": 655.328125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 56
+      },
+      "doc": 1024
+    },
+    {
+      "width": 1440,
+      "safe": false,
+      "expanded": true,
+      "padLeft": 18,
+      "padRight": 18,
+      "rem": 12,
+      "field": {
+        "x": 397,
+        "right": 844.078125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 240
+      },
+      "doc": 1440
+    },
+    {
+      "width": 1440,
+      "safe": false,
+      "expanded": false,
+      "padLeft": 18,
+      "padRight": 18,
+      "rem": 12,
+      "field": {
+        "x": 305,
+        "right": 752.078125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 56
+      },
+      "doc": 1440
+    },
+    {
+      "width": 1440,
+      "safe": true,
+      "expanded": true,
+      "padLeft": 47,
+      "padRight": 47,
+      "rem": 12,
+      "field": {
+        "x": 426,
+        "right": 873.078125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 240
+      },
+      "doc": 1440
+    },
+    {
+      "width": 1440,
+      "safe": true,
+      "expanded": false,
+      "padLeft": 47,
+      "padRight": 47,
+      "rem": 12,
+      "field": {
+        "x": 334,
+        "right": 781.078125
+      },
+      "sidebar": {
+        "x": 0,
+        "right": 56
+      },
+      "doc": 1440
+    }
+  ],
+  "errors": []
+}

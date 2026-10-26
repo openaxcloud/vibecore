@@ -1,0 +1,96 @@
+{
+  "cases": [
+    {
+      "lang": "fr",
+      "path": "/gallery",
+      "failure": {
+        "status": 503,
+        "headings": [
+          "Une erreur est survenue"
+        ],
+        "text": "Aller au contenu\nE-Code\nEN\nFR\nERREUR 503\nUne erreur est survenue\n\nUne erreur inattendue a interrompu cette page. Réessayez ou revenez à une page connue.\n\nRetour à l’accueil\nAccéder au tableau de bord\nConsulter le centre d’aide\nPrompt, code, aperçu, mise en ligne\nCréez des logiciels inspectables avec votre équipe\n\nE-Code réunit les fichiers générés, les retours d’exécution, l’état de l’aperçu et les contrôles de mise en ligne, du premier prompt à l’application en production.\n\nContacter l’équipe c"
+      },
+      "recovered": true,
+      "recoveryMechanism": "browser reload after fixture GET restored"
+    },
+    {
+      "lang": "fr",
+      "path": "/gallery/synthetic-gallery",
+      "failure": {
+        "status": 503,
+        "headings": [
+          "Une erreur est survenue"
+        ],
+        "text": "Aller au contenu\nE-Code\nEN\nFR\nERREUR 503\nUne erreur est survenue\n\nUne erreur inattendue a interrompu cette page. Réessayez ou revenez à une page connue.\n\nRetour à l’accueil\nAccéder au tableau de bord\nConsulter le centre d’aide\nPrompt, code, aperçu, mise en ligne\nCréez des logiciels inspectables avec votre équipe\n\nE-Code réunit les fichiers générés, les retours d’exécution, l’état de l’aperçu et les contrôles de mise en ligne, du premier prompt à l’application en production.\n\nContacter l’équipe c"
+      },
+      "recovered": true,
+      "recoveryMechanism": "browser reload after fixture GET restored"
+    },
+    {
+      "lang": "fr",
+      "path": "/gallery?q=synthetic-empty",
+      "emptyCards": 0,
+      "headings": [
+        "Les applications de la communauté — remixez-en une pour commencer",
+        "Créez des logiciels inspectables avec votre équipe"
+      ]
+    },
+    {
+      "lang": "en",
+      "path": "/gallery",
+      "failure": {
+        "status": 503,
+        "headings": [
+          "Something went wrong"
+        ],
+        "text": "Skip to content\nE-Code\nEN\nFR\nERROR 503\nSomething went wrong\n\nAn unexpected error interrupted this page. Try again, or head back to a known place.\n\nBack to homepage\nGo to dashboard\nVisit the help center\nPrompt, code, preview, deploy\nBuild inspectable software with your team\n\nE-Code keeps generated files, runtime feedback, preview state, and release controls together from the first prompt to the live application.\n\nTalk to sales\nStart building\n\nSOURCE CODE\n\nVisible and exportable\n\nPROJECT WORKFLOW\n"
+      },
+      "recovered": true,
+      "recoveryMechanism": "browser reload after fixture GET restored"
+    },
+    {
+      "lang": "en",
+      "path": "/gallery/synthetic-gallery",
+      "failure": {
+        "status": 503,
+        "headings": [
+          "Something went wrong"
+        ],
+        "text": "Skip to content\nE-Code\nEN\nFR\nERROR 503\nSomething went wrong\n\nAn unexpected error interrupted this page. Try again, or head back to a known place.\n\nBack to homepage\nGo to dashboard\nVisit the help center\nPrompt, code, preview, deploy\nBuild inspectable software with your team\n\nE-Code keeps generated files, runtime feedback, preview state, and release controls together from the first prompt to the live application.\n\nTalk to sales\nStart building\n\nSOURCE CODE\n\nVisible and exportable\n\nPROJECT WORKFLOW\n"
+      },
+      "recovered": true,
+      "recoveryMechanism": "browser reload after fixture GET restored"
+    },
+    {
+      "lang": "en",
+      "path": "/gallery?q=synthetic-empty",
+      "emptyCards": 0,
+      "headings": [
+        "Apps the community built — remix one to start",
+        "Build inspectable software with your team"
+      ]
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "navigation": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "geometry": {
+        "left": 26.170974731445312,
+        "right": 303.03321838378906,
+        "width": 320,
+        "buttons": [
+          {
+            "text": "Annuler",
+            "left": 205.56729125976562,
+            "right": 282.45562744140625
+          },
+          {
+            "text": "Abandonner la réponse",
+            "left": 109.7820816040039,
+            "right": 282.4556350708008
+          }
+        ]
+      },
+      "discardBackEmpty": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "geometry": {
+        "left": 19.948211669921875,
+        "right": 307.6248474121094,
+        "width": 320,
+        "buttons": [
+          {
+            "text": "Annuler",
+            "left": 206.3518524169922,
+            "right": 286.24346923828125
+          },
+          {
+            "text": "Abandonner la réponse",
+            "left": 106.8252182006836,
+            "right": 286.2434616088867
+          }
+        ]
+      },
+      "discardBackEmpty": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "geometry": {
+        "left": 16.692153930664062,
+        "right": 307.97560119628906,
+        "width": 320,
+        "buttons": [
+          {
+            "text": "Cancel",
+            "left": 93.23401641845703,
+            "right": 165.6551055908203
+          },
+          {
+            "text": "Discard reply",
+            "left": 172.54356384277344,
+            "right": 286.326171875
+          }
+        ]
+      },
+      "discardBackEmpty": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "geometry": {
+        "left": 15.4139404296875,
+        "right": 308,
+        "width": 320,
+        "buttons": [
+          {
+            "text": "Cancel",
+            "left": 92.298095703125,
+            "right": 165.0430450439453
+          },
+          {
+            "text": "Discard reply",
+            "left": 171.96231079101562,
+            "right": 286.2537536621094
+          }
+        ]
+      },
+      "discardBackEmpty": true
+    }
+  ],
+  "language": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "nativeGuard": true,
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket?lang=fr",
+      "draftPreserved": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "nativeGuard": true,
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket?lang=fr",
+      "draftPreserved": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "nativeGuard": true,
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket?lang=en",
+      "draftPreserved": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "nativeGuard": true,
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket?lang=en",
+      "draftPreserved": true
+    }
+  ],
+  "actions": [
+    {
+      "lang": "fr",
+      "status": 400,
+      "draftPreserved": true
+    },
+    {
+      "lang": "fr",
+      "status": 503,
+      "draftPreserved": true
+    },
+    {
+      "lang": "fr",
+      "status": 201,
+      "pendingEditPreserved": true
+    },
+    {
+      "lang": "fr",
+      "status": 201,
+      "unchangedDraftCleared": true
+    },
+    {
+      "lang": "en",
+      "status": 400,
+      "draftPreserved": true
+    },
+    {
+      "lang": "en",
+      "status": 503,
+      "draftPreserved": true
+    },
+    {
+      "lang": "en",
+      "status": 201,
+      "pendingEditPreserved": true
+    },
+    {
+      "lang": "en",
+      "status": 201,
+      "unchangedDraftCleared": true
+    },
+    {
+      "lang": "en",
+      "documentPRG": true,
+      "status": 302,
+      "location": "/support/synthetic-ticket"
+    }
+  ],
+  "blockedWrites": [
+    {
+      "url": "http://127.0.0.1:11599/api/user/preferences",
+      "method": "PATCH"
+    },
+    {
+      "url": "http://127.0.0.1:11599/api/user/preferences",
+      "method": "PATCH"
+    },
+    {
+      "url": "http://127.0.0.1:11599/api/user/preferences",
+      "method": "PATCH"
+    },
+    {
+      "url": "http://127.0.0.1:11599/api/user/preferences",
+      "method": "PATCH"
+    }
+  ],
+  "syntheticPosts": [
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=fr",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=fr",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=fr",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=fr",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=en",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=en",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=en",
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket.data?lang=en",
+      "method": "POST"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:11599/support/synthetic-ticket?lang=en",
+      "documentRequest": true
+    }
+  ],
+  "errors": []
+}

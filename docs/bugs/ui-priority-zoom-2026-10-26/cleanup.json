@@ -1,0 +1,20 @@
+[
+  {
+    "origin": "server-origin.json",
+    "pid": 188380,
+    "port": 13599,
+    "expectedStartTicks": "2719948",
+    "actualStartTicks": "2719948",
+    "sent": "SIGTERM",
+    "connectCode": 111
+  },
+  {
+    "origin": "api-origin.json",
+    "pid": 188379,
+    "port": 6799,
+    "expectedStartTicks": "2719947",
+    "actualStartTicks": "2719947",
+    "sent": "SIGTERM",
+    "connectCode": 111
+  }
+]

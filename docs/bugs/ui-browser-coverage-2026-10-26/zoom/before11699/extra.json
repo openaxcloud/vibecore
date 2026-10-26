@@ -1,0 +1,1 @@
+{"/account/deletion": {"status": "none", "canCancel": false, "requestedAt": null, "purgeDueAt": null, "gracePeriodDays": 14, "scope": {"deleted": ["synthetic projects"], "retained": ["synthetic invoices"]}}, "/api/account/connections": {"connections": []}, "/auth/connections": {"connections": []}, "/api/account/reconnection-alerts": {"alerts": []}}

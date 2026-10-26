@@ -1,0 +1,201 @@
+{
+  "cases": [
+    {
+      "route": "forgot-password",
+      "lang": "fr",
+      "status": 503,
+      "feedback": "Impossible de lancer la réinitialisation du mot de passe. Réessayez.",
+      "rect": {
+        "x": 29,
+        "y": 454.75,
+        "width": 262,
+        "height": 75.625
+      }
+    },
+    {
+      "route": "forgot-password",
+      "lang": "fr",
+      "status": 200,
+      "feedback": "Si un compte correspond à cette adresse e-mail, nous venons d’envoyer les instructions de réinitialisation.",
+      "rect": {
+        "x": 29,
+        "y": 444.8125,
+        "width": 262,
+        "height": 95.5
+      }
+    },
+    {
+      "route": "reset-password",
+      "lang": "fr",
+      "status": 503,
+      "feedback": "Impossible de réinitialiser votre mot de passe. Demandez un nouveau lien ou réessayez.",
+      "rect": {
+        "x": 29,
+        "y": 359.71875,
+        "width": 262,
+        "height": 75.625
+      }
+    },
+    {
+      "route": "reset-password",
+      "lang": "fr",
+      "status": 200,
+      "feedback": "Votre mot de passe a été réinitialisé et vos sessions existantes ont été révoquées. Vous pouvez maintenant vous connecter.",
+      "rect": {
+        "x": 29,
+        "y": 359.71875,
+        "width": 262,
+        "height": 95.5
+      }
+    },
+    {
+      "route": "verify-email",
+      "lang": "fr",
+      "status": 503,
+      "feedback": "La vérification a échoué. Contrôlez le jeton ou demandez un nouvel e-mail.",
+      "rect": {
+        "x": 29,
+        "y": 395.609375,
+        "width": 262,
+        "height": 75.625
+      }
+    },
+    {
+      "route": "verify-email",
+      "lang": "fr",
+      "status": 200,
+      "feedback": "Adresse e-mail vérifiée. Vous pouvez fermer cet onglet et continuer à utiliser E-Code.",
+      "rect": {
+        "x": 29,
+        "y": 395.609375,
+        "width": 262,
+        "height": 75.625
+      }
+    },
+    {
+      "route": "forgot-password",
+      "lang": "en",
+      "status": 503,
+      "feedback": "Could not start the password reset. Please try again.",
+      "rect": {
+        "x": 29,
+        "y": 454.75,
+        "width": 262,
+        "height": 55.75
+      }
+    },
+    {
+      "route": "forgot-password",
+      "lang": "en",
+      "status": 200,
+      "feedback": "If an account exists for that email, we just sent reset instructions.",
+      "rect": {
+        "x": 29,
+        "y": 454.75,
+        "width": 262,
+        "height": 55.75
+      }
+    },
+    {
+      "route": "reset-password",
+      "lang": "en",
+      "status": 503,
+      "feedback": "Could not reset your password. Request a new link or try again.",
+      "rect": {
+        "x": 29,
+        "y": 301.515625,
+        "width": 262,
+        "height": 55.75
+      }
+    },
+    {
+      "route": "reset-password",
+      "lang": "en",
+      "status": 200,
+      "feedback": "Your password was reset and existing sessions were revoked. You can now sign in.",
+      "rect": {
+        "x": 29,
+        "y": 301.515625,
+        "width": 262,
+        "height": 75.625
+      }
+    },
+    {
+      "route": "verify-email",
+      "lang": "en",
+      "status": 503,
+      "feedback": "Verification failed. Check the token or request a new email.",
+      "rect": {
+        "x": 29,
+        "y": 406.25,
+        "width": 262,
+        "height": 55.75
+      }
+    },
+    {
+      "route": "verify-email",
+      "lang": "en",
+      "status": 200,
+      "feedback": "Email verified. You can close this tab and continue using E-Code.",
+      "rect": {
+        "x": 29,
+        "y": 406.25,
+        "width": 262,
+        "height": 55.75
+      }
+    }
+  ],
+  "posts": [
+    {
+      "path": "/forgot-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/forgot-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/reset-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/reset-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/verify-email.data",
+      "method": "POST"
+    },
+    {
+      "path": "/verify-email.data",
+      "method": "POST"
+    },
+    {
+      "path": "/forgot-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/forgot-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/reset-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/reset-password.data",
+      "method": "POST"
+    },
+    {
+      "path": "/verify-email.data",
+      "method": "POST"
+    },
+    {
+      "path": "/verify-email.data",
+      "method": "POST"
+    }
+  ],
+  "blocked": [],
+  "errors": [],
+  "syntheticOnly": true
+}

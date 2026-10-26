@@ -1,0 +1,1000 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx (6 tests | 6 failed) 2276ms
+   × support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation 134ms
+     → Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation 33ms
+     → Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > retains the draft across locale-query GET revalidation 25ms
+     → Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit 1025ms
+     → Unable to find role="dialog"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies 1030ms
+     → Unable to find role="dialog"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > clears a reply only after successful redirect and reload 27ms
+     → Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation
+TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:30:19
+     28|     const {router,field}=await setup(() => data({errorCode: status===4…
+     29|     type(field); submit(field); await waitFor(()=>expect(router.state.…
+     30|     expect(screen.getByRole('textbox')).toHaveValue(draft);
+       |                   ^
+     31|     await act(async()=>next.resolve(fixture())); await waitFor(()=>exp…
+     32|     expect(screen.getByRole('textbox')).toHaveValue(draft);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > retains the draft across locale-query GET revalidation
+TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:38:19
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit
+TestingLibraryElementError: Unable to find role="dialog"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:42:92
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies
+TestingLibraryElementError: Unable to find role="dialog"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p>[39m
+      [0mTicket list[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ waitForWrapper ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:47:92
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > clears a reply only after successful redirect and reload
+TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:53:160
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  01:32:25
+   Duration  4.80s (transform 1.11s, setup 19ms, collect 401ms, tests 2.28s, environment 269ms, prepare 54ms)

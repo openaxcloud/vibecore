@@ -1,0 +1,2574 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-26",
+  "historicalReference": "../ui-coverage-2026-10-26/panels.json",
+  "historicalSha256": "afaf77300e7fecfa3572788e3978035f7b9b71b5e17610a9fdcaab0863ea7eb8",
+  "historicalBase": "1714415cb44fc5e1a377afc85601d2a2c0d696eb",
+  "localSafeContentCommit": "64917980",
+  "method": "Exact baseline IDs retained; source imports and instance receipts inspected. No new browser/tests for this documentation; no source/index/old README change.",
+  "summary": {
+    "unitIDs": 151,
+    "historicallyPartiallyExercised": 14,
+    "currentlyPartiallyExercised": 14,
+    "unitsWithNewTargetedEvidence": 3,
+    "newlyEstablishedUnitIDs": 0,
+    "notEstablished": 137,
+    "productionAccepted": 0
+  },
+  "evidenceGroups": [
+    {
+      "id": "switcher-dialog10599",
+      "unitIDs": [
+        "shared:Dialog"
+      ],
+      "instance": "Dialogue de création organization-switcher, aucune soumission",
+      "version": "10599",
+      "paths": [
+        "docs/bugs/ui-coverage-2026-10-26/organization-after10599/README.md",
+        "docs/bugs/ui-coverage-2026-10-26/organization-after10599/interactions.json",
+        "docs/bugs/ui-coverage-2026-10-26/organization-after10599/supplement.json"
+      ],
+      "scope": "Brouillon et resize, Tab/Escape ; quatre fermetures depuis vrai bouton (Escape, Annuler, Fermer, fond) avec restitution du focus.",
+      "limits": "Les48géométries/8groupes du reçu couvrent trois routes, pas48tests de ce dialogue. Entrée directe?create=1 sans vrai ouvreur non couverte. Pas validation de tous consommateurs Dialog."
+    },
+    {
+      "id": "appshell-header-menu10999",
+      "unitIDs": [
+        "shared:AppShell"
+      ],
+      "instance": "TopBar et MobileSidebarDrawer de SaaSLayout",
+      "version": "10999",
+      "paths": [
+        "docs/bugs/ui-coverage-2026-10-26/safeareas/after10999/README.md",
+        "docs/bugs/ui-coverage-2026-10-26/safeareas/after10999/results.json",
+        "docs/bugs/ui-coverage-2026-10-26/safeareas/after10999/zero-insets.json"
+      ],
+      "scope": "8simulations safeareas FRclair Security/Switcher sur4formats ;32observations header sansinset sur8formats×FR/EN×thèmes,16ouverturesmenu/Escape/focus.",
+      "limits": "SimulationCDP, pas iOS matériel ; header/menu seulement, aucun succès API permissions. AppShell mobile/tablette sans barre basse préexistante : demande globale ouverte."
+    },
+    {
+      "id": "dialog-shell-scroll11099",
+      "unitIDs": [
+        "shared:Dialog",
+        "shared:AppShell"
+      ],
+      "instance": "Switcher et Security, FRclair844×390",
+      "version": "11099",
+      "paths": [
+        "docs/bugs/ui-coverage-2026-10-26/safeareas/after11099/README.md",
+        "docs/bugs/ui-coverage-2026-10-26/safeareas/after11099/compiled.json"
+      ],
+      "scope": "Switcher dialogue sûr/Escape/focus ; Security wheel/PageDown et récupération du champ aprèsresize, headercontenu.",
+      "limits": "ChampSecurityx43<safe47 àcebuild, traité horizontalement11399 séparément. Ce complément ne rejoue pas8+32header10999 ni48org10599."
+    },
+    {
+      "id": "public-sheet11099",
+      "unitIDs": [
+        "shared:EcodeExactPublicNavbar"
+      ],
+      "instance": "Sheet/menu public sur /account-inactivity",
+      "version": "11099",
+      "paths": [
+        "docs/bugs/ui-coverage-2026-10-26/account-inactivity/after11099/README.md",
+        "docs/bugs/ui-coverage-2026-10-26/account-inactivity/after11099/receipt.json"
+      ],
+      "scope": "4groupes FR/EN×clair/sombre844×390 : ouverturemenu, fond verrouillé malgréwheel, Escape/focusau déclencheur et reprisescroll.",
+      "limits": "Pas transfert à tous menus publics ni à une primitive Sheet inexistante dans les151IDs. Focusmailto aprèsresize peut rester horsvue ; pas activationmail/backend."
+    },
+    {
+      "id": "appshell-safecontent11399",
+      "unitIDs": [
+        "shared:AppShell",
+        "shared:Dialog"
+      ],
+      "instance": "Wrapper contenu AppShell et dialogue Switcher rencontré dans parcours",
+      "version": "11399, commitlocal64917980",
+      "paths": [
+        "docs/bugs/ui-safe-content-2026-10-26/README.md",
+        "docs/bugs/ui-safe-content-2026-10-26/after11399/matrix.json",
+        "docs/bugs/ui-safe-content-2026-10-26/after11399/interactions.json",
+        "docs/bugs/ui-safe-content-2026-10-26/after11399/shared-sidebars.json"
+      ],
+      "scope": "32cas contenuSecurity FR/EN×thèmes×4formats×insetsnuls/simulés ;4paysagechampx43→69,28autresgéométriesinchangées.4groupes resizebrouillon/menuEscape/SwitcherEscape/Retour ;8états sidebar1024/1440 ouverte/repliée×insets0/47 ; gardesSIEM320 etpadding0projects/new.",
+      "limits": "Header inchangé ; preuve horizontale seulement. Focus aprèsresize peut toucher bas390 au lieu safe369 : visibilitéverticale non garantie. Exceptioncustomcontentprojects/new conservée, pas certificationsafearea de cettepage. Aucun accès/connexionSIEM créé."
+    }
+  ],
+  "unmatchedEvidence": [
+    {
+      "proof": "docs/bugs/ui-coverage-2026-10-26/safeareas/after11099/ide-selector.json",
+      "readme": "docs/bugs/ui-coverage-2026-10-26/safeareas/after11099/README.md",
+      "scope": "Real mounted synthetic projectIDE shell: HTML/BODY lock retained, bottomnav visible844×390,y318→390,height72.",
+      "candidateID": "ide-overlay:mobile-nav",
+      "decision": "Do not promote: baseline ID describes mobile tools sheet/tab switcher, no opener/state recipe for these overlays. Bottombar alone is not exact unit. No newID invented.",
+      "limits": "Memory/conversation fixture incomplete; runtimeWebSocket/thirdparties blocked; no agent/engine/backend acceptance. Legacy/chat302→/ not interactivelegacyproof."
+    }
+  ],
+  "globalLimits": [
+    "151 units are not additional routes or a count of unique journeys; repeated phases/instances are nonadditive.",
+    "Partial only: no wholepanel, permission, engine, API or production functional acceptance.",
+    "LocalChromium/synthetic fixtures; no Safari/Firefox, hardware safeareas, OSkeyboard, screenreader or dynamiczoom evidence added.",
+    "CI/rollout/main tracked separately; localcommit and compiledreceipt do not certify production.",
+    "No AppShell bottomnavigation in observed routes; historical user request remains open despite IDE bottomnav proof.",
+    "Existing shared:AppShell baseline sourceReference points app/root.tsx; actual instance inspected here is AppShell/TopBar/MobileSidebarDrawer in app/components/dashboard/SaaSLayout.tsx. Baseline preserved, no assertion all root state exercised."
+  ],
+  "units": [
+    {
+      "id": "ide:agent",
+      "group": "ide",
+      "label": "BaseChat",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:editor",
+      "group": "ide",
+      "label": "EditorAdapter",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 45,
+        "note": "Imported from @vibecore/editor; package adapter, not locally declared."
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:preview",
+      "group": "ide",
+      "label": "Preview",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "ide-publish-preview"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/workbench/Preview.tsx",
+        "line": 725
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:files",
+      "group": "ide",
+      "label": "ProjectFilesTool",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 13396
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:search",
+      "group": "ide",
+      "label": "Search",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/workbench/Search.tsx",
+        "line": 44
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:locks",
+      "group": "ide",
+      "label": "LockManager",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/workbench/LockManager.tsx",
+        "line": 47
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:overview",
+      "group": "ide",
+      "label": "ProjectOverviewPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/project-ide/ProjectOverviewPanel.tsx",
+        "line": 366
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:studio",
+      "group": "ide",
+      "label": "ProjectAgentStudioPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 19632
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:problems",
+      "group": "ide",
+      "label": "ProjectProblemsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 12591
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:database",
+      "group": "ide",
+      "label": "ProjectDatabasePanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 22085
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:object-storage",
+      "group": "ide",
+      "label": "ProjectObjectStoragePanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 17383
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:packages",
+      "group": "ide",
+      "label": "ProjectPackagesPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 18993
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:skills",
+      "group": "ide",
+      "label": "ProjectSkillsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 18268
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:monitoring",
+      "group": "ide",
+      "label": "ProjectMonitoringPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 19992
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:ports",
+      "group": "ide",
+      "label": "ProjectPortsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 19260
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:extensions",
+      "group": "ide",
+      "label": "ProjectExtensionsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 20349
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:integrations",
+      "group": "ide",
+      "label": "ProjectIntegrationsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 21212
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:workflows",
+      "group": "ide",
+      "label": "ProjectWorkflowsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 20575
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:debugger",
+      "group": "ide",
+      "label": "ProjectDebuggerPanel",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "ide-debugger"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 23020
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:deployments",
+      "group": "ide",
+      "label": "ProjectDeploymentsPanel",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "ide-publish-preview"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 23879
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:security",
+      "group": "ide",
+      "label": "ProjectSecurityPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 22235
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:env",
+      "group": "ide",
+      "label": "ProjectEnvPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 21765
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:secrets",
+      "group": "ide",
+      "label": "ProjectSecretsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/ProjectSecretsPanel.tsx",
+        "line": 60
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:git",
+      "group": "ide",
+      "label": "GitTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/git/GitTab.tsx",
+        "line": 493
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:activity",
+      "group": "ide",
+      "label": "ProjectActivityPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 15447
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:terminal",
+      "group": "ide",
+      "label": "ProjectInteractiveTerminalPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 12721
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:logs",
+      "group": "ide",
+      "label": "ProjectLogsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 23388
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:collaborators",
+      "group": "ide",
+      "label": "ProjectIdeServicePanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 11635
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:domains",
+      "group": "ide",
+      "label": "LegacyDomainsServicePanel",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "ide-domains"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 11652
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:snapshots",
+      "group": "ide",
+      "label": "ProjectIdeServicePanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 11635
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide:settings",
+      "group": "ide",
+      "label": "ProjectSettingsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 15814
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:overview",
+      "group": "admin_web",
+      "label": "OverviewPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 1610
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:health",
+      "group": "admin_web",
+      "label": "HealthPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 1640
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:monitoring",
+      "group": "admin_web",
+      "label": "MonitoringPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 1825
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:users",
+      "group": "admin_web",
+      "label": "UsersPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2542
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:organizations",
+      "group": "admin_web",
+      "label": "OrganizationsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 5880
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:projects",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:workspaces",
+      "group": "admin_web",
+      "label": "WorkspacesPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 4738
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:infrastructure",
+      "group": "admin_web",
+      "label": "InfrastructurePanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/admin/InfrastructurePanel.tsx",
+        "line": 159
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:terminals",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:previews",
+      "group": "admin_web",
+      "label": "PreviewsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 4908
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:deployments",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:usage",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:ai-usage",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:provider-health",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:quotas",
+      "group": "admin_web",
+      "label": "QuotaOverridePanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 4169
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:abuse-events",
+      "group": "admin_web",
+      "label": "AbuseEventsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 5148
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:security-events",
+      "group": "admin_web",
+      "label": "SecurityEventsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 5368
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:audit-logs",
+      "group": "admin_web",
+      "label": "AuditLogsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 6055
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:admin-audit-logs",
+      "group": "admin_web",
+      "label": "AuditLogsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 6055
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:support-tickets",
+      "group": "admin_web",
+      "label": "SupportTicketsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/admin/SupportTicketsPanel.tsx",
+        "line": 206
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:account-deletions",
+      "group": "admin_web",
+      "label": "AccountDeletionsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 5526
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:feature-flags",
+      "group": "admin_web",
+      "label": "ToggleListPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 3251
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:system-settings",
+      "group": "admin_web",
+      "label": "SystemSettingUpsertPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 4283
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:ops-controls",
+      "group": "admin_web",
+      "label": "OpsControlsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 4396
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:costs",
+      "group": "admin_web",
+      "label": "CostsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 5676
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:ai-provider-keys",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:providers",
+      "group": "admin_web",
+      "label": "ProvidersPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2999
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:models",
+      "group": "admin_web",
+      "label": "ToggleListPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 3251
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:oauth-providers",
+      "group": "admin_web",
+      "label": "OauthProvidersPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 4030
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:wallets",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:checkpoints",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:stripe-health",
+      "group": "admin_web",
+      "label": "DataPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 2484
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:mcp-catalog",
+      "group": "admin_web",
+      "label": "McpCatalogPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 3339
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-web:developer-tools",
+      "group": "admin_web",
+      "label": "DeveloperToolsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.$section.tsx",
+        "line": 1485
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-route:billing",
+      "group": "admin_explicit_route",
+      "label": "billing",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.billing.tsx",
+        "line": 222
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-route:stripe",
+      "group": "admin_explicit_route",
+      "label": "stripe",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.stripe.tsx",
+        "line": 258
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-route:wallets",
+      "group": "admin_explicit_route",
+      "label": "wallets",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.wallets.tsx",
+        "line": 428
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-route:oauth-providers",
+      "group": "admin_explicit_route",
+      "label": "oauth-providers",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/routes/admin.oauth-providers.tsx",
+        "line": 386
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:overview",
+      "group": "admin_standalone",
+      "label": "Overview",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 543
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:users",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:organizations",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:projects",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:workspaces",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:terminals",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:previews",
+      "group": "admin_standalone",
+      "label": "PreviewsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 692
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:deployments",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:billing",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:usage",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:ai-usage",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:credit-wallets",
+      "group": "admin_standalone",
+      "label": "CreditWalletsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 148
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:agent-routing",
+      "group": "admin_standalone",
+      "label": "AgentRoutingPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 2034
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:ai-models",
+      "group": "admin_standalone",
+      "label": "AiModelsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 546
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:agent-checkpoints",
+      "group": "admin_standalone",
+      "label": "CheckpointsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 1185
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:provider-health",
+      "group": "admin_standalone",
+      "label": "ProvidersPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 1389
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:quotas",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:abuse-events",
+      "group": "admin_standalone",
+      "label": "AbuseEventsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 863
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:security-events",
+      "group": "admin_standalone",
+      "label": "SecurityEventsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 1780
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:account-deletions",
+      "group": "admin_standalone",
+      "label": "AccountDeletionsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 390
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:audit-logs",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:admin-audit-logs",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:support-tickets",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:feature-flags",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:system-settings",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:kubernetes-health",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:queue-health",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:database-health",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:redis-health",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:costs",
+      "group": "admin_standalone",
+      "label": "CostsPanel",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/panels.tsx",
+        "line": 1005
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:announcements",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "admin-standalone:incident-banner",
+      "group": "admin_standalone",
+      "label": "App generic admin table",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "apps/admin/src/main.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:ProfileTab",
+      "group": "settings_overlay",
+      "label": "ProfileTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/profile/ProfileTab.tsx",
+        "line": 12
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:SettingsTab",
+      "group": "settings_overlay",
+      "label": "SettingsTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/settings/SettingsTab.tsx",
+        "line": 55
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:NotificationsTab",
+      "group": "settings_overlay",
+      "label": "NotificationsTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/notifications/NotificationsTab.tsx",
+        "line": 439
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:FeaturesTab",
+      "group": "settings_overlay",
+      "label": "FeaturesTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/features/FeaturesTab.tsx",
+        "line": 121
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:DataTab",
+      "group": "settings_overlay",
+      "label": "DataTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/data/DataTab.tsx",
+        "line": 107
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:EventLogsTab",
+      "group": "settings_overlay",
+      "label": "EventLogsTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/event-logs/EventLogsTab.tsx",
+        "line": 8
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:GitHubTab",
+      "group": "settings_overlay",
+      "label": "GitHubTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/github/GitHubTab.tsx",
+        "line": 40
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:GitLabTab",
+      "group": "settings_overlay",
+      "label": "GitLabTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/gitlab/GitLabTab.tsx",
+        "line": 57
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:SupabaseTab",
+      "group": "settings_overlay",
+      "label": "SupabaseTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/supabase/SupabaseTab.tsx",
+        "line": 36
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:VercelTab",
+      "group": "settings_overlay",
+      "label": "VercelTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/vercel/VercelTab.tsx",
+        "line": 47
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:NetlifyTab",
+      "group": "settings_overlay",
+      "label": "NetlifyTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/netlify/NetlifyTab.tsx",
+        "line": 42
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:CloudProvidersTab",
+      "group": "settings_overlay",
+      "label": "CloudProvidersTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/providers/cloud/CloudProvidersTab.tsx",
+        "line": 425
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:LocalProvidersTab",
+      "group": "settings_overlay",
+      "label": "LocalProvidersTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/providers/local/LocalProvidersTab.tsx",
+        "line": 29
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:McpTab",
+      "group": "settings_overlay",
+      "label": "McpTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/mcp/McpTab.tsx",
+        "line": 33
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:ConnectionsTab",
+      "group": "settings_overlay",
+      "label": "ConnectionsTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/connections/ConnectionsTab.tsx",
+        "line": 58
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:UpdateTab",
+      "group": "settings_overlay",
+      "label": "UpdateTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/update/UpdateTab.tsx",
+        "line": 47
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:DebugTab",
+      "group": "settings_overlay",
+      "label": "DebugTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/debug/DebugTab.tsx",
+        "line": 12
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:TaskManagerTab",
+      "group": "settings_overlay",
+      "label": "TaskManagerTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/task-manager/TaskManagerTab.tsx",
+        "line": 11
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "settings-overlay:ServiceStatusTab",
+      "group": "settings_overlay",
+      "label": "ServiceStatusTab",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/service-status/ServiceStatusTab.tsx",
+        "line": 14
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:ProjectGrid",
+      "group": "dashboard_navigation_dialog",
+      "label": "ProjectGrid",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "dashboard-grid"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "line": 1653
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:TemplateGallery",
+      "group": "dashboard_navigation_dialog",
+      "label": "TemplateGallery",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "templates"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "line": 1899
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:CommandPalettePreview",
+      "group": "dashboard_navigation_dialog",
+      "label": "CommandPalettePreview",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "palette"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "line": 2228
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:AppShell",
+      "group": "dashboard_navigation_dialog",
+      "label": "AppShell",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_local_targeted",
+      "historicalEvidenceIDs": [
+        "project-menu",
+        "account-dialog"
+      ],
+      "newEvidenceIDs": [
+        "appshell-header-menu10999",
+        "dialog-shell-scroll11099",
+        "appshell-safecontent11399"
+      ],
+      "sourceReference": {
+        "path": "app/root.tsx",
+        "line": 682
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:ProjectShell",
+      "group": "dashboard_navigation_dialog",
+      "label": "ProjectShell",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "line": 1532
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:StatGrid",
+      "group": "dashboard_navigation_dialog",
+      "label": "StatGrid",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "line": 1590
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:OnboardingChecklistCard",
+      "group": "dashboard_navigation_dialog",
+      "label": "OnboardingChecklistCard",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "line": 2018
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:ActivityList",
+      "group": "dashboard_navigation_dialog",
+      "label": "ActivityList",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/SaaSLayout.tsx",
+        "line": 2148
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:PendingInvitationsSection",
+      "group": "dashboard_navigation_dialog",
+      "label": "PendingInvitationsSection",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/PendingInvitationsSection.tsx",
+        "line": 32
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:ProductTour",
+      "group": "dashboard_navigation_dialog",
+      "label": "ProductTour",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/ProductTour.tsx",
+        "line": 268
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:ImpersonationBanner",
+      "group": "dashboard_navigation_dialog",
+      "label": "ImpersonationBanner",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/ImpersonationBanner.tsx",
+        "line": 44
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:ProjectCardMenu",
+      "group": "dashboard_navigation_dialog",
+      "label": "ProjectCardMenu",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "project-menu"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/dashboard/ProjectCardMenu.tsx",
+        "line": 45
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:WorkspaceSettings",
+      "group": "dashboard_navigation_dialog",
+      "label": "WorkspaceSettings",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "workspace"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/settings/WorkspaceSettings.tsx",
+        "line": 71
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:ConfirmationDialog",
+      "group": "dashboard_navigation_dialog",
+      "label": "ConfirmationDialog",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "project-menu",
+        "account-dialog",
+        "security-dialog"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/ui/Dialog.tsx",
+        "line": 304
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:Dialog",
+      "group": "dashboard_navigation_dialog",
+      "label": "Dialog",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_local_targeted",
+      "historicalEvidenceIDs": [
+        "account-dialog"
+      ],
+      "newEvidenceIDs": [
+        "switcher-dialog10599",
+        "dialog-shell-scroll11099",
+        "appshell-safecontent11399"
+      ],
+      "sourceReference": {
+        "path": "app/components/ui/Dialog.tsx",
+        "line": 150
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:Dropdown",
+      "group": "dashboard_navigation_dialog",
+      "label": "Dropdown",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_historical",
+      "historicalEvidenceIDs": [
+        "project-menu"
+      ],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/ui/Dropdown.tsx",
+        "line": 37
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:InputDialog",
+      "group": "dashboard_navigation_dialog",
+      "label": "InputDialog",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/ui/InputDialog.tsx",
+        "line": 75
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "shared:EcodeExactPublicNavbar",
+      "group": "dashboard_navigation_dialog",
+      "label": "EcodeExactPublicNavbar",
+      "historicalCoverageStatus": "partial_historical",
+      "currentCoverageStatus": "partial_local_targeted",
+      "historicalEvidenceIDs": [
+        "public-nav"
+      ],
+      "newEvidenceIDs": [
+        "public-sheet11099"
+      ],
+      "sourceReference": {
+        "path": "app/components/marketing/ecode-exact/EcodeExactShell.tsx",
+        "line": 258
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "modal:ColorSchemeDialog",
+      "group": "named_dialog_module",
+      "label": "ColorSchemeDialog",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/ui/ColorSchemeDialog.tsx",
+        "line": 18
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "modal:ExpoQrModal",
+      "group": "named_dialog_module",
+      "label": "ExpoQrModal",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/workbench/ExpoQrModal.tsx",
+        "line": 14
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "modal:GitLabDeploymentDialog",
+      "group": "named_dialog_module",
+      "label": "GitLabDeploymentDialog",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/deploy/GitLabDeploymentDialog.tsx",
+        "line": 30
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "modal:GitHubDeploymentDialog",
+      "group": "named_dialog_module",
+      "label": "GitHubDeploymentDialog",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/deploy/GitHubDeploymentDialog.tsx",
+        "line": 32
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "modal:GitHubAuthDialog",
+      "group": "named_dialog_module",
+      "label": "GitHubAuthDialog",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/github/components/GitHubAuthDialog.tsx",
+        "line": 24
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "modal:GitLabAuthDialog",
+      "group": "named_dialog_module",
+      "label": "GitLabAuthDialog",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/@settings/tabs/gitlab/components/GitLabAuthDialog.tsx",
+        "line": 45
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide-overlay:pane-layout",
+      "group": "ide_overlay",
+      "label": "Pane split/move/pin/floating context menus",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide-overlay:mobile-nav",
+      "group": "ide_overlay",
+      "label": "Mobile tools sheet and tab switcher",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide-overlay:right-panel",
+      "group": "ide_overlay",
+      "label": "Right preview-logs/problems/files",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide-overlay:share",
+      "group": "ide_overlay",
+      "label": "Share/collaboration dialogs",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide-overlay:rollback",
+      "group": "ide_overlay",
+      "label": "Agent checkpoint rollback confirmation",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide-overlay:editor-history",
+      "group": "ide_overlay",
+      "label": "EditorHistoryOverlay",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    },
+    {
+      "id": "ide-overlay:files-context",
+      "group": "ide_overlay",
+      "label": "Project file create/rename/delete dialogs",
+      "historicalCoverageStatus": "not_established",
+      "currentCoverageStatus": "not_established",
+      "historicalEvidenceIDs": [],
+      "newEvidenceIDs": [],
+      "sourceReference": {
+        "path": "app/components/chat/BaseChat.tsx",
+        "line": 2308
+      },
+      "productionAcceptance": "not_established",
+      "panelSpecificCIExecution": "not_established",
+      "scopeLimit": "Only explicitly cited instances/states; no shared-primitive or engine-wide inference."
+    }
+  ]
+}

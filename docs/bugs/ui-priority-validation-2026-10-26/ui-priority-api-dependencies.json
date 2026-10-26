@@ -1,0 +1,51 @@
+{
+  "isolatedDirectory": "/workspace/vibecore-ui-priority/services/api/node_modules",
+  "workspaceLinks": [
+    {
+      "name": "@e-code/sdk",
+      "target": "/workspace/vibecore-ui-priority/packages/sdk"
+    },
+    {
+      "name": "@vibecore/template-catalog",
+      "target": "/workspace/vibecore-ui-priority/packages/template-catalog"
+    },
+    {
+      "name": "@vibecore/k8s-client",
+      "target": "/workspace/vibecore-ui-priority/packages/k8s-client"
+    },
+    {
+      "name": "@vibecore/security",
+      "target": "/workspace/vibecore-ui-priority/packages/security"
+    },
+    {
+      "name": "@vibecore/quota",
+      "target": "/workspace/vibecore-ui-priority/packages/quota"
+    },
+    {
+      "name": "@vibecore/database",
+      "target": "/workspace/vibecore-ui-priority/packages/database"
+    },
+    {
+      "name": "@vibecore/audit",
+      "target": "/workspace/vibecore-ui-priority/packages/audit"
+    },
+    {
+      "name": "@vibecore/auth",
+      "target": "/workspace/vibecore-ui-priority/packages/auth"
+    },
+    {
+      "name": "@vibecore/rbac",
+      "target": "/workspace/vibecore-ui-priority/packages/rbac"
+    },
+    {
+      "name": "@vibecore/observability",
+      "target": "/workspace/vibecore-ui-priority/packages/observability"
+    },
+    {
+      "name": "@vibecore/billing",
+      "target": "/workspace/vibecore-ui-priority/packages/billing"
+    }
+  ],
+  "sharedDirectoryModified": false,
+  "installed": false
+}

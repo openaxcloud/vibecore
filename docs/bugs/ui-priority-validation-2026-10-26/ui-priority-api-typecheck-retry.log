@@ -1,0 +1,3 @@
+
+> @vibecore/api@ typecheck /workspace/vibecore-ui-priority/services/api
+> tsc --noEmit -p tsconfig.json

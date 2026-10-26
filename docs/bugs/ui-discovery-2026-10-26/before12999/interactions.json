@@ -1,0 +1,309 @@
+{
+  "groups": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "longSearch": {
+        "url": "http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=fr",
+        "doc": 320,
+        "viewport": 320
+      },
+      "resizeDraft": true,
+      "cleared": true,
+      "galleryDetail": "Les applications de la communauté — remixez-en une pour commencer",
+      "galleryBack": "http://127.0.0.1:12999/gallery/synthetic-gallery",
+      "helpEmpty": true,
+      "helpDoc": {
+        "width": 320,
+        "doc": 320
+      },
+      "helpRecovered": true,
+      "unknownPostDestination": "/community"
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "longSearch": {
+        "url": "http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=fr",
+        "doc": 320,
+        "viewport": 320
+      },
+      "resizeDraft": true,
+      "cleared": true,
+      "galleryDetail": "Les applications de la communauté — remixez-en une pour commencer",
+      "galleryBack": "http://127.0.0.1:12999/gallery/synthetic-gallery",
+      "helpEmpty": true,
+      "helpDoc": {
+        "width": 320,
+        "doc": 320
+      },
+      "helpRecovered": true,
+      "unknownPostDestination": "/community"
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "longSearch": {
+        "url": "http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=en",
+        "doc": 320,
+        "viewport": 320
+      },
+      "resizeDraft": true,
+      "cleared": true,
+      "galleryDetail": "Apps the community built — remix one to start",
+      "galleryBack": "http://127.0.0.1:12999/gallery/synthetic-gallery",
+      "helpEmpty": true,
+      "helpDoc": {
+        "width": 320,
+        "doc": 320
+      },
+      "helpRecovered": true,
+      "unknownPostDestination": "/community"
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "longSearch": {
+        "url": "http://127.0.0.1:12999/search?q=SyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuerySyntheticNoResultUnbrokenQuery&lang=en",
+        "doc": 320,
+        "viewport": 320
+      },
+      "resizeDraft": true,
+      "cleared": true,
+      "galleryDetail": "Apps the community built — remix one to start",
+      "galleryBack": "http://127.0.0.1:12999/gallery/synthetic-gallery",
+      "helpEmpty": true,
+      "helpDoc": {
+        "width": 320,
+        "doc": 320
+      },
+      "helpRecovered": true,
+      "unknownPostDestination": "/community"
+    }
+  ],
+  "counterproof": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "before": [
+        {
+          "tag": "H3",
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique Synth",
+          "client": 246,
+          "scroll": 287,
+          "width": 246,
+          "right": 283
+        },
+        {
+          "tag": "SPAN",
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithou",
+          "client": 936,
+          "scroll": 936,
+          "width": 935.9375,
+          "right": 972.9375
+        }
+      ],
+      "after": []
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "before": [
+        {
+          "tag": "H3",
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique Synth",
+          "client": 246,
+          "scroll": 287,
+          "width": 246,
+          "right": 283
+        },
+        {
+          "tag": "SPAN",
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithou",
+          "client": 936,
+          "scroll": 936,
+          "width": 935.9375,
+          "right": 972.9375
+        }
+      ],
+      "after": []
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "before": [
+        {
+          "tag": "H3",
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique Synth",
+          "client": 246,
+          "scroll": 287,
+          "width": 246,
+          "right": 283
+        },
+        {
+          "tag": "SPAN",
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithou",
+          "client": 936,
+          "scroll": 936,
+          "width": 935.9375,
+          "right": 972.9375
+        }
+      ],
+      "after": []
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "before": [
+        {
+          "tag": "H3",
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique Synth",
+          "client": 246,
+          "scroll": 287,
+          "width": 246,
+          "right": 283
+        },
+        {
+          "tag": "SPAN",
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithou",
+          "client": 936,
+          "scroll": 936,
+          "width": 935.9375,
+          "right": 972.9375
+        }
+      ],
+      "after": []
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}

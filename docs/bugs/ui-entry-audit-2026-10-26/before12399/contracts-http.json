@@ -1,0 +1,77 @@
+[
+  {
+    "path": "/account-data",
+    "status": 301,
+    "location": "/account-settings/data"
+  },
+  {
+    "path": "/connected-accounts",
+    "status": 301,
+    "location": "/account-settings/connected"
+  },
+  {
+    "path": "/onboarding?lang=fr",
+    "status": 302,
+    "location": "/dashboard?lang=fr"
+  },
+  {
+    "path": "/subscribe?plan=team&interval=yearly",
+    "status": 302,
+    "location": "/upgrade?plan=team&interval=annual"
+  },
+  {
+    "path": "/user/settings",
+    "status": 301,
+    "location": "/account-settings"
+  },
+  {
+    "path": "/synthetic-missing/deep/path",
+    "status": 404,
+    "location": null
+  },
+  {
+    "path": "/synthetic-missing",
+    "status": 404,
+    "location": null
+  },
+  {
+    "path": "/home",
+    "status": 200,
+    "location": null
+  },
+  {
+    "path": "/advanced/mobile",
+    "status": 200,
+    "location": null
+  },
+  {
+    "path": "/advanced/synthetic-missing",
+    "status": 404,
+    "location": null
+  },
+  {
+    "path": "/marketing/synthetic-missing",
+    "status": 404,
+    "location": null
+  },
+  {
+    "path": "/profile/synthetic-user",
+    "status": 404,
+    "location": null
+  },
+  {
+    "path": "/u/synthetic-user",
+    "status": 404,
+    "location": null
+  },
+  {
+    "path": "/u/synthetic-user/synthetic-project",
+    "status": 404,
+    "location": null
+  },
+  {
+    "path": "/user/synthetic-user",
+    "status": 404,
+    "location": null
+  }
+]

@@ -1,0 +1,16 @@
+fr /enterprise-sso-settings 503 browser reload
+fr /enterprise-sso-settings 403 browser reload
+fr /recovery-codes 503 keyboard retry
+fr /recovery-codes 403 keyboard retry
+fr /scim-token-settings 503 keyboard retry
+fr /scim-token-settings 403 browser reload
+fr /teams/synthetic-team 503 keyboard retry
+fr /teams/synthetic-team 403 browser reload
+en /enterprise-sso-settings 503 browser reload
+en /enterprise-sso-settings 403 browser reload
+en /recovery-codes 503 keyboard retry
+en /recovery-codes 403 keyboard retry
+en /scim-token-settings 503 keyboard retry
+en /scim-token-settings 403 browser reload
+en /teams/synthetic-team 503 keyboard retry
+en /teams/synthetic-team 403 browser reload

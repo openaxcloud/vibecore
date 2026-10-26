@@ -1,0 +1,22 @@
+[
+ {
+  "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+  "StartLine": 3,
+  "EndLine": 3,
+  "StartColumn": 28,
+  "EndColumn": 89,
+  "Match": "becore-ui-auth-next :REDACTED ",
+  "Secret": "REDACTED",
+  "File": "docs/bugs/ui-authentication-2026-10-26/contracts.md",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 3.787326,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "RuleID": "generic-api-key",
+  "Fingerprint": "docs/bugs/ui-authentication-2026-10-26/contracts.md:generic-api-key:3"
+ }
+]

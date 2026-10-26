@@ -1,0 +1,103 @@
+[
+  {
+    "expectedID": "routes/$",
+    "path": "/synthetic-missing/deep/path",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/$"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/$slug",
+    "path": "/synthetic-missing",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/$slug"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/$slug",
+    "path": "/home",
+    "status": 200,
+    "actual": [
+      "root",
+      "routes/$slug"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/advanced.$section",
+    "path": "/advanced/mobile",
+    "status": 200,
+    "actual": [
+      "root",
+      "routes/advanced.$section"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/advanced.$section",
+    "path": "/advanced/synthetic-missing",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/advanced.$section"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/marketing.$slug",
+    "path": "/marketing/synthetic-missing",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/marketing.$slug"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/profile.$username",
+    "path": "/profile/synthetic-user",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/profile.$username"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/u.$username",
+    "path": "/u/synthetic-user",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/u.$username"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/u.$username.$projectname",
+    "path": "/u/synthetic-user/synthetic-project",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/u.$username",
+      "routes/u.$username.$projectname"
+    ],
+    "matched": true
+  },
+  {
+    "expectedID": "routes/user.$username",
+    "path": "/user/synthetic-user",
+    "status": 404,
+    "actual": [
+      "root",
+      "routes/user.$username"
+    ],
+    "matched": true
+  }
+]

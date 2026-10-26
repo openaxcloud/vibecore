@@ -1,0 +1,775 @@
+{
+  "base": "http://127.0.0.1:13099",
+  "source": "fbb678704 common compiled build",
+  "observations": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "documentWidth": 320,
+      "card": {
+        "left": 16,
+        "right": 304
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "card": {
+        "left": 16,
+        "right": 374
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "card": {
+        "left": 24,
+        "right": 412
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "documentWidth": 820,
+      "card": {
+        "left": 24,
+        "right": 400
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "card": {
+        "left": 112,
+        "right": 504
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "documentWidth": 320,
+      "card": {
+        "left": 16,
+        "right": 304
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "card": {
+        "left": 16,
+        "right": 374
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "card": {
+        "left": 24,
+        "right": 412
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "documentWidth": 820,
+      "card": {
+        "left": 24,
+        "right": 400
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "card": {
+        "left": 112,
+        "right": 504
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "height": 740,
+      "documentWidth": 320,
+      "card": {
+        "left": 16,
+        "right": 304
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "card": {
+        "left": 16,
+        "right": 374
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "card": {
+        "left": 24,
+        "right": 412
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 820,
+      "height": 1180,
+      "documentWidth": 820,
+      "card": {
+        "left": 24,
+        "right": 400
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "card": {
+        "left": 112,
+        "right": 504
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "height": 740,
+      "documentWidth": 320,
+      "card": {
+        "left": 16,
+        "right": 304
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 283,
+          "width": 246,
+          "client": 246,
+          "scroll": 246,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "card": {
+        "left": 16,
+        "right": 374
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 37,
+          "right": 353,
+          "width": 316,
+          "client": 316,
+          "scroll": 316,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 844,
+      "height": 390,
+      "documentWidth": 844,
+      "card": {
+        "left": 24,
+        "right": 412
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 391,
+          "width": 346,
+          "client": 346,
+          "scroll": 346,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 820,
+      "height": 1180,
+      "documentWidth": 820,
+      "card": {
+        "left": 24,
+        "right": 400
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 45,
+          "right": 379,
+          "width": 334,
+          "client": 334,
+          "scroll": 334,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "card": {
+        "left": 112,
+        "right": 504
+      },
+      "elements": [
+        {
+          "text": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+          "tag": "H3",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "none"
+        },
+        {
+          "text": "SyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpacesSyntheticLongTagWithoutSpaces",
+          "tag": "SPAN",
+          "left": 133,
+          "right": 483,
+          "width": 350,
+          "client": 350,
+          "scroll": 350,
+          "overflowWrap": "anywhere",
+          "maxWidth": "100%"
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "via": "focused real link + Enter",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:13099/gallery?lang=fr",
+      "backCardVisible": true
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "via": "focused real link + Enter",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:13099/gallery?lang=fr",
+      "backCardVisible": true
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "via": "focused real link + Enter",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:13099/gallery?lang=en",
+      "backCardVisible": true
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "via": "focused real link + Enter",
+      "title": "Projet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpacesProjet synthétique SyntheticApplicationNameWithoutSpaces",
+      "backURL": "http://127.0.0.1:13099/gallery?lang=en",
+      "backCardVisible": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    }
+  ]
+}

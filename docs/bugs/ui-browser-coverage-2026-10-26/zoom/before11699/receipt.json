@@ -1,0 +1,58 @@
+{
+  "cases": [],
+  "interactions": [
+    {
+      "route": "/support/synthetic-ticket",
+      "lang": "fr",
+      "theme": "light",
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "scale": 1,
+        "scrollWidth": 1440
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "scale": 1,
+        "scrollWidth": 720
+      },
+      "resizePhysicalWidths": [
+        640,
+        1280,
+        1440
+      ],
+      "draftPreserved": true,
+      "focusDuringResize": true,
+      "guardEscapePreserved": true,
+      "dialogBox": {
+        "x": 12,
+        "y": 93.9609375,
+        "width": 296,
+        "height": 218.578125
+      }
+    }
+  ],
+  "writes": [],
+  "thirdParty": [
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  ],
+  "errors": [],
+  "processes": [
+    {
+      "pid": 170285,
+      "startTicks": "2373417",
+      "startedAt": "2026-10-26T02:00:54.412Z"
+    }
+  ],
+  "nativeZoomMethod": "Chromium settingsPrivate.setDefaultZoom(2), ephemeral profile; DPR2 and visualViewport.scale1 asserted"
+}

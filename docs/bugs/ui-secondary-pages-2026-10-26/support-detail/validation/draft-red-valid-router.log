@@ -1,0 +1,1260 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-safecontent
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx (6 tests | 6 failed) 2236ms
+   × support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation 1111ms
+     → expected 'idle' to be 'loading' // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/support"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m12 19-7-7 7-7"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M19 12H5"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mBack to support[0m
+        [36m</a>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto grid min-w-0 max-w-3xl gap-5"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-subject"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex min-w-0 flex-1 items-start gap-3"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-life-buoy h-4 w-4"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"10"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m4.93 4.93 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 9.17 4.24-4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 14.83 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m9.17 14.83-4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"4"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"min-w-0 flex-1"[39m
+                [36m>[39m
+                  [36m<h2[39m
+                    [33mclass[39m=[32m"break-words text-base font-semibold [overflow-wrap:anywhere]"[39m
+                    [33mdir[39m=[32m"auto"[39m
+                    [33mid[39m=[32m"support-ticket-subject"[39m
+                  [36m>[39m
+                    [0mSynthetic ticket[0m
+                  [36m</h2>[39m
+                  [36m<p[39m
+                    [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                  [36m>[39m
+                    [0mOther request[0m
+                    [0m ·[0m
+                    [0m [0m
+                    [0mRecorded[0m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-ring focus:ring-offset-2 bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] rounded-md px-2 py-1 text-xs font-medium max-w-full self-start whitespace-normal text-left"[39m
+              [36m>[39m
+                [0mOpen[0m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-conversation"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-wrap items-baseline justify-between gap-2"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"break-words text-sm font-semibold"[39m
+                [33mid[39m=[32m"support-ticket-conversation"[39m
+              [36m>[39m
+                [0mConversation[0m
+              [36m</h2>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+              [36m>[39m
+                [0m0 messages[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-5 flex min-w-0 items-start gap-3 rounded-lg bg-bolt-elements-background-depth-2 p-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-message-square h-4 w-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0"[39m
+              [36m>[39m
+                [36m<h3[39m
+                  [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+                [36m>[39m
+                  [0mNo replies yet[0m
+                [36m</h3>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                [36m>[39m
+                  [0mAdd a message below and the E-Code support team will follow up.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<div[39m
+            [33maria-live[39m=[32m"assertive"[39m
+            [33mclass[39m=[32m"break-words rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)] [overflow-wrap:anywhere]"[39m
+            [33mid[39m=[32m"support-ticket-reply-error"[39m
+            [33mrole[39m=[32m"alert"[39m
+          [36m>[39m
+            [0mYour message was not accepted. Check it and try again.[0m
+          [36m</div>[39m
+          [36m<form[39m
+            [33maction[39m=[32m"/support/ticket-1"[39m
+            [33mclass[39m=[32m"grid min-w-0 gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-5"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mmethod[39m=[32m"post"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+              [33mfor[39m=[32m"ticket-reply"[39m
+            [36m>[39m
+              [0mYour message[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33maria-describedby[39m=[32m"support-ticket-reply-count support-ticket-reply-error"[39m
+              [33maria-invalid[39m=[32m"true"[39m
+              [33mclass[39m=[32m"min-h-28 w-full min-w-0 resize-y rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm outline-none placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:ring-2 focus:ring-bolt-elements-borderColorActive"[39m
+              [33mid[39m=[32m"ticket-reply"[39m
+              [33mmaxlength[39m=[32m"10000"[39m
+              [33mname[39m=[32m"body"[39m
+              [33mplaceholder[39m=[32m"Add a reply…"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mrows[39m=[32m"5"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"[39m
+            [36m>[39m
+              [36m<p[39m
+                [33maria-live[39m=[32m"polite"[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+                [33mid[39m=[32m"support-ticket-reply-count"[39m
+              [36m>[39m
+                [0m38 / 10,000 characters[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4 py-2 min-h-[44px] w-full whitespace-normal px-4 py-2 sm:w-auto"[39m
+                [33mdata-size[39m=[32m"default"[39m
+                [33mdata-variant[39m=[32m"default"[39m
+                [33mdata-vc-button[39m=[32m"true"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mSend message[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+        [36m</div>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+   × support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation 1024ms
+     → expected 'idle' to be 'loading' // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/support"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m12 19-7-7 7-7"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M19 12H5"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mBack to support[0m
+        [36m</a>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto grid min-w-0 max-w-3xl gap-5"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-subject"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex min-w-0 flex-1 items-start gap-3"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-life-buoy h-4 w-4"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"10"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m4.93 4.93 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 9.17 4.24-4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 14.83 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m9.17 14.83-4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"4"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"min-w-0 flex-1"[39m
+                [36m>[39m
+                  [36m<h2[39m
+                    [33mclass[39m=[32m"break-words text-base font-semibold [overflow-wrap:anywhere]"[39m
+                    [33mdir[39m=[32m"auto"[39m
+                    [33mid[39m=[32m"support-ticket-subject"[39m
+                  [36m>[39m
+                    [0mSynthetic ticket[0m
+                  [36m</h2>[39m
+                  [36m<p[39m
+                    [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                  [36m>[39m
+                    [0mOther request[0m
+                    [0m ·[0m
+                    [0m [0m
+                    [0mRecorded[0m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-ring focus:ring-offset-2 bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] rounded-md px-2 py-1 text-xs font-medium max-w-full self-start whitespace-normal text-left"[39m
+              [36m>[39m
+                [0mOpen[0m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-conversation"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-wrap items-baseline justify-between gap-2"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"break-words text-sm font-semibold"[39m
+                [33mid[39m=[32m"support-ticket-conversation"[39m
+              [36m>[39m
+                [0mConversation[0m
+              [36m</h2>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+              [36m>[39m
+                [0m0 messages[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-5 flex min-w-0 items-start gap-3 rounded-lg bg-bolt-elements-background-depth-2 p-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-message-square h-4 w-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0"[39m
+              [36m>[39m
+                [36m<h3[39m
+                  [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+                [36m>[39m
+                  [0mNo replies yet[0m
+                [36m</h3>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                [36m>[39m
+                  [0mAdd a message below and the E-Code support team will follow up.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<div[39m
+            [33maria-live[39m=[32m"assertive"[39m
+            [33mclass[39m=[32m"break-words rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)] [overflow-wrap:anywhere]"[39m
+            [33mid[39m=[32m"support-ticket-reply-error"[39m
+            [33mrole[39m=[32m"alert"[39m
+          [36m>[39m
+            [0mYour message could not be sent. Try again later.[0m
+          [36m</div>[39m
+          [36m<form[39m
+            [33maction[39m=[32m"/support/ticket-1"[39m
+            [33mclass[39m=[32m"grid min-w-0 gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-5"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mmethod[39m=[32m"post"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+              [33mfor[39m=[32m"ticket-reply"[39m
+            [36m>[39m
+              [0mYour message[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33maria-describedby[39m=[32m"support-ticket-reply-count support-ticket-reply-error"[39m
+              [33maria-invalid[39m=[32m"true"[39m
+              [33mclass[39m=[32m"min-h-28 w-full min-w-0 resize-y rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm outline-none placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:ring-2 focus:ring-bolt-elements-borderColorActive"[39m
+              [33mid[39m=[32m"ticket-reply"[39m
+              [33mmaxlength[39m=[32m"10000"[39m
+              [33mname[39m=[32m"body"[39m
+              [33mplaceholder[39m=[32m"Add a reply…"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mrows[39m=[32m"5"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"[39m
+            [36m>[39m
+              [36m<p[39m
+                [33maria-live[39m=[32m"polite"[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+                [33mid[39m=[32m"support-ticket-reply-count"[39m
+              [36m>[39m
+                [0m38 / 10,000 characters[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4 py-2 min-h-[44px] w-full whitespace-normal px-4 py-2 sm:w-auto"[39m
+                [33mdata-size[39m=[32m"default"[39m
+                [33mdata-variant[39m=[32m"default"[39m
+                [33mdata-vc-button[39m=[32m"true"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mSend message[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+        [36m</div>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+   × support reply navigation with a real data router > retains the draft across locale-query GET revalidation 39ms
+     → Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   × support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit 26ms
+     → Invalid Chai property: toBeInTheDocument
+   × support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies 18ms
+     → Invalid Chai property: toBeVisible
+   × support reply navigation with a real data router > clears a reply only after successful redirect and reload 17ms
+     → Invalid Chai property: toHaveValue
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 400 and delayed loader revalidation
+AssertionError: expected 'idle' to be 'loading' // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/support"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m12 19-7-7 7-7"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M19 12H5"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mBack to support[0m
+        [36m</a>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto grid min-w-0 max-w-3xl gap-5"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-subject"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex min-w-0 flex-1 items-start gap-3"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-life-buoy h-4 w-4"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"10"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m4.93 4.93 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 9.17 4.24-4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 14.83 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m9.17 14.83-4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"4"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"min-w-0 flex-1"[39m
+                [36m>[39m
+                  [36m<h2[39m
+                    [33mclass[39m=[32m"break-words text-base font-semibold [overflow-wrap:anywhere]"[39m
+                    [33mdir[39m=[32m"auto"[39m
+                    [33mid[39m=[32m"support-ticket-subject"[39m
+                  [36m>[39m
+                    [0mSynthetic ticket[0m
+                  [36m</h2>[39m
+                  [36m<p[39m
+                    [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                  [36m>[39m
+                    [0mOther request[0m
+                    [0m ·[0m
+                    [0m [0m
+                    [0mRecorded[0m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-ring focus:ring-offset-2 bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] rounded-md px-2 py-1 text-xs font-medium max-w-full self-start whitespace-normal text-left"[39m
+              [36m>[39m
+                [0mOpen[0m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-conversation"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-wrap items-baseline justify-between gap-2"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"break-words text-sm font-semibold"[39m
+                [33mid[39m=[32m"support-ticket-conversation"[39m
+              [36m>[39m
+                [0mConversation[0m
+              [36m</h2>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+              [36m>[39m
+                [0m0 messages[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-5 flex min-w-0 items-start gap-3 rounded-lg bg-bolt-elements-background-depth-2 p-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-message-square h-4 w-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0"[39m
+              [36m>[39m
+                [36m<h3[39m
+                  [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+                [36m>[39m
+                  [0mNo replies yet[0m
+                [36m</h3>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                [36m>[39m
+                  [0mAdd a message below and the E-Code support team will follow up.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<div[39m
+            [33maria-live[39m=[32m"assertive"[39m
+            [33mclass[39m=[32m"break-words rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)] [overflow-wrap:anywhere]"[39m
+            [33mid[39m=[32m"support-ticket-reply-error"[39m
+            [33mrole[39m=[32m"alert"[39m
+          [36m>[39m
+            [0mYour message was not accepted. Check it and try again.[0m
+          [36m</div>[39m
+          [36m<form[39m
+            [33maction[39m=[32m"/support/ticket-1"[39m
+            [33mclass[39m=[32m"grid min-w-0 gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-5"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mmethod[39m=[32m"post"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+              [33mfor[39m=[32m"ticket-reply"[39m
+            [36m>[39m
+              [0mYour message[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33maria-describedby[39m=[32m"support-ticket-reply-count support-ticket-reply-error"[39m
+              [33maria-invalid[39m=[32m"true"[39m
+              [33mclass[39m=[32m"min-h-28 w-full min-w-0 resize-y rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm outline-none placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:ring-2 focus:ring-bolt-elements-borderColorActive"[39m
+              [33mid[39m=[32m"ticket-reply"[39m
+              [33mmaxlength[39m=[32m"10000"[39m
+              [33mname[39m=[32m"body"[39m
+              [33mplaceholder[39m=[32m"Add a reply…"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mrows[39m=[32m"5"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"[39m
+            [36m>[39m
+              [36m<p[39m
+                [33maria-live[39m=[32m"polite"[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+                [33mid[39m=[32m"support-ticket-reply-count"[39m
+              [36m>[39m
+                [0m38 / 10,000 characters[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4 py-2 min-h-[44px] w-full whitespace-normal px-4 py-2 sm:w-auto"[39m
+                [33mdata-size[39m=[32m"default"[39m
+                [33mdata-variant[39m=[32m"default"[39m
+                [33mdata-vc-button[39m=[32m"true"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mSend message[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+        [36m</div>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+Expected: "loading"
+Received: "idle"
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:28:89
+     26|     const next = deferred<ReturnType<typeof fixture>>();
+     27|     const {router,field}=await setup(() => data({errorCode: status===4…
+     28|     type(field); submit(field); await waitFor(()=>expect(router.state.…
+       |                                                                                         ^
+     29|     expect(screen.getByRole('textbox')).toHaveValue(draft);
+     30|     await act(async()=>next.resolve(fixture())); await waitFor(()=>exp…
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > preserves draft after action 503 and delayed loader revalidation
+AssertionError: expected 'idle' to be 'loading' // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<main>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/support"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m12 19-7-7 7-7"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M19 12H5"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mBack to support[0m
+        [36m</a>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto grid min-w-0 max-w-3xl gap-5"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-subject"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex min-w-0 flex-1 items-start gap-3"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-life-buoy h-4 w-4"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"10"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m4.93 4.93 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 9.17 4.24-4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m14.83 14.83 4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"m9.17 14.83-4.24 4.24"[39m
+                    [36m/>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"4"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"min-w-0 flex-1"[39m
+                [36m>[39m
+                  [36m<h2[39m
+                    [33mclass[39m=[32m"break-words text-base font-semibold [overflow-wrap:anywhere]"[39m
+                    [33mdir[39m=[32m"auto"[39m
+                    [33mid[39m=[32m"support-ticket-subject"[39m
+                  [36m>[39m
+                    [0mSynthetic ticket[0m
+                  [36m</h2>[39m
+                  [36m<p[39m
+                    [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                  [36m>[39m
+                    [0mOther request[0m
+                    [0m ·[0m
+                    [0m [0m
+                    [0mRecorded[0m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"inline-flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-ring focus:ring-offset-2 bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] rounded-md px-2 py-1 text-xs font-medium max-w-full self-start whitespace-normal text-left"[39m
+              [36m>[39m
+                [0mOpen[0m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33maria-labelledby[39m=[32m"support-ticket-conversation"[39m
+            [33mclass[39m=[32m"min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 sm:p-5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-wrap items-baseline justify-between gap-2"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"break-words text-sm font-semibold"[39m
+                [33mid[39m=[32m"support-ticket-conversation"[39m
+              [36m>[39m
+                [0mConversation[0m
+              [36m</h2>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+              [36m>[39m
+                [0m0 messages[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-5 flex min-w-0 items-start gap-3 rounded-lg bg-bolt-elements-background-depth-2 p-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-message-square h-4 w-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0"[39m
+              [36m>[39m
+                [36m<h3[39m
+                  [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+                [36m>[39m
+                  [0mNo replies yet[0m
+                [36m</h3>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"mt-1 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]"[39m
+                [36m>[39m
+                  [0mAdd a message below and the E-Code support team will follow up.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<div[39m
+            [33maria-live[39m=[32m"assertive"[39m
+            [33mclass[39m=[32m"break-words rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)] [overflow-wrap:anywhere]"[39m
+            [33mid[39m=[32m"support-ticket-reply-error"[39m
+            [33mrole[39m=[32m"alert"[39m
+          [36m>[39m
+            [0mYour message could not be sent. Try again later.[0m
+          [36m</div>[39m
+          [36m<form[39m
+            [33maction[39m=[32m"/support/ticket-1"[39m
+            [33mclass[39m=[32m"grid min-w-0 gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-5"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mmethod[39m=[32m"post"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mclass[39m=[32m"break-words text-sm font-medium"[39m
+              [33mfor[39m=[32m"ticket-reply"[39m
+            [36m>[39m
+              [0mYour message[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33maria-describedby[39m=[32m"support-ticket-reply-count support-ticket-reply-error"[39m
+              [33maria-invalid[39m=[32m"true"[39m
+              [33mclass[39m=[32m"min-h-28 w-full min-w-0 resize-y rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm outline-none placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:ring-2 focus:ring-bolt-elements-borderColorActive"[39m
+              [33mid[39m=[32m"ticket-reply"[39m
+              [33mmaxlength[39m=[32m"10000"[39m
+              [33mname[39m=[32m"body"[39m
+              [33mplaceholder[39m=[32m"Add a reply…"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mrows[39m=[32m"5"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"[39m
+            [36m>[39m
+              [36m<p[39m
+                [33maria-live[39m=[32m"polite"[39m
+                [33mclass[39m=[32m"break-words text-xs text-bolt-elements-textTertiary"[39m
+                [33mid[39m=[32m"support-ticket-reply-count"[39m
+              [36m>[39m
+                [0m38 / 10,000 characters[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33maria-busy[39m=[32m"false"[39m
+                [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4 py-2 min-h-[44px] w-full whitespace-normal px-4 py-2 sm:w-auto"[39m
+                [33mdata-size[39m=[32m"default"[39m
+                [33mdata-variant[39m=[32m"default"[39m
+                [33mdata-vc-button[39m=[32m"true"[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mSend message[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+        [36m</div>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+Expected: "loading"
+Received: "idle"
+
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:28:89
+     26|     const next = deferred<ReturnType<typeof fixture>>();
+     27|     const {router,field}=await setup(() => data({errorCode: status===4…
+     28|     type(field); submit(field); await waitFor(()=>expect(router.state.…
+       |                                                                                         ^
+     29|     expect(screen.getByRole('textbox')).toHaveValue(draft);
+     30|     await act(async()=>next.resolve(fixture())); await waitFor(()=>exp…
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > retains the draft across locale-query GET revalidation
+TestingLibraryElementError: Unable to find an accessible element with the role "textbox"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main />[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Back to support":
+  [36m<a[39m
+    [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/support"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "Loading support conversation":
+  [36m<section[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"Loading support conversation"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"mb-5 inline-flex min-h-[44px] max-w-full items-center gap-2 break-words rounded-md px-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] [overflow-wrap:anywhere]"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/support"[39m
+      [36m>[39m
+        [36m<svg[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"lucide lucide-arrow-left h-4 w-4 shrink-0"[39m
+          [33mfill[39m=[32m"none"[39m
+          [33mheight[39m=[32m"24"[39m
+          [33mstroke[39m=[32m"currentColor"[39m
+          [33mstroke-linecap[39m=[32m"round"[39m
+          [33mstroke-linejoin[39m=[32m"round"[39m
+          [33mstroke-width[39m=[32m"2"[39m
+          [33mviewBox[39m=[32m"0 0 24 24"[39m
+          [33mwidth[39m=[32m"24"[39m
+          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"m12 19-7-7 7-7"[39m
+          [36m/>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M19 12H5"[39m
+          [36m/>[39m
+        [36m</svg>[39m
+        [0mBack to support[0m
+      [36m</a>[39m
+      [36m<section[39m
+        [33maria-busy[39m=[32m"true"[39m
+        [33maria-label[39m=[32m"Loading support conversation"[39m
+        [33maria-live[39m=[32m"polite"[39m
+        [33mclass[39m=[32m"overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 sm:p-6 mx-auto max-w-3xl"[39m
+        [33mrole[39m=[32m"status"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"sr-only"[39m
+        [36m>[39m
+          [0mLoading support conversation[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"animate-pulse space-y-4 motion-reduce:animate-none"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-10 w-10 shrink-0 rounded-md bg-bolt-elements-background-depth-3"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-w-0 flex-1 space-y-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"h-3 w-3/5 max-w-80 rounded bg-bolt-elements-background-depth-3"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-2.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 100%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 92%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 84%;"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"h-11 rounded-md bg-bolt-elements-background-depth-3"[39m
+              [33mstyle[39m=[32m"width: 76%;"[39m
+            [36m/>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:37:19
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > keeps the guard active while POST awaits acknowledgment and permits same-path submit
+Error: Invalid Chai property: toBeInTheDocument
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:40:250
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > lets empty replies leave, and supports cancel, Escape and explicit discard for dirty replies
+Error: Invalid Chai property: toBeVisible
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:45:152
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  app/routes/support-ticket-draft-navigation.spec.tsx > support reply navigation with a real data router > clears a reply only after successful redirect and reload
+Error: Invalid Chai property: toHaveValue
+ ❯ app/routes/support-ticket-draft-navigation.spec.tsx:51:277
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  01:31:26
+   Duration  4.93s (transform 1.19s, setup 18ms, collect 408ms, tests 2.24s, environment 290ms, prepare 54ms)

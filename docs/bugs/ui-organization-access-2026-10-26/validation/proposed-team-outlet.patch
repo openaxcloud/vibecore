@@ -1,0 +1,22 @@
+--- a/app/routes/teams.$id.tsx
++++ b/app/routes/teams.$id.tsx
+@@ -1,6 +1,6 @@
+ import { useTranslation } from 'react-i18next';
+ import type { MetaFunction } from 'react-router';
+-import { Link, useLoaderData } from 'react-router';
++import { Link, useLoaderData, useOutlet } from 'react-router';
+ import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
+ import { TeamAccessLogPanel } from '~/components/teams/TeamAccessLogPanel';
+ import type { EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+@@ -45,6 +45,11 @@
+   const data = useLoaderData<typeof loader>() as TeamAccessLogData;
+   const { i18n } = useTranslation();
+   const copy = getTeamAccessLogCopy(i18n.resolvedLanguage ?? i18n.language);
++  const outlet = useOutlet();
++
++  if (outlet) {
++    return outlet;
++  }
+ 
+   return (
+     <EnterpriseFormPage

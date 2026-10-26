@@ -1,0 +1,1076 @@
+{
+  "method": "chrome.settingsPrivate.setDefaultZoom(2) in ephemeral Chromium profile; no CSS zoom, deviceScaleFactor or Emulation page scale calls",
+  "observations": [
+    {
+      "path": "/reset-password?token=SYNTHETIC-NONFUNCTIONAL",
+      "lang": "fr",
+      "theme": "light",
+      "requestedWindowWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 320,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Réinitialisez votre mot de passe",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Anglais",
+          "left": 220.5,
+          "right": 264.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Langue actuelle : Français",
+          "left": 264.5,
+          "right": 308.5,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Réinitialisez votre mot de passe",
+          "left": 14,
+          "right": 103.2265625,
+          "height": 55.359375
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Afficher le mot de passe",
+          "left": 241.75,
+          "right": 285.75,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Afficher le mot de passe",
+          "left": 241.75,
+          "right": 285.75,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Réinitialiser le mot de passe",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        }
+      ],
+      "screenshot": "_reset-password-fr-light-640-200.png"
+    },
+    {
+      "path": "/reset-password?token=SYNTHETIC-NONFUNCTIONAL",
+      "lang": "fr",
+      "theme": "light",
+      "requestedWindowWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 720,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Réinitialisez votre mot de passe",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Anglais",
+          "left": 613.5,
+          "right": 657.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Langue actuelle : Français",
+          "left": 657.5,
+          "right": 701.5,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Réinitialisez votre mot de passe",
+          "left": 100,
+          "right": 620,
+          "height": 18.453125
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Afficher le mot de passe",
+          "left": 548.75,
+          "right": 592.75,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Afficher le mot de passe",
+          "left": 548.75,
+          "right": 592.75,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Réinitialiser le mot de passe",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        }
+      ],
+      "screenshot": "_reset-password-fr-light-1440-200.png"
+    },
+    {
+      "path": "/teams/synthetic-team/settings",
+      "lang": "fr",
+      "theme": "light",
+      "requestedWindowWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 320,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Paramètres de l’équipe",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Ouvrir le menu de navigation",
+          "left": 14,
+          "right": 58,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Aide et visite guidée",
+          "left": 207.5,
+          "right": 251.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Notifications",
+          "left": 262,
+          "right": 306,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Paramètres de l’équipe",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 72
+        },
+        {
+          "tag": "H2",
+          "text": "Exportation",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 20
+        },
+        {
+          "tag": "H2",
+          "text": "Événements d’accès",
+          "left": 32.5,
+          "right": 171.3671875,
+          "height": 20
+        }
+      ],
+      "screenshot": "_teams_synthetic-team_settings-fr-light-640-200.png"
+    },
+    {
+      "path": "/teams/synthetic-team/settings",
+      "lang": "fr",
+      "theme": "light",
+      "requestedWindowWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 720,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Paramètres de l’équipe",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Ouvrir le menu de navigation",
+          "left": 21,
+          "right": 65,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Aide et visite guidée",
+          "left": 500,
+          "right": 544,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Anglais",
+          "left": 555.5,
+          "right": 599.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Langue actuelle : Français",
+          "left": 599.5,
+          "right": 643.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Notifications",
+          "left": 655,
+          "right": 699,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Paramètres de l’équipe",
+          "left": 43,
+          "right": 677,
+          "height": 40
+        },
+        {
+          "tag": "H2",
+          "text": "Exportation",
+          "left": 43,
+          "right": 443.3671875,
+          "height": 20
+        },
+        {
+          "tag": "H2",
+          "text": "Événements d’accès",
+          "left": 43,
+          "right": 181.8671875,
+          "height": 20
+        }
+      ],
+      "screenshot": "_teams_synthetic-team_settings-fr-light-1440-200.png"
+    },
+    {
+      "path": "/gallery",
+      "lang": "fr",
+      "theme": "light",
+      "requestedWindowWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 320,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Les applications de la communauté — remixez-en une pour commencer",
+      "targets": [
+        {
+          "tag": "H1",
+          "text": "Les applications de la communauté — remixez-en une pour commencer",
+          "left": 16,
+          "right": 304,
+          "height": 227.1875
+        },
+        {
+          "tag": "INPUT",
+          "text": "Rechercher dans la galerie",
+          "left": 16,
+          "right": 304,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Rechercher",
+          "left": 16,
+          "right": 304,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Toutes1",
+          "left": 16,
+          "right": 109.171875,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Applications web1",
+          "left": 117.171875,
+          "right": 283.546875,
+          "height": 44
+        }
+      ],
+      "screenshot": "_gallery-fr-light-640-200.png"
+    },
+    {
+      "path": "/gallery",
+      "lang": "fr",
+      "theme": "light",
+      "requestedWindowWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 720,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Les applications de la communauté — remixez-en une pour commencer",
+      "targets": [
+        {
+          "tag": "H1",
+          "text": "Les applications de la communauté — remixez-en une pour commencer",
+          "left": 24,
+          "right": 696,
+          "height": 186.0703125
+        },
+        {
+          "tag": "INPUT",
+          "text": "Rechercher dans la galerie",
+          "left": 24,
+          "right": 472.7109375,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Rechercher",
+          "left": 480.7109375,
+          "right": 600,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Toutes1",
+          "left": 24,
+          "right": 117.171875,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Applications web1",
+          "left": 125.171875,
+          "right": 291.546875,
+          "height": 44
+        }
+      ],
+      "screenshot": "_gallery-fr-light-1440-200.png"
+    },
+    {
+      "path": "/reset-password?token=SYNTHETIC-NONFUNCTIONAL",
+      "lang": "en",
+      "theme": "dark",
+      "requestedWindowWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 320,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Reset your password",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Current language: English",
+          "left": 220.5,
+          "right": 264.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "French",
+          "left": 264.5,
+          "right": 308.5,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Reset your password",
+          "left": 14,
+          "right": 103.2265625,
+          "height": 36.90625
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Show password",
+          "left": 241.75,
+          "right": 285.75,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Show password",
+          "left": 241.75,
+          "right": 285.75,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Reset password",
+          "left": 29,
+          "right": 291,
+          "height": 44
+        }
+      ],
+      "screenshot": "_reset-password-en-dark-640-200.png"
+    },
+    {
+      "path": "/reset-password?token=SYNTHETIC-NONFUNCTIONAL",
+      "lang": "en",
+      "theme": "dark",
+      "requestedWindowWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 720,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Reset your password",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Current language: English",
+          "left": 613.5,
+          "right": 657.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "French",
+          "left": 657.5,
+          "right": 701.5,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Reset your password",
+          "left": 100,
+          "right": 620,
+          "height": 18.453125
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Show password",
+          "left": 548.75,
+          "right": 592.75,
+          "height": 44
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Show password",
+          "left": 548.75,
+          "right": 592.75,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Reset password",
+          "left": 122,
+          "right": 598,
+          "height": 44
+        }
+      ],
+      "screenshot": "_reset-password-en-dark-1440-200.png"
+    },
+    {
+      "path": "/teams/synthetic-team/settings",
+      "lang": "en",
+      "theme": "dark",
+      "requestedWindowWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 320,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Team settings",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Open navigation menu",
+          "left": 14,
+          "right": 58,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Help and guided tour",
+          "left": 207.5,
+          "right": 251.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Notifications",
+          "left": 262,
+          "right": 306,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Team settings",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 36
+        },
+        {
+          "tag": "H2",
+          "text": "Export",
+          "left": 32.5,
+          "right": 287.5,
+          "height": 20
+        },
+        {
+          "tag": "H2",
+          "text": "Access events",
+          "left": 32.5,
+          "right": 128.8515625,
+          "height": 20
+        }
+      ],
+      "screenshot": "_teams_synthetic-team_settings-en-dark-640-200.png"
+    },
+    {
+      "path": "/teams/synthetic-team/settings",
+      "lang": "en",
+      "theme": "dark",
+      "requestedWindowWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 720,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Team settings",
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Open navigation menu",
+          "left": 21,
+          "right": 65,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Help and guided tour",
+          "left": 500,
+          "right": 544,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Current language: English",
+          "left": 555.5,
+          "right": 599.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "French",
+          "left": 599.5,
+          "right": 643.5,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Notifications",
+          "left": 655,
+          "right": 699,
+          "height": 44
+        },
+        {
+          "tag": "H1",
+          "text": "Team settings",
+          "left": 43,
+          "right": 677,
+          "height": 40
+        },
+        {
+          "tag": "H2",
+          "text": "Export",
+          "left": 43,
+          "right": 475.6796875,
+          "height": 20
+        },
+        {
+          "tag": "H2",
+          "text": "Access events",
+          "left": 43,
+          "right": 139.3515625,
+          "height": 20
+        }
+      ],
+      "screenshot": "_teams_synthetic-team_settings-en-dark-1440-200.png"
+    },
+    {
+      "path": "/gallery",
+      "lang": "en",
+      "theme": "dark",
+      "requestedWindowWidth": 640,
+      "innerWidth": 320,
+      "innerHeight": 406,
+      "outerWidth": 640,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 320,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Apps the community built — remix one to start",
+      "targets": [
+        {
+          "tag": "H1",
+          "text": "Apps the community built — remix one to start",
+          "left": 16,
+          "right": 304,
+          "height": 181.75
+        },
+        {
+          "tag": "INPUT",
+          "text": "Search the gallery",
+          "left": 16,
+          "right": 304,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Search",
+          "left": 16,
+          "right": 304,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "All1",
+          "left": 16,
+          "right": 81.0703125,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Web Apps1",
+          "left": 89.0703125,
+          "right": 204.3203125,
+          "height": 44
+        }
+      ],
+      "screenshot": "_gallery-en-dark-640-200.png"
+    },
+    {
+      "path": "/gallery",
+      "lang": "en",
+      "theme": "dark",
+      "requestedWindowWidth": 1440,
+      "innerWidth": 720,
+      "innerHeight": 406,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 2,
+      "visualScale": 1,
+      "documentWidth": 720,
+      "htmlZoom": "1",
+      "bodyZoom": "1",
+      "heading": "Apps the community built — remix one to start",
+      "targets": [
+        {
+          "tag": "H1",
+          "text": "Apps the community built — remix one to start",
+          "left": 24,
+          "right": 696,
+          "height": 124.046875
+        },
+        {
+          "tag": "INPUT",
+          "text": "Search the gallery",
+          "left": 24,
+          "right": 505.078125,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Search",
+          "left": 513.078125,
+          "right": 600,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "All1",
+          "left": 24,
+          "right": 89.0703125,
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Web Apps1",
+          "left": 97.0703125,
+          "right": 212.3203125,
+          "height": 44
+        }
+      ],
+      "screenshot": "_gallery-en-dark-1440-200.png"
+    }
+  ],
+  "transitions": [
+    {
+      "path": "/reset-password?token=SYNTHETIC-NONFUNCTIONAL",
+      "lang": "fr",
+      "theme": "light",
+      "configuredBefore": 1,
+      "configuredAfter": 2,
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "visualScale": 1,
+        "documentWidth": 1440,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "visualScale": 1,
+        "documentWidth": 720,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "draftFocus": true
+    },
+    {
+      "path": "/teams/synthetic-team/settings",
+      "lang": "fr",
+      "theme": "light",
+      "configuredBefore": 1,
+      "configuredAfter": 2,
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "visualScale": 1,
+        "documentWidth": 1440,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "visualScale": 1,
+        "documentWidth": 720,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "draftFocus": null
+    },
+    {
+      "path": "/gallery",
+      "lang": "fr",
+      "theme": "light",
+      "configuredBefore": 1,
+      "configuredAfter": 2,
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "visualScale": 1,
+        "documentWidth": 1440,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "visualScale": 1,
+        "documentWidth": 720,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "draftFocus": null
+    },
+    {
+      "path": "/reset-password?token=SYNTHETIC-NONFUNCTIONAL",
+      "lang": "en",
+      "theme": "dark",
+      "configuredBefore": 1,
+      "configuredAfter": 2,
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "visualScale": 1,
+        "documentWidth": 1440,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "visualScale": 1,
+        "documentWidth": 720,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "draftFocus": true
+    },
+    {
+      "path": "/teams/synthetic-team/settings",
+      "lang": "en",
+      "theme": "dark",
+      "configuredBefore": 1,
+      "configuredAfter": 2,
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "visualScale": 1,
+        "documentWidth": 1440,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "visualScale": 1,
+        "documentWidth": 720,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "draftFocus": null
+    },
+    {
+      "path": "/gallery",
+      "lang": "en",
+      "theme": "dark",
+      "configuredBefore": 1,
+      "configuredAfter": 2,
+      "before": {
+        "innerWidth": 1440,
+        "innerHeight": 813,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 1,
+        "visualScale": 1,
+        "documentWidth": 1440,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "after": {
+        "innerWidth": 720,
+        "innerHeight": 406,
+        "outerWidth": 1440,
+        "outerHeight": 900,
+        "dpr": 2,
+        "visualScale": 1,
+        "documentWidth": 720,
+        "htmlZoom": "1",
+        "bodyZoom": "1"
+      },
+      "draftFocus": null
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "origin": "https://fonts.googleapis.com",
+      "path": "/css2"
+    }
+  ],
+  "processes": [
+    {
+      "pid": 188470,
+      "startTicks": "2722707"
+    },
+    {
+      "pid": 188632,
+      "startTicks": "2723250"
+    }
+  ]
+}
