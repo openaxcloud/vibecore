@@ -1,0 +1,8 @@
+{
+  "base": "1e368df5c",
+  "file": "app/routes/admin.$section.tsx",
+  "beforeHash": "578276127f9636685efda7d147f43f8e7e1a48775807d0ae411f49dab366544c",
+  "afterHash": "9fa3cf282c0021e99e7a3b935625fc4508e22dbe2695d71701ea74fbada46136",
+  "onlyTwoLocalMinSizeAdditions": true,
+  "allOtherBytesIncludingSettingsIdentical": true
+}

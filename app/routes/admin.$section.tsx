@@ -2624,7 +2624,7 @@ function UsersPanel({ payload }: { payload: Record<string, JsonValue> }) {
       <button
         type="button"
         onClick={() => setSort(column)}
-        className="inline-flex items-center gap-1 uppercase tracking-wide hover:text-bolt-elements-textPrimary"
+        className="inline-flex !min-h-[44px] !min-w-[44px] items-center gap-1 uppercase tracking-wide hover:text-bolt-elements-textPrimary"
       >
         {label}
         {sort === column ? <span aria-hidden>{dir === 'asc' ? '▲' : '▼'}</span> : null}
@@ -2757,7 +2757,7 @@ function UserRow({ user, suspended, password }: { user: AdminUser; suspended: bo
               disabled={busy}
               aria-label={adminT('admin.route.actionsFor', { subject: user.email ?? user.id })}
               data-testid={`user-actions-${user.id}`}
-              className="inline-flex h-7 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex !min-h-[44px] !min-w-[44px] h-7 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span aria-hidden>⋯</span>
             </button>
