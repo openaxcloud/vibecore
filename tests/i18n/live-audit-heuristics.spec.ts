@@ -183,6 +183,27 @@ describe('French live-audit heuristics', () => {
     expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
   });
 
+  it.each([
+    'Utiliser des files d’attente pour les traitements longs',
+    "Utiliser des files d'attente pour les traitements longs",
+    'Les FILES D’ATTENTE restent disponibles.',
+    "Une file d'attente et plusieurs files d’attente restent disponibles.",
+  ])('accepts only the French queue expression in %j', (text) => {
+    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+  });
+
+  it.each([
+    'Ouvrez les files du projet.',
+    'Consultez le file du projet.',
+    'Les files d’attente contiennent des files.',
+    "Les files d'attente affichent un dashboard.",
+    'Les files d’attentes restent disponibles.',
+  ])('still rejects forbidden terms outside a French queue expression in %j', (text) => {
+    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([
+      expect.objectContaining({ reason: 'forbidden-term', text }),
+    ]);
+  });
+
   it('does not confuse common French homographs with English product terms', () => {
     const french = [
       entry('Aucun service en arrière-plan non autorisé', { semanticKey: 'background-service' }),

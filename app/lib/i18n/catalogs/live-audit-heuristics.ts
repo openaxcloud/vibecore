@@ -102,7 +102,7 @@ const APPROVED_PRODUCT_TERM_IN_PROSE = /\bCloud Monitoring\b/gu;
 
 // The domain example is technical data, while all surrounding prose remains audited.
 const RESERVED_DOMAIN_EXAMPLE_IN_PROSE = /(?<![\p{L}\p{N}_.-])app\.example\.com(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}_-])/gu;
-const FRENCH_QUEUE_IN_PROSE = /\bfile\s+d[’']attente\b/giu;
+const FRENCH_QUEUE_IN_PROSE = /\bfiles?\s+d[’']attente\b/giu;
 
 /*
  * These words have an explicit French rendering in the normative glossary.

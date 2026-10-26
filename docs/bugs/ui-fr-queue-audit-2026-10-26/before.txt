@@ -1,0 +1,121 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-fr-audit-next
+
+ ❯ tests/i18n/live-audit-heuristics.spec.ts (75 tests | 4 failed) 28ms
+   ✓ French live-audit heuristics > accepts French prose containing approved brands and protocols 4ms
+   ✓ French live-audit heuristics > rejects English UI copy at the same semantic location 2ms
+   ✓ French live-audit heuristics > rejects glossary anglicisms even inside otherwise French prose 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Une Code review est requise avant la mise en production." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Les code reviews restent visibles dans l’historique." 2ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Utilisez une mise en page responsive sur mobile." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Un rollback est disponible pour cette version." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Les rollbacks restent accessibles pendant trente jours." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Ce workflow valide la mise en production." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Les workflows sont réutilisables par l’équipe." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "QA" 1ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "La vérification QA commence demain." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "Activez le monitoring du service." 0ms
+   ✓ French live-audit heuristics > rejects the visible French-surface anglicism in "La réponse arrive en streaming." 0ms
+   ✓ French live-audit heuristics > accepts the accented French derivative of an English term in "Branchez ce modèle à un service applicatif temps réel." 0ms
+   ✓ French live-audit heuristics > accepts the accented French derivative of an English term in "Un service de support branché reste soumis aux conditions de son fournisseur." 0ms
+   ✓ French live-audit heuristics > accepts the accented French derivative of an English term in "Les connecteurs branchés apparaissent dans la source." 0ms
+   ✓ French live-audit heuristics > accepts the accented French derivative of an English term in "Le rôle est taggué dans le journal." 0ms
+   ✓ French live-audit heuristics > still rejects a common English team or starter noun in "Notre team prépare la livraison." 0ms
+   ✓ French live-audit heuristics > still rejects a common English team or starter noun in "Notre Team prépare aussi la livraison." 0ms
+   ✓ French live-audit heuristics > still rejects a common English team or starter noun in "Notre Team accompagne les utilisateurs Pro." 0ms
+   ✓ French live-audit heuristics > still rejects a common English team or starter noun in "Les teams collaborent chaque jour." 0ms
+   ✓ French live-audit heuristics > still rejects a common English team or starter noun in "Ce starter accélère le projet." 0ms
+   ✓ French live-audit heuristics > still rejects a common English team or starter noun in "Découvrez des starters prêts à l’emploi." 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Starter" 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Core" 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Pro" 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Enterprise" 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Team" 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Choisissez la formule Team." 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Votre offre Pro reste active." 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Comparez les offres Starter, Core, Pro et Enterprise." 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Offres : Starter/Core/Pro/Enterprise" 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Les formules Core et Team incluent davantage de capacité." 0ms
+   ✓ French live-audit heuristics > accepts the official commercial offer name in "Starter — documentation et communauté en priorité." 0ms
+   ✓ French live-audit heuristics > does not treat identical French alt text, cognates or proper nouns as English 0ms
+   ✓ French live-audit heuristics > still rejects identical English image alt text 0ms
+   ✓ French live-audit heuristics > accepts the exact reserved domain token within French prose: Aucun protocole, chemin ou port. Exemple : app.example.com. 0ms
+   ✓ French live-audit heuristics > accepts the exact reserved domain token within French prose: Entrez un domaine valide tel que app.example.com 0ms
+   ✓ French live-audit heuristics > still audits English or a different domain next to the reserved token: Consultez app.example.com pour les deployments. 1ms
+   ✓ French live-audit heuristics > still audits English or a different domain next to the reserved token: Enter your domain app.example.com 0ms
+   ✓ French live-audit heuristics > still audits English or a different domain next to the reserved token: Exemple : app.example.com.evil.test 0ms
+   ✓ French live-audit heuristics > still audits English or a different domain next to the reserved token: Exemple : other-app.example.com 0ms
+   ✓ French live-audit heuristics > rejects raw catalog keys but accepts domains, filenames and prose references 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "https://docs.example.test/workflows/responsive-layout" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "ecode://workspace/monitoring-dashboard" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "code-review" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "responsive-grid" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "rollback-policy" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "release-workflow" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "qa-check" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "monitoring-agent" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "streaming-response" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "QA_MODE" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "--workflow=release" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "/rollback" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "responsive.tsx" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "rollback-policy.yaml" 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical value "src/workflows/rollback.ts" 0ms
+   ✓ French live-audit heuristics > ignores audited terms inside technical filename references in French prose 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical or commercial context in "Les commandes /build, /run et /preview-error restent disponibles." 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical or commercial context in "Améliorer project/README.md à partir du fichier ouvert." 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical or commercial context in "Les métriques Cloud Monitoring restent disponibles." 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical or commercial context in "Utilisez la file d’attente habituelle pour contacter le support." 0ms
+   ✓ French live-audit heuristics > accepts the non-translatable technical or commercial context in "Tarifs E-Code : Starter avec des crédits quotidiens, Core à 25 € et Enterprise sur devis." 0ms
+   × French live-audit heuristics > accepts only the French queue expression in "Utiliser des files d’attente pour les traitements longs" 8ms
+     → expected [ { kind: 'text', …(4) } ] to deeply equal []
+   × French live-audit heuristics > accepts only the French queue expression in "Utiliser des files d'attente pour les traitements longs" 1ms
+     → expected [ { kind: 'text', …(4) } ] to deeply equal []
+   × French live-audit heuristics > accepts only the French queue expression in "Les FILES D’ATTENTE restent disponibles." 1ms
+     → expected [ { kind: 'text', …(4) } ] to deeply equal []
+   × French live-audit heuristics > accepts only the French queue expression in "Une file d'attente et plusieurs files d’attente restent disponibles." 1ms
+     → expected [ { kind: 'text', …(4) } ] to deeply equal []
+   ✓ French live-audit heuristics > still rejects forbidden terms outside a French queue expression in "Ouvrez les files du projet." 0ms
+   ✓ French live-audit heuristics > still rejects forbidden terms outside a French queue expression in "Consultez le file du projet." 0ms
+   ✓ French live-audit heuristics > still rejects forbidden terms outside a French queue expression in "Les files d’attente contiennent des files." 0ms
+   ✓ French live-audit heuristics > still rejects forbidden terms outside a French queue expression in "Les files d'attente affichent un dashboard." 0ms
+   ✓ French live-audit heuristics > still rejects forbidden terms outside a French queue expression in "Les files d’attentes restent disponibles." 0ms
+   ✓ French live-audit heuristics > does not confuse common French homographs with English product terms 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/i18n/live-audit-heuristics.spec.ts > French live-audit heuristics > accepts only the French queue expression in "Utiliser des files d’attente pour les traitements longs"
+ FAIL  tests/i18n/live-audit-heuristics.spec.ts > French live-audit heuristics > accepts only the French queue expression in "Utiliser des files d'attente pour les traitements longs"
+ FAIL  tests/i18n/live-audit-heuristics.spec.ts > French live-audit heuristics > accepts only the French queue expression in "Les FILES D’ATTENTE restent disponibles."
+ FAIL  tests/i18n/live-audit-heuristics.spec.ts > French live-audit heuristics > accepts only the French queue expression in "Une file d'attente et plusieurs files d’attente restent disponibles."
+AssertionError: expected [ { kind: 'text', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "kind": "text",
++     "locator": "#subject",
++     "reason": "forbidden-term",
++     "semanticKey": "subject",
++     "text": "Utiliser des files d’attente pour les traitements longs",
++   },
++ ]
+
+ ❯ tests/i18n/live-audit-heuristics.spec.ts:192:55
+    190|     "Une file d'attente et plusieurs files d’attente restent disponibl…
+    191|   ])('accepts only the French queue expression in %j', (text) => {
+    192|     expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+       |                                                       ^
+    193|   });
+    194|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 71 passed (75)
+   Start at  05:07:04
+   Duration  1.95s (transform 992ms, setup 25ms, collect 23ms, tests 28ms, environment 0ms, prepare 56ms)
