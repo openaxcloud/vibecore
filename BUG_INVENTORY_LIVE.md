@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-528 entrées.
+530 entrées.
 
 ## Sans section
 
@@ -692,6 +692,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Génération et orchestration
 
 - [BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026](docs/bugs/BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026.md) — 📤 Dispatché : ☑ 26/10 — diagnostic sur main `90d92ff12`. · 💻 Codé : ☐ — correctif local testé ; non fusionné et non déployé. · ✅ Testé live : ☐ — aucune invocation fournisseur ni lecture de solde.
+
+## Preview et vignettes
+
+- [BUG-PREVIEW-LOG-REPLAY-TIME-20261027](docs/bugs/BUG-PREVIEW-LOG-REPLAY-TIME-20261027.md) — 📤 Dispatché : ☑ 27/10 — reproduction isolée de la route de logs sur main `0d6b2edfb`. · 💻 Codé : ☐ — raccordement API partagé à coordonner, hors correctif de capture. · ✅ Testé live : ☐ — les entrées historiques observées ne prouvent pas de nouvelles pannes.
+- [BUG-PREVIEW-THUMBNAIL-WAIT-20261027](docs/bugs/BUG-PREVIEW-THUMBNAIL-WAIT-20261027.md) — 📤 Dispatché : ☑ 27/10 — diagnostic sur main `0d6b2edfb`, après observation d'une preview rendue et d'une capture manuelle en · 💻 Codé : ☐ — correctif local validé, publication et livraison non établies. · ✅ Testé live : ☐ — aucune nouvelle capture ni modification du projet client par cette session.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

@@ -4,7 +4,9 @@ import { ThumbnailCapturer } from './thumbnail-capture.js';
 
 function fakeStorage() {
   const puts: Array<{ projectId: string; key: string; bytes: number }> = [];
+
   const storage = {
+    ensureBucket: vi.fn().mockResolvedValue({ bucket: 'fixture', created: true, location: 'test' }),
     async putObject(projectId: string, input: { key: string; body: Uint8Array }) {
       puts.push({ projectId, key: input.key, bytes: input.body.byteLength });
 
@@ -34,6 +36,7 @@ describe('ThumbnailCapturer', () => {
     const ok = await cap.capture('proj-1', 'https://ws-1.preview.e-code.ai/');
 
     expect(ok).toBe(true);
+
     const [url, init] = fetchImpl.mock.calls[0];
     expect(url).toBe('http://screenshotter:3030/capture'); // trailing slash normalised
     expect(init.headers.authorization).toBe('Bearer sek');
@@ -56,6 +59,7 @@ describe('ThumbnailCapturer', () => {
   it('debounces repeat captures within the window', async () => {
     const { storage, puts } = fakeStorage();
     const fetchImpl = vi.fn().mockImplementation(async () => pngResponse());
+
     let clock = 1_000_000;
 
     const cap = new ThumbnailCapturer({
@@ -91,6 +95,7 @@ describe('ThumbnailCapturer', () => {
 
   it('schedule() never rejects even when the render throws', async () => {
     const { storage } = fakeStorage();
+
     const cap = new ThumbnailCapturer({
       storage,
       screenshotterUrl: 'http://s',
@@ -99,5 +104,128 @@ describe('ThumbnailCapturer', () => {
 
     expect(() => cap.schedule('p', 'https://x/')).not.toThrow();
     await Promise.resolve();
+  });
+});
+
+describe('ThumbnailCapturer provisioning and retry', () => {
+  it('provisions the bucket before writing a first thumbnail', async () => {
+    const calls: string[] = [];
+
+    const storage = {
+      ensureBucket: async () => {
+        calls.push('ensure');
+      },
+      putObject: async () => {
+        expect(calls).toEqual(['ensure']);
+        calls.push('put');
+      },
+    } as unknown as ObjectStorage;
+    const cap = new ThumbnailCapturer({
+      storage,
+      screenshotterUrl: 'http://fixture',
+      fetchImpl: async () => pngResponse(),
+    });
+    expect(await cap.capture('new-project', 'https://fixture/')).toBe(true);
+    expect(calls).toEqual(['ensure', 'put']);
+  });
+
+  it('retries a failed render after a short cooldown, not five minutes', async () => {
+    const { storage } = fakeStorage();
+
+    let clock = 1_000_000;
+
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 502 }))
+      .mockImplementation(async () => pngResponse());
+
+    const cap = new ThumbnailCapturer({ storage, screenshotterUrl: 'http://fixture', fetchImpl, now: () => clock });
+    expect(await cap.capture('p', 'https://fixture/')).toBe(false);
+    expect(await cap.capture('p', 'https://fixture/')).toBe(false);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    clock += 5_001;
+    expect(await cap.capture('p', 'https://fixture/')).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not start a late write when bucket provisioning outlives the capture budget', async () => {
+    vi.useFakeTimers();
+
+    try {
+      let release!: () => void;
+
+      const ensureBucket = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      );
+
+      const putObject = vi.fn();
+      const storage = { ensureBucket, putObject } as unknown as ObjectStorage;
+      const fetchImpl = vi.fn(async () => pngResponse());
+      const cap = new ThumbnailCapturer({ storage, screenshotterUrl: 'http://fixture', fetchImpl, timeoutMs: 10 });
+      const pending = cap.capture('p', 'https://fixture/');
+      await vi.advanceTimersByTimeAsync(11);
+      expect(ensureBucket).toHaveBeenCalledTimes(1);
+      expect(await cap.capture('p', 'https://fixture/')).toBe(false);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      release();
+      expect(await pending).toBe(false);
+      expect(putObject).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('keeps the lock during an expired write and never reports its late completion as success', async () => {
+    vi.useFakeTimers();
+
+    try {
+      let release!: () => void;
+
+      const { storage } = fakeStorage();
+      storage.putObject = vi.fn(
+        () =>
+          new Promise<{ key: string; size: number }>((resolve) => {
+            release = () => resolve({ key: 'thumbnails/preview.png', size: 4 });
+          }),
+      );
+
+      const log = { info: vi.fn(), warn: vi.fn() };
+      const fetchImpl = vi.fn(async () => pngResponse());
+      const cap = new ThumbnailCapturer({ storage, screenshotterUrl: 'http://fixture', fetchImpl, timeoutMs: 10, log });
+      const pending = cap.capture('p', 'https://fixture/');
+      await vi.advanceTimersByTimeAsync(11);
+      expect(await cap.capture('p', 'https://fixture/')).toBe(false);
+      expect(storage.putObject).toHaveBeenCalledTimes(1);
+      release();
+      expect(await pending).toBe(false);
+      expect(log.info).not.toHaveBeenCalled();
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('can recover from a bucket provisioning failure without writing before it succeeds', async () => {
+    const { storage, puts } = fakeStorage();
+    storage.ensureBucket = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('storage unavailable'))
+      .mockResolvedValue({ bucket: 'fixture' });
+
+    let clock = 0;
+
+    const cap = new ThumbnailCapturer({
+      storage,
+      screenshotterUrl: 'http://fixture',
+      fetchImpl: async () => pngResponse(),
+      now: () => clock,
+    });
+    expect(await cap.capture('p', 'https://fixture/')).toBe(false);
+    expect(puts).toHaveLength(0);
+    clock += 5_001;
+    expect(await cap.capture('p', 'https://fixture/')).toBe(true);
+    expect(puts).toHaveLength(1);
   });
 });
