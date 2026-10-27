@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-529 entrées.
+530 entrées.
 
 ## Sans section
 
@@ -693,6 +693,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026](docs/bugs/BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026.md) — 📤 Dispatché : ☑ 26/10 — diagnostic sur main `90d92ff12`. · 💻 Codé : ☐ — correctif local testé ; non fusionné et non déployé. · ✅ Testé live : ☐ — aucune invocation fournisseur ni lecture de solde.
 - [BUG-AGENT-UI-EVIDENCE-RECEIPTS-20261027](docs/bugs/BUG-AGENT-UI-EVIDENCE-RECEIPTS-20261027.md) — 📤 Dispatché : ☑ 27/10 — complément UI du contrat backend #812, séparé du lot responsive #811. · 💻 Codé : ☐ sur main — correctif local préparé, publication et livraison encore attendues. · ✅ Testé live : ☐ — aucune recette fournisseur ou projet client ; validations locales synthétiques seulement.
+- [BUG-AGENT-SCROLL-RESIZE-RACE-20261027](docs/bugs/BUG-AGENT-SCROLL-RESIZE-RACE-20261027.md) — 📤 Dispatché : ☑ 27/10 — reproduction locale isolée, puis intégration au complément UI Agent. · 💻 Codé : ☐ sur main — correctif local validé, publication et livraison encore attendues. · ✅ Testé live : ☐ — aucune recette authentifiée ou donnée client ; Chromium local et contenu synthétique.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

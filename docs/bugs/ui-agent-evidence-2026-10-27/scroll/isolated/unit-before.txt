@@ -1,0 +1,59 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-scroll-next
+
+ ❯ app/lib/hooks/useStickToBottom.conteneur.spec.tsx (7 tests | 2 failed) 1732ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > recolle en bas quand le conteneur se contracte alors que le fil est censé y être 270ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > ne ramène JAMAIS de force un utilisateur qui a remonté le fil  446ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > le conteneur rétrécit : recollé DANS le rappel, avant toute image 127ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > un bloc s’ajoute en bas : recollé DANS le rappel, avant toute image 126ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > TÉMOIN — un utilisateur remonté n’est pas recollé, même dans le rappel 252ms
+   × useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > préserve la remontée sans molette avant le rappel de redimensionnement du conteneur 258ms
+     → le redimensionnement ne doit pas annuler la remontée: expected 2142 to be +0 // Object.is equality
+   × useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > préserve la remontée sans molette avant le rappel de redimensionnement du contenu 251ms
+     → le redimensionnement ne doit pas annuler la remontée: expected 2063 to be +0 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/lib/hooks/useStickToBottom.conteneur.spec.tsx > useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > préserve la remontée sans molette avant le rappel de redimensionnement du conteneur
+AssertionError: le redimensionnement ne doit pas annuler la remontée: expected 2142 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 2142
+
+ ❯ app/lib/hooks/useStickToBottom.conteneur.spec.tsx:267:91
+    265|       });
+    266|       await laisserLesImagesPasser();
+    267|       expect(conteneur.scrollTop, 'le redimensionnement ne doit pas an…
+       |                                                                                           ^
+    268|       expect(getByTestId('retour-en-bas')).toBeTruthy();
+    269|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/lib/hooks/useStickToBottom.conteneur.spec.tsx > useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > préserve la remontée sans molette avant le rappel de redimensionnement du contenu
+AssertionError: le redimensionnement ne doit pas annuler la remontée: expected 2063 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 2063
+
+ ❯ app/lib/hooks/useStickToBottom.conteneur.spec.tsx:267:91
+    265|       });
+    266|       await laisserLesImagesPasser();
+    267|       expect(conteneur.scrollTop, 'le redimensionnement ne doit pas an…
+       |                                                                                           ^
+    268|       expect(getByTestId('retour-en-bas')).toBeTruthy();
+    269|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 passed (7)
+   Start at  15:05:37
+   Duration  5.90s (transform 1.85s, setup 43ms, collect 165ms, tests 1.73s, environment 546ms, prepare 121ms)

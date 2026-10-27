@@ -1,14 +1,28 @@
 # Complément Agent : preuves de fichiers et de sortie modèle
 
-Préparation locale pour une PR distincte de #811, sans publication par cet agent.
+Préparation locale pour une PR distincte de #811, sans publication par cet agent. Les copies de logs ont uniquement leurs espaces de fin de ligne et lignes vides finales normalisés.
 
-## Sources et intégration
+
+## État final du lot commun
+
+Code testé : `d8cc81e7e`, comprenant les six fichiers UI de preuve et le correctif de défilement `90f928fc9` (hook et test), sur main #811 `0d6b2edfb`. La tête finale pourra contenir un commit documentaire supplémentaire ; il ne change pas ce code. [Empreintes des huit fichiers](consolidated-source.json).
+
+- [63 tests ciblés](validation-consolidated/tests.txt) et [six contrôles d'index](validation-consolidated/index-tests.txt) verts ; index à 530 fiches.
+- [Typage officiel complet](validation-consolidated/typecheck.txt), dont 31 packages, et [build client/SSR](validation-consolidated/build.txt) : code0.
+- [Lint global](validation-consolidated/lint-global.txt) : zéro erreur, 52 avertissements préexistants.
+- [Nouvelle recette du build commun](browser-integrated/receipt.json) : les huit états Stop ci-dessous sont rejoués, plus trois parcours sur le vrai transcript compilé à1440×1000,EN,clair. Remontée normale, resize immédiat et scroll natif+resize : top0 reste conservé après1200ms ; le bouton apparaît et son clic rejoint la zone de bas (écart mesuré de2px). Le conteneur passe de550 à480 puis410px, tandis que du texte et un nouveau reçu modèle long arrivent pendant le flux. [Capture intégrée](browser-integrated/integrated-scroll.png).
+- Zéro pageerror.14 tentatives réseau navigateur bloquées :6GET tiers et8mutations (5POST,3PUT). Aucun appel fournisseur ; le garde serveur strict est chargé avant l'application. Les404/503 de fixtures restent visibles et ne sont pas présentés comme un runtime sain.
+- [Preuves isolées de défilement](scroll/README.md) : neuf tests et douze cas Chromium provenant de la session propriétaire, distincts des trois parcours du build commun. L'installation WebKit refusée403 n'a pas été retentée ; aucune preuve Safari/iOS ou explication causale du flaky CI.
+
+Les [processus du passage commun](validation-consolidated/cleanup.json) ont été arrêtés après vérification d'identité. Revue indépendante du code commun favorable ; revue des preuves documentaires conservée dans [independent-review.md](validation-consolidated/independent-review.md). Aucun résultat de CI, merge ou production du complément n'est revendiqué.
+
+## Étape précédente : six fichiers UI sans correctif de défilement
 
 Le build testé correspond au commit local `9e4c9c719`, intégrant main `0d6b2edfbfa1a3bcf7ef17d8e7a18b7b6f8d3209` (#811 fusionnée) et le contrat backend #812 final. Le delta produit reste limité à six fichiers UI. [source.json](source.json) conserve leurs empreintes.
 
 Le seul conflit de merge concernait les imports de BaseChat : l'import Settings de #811 et le lecteur de reçu ont été conservés ensemble. Settings, tooltips, Escape et navigation de main sont préservés. La [revue indépendante](validation/independent-review.md) n'a identifié aucun blocage d'intégration. Aucune modification de backend, permission, écriture runtime ou publication.
 
-## Résultats locaux
+## Résultats précédents sur9e4c9c719
 
 - [54 tests ciblés](validation/tests.txt) : 32 UI existants, 12 écarts de livraison, 8 registre de confirmations et 2 pureté des imports.
 - [Typage officiel](validation/typecheck.txt) : application web, scripts, helpers IDE, Electron et 31 packages verts.
@@ -16,9 +30,9 @@ Le seul conflit de merge concernait les imports de BaseChat : l'import Settings 
 - [Lint global](validation/lint-global.txt) : code 0, zéro erreur et 52 avertissements.
 - [Index dérivé](validation/index-tests.txt) : six tests verts ; 529 fiches au moment de cette préparation. Une première invocation avec le runner Node au lieu de Vitest a échoué avant exécution ; elle ne constitue pas un défaut produit.
 
-Ces résultats précèdent tout éventuel regroupement avec le correctif de défilement préparé par une autre session. Ils ne le valident pas.
+Ces résultats précèdent le regroupement avec le correctif de défilement. Ils ne le valident pas ; les résultats consolidés sont indiqués plus haut.
 
-## Nouvelle recette navigateur du build courant
+## Recette préalable sur9e4c9c719
 
 [Reçu des huit états](browser/receipt.json), Chromium local, viewport de 1440 × 1000, EN ; captures en thème clair. Le vrai BaseChat et son bouton Stop sont ceux du build de production local. Le flux `/api/chat` est synthétique : une `Response`/`ReadableStream` injectée dans le navigateur, au format réellement consommé par le SDK. Aucun fournisseur ou projet client n'est appelé.
 
@@ -42,7 +56,7 @@ Depuis la racine du dépôt, après installation existante et build :
 ```sh
 node docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs
 PORT=18199 HOST=127.0.0.1 API_BASE_URL=http://127.0.0.1:8199 SAAS_API_URL=http://127.0.0.1:8199 node --require ./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs node_modules/@react-router/serve/bin.js build/server/index.js
-SOURCE_SHA=$(git rev-parse HEAD) node docs/bugs/ui-agent-evidence-2026-10-27/harness/browser.cjs
+SOURCE_SHA=$(git rev-parse HEAD) UI_CHECK_SCROLL=1 UI_RECEIPT_DIR=/tmp/ui-agent-receipt node docs/bugs/ui-agent-evidence-2026-10-27/harness/browser.cjs
 ```
 
 Utiliser des processus séparés et des ports libres. Le garde réseau est chargé **avant** le serveur : seuls les fetch serveur vers la fixture locale sur le port 8199 sont autorisés. La fixture refuse toute méthode autre que GET. Le navigateur bloque les tiers, WebSockets et mutations HTTP ; `/api/chat` est traité uniquement en mémoire. Les fichiers de harness ne sont pas des mocks du produit.

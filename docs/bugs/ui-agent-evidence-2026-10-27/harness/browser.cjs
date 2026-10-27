@@ -10,6 +10,7 @@ fs.mkdirSync(dir, { recursive: true });
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
     args: ['--no-sandbox'],
   });
+  const scrollRows = [];
   const rows = [],
     errors = [],
     blocked = [];
@@ -120,6 +121,81 @@ fs.mkdirSync(dir, { recursive: true });
     await record('latest-receipt', 'Stop agent');
     await output('Anthropic', 'claude-wrong', 'other-turn');
     await record('wrong-id-ignored', 'Stop agent');
+    if (process.env.UI_CHECK_SCROLL === '1') {
+      await p.evaluate(() =>
+        window.__syntheticCalls
+          .at(-1)
+          .push(
+            '0',
+            '\n\n' +
+              Array.from(
+                { length: 60 },
+                (_, i) => `Synthetic transcript paragraph ${i}. Read upward without changing project files.\n\n`,
+              ).join(''),
+          ),
+      );
+      const readScroll = () =>
+        p.evaluate(() => {
+          const el = document.querySelector('.bolt-project-agent-transcript').parentElement;
+          return {
+            top: el.scrollTop,
+            height: el.scrollHeight,
+            view: el.clientHeight,
+            pill: Boolean(document.querySelector('.bolt-agent-scroll-to-bottom')),
+          };
+        });
+      await p.waitForFunction(() => {
+        const e = document.querySelector('.bolt-project-agent-transcript')?.parentElement;
+        return e && e.scrollHeight - e.clientHeight > 1000;
+      });
+      await p.waitForFunction(() => {
+        const e = document.querySelector('.bolt-project-agent-transcript').parentElement;
+        return e.scrollTop >= e.scrollHeight - e.clientHeight - 2;
+      });
+      for (const mode of ['normal', 'resize-immediate', 'native-resize']) {
+        const before = await readScroll();
+        await p.evaluate((mode) => {
+          const el = document.querySelector('.bolt-project-agent-transcript').parentElement;
+          el.scrollTop = 0;
+          if (mode !== 'native-resize') el.dispatchEvent(new Event('scroll'));
+          if (mode !== 'normal') {
+            el.style.maxHeight = Math.max(180, el.clientHeight - 70) + 'px';
+            const call = window.__syntheticCalls.at(-1);
+            call.push('8', [
+              {
+                type: 'modelOutput',
+                provider: 'SyntheticResize',
+                model: 'synthetic-long-model-'.repeat(mode === 'native-resize' ? 14 : 8),
+                evidence: 'text-delta',
+                messageId: call.id,
+              },
+            ]);
+            window.__syntheticCalls
+              .at(-1)
+              .push('0', '\n\nSynthetic content arriving immediately after upward scroll.\n\n');
+          }
+        }, mode);
+        await p.waitForTimeout(1200);
+        const after = await readScroll();
+        expect(after.top).toBe(0);
+        expect(after.pill).toBe(true);
+        if (mode !== 'normal') expect(after.view).toBeLessThan(before.view);
+        if (mode === 'resize-immediate') await p.screenshot({ path: path.join(dir, 'integrated-scroll.png') });
+        await p.locator('.bolt-agent-scroll-to-bottom').click();
+        await p.waitForFunction(
+          () => {
+            const e = document.querySelector('.bolt-project-agent-transcript').parentElement;
+            return e.scrollTop >= e.scrollHeight - e.clientHeight - 2;
+          },
+          null,
+          { timeout: 5000 },
+        );
+        const returned = await readScroll();
+        expect(returned.pill).toBe(false);
+        scrollRows.push({ mode, before, after, returned });
+      }
+    }
+
     await p.evaluate(() => window.__syntheticCalls.at(-1).finish());
     await expect(stop).toHaveCount(0);
     await send('Second synthetic turn without receipt');
@@ -158,6 +234,7 @@ fs.mkdirSync(dir, { recursive: true });
           viewport: { width: 1440, height: 1000 },
           language: 'en',
           rows,
+          scrollRows,
           errors,
           blocked,
         },
