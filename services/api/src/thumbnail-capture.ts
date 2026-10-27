@@ -38,6 +38,23 @@ export interface ThumbnailCapturerDeps {
   log?: ThumbnailLogger;
 }
 
+/** Stable machine protocol values, never user-facing copy. */
+export const THUMBNAIL_CAPTURE_REASONS = {
+  disabled: 'disabled',
+  recentSuccess: 'recent-success',
+  failureCooldown: 'failure-cooldown',
+  inFlight: 'in-flight',
+  deadline: 'deadline',
+  storageUnconfirmed: 'storage-unconfirmed',
+  captureError: 'capture-error',
+} as const;
+
+export type ThumbnailCaptureResult =
+  | { status: 'stored' }
+  | { status: 'skipped'; reason: 'disabled' | 'recent-success' | 'failure-cooldown' }
+  | { status: 'pending'; reason: 'in-flight' | 'deadline' | 'storage-unconfirmed' }
+  | { status: 'failed'; reason: 'capture-error' };
+
 export class ThumbnailCapturer {
   readonly #lastCaptureMs = new Map<string, number>();
   readonly #lastFailureMs = new Map<string, number>();
@@ -54,19 +71,47 @@ export class ThumbnailCapturer {
     return (this._deps.now ?? Date.now)();
   }
 
-  #shouldSkip(projectId: string): boolean {
+  #skipResult(projectId: string): ThumbnailCaptureResult | undefined {
     if (this.#inFlight.has(projectId)) {
-      return true;
+      return { status: 'pending', reason: THUMBNAIL_CAPTURE_REASONS.inFlight };
     }
 
     const now = this.#now();
     const last = this.#lastCaptureMs.get(projectId);
     const failure = this.#lastFailureMs.get(projectId);
 
-    return (
-      (last !== undefined && now - last < (this._deps.debounceMs ?? DEFAULT_DEBOUNCE_MS)) ||
-      (failure !== undefined && now - failure < (this._deps.failureCooldownMs ?? DEFAULT_FAILURE_COOLDOWN_MS))
-    );
+    if (last !== undefined && now - last < (this._deps.debounceMs ?? DEFAULT_DEBOUNCE_MS)) {
+      return { status: 'skipped', reason: THUMBNAIL_CAPTURE_REASONS.recentSuccess };
+    }
+
+    if (failure !== undefined && now - failure < (this._deps.failureCooldownMs ?? DEFAULT_FAILURE_COOLDOWN_MS)) {
+      return { status: 'skipped', reason: THUMBNAIL_CAPTURE_REASONS.failureCooldown };
+    }
+
+    return undefined;
+  }
+
+  /** HTTP budget only: a pending storage operation keeps its lock until settlement. */
+  async captureResultWithinDeadline(
+    projectId: string,
+    previewUrl: string,
+    timeoutMs = 25_000,
+  ): Promise<ThumbnailCaptureResult> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      return await Promise.race([
+        this.captureResult(projectId, previewUrl),
+        new Promise<ThumbnailCaptureResult>((resolve) => {
+          timer = setTimeout(
+            () => resolve({ status: 'pending', reason: THUMBNAIL_CAPTURE_REASONS.deadline }),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**
@@ -75,8 +120,18 @@ export class ThumbnailCapturer {
    * any recoverable failure — it never throws, so a caller can call it inline.
    */
   async capture(projectId: string, previewUrl: string): Promise<boolean> {
-    if (!this.enabled || !previewUrl || this.#shouldSkip(projectId)) {
-      return false;
+    return (await this.captureResult(projectId, previewUrl)).status === 'stored';
+  }
+
+  async captureResult(projectId: string, previewUrl: string): Promise<ThumbnailCaptureResult> {
+    if (!this.enabled || !previewUrl) {
+      return { status: 'skipped', reason: THUMBNAIL_CAPTURE_REASONS.disabled };
+    }
+
+    const skipped = this.#skipResult(projectId);
+
+    if (skipped) {
+      return skipped;
     }
 
     this.#inFlight.add(projectId);
@@ -86,6 +141,7 @@ export class ThumbnailCapturer {
      * five-minute debounce. Failed attempts get a short retry cooldown instead.
      */
     let stored = false;
+    let writeStarted = false;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this._deps.timeoutMs ?? DEFAULT_CAPTURE_TIMEOUT_MS);
@@ -107,13 +163,13 @@ export class ThumbnailCapturer {
       if (!response.ok) {
         this._deps.log?.warn({ projectId, status: response.status }, 'thumbnail screenshotter returned non-2xx');
 
-        return false;
+        return { status: 'failed', reason: THUMBNAIL_CAPTURE_REASONS.captureError };
       }
 
       const body = new Uint8Array(await response.arrayBuffer());
 
       if (body.byteLength === 0) {
-        return false;
+        return { status: 'failed', reason: THUMBNAIL_CAPTURE_REASONS.captureError };
       }
 
       controller.signal.throwIfAborted();
@@ -125,6 +181,7 @@ export class ThumbnailCapturer {
        * guard until it settles: releasing it on timeout could permit stale writes
        * to race a newer capture. Never start a write after provisioning times out.
        */
+      writeStarted = true;
       await this._deps.storage.putObject(projectId, {
         key: PROJECT_THUMBNAIL_KEY,
         body,
@@ -137,11 +194,15 @@ export class ThumbnailCapturer {
       this.#lastCaptureMs.set(projectId, this.#now());
       this._deps.log?.info({ projectId, bytes: body.byteLength }, 'stored project thumbnail');
 
-      return true;
+      return { status: 'stored' };
     } catch (error) {
       this._deps.log?.warn({ projectId, err: error }, 'thumbnail capture failed');
 
-      return false;
+      return controller.signal.aborted
+        ? { status: 'pending', reason: THUMBNAIL_CAPTURE_REASONS.deadline }
+        : writeStarted
+          ? { status: 'pending', reason: THUMBNAIL_CAPTURE_REASONS.storageUnconfirmed }
+          : { status: 'failed', reason: THUMBNAIL_CAPTURE_REASONS.captureError };
     } finally {
       if (!stored) {
         this.#lastFailureMs.set(projectId, this.#now());

@@ -15,7 +15,7 @@ import { TestApiStore } from './test-api-store.js';
  * « browser console errors »), rouge depuis le 22/09.
  *
  * Le cas voisin — stockage actif, capture d'écran non déployée — répondait déjà
- * `202 { scheduled: false, enabled: false }`. Le stockage coupé est le même cas :
+ * `202 { status: 'skipped', reason: 'disabled', enabled: false }`. Le stockage coupé est le même cas :
  * la fonction n'est pas là, rien n'a échoué.
  */
 
@@ -73,7 +73,7 @@ describe('rafraîchir la vignette, stockage coupé', () => {
     });
 
     expect(res.statusCode).toBe(202);
-    expect(res.json()).toEqual({ scheduled: false, enabled: false });
+    expect(res.json()).toEqual({ status: 'skipped', reason: 'disabled', enabled: false });
   });
 
   it('reste fermé à qui n’a pas accès au projet', async () => {

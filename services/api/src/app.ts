@@ -503,7 +503,12 @@ import {
 } from './strike-system.js';
 import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
 import { decideWorkspaceSlot } from './workspace-slot.js';
-import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import {
+  createThumbnailCapturer,
+  ThumbnailCapturer,
+  THUMBNAIL_CAPTURE_REASONS,
+  type ThumbnailLogger,
+} from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
@@ -36900,12 +36905,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * AVANT, comme pour une vignette réelle.
      */
     if (!isObjectStorageEnabled() || !thumbnailCapturer.enabled) {
-      return reply.code(202).send({ scheduled: false, enabled: false });
+      return reply.code(202).send({ status: 'skipped', reason: THUMBNAIL_CAPTURE_REASONS.disabled, enabled: false });
     }
 
-    thumbnailCapturer.schedule(project.id, body.url);
+    const result = await thumbnailCapturer.captureResultWithinDeadline(project.id, body.url);
 
-    return reply.code(202).send({ scheduled: true, enabled: true });
+    return reply.code(result.status === 'pending' ? 202 : 200).send({ ...result, enabled: true });
   });
 
   /*

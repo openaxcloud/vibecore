@@ -229,3 +229,109 @@ describe('ThumbnailCapturer provisioning and retry', () => {
     expect(puts).toHaveLength(1);
   });
 });
+
+describe('ThumbnailCapturer observed outcomes', () => {
+  it('distinguishes a stored write from a historical-success skip and known failure', async () => {
+    const { storage } = fakeStorage();
+
+    const cap = new ThumbnailCapturer({
+      storage,
+      screenshotterUrl: 'http://fixture',
+      fetchImpl: vi.fn().mockImplementation(async () => pngResponse()),
+    });
+    expect(await cap.captureResult('p', 'http://preview/')).toEqual({ status: 'stored' });
+    expect(await cap.captureResult('p', 'http://preview/')).toEqual({ status: 'skipped', reason: 'recent-success' });
+
+    const failing = new ThumbnailCapturer({
+      storage,
+      screenshotterUrl: 'http://fixture',
+      fetchImpl: vi.fn().mockResolvedValue(new Response(null, { status: 422 })),
+    });
+    expect(await failing.captureResult('p', 'http://preview/')).toEqual({ status: 'failed', reason: 'capture-error' });
+    expect(await failing.captureResult('p', 'http://preview/')).toEqual({
+      status: 'skipped',
+      reason: 'failure-cooldown',
+    });
+  });
+
+  it('returns pending at the HTTP deadline while retaining the noncancellable storage lock', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { storage } = fakeStorage();
+
+      let finish!: () => void;
+      storage.putObject = vi.fn(
+        () =>
+          new Promise<{ key: string; size: number }>((resolve) => {
+            finish = () => resolve({ key: 'thumbnails/preview.png', size: 4 });
+          }),
+      );
+
+      const cap = new ThumbnailCapturer({
+        storage,
+        screenshotterUrl: 'http://fixture',
+        fetchImpl: vi.fn().mockImplementation(async () => pngResponse()),
+      });
+
+      const pending = cap.captureResultWithinDeadline('p', 'http://preview/', 25_000);
+      await vi.advanceTimersByTimeAsync(25_000);
+      expect(await pending).toEqual({ status: 'pending', reason: 'deadline' });
+      expect(await cap.captureResult('p', 'http://preview/')).toEqual({ status: 'pending', reason: 'in-flight' });
+      expect(storage.putObject).toHaveBeenCalledOnce();
+      finish();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await cap.captureResult('p', 'http://preview/')).toEqual({ status: 'skipped', reason: 'recent-success' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('keeps an expired late storage write ambiguous instead of reporting a known failure', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { storage } = fakeStorage();
+
+      let finish!: () => void;
+      storage.putObject = vi.fn(
+        () =>
+          new Promise<{ key: string; size: number }>((resolve) => {
+            finish = () => resolve({ key: 'thumbnails/preview.png', size: 4 });
+          }),
+      );
+
+      const cap = new ThumbnailCapturer({
+        storage,
+        screenshotterUrl: 'http://fixture',
+        fetchImpl: vi.fn().mockImplementation(async () => pngResponse()),
+      });
+
+      const result = cap.captureResult('p', 'http://preview/');
+      await vi.advanceTimersByTimeAsync(31_000);
+      expect(await cap.captureResult('p', 'http://preview/')).toEqual({ status: 'pending', reason: 'in-flight' });
+      expect(storage.putObject).toHaveBeenCalledOnce();
+      finish();
+      expect(await result).toEqual({ status: 'pending', reason: 'deadline' });
+      expect(await cap.captureResult('p', 'http://preview/')).toEqual({
+        status: 'skipped',
+        reason: 'failure-cooldown',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('does not call an unconfirmed storage acknowledgement a known failed write', async () => {
+    const { storage } = fakeStorage();
+    storage.putObject = vi.fn().mockRejectedValue(new Error('Synthetic lost write acknowledgement'));
+
+    const cap = new ThumbnailCapturer({
+      storage,
+      screenshotterUrl: 'http://fixture',
+      fetchImpl: vi.fn().mockImplementation(async () => pngResponse()),
+    });
+    expect(await cap.captureResult('p', 'http://preview/')).toEqual({
+      status: 'pending',
+      reason: 'storage-unconfirmed',
+    });
+  });
+});

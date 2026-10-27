@@ -34,6 +34,7 @@ import {
   MAX_PREVIEW_BOOT_ATTEMPTS,
 } from './preview-frame-recovery';
 import { previewStartStatus } from './preview-start-status';
+import { useAutomaticThumbnail } from './useAutomaticThumbnail';
 import { usePreviewStartNotice } from './usePreviewStartNotice';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
@@ -1433,28 +1434,14 @@ export const Preview = memo(
       }
     }, [activePreview, activePreview?.ready, reloadPreview, previewFrameLoaded, loadedPreviewUrl, iframeUrl]);
 
-    /*
-     * P11 — automatic project thumbnail. When a preview becomes ready, tell the
-     * API (once per preview identity) to capture it server-side via the
-     * screenshotter. Fire-and-forget and best-effort: the backend is debounced
-     * and inert unless the screenshotter is configured, so a failure or a
-     * not-yet-deployed screenshotter is a silent no-op. No user gesture, no
-     * bytes through the browser.
-     */
-    const thumbnailPingedRef = useRef<Set<string>>(new Set());
-    useEffect(() => {
-      const baseUrl = activePreview?.baseUrl;
-
-      if (!projectId || !baseUrl || activePreview?.ready !== true || thumbnailPingedRef.current.has(baseUrl)) {
-        return;
-      }
-
-      thumbnailPingedRef.current.add(baseUrl);
-      void fetch(`/api/projects/${projectId}/thumbnail/refresh`, {
-        method: 'POST',
-        body: new URLSearchParams({ url: baseUrl }),
-      }).catch(() => undefined);
-    }, [projectId, activePreview?.baseUrl, activePreview?.ready]);
+    useAutomaticThumbnail({
+      projectId,
+      baseUrl: activePreview?.baseUrl,
+      ready: activePreview?.ready === true,
+      frameRendered: previewFrameLoaded && loadedPreviewUrl === iframeUrl,
+      onFailure: () => toast.error(t('idePanels.preview.thumbnailFailed')),
+      onUnconfirmed: () => toast.info(t('idePanels.preview.thumbnailUnconfirmed')),
+    });
 
     const prepareStartNotice = usePreviewStartNotice(projectId);
 
