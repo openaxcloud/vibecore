@@ -344,6 +344,7 @@ export const idePanelsEn = {
   'idePanels.preview.unhandledRejection': 'Unhandled promise rejection in preview: {message}',
   'idePanels.preview.unknownError': 'unknown error',
   'idePanels.preview.thumbnailSaved': 'Saved as the project thumbnail.',
+  'idePanels.preview.thumbnailUnconfirmed': 'The thumbnail capture could not be confirmed.',
   'idePanels.preview.thumbnailStorageDisabled': 'Object storage is not enabled — thumbnail was not saved.',
   'idePanels.preview.thumbnailFailed': 'Could not capture the thumbnail.',
   'idePanels.preview.serverStartingRetry': 'Preview server is still starting; retrying…',
@@ -842,6 +843,7 @@ export const idePanelsFr: Record<keyof typeof idePanelsEn, string> = {
   'idePanels.preview.unhandledRejection': 'Rejet de promesse non géré dans l’aperçu : {message}',
   'idePanels.preview.unknownError': 'erreur inconnue',
   'idePanels.preview.thumbnailSaved': 'Enregistré comme miniature du projet.',
+  'idePanels.preview.thumbnailUnconfirmed': 'La capture de la miniature n’a pas pu être confirmée.',
   'idePanels.preview.thumbnailStorageDisabled':
     'Le stockage d’objets n’est pas activé — la miniature n’a pas été enregistrée.',
   'idePanels.preview.thumbnailFailed': 'Impossible de capturer la miniature.',

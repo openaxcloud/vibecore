@@ -1,5 +1,17 @@
+import { z } from 'zod';
 import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
 import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
+
+// Stable protocol codes; the UI translates its own outcome messages.
+const DISABLED_REASON = 'disabled';
+const DEADLINE_REASON = 'deadline';
+
+const captureResultSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('stored') }),
+  z.object({ status: z.literal('skipped'), reason: z.enum(['disabled', 'recent-success', 'failure-cooldown']) }),
+  z.object({ status: z.literal('pending'), reason: z.enum(['in-flight', 'deadline', 'storage-unconfirmed']) }),
+  z.object({ status: z.literal('failed'), reason: z.literal('capture-error') }),
+]);
 
 /*
  * P11 preview-ready trigger (client half). The IDE posts here once a project's
@@ -22,14 +34,35 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   }
 
   try {
-    const result = await apiRequest<{ scheduled?: boolean; enabled?: boolean }>(
+    const result = await apiRequest<{ enabled?: boolean; scheduled?: boolean; status?: unknown; reason?: unknown }>(
       request,
       `/projects/${params.projectId}/thumbnail/refresh`,
-      { method: 'POST', body: JSON.stringify({ url }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({ url }),
+        signal: AbortSignal.any([request.signal, AbortSignal.timeout(28_000)]),
+      },
     );
 
-    return json({ ok: true, scheduled: Boolean(result?.scheduled), enabled: result?.enabled !== false });
+    const parsed = captureResultSchema.safeParse(result);
+
+    if (!parsed.success) {
+      // Older API replicas only acknowledge scheduling; that is not proof of a write.
+      return json({
+        ok: true,
+        enabled: result?.enabled !== false,
+        ...(result?.enabled === false
+          ? { status: 'skipped', reason: DISABLED_REASON }
+          : { status: 'pending', reason: DEADLINE_REASON }),
+      });
+    }
+
+    return json({ ok: true, enabled: result?.enabled !== false, ...parsed.data });
   } catch (error) {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+      return json({ ok: true, enabled: true, status: 'pending', reason: DEADLINE_REASON }, { status: 202 });
+    }
+
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
     if (status === 404) {
