@@ -1,0 +1,24 @@
+[
+  {
+    "pid": 251166,
+    "cmd": [
+      "node",
+      "/tmp/ui807-main809-focus/fixture.cjs"
+    ],
+    "startTicks": "5117632",
+    "termSent": true,
+    "absent": true
+  },
+  {
+    "pid": 251180,
+    "cmd": [
+      "node",
+      "node_modules/@react-router/serve/bin.js",
+      "build/server/index.js"
+    ],
+    "startTicks": "5117757",
+    "termSent": true,
+    "stateAfterTERM": "S",
+    "residualKilled": true
+  }
+]

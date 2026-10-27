@@ -1817,13 +1817,29 @@ function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
  */
 const PREVIEW_IMAGE_DEADLINE_MS = 15_000;
 
+// A capture can finish after the card's first GET. Retry reads only, then retain the honest fallback.
+const PREVIEW_IMAGE_RETRY_DELAYS_MS = [5_000, 10_000, 20_000];
+
 export function ProjectPreviewMedia({ project, className }: { project: ProjectCard; className?: string }) {
+  // A different project/URL owns fresh state; detached image events cannot clear its fallback.
+  return (
+    <ProjectPreviewImage
+      key={`${project.id}:${project.previewImageUrl ?? ''}`}
+      project={project}
+      className={className}
+    />
+  );
+}
+
+function ProjectPreviewImage({ project, className }: { project: ProjectCard; className?: string }) {
   const { t } = useTranslation();
+  const [retryCount, setRetryCount] = useState(0);
   const [failed, setFailed] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
   const url = project.previewImageUrl;
+  const canRetry = Boolean(url && /^\/api\/projects\/[^/?#]+\/thumbnail(?:[?#]|$)/.test(url));
 
   useEffect(() => {
     setFailed(false);
@@ -1846,15 +1862,36 @@ export function ProjectPreviewMedia({ project, className }: { project: ProjectCa
     return () => clearTimeout(minuterie);
   }, [url]);
 
+  useEffect(() => {
+    if (!failed || !canRetry || retryCount >= PREVIEW_IMAGE_RETRY_DELAYS_MS.length) {
+      return undefined;
+    }
+
+    const retryTimer = setTimeout(() => {
+      setRetryCount((count) => count + 1);
+      setTimedOut(true);
+      setFailed(false);
+    }, PREVIEW_IMAGE_RETRY_DELAYS_MS[retryCount]);
+
+    return () => clearTimeout(retryTimer);
+  }, [failed, retryCount, canRetry]);
+
   if (!url || failed) {
     return <ProjectPreviewFallback project={project} />;
   }
+
+  const [imagePath, fragment] = url.split('#');
+
+  const imageUrl = retryCount
+    ? `${imagePath}${imagePath.includes('?') ? '&' : '?'}thumbnailRetry=${retryCount}${fragment === undefined ? '' : `#${fragment}`}`
+    : url;
 
   return (
     <>
       <img
         ref={imageRef}
-        src={url}
+        key={imageUrl}
+        src={imageUrl}
         alt={t('userArea.project.latestPreview', { name: project.name })}
         aria-hidden={timedOut || undefined}
         className={className}

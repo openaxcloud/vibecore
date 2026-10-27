@@ -20,6 +20,8 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
+import { useSecurityScanSession } from './SecurityScanSession';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
 import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
 import {
@@ -42,7 +44,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { EditorAdapter, preloadDesktopCodeEditor } from '@vibecore/editor';
+import { EditorAdapter, preloadDesktopCodeEditor, useDesktopEditorFocusHandoff } from '@vibecore/editor';
 import {
   BarElement,
   CategoryScale,
@@ -373,7 +375,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Le
 const TEXTAREA_MIN_HEIGHT = 76;
 const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
 const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1';
-const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 const PROJECT_IDE_STATE_RESTORE_FALLBACK_MS = 6_000;
 const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
 type ProjectThemePreference = Theme | 'system';
@@ -2364,7 +2365,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectUrl,
       initialIdePanels,
     },
-    ref,
+    forwardedRef,
   ) => {
     const { t, i18n } = useTranslation();
     const language = resolvedBaseChatLanguage(i18n);
@@ -2995,7 +2996,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
-    const [mobileTabSearchQuery, setMobileTabSearchQuery] = useState('');
+    const [mobileTabSearchQuery, setMobileTabSearchQuery] = useMobileTabSearchQuery();
 
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
     const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);
@@ -3026,7 +3027,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [mobileOverlayStorageKey],
     );
 
-    const mobileOverlayReturnFocusRef = useRef<HTMLElement | null>(null);
+    const {
+      rootRef: mobileFocusRootRef,
+      rememberOpener,
+      restoreOpener,
+    } = useMobileOverlayFocus(projectIdeMode && useMobileIde && clientHydrated, useMobileIde);
+    useDesktopEditorFocusHandoff();
+
+    const ref = useCallback(
+      (node: HTMLDivElement | null) => {
+        mobileFocusRootRef.current = node;
+
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(node);
+        } else if (forwardedRef) {
+          forwardedRef.current = node;
+        }
+      },
+      [mobileFocusRootRef, forwardedRef],
+    );
 
     const blurActiveMobileControl = useCallback(() => {
       if (typeof document === 'undefined') {
@@ -3037,12 +3056,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (activeElement instanceof HTMLElement) {
         if (!activeElement.closest('[role="dialog"]')) {
-          mobileOverlayReturnFocusRef.current = activeElement;
+          rememberOpener(activeElement);
         }
 
         activeElement.blur();
       }
-    }, []);
+    }, [rememberOpener]);
 
     useEffect(() => {
       setClientHydrated(true);
@@ -3233,9 +3252,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       },
-      [closeMobileOverlays],
+      [closeMobileOverlays, restoreOpener],
     );
 
     const openMobileToolsSheet = useCallback(() => {
@@ -3485,7 +3504,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
-        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
+        restoreOpener();
       };
 
       /*
@@ -3497,6 +3516,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape, true);
     }, [
       closeMobileOverlays,
+      restoreOpener,
       mobileAgentMenuOpen,
       mobileMoreMenuOpen,
       mobileTabSwitcherOpen,
@@ -8694,7 +8714,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
-      (panel: IdeWorkspacePanel, filePath?: string) => {
+      (panel: IdeWorkspacePanel, paneId: string, filePath?: string) => {
         const paneDocument = filePath ? editorDocuments[filePath] : currentDocument;
 
         const savePaneDocument = () => {
@@ -8730,6 +8750,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {paneDocument && !paneDocument.isBinary ? (
                 <EditorAdapter
                   className="bolt-project-editor-adapter"
+                  focusIdentity={JSON.stringify([paneId, paneDocument.filePath])}
                   value={paneDocument.value}
                   filePath={paneDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
@@ -9068,7 +9089,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     unsavedChanges: unsavedFiles instanceof Set ? unsavedFiles.size : 0,
                   })}
                 >
-                  {renderPaneContent(activeTab.panel, activeTab.filePath)}
+                  {renderPaneContent(activeTab.panel, leaf.id, activeTab.filePath)}
                 </PanelErrorBoundary>
               ) : (
                 <ProjectWelcomeState
@@ -22251,14 +22272,7 @@ function ProjectSecurityPanel({
   const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
   const [activeTab, setActiveTab] = useState<'active' | 'hidden' | 'settings' | 'reports' | 'compare'>('active');
 
-  const [scanState, setScanState] = useState<{
-    status: 'idle' | 'running' | 'completed' | 'timeout' | 'cancelled' | 'failed';
-    progress: number;
-    message?: string;
-    startedAt?: number;
-  }>({ status: 'idle', progress: 0 });
-
-  const scanAbortRef = useRef<AbortController | null>(null);
+  const { session: scanSession, snapshot: scanState } = useSecurityScanSession(projectId, reload);
   const state = data.securityState ?? {};
   const settings = state.settings ?? {};
   const scans = state.scans ?? [];
@@ -22290,164 +22304,19 @@ function ProjectSecurityPanel({
   const scanElapsedMs = scanRunning && scanState.startedAt ? Date.now() - scanState.startedAt : 0;
   const scanStage = scanProgressStage(t, scanState.progress, scanElapsedMs);
 
-  useEffect(() => {
-    if (!scanRunning || !scanState.startedAt) {
-      return undefined;
-    }
-
-    const interval = window.setInterval(() => {
-      setScanState((current) => {
-        if (current.status !== 'running' || !current.startedAt) {
-          return current;
-        }
-
-        const elapsed = Date.now() - current.startedAt;
-
-        const progress = Math.min(
-          94,
-          Math.max(current.progress, 8 + Math.round((elapsed / PROJECT_SECURITY_SCAN_TIMEOUT_MS) * 84)),
-        );
-
-        return {
-          ...current,
-          progress,
-          message: scanProgressStage(t, progress, elapsed),
-        };
-      });
-    }, 800);
-
-    return () => window.clearInterval(interval);
-  }, [scanRunning, scanState.startedAt, t]);
-
-  useEffect(() => {
-    return () => {
-      scanAbortRef.current?.abort();
-      scanAbortRef.current = null;
-    };
-  }, []);
-
-  const runScan = async (event: React.FormEvent<HTMLFormElement>) => {
+  const runScan = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!projectId) {
-      setScanState({
-        status: 'failed',
-        progress: 0,
-        message: t('chat.copy.missingProjectIdReloadTheIde_66a40459'),
-      });
-
-      return;
-    }
-
-    scanAbortRef.current?.abort();
-
-    const controller = new AbortController();
-    scanAbortRef.current = controller;
-
-    const timeout = window.setTimeout(() => {
-      if (scanAbortRef.current !== controller || controller.signal.aborted) {
-        return;
-      }
-
-      controller.abort();
-      setScanState({
-        status: 'timeout',
-        progress: 100,
-        message: t('chat.copy.securityScanTimedOutAfter90_6f170c10'),
-      });
-    }, PROJECT_SECURITY_SCAN_TIMEOUT_MS);
-
-    setScanState({
-      status: 'running',
-      progress: 8,
-      startedAt: Date.now(),
-      message: t('chat.copy.preparingScannerProfile_eaa96b71'),
-    });
-
-    try {
-      const formData = new FormData(event.currentTarget);
-
-      const response = await fetch(`/api/projects/${projectId}/ide-panel/security`, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-      });
-
-      const result = (await response.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error?: string;
-        scan?: { status?: string };
-      };
-
-      if (scanAbortRef.current !== controller || controller.signal.aborted) {
-        return;
-      }
-
-      if (!response.ok || result.ok !== true || result.scan?.status !== 'completed') {
-        console.warn('Security scan request failed', { status: response.status, serverError: result.error });
-        window.clearTimeout(timeout);
-        setScanState({
-          status: 'failed',
-          progress: 100,
-          message: result.error || t('baseChatAst.security.scanFailed'),
-        });
-        await reload?.();
-
-        return;
-      }
-
-      window.clearTimeout(timeout);
-      setScanState({
-        status: 'completed',
-        progress: 100,
-        message: t('chat.copy.scanCompletedResultsWereRefreshedFrom_7f5ecdf8'),
-      });
-      await reload?.();
-    } catch (error) {
-      window.clearTimeout(timeout);
-
-      if (scanAbortRef.current !== controller) {
-        return;
-      }
-
-      if (controller.signal.aborted) {
-        setScanState((current) =>
-          current.status === 'timeout'
-            ? current
-            : {
-                status: 'cancelled',
-                progress: 0,
-                message: t('chat.copy.scanCancelledLocallyReloadThePanel_919bd102'),
-              },
-        );
-
-        return;
-      }
-
-      console.error('Security scan request failed', error);
-      setScanState({
-        status: 'failed',
-        progress: 100,
-        message: t('baseChatAst.security.scanFailed'),
-      });
-    } finally {
-      window.clearTimeout(timeout);
-
-      if (scanAbortRef.current === controller) {
-        scanAbortRef.current = null;
-      }
-    }
-  };
-
-  const cancelScan = () => {
-    scanAbortRef.current?.abort();
-    scanAbortRef.current = null;
-    setScanState({
-      status: 'cancelled',
-      progress: 0,
-      message: t('chat.copy.scanCancelledLocallyNoCompletedScan_344286af'),
+    void scanSession.run(new FormData(event.currentTarget), {
+      preparing: t('chat.copy.preparingScannerProfile_eaa96b71'),
+      timeout: t('chat.copy.securityScanTimedOutAfter90_6f170c10'),
+      cancelled: t('chat.copy.scanCancelledLocallyNoCompletedScan_344286af'),
+      failed: t('baseChatAst.security.scanFailed'),
+      completed: t('chat.copy.scanCompleted_6d13ae13'),
+      missingProject: t('chat.copy.missingProjectIdReloadTheIde_66a40459'),
     });
   };
+
+  const cancelScan = () => scanSession.cancel();
 
   const printReport = () => {
     const report = buildSecurityReport(project, state, t);

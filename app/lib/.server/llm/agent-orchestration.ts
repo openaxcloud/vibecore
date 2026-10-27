@@ -30,6 +30,9 @@ export type AgentExecutionResult = {
   files?: string[];
   risks?: string[];
   verification?: string[];
+  outputState?: 'empty' | 'actions_without_report' | 'report' | 'invalid_report' | 'interrupted';
+  emittedFiles?: string[];
+  verificationState?: 'not_observed';
 };
 
 export type AgentConsensusOutput = {
@@ -58,6 +61,7 @@ export type AgentConsensusOutput = {
     summary: string;
     acceptedRisks: string[];
     acceptedVerification: string[];
+    agreedVerificationClaims?: string[];
     acceptedFiles: string[];
     rejectedClaims: Array<{ claim: string; type: 'risk' | 'verification' | 'file' }>;
   };
@@ -91,26 +95,59 @@ export type AgentExecutionAnnotation = {
       decision: 'accepted' | 'rejected' | 'inconclusive';
     }>;
     conflicts: AgentConsensusOutput['conflicts'];
+    consolidated?: AgentConsensusOutput['consolidated'];
   };
 };
 
+/** Model reports are declarations; neither legacy nor new payloads contain execution receipts. */
+function normalizeExecutionEvidence(execution: AgentExecutionResponse): AgentExecutionResponse {
+  const consolidated = execution.consensus?.consolidated;
+  return {
+    ...execution,
+    results: execution.results.map((result) => ({ ...result, verificationState: 'not_observed' })),
+    ...(execution.consensus
+      ? {
+          consensus: {
+            ...execution.consensus,
+            ...(consolidated
+              ? {
+                  consolidated: {
+                    ...consolidated,
+                    acceptedVerification: [],
+                    agreedVerificationClaims: [
+                      ...new Set([
+                        ...(consolidated.agreedVerificationClaims ?? []),
+                        ...(consolidated.acceptedVerification ?? []),
+                      ]),
+                    ],
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export function buildAgentExecutionAnnotation(execution: AgentExecutionResponse): AgentExecutionAnnotation {
+  const safeExecution = normalizeExecutionEvidence(execution);
+
   const annotation: AgentExecutionAnnotation = {
     type: 'agentExecution',
-    runId: execution.runId,
-    status: execution.status,
-    results: execution.results,
+    runId: safeExecution.runId,
+    status: safeExecution.status,
+    results: safeExecution.results,
   };
 
-  if (execution.consensus) {
+  if (safeExecution.consensus) {
     annotation.consensus = {
-      algorithm: execution.consensus.algorithm,
-      outcome: execution.consensus.outcome,
-      threshold: execution.consensus.threshold,
-      agreementScore: execution.consensus.agreementScore,
-      rounds: execution.consensus.rounds,
-      durationMs: execution.consensus.durationMs,
-      claimVotes: execution.consensus.claimVotes.map((vote) => ({
+      algorithm: safeExecution.consensus.algorithm,
+      outcome: safeExecution.consensus.outcome,
+      threshold: safeExecution.consensus.threshold,
+      agreementScore: safeExecution.consensus.agreementScore,
+      rounds: safeExecution.consensus.rounds,
+      durationMs: safeExecution.consensus.durationMs,
+      claimVotes: safeExecution.consensus.claimVotes.map((vote) => ({
         claim: vote.claim,
         type: vote.type,
         supporters: vote.supporters,
@@ -118,7 +155,8 @@ export function buildAgentExecutionAnnotation(execution: AgentExecutionResponse)
         agreementRatio: vote.agreementRatio,
         decision: vote.decision,
       })),
-      conflicts: execution.consensus.conflicts,
+      conflicts: safeExecution.consensus.conflicts,
+      ...(safeExecution.consensus.consolidated ? { consolidated: safeExecution.consensus.consolidated } : {}),
     };
   }
 
@@ -567,7 +605,7 @@ export async function executeAgentOrchestration(input: {
       throw new AgentExecutorError('Sub-agent executor returned an invalid response shape.', 'invalid-response');
     }
 
-    return payload;
+    return normalizeExecutionEvidence(payload);
   } catch (error) {
     if (error instanceof AgentExecutorError) {
       throw error;
@@ -602,10 +640,10 @@ export type AgentLaneStreamEvent =
 
 /**
  * Assemble a best-effort {@link AgentExecutionResponse} from the lanes that have
- * already completed when a stream fails mid-run.
+ * already completed or emitted output when a stream fails mid-run.
  *
  * Pure + exported so the double-billing guard is unit-testable. When the SSE
- * breaks AFTER one or more `lane-done` events but BEFORE a clean `run-done`
+ * breaks AFTER output or a `lane-done` event but BEFORE a clean `run-done`
  * (gateway-sent `error`, missing run-done, or an idle timeout with partial
  * output), the lanes already executed and were billed on the gateway. Returning
  * a partial aggregate built from those lanes lets the caller proceed instead of
@@ -616,16 +654,44 @@ export type AgentLaneStreamEvent =
 export function buildPartialExecutionFromLanes(
   completedLanes: AgentExecutionResult[],
   runId: string,
+  observedOutput: ReadonlyMap<AgentRoleId, string> = new Map(),
+  observedNonEmptyRoles: ReadonlySet<AgentRoleId> = new Set(),
 ): AgentExecutionResponse | undefined {
-  if (completedLanes.length === 0) {
+  const results = [...completedLanes];
+  const completedRoles = new Set(completedLanes.map((lane) => lane.roleId));
+
+  for (const [roleId, content] of observedOutput) {
+    if (completedRoles.has(roleId) || (!content.trim() && !observedNonEmptyRoles.has(roleId))) {
+      continue;
+    }
+
+    // Only closed file actions count as emitted; none count as persisted or tested.
+    const emittedFiles = new Set<string>();
+
+    for (const action of content.matchAll(/<boltAction\b([^>]*?)>(?:(?!<boltAction\b)[\s\S])*?<\/boltAction\s*>/gi)) {
+      const attributes = action[1];
+      const type = /(?:^|\s)type\s*=\s*(["'])(.*?)\1/i.exec(attributes)?.[2];
+      const path = /(?:^|\s)filePath\s*=\s*(["'])(.*?)\1/i.exec(attributes)?.[2];
+
+      if (type === 'file' && path?.trim()) {
+        emittedFiles.add(path.trim());
+      }
+    }
+    results.push({
+      roleId,
+      status: 'partial',
+      summary: '',
+      outputState: 'interrupted',
+      emittedFiles: [...emittedFiles],
+      verificationState: 'not_observed',
+    });
+  }
+
+  if (results.length === 0) {
     return undefined;
   }
 
-  return {
-    runId,
-    status: 'partial',
-    results: completedLanes,
-  };
+  return normalizeExecutionEvidence({ runId, status: 'partial', results });
 }
 
 /**
@@ -634,7 +700,7 @@ export function buildPartialExecutionFromLanes(
  * returns the final aggregate. `onEvent` is called for every lane event as it
  * arrives. Falls back semantics identical to the non-streaming call (throws
  * AgentExecutorError so api.chat can fall back to single-model lanes) ONLY while
- * no lane has completed; once any lane has finished (and been billed on the
+ * no lane has emitted output or completed; once a lane emits output (and incurs cost on the
  * gateway), a mid-run failure resolves to a partial aggregate instead of
  * throwing, so the caller does not re-run and double-bill the whole fan-out.
  */
@@ -722,6 +788,16 @@ export async function executeAgentOrchestrationStream(input: {
    */
   const completedLanes: AgentExecutionResult[] = [];
 
+  /*
+   * Observe at most 1,048,576 JavaScript characters per lane (not bytes).
+   * This does not bound the existing SSE frame buffer. Oversized lanes still
+   * suppress replay; file metadata beyond this prefix is conservatively omitted.
+   */
+  const observedOutput = new Map<AgentRoleId, string>();
+  const observedNonEmptyRoles = new Set<AgentRoleId>();
+  const maxObservedCharacters = 1024 * 1024;
+  const plannedRoles = new Set(input.plan.roles.map((role) => role.id));
+
   let streamRunId: string | undefined;
 
   try {
@@ -758,6 +834,9 @@ export async function executeAgentOrchestrationStream(input: {
 
     for (;;) {
       const { value, done } = await reader.read();
+
+      // Cancellation also wins when the transport closes without throwing.
+      input.signal?.throwIfAborted();
 
       if (done) {
         break;
@@ -798,7 +877,29 @@ export async function executeAgentOrchestrationStream(input: {
           throw new AgentExecutorError(event.error || 'Sub-agent stream error.', 'http-error');
         }
 
+        if (event.type === 'lane-delta' && typeof event.content === 'string' && plannedRoles.has(event.roleId)) {
+          if (event.content.trim()) {
+            observedNonEmptyRoles.add(event.roleId);
+          }
+
+          const prior = observedOutput.get(event.roleId) ?? '';
+          observedOutput.set(event.roleId, (prior + event.content).slice(0, maxObservedCharacters));
+        }
+
+        if (event.type === 'lane-done') {
+          event = { ...event, result: { ...event.result, verificationState: 'not_observed' } };
+        } else if (event.type === 'run-done') {
+          event = { type: 'run-done', ...normalizeExecutionEvidence(event) };
+        }
+
+        input.signal?.throwIfAborted();
         input.onEvent(event);
+
+        /*
+         * A consumer may stop the run while handling this frame. Do not publish
+         * any buffered successor or return a completed/partial cancelled run.
+         */
+        input.signal?.throwIfAborted();
 
         if (event.type === 'lane-done') {
           completedLanes.push(event.result);
@@ -816,9 +917,14 @@ export async function executeAgentOrchestrationStream(input: {
        * No clean run-done, but lanes already ran and were billed on the gateway.
        * Resolve to a partial aggregate so the caller does NOT re-POST a fresh
        * /v1/agent-runs and double-bill the whole fan-out. Only throw (triggering
-       * the single-model-lanes fallback) when nothing completed.
+       * the single-model-lanes fallback) when nothing completed or emitted output.
        */
-      const partial = buildPartialExecutionFromLanes(completedLanes, streamRunId ?? `partial-${Date.now()}`);
+      const partial = buildPartialExecutionFromLanes(
+        completedLanes,
+        streamRunId ?? `partial-${Date.now()}`,
+        observedOutput,
+        observedNonEmptyRoles,
+      );
 
       if (partial) {
         return partial;
@@ -833,13 +939,22 @@ export async function executeAgentOrchestrationStream(input: {
      * User-initiated cancellation must always propagate: the caller's re-fetch
      * short-circuits on the already-aborted signal, and surfacing partial work
      * for an explicit stop is wrong. For every OTHER mid-run failure, if lanes
-     * already completed (and were billed) we return their partial aggregate
+     * already emitted output or completed we return their partial aggregate
      * rather than throwing, so the caller does not re-run and double-bill.
      */
     const callerAborted = Boolean(input.signal?.aborted);
 
-    if (!callerAborted && completedLanes.length > 0) {
-      return buildPartialExecutionFromLanes(completedLanes, streamRunId ?? `partial-${Date.now()}`)!;
+    if (!callerAborted) {
+      const partial = buildPartialExecutionFromLanes(
+        completedLanes,
+        streamRunId ?? `partial-${Date.now()}`,
+        observedOutput,
+        observedNonEmptyRoles,
+      );
+
+      if (partial) {
+        return partial;
+      }
     }
 
     if (error instanceof AgentExecutorError) {
@@ -878,7 +993,14 @@ export function createAgentExecutionContext(response: AgentExecutionResponse): s
         `Summary: ${result.summary}`,
         result.files?.length ? `Files: ${result.files.join(', ')}` : undefined,
         result.risks?.length ? `Risks: ${result.risks.join('; ')}` : undefined,
-        result.verification?.length ? `Verification: ${result.verification.join('; ')}` : undefined,
+        result.outputState ? `Output state: ${result.outputState}` : undefined,
+        result.emittedFiles?.length
+          ? `Emitted file actions (not confirmed persisted): ${result.emittedFiles.join(', ')}`
+          : undefined,
+        'Verification state: not_observed',
+        result.verification?.length
+          ? `Verification claims (not observed): ${result.verification.join('; ')}`
+          : undefined,
       ].filter(Boolean);
 
       return details.join('\n');

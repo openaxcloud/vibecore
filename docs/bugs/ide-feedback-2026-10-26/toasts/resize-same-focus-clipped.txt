@@ -1,0 +1,17 @@
+A [Error]: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+    at Proxy.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/lib/matchers/expect.js:213:24)
+    at /tmp/ui-ide-toast-feedback/resize-final.cjs:2:1952 {
+  matcherResult: {
+    actual: false,
+    expected: true,
+    message: 'expect(received).toBe(expected) // Object.is equality\n' +
+      '\n' +
+      'Expected: true\n' +
+      'Received: false',
+    name: 'toBe',
+    pass: false
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "coveredScenarios": 17,
+  "firstPassSuccesses": 15,
+  "outsideScenariosPassedAfterTwoHarnessCorrections": 2,
+  "automaticRetries": 0,
+  "runs": {
+    "final-targeted": {
+      "startTime": "2026-10-26T04:19:36.413Z",
+      "duration": 86384.202,
+      "expected": 13,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "composition-native": {
+      "startTime": "2026-10-26T04:19:37.855Z",
+      "duration": 32350.974,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "final-fast": {
+      "startTime": "2026-10-26T04:19:39.501Z",
+      "duration": 20874.165,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "outside-verified": {
+      "startTime": "2026-10-26T04:21:50.744Z",
+      "duration": 10689.386,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "outside-native-verified": {
+      "startTime": "2026-10-26T04:21:52.220Z",
+      "duration": 13854.129,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "sourceChangesSinceBuild": [],
+  "files": {
+    "final-build-manifest.json": "2a71274f88eebd8c437c890df8ad2ca50e7e880fda7cbce35a1e37821bb0fe8c",
+    "final-prebuild-sources.json": "91cfdf901f53de75ecfa1e139c27f47b70936da60e77a5d3d134569a0a71827c",
+    "final-behavior-evidence.json": "72f35111656552a634d48bddbe99db84c735a5d3bf213cfa589cee5e5ffc8192",
+    "test-provenance-final.json": "6e559792b3b73d7a73f8168e53f518e6cf88d2689665954d17d4ce676858f89a",
+    "final-targeted-results.json": "b9d97e1c73a27ef3c076bcb61bd0680a4578f73e675906655a5a4179a152e647",
+    "composition-native-results.json": "99461a4288bfd7a7ebea4a99b163ed647e12d6d6c725d598c3df3edecf376513",
+    "final-fast-results.json": "6e8310d9bbb24da0fc04d4511d0adec219fc534fbb1b12567ad331c967b09621",
+    "outside-verified-results.json": "b530db9e83b75aff7311cea4e4b777f82fb145bee4507fa925822249fbed6ad3",
+    "outside-native-verified-results.json": "b3536e6721133bf70393ffdc5023f6da6a204e79af573bbe4f89e3908d3849cb",
+    "outside-final-results.json": "e49a6e3c053bb2bc23151c9ac48d7f29af7fb9caf7f83931a050d50081828855",
+    "outside-native-final-results.json": "03774bde61c051af4390cace6f8201638d5c68c4af8892402505f8fa8e91f524"
+  },
+  "physicalIMEValidated": false,
+  "productionValidated": false,
+  "cleanup": {
+    "ports": {
+      "5199": "closed",
+      "3018": "closed",
+      "55448": "closed",
+      "56388": "closed"
+    },
+    "containers": [],
+    "unrelated96853Preserved": true,
+    "ownedProcessExists": {
+      "214251": false,
+      "210082": false,
+      "210047": false
+    }
+  }
+}

@@ -1,0 +1,426 @@
+[
+  {
+    "width": 320,
+    "bodyClassCount": 0,
+    "container": "<div tabindex=\"-1\" class=\"Toastify__toast-container Toastify__toast-container--top-right\" data-stacked=\"true\"><div id=\"synthetic-rich\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--default Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 32px; --g: 12; --s: 0.95;\"><div><strong>8 fichiers appliqués — notification synthétique</strong><p>src/components/synthetic-component-0.tsx</p><p>src/components/synthetic-component-1.tsx</p><p>src/components/synthetic-component-2.tsx</p><p>src/components/synthetic-component-3.tsx</p><p>src/components/synthetic-component-4.tsx</p><p>src/components/synthetic-component-5.tsx</p><p>src/components/synthetic-component-6.tsx</p><p>src/components/synthetic-component-7.tsx</p><button>Afficher les détails</button></div><button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--default\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--default\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"preview-build-started\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--info Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 18px; --g: 12; --s: 0.975;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:info text-2xl\" style=\"color: var(--status-info-text);\"></div></div>Compilation démarrée : Démarrage de l’aperçu<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--info\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--info\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"synthetic-error\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--error Toastify__toast--stacked\" role=\"alert\" data-pos=\"top\" style=\"--y: 0px; --g: 12; --s: 1;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl\"></div></div>Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--error\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--error\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div></div>",
+    "toasts": [
+      {
+        "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+        "box": {
+          "x": 15.600006103515625,
+          "y": 146.1906280517578,
+          "w": 288.79998779296875,
+          "h": 387.2437744140625
+        },
+        "font": "14px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Compilation démarrée : Démarrage de l’aperçu",
+        "box": {
+          "x": 11.800003051757812,
+          "y": 122.87187194824219,
+          "w": 296.4000244140625,
+          "h": 68.00625610351562
+        },
+        "font": "14px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 3,
+            "text": "Compilation démarrée : Démarrage de l’aperçu",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+        "box": {
+          "x": 8,
+          "y": 104,
+          "w": 304,
+          "h": 89.625
+        },
+        "font": "14px",
+        "display": "flex",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "1"
+          },
+          {
+            "type": 3,
+            "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0.7"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "bodyClassCount": 0,
+    "container": "<div tabindex=\"-1\" class=\"Toastify__toast-container Toastify__toast-container--top-right\" data-stacked=\"true\"><div id=\"synthetic-rich\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--default Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 26.8px; --g: 12; --s: 0.95;\"><div><strong>8 fichiers appliqués — notification synthétique</strong><p>src/components/synthetic-component-0.tsx</p><p>src/components/synthetic-component-1.tsx</p><p>src/components/synthetic-component-2.tsx</p><p>src/components/synthetic-component-3.tsx</p><p>src/components/synthetic-component-4.tsx</p><p>src/components/synthetic-component-5.tsx</p><p>src/components/synthetic-component-6.tsx</p><p>src/components/synthetic-component-7.tsx</p><button>Afficher les détails</button></div><button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--default\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--default\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"preview-build-started\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--info Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 14px; --g: 12; --s: 0.975;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:info text-2xl\" style=\"color: var(--status-info-text);\"></div></div>Compilation démarrée : Démarrage de l’aperçu<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--info\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--info\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"synthetic-error\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--error Toastify__toast--stacked\" role=\"alert\" data-pos=\"top\" style=\"--y: 0px; --g: 12; --s: 1;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl\"></div></div>Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--error\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--error\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div></div>",
+    "toasts": [
+      {
+        "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+        "box": {
+          "x": 17.350006103515625,
+          "y": 136.5187530517578,
+          "w": 355.29998779296875,
+          "h": 217.31248474121094
+        },
+        "font": "14px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Compilation démarrée : Démarrage de l’aperçu",
+        "box": {
+          "x": 12.675003051757812,
+          "y": 118.80000305175781,
+          "w": 364.6500244140625,
+          "h": 62.399993896484375
+        },
+        "font": "14px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 3,
+            "text": "Compilation démarrée : Démarrage de l’aperçu",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+        "box": {
+          "x": 8,
+          "y": 104,
+          "w": 374,
+          "h": 69.75
+        },
+        "font": "14px",
+        "display": "flex",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "1"
+          },
+          {
+            "type": 3,
+            "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0.7"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "bodyClassCount": 0,
+    "container": "<div tabindex=\"-1\" class=\"Toastify__toast-container Toastify__toast-container--top-right\" data-stacked=\"true\"><div id=\"synthetic-rich\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--default Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 26.8px; --g: 12; --s: 0.95;\"><div><strong>8 fichiers appliqués — notification synthétique</strong><p>src/components/synthetic-component-0.tsx</p><p>src/components/synthetic-component-1.tsx</p><p>src/components/synthetic-component-2.tsx</p><p>src/components/synthetic-component-3.tsx</p><p>src/components/synthetic-component-4.tsx</p><p>src/components/synthetic-component-5.tsx</p><p>src/components/synthetic-component-6.tsx</p><p>src/components/synthetic-component-7.tsx</p><button>Afficher les détails</button></div><button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--default\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--default\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"preview-build-started\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--info Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 14px; --g: 12; --s: 0.975;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:info text-2xl\" style=\"color: var(--status-info-text);\"></div></div>Compilation démarrée : Démarrage de l’aperçu<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--info\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--info\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"synthetic-error\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--error Toastify__toast--stacked\" role=\"alert\" data-pos=\"top\" style=\"--y: 0px; --g: 12; --s: 1;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl\"></div></div>Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--error\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--error\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div></div>",
+    "toasts": [
+      {
+        "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+        "box": {
+          "x": 381.5,
+          "y": 92.51875305175781,
+          "w": 361,
+          "h": 217.31248474121094
+        },
+        "font": "14px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Compilation démarrée : Démarrage de l’aperçu",
+        "box": {
+          "x": 376.75,
+          "y": 74.80000305175781,
+          "w": 370.5,
+          "h": 62.399993896484375
+        },
+        "font": "14px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 3,
+            "text": "Compilation démarrée : Démarrage de l’aperçu",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+        "box": {
+          "x": 372,
+          "y": 60,
+          "w": 380,
+          "h": 69.75
+        },
+        "font": "14px",
+        "display": "flex",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "1"
+          },
+          {
+            "type": 3,
+            "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0.7"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "bodyClassCount": 0,
+    "container": "<div tabindex=\"-1\" class=\"Toastify__toast-container Toastify__toast-container--top-right\" data-stacked=\"true\"><div id=\"synthetic-rich\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--default Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 25.6px; --g: 12; --s: 0.95;\"><div><strong>8 fichiers appliqués — notification synthétique</strong><p>src/components/synthetic-component-0.tsx</p><p>src/components/synthetic-component-1.tsx</p><p>src/components/synthetic-component-2.tsx</p><p>src/components/synthetic-component-3.tsx</p><p>src/components/synthetic-component-4.tsx</p><p>src/components/synthetic-component-5.tsx</p><p>src/components/synthetic-component-6.tsx</p><p>src/components/synthetic-component-7.tsx</p><button>Afficher les détails</button></div><button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--default\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--default\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"preview-build-started\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--info Toastify__toast--stacked\" role=\"alert\" data-collapsed=\"true\" data-pos=\"top\" style=\"--y: 12.8px; --g: 12; --s: 0.975;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:info text-2xl\" style=\"color: var(--status-info-text);\"></div></div>Compilation démarrée : Démarrage de l’aperçu<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--info\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--info\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div><div id=\"synthetic-error\" tabindex=\"0\" data-in=\"true\" class=\"Toastify__toast Toastify__toast-theme--light Toastify__toast--error Toastify__toast--stacked\" role=\"alert\" data-pos=\"top\" style=\"--y: 0px; --g: 12; --s: 1;\"><div class=\"Toastify__toast-icon Toastify--animate-icon Toastify__zoom-enter\"><div class=\"i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl\"></div></div>Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.<button type=\"button\" class=\"Toastify__close-button\" aria-label=\"Fermer la notification\"><div class=\"i-ph:x text-lg\" aria-hidden=\"true\"></div></button><div class=\"Toastify__progress-bar--wrp\" data-hidden=\"true\"><div class=\"Toastify__progress-bar--bg Toastify__progress-bar-theme--light Toastify__progress-bar--error\"></div><div role=\"progressbar\" aria-hidden=\"true\" aria-label=\"notification timer\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\" class=\"Toastify__progress-bar Toastify__progress-bar--controlled Toastify__progress-bar-theme--light Toastify__progress-bar--error\" style=\"animation-play-state: running; transform: scaleX(0);\"></div></div></div></div>",
+    "toasts": [
+      {
+        "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+        "box": {
+          "x": 1053.5,
+          "y": 90.6078109741211,
+          "w": 361,
+          "h": 190.296875
+        },
+        "font": "12px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "8 fichiers appliqués — notification synthétiquesrc/components/synthetic-component-0.tsxsrc/components/synthetic-component-1.tsxsrc/components/synthetic-component-2.tsxsrc/components/synthetic-component-3.tsxsrc/components/synthetic-component-4.tsxsrc/components/synthetic-component-5.tsxsrc/components/synthetic-component-6.tsxsrc/components/synthetic-component-7.tsxAfficher les détails",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Compilation démarrée : Démarrage de l’aperçu",
+        "box": {
+          "x": 1048.75,
+          "y": 73.5999984741211,
+          "w": 370.5,
+          "h": 62.400001525878906
+        },
+        "font": "12px",
+        "display": "flex",
+        "collapsed": "true",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 3,
+            "text": "Compilation démarrée : Démarrage de l’aperçu",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      },
+      {
+        "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+        "box": {
+          "x": 1044,
+          "y": 60,
+          "w": 380,
+          "h": 64.0625
+        },
+        "font": "12px",
+        "display": "flex",
+        "background": "rgb(255, 255, 255)",
+        "children": [
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "1"
+          },
+          {
+            "type": 3,
+            "text": "Service indisponible : la réponse de l’agent est vide. Réessayez après vérification.",
+            "opacity": null
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0.7"
+          },
+          {
+            "type": 1,
+            "text": "",
+            "opacity": "0"
+          }
+        ]
+      }
+    ]
+  }
+]

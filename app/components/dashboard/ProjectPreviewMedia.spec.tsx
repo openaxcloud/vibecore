@@ -100,6 +100,127 @@ describe('project card media', () => {
     }
   });
 
+  it('retries a missing capture three times, keeps the fallback while loading, and stops after permanent failure', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container } = renderWithI18n(<ProjectPreviewMedia project={project} />);
+
+      for (const [index, delay] of [5_000, 10_000, 20_000].entries()) {
+        fireEvent.error(container.querySelector('img')!);
+        expect(container.querySelector('img')).toBeNull();
+        await act(async () => vi.advanceTimersByTime(delay));
+        expect(container.querySelector('img')?.getAttribute('src')).toBe(
+          `${project.previewImageUrl}?thumbnailRetry=${index + 1}`,
+        );
+        expect(screen.getByText('No preview yet')).toBeTruthy();
+      }
+
+      fireEvent.error(container.querySelector('img')!);
+      await act(async () => vi.advanceTimersByTime(120_000));
+      expect(container.querySelector('img')).toBeNull();
+      expect(screen.getByText('No preview yet')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('recovers only when a retried image loads successfully, without further retries', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container } = renderWithI18n(<ProjectPreviewMedia project={project} />);
+      fireEvent.error(container.querySelector('img')!);
+      await act(async () => vi.advanceTimersByTime(5_000));
+
+      const retry = container.querySelector('img')!;
+      fireEvent.load(retry);
+      expect(screen.queryByText('No preview yet')).toBeNull();
+      await act(async () => vi.advanceTimersByTime(120_000));
+      expect(container.querySelector('img')).toBe(retry);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(['id', 'previewImageUrl'] as const)('cancels old retries when %s changes', async (field) => {
+    vi.useFakeTimers();
+
+    try {
+      const wrap = (card: ProjectCard) => (
+        <I18nextProvider i18n={createI18nInstance('en')}>
+          <ProjectPreviewMedia project={card} />
+        </I18nextProvider>
+      );
+
+      const { container, rerender } = render(wrap(project));
+      const oldImage = container.querySelector('img')!;
+      fireEvent.error(oldImage);
+
+      const next = { ...project, [field]: field === 'id' ? 'project-2' : '/api/projects/project-2/thumbnail' };
+      rerender(wrap(next));
+
+      const current = container.querySelector('img')!;
+      fireEvent.error(current);
+      fireEvent.load(oldImage);
+      expect(screen.getByText('No preview yet')).toBeTruthy();
+      await act(async () => vi.advanceTimersByTime(5_000));
+      expect(container.querySelector('img')?.getAttribute('src')).toBe(`${next.previewImageUrl}?thumbnailRetry=1`);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('preserves existing query and fragment on the internal thumbnail retry', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container } = renderWithI18n(
+        <ProjectPreviewMedia project={{ ...project, previewImageUrl: `${project.previewImageUrl}?v=2#preview` }} />,
+      );
+      fireEvent.error(container.querySelector('img')!);
+      await act(async () => vi.advanceTimersByTime(5_000));
+      expect(container.querySelector('img')?.getAttribute('src')).toBe(
+        `${project.previewImageUrl}?v=2&thumbnailRetry=1#preview`,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not alter or retry a signed external image URL', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const signedUrl = 'https://storage.example.test/preview.png?signature=synthetic-only';
+
+      const { container } = renderWithI18n(
+        <ProjectPreviewMedia project={{ ...project, previewImageUrl: signedUrl }} />,
+      );
+      expect(container.querySelector('img')?.getAttribute('src')).toBe(signedUrl);
+      fireEvent.error(container.querySelector('img')!);
+      await act(async () => vi.advanceTimersByTime(120_000));
+      expect(container.querySelector('img')).toBeNull();
+      expect(screen.getByText('No preview yet')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears pending retry/deadline timers on unmount', () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container, unmount } = renderWithI18n(<ProjectPreviewMedia project={project} />);
+      fireEvent.error(container.querySelector('img')!);
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('uses semantic project status tones', () => {
     renderWithI18n(<ProjectStatusPill project={project} />);
 

@@ -1,0 +1,63 @@
+{
+  "head": "cd0dd515e22772d37f1cbcb50c27dfd6cc26d48b",
+  "buildExitCode": 0,
+  "sourceChangesDuringBuildAndTests": [],
+  "scenarioCount": 17,
+  "passedFirstAttempt": 17,
+  "failed": 0,
+  "automaticRetries": 0,
+  "runs": {
+    "final-targeted": {
+      "startTime": "2026-10-26T05:37:34.836Z",
+      "duration": 77479.7,
+      "expected": 14,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "composition-native": {
+      "startTime": "2026-10-26T05:37:36.304Z",
+      "duration": 33321.807,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "final-fast": {
+      "startTime": "2026-10-26T05:37:37.774Z",
+      "duration": 21858.601000000002,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "browser": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "environment": "Isolated local cloud execution; real API/PostgreSQL/Redis, synthetic fixtures, compiled web. No external provider credentials.",
+  "nativeZoom": "Chromium browser zoom 2, independently asserted through CDP; not CSS zoom",
+  "notValidated": [
+    "physical operating-system IME",
+    "Safari hardware",
+    "authenticated production",
+    "provider publication",
+    "DNS",
+    "project runtime execution"
+  ],
+  "cleanup": {
+    "ports": {
+      "5199": "closed",
+      "3018": "closed",
+      "55448": "closed",
+      "56388": "closed"
+    },
+    "ownedProcessesStopped": true,
+    "ownedContainersRemoved": true,
+    "unrelatedServicePreserved": true
+  },
+  "artifacts": {
+    "outside-search-native-200.png": "5a63abc4099073fb4818e0812c809cc86fd12a9ba51d462515a75f7d580b86cc",
+    "composition-handoff-desktop.png": "23090d5df4da52171c1ca3849f7817655f0cae500f2e4c618c48098e8f6e1410",
+    "source-hashes.json": "8ca14e669c65031174fcb9b9f4e7259f9bba289cdb7eb4c8bf74da8abaf73cd1",
+    "behavior.json": "05e89233fa23c05a1b7ff68577ae31467bdbe9ad32ba9199b8fdf306f502343e"
+  }
+}

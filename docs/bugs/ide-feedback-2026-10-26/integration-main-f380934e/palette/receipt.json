@@ -1,0 +1,512 @@
+{
+  "source": "d24ec3a2b integrated; bundle hash recorded separately",
+  "cases": [
+    {
+      "delayed": true,
+      "snapshots": [
+        {
+          "label": "query Webview focused before release",
+          "t": 3747.0049999952316,
+          "url": "http://127.0.0.1:14699/projects/synthetic-safearea-project/ide?panel=editor",
+          "focus": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search co",
+          "palettes": [
+            {
+              "html": "<div class=\"bolt-project-command-palette\" role=\"dialog\" aria-modal=\"true\" data-mode=\"tools\" data-testid=\"project-command-palette\" aria-label=\"Command palette\"><input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\"><div id=\"project-command-listbox\" role=\"listbox\" aria-label=\"Commands, tools and files\"><div role=\"group\" aria-label=\"Files\"><div class=\"bolt-project-command-section\" role=\"presentation\">Files</div></div><div role=\"group\" aria-label=\"Tools\"><div class=\"bolt-project-command-section\" role=\"presentation\">Tools</div><button id=\"project-command-option-0\" type=\"button\" role=\"option\" aria-selected=\"true\"><span class=\"i-ph:monitor\" aria-hidden=\"true\"></span><span><strong>Webview</strong><small>App preview</small></span><kbd>Ctrl+↵</kbd></button></div><div role=\"group\" aria-label=\"Commands\"><div class=\"bolt-project-command-section\" ro",
+              "rect": {
+                "x": 340,
+                "y": 120,
+                "width": 600,
+                "height": 249.953125,
+                "top": 120,
+                "right": 940,
+                "bottom": 369.953125,
+                "left": 340
+              },
+              "ancestors": [
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "grid"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "flex"
+                },
+                {
+                  "tag": "MAIN",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "BODY",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "HTML",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                }
+              ]
+            }
+          ],
+          "inputs": [
+            {
+              "html": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\">",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "label": "after chunk settled",
+          "t": 7417.409999996424,
+          "url": "http://127.0.0.1:14699/projects/synthetic-safearea-project/ide?panel=editor",
+          "focus": "<body class=\"h-full w-full\"><div class=\"bolt-project-ide-shell h-dvh w-screen overflow-hidden\"><header class=\"bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]\"><div class=\"bolt-project-topbar-left\"><a class=\"bolt-project-topbar-icon-button\" aria-label=\"E-Code dashboard\" href=\"/dashboard\" data-discover=\"true\"><svg xmlns=\"http://www.w3.org/2",
+          "palettes": [],
+          "inputs": []
+        },
+        {
+          "label": "after fill",
+          "t": 10421.429999999702,
+          "url": "http://127.0.0.1:14699/projects/synthetic-safearea-project/ide?panel=editor",
+          "focus": "<body class=\"h-full w-full\"><div class=\"bolt-project-ide-shell h-dvh w-screen overflow-hidden\"><header class=\"bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]\"><div class=\"bolt-project-topbar-left\"><a class=\"bolt-project-topbar-icon-button\" aria-label=\"E-Code dashboard\" href=\"/dashboard\" data-discover=\"true\"><svg xmlns=\"http://www.w3.org/2",
+          "palettes": [],
+          "inputs": []
+        }
+      ],
+      "oldInputConnected": false,
+      "fill": "locator.fill: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.bolt-project-command-palette').filter({ visible: true }).getByRole('combobox')\u001b[22m\n",
+      "cycles": [
+        {
+          "cycle": 0,
+          "query": "Webview",
+          "closed": true
+        },
+        {
+          "cycle": 1,
+          "query": "Webview",
+          "closed": true
+        }
+      ],
+      "intercepted": true,
+      "events": [
+        {
+          "type": "focusin",
+          "t": 3252.070000000298,
+          "count": 0,
+          "input": 0,
+          "focus": "BUTTON"
+        },
+        {
+          "type": "focusin",
+          "t": 3403.259999997914,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 3425.52499999851,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 4011.8549999967217,
+          "count": 0,
+          "input": 0,
+          "focus": "BODY"
+        },
+        {
+          "type": "focusin",
+          "t": 10463.309999994934,
+          "count": 0,
+          "input": 0,
+          "focus": "BUTTON"
+        },
+        {
+          "type": "focusin",
+          "t": 10502.19999999553,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 10516.829999998212,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 10607.57499999553,
+          "count": 0,
+          "input": 0,
+          "focus": "BODY"
+        },
+        {
+          "type": "focusin",
+          "t": 10668.159999996424,
+          "count": 0,
+          "input": 0,
+          "focus": "BUTTON"
+        },
+        {
+          "type": "focusin",
+          "t": 10703.67499999702,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 10706.129999995232,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 10791.969999998808,
+          "count": 0,
+          "input": 0,
+          "focus": "BODY"
+        }
+      ]
+    },
+    {
+      "delayed": false,
+      "snapshots": [
+        {
+          "label": "query Webview focused before release",
+          "t": 2446.405000001192,
+          "url": "http://127.0.0.1:14699/projects/synthetic-safearea-project/ide?panel=editor",
+          "focus": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search co",
+          "palettes": [
+            {
+              "html": "<div class=\"bolt-project-command-palette\" role=\"dialog\" aria-modal=\"true\" data-mode=\"tools\" data-testid=\"project-command-palette\" aria-label=\"Command palette\"><input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\"><div id=\"project-command-listbox\" role=\"listbox\" aria-label=\"Commands, tools and files\"><div role=\"group\" aria-label=\"Files\"><div class=\"bolt-project-command-section\" role=\"presentation\">Files</div></div><div role=\"group\" aria-label=\"Tools\"><div class=\"bolt-project-command-section\" role=\"presentation\">Tools</div><button id=\"project-command-option-0\" type=\"button\" role=\"option\" aria-selected=\"true\"><span class=\"i-ph:monitor\" aria-hidden=\"true\"></span><span><strong>Webview</strong><small>App preview</small></span><kbd>Ctrl+↵</kbd></button></div><div role=\"group\" aria-label=\"Commands\"><div class=\"bolt-project-command-section\" ro",
+              "rect": {
+                "x": 340,
+                "y": 120,
+                "width": 600,
+                "height": 249.953125,
+                "top": 120,
+                "right": 940,
+                "bottom": 369.953125,
+                "left": 340
+              },
+              "ancestors": [
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "grid"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "flex"
+                },
+                {
+                  "tag": "MAIN",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "BODY",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "HTML",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                }
+              ]
+            }
+          ],
+          "inputs": [
+            {
+              "html": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\">",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "label": "after chunk settled",
+          "t": 6056.070000000298,
+          "url": "http://127.0.0.1:14699/projects/synthetic-safearea-project/ide?panel=editor",
+          "focus": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search co",
+          "palettes": [
+            {
+              "html": "<div class=\"bolt-project-command-palette\" role=\"dialog\" aria-modal=\"true\" data-mode=\"tools\" data-testid=\"project-command-palette\" aria-label=\"Command palette\"><input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\" style=\"\"><div id=\"project-command-listbox\" role=\"listbox\" aria-label=\"Commands, tools and files\"><div role=\"group\" aria-label=\"Files\"><div class=\"bolt-project-command-section\" role=\"presentation\">Files</div></div><div role=\"group\" aria-label=\"Tools\"><div class=\"bolt-project-command-section\" role=\"presentation\">Tools</div><button id=\"project-command-option-0\" type=\"button\" role=\"option\" aria-selected=\"true\"><span class=\"i-ph:monitor\" aria-hidden=\"true\"></span><span><strong>Webview</strong><small>App preview</small></span><kbd>Ctrl+↵</kbd></button></div><div role=\"group\" aria-label=\"Commands\"><div class=\"bolt-project-command-se",
+              "rect": {
+                "x": 340,
+                "y": 120,
+                "width": 600,
+                "height": 249.953125,
+                "top": 120,
+                "right": 940,
+                "bottom": 369.953125,
+                "left": 340
+              },
+              "ancestors": [
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "grid"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "flex"
+                },
+                {
+                  "tag": "MAIN",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "BODY",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "HTML",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                }
+              ]
+            }
+          ],
+          "inputs": [
+            {
+              "html": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\" style=\"\">",
+              "visible": true
+            }
+          ]
+        },
+        {
+          "label": "after fill",
+          "t": 6068.770000003278,
+          "url": "http://127.0.0.1:14699/projects/synthetic-safearea-project/ide?panel=editor",
+          "focus": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search co",
+          "palettes": [
+            {
+              "html": "<div class=\"bolt-project-command-palette\" role=\"dialog\" aria-modal=\"true\" data-mode=\"tools\" data-testid=\"project-command-palette\" aria-label=\"Command palette\"><input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\" style=\"\"><div id=\"project-command-listbox\" role=\"listbox\" aria-label=\"Commands, tools and files\"><div role=\"group\" aria-label=\"Files\"><div class=\"bolt-project-command-section\" role=\"presentation\">Files</div></div><div role=\"group\" aria-label=\"Tools\"><div class=\"bolt-project-command-section\" role=\"presentation\">Tools</div><button id=\"project-command-option-0\" type=\"button\" role=\"option\" aria-selected=\"true\"><span class=\"i-ph:monitor\" aria-hidden=\"true\"></span><span><strong>Webview</strong><small>App preview</small></span><kbd>Ctrl+↵</kbd></button></div><div role=\"group\" aria-label=\"Commands\"><div class=\"bolt-project-command-se",
+              "rect": {
+                "x": 340,
+                "y": 120,
+                "width": 600,
+                "height": 249.953125,
+                "top": 120,
+                "right": 940,
+                "bottom": 369.953125,
+                "left": 340
+              },
+              "ancestors": [
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "grid"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "flex"
+                },
+                {
+                  "tag": "MAIN",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "DIV",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "BODY",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                },
+                {
+                  "tag": "HTML",
+                  "hidden": null,
+                  "inert": false,
+                  "display": "block"
+                }
+              ]
+            }
+          ],
+          "inputs": [
+            {
+              "html": "<input type=\"text\" autocomplete=\"off\" inputmode=\"search\" placeholder=\"Search tools, files, and commands...\" aria-label=\"Search commands\" role=\"combobox\" aria-expanded=\"true\" aria-controls=\"project-command-listbox\" aria-activedescendant=\"project-command-option-0\" data-testid=\"project-command-palette-search\" value=\"Webview\" title=\"Search commands\" data-vc-auto-title=\"true\" data-vc-tooltip=\"Search commands\" style=\"\">",
+              "visible": true
+            }
+          ]
+        }
+      ],
+      "oldInputConnected": true,
+      "fill": "success",
+      "cycles": [
+        {
+          "cycle": 0,
+          "query": "Webview",
+          "closed": true
+        },
+        {
+          "cycle": 1,
+          "query": "Webview",
+          "closed": true
+        }
+      ],
+      "intercepted": false,
+      "events": [
+        {
+          "type": "focusin",
+          "t": 2224.469999998808,
+          "count": 0,
+          "input": 0,
+          "focus": "BUTTON"
+        },
+        {
+          "type": "focusin",
+          "t": 2304.1900000050664,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 2321.560000002384,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 6111.384999997914,
+          "count": 0,
+          "input": 0,
+          "focus": "BODY"
+        },
+        {
+          "type": "focusin",
+          "t": 6153.070000000298,
+          "count": 0,
+          "input": 0,
+          "focus": "BUTTON"
+        },
+        {
+          "type": "focusin",
+          "t": 6202.655000001192,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 6224.030000001192,
+          "count": 1,
+          "input": 1,
+          "focus": "INPUT"
+        },
+        {
+          "type": "DOM",
+          "t": 6311.875,
+          "count": 0,
+          "input": 0,
+          "focus": "BODY"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://stackblitz.com/headless?coep=credentialless&version=1.6.1-internal.1"
+    },
+    {
+      "method": "PUT",
+      "url": "http://127.0.0.1:14699/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "PUT",
+      "url": "http://127.0.0.1:14699/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "PUT",
+      "url": "http://127.0.0.1:14699/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    },
+    {
+      "method": "GET",
+      "url": "https://stackblitz.com/headless?coep=credentialless&version=1.6.1-internal.1"
+    },
+    {
+      "method": "PUT",
+      "url": "http://127.0.0.1:14699/api/projects/synthetic-safearea-project/ide-state"
+    },
+    {
+      "method": "PUT",
+      "url": "http://127.0.0.1:14699/api/projects/synthetic-safearea-project/ide-state"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "base": "65228339e3bb74a64f672e8c3d1ca67ba5ed0d95",
+  "branch": "fix/ide-execution-timeout-20261026",
+  "status": "local uncommitted; root review favorable; no publication",
+  "unitPassed": 36,
+  "lintExitCode": 0,
+  "webTypecheckExitCode": 0,
+  "build": {
+    "sourceChangedDuringBuild": [],
+    "serverSha256": "4845bd1e52f079f0a596aad86474c2f56df28a351d2c84fda3b4b3c8210f8c7e",
+    "buildExitCode": 0
+  },
+  "browser": {
+    "startTime": "2026-10-26T07:49:42.990Z",
+    "duration": 32319.306,
+    "expected": 7,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "retries": 0,
+  "tests": [
+    "security-failed-response preserves the execution outcome",
+    "security-failed-status preserves the execution outcome",
+    "security-timeout preserves the execution outcome",
+    "security scan preserves timeout across history hydration",
+    "security scan preserves completed across history hydration",
+    "security scan preserves failed across history hydration",
+    "security scan preserves cancelled across history hydration"
+  ],
+  "baseline": "original timeout passed once; deterministic history barrier and durable timeout test failed on baseline before timeout advance",
+  "limits": [
+    "Real isolated local API fixtures; controlled scan responses and clock",
+    "No production or scanner/provider execution",
+    "No physical Safari verification"
+  ],
+  "cleanup": {
+    "web5203": "stopped PID259812",
+    "api3018": "stopped PIDs252663/252679",
+    "containers": "stopped ide-palette-opener-pg and ide-palette-opener-redis; retained stopped fixture storage",
+    "foreignServices": "preserved"
+  }
+}

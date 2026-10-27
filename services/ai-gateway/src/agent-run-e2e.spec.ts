@@ -146,7 +146,8 @@ describe('parallel-subagents E2E with consensus', () => {
     // Consolidated payload includes accepted claims.
     expect(body.consensus.consolidated).toBeDefined();
     expect(body.consensus.consolidated.acceptedRisks.length).toBeGreaterThan(0);
-    expect(body.consensus.consolidated.acceptedVerification.length).toBeGreaterThan(0);
+    expect(body.consensus.consolidated.acceptedVerification).toEqual([]);
+    expect(body.consensus.consolidated.agreedVerificationClaims?.length).toBeGreaterThan(0);
 
     await app.close();
   });

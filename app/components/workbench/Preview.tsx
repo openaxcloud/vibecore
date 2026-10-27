@@ -34,6 +34,7 @@ import {
   MAX_PREVIEW_BOOT_ATTEMPTS,
 } from './preview-frame-recovery';
 import { previewStartStatus } from './preview-start-status';
+import { usePreviewStartNotice } from './usePreviewStartNotice';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
@@ -1455,7 +1456,11 @@ export const Preview = memo(
       }).catch(() => undefined);
     }, [projectId, activePreview?.baseUrl, activePreview?.ready]);
 
+    const prepareStartNotice = usePreviewStartNotice(projectId);
+
     const startPreviewServer = useCallback(async () => {
+      const claimStartNotice = prepareStartNotice();
+
       setIsStartingPreview(true);
       setPreviewStatus(undefined);
       setPreviewRunFailed(false);
@@ -1470,7 +1475,11 @@ export const Preview = memo(
             t('idePanels.preview.startingCommand', { label: command }),
           ),
         );
-        toast.info(t('idePanels.preview.buildStarted', { label }), { toastId: 'preview-build-started' });
+
+        if (claimStartNotice()) {
+          toast.info(t('idePanels.preview.buildStarted', { label }), { toastId: 'preview-build-started' });
+        }
+
         window.setTimeout(() => setIsStartingPreview(false), 2500);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to start preview server';
@@ -1496,7 +1505,7 @@ export const Preview = memo(
           window.setTimeout(() => setIsStartingPreview(false), 2500);
         }
       }
-    }, [t]);
+    }, [t, prepareStartNotice]);
 
     useEffect(() => {
       if (lastPreviewableFilesSignature.current === previewableFilesSignature) {

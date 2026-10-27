@@ -1,0 +1,51 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ide-feedback-next
+
+stdout | app/components/workbench/Preview.start-notice.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+ ❯ app/components/workbench/Preview.start-notice.spec.tsx (2 tests | 1 failed) 159ms
+   × keeps automatic retries and inline status but announces start only once per visit 117ms
+     → expected "spy" to be called 1 times, but got 2 times
+   ✓ preserves a transient failure and allows the first subsequent successful start notice 40ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/workbench/Preview.start-notice.spec.tsx > keeps automatic retries and inline status but announces start only once per visit
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ app/components/workbench/Preview.start-notice.spec.tsx:37:22
+     35|   await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+     36|   expect(workbenchStore.startPreviewServer).toHaveBeenCalledTimes(2);
+     37|   expect(toast.info).toHaveBeenCalledTimes(1);
+       |                      ^
+     38|   expect(view.container.textContent).toContain('idePanels.preview.star…
+     39| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  06:31:03
+   Duration  4.15s (transform 1.84s, setup 20ms, collect 1.33s, tests 159ms, environment 309ms, prepare 73ms)

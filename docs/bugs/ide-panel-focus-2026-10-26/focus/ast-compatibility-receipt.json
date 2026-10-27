@@ -1,0 +1,81 @@
+{
+  "baselineHead": "a67a0fd46ebd0802b4f5dd857fab009c89ee91c1",
+  "buildExit": 0,
+  "changedSourcesDuringBuild": [],
+  "workingDiffSHA256": "e1d9db824a5fafe8f5456a7d7b66ff0d457eeb46d24759d89f79fd89763dc294",
+  "productFiles": {
+    "app/components/chat/BaseChat.tsx": "49112a84fa0bcb65ff9d9cd3f71c150867437cd0bb9923e8dd26cd530d03d6b3",
+    "app/components/chat/MobileOverlayFocus.tsx": "03358a16f6fbc4f5ce52c9727d49f1eaca797d2a9e32ac5c90a853f2708c5f4d",
+    "app/routes/projects.$projectId.ide.tsx": "a868916381d2bd0a068da74b9e3a45a7e743013cda192fe5f769ca24799456da"
+  },
+  "manifests": {
+    "prebuild-sources.json": "4cd13bba154d8315714a64126521b7591557a2717232c8d29c26e58a59036159",
+    "build-manifest.json": "3a930f7da84a2f517757e99b9168121bcc7d4bf67cf326d3a48331ff8fd10199",
+    "api-source-manifest.json": "8b77d2d0e0f897485d29bd6afce34d81cfb2f2758c5a06b7a12cf9bf23d9e9ca"
+  },
+  "apiOrigin": "Current worktree source; isolated ephemeral PostgreSQL and Redis, all tracked SQL migrations and seed applied",
+  "browserTests": "Root runs eight targeted focus cases; not included in this build receipt",
+  "noRepeatedBroadMatrix": true,
+  "purpose": "Keep original frozen JSX and unchanged AST hash guard while composing refs outside the frozen region",
+  "browserResults": [
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 390px > tabs menu survives shell replacement (en, open)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5529
+    },
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 390px > tabs menu survives shell replacement (en, closed)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 4215
+    },
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 820px > tabs menu survives shell replacement (en, open)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 4165
+    },
+    {
+      "title": "ide-overlay-focus-handoff.spec.ts > mobile overlay handoff 820px > tabs menu survives shell replacement (en, closed)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 4439
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 390px > panels closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 7259
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 390px > tabs closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6784
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 1180px > panels closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6512
+    },
+    {
+      "title": "ide-panel-visibility.spec.ts > panel visibility 1180px > tabs closes with Escape and restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5058
+    }
+  ],
+  "stats": {
+    "startTime": "2026-10-26T02:38:06.123Z",
+    "duration": 27361.997,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "unit": "7 AST guards + 9 focus tests passed; independent reviewer repeated both",
+  "priorCI": "a67a0fd46 Production CI40258563741 failed only frozen AST hash guard (1 failed,10375 passed,4 skipped); no test expectation changed",
+  "limitations": "Local Chromium154 isolated stack, no authenticated production or hardware Safari; original matrix and native zoom remain attributed to prior baseline/focus build"
+}

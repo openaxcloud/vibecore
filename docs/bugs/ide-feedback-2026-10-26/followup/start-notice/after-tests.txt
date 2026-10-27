@@ -1,0 +1,36 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ide-feedback-next
+
+ ✓ app/components/workbench/preview-start-status.spec.ts (3 tests) 3ms
+ ✓ app/components/workbench/preview-frame-recovery.spec.ts (33 tests) 10ms
+ ✓ app/components/workbench/usePreviewStartNotice.spec.tsx (3 tests) 18ms
+stdout | app/components/workbench/Preview.start-notice.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+ ✓ app/components/workbench/Preview.start-notice.spec.tsx (2 tests) 163ms
+
+ Test Files  4 passed (4)
+      Tests  41 passed (41)
+   Start at  06:31:37
+   Duration  4.16s (transform 1.82s, setup 174ms, collect 1.50s, tests 194ms, environment 742ms, prepare 279ms)

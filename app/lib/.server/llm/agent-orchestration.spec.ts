@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   AgentExecutorError,
+  type AgentLaneStreamEvent,
   ECODE_AGENT_ROLES,
   areParallelSubagentsAvailable,
   buildAgentOrchestrationPlan,
@@ -157,7 +158,7 @@ describe('E-Code agent orchestration', () => {
 
     const encoder = new TextEncoder();
 
-    const events = [
+    const events: AgentLaneStreamEvent[] = [
       { type: 'lane-start', roleId: 'architect', title: 'Architect' },
       { type: 'lane-delta', roleId: 'architect', content: 'Planning' },
       {
@@ -205,7 +206,22 @@ describe('E-Code agent orchestration', () => {
     expect(response.runId).toBe('run_stream');
     expect(calls[0].url).toBe('https://agents.example.com/v1/agent-runs/stream');
     expect(JSON.parse(String(calls[0].init.body))).toMatchObject({ rateLimitKey: 'project_123' });
-    expect(receivedEvents).toEqual(events);
+    expect(receivedEvents).toEqual(
+      events.map((event) => {
+        if (event.type === 'lane-done') {
+          return { ...event, result: { ...event.result, verificationState: 'not_observed' } };
+        }
+
+        if (event.type === 'run-done') {
+          return {
+            ...event,
+            results: event.results.map((result) => ({ ...result, verificationState: 'not_observed' })),
+          };
+        }
+
+        return event;
+      }),
+    );
   });
 
   it('uses an idle timeout that does not abort a slow-but-steady stream', async () => {
@@ -830,5 +846,309 @@ describe('E-Code agent orchestration', () => {
     expect(context).toContain('[architect] Design the data model');
     expect(context).toContain('[frontend] Build the dashboard UI');
     expect(createAgentPlanContext([])).toBe('');
+  });
+});
+
+describe('observed lane output and declarative verification', () => {
+  const plan = buildAgentOrchestrationPlan({
+    chatMode: 'build',
+    messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+    subagentsAvailable: true,
+  });
+  const options = {
+    env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+    plan,
+    messages: [{ role: 'user' as const, content: 'Build it.' }],
+  };
+  const file =
+    '<boltArtifact id="lane"><boltAction type="file" filePath="src/real.ts">export const value=1;</boltAction></boltArtifact>';
+
+  function stream(frames: unknown[]) {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(frames.map((frame) => `data: ${JSON.stringify(frame)}\n\n`).join(''), {
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+    );
+    return { fetchImpl, onEvent: vi.fn() };
+  }
+
+  for (const ending of ['eof', 'error'] as const) {
+    it(`retains emitted files before lane-done on ${ending}, avoiding an aggregate replay`, async () => {
+      const upstream = stream([
+        { type: 'lane-start', roleId: 'frontend', title: 'Frontend' },
+        { type: 'lane-delta', roleId: 'frontend', content: file.slice(0, 42) },
+        { type: 'lane-delta', roleId: 'frontend', content: file.slice(42) },
+        ...(ending === 'error' ? [{ type: 'error', error: 'Synthetic upstream interruption' }] : []),
+      ]);
+
+      const result = await executeAgentOrchestrationStream({ ...options, ...upstream });
+      expect(result.status).toBe('partial');
+      expect(result.results).toEqual([
+        {
+          roleId: 'frontend',
+          status: 'partial',
+          summary: '',
+          outputState: 'interrupted',
+          emittedFiles: ['src/real.ts'],
+          verificationState: 'not_observed',
+        },
+      ]);
+      expect(upstream.fetchImpl).toHaveBeenCalledTimes(1);
+    });
+  }
+  it('preserves observed prose but never claims an unfinished file as emitted', async () => {
+    const upstream = stream([
+      {
+        type: 'lane-delta',
+        roleId: 'backend',
+        content: 'Planning <boltAction type="file" filePath="incomplete.ts">partial',
+      },
+    ]);
+
+    const result = await executeAgentOrchestrationStream({ ...options, ...upstream });
+    expect(result.results[0]).toMatchObject({
+      status: 'partial',
+      outputState: 'interrupted',
+      emittedFiles: [],
+      verificationState: 'not_observed',
+    });
+  });
+  it('does not mistake data attributes or an unclosed outer action for emitted files', async () => {
+    const upstream = stream([
+      {
+        type: 'lane-delta',
+        roleId: 'frontend',
+        content:
+          '<boltAction data-type="file" filePath="false.ts">bad</boltAction>' +
+          '<boltAction type="file" data-filePath="false2.ts">bad</boltAction>' +
+          '<boltAction type="file" filePath="unfinished.ts">unfinished' +
+          '<boltAction type="file" filePath=" real.ts ">ok</boltAction >',
+      },
+    ]);
+
+    const result = await executeAgentOrchestrationStream({ ...options, ...upstream });
+    expect(result.results[0].emittedFiles).toEqual(['real.ts']);
+  });
+  it('retains the continuity guard beyond the bounded output buffer', async () => {
+    const upstream = stream([
+      { type: 'lane-delta', roleId: 'frontend', content: ' '.repeat(1024 * 1024) },
+      { type: 'lane-delta', roleId: 'frontend', content: file },
+    ]);
+
+    const result = await executeAgentOrchestrationStream({ ...options, ...upstream });
+    expect(result.results[0]).toMatchObject({ outputState: 'interrupted', emittedFiles: [] });
+    expect(upstream.fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  for (const callerCancels of [false, true]) {
+    it(`handles a read failure after an observed delta (caller cancellation: ${callerCancels})`, async () => {
+      const abortController = new AbortController();
+
+      let streamController: ReadableStreamDefaultController<Uint8Array>;
+
+      const fetchImpl = vi.fn(
+        async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    `data: ${JSON.stringify({ type: 'lane-delta', roleId: 'frontend', content: file })}\n\n`,
+                  ),
+                );
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      );
+      const onEvent = vi.fn(() => {
+        if (callerCancels) {
+          abortController.abort();
+        }
+
+        streamController.error(new DOMException('Synthetic read failure', 'AbortError'));
+      });
+      const execution = executeAgentOrchestrationStream({
+        ...options,
+        fetchImpl,
+        onEvent,
+        signal: abortController.signal,
+      });
+
+      if (callerCancels) {
+        await expect(execution).rejects.toBeInstanceOf(AgentExecutorError);
+      } else {
+        await expect(execution).resolves.toMatchObject({
+          status: 'partial',
+          results: [{ outputState: 'interrupted', emittedFiles: ['src/real.ts'] }],
+        });
+      }
+
+      expect(onEvent).toHaveBeenCalledTimes(1);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  for (const ending of ['closed', 'buffered-final', 'abort-on-final'] as const) {
+    it(`propagates caller cancellation with a clean EOF (${ending})`, async () => {
+      const abortController = new AbortController();
+
+      const final = {
+        type: 'run-done',
+        runId: 'cancelled',
+        status: 'complete',
+        results: [{ roleId: 'frontend', status: 'complete', summary: 'Reported complete' }],
+      };
+
+      const delta = { type: 'lane-delta', roleId: 'frontend', content: file };
+      const frames = ending === 'closed' ? [delta] : [delta, final];
+
+      let streamController: ReadableStreamDefaultController<Uint8Array>;
+
+      const fetchImpl = vi.fn(
+        async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+                controller.enqueue(
+                  new TextEncoder().encode(frames.map((frame) => `data: ${JSON.stringify(frame)}\n\n`).join('')),
+                );
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          ),
+      );
+      const onEvent = vi.fn((event: AgentLaneStreamEvent) => {
+        if (ending === 'closed') {
+          // Stop while the consumer awaits the next read, which resolves as EOF.
+          queueMicrotask(() => {
+            abortController.abort();
+            streamController.close();
+          });
+        } else if (ending === 'buffered-final' || event.type === 'run-done') {
+          abortController.abort();
+          streamController.close();
+        }
+      });
+      await expect(
+        executeAgentOrchestrationStream({ ...options, fetchImpl, onEvent, signal: abortController.signal }),
+      ).rejects.toBeInstanceOf(AgentExecutorError);
+      expect(onEvent.mock.calls.map(([event]) => event.type)).toEqual(
+        ending === 'abort-on-final' ? ['lane-delta', 'run-done'] : ['lane-delta'],
+      );
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+  }
+  it('does not recover a lane which only started or emitted whitespace', async () => {
+    const upstream = stream([
+      { type: 'lane-start', roleId: 'backend', title: 'Backend' },
+      { type: 'lane-delta', roleId: 'backend', content: ' \n ' },
+    ]);
+    await expect(executeAgentOrchestrationStream({ ...options, ...upstream })).rejects.toMatchObject({
+      code: 'invalid-response',
+    });
+  });
+  it('keeps completed lanes authoritative and also retains unfinished sibling output', async () => {
+    const upstream = stream([
+      { type: 'lane-delta', roleId: 'frontend', content: file },
+      {
+        type: 'lane-done',
+        roleId: 'frontend',
+        result: {
+          roleId: 'frontend',
+          status: 'complete',
+          summary: 'Reported',
+          outputState: 'report',
+          emittedFiles: ['src/real.ts'],
+          verification: ['Tests passed'],
+          verificationState: 'not_observed',
+        },
+      },
+      { type: 'lane-delta', roleId: 'backend', content: 'Analysis started' },
+    ]);
+
+    const result = await executeAgentOrchestrationStream({ ...options, ...upstream });
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0]).toMatchObject({ roleId: 'frontend', status: 'complete', outputState: 'report' });
+    expect(result.results[1]).toMatchObject({ roleId: 'backend', status: 'partial', outputState: 'interrupted' });
+  });
+  it('forwards evidence fields through final transport and annotations without treating legacy claims as tests', async () => {
+    const { buildAgentExecutionAnnotation } = await import('./agent-orchestration');
+
+    const payload = {
+      runId: 'synthetic',
+      status: 'complete' as const,
+      results: [
+        {
+          roleId: 'qa' as const,
+          status: 'complete' as const,
+          summary: 'Claims tests passed',
+          files: ['claimed.spec.ts'],
+          verification: ['npm test'],
+        },
+      ],
+      consensus: {
+        algorithm: 'QUORUM' as const,
+        outcome: 'ACCEPTED' as const,
+        threshold: 0.66,
+        agreementScore: 1,
+        rounds: 1,
+        durationMs: 1,
+        claimVotes: [],
+        conflicts: [],
+        consolidated: {
+          summary: 'Reports agree',
+          acceptedRisks: [],
+          acceptedVerification: ['npm test'],
+          acceptedFiles: [],
+          rejectedClaims: [],
+        },
+      },
+    };
+
+    const response = await executeAgentOrchestration({ ...options, fetchImpl: async () => Response.json(payload) });
+    expect(response.results[0].verificationState).toBe('not_observed');
+    expect(response.results[0].emittedFiles).toBeUndefined();
+    expect(response.consensus?.consolidated).toMatchObject({
+      acceptedVerification: [],
+      agreedVerificationClaims: ['npm test'],
+    });
+
+    const annotation = buildAgentExecutionAnnotation(payload);
+    expect(annotation.results[0]).toMatchObject({ verificationState: 'not_observed' });
+    expect(annotation.consensus?.consolidated).toMatchObject({
+      acceptedVerification: [],
+      agreedVerificationClaims: ['npm test'],
+    });
+    expect(payload.consensus.consolidated.acceptedVerification).toEqual(['npm test']);
+
+    const context = createAgentExecutionContext(response);
+    expect(context).toContain('Verification claims (not observed): npm test');
+
+    const upstream = stream([
+      {
+        type: 'run-done',
+        ...payload,
+        results: [
+          {
+            ...payload.results[0],
+            outputState: 'report',
+            emittedFiles: ['actual.spec.ts'],
+            verificationState: 'not_observed',
+          },
+        ],
+      },
+    ]);
+
+    const streamed = await executeAgentOrchestrationStream({ ...options, ...upstream });
+    expect(buildAgentExecutionAnnotation(streamed).results[0]).toMatchObject({
+      outputState: 'report',
+      emittedFiles: ['actual.spec.ts'],
+      verificationState: 'not_observed',
+    });
+    expect(streamed.consensus?.consolidated?.acceptedVerification).toEqual([]);
   });
 });
