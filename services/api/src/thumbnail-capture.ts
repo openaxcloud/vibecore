@@ -14,6 +14,7 @@ import { type ObjectStorage, PROJECT_THUMBNAIL_KEY } from './object-storage.js';
 
 const DEFAULT_DEBOUNCE_MS = 5 * 60 * 1000;
 const DEFAULT_CAPTURE_TIMEOUT_MS = 30_000;
+const DEFAULT_FAILURE_COOLDOWN_MS = 5_000;
 
 export interface ThumbnailLogger {
   info(obj: unknown, msg?: string): void;
@@ -33,22 +34,24 @@ export interface ThumbnailCapturerDeps {
   now?: () => number;
   debounceMs?: number;
   timeoutMs?: number;
+  failureCooldownMs?: number;
   log?: ThumbnailLogger;
 }
 
 export class ThumbnailCapturer {
   readonly #lastCaptureMs = new Map<string, number>();
+  readonly #lastFailureMs = new Map<string, number>();
   readonly #inFlight = new Set<string>();
 
-  constructor(private readonly deps: ThumbnailCapturerDeps) {}
+  constructor(private readonly _deps: ThumbnailCapturerDeps) {}
 
   /** Feature is live only when a screenshotter URL is configured. */
   get enabled(): boolean {
-    return Boolean(this.deps.screenshotterUrl);
+    return Boolean(this._deps.screenshotterUrl);
   }
 
   #now(): number {
-    return (this.deps.now ?? Date.now)();
+    return (this._deps.now ?? Date.now)();
   }
 
   #shouldSkip(projectId: string): boolean {
@@ -56,9 +59,14 @@ export class ThumbnailCapturer {
       return true;
     }
 
-    const last = this.#lastCaptureMs.get(projectId) ?? 0;
+    const now = this.#now();
+    const last = this.#lastCaptureMs.get(projectId);
+    const failure = this.#lastFailureMs.get(projectId);
 
-    return this.#now() - last < (this.deps.debounceMs ?? DEFAULT_DEBOUNCE_MS);
+    return (
+      (last !== undefined && now - last < (this._deps.debounceMs ?? DEFAULT_DEBOUNCE_MS)) ||
+      (failure !== undefined && now - failure < (this._deps.failureCooldownMs ?? DEFAULT_FAILURE_COOLDOWN_MS))
+    );
   }
 
   /**
@@ -73,29 +81,31 @@ export class ThumbnailCapturer {
 
     this.#inFlight.add(projectId);
 
-    // Reserve the debounce slot up-front so concurrent events across the window
-    // don't all fire before the first completes.
-    this.#lastCaptureMs.set(projectId, this.#now());
+    /*
+     * The in-flight guard prevents overlap; only a completed write earns the
+     * five-minute debounce. Failed attempts get a short retry cooldown instead.
+     */
+    let stored = false;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.deps.timeoutMs ?? DEFAULT_CAPTURE_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), this._deps.timeoutMs ?? DEFAULT_CAPTURE_TIMEOUT_MS);
 
     try {
-      const fetchImpl = this.deps.fetchImpl ?? fetch;
-      const base = this.deps.screenshotterUrl!.replace(/\/+$/, '');
+      const fetchImpl = this._deps.fetchImpl ?? fetch;
+      const base = this._deps.screenshotterUrl!.replace(/\/+$/, '');
 
       const response = await fetchImpl(`${base}/capture`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          ...(this.deps.sharedSecret ? { authorization: `Bearer ${this.deps.sharedSecret}` } : {}),
+          ...(this._deps.sharedSecret ? { authorization: `Bearer ${this._deps.sharedSecret}` } : {}),
         },
         body: JSON.stringify({ url: previewUrl, projectId }),
         signal: controller.signal,
       });
 
       if (!response.ok) {
-        this.deps.log?.warn({ projectId, status: response.status }, 'thumbnail screenshotter returned non-2xx');
+        this._deps.log?.warn({ projectId, status: response.status }, 'thumbnail screenshotter returned non-2xx');
 
         return false;
       }
@@ -106,21 +116,37 @@ export class ThumbnailCapturer {
         return false;
       }
 
-      await this.deps.storage.putObject(projectId, {
+      controller.signal.throwIfAborted();
+      await this._deps.storage.ensureBucket(projectId);
+      controller.signal.throwIfAborted();
+
+      /*
+       * ObjectStorage cannot cancel an in-progress operation. Keep the in-flight
+       * guard until it settles: releasing it on timeout could permit stale writes
+       * to race a newer capture. Never start a write after provisioning times out.
+       */
+      await this._deps.storage.putObject(projectId, {
         key: PROJECT_THUMBNAIL_KEY,
         body,
         contentType: 'image/png',
       });
 
+      controller.signal.throwIfAborted();
+      stored = true;
+      this.#lastFailureMs.delete(projectId);
       this.#lastCaptureMs.set(projectId, this.#now());
-      this.deps.log?.info({ projectId, bytes: body.byteLength }, 'stored project thumbnail');
+      this._deps.log?.info({ projectId, bytes: body.byteLength }, 'stored project thumbnail');
 
       return true;
     } catch (error) {
-      this.deps.log?.warn({ projectId, err: error }, 'thumbnail capture failed');
+      this._deps.log?.warn({ projectId, err: error }, 'thumbnail capture failed');
 
       return false;
     } finally {
+      if (!stored) {
+        this.#lastFailureMs.set(projectId, this.#now());
+      }
+
       clearTimeout(timer);
       this.#inFlight.delete(projectId);
     }
