@@ -2295,6 +2295,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     routedTurnModel = decidedModel;
                     routedTurnProvider = decidedProvider;
                   },
+                  onModelOutput: (receipt) => {
+                    dataStream.writeMessageAnnotation({ type: 'modelOutput', ...receipt } satisfies ContextAnnotation);
+                  },
                 });
 
                 // Le raisonnement part au client : `ai@4.3.16` ne l'envoie pas par défaut.
@@ -2509,6 +2512,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           onModelDecision: (decidedModel, decidedProvider) => {
             routedTurnModel = decidedModel;
             routedTurnProvider = decidedProvider;
+          },
+          onModelOutput: (receipt) => {
+            dataStream.writeMessageAnnotation({ type: 'modelOutput', ...receipt } satisfies ContextAnnotation);
           },
         });
 

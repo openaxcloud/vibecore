@@ -151,6 +151,7 @@ export function textesDesLanes(annotations: unknown): Map<string, string> {
  * sans conséquence sur le graphe de modules.
  */
 
+import { atom } from 'nanostores';
 import { ArbitreDesLanes } from './agent-lane-arbiter';
 
 const ARBITRES_CONSERVES = 32;
@@ -195,18 +196,118 @@ export function arbitreDe(messageId: string): ArbitreDesLanes {
   return neuf;
 }
 
+/** Arbitration is authorization only, never a receipt for a runtime write. */
+export function cheminsAttribuesParLesLanes(messageId: string): string[] | undefined {
+  const arbitre = arbitres.get(messageId);
+  return arbitre ? [...arbitre.attributions().keys()] : undefined;
+}
+
+/** Runtime paths are case-sensitive; conservative arbitration aliases are not write evidence. */
+export function cleDeConfirmation(path: string): string {
+  return path
+    .trim()
+    .replace(/^\.\/+/, '')
+    .replace(/\/+/g, '/')
+    .replace(/^\//, '');
+}
+
+/** Lightweight subscription signal; no runtime, parser or workbench dependency. */
+export const confirmationsEcritureVersion = atom(0);
+
+// Parent message -> normalized path -> identity of the latest confirmed proposal.
+const confirmations = new Map<string, Map<string, { receiptId: string; order: number }>>();
+
+let ordreDeConfirmation = 0;
+
+const messageParent = (messageId: string) => decoderLane(messageId)?.messageId ?? messageId;
+
+/** Call for a live artifact only. Absence of a historical receipt remains unknown. */
+export function observerEcrituresDeMessage(messageId: string): void {
+  const parent = messageParent(messageId);
+
+  if (confirmations.has(parent)) {
+    return;
+  }
+
+  confirmations.set(parent, new Map());
+
+  while (confirmations.size > ARBITRES_CONSERVES) {
+    const oldest = confirmations.keys().next();
+
+    if (oldest.done) {
+      break;
+    }
+
+    confirmations.delete(oldest.value);
+  }
+  confirmationsEcritureVersion.set(confirmationsEcritureVersion.get() + 1);
+}
+
 /**
- * Les chemins que les sous-agents ont réellement écrits pour ce message.
- *
- * `undefined` et `[]` ne veulent PAS dire la même chose :
- *  - `[]` — on a arbitré ce message et rien n'a été écrit. Écart réel.
- *  - `undefined` — aucune trace. Au rechargement de la page, l'historique se
- *    réaffiche alors que la carte est vide ; sans cette distinction, chaque
- *    ancien message annoncerait « Livraison incomplète » pour la totalité de
- *    ses fichiers, y compris ceux qui sont sur le disque.
+ * Record only after runtime read-back and project-scope guards succeed.
+ * This confirms the accepted proposal, including partial hunks, not every model request.
+ */
+export function confirmerEcritureDeMessage(messageId: string, path: string, receiptId: string): void {
+  const key = cleDeConfirmation(path);
+
+  if (!key) {
+    return;
+  }
+
+  observerEcrituresDeMessage(messageId);
+
+  const receipts = confirmations.get(messageParent(messageId))!;
+
+  receipts.set(key, { receiptId, order: ++ordreDeConfirmation });
+  confirmationsEcritureVersion.set(confirmationsEcritureVersion.get() + 1);
+}
+
+/** Latest confirmed proposal for this path across the bounded set of turns. */
+export function confirmationCouranteDuChemin(path: string): { messageId: string; receiptId: string } | undefined {
+  const key = cleDeConfirmation(path);
+
+  let latest: { messageId: string; receiptId: string; order: number } | undefined;
+
+  for (const [messageId, receipts] of confirmations) {
+    const receipt = receipts.get(key);
+
+    if (receipt && (!latest || receipt.order > latest.order)) {
+      latest = { messageId, ...receipt };
+    }
+  }
+
+  return latest ? { messageId: latest.messageId, receiptId: latest.receiptId } : undefined;
+}
+
+/** An old undo must not remove a newer proposal's receipt for the same path. */
+export function invaliderConfirmationDeMessage(messageId: string, path: string, receiptId: string): void {
+  const receipts = confirmations.get(messageParent(messageId));
+  const key = cleDeConfirmation(path);
+
+  if (receipts?.get(key)?.receiptId !== receiptId) {
+    return;
+  }
+
+  receipts.delete(key);
+  confirmationsEcritureVersion.set(confirmationsEcritureVersion.get() + 1);
+}
+
+/** Project/runtime rebinding invalidates observations; reading old arbiters never recreates them. */
+export function reinitialiserConfirmationsEcriture(): void {
+  if (!confirmations.size) {
+    return;
+  }
+
+  confirmations.clear();
+  confirmationsEcritureVersion.set(confirmationsEcritureVersion.get() + 1);
+}
+
+/**
+ * Backwards-compatible name: confirmed runtime proposals from lanes OR coordinator.
+ * undefined = unknown (history/eviction/reset); [] = observed, no confirmed proposal.
+ * This is not a cloud-backup, build, or QA receipt.
  */
 export function cheminsEcritsParLesLanes(messageId: string): string[] | undefined {
-  const arbitre = arbitres.get(messageId);
-
-  return arbitre ? [...arbitre.attributions().keys()] : undefined;
+  const receipts = confirmations.get(messageParent(messageId));
+  return receipts ? [...receipts.keys()] : undefined;
 }

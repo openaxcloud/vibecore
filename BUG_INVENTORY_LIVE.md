@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-524 entrées.
+527 entrées.
 
 ## Sans section
 
@@ -679,6 +679,15 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-PUBLISH-CONTAINER-LAYOUT-20261026](docs/bugs/BUG-PUBLISH-CONTAINER-LAYOUT-20261026.md) — Publish : contenu décalé et coupé entre les panneaux latéraux. — 📤 Dispatché : ☑ 26/10/2026 — captures utilisateur 11:41–11:43, lot Publish/Domains/Manage distinct de #808 et de la palette · 💻 Codé : ☐ — correctif local validé, revue indépendante favorable ; aucune livraison de ce lot. · ✅ Testé live : ☐ — aucune recette authentifiée de production, modification DNS ou publication cliente.
+
+## Runtime et preview
+
+- [BUG-PREVIEW-COMMAND-DIAGNOSTICS-20261026](docs/bugs/BUG-PREVIEW-COMMAND-DIAGNOSTICS-20261026.md) — 📤 Dispatché : ☑ 26/10 — diagnostic sur main `90d92ff12`. · 💻 Codé : ☐ — correctif local testé ; non fusionné et non déployé. · ✅ Testé live : ☐ — aucun redémarrage ni commande sur le projet client.
+
+## Génération et orchestration
+
+- [BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026](docs/bugs/BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026.md) — 📤 Dispatché : ☑ 26/10 — diagnostic sur main `90d92ff12`. · 💻 Codé : ☐ — correctif local testé ; non fusionné et non déployé. · ✅ Testé live : ☐ — aucune invocation fournisseur ni lecture de solde.
+- [BUG-AGENT-WRITE-RECEIPTS-20261026](docs/bugs/BUG-AGENT-WRITE-RECEIPTS-20261026.md) — 📤 Dispatché : ☑ 26/10 — audit isolé sur main `90d92ff12`, sans écriture de projet. · 💻 Codé : ☐ — défaut confirmé, raccordement des confirmations d'écriture non réalisé. · ✅ Testé live : ☐ — aucune modification ou relance du projet client.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
