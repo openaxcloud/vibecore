@@ -1,0 +1,12 @@
+{
+  "rootComponentSource": "function AppToastContainer() {\n  const compactIde = useIdeToastLayout();\n  const theme = useStore(themeStore);\n  const { t } = useTranslation();\n\n  return (\n    <ToastContainer\n      className={compactIde ? 'vc-ide-compact-toasts' : undefined}\n      closeButton={({ closeToast }) => {\n        return (\n          <button\n            type=\"button\"\n            className=\"Toastify__close-button\"\n            aria-label={t('root.dismissNotification')}\n            onClick={closeToast}\n          >\n            <div className=\"i-ph:x text-lg\" aria-hidden=\"true\" />\n          </button>\n        );\n      }}\n      icon={({ type, isLoading }) => {\n        if (isLoading) {\n          return <div className=\"i-svg-spinners:90-ring-with-bg text-bolt-elements-textSecondary text-2xl\" />;\n        }\n\n        switch (type) {\n          case 'success': {\n            return <div className=\"i-ph:check-bold text-bolt-elements-icon-success text-2xl\" />;\n          }\n          case 'error': {\n            return <div className=\"i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl\" />;\n          }\n          case 'info': {\n            return <div className=\"i-ph:info text-2xl\" style={{ color: 'var(--status-info-text)' }} />;\n          }\n          case 'warning': {\n            return <div className=\"i-ph:warning text-2xl\" style={{ color: 'var(--status-warning-text)' }} />;\n          }\n        }\n\n        return undefined;\n      }}\n      position=\"top-right\"\n      pauseOnFocusLoss\n      transition={toastAnimation}\n      autoClose={4000}\n      limit={3}\n      stacked\n      newestOnTop={compactIde}\n      theme={theme}\n    />\n  );\n}\n",
+  "cssFiles": [
+    "/assets/root-0cr12TKi.css",
+    "/assets/ReactToastify-tlSLHgLC.css",
+    "/assets/tailwind-compat-Bwh-BmjE.css",
+    "/assets/index-wgDielSo.css",
+    "/assets/xterm-LZoznX6r.css"
+  ],
+  "root": "/workspace/vibecore-ui-ide-feedback",
+  "synthetic": true
+}

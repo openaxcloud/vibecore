@@ -66,6 +66,36 @@ describe('classification des échecs fournisseur', () => {
   });
 
   it.each([
+    ['quota par minute', { statusCode: 429, message: 'Quota exceeded for requests per minute; retry in 30 seconds' }],
+    ['ressource épuisée sans statut HTTP', { message: 'RESOURCE_EXHAUSTED' }],
+    ['quota générique sans preuve financière', { message: 'You exceeded your current quota' }],
+    [
+      'erreur structurée de quota temporaire',
+      {
+        statusCode: 429,
+        responseBody: JSON.stringify({ error: { status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded per minute' } }),
+      },
+    ],
+  ])('ne présente pas %s comme un solde épuisé', (_libelle, erreur) => {
+    expect(classifyProviderFailure(erreur)).toBe('rate-limit');
+    expect(isRetriableProviderFailure(erreur)).toBe(true);
+  });
+
+  it('conserve le crédit explicite dans une erreur structurée 429', () => {
+    expect(
+      classifyProviderFailure({
+        statusCode: 429,
+        responseBody: JSON.stringify({ error: { code: 'insufficient_quota', message: 'Quota exceeded' } }),
+      }),
+    ).toBe('credit');
+  });
+
+  it('ne transforme pas un refus de clé ou un abandon en quota', () => {
+    expect(classifyProviderFailure({ statusCode: 403, message: 'RESOURCE_EXHAUSTED' })).toBe('auth');
+    expect(classifyProviderFailure({ name: 'AbortError', message: 'RESOURCE_EXHAUSTED' })).toBeNull();
+  });
+
+  it.each([
     ['clé invalide', { statusCode: 401, message: 'invalid_api_key' }, 'auth'],
     ['limite de débit', { statusCode: 429, message: 'rate_limit_exceeded' }, 'rate-limit'],
     ['panne amont', { statusCode: 503, message: 'upstream unavailable' }, 'server'],

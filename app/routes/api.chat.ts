@@ -80,11 +80,6 @@ import {
 import { WORK_DIR } from '~/utils/constants';
 import { compterActionsDeFichier } from '~/utils/response-file-actions';
 import {
-  createPortfolioTemplateArtifact,
-  createPortfolioTemplateStreamChunks,
-  shouldUsePortfolioTemplate,
-} from '~/utils/portfolio-template';
-import {
   API_CHAT_PROGRESS_LABELS,
   formatApiChatCopy,
   getApiChatCopy,
@@ -933,86 +928,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           }
         }
 
-        if (shouldUsePortfolioTemplate({ messages, chatMode, files })) {
-          const streamChunks = createPortfolioTemplateStreamChunks(messages);
-          const assistantText = createPortfolioTemplateArtifact(messages);
-
-          const zeroUsage = {
-            completionTokens: 0,
-            promptTokens: 0,
-            totalTokens: 0,
-          };
-
-          dataStream.writeData({
-            type: 'progress',
-            label: API_CHAT_PROGRESS_LABELS.portfolioTemplate,
-            status: 'complete',
-            order: progressCounter++,
-            message: copy.loadedPortfolioTemplate,
-          } satisfies ProgressAnnotation);
-
-          dataStream.writeData({
-            type: 'progress',
-            label: API_CHAT_PROGRESS_LABELS.response,
-            status: 'in-progress',
-            order: progressCounter++,
-            message: copy.streamingPortfolioFiles,
-          } satisfies ProgressAnnotation);
-
-          for (const chunk of streamChunks) {
-            dataStream.write(formatDataStreamPart('text', chunk));
-            await new Promise((resolve) => setTimeout(resolve, 0));
-          }
-
-          dataStream.writeMessageAnnotation({
-            type: 'usage',
-            value: zeroUsage,
-          });
-          dataStream.writeData({
-            type: 'progress',
-            label: API_CHAT_PROGRESS_LABELS.response,
-            status: 'complete',
-            order: progressCounter++,
-            message: copy.responseGenerated,
-          } satisfies ProgressAnnotation);
-          dataStream.write(
-            formatDataStreamPart('finish_step', {
-              finishReason: 'stop',
-              usage: {
-                completionTokens: zeroUsage.completionTokens,
-                promptTokens: zeroUsage.promptTokens,
-              },
-              isContinued: false,
-            }),
-          );
-          dataStream.write(
-            formatDataStreamPart('finish_message', {
-              finishReason: 'stop',
-              usage: {
-                completionTokens: zeroUsage.completionTokens,
-                promptTokens: zeroUsage.promptTokens,
-              },
-            }),
-          );
-
-          await persistAgentMemoryCandidate(request, {
-            messages,
-            assistantText,
-            projectId,
-          }).catch((error) => {
-            logger.warn('Portfolio template memory persistence skipped', error);
-          });
-
-          /*
-           * Close the per-request MCPService before this fast-path return, same
-           * as the normal exit paths; otherwise its transports (stdio children /
-           * HTTP clients) leak for the life of the process on every template hit.
-           */
-          await mcpService.close();
-
-          return;
-        }
-
+        /*
+         * Creation requests must reach the normal generator with their full brief.
+         * A keyword-matched static portfolio used to return here before generation,
+         * ignoring language/features and even treating internal "for them" prose
+         * as the owner's name. Quota checks above still apply to every request.
+         */
         const filePaths = getFilePaths(files || {});
 
         let filteredFiles: FileMap | undefined = undefined;
@@ -1329,7 +1250,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * planApproved=true (handled above) and executes. Only gates when we
          * actually produced a plan; otherwise fall through to normal generation.
          *
-         * Safe early return: mirror the portfolio-template fast path — stop the
+         * Safe early return: stop the
          * recovery timer, write the finish parts (AI-SDK stream contract), and
          * close the per-request MCPService so nothing leaks. No memory persist /
          * usage recording here (the executing turn handles those).
@@ -1470,6 +1391,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                         roleId: event.roleId,
                         status: event.result.status,
                         summary: localizeApiChatAgentResultSummary(language, event.result.status, event.result.summary),
+                        ...(event.result.outputState ? { outputState: event.result.outputState } : {}),
+                        ...(event.result.emittedFiles ? { emittedFiles: event.result.emittedFiles } : {}),
+                        verificationState: 'not_observed',
                       } satisfies ContextAnnotation);
                     }
                   },
@@ -2371,6 +2295,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     routedTurnModel = decidedModel;
                     routedTurnProvider = decidedProvider;
                   },
+                  onModelOutput: (receipt) => {
+                    dataStream.writeMessageAnnotation({ type: 'modelOutput', ...receipt } satisfies ContextAnnotation);
+                  },
                 });
 
                 // Le raisonnement part au client : `ai@4.3.16` ne l'envoie pas par défaut.
@@ -2585,6 +2512,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           onModelDecision: (decidedModel, decidedProvider) => {
             routedTurnModel = decidedModel;
             routedTurnProvider = decidedProvider;
+          },
+          onModelOutput: (receipt) => {
+            dataStream.writeMessageAnnotation({ type: 'modelOutput', ...receipt } satisfies ContextAnnotation);
           },
         });
 

@@ -5,6 +5,12 @@ import { buildWorkspaceAgentApp } from '@vibecore/workspace-agent/src/app';
 import { signAgentToken } from '@vibecore/workspace-sdk';
 import { expect, it } from 'vitest';
 import { confirmAcceptedAgentFile, writeAcceptedAgentFile } from './agent-file-write';
+import {
+  cheminsEcritsParLesLanes,
+  confirmerEcritureDeMessage,
+  observerEcrituresDeMessage,
+  reinitialiserConfirmationsEcriture,
+} from './agent-lane-writes';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
 
 it('writes complete JSONC options through the real agent and confirms disk bytes; never repairs a concurrent mismatch by writing again', async () => {
@@ -51,11 +57,22 @@ it('writes complete JSONC options through the real agent and confirms disk bytes
   }`;
 
   try {
+    reinitialiserConfirmationsEcriture();
+    observerEcrituresDeMessage('isolated-real-agent');
     await writeFile(join(root, 'tsconfig.json'), stub);
 
     const merged = reconcileRemoteWrite('tsconfig.json', stub, proposed);
     const written = await writeAcceptedAgentFile(runtime, 'tsconfig.json', merged);
-    await expect(confirmAcceptedAgentFile(runtime, 'tsconfig.json', written)).resolves.toBe(true);
+    expect(cheminsEcritsParLesLanes('isolated-real-agent')).toEqual([]);
+
+    const confirmed = await confirmAcceptedAgentFile(runtime, 'tsconfig.json', written);
+    expect(confirmed).toBe(true);
+
+    if (confirmed) {
+      confirmerEcritureDeMessage('isolated-real-agent', 'tsconfig.json', 'real-agent-proposal');
+    }
+
+    expect(cheminsEcritsParLesLanes('isolated-real-agent')).toEqual(['tsconfig.json']);
 
     const disk = await readFile(join(root, 'tsconfig.json'), 'utf8');
     expect(disk).toBe(written);
@@ -72,6 +89,7 @@ it('writes complete JSONC options through the real agent and confirms disk bytes
     expect(await readFile(join(root, 'tsconfig.json'), 'utf8')).toBe('concurrent user content');
     expect(writes).toBe(1);
   } finally {
+    reinitialiserConfirmationsEcriture();
     await app.close();
     await rm(root, { recursive: true, force: true });
   }

@@ -45,3 +45,55 @@
     color: var(--bolt-elements-item-contentActive);
   }
 }
+
+/* A collapsed rich toast keeps its opaque height in Toastify 11. Compact IDE
+   layouts use a bounded, scrollable list instead, with every message/action intact. */
+body:has(.bolt-project-ide-shell, .bolt-responsive-ide) .Toastify__toast-container.vc-ide-compact-toasts {
+  pointer-events: none;
+  max-height: min(240px, 32dvh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+
+  .Toastify__toast {
+    flex: 0 0 auto;
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 12px 48px 12px 12px;
+    min-height: 56px;
+    overflow-wrap: anywhere;
+    position: relative;
+    inset: auto;
+    transform: none;
+    pointer-events: none;
+  }
+
+  .Toastify__toast :is(button, a[href], summary, input, select, textarea, [role='button'], details[open]) {
+    pointer-events: auto;
+  }
+
+  .Toastify__toast[data-collapsed] > :not(.Toastify__progress-bar--wrp) {
+    opacity: 1;
+  }
+
+  .Toastify__toast::before,
+  .Toastify__toast::after {
+    display: none;
+  }
+
+  .Toastify__close-button {
+    color: var(--bolt-elements-textPrimary);
+    opacity: 1;
+    top: 0;
+    right: 0;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+  }
+}

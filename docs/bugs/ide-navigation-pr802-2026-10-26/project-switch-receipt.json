@@ -1,0 +1,43 @@
+{
+  "baseline": "6f270b9bc2a14e9f07a3b3b9eb457b5189f98fac",
+  "ciHead": "279440d2fcbe3ee028d4209759f482bf6101c422",
+  "exactCIBuild": false,
+  "results": {
+    "exact390Local": true,
+    "archivePending390": true,
+    "scopedGates390": true,
+    "controlledFiveSecondTimeoutThenRecovery": true
+  },
+  "automaticRetries": 0,
+  "originalCICauseProven": false,
+  "productModified": false,
+  "files": {
+    "source-provenance.json": "99cbe0f1fba3104b6ff8b520f27017be36bf8bb126e812b065ac6455bd2354ff",
+    "build-verification.json": "a7638d6f9a1a84d90b09ec39a01a2677cef3cfcb179d80c0f666c1a153e5bded",
+    "restore-results.json": "28c03ea7df8d44f0e76862e15a14a19c49eeb4c75e0500e0c87c5f100bb505c6",
+    "scope-results.json": "399f3f0104455b46d88459ee578f74f4571605c947b03eff80dc87b1c965aabf",
+    "scope-journal.json": "75eb5e06ea31c5c5e9bc488fce38cb5397aa8e4a6fb3b34c84933af6082094c7",
+    "scope-verdict.json": "f1321ed378143460beac89b053c41f562cde4f7c8dd3ac13e2f936bbe4e94523",
+    "database-selections.json": "0d83d3d93e9c198c2b55032893879015396362559067367a0000f2fd15507e2b",
+    "counterfactual-results.json": "730aa394867d93903efa7061efbe9438f086a5ce2a52c2633383cd51fd03cfcd",
+    "counter-original-five-second-assertion.json": "280b21e0e49be4105c4ffcc1c2d465b5b824016ca22a1b22c664fa41fadfae38",
+    "counter-scope-journal.json": "b87206a2e6ec080ec0b6ea69bb42d2d36232267ef40fe81760bac16c170a3c72",
+    "counter-database-selections.json": "7ae09f7c62ca555582fe9be442751c84344f1058332fe9dec5cae119590ec1d4",
+    "report.md": "f34b3470d2471e23d25b1b1b5b325c24b0e696a6977016ac933fd5b272084199"
+  },
+  "cleanup": {
+    "ports": {
+      "5199": "closed",
+      "3018": "closed",
+      "55448": "closed",
+      "56388": "closed"
+    },
+    "containers": [],
+    "unrelated96853Preserved": true,
+    "ownedProcessExists": {
+      "222926": false,
+      "222578": false,
+      "222561": false
+    }
+  }
+}

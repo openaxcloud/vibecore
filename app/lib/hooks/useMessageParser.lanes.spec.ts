@@ -18,7 +18,7 @@ vi.mock('~/lib/stores/workbench', () => ({
 }));
 
 const { useMessageParser } = await import('./useMessageParser');
-const { cheminsEcritsParLesLanes } = await import('~/lib/runtime/agent-lane-writes');
+const { cheminsEcritsParLesLanes, cheminsAttribuesParLesLanes } = await import('~/lib/runtime/agent-lane-writes');
 
 /** Un flux de lane : un fichier ecrit, puis le rapport JSON de cloture. */
 const fluxDeLane = (chemin: string, corps: string) =>
@@ -166,14 +166,15 @@ describe('useMessageParser — les fichiers ecrits par les sous-agents', () => {
     expect(parMessage).toContain('m6');
   });
 
-  it('rend les chemins reellement ecrits, par message', () => {
+  it('expose les attributions sans inventer une confirmation de persistance', () => {
     const { result } = renderHook(() => useMessageParser());
     result.current.parseMessages(
       [messageAvecLanes('m7', [{ roleId: 'architect', text: fluxDeLane('src/Vu.tsx', 'export const V = 1;') }])],
       false,
     );
 
-    expect(cheminsEcritsParLesLanes('m7')).toEqual(['src/vu.tsx']);
+    expect(cheminsAttribuesParLesLanes('m7')).toEqual(['src/vu.tsx']);
+    expect(cheminsEcritsParLesLanes('m7')).toBeUndefined();
 
     /*
      * `undefined`, PAS `[]` : un message dont on n'a aucune trace n'est pas un

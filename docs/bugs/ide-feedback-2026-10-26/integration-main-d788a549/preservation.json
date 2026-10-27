@@ -1,0 +1,12 @@
+{
+  "app/components/chat/BaseChat.tsx": true,
+  "app/components/chat/MobileOverlayFocus.tsx": true,
+  "app/components/chat/MobileOverlayFocus.spec.tsx": true,
+  "app/routes/projects.$projectId.ide.tsx": true,
+  "tests/e2e/ide-overlay-focus-handoff.spec.ts": true,
+  "app/routes/api.chat.portfolio-generation.spec.ts": true,
+  "portfolioOldStarterStillAbsent": true,
+  "indexDeclared": "516",
+  "indexBulletEntries": 516,
+  "worktreeClean": true
+}

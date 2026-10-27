@@ -132,7 +132,9 @@ describe('câblage dans le chemin d’écriture', () => {
       runner.indexOf('ensureEntryImportsResolvable(') + 400,
     );
 
-    expect(bloc).toContain('this.#runtime.readFile(p)');
-    expect(bloc).toContain('this.#runtime.writeFile(p, content)');
+    expect(runner).toContain('const runtime = this.#runtime;');
+    expect(bloc).toContain('runtime.readFile(p)');
+    expect(bloc).toContain('this.#runtime !== runtime || action.abortSignal.aborted');
+    expect(bloc).toContain('runtime.writeFile(p, content)');
   });
 });

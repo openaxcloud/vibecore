@@ -66,17 +66,17 @@ async function lireFeuilles() {
  * Sous la pile, un chrome d'IDE opaque qui couvre tout l'écran : si le toast
  * est rogné, c'est lui que le moteur rendra.
  */
-async function monter(page: Page, largeur: number, hauteur: number) {
+async function monter(page: Page, largeur: number, hauteur: number, compact = false) {
   await page.setViewportSize({ width: largeur, height: hauteur });
   await page.setContent(`
     <html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>${await lireFeuilles()}</style></head>
     <body class="h-full w-full" style="margin: 0">
-      <div class="bolt-project-ide-shell">
+      <div class="${compact ? 'bolt-responsive-ide' : 'bolt-project-ide-shell'}">
         <div id="chrome" style="position: fixed; inset: 0; z-index: 50; background: #fff"></div>
-        <footer class="bolt-project-statusbar"></footer>
+        ${compact ? '' : '<footer class="bolt-project-statusbar"></footer>'}
       </div>
       <section class="Toastify" aria-label="Notifications">
-        <div class="Toastify__toast-container Toastify__toast-container--top-right" data-stacked="true">
+        <div class="Toastify__toast-container Toastify__toast-container--top-right ${compact ? 'vc-ide-compact-toasts' : ''}" data-stacked="true">
           <div class="Toastify__toast Toastify__toast-theme--light Toastify__toast--success Toastify__toast--stacked"
                data-pos="top" data-collapsed="false" style="--y: 0px; --s: 1; --g: 0">
             <div class="Toastify__toast-icon"></div>
@@ -185,5 +185,42 @@ for (const [nom, largeur, hauteur] of [
       expect(m.rect.gauche, 'le bandeau est collé au bord gauche').toBeGreaterThanOrEqual(8);
       expect(m.rect.droite, 'le bandeau déborde à droite').toBeLessThanOrEqual(largeur - 8);
     }
+  });
+}
+
+for (const [width, height] of [
+  [390, 844],
+  [844, 390],
+] as const) {
+  test(`compact notifications preserve painting, pass-through and reachable actions at ${width}`, async ({ page }) => {
+    const measured = await monter(page, width, height, true);
+    expect(measured.texteLaissePasser).toBe(true);
+
+    const list = page.locator('.Toastify__toast-container');
+    expect(await list.evaluate((element) => element.clientHeight)).toBeLessThanOrEqual(
+      Math.min(240, height * 0.32) + 1,
+    );
+
+    const action = page.getByRole('button', { name: 'Tout annuler', exact: true });
+    await action.focus();
+    await expect(action).toBeFocused();
+    expect(
+      await action.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return element.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+      }),
+    ).toBe(true);
+    await page.getByText('Afficher les détails', { exact: true }).click();
+    await expect(page.locator('details')).toHaveAttribute('open', '');
+    await page.locator('.Toastify__toast').evaluate((element) => {
+      element.setAttribute('data-collapsed', 'true');
+      element.setAttribute('style', '--y: 200px; --s: 0.9; --g: 16');
+    });
+    expect(
+      await page.locator('.Toastify__toast').evaluate((element) => ({
+        position: getComputedStyle(element).position,
+        transform: getComputedStyle(element).transform,
+      })),
+    ).toEqual({ position: 'relative', transform: 'none' });
   });
 }

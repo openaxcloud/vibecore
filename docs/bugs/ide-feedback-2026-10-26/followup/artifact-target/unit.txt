@@ -1,0 +1,91 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ide-local-recovery
+
+ ✓ app/styles/agent-action-list-density.spec.ts (9 tests) 9ms
+stdout | app/components/chat/Artifact.i18n.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/components/chat/Artifact.density.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/components/chat/Artifact.demarrage.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/components/chat/Artifact.i18n.spec.tsx > <Artifact /> i18n > localizes action chrome while preserving file paths and shell commands
+INFO Debug logger initialized
+
+ ✓ app/components/chat/Artifact.density.spec.tsx (3 tests) 126ms
+ ✓ app/components/chat/Artifact.i18n.spec.tsx (2 tests) 173ms
+stdout | app/components/chat/Artifact.demarrage.spec.tsx > « Démarrer l’application » lance vraiment le serveur > ne lance rien pour une action qui n’est pas un démarrage
+INFO Debug logger initialized
+
+ ✓ app/components/chat/Artifact.demarrage.spec.tsx (3 tests) 228ms
+
+ Test Files  4 passed (4)
+      Tests  17 passed (17)
+   Start at  07:52:17
+   Duration  3.94s (transform 1.80s, setup 106ms, collect 2.58s, tests 535ms, environment 1.01s, prepare 295ms)
+

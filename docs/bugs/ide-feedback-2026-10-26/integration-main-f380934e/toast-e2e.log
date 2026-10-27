@@ -1,0 +1,13 @@
+
+Running 4 tests using 1 worker
+
+(node:248389) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:248389) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/e2e/bandeau-toast-visible.spec.ts:148:3 › le bandeau des fichiers appliqués est peint — téléphone 390 (1.3s)
+  ✓  2 tests/e2e/bandeau-toast-visible.spec.ts:148:3 › le bandeau des fichiers appliqués est peint — bureau 1440 (689ms)
+  ✓  3 tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 390 (740ms)
+  ✓  4 tests/e2e/bandeau-toast-visible.spec.ts:195:3 › compact notifications preserve painting, pass-through and reachable actions at 844 (538ms)
+
+  4 passed (5.4s)

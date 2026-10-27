@@ -1,0 +1,12 @@
+{
+  "files": {
+    "baseline-build-verification.json": "5ca8743dfda082ad5bfdaefa59ea6fa2df82feccb3b2950437a0e31a49aa8288",
+    "startup-results.json": "1a45d6286ff9b0a7847bdbb8aa2c974e08a0ba26115ad1822d2a38f3fd781a91",
+    "startup-phase-results.json": "2dce5ae16c1be71fc6d4fb02a64bf582c30db1f0aca751f7cfcde53ef004f5d1",
+    "inside-phase-events.json": "32bfc68d8c1eabe09977a8b833c2e32cf09589689a5ec69cac16a335deac5000",
+    "outside-phase-events.json": "0159d4efb3daa07d7973a0eff18349bc3332b90477034a90106f754fb7041a64",
+    "startup-phase.spec.ts": "a1944c50854f62d474cb904e022b623ff5d4ddcf5c4e756ee647dc429a42fda1"
+  },
+  "result": "Deterministic true ide-state GET barrier proves entire BaseChat remount loses Monaco focus. External focus does not get stolen into editor. No product modification.",
+  "stack": "WEB5199 API3018 ide-startup-pg55448 ide-startup-redis56388 live"
+}

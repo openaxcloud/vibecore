@@ -174,7 +174,8 @@ describe('QuorumConsensus', () => {
     expect(out.outcome).toBe('ACCEPTED');
     expect(out.agreementScore).toBeGreaterThanOrEqual(0.66);
     expect(out.consolidated.acceptedRisks.length).toBe(1);
-    expect(out.consolidated.acceptedVerification.length).toBe(1);
+    expect(out.consolidated.acceptedVerification).toEqual([]);
+    expect(out.consolidated.agreedVerificationClaims).toHaveLength(1);
   });
 
   it('returns PARTIAL when some roles fail', () => {
