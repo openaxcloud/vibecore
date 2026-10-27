@@ -1,0 +1,45 @@
+{
+  "head": "cd0dd515e22772d37f1cbcb50c27dfd6cc26d48b",
+  "expectedHead": "cd0dd515e22772d37f1cbcb50c27dfd6cc26d48b",
+  "completedUtc": "2026-10-26T05:35:10.787118+00:00",
+  "worktreeStatus": "",
+  "exitCodes": {
+    "web-typecheck": 0,
+    "diff-check": 0,
+    "format": 0,
+    "lint": 0,
+    "app-index-tests": 0,
+    "package-typecheck": 0,
+    "package-tests": 0
+  },
+  "testCounts": {
+    "package": 54,
+    "appAst": 35,
+    "indexMigration": 22
+  },
+  "sourceHashes": {
+    "app/components/chat/BaseChat.tsx": "ccaabd06120093d4842ed0333aceb4d15038352d9a4bd1683eafbfe4d0f9a02c",
+    "app/components/chat/Chat.client.tsx": "4a22931656f5f5662b19039183b5fe76f369dd633ea660a4fd0e71dfc5489286",
+    "app/components/chat/MobileOverlayFocus.spec.tsx": "af135769788d169f2ed6a51a0144d7ccfdab02cd3d2e92a76bec0cb70a039f25",
+    "app/components/chat/MobileOverlayFocus.tsx": "4e052172fe471de5a4560afb090dd941224d597281f760712bcae20e069cf99b",
+    "app/components/chat/useEditorCompositionHandoff.spec.tsx": "7a6d25d4aee97d52e4e424d3e7945a4011ba9c340b0b38eb77db52cecfb4d4c7",
+    "app/components/chat/useEditorCompositionHandoff.ts": "926580d49424ebfd261e0cfe6a85a834e4166fd3709ed52f9285cfb23f65764c",
+    "packages/editor/src/desktop-editor-focus.ts": "13500b93b271327ef2697123d1d2b9129499fbc9cddd0f62f82b6d34199b60a3",
+    "packages/editor/src/desktop-editor.spec.ts": "fa828f12e29d07f6b5a1aa2a7d6353e3d7a0318225ad5351e5737f851959d6a7",
+    "packages/editor/src/index.ts": "26ec31481de98df64915e9ca0b6087fe77f2e564fa4f5e32c3073af43895d42e",
+    "tests/e2e/ide-editor-composition-handoff.spec.ts": "b6d85947387f268c7ebfc1dfb5867af6afcf80a78619090e4ba30bf8a0e3b96b",
+    "tests/e2e/ide-editor-focus-handoff.spec.ts": "d57bd9179986944621aa5e0e9a769b60feb8a84ab85c6bd2ea2dc138dcae03d9",
+    "tests/e2e/ide-monaco-tab-exit.spec.ts": "4e244777d47911d03918aa32171d2803d80c25dc49f8312083633396729c32ef",
+    "tests/e2e/ide-overlay-focus-handoff.spec.ts": "39a04d532dee01f046f612f85d6b5e65734d57debdc25ab48c0fa314a74d10a4"
+  },
+  "reportHashes": {
+    "diff-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "format.log": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+    "lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "package-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "web-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "package-tests.log": "2a7194fdc0eca9f7831468d2a43a0b9fad1d96b5af578050bcbefdc6ac512859",
+    "app-index-tests.log": "fbe4be60e3c5bc89c6ce39c8d399982ef9749ac46350083739e0f5e9bd7673d4"
+  },
+  "scope": "Local checks only; no build, browser, CI or production validation; no source edits or push. Package lint uses package typecheck, per package.json."
+}

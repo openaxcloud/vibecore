@@ -178,8 +178,11 @@ export function isProviderHealthy(providerName: string, now: number = Date.now()
  * bascule donc sur un 400 QUE si le corps nomme explicitement le crédit, sinon
  * une requête réellement malformée irait épuiser toute la chaîne pour rien.
  */
-const CREDIT_EXHAUSTED =
-  /credit balance is too low|insufficient[_ ]quota|exceeded your current quota|billing[_ ]hard[_ ]limit|quota exceeded|resource[_ ]exhausted/i;
+const CREDIT_EXHAUSTED = /credit balance is too low|insufficient[_ ]quota|billing[_ ]hard[_ ]limit/i;
+
+/* Un quota de requêtes ou une ressource épuisée ne prouve pas un solde à zéro. */
+const RATE_LIMITED =
+  /rate[_ ]limit|too many requests|overloaded|quota exceeded|exceeded your current quota|resource[_ ]exhausted/i;
 
 function textOf(error: unknown): string {
   if (!error) {
@@ -240,7 +243,7 @@ export function classifyProviderFailure(error: unknown): ProviderFailureKind | n
     return 'auth';
   }
 
-  if (status === 429 || /rate[_ ]limit|too many requests|overloaded/i.test(message)) {
+  if (status === 429 || RATE_LIMITED.test(message)) {
     return 'rate-limit';
   }
 

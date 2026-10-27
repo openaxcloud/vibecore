@@ -285,7 +285,7 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     });
   });
 
-  it('keeps direct-runner writes unknown when proposal review is disabled', async () => {
+  it('confirms direct-runner writes only after their exact payload is read back', async () => {
     const store = new WorkbenchStore();
     const file = fileAction('direct-unobserved');
     file.action.filePath = 'docs/direct.md';
@@ -296,7 +296,31 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     await store._addAction(file);
     await store._runAction(file);
     expect(runtimeFiles.get('docs/direct.md')).toBe('direct runtime content\n');
-    expect(cheminsEcritsParLesLanes('direct-unobserved')).toBeUndefined();
+    expect(cheminsEcritsParLesLanes('direct-unobserved')).toEqual(['docs/direct.md']);
+  });
+
+  it.each(['mismatch', 'emergency'])('keeps direct %s writes unknown', async (mode) => {
+    const store = new WorkbenchStore();
+    const file = fileAction(`direct-${mode}`);
+    file.action.filePath = 'docs/direct.md';
+    file.action.content = 'requested payload\n';
+    file.fermetureDeSecours = mode === 'emergency';
+    store.setAgentPatchReviewRequired(false);
+    store.addArtifact(artifactData(file.messageId));
+
+    const originalRead = runtimeAdapterMock.readFile.getMockImplementation()!;
+
+    if (mode === 'mismatch') {
+      runtimeAdapterMock.readFile.mockResolvedValue({ content: 'old payload' });
+    }
+
+    try {
+      await store._addAction(file);
+      await store._runAction(file);
+      expect(cheminsEcritsParLesLanes(file.messageId)).toBeUndefined();
+    } finally {
+      runtimeAdapterMock.readFile.mockImplementation(originalRead);
+    }
   });
 
   it('starts observing a resumed proposal even when ordinary proposal review is disabled', async () => {

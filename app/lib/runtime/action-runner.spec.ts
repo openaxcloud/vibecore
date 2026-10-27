@@ -708,13 +708,17 @@ describe('ActionRunner self-repair retry loop', () => {
     const writeFile = vi.fn().mockResolvedValue(undefined);
 
     const runner = new ActionRunner(
-      createRuntime({ writeFile } as Partial<RuntimeAdapter>),
+      createRuntime({
+        writeFile,
+        readFile: vi.fn().mockResolvedValue({ content: 'const fixed = 1;\n' }),
+      } as Partial<RuntimeAdapter>),
       () => createShell() as any,
     );
 
     runner.addAction(fileAction);
     await runner.runAction(fileAction, false);
 
+    expect(runner.consumeConfirmedFileWrite(fileAction.actionId)?.filePath).toBe('src/App.tsx');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('/api/agent/self-repair');
 
