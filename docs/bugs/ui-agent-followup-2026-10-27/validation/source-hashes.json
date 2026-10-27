@@ -1,0 +1,8 @@
+{
+  "app/components/chat/AgentPowerControls.tsx": "07a8693c07daeb303a17cfa234e2eaf311e06c4ce10714be15e4465c6d3a4f56",
+  "app/components/chat/FeuilleDesModes.tsx": "61e83aa7da0ce6addb2f0fc0800b67e5caf0cbfb246eb29dab08ca429f9a558c",
+  "app/components/chat/BaseChat.tsx": "13af879d657e07b603c2b116e75e198566026f70359ad8c97f0d338ad150ca6c",
+  "app/lib/hooks/useKeybindings.ts": "2600379706a2f7c3977b03130ef1e8aa3ecbc52b1cd1b69de69d4d41b4b7e3cb",
+  "app/components/chat/AgentPowerControls.escape.spec.tsx": "68f7238dc923550757b0deb69a1d735989f5f20d285b23941572c31ddc3d1abf",
+  "tests/e2e/responsive-ide.spec.ts": "346bdc10799d8532d3abf5a59930818d10074eaaa6d9b6b8b0acf8cf9b9c70df"
+}

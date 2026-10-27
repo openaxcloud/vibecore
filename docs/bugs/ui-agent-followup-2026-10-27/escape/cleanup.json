@@ -1,0 +1,18 @@
+{
+  "ownedServers": [],
+  "browserHandlesClosedByFinally": true,
+  "borrowedServersNotStopped": [
+    {
+      "port": 18299,
+      "owner": "initial_panel_diagnosis"
+    },
+    {
+      "port": 18399,
+      "owner": "root"
+    },
+    {
+      "port": 8299,
+      "owner": "initial_panel_diagnosis"
+    }
+  ]
+}

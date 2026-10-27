@@ -1,0 +1,192 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-agent-followup
+
+ ❯ app/components/chat/AgentPowerControls.escape.spec.tsx (6 tests | 1 failed) 201ms
+   ✓ Escape closes actual model subpanel and restores opener (mobile=false) 111ms
+   ✓ Escape closes actual model subpanel and restores opener (mobile=true) 24ms
+   ✓ keeps a consumed child Escape local before closing on the next Escape 11ms
+   ✓ preserves subpanel Back and outside dismissal (mobile=false) 15ms
+   ✓ preserves subpanel Back and outside dismissal (mobile=true) 13ms
+   × closes when removing the focused subpanel control has returned focus to body 27ms
+     → expected <div id=":ra:" …(5)>…(2)</div> to be null
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/chat/AgentPowerControls.escape.spec.tsx > closes when removing the focused subpanel control has returned focus to body
+AssertionError: expected <div id=":ra:" …(5)>…(2)</div> to be null
+
+- Expected:
+null
+
++ Received:
+<div
+  aria-label="Advanced agent settings"
+  class="bolt-agent-power-popover mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl bolt-agent-power-popover-flottant"
+  data-escape-owner="agent-settings"
+  id=":ra:"
+  role="dialog"
+  style="position: fixed; left: 0px; bottom: 776px;"
+>
+  <div>
+    <div
+      class="bolt-feuille"
+      data-ecran="modes"
+    >
+      <p
+        class="bolt-feuille-titre"
+      >
+        Agent modes
+      </p>
+      <div
+        aria-label="Agent mode (press Command-Shift-I to cycle)"
+        role="radiogroup"
+      >
+        <button
+          aria-checked="false"
+          class="bolt-feuille-rangee"
+          data-selected="false"
+          data-testid="feuille-mode-lite"
+          role="radio"
+          type="button"
+        >
+          <span
+            class="bolt-feuille-rangee-nom"
+          >
+            Lite
+          </span>
+          <span
+            class="bolt-feuille-rangee-valeur"
+          >
+            Auto
+          </span>
+        </button>
+        <button
+          aria-checked="true"
+          class="bolt-feuille-rangee"
+          data-selected="true"
+          data-testid="feuille-mode-power"
+          role="radio"
+          type="button"
+        >
+          <span
+            class="bolt-feuille-rangee-nom"
+          >
+            Power
+          </span>
+          <span
+            class="bolt-feuille-rangee-valeur"
+          >
+            Auto
+          </span>
+        </button>
+        <button
+          aria-checked="false"
+          class="bolt-feuille-rangee"
+          data-selected="false"
+          data-testid="feuille-mode-max"
+          role="radio"
+          type="button"
+        >
+          <span
+            class="bolt-feuille-rangee-nom"
+          >
+            Max
+          </span>
+          <span
+            class="bolt-feuille-rangee-valeur"
+          >
+            Auto
+          </span>
+        </button>
+      </div>
+      <p
+        class="bolt-feuille-description"
+      >
+        The right balance.
+      </p>
+      <button
+        class="bolt-feuille-entree"
+        data-testid="feuille-entree-modele"
+        data-verrouillee="false"
+        type="button"
+      >
+        <span
+          class="bolt-feuille-entree-nom"
+        >
+          Primary model — Power
+        </span>
+        <span
+          class="bolt-feuille-entree-hint"
+        >
+          Auto · default
+        </span>
+        <span
+          aria-hidden="true"
+          class="bolt-feuille-chevron i-ph:caret-right"
+        />
+      </button>
+      <button
+        class="bolt-feuille-entree"
+        data-testid="feuille-entree-avance"
+        data-verrouillee="false"
+        type="button"
+      >
+        <span
+          class="bolt-feuille-entree-nom"
+        >
+          Advanced settings
+        </span>
+        <span
+          class="bolt-feuille-entree-hint"
+        >
+          Effort, redundancy and billing options.
+        </span>
+        <span
+          aria-hidden="true"
+          class="bolt-feuille-chevron i-ph:caret-right"
+        />
+      </button>
+    </div>
+  </div>
+  <div
+    class="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs"
+  >
+    <span
+      class="text-bolt-elements-textSecondary"
+    >
+      Est. cost
+    </span>
+    <span
+      class="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary"
+    >
+      <span
+        aria-hidden="true"
+        class="i-ph:sparkle text-sm"
+        style="color: var(--vc-ide-accent-action);"
+      />
+      —
+    </span>
+  </div>
+</div>
+
+ ❯ app/components/chat/AgentPowerControls.escape.spec.tsx:129:40
+    127|   expect(document.activeElement).toBe(document.body);
+    128|   fireEvent.keyDown(document.body, { key: 'Escape' });
+    129|   expect(screen.queryByRole('dialog')).toBeNull();
+       |                                        ^
+    130|   expect(document.activeElement).toBe(trigger);
+    131|   expect(runAction).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  20:13:44
+   Duration  2.89s (transform 1.25s, setup 24ms, collect 322ms, tests 201ms, environment 288ms, prepare 53ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

@@ -1,0 +1,14 @@
+[
+  {
+    "pid": 28886,
+    "state": "S",
+    "command": "node --require ./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs node_modules/@react-router/serve/bin.js build/server/index.js ",
+    "action": "SIGKILL owned recipe residual after SIGTERM and closed port"
+  },
+  {
+    "pid": 33498,
+    "state": "S",
+    "command": "node --require ./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs node_modules/@react-router/serve/bin.js build/server/index.js ",
+    "action": "SIGKILL owned recipe residual after SIGTERM and closed port"
+  }
+]

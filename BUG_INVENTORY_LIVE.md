@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-531 entrées.
+534 entrées.
 
 ## Sans section
 
@@ -698,6 +698,9 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-AGENT-MESSAGE-DESCENDANT-KEYBOARD-20261027](docs/bugs/BUG-AGENT-MESSAGE-DESCENDANT-KEYBOARD-20261027.md) — Entrée et Espace sur les contrôles du message sont interceptées par son menu contextuel. — 📤 Dispatché : ☑ 27/10/2026 — reproduction, correctif clavier isolé et revue indépendante autorisés. · 💻 Codé : ☐ main — correctif local `af46fc879`, intégré localement en `bea1b6a88` ; publication coordonnée par le parent · ✅ Testé live : ☐ —41tests locaux verts et quatre groupes navigateur sur composant isolé ; route intégrée, WebKit et productio
+- [BUG-AGENT-ADVANCED-ESCAPE-20261027](docs/bugs/BUG-AGENT-ADVANCED-ESCAPE-20261027.md) — Escape ne ferme pas les paramètres avancés de l’agent depuis le sous-menu modèle. Observation authentifiée transmise par le parent le27octobre2026 à20:03–20:07U — 📤 Dispatché : ☑ 27/10/2026 — diagnostic et correctif ciblé autorisés, sans reprendre le lot groupé interrompu. · 💻 Codé : ☐ main — correctif local validé ; publication en PR distincte en préparation. · ✅ Testé live : ☐ production — défaut observé par le parent ; correction validée localement sur données synthétiques, aucun pr
+- [BUG-AGENT-INITIAL-PANEL-MEMORY-20261027](docs/bugs/BUG-AGENT-INITIAL-PANEL-MEMORY-20261027.md) — À l’ouverture du projet, Agent reste sélectionné tandis que le corps affiche Webview startup ; un clic explicite sur Agent rétablit le panneau. Observation auth — 📤 Dispatché : ☑ 27/10/2026 — diagnostic et correctif ciblé autorisés, sans reprendre le lot groupé interrompu. · 💻 Codé : ☐ main — correctif local validé ; publication en PR distincte en préparation. · ✅ Testé live : ☐ production — défaut observé par le parent ; correction validée localement sur données synthétiques, aucun pr
+- [BUG-AGENT-MODEL-SUBPANEL-HEIGHT-20261027](docs/bugs/BUG-AGENT-MODEL-SUBPANEL-HEIGHT-20261027.md) — Le sous-menu modèle desktop dépasse le bas de la fenêtre : à1440×900, top412.75px et hauteur493.34375px donnent bottom906.09375px. Reproduit avec le même rectan — 📤 Dispatché : ☑ 27/10/2026 — correction locale de la hauteur disponible, sans refonte de navigation ou styles globaux. · 💻 Codé : ☐ main — correctif local dans FeuilleDesModes ; borne calculée depuis le top et la marge existante, défilement · ✅ Testé live : ☐ production — recette locale finale réussie, dont zoom200%, accès après défilement et bornes1px ; aucune rece
 
 ## Résidus non tabulaires — reportés mot pour mot
 

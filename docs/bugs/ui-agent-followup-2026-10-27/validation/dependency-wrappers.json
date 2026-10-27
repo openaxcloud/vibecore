@@ -1,0 +1,26 @@
+{
+  "reused": "/workspace/vibecore-ui-contract812",
+  "localNamespaces": "/workspace/vibecore-ui-agent-followup",
+  "wrappers": [
+    ".",
+    "services/preview-proxy",
+    "services/screenshotter",
+    "services/api",
+    "services/worker",
+    "services/workspace-manager",
+    "services/connector-proxy",
+    "services/workspace-agent",
+    "services/ai-gateway",
+    "packages/template-catalog",
+    "packages/runtime-webcontainer",
+    "packages/workspace-sdk",
+    "packages/sdk",
+    "packages/k8s-client",
+    "packages/database",
+    "packages/runtime-remote",
+    "packages/sandbox-runtime",
+    "packages/connector-sdk",
+    "apps/admin",
+    "apps/mobile"
+  ]
+}

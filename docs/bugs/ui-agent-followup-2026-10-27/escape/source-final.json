@@ -1,0 +1,7 @@
+{
+  "build/server/index.js": "90af4943c8eef750fe5108b70780dff5ca2e1543f57a8bfb34133a09730c72e2",
+  "app/components/chat/AgentPowerControls.tsx": "07a8693c07daeb303a17cfa234e2eaf311e06c4ce10714be15e4465c6d3a4f56",
+  "app/components/chat/FeuilleDesModes.tsx": "61e83aa7da0ce6addb2f0fc0800b67e5caf0cbfb246eb29dab08ca429f9a558c",
+  "app/lib/hooks/useKeybindings.ts": "2600379706a2f7c3977b03130ef1e8aa3ecbc52b1cd1b69de69d4d41b4b7e3cb",
+  "app/components/chat/BaseChat.tsx": "13af879d657e07b603c2b116e75e198566026f70359ad8c97f0d338ad150ca6c"
+}
