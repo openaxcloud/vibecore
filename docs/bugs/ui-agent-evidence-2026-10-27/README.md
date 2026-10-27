@@ -1,5 +1,13 @@
 # Complément Agent : preuves de fichiers et de sortie modèle
 
+## Correction du glossaire après la première CI de #819
+
+La tête `76c6b3ce` a échoué au garde `app/lib/i18n/runtime-glossary.spec.ts:34` : deux nouveaux libellés français contenaient le terme non traduit « runtime ». Les 10 547 autres tests unitaires ont passé, quatre étaient ignorés ; les étapes intégration/build de Production CI ont été ignorées après cet échec. Ce résultat n'est pas présenté comme une validation complète.
+
+Les deux libellés utilisent maintenant « dans l’environnement d’exécution ». Aucune assertion, garde, clé, valeur de confirmation ou logique n'a changé. Revue indépendante favorable : état inconnu, confirmation par relecture et absence de preuve cloud/compilation/QA préservés.
+
+Après correction : 64 tests réussis dans huit fichiers (les 63 tests du lot commun et le garde du glossaire), lint ciblé, formatage et `git diff --check` réussis. Le build et les captures ci-dessous restent ceux du code précédent : ils n'ont pas été rejoués pour ces deux traductions. La nouvelle tête doit passer ses propres validations CI avant fusion.
+
 Préparation locale pour une PR distincte de #811, sans publication par cet agent. Les copies de logs ont uniquement leurs espaces de fin de ligne et lignes vides finales normalisés.
 
 

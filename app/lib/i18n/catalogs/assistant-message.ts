@@ -188,9 +188,9 @@ export const assistantMessageFr: AssistantMessageCopy = {
     'Vérifiez le plan, puis lancez la création — ou affinez-le en envoyant un autre message.',
   'assistantMessage.plan.approve': 'Approuver et créer',
   'assistantMessage.lanes.title': 'Agents parallèles',
-  'assistantMessage.lanes.writeUnknown': 'Confirmations d’écriture runtime inconnues.',
+  'assistantMessage.lanes.writeUnknown': 'Confirmations d’écriture dans l’environnement d’exécution inconnues.',
   'assistantMessage.lanes.writeConfirmed':
-    '{{count}} fichier(s) avec écriture confirmée par relecture runtime ; aucune preuve de sauvegarde cloud, compilation ou QA.',
+    '{{count}} fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.',
   'assistantMessage.lanes.writePending': 'Génération encore active ; des confirmations peuvent arriver ensuite.',
   'assistantMessage.modelOutput':
     'Texte observé pour l’appel configuré {{provider}} / {{model}} ; fin de réponse non confirmée.',
