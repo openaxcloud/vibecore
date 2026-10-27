@@ -141,11 +141,27 @@ export function GitProviderConnectPanel({
         });
 
         if (!response.ok) {
+          const failure: unknown = await response.json().catch(() => null);
+
+          const unconfigured =
+            response.status === 503 &&
+            failure !== null &&
+            typeof failure === 'object' &&
+            'code' in failure &&
+            failure.code === 'OAUTH_PROVIDER_NOT_CONFIGURED';
           setPendingProvider(null);
           setNetworkError(
-            formatGitProviderConnectCopy(copy['gitProvider.oauthStartFailed'], {
-              provider: providerLabel(provider, providerCards),
-            }),
+            unconfigured
+              ? copy['gitProvider.oauthUnavailable']
+              : response.status === 401
+                ? copy['gitProvider.sessionRequired']
+                : response.status === 403
+                  ? copy['gitProvider.oauthForbidden']
+                  : response.status === 429
+                    ? copy['gitProvider.oauthRateLimited']
+                    : formatGitProviderConnectCopy(copy['gitProvider.oauthStartFailed'], {
+                        provider: providerLabel(provider, providerCards),
+                      }),
           );
 
           return;
@@ -446,7 +462,7 @@ function GitHubRepoPicker({
 }) {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorStatus, setErrorStatus] = useState<401 | 500 | null>(null);
+  const [errorStatus, setErrorStatus] = useState<401 | 403 | 429 | 500 | null>(null);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -469,7 +485,7 @@ function GitHubRepoPicker({
 
         if (!response.ok) {
           if (!cancelled) {
-            setErrorStatus(500);
+            setErrorStatus(response.status === 403 || response.status === 429 ? response.status : 500);
           }
 
           return;
@@ -528,7 +544,11 @@ function GitHubRepoPicker({
           <p className="p-3 text-xs text-red-500" role="alert">
             {errorStatus === 401
               ? copy['gitProvider.repositories.connectFirst']
-              : copy['gitProvider.repositories.loadFailed']}
+              : errorStatus === 403
+                ? copy['gitProvider.repositories.forbidden']
+                : errorStatus === 429
+                  ? copy['gitProvider.repositories.rateLimited']
+                  : copy['gitProvider.repositories.loadFailed']}
           </p>
         ) : filtered.length === 0 ? (
           <p className="break-words p-3 text-xs text-bolt-elements-textSecondary">

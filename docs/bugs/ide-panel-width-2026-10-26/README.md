@@ -48,3 +48,9 @@ Revue indépendante favorable. Sur cette base intégrée : 203 tests ciblés dan
 Main `8497099bd047a07ac25401a11f7964768a6718ba` intégré sans conflit. Index régénéré, inchangé à 527 fiches. Revue indépendante : les 21 fichiers apportés par main sont préservés et le delta produit UI #811 reste identique à `22fd32468`. Le complément UI du modèle observé et des confirmations réactives reste distinct ; ni ce complément ni le lot palette #768 ne sont incorporés.
 
 Sur cette base : 414 tests ciblés dans 32 fichiers réussis, typage web et build client/SSR réussis et lint sans erreur (52 avertissements préexistants). Les tests incluent les contrats de confirmation d’écriture sur disque isolé ; ils ne constituent pas une recette production. Les anciennes captures navigateur conservent leur SHA d’origine ; la nouvelle tête exige ses propres contrôles CI.
+
+## Intégration de main #814 — 27 octobre
+
+Main `29923bcd27274898a738c03e4acf28ed5ec94139` préparé pendant la validation de la tête précédente. Merge sans conflit ; index régénéré à 528 fiches, sans doublon ni perte. Revue indépendante : neuf fichiers #814 hors index identiques à main, delta produit UI #811 inchangé. Aucun lot palette #768 ni complément UI du modèle observé incorporé.
+
+Validation locale de cette intégration : 434 tests dans 35 fichiers réussis, typage web et build client/SSR réussis, lint sans erreur (52 avertissements préexistants). Les diagnostics Git/OAuth sont testés sur contrats et réponses synthétiques, sans OAuth réel ni données client. Les validations CI de la tête précédente ne sont pas transférées à ce merge.
