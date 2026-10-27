@@ -1,5 +1,6 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
+import { confirmAcceptedAgentFile } from './agent-file-write';
 import { estRefusFauteDeWorkspace, retenirEcriture } from './ecritures-en-attente';
 import { applyEntryExportReconcile } from './entry-export-reconcile';
 import { ensureEntryImportsResolvable } from './entry-placeholder';
@@ -388,6 +389,16 @@ export function installCommandForStartCommand(command: string, packageManager?: 
 
 export class ActionRunner {
   #runtime: RuntimeAdapter;
+  #confirmedFileWrites = new Map<string, { filePath: string; runtime: RuntimeAdapter; abortSignal: AbortSignal }>();
+
+  /** One-shot evidence of the payload observed immediately after its write, not its current contents. */
+  consumeConfirmedFileWrite(actionId: string) {
+    const receipt = this.#confirmedFileWrites.get(actionId);
+    this.#confirmedFileWrites.delete(actionId);
+
+    return receipt && receipt.runtime === this.#runtime && !receipt.abortSignal.aborted ? receipt : undefined;
+  }
+
   #currentExecutionPromise: Promise<void> = Promise.resolve();
   #shellTerminal: () => BoltShell;
   runnerId = atom<string>(`${Date.now()}`);
@@ -433,6 +444,7 @@ export class ActionRunner {
    * the new adapter.
    */
   setRuntime(runtime: RuntimeAdapter) {
+    this.#confirmedFileWrites.clear();
     this.#runtime = runtime;
   }
 
@@ -454,6 +466,7 @@ export class ActionRunner {
       status: 'pending',
       executed: false,
       abort: () => {
+        this.#confirmedFileWrites.delete(actionId);
         abortController.abort();
         this.#updateAction(actionId, { status: 'aborted' });
       },
@@ -482,6 +495,8 @@ export class ActionRunner {
   }
 
   abortAll() {
+    this.#confirmedFileWrites.clear();
+
     const actions = this.actions.get();
 
     Object.entries(actions).forEach(([actionId, action]) => {
@@ -615,6 +630,10 @@ export class ActionRunner {
       });
 
     await this.#currentExecutionPromise;
+
+    if (data.fermetureDeSecours) {
+      this.#confirmedFileWrites.delete(actionId);
+    }
 
     return;
   }
@@ -1122,6 +1141,12 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
+    const runtime = this.#runtime;
+
+    if (actionId) {
+      this.#confirmedFileWrites.delete(actionId);
+    }
+
     const relativePath = this.#toRuntimePath(action.filePath);
 
     const contentFingerprint = ActionRunner.#contentFingerprint(action.content);
@@ -1152,7 +1177,7 @@ export class ActionRunner {
 
     if (folder !== '.') {
       try {
-        await this.#runtime.createDirectory(folder);
+        await runtime.createDirectory(folder);
         logger.debug('Created folder', folder);
       } catch (error) {
         if (!estRefusFauteDeWorkspace(error)) {
@@ -1234,7 +1259,7 @@ export class ActionRunner {
      * fallback, and writing it here would persist corrupt content for a
      * generation the user explicitly cancelled.
      */
-    if (action.abortSignal.aborted) {
+    if (action.abortSignal.aborted || this.#runtime !== runtime) {
       logger.debug(`Skipping write of ${relativePath}; action was aborted`);
       return;
     }
@@ -1244,7 +1269,7 @@ export class ActionRunner {
         throw refusFauteDeWorkspace;
       }
 
-      await this.#runtime.writeFile(relativePath, payload, { streaming: isStreaming });
+      await runtime.writeFile(relativePath, payload, { streaming: isStreaming });
       logger.debug(`File written ${relativePath}`);
 
       // Après succès seulement : un échec doit laisser le chemin réécrivable.
@@ -1264,6 +1289,19 @@ export class ActionRunner {
       throw error;
     }
 
+    // Observe only this final payload. Reconciliation and placeholder writes below are not evidence.
+    if (!isStreaming && actionId && !action.abortSignal.aborted && this.#runtime === runtime) {
+      const confirmed = await confirmAcceptedAgentFile(runtime, relativePath, payload);
+
+      if (confirmed && !action.abortSignal.aborted && this.#runtime === runtime) {
+        this.#confirmedFileWrites.set(actionId, { filePath: relativePath, runtime, abortSignal: action.abortSignal });
+
+        while (this.#confirmedFileWrites.size > 32) {
+          this.#confirmedFileWrites.delete(this.#confirmedFileWrites.keys().next().value!);
+        }
+      }
+    }
+
     /*
      * Post-write consistency pass: fix the recurring "blank app" defect where the
      * Vite entry default-imports a component (`import App from './App'`) that only
@@ -1272,7 +1310,7 @@ export class ActionRunner {
      * Only the authoritative non-streaming write reconciles (partial streamed
      * content would misparse); best-effort so it never blocks or breaks the write.
      */
-    if (!isStreaming && !action.abortSignal.aborted) {
+    if (!isStreaming && !action.abortSignal.aborted && this.#runtime === runtime) {
       try {
         /*
          * Adapt the RuntimeAdapter (readFile → { content }) to the reconcile's
@@ -1280,8 +1318,14 @@ export class ActionRunner {
          */
         const fixed = await applyEntryExportReconcile(
           {
-            readFile: async (p) => (await this.#runtime.readFile(p)).content,
-            writeFile: (p, content) => this.#runtime.writeFile(p, content),
+            readFile: async (p) => (await runtime.readFile(p)).content,
+            writeFile: async (p, content) => {
+              if (this.#runtime !== runtime || action.abortSignal.aborted) {
+                return;
+              }
+
+              await runtime.writeFile(p, content);
+            },
           },
           relativePath,
         );
@@ -1301,8 +1345,14 @@ export class ActionRunner {
          */
         const combles = await ensureEntryImportsResolvable(
           {
-            readFile: async (p) => (await this.#runtime.readFile(p)).content,
-            writeFile: (p, content) => this.#runtime.writeFile(p, content),
+            readFile: async (p) => (await runtime.readFile(p)).content,
+            writeFile: async (p, content) => {
+              if (this.#runtime !== runtime || action.abortSignal.aborted) {
+                return;
+              }
+
+              await runtime.writeFile(p, content);
+            },
           },
           relativePath,
         );

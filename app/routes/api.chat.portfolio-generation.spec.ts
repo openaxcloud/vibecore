@@ -194,3 +194,53 @@ test('quota refusal still blocks both generation and any portfolio artifact', as
   expect(stream).not.toContain('synthetic-model-output');
   expect(boundary.close).toHaveBeenCalled();
 });
+
+test('model selection alone does not publish a model output receipt', async () => {
+  const original = boundary.streamText.getMockImplementation()!;
+  boundary.streamText.mockImplementationOnce(async (input) => {
+    input.onModelDecision?.('synthetic-model', 'Synthetic');
+    return original(input);
+  });
+
+  const { stream } = await invoke(frenchPrompt);
+  expect(stream).not.toContain('"type":"modelOutput"');
+});
+
+test('a model text receipt is forwarded without turning it into a completion claim', async () => {
+  const original = boundary.streamText.getMockImplementation()!;
+  boundary.streamText.mockImplementationOnce(async (input) => {
+    input.onModelDecision?.('synthetic-selected', 'Synthetic');
+    input.onModelOutput?.({ provider: 'SyntheticFallback', model: 'synthetic-output', evidence: 'text-delta' });
+
+    return original(input);
+  });
+
+  const { stream } = await invoke(frenchPrompt);
+  expect(stream).toContain('"type":"modelOutput"');
+  expect(stream).toContain('"model":"synthetic-output"');
+  expect(stream).toContain('"evidence":"text-delta"');
+});
+
+test('continuations publish their own model output receipt instead of retaining only the first selection', async () => {
+  const original = boundary.streamText.getMockImplementation()!;
+
+  let calls = 0;
+  boundary.streamText.mockImplementation(async (input) => {
+    const segment = ++calls;
+    input.onModelOutput?.({ provider: 'Synthetic', model: `synthetic-segment-${segment}`, evidence: 'text-delta' });
+
+    return original({
+      ...input,
+      options: {
+        ...input.options,
+        onFinish: (event: Record<string, unknown>) =>
+          input.options.onFinish({ ...event, finishReason: segment === 1 ? 'length' : 'stop' }),
+      },
+    });
+  });
+
+  const { stream } = await invoke(frenchPrompt);
+  expect(calls).toBe(2);
+  expect(stream).toContain('"model":"synthetic-segment-1"');
+  expect(stream).toContain('"model":"synthetic-segment-2"');
+});

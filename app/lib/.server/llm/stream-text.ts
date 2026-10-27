@@ -16,6 +16,7 @@ import {
 import { anchoredHistoryDrop, HISTORY_WINDOW_STEP } from './context-optimization';
 import { applyManagedProviderKeys } from './managed-provider-keys';
 import { removeUnsupportedModelSettings } from './model-compat';
+import { createModelOutputObserver, type ModelOutputReceipt } from './model-output-receipt';
 import { AUTO_MODEL, decideRoute, resolveRouteTable, type RouteDecision } from './model-routing';
 import { estimateOutputBudget, clampOutputBudget, type OutputBudgetInput } from './output-budget';
 import { resolveUsableProvider } from './provider-credentials';
@@ -397,6 +398,9 @@ export async function streamText(props: {
    * re-classifying the CONTINUE_PROMPT and risking a mid-stream flip.
    */
   onModelDecision?: (decidedModel: string, decidedProvider: string) => void;
+
+  /** First nonempty text delta observed for this configured invocation, not proof of completion. */
+  onModelOutput?: (receipt: ModelOutputReceipt) => void;
 
   /*
    * AGM mode routing: when the chat route resolved a mode (Lite/Economy/Power
@@ -1049,6 +1053,18 @@ ${props.summary}
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
+    ...(props.onModelOutput
+      ? {
+          onChunk: createModelOutputObserver({
+            provider: provider.name,
+            model: modelDetails.name,
+            messageId: identifiantDeMessageStable,
+            abortSignal,
+            onOutput: props.onModelOutput,
+            onChunk: options?.onChunk,
+          }),
+        }
+      : {}),
 
     ...temperatureOptionsForModel(modelDetails.name, modelDetails.provider),
     ...(abortSignal ? { abortSignal } : {}),

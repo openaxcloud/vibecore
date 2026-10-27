@@ -41,6 +41,15 @@ describe('ecartsDesLanes', () => {
     expect(ecarts[0].manquants).toEqual([]);
   });
 
+  it('does not treat a confirmed App.tsx as proof for a declared app.tsx', () => {
+    const ecarts = ecartsDesLanes(
+      [{ roleId: 'frontend', status: 'complete', files: ['src/app.tsx'] }],
+      ['src/App.tsx'],
+    );
+    expect(ecarts[0]).toMatchObject({ ecrits: 0, manquants: ['src/app.tsx'] });
+    expect(livraisonIncomplete(ecarts)).toBe(true);
+  });
+
   it('un role tombe rend la livraison incomplete meme sans fichier annonce', () => {
     expect(livraisonIncomplete(ecartsDesLanes([{ roleId: 'devops', status: 'failed' }], []))).toBe(true);
   });

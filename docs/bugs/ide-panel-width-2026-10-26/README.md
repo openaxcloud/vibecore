@@ -42,3 +42,9 @@ Cette archive est une sélection de reçus et de captures avant/après, **pas un
 Main `5790f5b1d6b2187842f23255fc49d6f1f9f6e4ca` intégré après #808. Le seul conflit porte sur l’index dérivé, régénéré à 527 fiches. Les cinq fichiers produit/tests de #810 sont identiques à main ; les 65 fichiers du lot #811 hors index étaient identiques à la tête précédente `052487353` avant cette note. Le raccord #812 reste séparé.
 
 Revue indépendante favorable. Sur cette base intégrée : 203 tests ciblés dans 20 fichiers réussis, incluant les contrôles UI/focus/index et les tests fournisseur/journalisation de #810 ; typage web et build client/SSR réussis, lint sans erreur (52 avertissements préexistants). Les recettes navigateur documentées plus haut restent celles de la tête précédente : elles ne sont pas présentées comme de nouvelles recettes de cette intégration. La CI de la nouvelle tête doit rendre ses propres verdicts. Aucun changement d’assertion ou de délai pour la reprise de restauration à 768 px observée sur `052487353` ; cause toujours indéterminée.
+
+## Intégration de main #812 — 27 octobre
+
+Main `8497099bd047a07ac25401a11f7964768a6718ba` intégré sans conflit. Index régénéré, inchangé à 527 fiches. Revue indépendante : les 21 fichiers apportés par main sont préservés et le delta produit UI #811 reste identique à `22fd32468`. Le complément UI du modèle observé et des confirmations réactives reste distinct ; ni ce complément ni le lot palette #768 ne sont incorporés.
+
+Sur cette base : 414 tests ciblés dans 32 fichiers réussis, typage web et build client/SSR réussis et lint sans erreur (52 avertissements préexistants). Les tests incluent les contrats de confirmation d’écriture sur disque isolé ; ils ne constituent pas une recette production. Les anciennes captures navigateur conservent leur SHA d’origine ; la nouvelle tête exige ses propres contrôles CI.
