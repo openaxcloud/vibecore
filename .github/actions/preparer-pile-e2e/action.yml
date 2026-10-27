@@ -107,6 +107,15 @@ runs:
       path: ~/.cache/ms-playwright
       key: ms-playwright-${{ runner.os }}-${{ steps.version_playwright.outputs.version }}-${{ steps.version_playwright.outputs.browser_key }}
 
+  # The WebKit canary spent 44 minutes fetching Ubuntu packages from the
+  # Azure mirror without an apt error. Retrying failed commands cannot help
+  # a transfer that keeps progressing slowly. Preserve all packages and apt
+  # signature checks; only select Ubuntu's canonical archive on this runner.
+  - name: Select Ubuntu archive for WebKit dependencies
+    if: inputs.navigateurs == 'chromium,webkit' && runner.arch == 'X64'
+    shell: bash
+    run: sudo python3 .github/scripts/preparer-miroir-ubuntu.py
+
   - name: Install Playwright browsers
     shell: bash
     env:

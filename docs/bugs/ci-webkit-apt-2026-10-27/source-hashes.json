@@ -1,0 +1,14 @@
+[
+  {
+    "path": ".github/actions/preparer-pile-e2e/action.yml",
+    "sha256": "e744f5a8f5b025891584e036d14ab736ac5b8533c3d00aacfc7d8b2cc2aa6f66"
+  },
+  {
+    "path": ".github/scripts/preparer-miroir-ubuntu.py",
+    "sha256": "53480b4b1edb484f236770c74fa9e8869a53fb36f0af6b3f0397fb15dea0fa77"
+  },
+  {
+    "path": "tests/guards/ubuntu-webkit-mirror.spec.ts",
+    "sha256": "5d0f2660c0ebd5a9671bacb4a870ff07b7e07997ea2ecc40c87c5354838c8c11"
+  }
+]
