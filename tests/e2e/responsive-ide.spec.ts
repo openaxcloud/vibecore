@@ -1575,6 +1575,161 @@ createServer((request, response) => {
     await expect(page.getByTestId('mobile-ide-header')).toContainText('AI Agent');
   });
 
+  for (const width of [320, 768, 1180, 1440]) {
+    test(`late legacy mobile memory cannot replace Agent at ${width}px`, async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'chromium', 'the matrix sets its own viewport and pointer');
+      test.setTimeout(90_000);
+      await page.setViewportSize({ width, height: 757 });
+
+      const { projectId } = await createTestProjectFixture(page, `Late mobile memory ${width}`);
+      const marksKey = '__lateMobileMemoryMarks';
+
+      await page.addInitScript((key) => {
+        const target = window as unknown as Record<string, unknown>;
+        const marks: string[] = [];
+        target[key] = marks;
+        target.__vibecoreStartupMark = (mark: string) => marks.push(mark);
+      }, marksKey);
+
+      let releaseMemory!: () => void;
+
+      const memoryGate = new Promise<void>((resolve) => (releaseMemory = resolve));
+
+      let memoryRequested = false;
+      let legacyPanel = 'preview';
+
+      await page.route(`**/api/projects/${projectId}/ide-state`, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+
+        memoryRequested = true;
+        await memoryGate;
+        await route.fulfill({
+          status: 200,
+          json: { ideState: { version: 1, state: { updatedAt: Date.now(), ui: { mobilePanel: legacyPanel } } } },
+        });
+      });
+
+      try {
+        await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+        await expect.poll(() => memoryRequested).toBe(true);
+        await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+        releaseMemory();
+
+        // HTTP completion alone precedes React applying the asynchronous memory.
+        await page.waitForFunction(
+          (key) => ((window as unknown as Record<string, string[]>)[key] ?? []).includes('layout-restored'),
+          marksKey,
+        );
+        await page.evaluate(
+          () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+        );
+        await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+        await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'chat');
+
+        if (width < 1200) {
+          const navigation = page.getByTestId('mobile-bottom-navigation');
+          await expect(navigation.getByTestId('tab-agent')).toHaveAttribute('aria-pressed', 'true');
+          await navigation.getByTestId('tab-preview').click();
+          await expect(page).toHaveURL(/panel=preview/);
+          await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview');
+          legacyPanel = 'files';
+          await page.reload({ waitUntil: 'domcontentloaded' });
+          await page.waitForFunction(
+            (key) => ((window as unknown as Record<string, string[]>)[key] ?? []).includes('layout-restored'),
+            marksKey,
+          );
+          await page.evaluate(
+            () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+          );
+          await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview');
+          await expect(navigation.getByTestId('tab-preview')).toHaveAttribute('aria-pressed', 'true');
+          await page.goBack();
+          await expect(page).not.toHaveURL(/panel=/);
+          await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+          await expect(navigation.getByTestId('tab-agent')).toHaveAttribute('aria-pressed', 'true');
+          await page.goForward();
+          await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview');
+        } else {
+          await expect(page.getByTestId('mobile-bottom-navigation')).toBeHidden();
+        }
+
+        await page.screenshot({ path: testInfo.outputPath(`late-memory-${width}.png`) });
+      } finally {
+        releaseMemory();
+      }
+    });
+  }
+
+  test('a compact tool selection wins over a pending legacy mobile panel', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'the regression sets its own compact viewport');
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 1180, height: 757 });
+
+    const { projectId } = await createTestProjectFixture(page, 'Compact navigation during memory restore');
+    await page.addInitScript(() => {
+      const target = window as unknown as Record<string, unknown>;
+      target.__legacyPanelRestored = false;
+
+      target.__vibecoreStartupMark = (mark: string) => {
+        if (mark === 'layout-restored') {
+          target.__legacyPanelRestored = true;
+        }
+      };
+    });
+
+    let releaseMemory!: () => void;
+
+    const memoryGate = new Promise<void>((resolve) => (releaseMemory = resolve));
+
+    let memoryRequested = false;
+
+    await page.route(`**/api/projects/${projectId}/ide-state`, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+
+      memoryRequested = true;
+      await memoryGate;
+      await route.fulfill({
+        status: 200,
+        json: { ideState: { version: 1, state: { updatedAt: Date.now(), ui: { mobilePanel: 'preview' } } } },
+      });
+    });
+
+    try {
+      await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+      await expect.poll(() => memoryRequested).toBe(true);
+      await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+      await page.getByTestId('mobile-bottom-navigation').getByTestId('button-add-tab').click();
+      await page.getByTestId('tools-sheet').getByTestId('tool-item-files').click();
+      await expect(page).toHaveURL(/panel=files/);
+
+      const response = page.waitForResponse(
+        (candidate) =>
+          candidate.url().endsWith(`/api/projects/${projectId}/ide-state`) && candidate.request().method() === 'GET',
+      );
+      releaseMemory();
+      await (await response).finished();
+      await page.waitForFunction(() => (window as unknown as Record<string, unknown>).__legacyPanelRestored === true);
+      await page.evaluate(
+        () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+      );
+      await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'files');
+      await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('tab-files')).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await page.goBack();
+      await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+    } finally {
+      releaseMemory();
+    }
+  });
+
   test('mobile can deep-link to real IDE service panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
     test.setTimeout(120_000);

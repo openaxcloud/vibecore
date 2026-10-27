@@ -5519,14 +5519,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             );
           }
 
-          if (
-            ui?.mobilePanel &&
-            useMobileIde &&
-            !activeProjectPanel &&
-            ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
-          ) {
-            setMobilePanel(ui.mobilePanel);
-          }
+          /*
+           * Compact navigation restores from the URL; a bare project entry opens
+           * Agent. A delayed legacy mobilePanel must not replace that surface
+           * while its tab/header still identify Agent (or a newer user choice).
+           */
 
           if (ui?.currentView) {
             workbenchStore.currentView.set(ui.currentView as any);
