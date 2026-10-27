@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { JSONValue } from 'ai';
 import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
@@ -112,7 +112,9 @@ describe('AssistantMessage i18n', () => {
     const avis = screen.getByTestId('agent-bascule-fournisseur');
     expect(avis.getAttribute('role')).toBe('status');
     expect(avis.textContent).toContain('claude-opus-5 était indisponible (crédit du fournisseur épuisé)');
-    expect(avis.textContent).toContain('produite par gemini-2.5-pro, le repli déclaré par la carte de routage');
+    expect(avis.textContent).toContain(
+      'gemini-2.5-pro a été sélectionné comme repli ; cela ne confirme aucune sortie de texte',
+    );
   });
 
   it('les cartes des sous-agents RÉSERVENT trois lignes, quel que soit leur texte (2026-09-28)', () => {
@@ -637,5 +639,96 @@ describe('synthetic terminal stream output compatibility', () => {
     expect(screen.getByText('Synthetic QA statement').closest('details')?.open).toBe(false);
     fireEvent.click(screen.getByText(copy['assistantMessage.lanes.agreedClaims']));
     expect(screen.getByText('Synthetic QA statement').closest('details')?.open).toBe(true);
+  });
+});
+
+describe('runtime evidence UI with synthetic receipts', () => {
+  afterEach(cleanup);
+  it('updates unknown, observed-empty, confirmed and invalidated writes without treating an active run as missing', async () => {
+    const writes = await import('~/lib/runtime/agent-lane-writes');
+    const { streamingState } = await import('~/lib/stores/streaming');
+    writes.reinitialiserConfirmationsEcriture();
+    streamingState.set(true);
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content="Synthetic"
+          messageId="receipt-ui"
+          parts={undefined}
+          addToolResult={() => undefined}
+          annotations={[
+            {
+              type: 'agentOrchestration',
+              mode: 'parallel-subagents',
+              roles: [{ id: 'qa', title: 'QA', responsibility: 'Synthetic' }],
+            },
+            {
+              type: 'agentExecution',
+              status: 'complete',
+              runId: 'synthetic',
+              results: [
+                {
+                  roleId: 'qa',
+                  status: 'complete',
+                  files: ['src/App.tsx'],
+                  summary: 'Synthetic report',
+                  verificationState: 'not_observed',
+                },
+              ],
+            },
+          ]}
+        />
+      </I18nextProvider>,
+    );
+    expect(screen.getByTestId('agent-write-evidence').textContent).toContain('inconnues');
+    act(() => writes.observerEcrituresDeMessage('receipt-ui'));
+    expect(screen.getByTestId('agent-write-evidence').textContent).toContain('0 fichier');
+    expect(screen.queryByTestId('agent-lanes-shortfall')).toBeNull();
+    act(() => streamingState.set(false));
+    expect(screen.getByTestId('agent-lanes-shortfall').textContent).toContain('src/App.tsx');
+    act(() => writes.confirmerEcritureDeMessage('receipt-ui', 'src/app.tsx', 'lowercase'));
+    expect(screen.getByTestId('agent-lanes-shortfall').textContent).toContain('src/App.tsx');
+    act(() => writes.confirmerEcritureDeMessage('receipt-ui', 'src/App.tsx', 'exact'));
+    expect(screen.queryByTestId('agent-lanes-shortfall')).toBeNull();
+    expect(screen.getByTestId('agent-write-evidence').textContent).toContain('2 fichier');
+    act(() => writes.invaliderConfirmationDeMessage('receipt-ui', 'src/App.tsx', 'exact'));
+    expect(screen.getByTestId('agent-lanes-shortfall')).toBeTruthy();
+    act(() => writes.reinitialiserConfirmationsEcriture());
+    expect(screen.getByTestId('agent-write-evidence').textContent).toContain('inconnues');
+    expect(screen.queryByTestId('agent-lanes-shortfall')).toBeNull();
+  });
+  it.each(['fr', 'en'])('renders the last observed model without calling it completion (%s)', (language) => {
+    render(
+      <I18nextProvider i18n={createI18nInstance(language)}>
+        <AssistantMessage
+          content="Synthetic"
+          messageId="m"
+          parts={undefined}
+          addToolResult={() => undefined}
+          annotations={[
+            { type: 'modelOutput', provider: 'Synthetic', model: 'first', evidence: 'text-delta' },
+            {
+              type: 'modelOutput',
+              provider: 'Synthetic',
+              model: 'continuation',
+              evidence: 'text-delta',
+              messageId: 'm',
+            },
+            {
+              type: 'modelOutput',
+              provider: 'Synthetic',
+              model: 'wrong-turn',
+              evidence: 'text-delta',
+              messageId: 'other',
+            },
+          ]}
+        />
+      </I18nextProvider>,
+    );
+
+    const text = screen.getByTestId('agent-model-output').textContent;
+    expect(text).toContain('continuation');
+    expect(text).not.toContain('wrong-turn');
+    expect(text).toContain(language === 'fr' ? 'fin de réponse non confirmée' : 'completion is not confirmed');
   });
 });

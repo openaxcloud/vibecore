@@ -1,0 +1,2574 @@
+{
+  "rows": [
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "state": "unknown",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 205.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 270.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "state": "zero",
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "state": "two",
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "state": "undo",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "state": "stream",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA. Génération encore active ; des confirmations peuvent arriver ensuite.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 99.375
+      },
+      "scrollHeight": 99,
+      "clientHeight": 99,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        },
+        {
+          "left": 137.015625,
+          "right": 305.109375,
+          "top": 137,
+          "bottom": 156
+        },
+        {
+          "left": 11.5,
+          "right": 298.078125,
+          "top": 156.875,
+          "bottom": 175.875
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 320,
+      "state": "reset",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 205.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 270.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "state": "unknown",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 315.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 160.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "state": "zero",
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "state": "two",
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "state": "undo",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "state": "stream",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA. Génération encore active ; des confirmations peuvent arriver ensuite.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 99.375
+      },
+      "scrollHeight": 99,
+      "clientHeight": 99,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 260.8125,
+          "right": 338.234375,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 332.875,
+          "top": 137,
+          "bottom": 156
+        },
+        {
+          "left": 11.5,
+          "right": 63.734375,
+          "top": 156.875,
+          "bottom": 175.875
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 390,
+      "state": "reset",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 315.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 160.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "state": "unknown",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 468.625,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "state": "zero",
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "state": "two",
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "state": "undo",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "state": "stream",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA. Génération encore active ; des confirmations peuvent arriver ensuite.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 260.8125,
+          "right": 719.109375,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "light",
+      "width": 768,
+      "state": "reset",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 468.625,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "state": "unknown",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 205.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 270.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "state": "zero",
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "state": "two",
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "state": "undo",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "state": "stream",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA. Génération encore active ; des confirmations peuvent arriver ensuite.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 99.375
+      },
+      "scrollHeight": 99,
+      "clientHeight": 99,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 263.78125,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 300.75,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625,
+          "top": 137,
+          "bottom": 156
+        },
+        {
+          "left": 137.015625,
+          "right": 305.109375,
+          "top": 137,
+          "bottom": 156
+        },
+        {
+          "left": 11.5,
+          "right": 298.078125,
+          "top": 156.875,
+          "bottom": 175.875
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 320,
+      "state": "reset",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 205.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 270.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "state": "unknown",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 315.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 160.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "state": "zero",
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "state": "two",
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "state": "undo",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "state": "stream",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA. Génération encore active ; des confirmations peuvent arriver ensuite.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 99.375
+      },
+      "scrollHeight": 99,
+      "clientHeight": 99,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 361.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 324.4375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 260.8125,
+          "right": 338.234375,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 332.875,
+          "top": 137,
+          "bottom": 156
+        },
+        {
+          "left": 11.5,
+          "right": 63.734375,
+          "top": 156.875,
+          "bottom": 175.875
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 390,
+      "state": "reset",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 315.5625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 160.921875,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "state": "unknown",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 468.625,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "state": "zero",
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "state": "two",
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "state": "undo",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "state": "stream",
+      "text": "1 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA. Génération encore active ; des confirmations peuvent arriver ensuite.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 678.1875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 260.8125,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 260.8125,
+          "right": 719.109375,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "fr",
+      "theme": "dark",
+      "width": 768,
+      "state": "reset",
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 468.625,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "unknown",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "zero",
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "two",
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "undo",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "stream",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence. Generation is still running; confirmations may arrive later.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 73.375,
+          "right": 251,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 211.75,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 320,
+      "state": "reset",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "state": "unknown",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "state": "zero",
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "state": "two",
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "state": "undo",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "state": "stream",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence. Generation is still running; confirmations may arrive later.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 272.078125,
+          "right": 363.46875,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 297.984375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 390,
+      "state": "reset",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "unknown",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "zero",
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "two",
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "undo",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "stream",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence. Generation is still running; confirmations may arrive later.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 617.25,
+          "right": 734.875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 271.75,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "width": 768,
+      "state": "reset",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "unknown",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "zero",
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "two",
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "undo",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "stream",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence. Generation is still running; confirmations may arrive later.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 79.5
+      },
+      "scrollHeight": 80,
+      "clientHeight": 80,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 280.625,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 278.984375,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 73.375,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 73.375,
+          "right": 251,
+          "top": 117.125,
+          "bottom": 136.125
+        },
+        {
+          "left": 11.5,
+          "right": 211.75,
+          "top": 137,
+          "bottom": 156
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 320,
+      "state": "reset",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "width": 297,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 320,
+      "docWidth": 320
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "state": "unknown",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "state": "zero",
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "state": "two",
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "state": "undo",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "state": "stream",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence. Generation is still running; confirmations may arrive later.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 59.625
+      },
+      "scrollHeight": 60,
+      "clientHeight": 60,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 353.046875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 272.078125,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 272.078125,
+          "right": 363.46875,
+          "top": 97.25,
+          "bottom": 116.25
+        },
+        {
+          "left": 11.5,
+          "right": 297.984375,
+          "top": 117.125,
+          "bottom": 136.125
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 390,
+      "state": "reset",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "width": 367,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 390,
+      "docWidth": 390
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "unknown",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "zero",
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "two",
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "undo",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "stream",
+      "text": "1 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence. Generation is still running; confirmations may arrive later.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 39.75
+      },
+      "scrollHeight": 40,
+      "clientHeight": 40,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 617.25,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 617.25,
+          "right": 734.875,
+          "top": 77.375,
+          "bottom": 96.375
+        },
+        {
+          "left": 11.5,
+          "right": 271.75,
+          "top": 97.25,
+          "bottom": 116.25
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "width": 768,
+      "state": "reset",
+      "text": "Runtime write confirmations unknown.",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "width": 745,
+        "height": 19.875
+      },
+      "scrollHeight": 20,
+      "clientHeight": 20,
+      "font": "14px",
+      "overflow": "visible",
+      "lines": [
+        {
+          "left": 11.5,
+          "right": 267.953125,
+          "top": 77.375,
+          "bottom": 96.375
+        }
+      ],
+      "viewport": 768,
+      "docWidth": 768
+    }
+  ],
+  "errors": [],
+  "blocked": ["GET", "GET", "GET", "GET", "GET", "GET", "GET", "GET", "GET", "GET", "GET", "GET"]
+}

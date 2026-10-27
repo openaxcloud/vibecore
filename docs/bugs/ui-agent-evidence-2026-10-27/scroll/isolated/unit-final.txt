@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-scroll-next
+
+ ✓ app/lib/hooks/useStickToBottom.conteneur.spec.tsx (9 tests) 2245ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > ne ramène JAMAIS de force un utilisateur qui a remonté le fil  407ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > garde le collage après un clamp au nouveau bas puis une croissance  369ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  15:08:27
+   Duration  5.23s (transform 1.45s, setup 57ms, collect 108ms, tests 2.24s, environment 306ms, prepare 74ms)

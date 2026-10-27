@@ -1,0 +1,36 @@
+Downloading WebKit 26.4 (playwright webkit v2272)[2m from https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip[22m
+Error: Download failed: server returned code 403 body 'Domain forbidden'. URL: https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip
+    at IncomingMessage.handleError (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/registry/oopDownloadBrowserMain.js:58:23)
+    at IncomingMessage.emit (node:events:521:24)
+    at endReadableNT (node:internal/streams/readable:1736:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Downloading WebKit 26.4 (playwright webkit v2272)[2m from https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip[22m
+Error: Download failed: server returned code 403 body 'Domain forbidden'. URL: https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip
+    at IncomingMessage.handleError (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/registry/oopDownloadBrowserMain.js:58:23)
+    at IncomingMessage.emit (node:events:521:24)
+    at endReadableNT (node:internal/streams/readable:1736:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Downloading WebKit 26.4 (playwright webkit v2272)[2m from https://cdn.playwright.dev/builds/webkit/2272/webkit-debian-13.zip[22m
+Error: Download failed: server returned code 403 body 'Domain forbidden'. URL: https://cdn.playwright.dev/builds/webkit/2272/webkit-debian-13.zip
+    at IncomingMessage.handleError (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/registry/oopDownloadBrowserMain.js:58:23)
+    at IncomingMessage.emit (node:events:521:24)
+    at endReadableNT (node:internal/streams/readable:1736:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Downloading WebKit 26.4 (playwright webkit v2272)[2m from https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip[22m
+Error: Download failed: server returned code 403 body 'Domain forbidden'. URL: https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip
+    at IncomingMessage.handleError (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/registry/oopDownloadBrowserMain.js:58:23)
+    at IncomingMessage.emit (node:events:521:24)
+    at endReadableNT (node:internal/streams/readable:1736:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Downloading WebKit 26.4 (playwright webkit v2272)[2m from https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip[22m
+Error: Download failed: server returned code 403 body 'Domain forbidden'. URL: https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/webkit/2272/webkit-debian-13.zip
+    at IncomingMessage.handleError (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/registry/oopDownloadBrowserMain.js:58:23)
+    at IncomingMessage.emit (node:events:521:24)
+    at endReadableNT (node:internal/streams/readable:1736:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Failed to install browsers
+Error: Failed to download WebKit 26.4 (playwright webkit v2272), caused by
+Error: Download failure, code=1
+    at ChildProcess.<anonymous> (/workspace/vibecore-ui-next/node_modules/.pnpm/playwright-core@1.59.1/node_modules/playwright-core/lib/server/registry/browserFetcher.js:96:32)
+    at ChildProcess.emit (node:events:509:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:295:12)

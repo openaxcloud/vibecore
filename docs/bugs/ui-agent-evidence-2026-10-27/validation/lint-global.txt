@@ -1,0 +1,116 @@
+
+/workspace/vibecore-ui-contract812/app/components/chat/SupabaseConnection.helpers.spec.ts
+  43:72  warning  Unexpected empty method 'logError'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/chat/agent-power-boites-non-ecrasables.spec.tsx
+  50:23  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/chat/assistant-message-empty.spec.tsx
+  35:30  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  48:30  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  57:99  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  80:30  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/chat/feuille-hors-du-composeur.spec.tsx
+  47:58  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/database/DatabaseStudio.tsx
+  205:24  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/deploy/gestes-publication.spec.ts
+  95:48  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/ui/CodeBlock.tsx
+  40:55  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/ui/FilterChip.sur-teinte.spec.tsx
+  32:58  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  50:58  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  63:56  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/ui/GlowingEffect.spec.tsx
+   75:71  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  119:71  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/components/workbench/Preview.journaux-lisibles.spec.tsx
+  52:99  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/.server/llm/chaine-de-generation.deadline.spec.ts
+  44:36  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/.server/llm/chaine-de-generation.ts
+   71:36  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  162:40  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/.server/llm/progression-a-solder.spec.ts
+  24:49  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  69:49  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/.server/tours-en-cours.spec.ts
+  54:97  warning  Unexpected empty method 'journal'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/hooks/useFeatures.spec.tsx
+  24:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/import-delai.spec.ts
+  44:40  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/runtime/confirm-write.spec.ts
+  49:75  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/services/importExportService.spec.ts
+  25:28  warning  Unexpected empty async method 'setSnapshot'     @typescript-eslint/no-empty-function
+  26:31  warning  Unexpected empty async method 'deleteSnapshot'  @typescript-eslint/no-empty-function
+  30:27  warning  Unexpected empty async method 'deleteChat'      @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/stores/files.conflit-sortie.spec.ts
+  33:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  34:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/stores/files.reload-content.spec.ts
+  24:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  25:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/stores/files.watch-process.spec.ts
+  32:20  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  34:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/stores/theme.toggle.spec.ts
+  35:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  67:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/lib/stores/workbench.reloaded-actions.spec.ts
+  1467:37  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/routes/api.chat.deadline-cablage.spec.ts
+  61:13  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/routes/api.projects.$projectId.ide-panel.$panel.ts
+  361:21  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/routes/auth.oauth.$provider.callback.spec.ts
+  102:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/utils/logger.spec.ts
+  8:68  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/utils/shell-interactive-gate.spec.ts
+   55:60  warning  Unexpected empty method 'write'  @typescript-eslint/no-empty-function
+  145:60  warning  Unexpected empty method 'write'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/utils/shell.spec.ts
+  31:12  warning  Unexpected empty method 'resize'   @typescript-eslint/no-empty-function
+  32:10  warning  Unexpected empty method 'kill'     @typescript-eslint/no-empty-function
+  80:13  warning  Unexpected empty method 'reset'    @typescript-eslint/no-empty-function
+  81:13  warning  Unexpected empty method 'write'    @typescript-eslint/no-empty-function
+  85:26  warning  Unexpected empty method 'dispose'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/utils/toast-batcher.spec.ts
+  119:33  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  129:34  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  135:38  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore-ui-contract812/app/utils/url.ts
+  104:47  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+✖ 52 problems (0 errors, 52 warnings)

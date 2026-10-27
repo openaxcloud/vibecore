@@ -1,0 +1,94 @@
+[
+  {
+    "lang": "fr",
+    "theme": "light",
+    "measurements": [
+      {
+        "width": 320,
+        "docWidth": 320,
+        "sameEvidence": true
+      },
+      {
+        "width": 768,
+        "docWidth": 768,
+        "sameEvidence": true
+      },
+      {
+        "width": 390,
+        "docWidth": 390,
+        "sameEvidence": true
+      }
+    ],
+    "fullReportAccessible": true,
+    "focusPreserved": true
+  },
+  {
+    "lang": "fr",
+    "theme": "dark",
+    "measurements": [
+      {
+        "width": 320,
+        "docWidth": 320,
+        "sameEvidence": true
+      },
+      {
+        "width": 768,
+        "docWidth": 768,
+        "sameEvidence": true
+      },
+      {
+        "width": 390,
+        "docWidth": 390,
+        "sameEvidence": true
+      }
+    ],
+    "fullReportAccessible": true,
+    "focusPreserved": true
+  },
+  {
+    "lang": "en",
+    "theme": "light",
+    "measurements": [
+      {
+        "width": 320,
+        "docWidth": 320,
+        "sameEvidence": true
+      },
+      {
+        "width": 768,
+        "docWidth": 768,
+        "sameEvidence": true
+      },
+      {
+        "width": 390,
+        "docWidth": 390,
+        "sameEvidence": true
+      }
+    ],
+    "fullReportAccessible": true,
+    "focusPreserved": true
+  },
+  {
+    "lang": "en",
+    "theme": "dark",
+    "measurements": [
+      {
+        "width": 320,
+        "docWidth": 320,
+        "sameEvidence": true
+      },
+      {
+        "width": 768,
+        "docWidth": 768,
+        "sameEvidence": true
+      },
+      {
+        "width": 390,
+        "docWidth": 390,
+        "sameEvidence": true
+      }
+    ],
+    "fullReportAccessible": true,
+    "focusPreserved": true
+  }
+]

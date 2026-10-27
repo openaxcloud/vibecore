@@ -39,9 +39,10 @@ import {
   localizeAssistantEnum,
   selectAssistantMessagePlural,
 } from '~/lib/i18n/catalogs/assistant-message';
+import { latestModelOutput } from '~/lib/model-output-evidence';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
-import { cheminsEcritsParLesLanes } from '~/lib/runtime/agent-lane-writes';
+import { cheminsEcritsParLesLanes, confirmationsEcritureVersion } from '~/lib/runtime/agent-lane-writes';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
@@ -127,6 +128,10 @@ export const AssistantMessage = memo(
      * resolveLaneState.
      */
     const isStreaming = useStore(streamingState);
+    useStore(confirmationsEcritureVersion);
+
+    const confirmedPaths = messageId ? cheminsEcritsParLesLanes(messageId) : undefined;
+    const observedModel = latestModelOutput(annotations, messageId);
 
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
@@ -152,22 +157,11 @@ export const AssistantMessage = memo(
       | Extract<ContextAnnotation, { type: 'agentExecution' }>
       | undefined;
 
-    /*
-     * L'ÉCART ENTRE CE QUI A ÉTÉ ANNONCÉ ET CE QUI A ÉTÉ ÉCRIT.
-     *
-     * Mesuré sur les chemins que l'arbitre a réellement attribués — donc sur
-     * des actions APPLIQUÉES — et jamais sur une seconde déclaration des rôles.
-     * C'est toute la différence : le 2026-09-07, quatre rapports se disaient
-     * « complete » pour 90 chemins dont 9 seulement existaient.
-     *
-     * On n'affiche l'avertissement qu'une fois le résultat agrégé arrivé : en
-     * cours de flux, un fichier « manquant » est simplement un fichier pas
-     * encore écrit, et le signaler ferait clignoter une alerte fausse.
-     */
+    // Only runtime read-back receipts count; aggregate reports can precede coordinator writes.
     const ecartsIncomplets = ecartsAAvertir(
       agentExecution?.results,
-      messageId ? cheminsEcritsParLesLanes(messageId) : undefined,
-      Boolean(agentExecution && messageId),
+      confirmedPaths,
+      Boolean(agentExecution && messageId && !isStreaming),
     );
 
     const agentMemory = filteredAnnotations.find((annotation) => annotation.type === 'agentMemory') as
@@ -390,6 +384,7 @@ export const AssistantMessage = memo(
       Boolean(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) ||
       Boolean(agentPlan) ||
       Boolean(basculeTexte) ||
+      Boolean(observedModel) ||
       Boolean(agentModeChipText) ||
       Boolean(usageChipText);
 
@@ -929,19 +924,15 @@ export const AssistantMessage = memo(
                       : copy['assistantMessage.lanes.finalizing']}
                 </span>
               </div>
-              {/*
-                 LIVRAISON INCOMPLÈTE, NOMMÉE.
-              
-                 Un rôle qui tombe laisse une application à moitié cohérente : elle
-                 *paraît* finie, elle ne démarre pas, et rien ne dit ce qui manque.
-                 C'est l'espèce dangereuse — le défaut du 2026-09-07 était honnête par
-                 accident (9 fichiers sur 90, l'écart sautait aux yeux) ; 60 sur 90 se
-                 diagnostiquerait beaucoup plus longtemps.
-              
-                 L'écart se mesure sur les chemins RÉELLEMENT écrits — les attributions
-                 de l'arbitre — jamais sur une seconde déclaration des rôles : un
-                 rapport qui se dit complet ne prouve rien sur le disque.
-              */}
+              <p
+                className="mb-2 break-words text-[11px] text-bolt-elements-textSecondary"
+                data-testid="agent-write-evidence"
+              >
+                {confirmedPaths === undefined
+                  ? copy['assistantMessage.lanes.writeUnknown']
+                  : text(copy['assistantMessage.lanes.writeConfirmed'], { count: confirmedPaths.length })}
+                {isStreaming ? ` ${copy['assistantMessage.lanes.writePending']}` : ''}
+              </p>
               {ecartsIncomplets.length > 0 && (
                 <div
                   className="mb-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 text-[11px] text-bolt-elements-textSecondary"
@@ -1125,6 +1116,14 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
+        {observedModel ? (
+          <p className="my-2 break-words text-xs text-bolt-elements-textSecondary" data-testid="agent-model-output">
+            {text(copy['assistantMessage.modelOutput'], {
+              model: observedModel.model,
+              provider: observedModel.provider,
+            })}
+          </p>
+        ) : null}
         {basculeTexte ? (
           <div
             role="status"

@@ -71,12 +71,18 @@ function poserLesDimensions(element: HTMLElement, dims: { scrollHeight: number; 
   return etat;
 }
 
-function Fil() {
-  const { scrollRef, contentRef } = useStickToBottom({ initial: 'instant', resize: 'instant' });
+function Fil({ hookRef }: { hookRef?: { current?: ReturnType<typeof useStickToBottom> } }) {
+  const hook = useStickToBottom({ initial: 'instant', resize: 'instant' });
+  const { scrollRef, contentRef, isAtBottom } = hook;
+
+  if (hookRef) {
+    hookRef.current = hook;
+  }
 
   return (
     <div ref={scrollRef} data-testid="conteneur" style={{ overflow: 'auto' }}>
       <div ref={contentRef} data-testid="contenu" />
+      {!isAtBottom && <button data-testid="retour-en-bas">Dernier message</button>}
     </div>
   );
 }
@@ -236,5 +242,89 @@ describe('useStickToBottom — le conteneur contraint APRÈS le premier calcul (
     observations.get(contenu)!([{ contentRect: { height: 2663 } }]);
 
     expect(conteneur.scrollTop).toBe(400);
+  });
+
+  for (const changement of ['conteneur', 'contenu'] as const) {
+    it(`préserve la remontée sans molette avant le rappel de redimensionnement du ${changement}`, async () => {
+      const { getByTestId } = render(<Fil />);
+      const conteneur = getByTestId('conteneur');
+      const contenu = getByTestId('contenu');
+      const dims = poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+      await act(async () => {
+        observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+      });
+      await laisserLesImagesPasser();
+      expect(conteneur.scrollTop).toBeGreaterThanOrEqual(1963);
+
+      /*
+       * Tactile/clavier : pas de WheelEvent pour annoncer l'intention.
+       * Le ResizeObserver peut arriver avant le timeout de traitement du scroll.
+       */
+      await act(async () => {
+        conteneur.scrollTop = 0;
+        conteneur.dispatchEvent(new Event('scroll'));
+
+        if (changement === 'conteneur') {
+          dims.clientHeight = 420;
+          observations.get(conteneur)!([{ contentRect: { height: 420 } }]);
+        } else {
+          dims.scrollHeight = 2663;
+          observations.get(contenu)!([{ contentRect: { height: 2663 } }]);
+        }
+      });
+      await laisserLesImagesPasser();
+      expect(conteneur.scrollTop, 'le redimensionnement ne doit pas annuler la remontée').toBe(0);
+      expect(getByTestId('retour-en-bas')).toBeTruthy();
+    });
+  }
+  it('garde le collage après un clamp au nouveau bas puis une croissance', async () => {
+    const { getByTestId, queryByTestId } = render(<Fil />);
+    const conteneur = getByTestId('conteneur');
+    const contenu = getByTestId('contenu');
+    const dims = poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+    await act(async () => {
+      observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+    });
+    await laisserLesImagesPasser();
+    await act(async () => {
+      dims.scrollHeight = 1563;
+      conteneur.scrollTop = 964;
+      conteneur.dispatchEvent(new Event('scroll'));
+      observations.get(contenu)!([{ contentRect: { height: 1563 } }]);
+    });
+    await laisserLesImagesPasser();
+    expect(queryByTestId('retour-en-bas')).toBeNull();
+    await act(async () => {
+      dims.scrollHeight = 2663;
+      observations.get(contenu)!([{ contentRect: { height: 2663 } }]);
+    });
+    await laisserLesImagesPasser();
+    expect(conteneur.scrollTop).toBeGreaterThanOrEqual(2063);
+    expect(queryByTestId('retour-en-bas')).toBeNull();
+  });
+  it('respecte une animation explicitement non interruptible', async () => {
+    const hookRef: { current?: ReturnType<typeof useStickToBottom> } = {};
+    const { getByTestId, queryByTestId } = render(<Fil hookRef={hookRef} />);
+    const conteneur = getByTestId('conteneur');
+    const contenu = getByTestId('contenu');
+    poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+    await act(async () => {
+      observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+    });
+    await laisserLesImagesPasser();
+    await act(async () => {
+      hookRef.current!.scrollToBottom({ animation: 'instant', ignoreEscapes: true, duration: 1000 });
+    });
+    await laisserLesImagesPasser(2);
+    expect(hookRef.current!.state.animation?.ignoreEscapes).toBe(true);
+    await act(async () => {
+      conteneur.scrollTop = 0;
+      conteneur.dispatchEvent(new Event('scroll'));
+    });
+    await laisserLesImagesPasser(2);
+    expect(hookRef.current!.escapedFromLock).toBe(false);
+    expect(queryByTestId('retour-en-bas')).toBeNull();
+    expect(conteneur.scrollTop).toBeGreaterThanOrEqual(1963);
+    hookRef.current!.stopScroll();
   });
 });

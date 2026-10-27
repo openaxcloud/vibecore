@@ -1,0 +1,167 @@
+{
+  "source": "d8cc81e7e",
+  "synthetic": true,
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "language": "en",
+  "rows": [
+    {
+      "case": "new-turn-no-output",
+      "label": "Stop agent"
+    },
+    {
+      "case": "selection-only",
+      "label": "Stop agent"
+    },
+    {
+      "case": "receipt-received",
+      "label": "Stop Claude"
+    },
+    {
+      "case": "latest-receipt",
+      "label": "Stop agent"
+    },
+    {
+      "case": "wrong-id-ignored",
+      "label": "Stop agent"
+    },
+    {
+      "case": "second-turn-neutral",
+      "label": "Stop agent"
+    },
+    {
+      "case": "cleared-thread-new-turn-neutral",
+      "label": "Stop agent"
+    },
+    {
+      "case": "second-project-full-navigation-neutral",
+      "label": "Stop agent"
+    }
+  ],
+  "scrollRows": [
+    {
+      "mode": "normal",
+      "before": {
+        "top": 2755,
+        "height": 3306,
+        "view": 550,
+        "pill": false
+      },
+      "after": {
+        "top": 0,
+        "height": 3405,
+        "view": 550,
+        "pill": true
+      },
+      "returned": {
+        "top": 2754,
+        "height": 3306,
+        "view": 550,
+        "pill": false
+      }
+    },
+    {
+      "mode": "resize-immediate",
+      "before": {
+        "top": 2754,
+        "height": 3306,
+        "view": 550,
+        "pill": false
+      },
+      "after": {
+        "top": 0,
+        "height": 3497,
+        "view": 480,
+        "pill": true
+      },
+      "returned": {
+        "top": 2917,
+        "height": 3399,
+        "view": 480,
+        "pill": false
+      }
+    },
+    {
+      "mode": "native-resize",
+      "before": {
+        "top": 2917,
+        "height": 3399,
+        "view": 480,
+        "pill": false
+      },
+      "after": {
+        "top": 0,
+        "height": 3590,
+        "view": 410,
+        "pill": true
+      },
+      "returned": {
+        "top": 3065,
+        "height": 3477,
+        "view": 410,
+        "pill": false
+      }
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-first/ide-state"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-first/ide-state"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-first/ide-state"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-second/ai/conversations"
+    }
+  ]
+}

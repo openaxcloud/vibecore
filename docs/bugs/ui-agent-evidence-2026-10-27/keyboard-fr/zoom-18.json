@@ -1,0 +1,519 @@
+{
+  "method": "settingsPrivate.setDefaultZoom(2), native Chromium",
+  "rows": [
+    {
+      "lang": "fr",
+      "width": 320,
+      "state": "unknown",
+      "innerWidth": 320,
+      "outerWidth": 640,
+      "dpr": 2,
+      "scale": 1,
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "height": 39.75
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 205.5625
+        },
+        {
+          "left": 11.5,
+          "right": 270.921875
+        }
+      ],
+      "docWidth": 320,
+      "panelText": "Agents parallèlesconsensus : terminéConfirmations d’écriture dans l’environnement d’exécution inconnues.Vérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 320,
+      "state": "zero",
+      "innerWidth": 320,
+      "outerWidth": 640,
+      "dpr": 2,
+      "scale": 1,
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "height": 79.5
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 263.78125
+        },
+        {
+          "left": 11.5,
+          "right": 300.7421875
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625
+        }
+      ],
+      "docWidth": 320,
+      "panelText": "Agents parallèlesconsensus : terminé0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.Livraison non confirméeqa — 0 fichiers confirmés sur 2 annoncésNon confirmés : src/components/LongSyntheticApplicationNameForAccessibilityAndResponsiveVerification.tsx, src/styles/LongSyntheticResponsiveLayoutStylesheetForMobileAndTablet.cssVérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 320,
+      "state": "two",
+      "innerWidth": 320,
+      "outerWidth": 640,
+      "dpr": 2,
+      "scale": 1,
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "height": 79.5
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 263.78125
+        },
+        {
+          "left": 11.5,
+          "right": 300.7421875
+        },
+        {
+          "left": 11.5,
+          "right": 253.171875
+        },
+        {
+          "left": 11.5,
+          "right": 137.015625
+        }
+      ],
+      "docWidth": 320,
+      "panelText": "Agents parallèlesconsensus : terminé2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.Vérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 390,
+      "state": "unknown",
+      "innerWidth": 390,
+      "outerWidth": 780,
+      "dpr": 2,
+      "scale": 1,
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "height": 39.75
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 315.5546875
+        },
+        {
+          "left": 11.5,
+          "right": 160.9296875
+        }
+      ],
+      "docWidth": 390,
+      "panelText": "Agents parallèlesconsensus : terminéConfirmations d’écriture dans l’environnement d’exécution inconnues.Vérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 390,
+      "state": "zero",
+      "innerWidth": 390,
+      "outerWidth": 780,
+      "dpr": 2,
+      "scale": 1,
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "height": 59.625
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 361.6171875
+        },
+        {
+          "left": 11.5,
+          "right": 324.4296875
+        },
+        {
+          "left": 11.5,
+          "right": 260.8046875
+        }
+      ],
+      "docWidth": 390,
+      "panelText": "Agents parallèlesconsensus : terminé0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.Livraison non confirméeqa — 0 fichiers confirmés sur 2 annoncésNon confirmés : src/components/LongSyntheticApplicationNameForAccessibilityAndResponsiveVerification.tsx, src/styles/LongSyntheticResponsiveLayoutStylesheetForMobileAndTablet.cssVérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 390,
+      "state": "two",
+      "innerWidth": 390,
+      "outerWidth": 780,
+      "dpr": 2,
+      "scale": 1,
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "height": 59.625
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 361.6171875
+        },
+        {
+          "left": 11.5,
+          "right": 324.4296875
+        },
+        {
+          "left": 11.5,
+          "right": 260.8046875
+        }
+      ],
+      "docWidth": 390,
+      "panelText": "Agents parallèlesconsensus : terminé2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.Vérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 768,
+      "state": "unknown",
+      "innerWidth": 768,
+      "outerWidth": 1536,
+      "dpr": 2,
+      "scale": 1,
+      "text": "Confirmations d’écriture dans l’environnement d’exécution inconnues.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "height": 19.875
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 468.6171875
+        }
+      ],
+      "docWidth": 768,
+      "panelText": "Agents parallèlesconsensus : terminéConfirmations d’écriture dans l’environnement d’exécution inconnues.Vérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 768,
+      "state": "zero",
+      "innerWidth": 768,
+      "outerWidth": 1536,
+      "dpr": 2,
+      "scale": 1,
+      "text": "0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "height": 39.75
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 678.1875
+        },
+        {
+          "left": 11.5,
+          "right": 260.8046875
+        }
+      ],
+      "docWidth": 768,
+      "panelText": "Agents parallèlesconsensus : terminé0 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.Livraison non confirméeqa — 0 fichiers confirmés sur 2 annoncésNon confirmés : src/components/LongSyntheticApplicationNameForAccessibilityAndResponsiveVerification.tsx, src/styles/LongSyntheticResponsiveLayoutStylesheetForMobileAndTablet.cssVérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "fr",
+      "width": 768,
+      "state": "two",
+      "innerWidth": 768,
+      "outerWidth": 1536,
+      "dpr": 2,
+      "scale": 1,
+      "text": "2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "height": 39.75
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 678.1875
+        },
+        {
+          "left": 11.5,
+          "right": 260.8046875
+        }
+      ],
+      "docWidth": 768,
+      "panelText": "Agents parallèlesconsensus : terminé2 fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.Vérification de qualité avec une description synthétique volontairement longueTâche terminéeSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Une tâche terminée ne garantit pas la validation globale."
+    },
+    {
+      "lang": "en",
+      "width": 320,
+      "state": "unknown",
+      "innerWidth": 320,
+      "outerWidth": 640,
+      "dpr": 2,
+      "scale": 1,
+      "text": "Runtime write confirmations unknown.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "height": 19.875
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 267.953125
+        }
+      ],
+      "docWidth": 320,
+      "panelText": "Parallel agentsconsensus: completeRuntime write confirmations unknown.Quality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 320,
+      "state": "zero",
+      "innerWidth": 320,
+      "outerWidth": 640,
+      "dpr": 2,
+      "scale": 1,
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "height": 59.625
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 280.625
+        },
+        {
+          "left": 11.5,
+          "right": 278.9921875
+        },
+        {
+          "left": 11.5,
+          "right": 73.3671875
+        }
+      ],
+      "docWidth": 320,
+      "panelText": "Parallel agentsconsensus: complete0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.Unconfirmed deliveryqa — 0 of 2 announced files confirmedNot confirmed: src/components/LongSyntheticApplicationNameForAccessibilityAndResponsiveVerification.tsx, src/styles/LongSyntheticResponsiveLayoutStylesheetForMobileAndTablet.cssQuality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 320,
+      "state": "two",
+      "innerWidth": 320,
+      "outerWidth": 640,
+      "dpr": 2,
+      "scale": 1,
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 308.5,
+        "height": 59.625
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 280.625
+        },
+        {
+          "left": 11.5,
+          "right": 278.9921875
+        },
+        {
+          "left": 11.5,
+          "right": 73.3671875
+        }
+      ],
+      "docWidth": 320,
+      "panelText": "Parallel agentsconsensus: complete2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.Quality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "state": "unknown",
+      "innerWidth": 390,
+      "outerWidth": 780,
+      "dpr": 2,
+      "scale": 1,
+      "text": "Runtime write confirmations unknown.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "height": 19.875
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 267.953125
+        }
+      ],
+      "docWidth": 390,
+      "panelText": "Parallel agentsconsensus: completeRuntime write confirmations unknown.Quality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "state": "zero",
+      "innerWidth": 390,
+      "outerWidth": 780,
+      "dpr": 2,
+      "scale": 1,
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "height": 39.75
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 353.046875
+        },
+        {
+          "left": 11.5,
+          "right": 272.0703125
+        }
+      ],
+      "docWidth": 390,
+      "panelText": "Parallel agentsconsensus: complete0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.Unconfirmed deliveryqa — 0 of 2 announced files confirmedNot confirmed: src/components/LongSyntheticApplicationNameForAccessibilityAndResponsiveVerification.tsx, src/styles/LongSyntheticResponsiveLayoutStylesheetForMobileAndTablet.cssQuality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "state": "two",
+      "innerWidth": 390,
+      "outerWidth": 780,
+      "dpr": 2,
+      "scale": 1,
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 378.5,
+        "height": 39.75
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 353.046875
+        },
+        {
+          "left": 11.5,
+          "right": 272.0703125
+        }
+      ],
+      "docWidth": 390,
+      "panelText": "Parallel agentsconsensus: complete2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.Quality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "state": "unknown",
+      "innerWidth": 768,
+      "outerWidth": 1536,
+      "dpr": 2,
+      "scale": 1,
+      "text": "Runtime write confirmations unknown.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "height": 19.875
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 267.953125
+        }
+      ],
+      "docWidth": 768,
+      "panelText": "Parallel agentsconsensus: completeRuntime write confirmations unknown.Quality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "state": "zero",
+      "innerWidth": 768,
+      "outerWidth": 1536,
+      "dpr": 2,
+      "scale": 1,
+      "text": "0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "height": 19.875
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 617.2578125
+        }
+      ],
+      "docWidth": 768,
+      "panelText": "Parallel agentsconsensus: complete0 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.Unconfirmed deliveryqa — 0 of 2 announced files confirmedNot confirmed: src/components/LongSyntheticApplicationNameForAccessibilityAndResponsiveVerification.tsx, src/styles/LongSyntheticResponsiveLayoutStylesheetForMobileAndTablet.cssQuality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "state": "two",
+      "innerWidth": 768,
+      "outerWidth": 1536,
+      "dpr": 2,
+      "scale": 1,
+      "text": "2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.",
+      "font": "14px",
+      "rect": {
+        "left": 11.5,
+        "right": 756.5,
+        "height": 19.875
+      },
+      "ranges": [
+        {
+          "left": 11.5,
+          "right": 617.2578125
+        }
+      ],
+      "docWidth": 768,
+      "panelText": "Parallel agentsconsensus: complete2 file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.Quality verification with a deliberately long synthetic descriptionTask finishedSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Task completion does not establish overall validation."
+    }
+  ],
+  "errors": [],
+  "blocked": ["GET", "GET"]
+}

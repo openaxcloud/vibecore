@@ -1,0 +1,17 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-contract812
+
+ ✓ app/lib/runtime/agent-lane-shortfall.spec.ts (12 tests) 6ms
+ ✓ app/lib/runtime/agent-write-receipts.spec.ts (8 tests) 4ms
+ ✓ app/lib/model-output-evidence.spec.ts (4 tests) 4ms
+ ✓ app/lib/runtime/agent-lane-writes.purete.spec.ts (2 tests) 3ms
+ ✓ app/lib/project-agent-layout.spec.ts (3 tests) 3ms
+ ✓ app/components/chat/AssistantMessage.i18n.spec.tsx (25 tests) 359ms
+ ✓ app/lib/hooks/useStickToBottom.conteneur.spec.tsx (9 tests) 2261ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > ne ramène JAMAIS de force un utilisateur qui a remonté le fil  416ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > garde le collage après un clamp au nouveau bas puis une croissance  368ms
+
+ Test Files  7 passed (7)
+      Tests  63 passed (63)
+   Start at  15:14:56
+   Duration  4.93s (transform 1.48s, setup 156ms, collect 837ms, tests 2.64s, environment 752ms, prepare 470ms)

@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { latestTurnModelOutput } from '~/lib/model-output-evidence';
 import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
 import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
 import { useSecurityScanSession } from './SecurityScanSession';
@@ -3831,7 +3832,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [onProjectAgentExecutionModeChange, projectId, setChatMode]);
 
     const isAgentRunning = projectIdeMode && isStreaming;
-    const stopAgentLabel = projectAgentStopLabel(provider?.name, model, language);
+    const observedModelOutput = latestTurnModelOutput(messages ?? []);
+    const stopAgentLabel = projectAgentStopLabel(observedModelOutput?.provider, observedModelOutput?.model, language);
     const [projectAgentPanelOpen, setProjectAgentPanelOpen] = useState(true);
 
     const [projectPlanFirst, setProjectPlanFirst] = useState(() => {

@@ -1,0 +1,10 @@
+[
+  {
+    "path": "app/components/chat/MessageContextMenu.tsx",
+    "sha256": "f2b9bc7c08cb0c6a93883ed1c121dbf3da33c03a77125e132daa482378f72d43"
+  },
+  {
+    "path": "app/components/chat/MessageContextMenu.spec.tsx",
+    "sha256": "94b7146078cf2c648a5dce1e3caea015bc0a0ef3b6ea753a8f3c3a7aa2ae0357"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "pid": 8396,
+    "action": "SIGTERM verified startTicks"
+  },
+  {
+    "port": 20399,
+    "connect_ex": 111
+  }
+]

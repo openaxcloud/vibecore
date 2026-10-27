@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-contract812
+
+ ✓ app/components/chat/message-context-menu.spec.ts (16 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  17:20:17
+   Duration  3.35s (transform 1.82s, setup 39ms, collect 45ms, tests 7ms, environment 0ms, prepare 89ms)

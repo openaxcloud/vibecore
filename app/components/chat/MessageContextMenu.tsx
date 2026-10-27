@@ -255,10 +255,18 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
    */
   const onKeyDown = useCallback(
     (evenement: ReactKeyboardEvent<HTMLElement>) => {
+      if (evenement.defaultPrevented) {
+        return;
+      }
+
       const menuSysteme = evenement.key === 'F10' && evenement.shiftKey;
       const activation = evenement.key === 'Enter' || evenement.key === ' ';
 
-      if (!menuSysteme && !activation) {
+      /*
+       * Enter/Space belong to focused descendants (summary, button, input).
+       * The unconsumed system shortcut still opens this message's context menu.
+       */
+      if (!menuSysteme && (!activation || evenement.target !== evenement.currentTarget)) {
         return;
       }
 

@@ -3,6 +3,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { RefObject } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 
@@ -320,5 +321,64 @@ describe('BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défil
     expect(centre).toBeGreaterThan(-1);
     expect(feuille.slice(centre, feuille.indexOf('}', centre))).toContain('transform: translateX(-50%);');
     expect(lire('./MessageContextMenu.tsx')).toContain("data-centre={racineMobile ? 'true' : undefined}");
+  });
+});
+
+function BulleClavier({ consume = false }: { consume?: boolean }) {
+  const menu = useMenuContextuelDeMessage();
+
+  return (
+    <div
+      ref={menu.ancre as RefObject<HTMLDivElement>}
+      tabIndex={0}
+      data-testid="ancre-clavier"
+      onKeyDown={menu.onKeyDown}
+    >
+      <details>
+        <summary data-testid="rapport">Rapport original</summary>Rapport complet
+      </details>
+      <button data-testid="action-enfant" type="button">
+        Action enfant
+      </button>
+      <input
+        data-testid="champ-enfant"
+        onKeyDown={(event) => {
+          if (consume) {
+            event.preventDefault();
+          }
+        }}
+      />
+      <MenuContextuel ouvert={menu.ouvert} position={menu.position} fermer={menu.fermer} etiquette="Actions">
+        <button type="button">Copier</button>
+      </MenuContextuel>
+    </div>
+  );
+}
+
+describe('clavier du message et contrôles descendants', () => {
+  it.each(['Enter', ' '])('garde %j pour activer l’ancre elle-même', (key) => {
+    render(<BulleClavier />);
+    expect(fireEvent.keyDown(screen.getByTestId('ancre-clavier'), { key })).toBe(false);
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  for (const target of ['rapport', 'action-enfant', 'champ-enfant']) {
+    it.each(['Enter', ' '])(`ne vole pas %j au contrôle ${target}`, (key) => {
+      render(<BulleClavier />);
+      expect(fireEvent.keyDown(screen.getByTestId(target), { key })).toBe(true);
+      expect(screen.queryByRole('menu')).toBeNull();
+    });
+  }
+
+  it.each(['ancre-clavier', 'rapport'])('conserve Maj+F10 depuis %s', (target) => {
+    render(<BulleClavier />);
+    expect(fireEvent.keyDown(screen.getByTestId(target), { key: 'F10', shiftKey: true })).toBe(false);
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it.each(['Enter', ' ', 'F10'])('respecte %j déjà consommé par l’enfant', (key) => {
+    render(<BulleClavier consume />);
+    expect(fireEvent.keyDown(screen.getByTestId('champ-enfant'), { key, shiftKey: key === 'F10' })).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 });

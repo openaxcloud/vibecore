@@ -402,6 +402,23 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
       setIsNearBottom(state.isNearBottom);
 
+      /*
+       * Recognize an upward escape before a ResizeObserver can stick the
+       * transcript back to the bottom. Touch/keyboard scrolling has no wheel
+       * event to set this flag ahead of the deferred scroll processing.
+       * A resize clamped at the new bottom is not an escape, nor is our own
+       * programmatic scroll or an explicitly uninterruptible animation.
+       */
+      if (
+        scrollTop < lastScrollTop &&
+        scrollTop !== ignoreScrollToTop &&
+        !state.isNearBottom &&
+        !state.animation?.ignoreEscapes
+      ) {
+        setEscapedFromLock(true);
+        setIsAtBottom(false);
+      }
+
       /**
        * Scroll events may come before a ResizeObserver event,
        * so in order to ignore resize events correctly we use a

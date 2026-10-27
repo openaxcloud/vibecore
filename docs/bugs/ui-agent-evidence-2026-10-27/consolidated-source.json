@@ -1,0 +1,38 @@
+{
+  "sourceHead": "d8cc81e7eae8bde5c5666b301a3e2d2001c6aa48",
+  "baseMain": "0d6b2edfbfa1a3bcf7ef17d8e7a18b7b6f8d3209",
+  "files": [
+    {
+      "path": "app/components/chat/AssistantMessage.i18n.spec.tsx",
+      "sha256": "25e17a5c85e673a4fb5402a06790cf8be99c4f9ad6586c3a74c4ddc06409a371"
+    },
+    {
+      "path": "app/components/chat/AssistantMessage.tsx",
+      "sha256": "e6cab7cdd71c0f5f48120e1d6355606ab6fa2265f2621b0f6ecd81964fb16421"
+    },
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "738db8ac590e32e39922d207b81799b40433cbfecf92abc8f7902e355a377963"
+    },
+    {
+      "path": "app/lib/hooks/useStickToBottom.conteneur.spec.tsx",
+      "sha256": "e1723e470682fdf0bc5e53f95f591ca8e112e9f2bbd409d9caebd1c675db6393"
+    },
+    {
+      "path": "app/lib/hooks/useStickToBottom.tsx",
+      "sha256": "093372345326d4e38c8906195e336c6d78fe8aea230664a0bde04dd87b8ef6e8"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/assistant-message.ts",
+      "sha256": "31287b8c5167d95c2e0d5cd371cd413eceb974350c21ad53ab070b99818769a5"
+    },
+    {
+      "path": "app/lib/model-output-evidence.spec.ts",
+      "sha256": "9fefcf19a927a983af1beb8bc7e2a8d2668459d413147ab9a0639288e09c03a7"
+    },
+    {
+      "path": "app/lib/model-output-evidence.ts",
+      "sha256": "d05045ecc89974c993089ea3f2d0a561f99ac07fd7d644adab93df2c592c1af9"
+    }
+  ]
+}

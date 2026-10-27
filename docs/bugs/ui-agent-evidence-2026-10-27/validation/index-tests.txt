@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-contract812
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 86ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  15:06:34
+   Duration  6.95s (transform 3.61s, setup 75ms, collect 28ms, tests 86ms, environment 0ms, prepare 127ms)
