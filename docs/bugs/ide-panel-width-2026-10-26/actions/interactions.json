@@ -1,0 +1,40 @@
+{
+  "focused": {
+    "tooltipCount": 1,
+    "title": null,
+    "accessibleName": "Fichiers"
+  },
+  "tab": {
+    "tooltipCount": 1,
+    "name": "Éditeurs ouverts"
+  },
+  "ordinary": {
+    "tooltipCount": 1,
+    "texts": [
+      "Ouvrir package.json"
+    ]
+  },
+  "targets": [
+    {
+      "height": 44,
+      "centerHit": true,
+      "align": "left",
+      "fullPath": "package.json",
+      "aria": "Ouvrir package.json"
+    },
+    {
+      "height": 44,
+      "centerHit": true,
+      "align": "left",
+      "fullPath": "src/components/ProductCard.tsx",
+      "aria": "Ouvrir src/components/ProductCard.tsx"
+    },
+    {
+      "height": 55.171875,
+      "centerHit": true,
+      "align": "left",
+      "fullPath": "src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx",
+      "aria": "Ouvrir src/components/very/deep/path/ProductCardWithVariantsAndInventory.tsx"
+    }
+  ]
+}

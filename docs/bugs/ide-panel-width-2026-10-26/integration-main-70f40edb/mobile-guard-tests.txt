@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-panel-width
+
+ ✓ app/styles/ide-mobile-panels.spec.ts (70 tests) 43ms
+
+ Test Files  1 passed (1)
+      Tests  70 passed (70)
+   Start at  12:42:08
+   Duration  2.57s (transform 1.36s, setup 26ms, collect 51ms, tests 43ms, environment 0ms, prepare 88ms)

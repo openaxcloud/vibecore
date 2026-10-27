@@ -45,6 +45,7 @@ export const remainingApiRoutesEn = {
   CONNECTOR_CONFIGURE_FAILED: 'The connector could not be configured. Please try again.',
   OAUTH_PROVIDER_UNSUPPORTED: 'The provider “{provider}” is not supported.',
   OAUTH_START_FAILED: 'The OAuth authorization flow could not be started. Please try again.',
+  OAUTH_PROVIDER_NOT_CONFIGURED: 'This OAuth connection is unavailable on the platform. Contact your administrator.',
   CONNECTION_ID_REQUIRED: 'Select a connection to disconnect.',
   CONNECTION_REVOKE_REQUEST_INVALID: 'A revoke action and connection ID are required.',
   CONNECTION_REVOKE_FAILED: 'The account could not be disconnected. Please try again.',
@@ -139,6 +140,8 @@ export const remainingApiRoutesFr: RemainingApiRouteCopy = {
   CONNECTOR_CONFIGURE_FAILED: 'Impossible de configurer le connecteur. Veuillez réessayer.',
   OAUTH_PROVIDER_UNSUPPORTED: 'Le fournisseur « {provider} » n’est pas pris en charge.',
   OAUTH_START_FAILED: 'Impossible de démarrer le flux d’autorisation OAuth. Veuillez réessayer.',
+  OAUTH_PROVIDER_NOT_CONFIGURED:
+    'Cette connexion OAuth est indisponible sur la plateforme. Contactez votre administrateur.',
   CONNECTION_ID_REQUIRED: 'Sélectionnez une connexion à déconnecter.',
   CONNECTION_REVOKE_REQUEST_INVALID: 'Une action de révocation et un identifiant de connexion sont obligatoires.',
   CONNECTION_REVOKE_FAILED: 'Impossible de déconnecter le compte. Veuillez réessayer.',

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const IDE_SHELL = '.bolt-project-ide-shell, .bolt-responsive-ide';
+const AGENT_PANEL = '.bolt-project-agent-panel';
 
 /** Scope notifications to an actually mounted IDE, including legacy chat routes. */
 export function useIdeToastLayout() {
@@ -8,14 +9,59 @@ export function useIdeToastLayout() {
 
   useEffect(() => {
     const viewport = window.matchMedia('(max-width: 1023px)');
-    const update = () => setCompact(viewport.matches && Boolean(document.querySelector(IDE_SHELL)));
+
+    let observedPanel: Element | null | undefined;
+    let observedShell: Element | null | undefined;
+
+    const geometry = new ResizeObserver(() => update());
+    const propertyNames = ['--vc-ide-toast-left', '--vc-ide-toast-width', '--vc-ide-toast-top'];
+    const clearGeometry = () => propertyNames.forEach((name) => document.documentElement.style.removeProperty(name));
+
+    const update = () => {
+      const shell = document.querySelector(IDE_SHELL);
+      const panel = shell?.querySelector(AGENT_PANEL) ?? null;
+
+      if (panel !== observedPanel || shell !== observedShell) {
+        geometry.disconnect();
+        observedPanel = panel;
+        observedShell = shell;
+
+        if (panel) {
+          geometry.observe(panel);
+        }
+
+        if (shell) {
+          geometry.observe(shell);
+        }
+      }
+
+      const box = panel?.getBoundingClientRect();
+      const left = Math.max(8, box ? box.left + 8 : 8);
+      const availableWidth = box ? Math.min(box.right - 8, window.innerWidth - 8) - left : 0;
+
+      const visiblePanel =
+        box && availableWidth >= 80 && box.height > 0 && box.bottom > 0 && box.top < window.innerHeight;
+      setCompact(Boolean(shell));
+      clearGeometry();
+
+      if (!viewport.matches && visiblePanel) {
+        document.documentElement.style.setProperty('--vc-ide-toast-left', `${left}px`);
+        document.documentElement.style.setProperty('--vc-ide-toast-width', `${Math.min(380, availableWidth)}px`);
+        document.documentElement.style.setProperty(
+          '--vc-ide-toast-top',
+          `${Math.max(60, Math.min(box.top + 8, window.innerHeight - 240))}px`,
+        );
+      }
+    };
 
     const observer = new MutationObserver((changes) => {
-      // Ignore streamed text changes; only a shell insertion/removal can change scope.
+      // Ignore streamed text changes; observe shell/pane insertion and removal only.
       if (
         changes.some((change) =>
           [...change.addedNodes, ...change.removedNodes].some(
-            (node) => node instanceof Element && (node.matches(IDE_SHELL) || node.querySelector(IDE_SHELL)),
+            (node) =>
+              node instanceof Element &&
+              (node.matches(`${IDE_SHELL}, ${AGENT_PANEL}`) || node.querySelector(`${IDE_SHELL}, ${AGENT_PANEL}`)),
           ),
         )
       ) {
@@ -25,10 +71,14 @@ export function useIdeToastLayout() {
 
     update();
     viewport.addEventListener('change', update);
+    window.addEventListener('resize', update);
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       viewport.removeEventListener('change', update);
+      window.removeEventListener('resize', update);
+      geometry.disconnect();
+      clearGeometry();
       observer.disconnect();
     };
   }, []);
@@ -67,7 +117,12 @@ function installToastFocusRepair() {
     const delta = target.top < top ? target.top - top : target.bottom > bottom ? target.bottom - bottom : 0;
 
     if (delta) {
-      list.scrollTop = Math.max(0, Math.min(list.scrollHeight - list.clientHeight, list.scrollTop + delta));
+      /*
+       * Browsers may quantize scrollTop: round toward the hidden edge so a
+       * fractional remainder does not leave the focused control clipped.
+       */
+      const next = delta > 0 ? Math.ceil(list.scrollTop + delta) : Math.floor(list.scrollTop + delta);
+      list.scrollTop = Math.max(0, Math.min(list.scrollHeight - list.clientHeight, next));
     }
   }
 

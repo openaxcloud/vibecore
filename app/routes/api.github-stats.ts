@@ -243,7 +243,20 @@ async function githubStatsLoader({ request }: { request: Request; context?: unkn
 
     return json(stats, { headers: webApiLocaleHeaders(request) });
   } catch (error) {
+    /*
+     * Repository selection uses this endpoint too. Preserve actionable refusals
+     * without echoing provider response bodies or suggesting a new OAuth grant.
+     */
+    if (error instanceof Response && (error.status === 403 || error.status === 429)) {
+      const retryAfter = error.headers.get('retry-after');
+
+      return webApiErrorResponse(request, 'GITHUB_STATS_FAILED', error.status, {
+        headers: error.status === 429 && retryAfter ? { 'Retry-After': retryAfter } : undefined,
+      });
+    }
+
     console.error('Error fetching GitHub stats:', error);
+
     return webApiErrorResponse(request, 'GITHUB_STATS_FAILED', 503);
   }
 }

@@ -45,7 +45,10 @@ export function GlobalTooltip() {
       const el = suppressedEl.current;
 
       if (el && el.dataset.vcTitleStash !== undefined) {
-        el.setAttribute('title', el.dataset.vcTitleStash);
+        if (el.getAttribute('data-vc-tooltip-hidden') !== 'true') {
+          el.setAttribute('title', el.dataset.vcTitleStash);
+        }
+
         delete el.dataset.vcTitleStash;
       }
 
@@ -90,7 +93,7 @@ export function GlobalTooltip() {
 
       const el = node.closest(`[${ATTR}]`);
 
-      return el instanceof HTMLElement ? el : null;
+      return el instanceof HTMLElement && el.getAttribute('data-vc-tooltip-hidden') !== 'true' ? el : null;
     };
 
     let dernierToucher: number | null = null;
@@ -98,8 +101,9 @@ export function GlobalTooltip() {
     const handlePointerDown = (event: PointerEvent) => {
       if (pointeurSansSurvol(event.pointerType)) {
         dernierToucher = Date.now();
-        hide();
       }
+
+      hide();
     };
 
     const handlePointerOver = (event: PointerEvent) => {
@@ -125,7 +129,26 @@ export function GlobalTooltip() {
 
       // Strip the native title immediately so the browser tooltip never duplicates ours.
       suppressNativeTitle(el);
-      showTimer.current = setTimeout(() => setTip(positionFor(el, text)), SHOW_DELAY_MS);
+
+      /*
+       * The IDE can enrich Radix triggers too. Keep its accessible label, but
+       * leave the custom rendering to Radix and suppress duplicate native help.
+       */
+      if (el.getAttribute('data-vc-radix-tooltip') === 'true') {
+        setTip(null);
+        return;
+      }
+
+      showTimer.current = setTimeout(() => {
+        const currentText = el.getAttribute(ATTR)?.trim();
+
+        if (!el.isConnected || el.getAttribute('data-vc-tooltip-hidden') === 'true' || !currentText) {
+          hide();
+          return;
+        }
+
+        setTip(positionFor(el, currentText));
+      }, SHOW_DELAY_MS);
     };
 
     const handlePointerOut = (event: PointerEvent) => {
@@ -164,11 +187,20 @@ export function GlobalTooltip() {
         clearShowTimer();
         restoreNativeTitle();
         suppressNativeTitle(el);
+
+        if (el.getAttribute('data-vc-radix-tooltip') === 'true') {
+          setTip(null);
+          return;
+        }
+
         setTip(positionFor(el, text));
       }
     };
 
     document.addEventListener('pointerdown', handlePointerDown, true);
+
+    // A mouse click can focus its trigger after pointerdown and reopen help.
+    document.addEventListener('click', hide, true);
     document.addEventListener('pointerover', handlePointerOver, true);
     document.addEventListener('pointerout', handlePointerOut, true);
     document.addEventListener('focusin', handleFocusIn, true);
@@ -181,7 +213,9 @@ export function GlobalTooltip() {
 
     return () => {
       clearShowTimer();
+      restoreNativeTitle();
       document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('click', hide, true);
       document.removeEventListener('pointerover', handlePointerOver, true);
       document.removeEventListener('pointerout', handlePointerOut, true);
       document.removeEventListener('focusin', handleFocusIn, true);

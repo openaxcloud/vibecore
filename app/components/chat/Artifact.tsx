@@ -18,6 +18,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
+import './Artifact.scss';
 
 const highlighterOptions = {
   langs: ['shell'],

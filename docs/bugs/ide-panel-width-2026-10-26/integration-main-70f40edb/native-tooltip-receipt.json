@@ -1,0 +1,94 @@
+[
+  {
+    "phase": "before",
+    "hovered": {
+      "title": "Fichiers",
+      "custom": 1,
+      "name": "Fichiers"
+    },
+    "focused": {
+      "title": "Fichiers",
+      "custom": 1,
+      "focused": true
+    },
+    "controls": {
+      "title-only": {
+        "title": "Title-only accessible name",
+        "tooltip": "Title-only accessible name",
+        "label": null
+      },
+      "title-hidden": {
+        "title": "Hidden title-only accessible name",
+        "tooltip": "Hidden title-only accessible name",
+        "label": null
+      },
+      "hidden": {
+        "title": "Tools",
+        "tooltip": null,
+        "label": "Tools"
+      },
+      "file": {
+        "title": "src/customer/private-safe-synthetic-component.tsx",
+        "tooltip": "src/customer/private-safe-synthetic-component.tsx",
+        "label": null
+      },
+      "context": {
+        "title": "Save synthetic.tsx. chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1{} chat.copy.shortcutValue{\"shortcut\":\"Cmd+S\"}.",
+        "tooltip": "Save synthetic.tsx. chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1{} chat.copy.shortcutValue{\"shortcut\":\"Cmd+S\"}.",
+        "label": "Save synthetic.tsx"
+      },
+      "locked": {
+        "title": "Original custom help",
+        "tooltip": "Locked custom help",
+        "label": "Pinned control"
+      }
+    },
+    "markerOnlyTitle": "Save synthetic.tsx. chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1{} chat.copy.shortcutValue{\"shortcut\":\"Cmd+S\"}."
+  },
+  {
+    "phase": "proposed",
+    "hovered": {
+      "title": null,
+      "custom": 1,
+      "name": "Fichiers"
+    },
+    "focused": {
+      "title": null,
+      "custom": 1,
+      "focused": true
+    },
+    "controls": {
+      "title-only": {
+        "title": "Title-only accessible name",
+        "tooltip": null,
+        "label": null
+      },
+      "title-hidden": {
+        "title": "Hidden title-only accessible name",
+        "tooltip": null,
+        "label": null
+      },
+      "hidden": {
+        "title": null,
+        "tooltip": null,
+        "label": "Tools"
+      },
+      "file": {
+        "title": "src/customer/private-safe-synthetic-component.tsx",
+        "tooltip": "src/customer/private-safe-synthetic-component.tsx",
+        "label": null
+      },
+      "context": {
+        "title": "Save synthetic.tsx. chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1{} chat.copy.shortcutValue{\"shortcut\":\"Cmd+S\"}.",
+        "tooltip": "Save synthetic.tsx. chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1{} chat.copy.shortcutValue{\"shortcut\":\"Cmd+S\"}.",
+        "label": "Save synthetic.tsx"
+      },
+      "locked": {
+        "title": "Original custom help",
+        "tooltip": "Locked custom help",
+        "label": "Pinned control"
+      }
+    },
+    "markerOnlyTitle": null
+  }
+]

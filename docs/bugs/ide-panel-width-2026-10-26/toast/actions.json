@@ -1,0 +1,59 @@
+{
+  "dedupCount": 3,
+  "before": {
+    "visible": true,
+    "focused": true,
+    "target": {
+      "x": 41,
+      "y": 283.71875,
+      "width": 118.9375,
+      "height": 23.03125,
+      "top": 283.71875,
+      "right": 159.9375,
+      "bottom": 306.75,
+      "left": 41
+    },
+    "list": {
+      "x": 28,
+      "y": 88,
+      "width": 304,
+      "height": 240,
+      "top": 88,
+      "right": 332,
+      "bottom": 328,
+      "left": 28
+    },
+    "scroll": 385,
+    "clientTop": 0,
+    "clientHeight": 240
+  },
+  "after": {
+    "visible": true,
+    "focused": true,
+    "target": {
+      "x": 21,
+      "y": 317.25,
+      "width": 136.078125,
+      "height": 25.875,
+      "top": 317.25,
+      "right": 157.078125,
+      "bottom": 343.125,
+      "left": 21
+    },
+    "list": {
+      "x": 8,
+      "y": 104,
+      "width": 374,
+      "height": 240,
+      "top": 104,
+      "right": 382,
+      "bottom": 344,
+      "left": 8
+    },
+    "scroll": 272,
+    "clientTop": 0,
+    "clientHeight": 240
+  },
+  "keyboardCloseRemaining": 2,
+  "synthetic": true
+}

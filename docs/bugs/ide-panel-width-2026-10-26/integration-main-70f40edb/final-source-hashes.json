@@ -1,0 +1,70 @@
+[
+  {
+    "path": "app/components/chat/Artifact.tsx",
+    "sha256": "b65b5600c4fbd5d7e37409ce5e82b9f7142315ae73f99f1c269379092bf930de"
+  },
+  {
+    "path": "app/components/chat/Artifact.scss",
+    "sha256": "c28ccb611d562e1e31367432e7948a3d0f184d4bdb135cf4c452b2582f5f5275"
+  },
+  {
+    "path": "app/components/chat/ChatBox.tsx",
+    "sha256": "948c38dc72218eb70bff3fd4cf83ca113170d1e121ecabd7a81c81f5ccfe844d"
+  },
+  {
+    "path": "app/components/chat/ComposerToolsPortal.tsx",
+    "sha256": "b08282e602cfa934e98aba387910ac0514adba13abbf5ee4cf9e0a6dee9c6940"
+  },
+  {
+    "path": "app/components/chat/ComposerToolsPortal.spec.tsx",
+    "sha256": "c9d71fc5eaf559cb20bac470cdf8d0f9c785f9d164772e1ac22411ca90c21c2b"
+  },
+  {
+    "path": "app/components/ui/IconButton.tsx",
+    "sha256": "da2aef2da4a844fc5cf6f5f035fba1986b5c2c7cb5510879e84e4e611a712d54"
+  },
+  {
+    "path": "app/components/ui/IconButton.tooltip.spec.tsx",
+    "sha256": "ac53add2277bb2aeb4b18093e15741ba853e5983c05bfd1207c10ea7414c8191"
+  },
+  {
+    "path": "app/components/ui/GlobalTooltip.tsx",
+    "sha256": "aa91bb01b577dc241273c0c2f59f500ac9203051261955bf726723209fffddec"
+  },
+  {
+    "path": "app/components/ui/GlobalTooltip.spec.tsx",
+    "sha256": "45c6e28f69d950cacc49778e75d913dce4b0001aeb55294d6e452c39f9902968"
+  },
+  {
+    "path": "app/components/ui/useIdeToastLayout.ts",
+    "sha256": "c631569973df834fe8b0532c6e8304e36467e796e6f97b3094aca6cc8c3600e0"
+  },
+  {
+    "path": "app/components/ui/useIdeToastLayout.spec.tsx",
+    "sha256": "d23fef9c242c212bf98e78068cba9262b30c1cd4902eda8402d2316f4c7879ac"
+  },
+  {
+    "path": "app/styles/components/toast.scss",
+    "sha256": "319e33f59c49ed8b034609bfa4f2dc79fe7200ca4d343843cb6c7e47ad199116"
+  },
+  {
+    "path": "app/components/chat/BaseChat.tsx",
+    "sha256": "5f41853b7795f1538ff0f4936b4939b442ea41ac7dad3724537c768cf1d32ef1"
+  },
+  {
+    "path": "app/components/chat/ProjectSettingsPanel.module.scss",
+    "sha256": "49f15b6cb02b9f8e9662d093e39e3e6c371e0c691a210e9063ede0491198d9e6"
+  },
+  {
+    "path": "app/styles/ide-mobile-panels.spec.ts",
+    "sha256": "22e3d65ee1bd6ad6171455d47923ce2e75854f958a84044655834cbeabd03ff8"
+  },
+  {
+    "path": "app/lib/hooks/useKeybindings.ts",
+    "sha256": "fb7636030108b7e58103a8d1a1547f9446296ae9e5352bd17cdadbe1f9d6d065"
+  },
+  {
+    "path": "app/lib/hooks/useKeybindings.dialog.spec.tsx",
+    "sha256": "42c58d71b67590dc9e9bf718cb9e664f5e6b41499085d72c26beb7e1adc8038e"
+  }
+]

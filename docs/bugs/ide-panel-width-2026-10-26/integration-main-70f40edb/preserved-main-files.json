@@ -1,0 +1,15 @@
+{
+  "app/components/chat/Chat.client.tsx": true,
+  "app/components/chat/MobileOverlayFocus.spec.tsx": true,
+  "app/components/chat/MobileOverlayFocus.tsx": true,
+  "app/components/chat/SecurityScanSession.spec.tsx": true,
+  "app/components/chat/SecurityScanSession.tsx": true,
+  "app/components/chat/security-scan-operation.spec.ts": true,
+  "app/components/chat/security-scan-session.spec.ts": true,
+  "app/components/chat/security-scan-session.ts": true,
+  "app/components/chat/useEditorCompositionHandoff.spec.tsx": true,
+  "app/components/chat/useEditorCompositionHandoff.ts": true,
+  "packages/editor/src/desktop-editor-focus.ts": true,
+  "packages/editor/src/desktop-editor.spec.ts": true,
+  "packages/editor/src/index.ts": true
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "path": "app/lib/hooks/useKeybindings.ts",
+    "sha256": "fb7636030108b7e58103a8d1a1547f9446296ae9e5352bd17cdadbe1f9d6d065"
+  },
+  {
+    "path": "app/components/chat/ChatBox.tsx",
+    "sha256": "948c38dc72218eb70bff3fd4cf83ca113170d1e121ecabd7a81c81f5ccfe844d"
+  },
+  {
+    "path": "app/components/chat/ComposerToolsPortal.tsx",
+    "sha256": "b08282e602cfa934e98aba387910ac0514adba13abbf5ee4cf9e0a6dee9c6940"
+  },
+  {
+    "path": "app/components/ui/ColorSchemeDialog.tsx",
+    "sha256": "04954e831b441d4db5448741deef05e6103db4c5474c7bc8ec891f77bcc9a1c9"
+  },
+  {
+    "path": "app/components/chat/BaseChat.tsx",
+    "sha256": "5f41853b7795f1538ff0f4936b4939b442ea41ac7dad3724537c768cf1d32ef1"
+  },
+  {
+    "path": "build/server/index.js",
+    "sha256": "93b2276f131b5ac29feacf4442100ec835c229ba9164f2e55894bba2aed55272"
+  }
+]

@@ -894,10 +894,17 @@ describe('22. captures iPhone 07/09 08:07 : le menu « ••• » du composeur
   it('le menu des outils se rend par portail à la racine mobile, comme « Agent » et « Économique »', () => {
     const chatBox = readFileSync(join(__dirname, '..', 'components', 'chat', 'ChatBox.tsx'), 'utf8');
 
+    const portal = readFileSync(join(__dirname, '..', 'components', 'chat', 'ComposerToolsPortal.tsx'), 'utf8');
+
     expect(chatBox).toMatch(
-      /porterSurTelephone\(\s*<div\s+ref=\{toolsPanelRef\}\s+className="bolt-chatbox-tools-menu"/,
+      /<ComposerToolsPortal\s+anchorRef=\{toolsMenuRef\}\s+menuRef=\{toolsPanelRef\}[\s\S]*?<div\s+ref=\{toolsPanelRef\}\s+className="bolt-chatbox-tools-menu"/,
     );
-    expect(chatBox).toMatch(/cibleFeuilleMobile\(document\)/);
+    expect(portal).toMatch(/const mobile = cibleFeuilleMobile\(document\)/);
+    expect(portal).toMatch(
+      /const host = mobile \?\? anchor\.closest<HTMLElement>\('\.bolt-project-ide-shell'\) \?\? anchor/,
+    );
+    expect(portal).toMatch(/host\.appendChild\(portal\)/);
+    expect(portal).toMatch(/createPortal\(cloneElement\(children, \{ style: position \}\), portal\)/);
     expect(chatBox).toMatch(
       /!toolsMenuRef\.current\?\.contains\(cible\) && !toolsPanelRef\.current\?\.contains\(cible\)/,
     );
