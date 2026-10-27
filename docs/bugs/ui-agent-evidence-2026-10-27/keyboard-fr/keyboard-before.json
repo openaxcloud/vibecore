@@ -1,0 +1,90 @@
+[
+  {
+    "lang": "fr",
+    "width": 320,
+    "afterEnter": {
+      "open": false,
+      "menus": ["Copier le messageUtileÀ améliorer"],
+      "focus": "<button type=\"button\" aria-label=\"Copier le message\" class=\"bolt-assistant-message-action\" data-copied=\"false\"><span class=\"i-ph:copy\" aria-hidden=\"true\"></span><span class=\"bolt-message-action-label\">Copier le message</span></button>",
+      "events": [
+        {
+          "key": "Enter",
+          "target": "SUMMARY",
+          "prevented": true
+        }
+      ]
+    },
+    "afterClick": {
+      "open": true,
+      "text": "Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report ",
+      "scrollWidth": 281,
+      "clientWidth": 281
+    }
+  },
+  {
+    "lang": "fr",
+    "width": 768,
+    "afterEnter": {
+      "open": false,
+      "menus": ["Copier le messageUtileÀ améliorer"],
+      "focus": "<button type=\"button\" aria-label=\"Copier le message\" class=\"bolt-assistant-message-action\" data-copied=\"false\"><span class=\"i-ph:copy\" aria-hidden=\"true\"></span><span class=\"bolt-message-action-label\">Copier le message</span></button>",
+      "events": [
+        {
+          "key": "Enter",
+          "target": "SUMMARY",
+          "prevented": true
+        }
+      ]
+    },
+    "afterClick": {
+      "open": true,
+      "text": "Détails du rapport originalSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report ",
+      "scrollWidth": 228,
+      "clientWidth": 228
+    }
+  },
+  {
+    "lang": "en",
+    "width": 320,
+    "afterEnter": {
+      "open": false,
+      "menus": ["Copy messageHelpfulNeeds improvement"],
+      "focus": "<button type=\"button\" aria-label=\"Copy message\" class=\"bolt-assistant-message-action\" data-copied=\"false\"><span class=\"i-ph:copy\" aria-hidden=\"true\"></span><span class=\"bolt-message-action-label\">Copy message</span></button>",
+      "events": [
+        {
+          "key": "Enter",
+          "target": "SUMMARY",
+          "prevented": true
+        }
+      ]
+    },
+    "afterClick": {
+      "open": true,
+      "text": "Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report ",
+      "scrollWidth": 281,
+      "clientWidth": 281
+    }
+  },
+  {
+    "lang": "en",
+    "width": 768,
+    "afterEnter": {
+      "open": false,
+      "menus": ["Copy messageHelpfulNeeds improvement"],
+      "focus": "<button type=\"button\" aria-label=\"Copy message\" class=\"bolt-assistant-message-action\" data-copied=\"false\"><span class=\"i-ph:copy\" aria-hidden=\"true\"></span><span class=\"bolt-message-action-label\">Copy message</span></button>",
+      "events": [
+        {
+          "key": "Enter",
+          "target": "SUMMARY",
+          "prevented": true
+        }
+      ]
+    },
+    "afterClick": {
+      "open": true,
+      "text": "Original report detailsSynthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report Synthetic report ",
+      "scrollWidth": 228,
+      "clientWidth": 228
+    }
+  }
+]

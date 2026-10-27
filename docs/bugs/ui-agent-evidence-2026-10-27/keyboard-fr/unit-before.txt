@@ -1,0 +1,103 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-message-keys-next
+
+ ❯ app/components/chat/MessageContextMenu.spec.tsx (25 tests | 9 failed) 1333ms
+   ✓ <MenuContextuel /> sur une bulle > un appui long ouvre le menu 68ms
+   ✓ <MenuContextuel /> sur une bulle > un appui bref n’ouvre rien 4ms
+   ✓ <MenuContextuel /> sur une bulle > faire défiler le fil n’ouvre pas le menu 3ms
+   ✓ <MenuContextuel /> sur une bulle > le clic droit ouvre le menu immédiatement, sans appui long 10ms
+   ✓ <MenuContextuel /> sur une bulle > la souris n’ouvre PAS le menu par un appui maintenu 4ms
+   ✓ <MenuContextuel /> sur une bulle > sur téléphone, le menu se rend à la racine du gabarit mobile, hors de la bulle  561ms
+   ✓ <MenuContextuel /> sur une bulle > sur téléphone, le focus va au MENU et non à sa première action — ailleurs, à la première action  563ms
+   ✓ <MenuContextuel /> sur une bulle > le panneau, porteur du focus, ne dessine pas d’anneau (le contour par défaut de Safari entourait la barre) 4ms
+   ✓ <MenuContextuel /> sur une bulle > Échap referme le menu 4ms
+   ✓ BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défilement, ancré à la ligne > ouvrir le menu d’un second message ferme celui du premier 9ms
+   ✓ BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défilement, ancré à la ligne > un défilement ferme le menu ; un appui dans le menu ne le ferme pas 18ms
+   ✓ BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défilement, ancré à la ligne > câblage : identifiants par message, pas de sélection native sur les lignes en mobile 6ms
+   ✓ clavier du message et contrôles descendants > garde "Enter" pour activer l’ancre elle-même 8ms
+   ✓ clavier du message et contrôles descendants > garde " " pour activer l’ancre elle-même 6ms
+   × clavier du message et contrôles descendants > ne vole pas "Enter" au contrôle rapport 12ms
+     → expected false to be true // Object.is equality
+   × clavier du message et contrôles descendants > ne vole pas " " au contrôle rapport 4ms
+     → expected false to be true // Object.is equality
+   × clavier du message et contrôles descendants > ne vole pas "Enter" au contrôle action-enfant 4ms
+     → expected false to be true // Object.is equality
+   × clavier du message et contrôles descendants > ne vole pas " " au contrôle action-enfant 3ms
+     → expected false to be true // Object.is equality
+   × clavier du message et contrôles descendants > ne vole pas "Enter" au contrôle champ-enfant 4ms
+     → expected false to be true // Object.is equality
+   × clavier du message et contrôles descendants > ne vole pas " " au contrôle champ-enfant 4ms
+     → expected false to be true // Object.is equality
+   ✓ clavier du message et contrôles descendants > conserve Maj+F10 depuis ancre-clavier 5ms
+   ✓ clavier du message et contrôles descendants > conserve Maj+F10 depuis rapport 4ms
+   × clavier du message et contrôles descendants > respecte "Enter" déjà consommé par l’enfant 11ms
+     → expected <div …(5)>…(1)</div> to be null
+   × clavier du message et contrôles descendants > respecte " " déjà consommé par l’enfant 7ms
+     → expected <div …(5)>…(1)</div> to be null
+   × clavier du message et contrôles descendants > respecte "F10" déjà consommé par l’enfant 5ms
+     → expected <div …(5)>…(1)</div> to be null
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > ne vole pas "Enter" au contrôle rapport
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > ne vole pas " " au contrôle rapport
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > ne vole pas "Enter" au contrôle action-enfant
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > ne vole pas " " au contrôle action-enfant
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > ne vole pas "Enter" au contrôle champ-enfant
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > ne vole pas " " au contrôle champ-enfant
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ app/components/chat/MessageContextMenu.spec.tsx:352:70
+    350|     it.each(['Enter', ' '])(`ne vole pas %j au contrôle ${target}`, (k…
+    351|       render(<BulleClavier />);
+    352|       expect(fireEvent.keyDown(screen.getByTestId(target), { key })).t…
+       |                                                                      ^
+    353|       expect(screen.queryByRole('menu')).toBeNull();
+    354|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > respecte "Enter" déjà consommé par l’enfant
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > respecte " " déjà consommé par l’enfant
+ FAIL  app/components/chat/MessageContextMenu.spec.tsx > clavier du message et contrôles descendants > respecte "F10" déjà consommé par l’enfant
+AssertionError: expected <div …(5)>…(1)</div> to be null
+
+- Expected:
+null
+
++ Received:
+<div
+  aria-label="Actions"
+  class="bolt-message-context-menu"
+  role="menu"
+  style="left: 12px; top: 12px;"
+  tabindex="-1"
+>
+  <button
+    type="button"
+  >
+    Copier
+  </button>
+</div>
+
+ ❯ app/components/chat/MessageContextMenu.spec.tsx:366:40
+    364|     render(<BulleClavier consume />);
+    365|     expect(fireEvent.keyDown(screen.getByTestId('champ-enfant'), { key…
+    366|     expect(screen.queryByRole('menu')).toBeNull();
+       |                                        ^
+    367|   });
+    368| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 16 passed (25)
+   Start at  17:16:26
+   Duration  4.30s (transform 1.31s, setup 32ms, collect 185ms, tests 1.33s, environment 415ms, prepare 69ms)

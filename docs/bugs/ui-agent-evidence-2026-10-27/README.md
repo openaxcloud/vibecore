@@ -1,5 +1,13 @@
 # Complément Agent : preuves de fichiers et de sortie modèle
 
+## Complément clavier et assemblage local final
+
+La recette des libellés français a révélé un défaut clavier préexistant du menu contextuel : Entrée sur les détails du rapport était interceptée par le parent. Le correctif respecte les événements déjà consommés et réserve Entrée/Espace à l’ancre focalisée ; Maj+F10 non consommé conserve le menu du message. [Preuves avant/après et limites](keyboard-fr/README.md).
+
+Assemblage local `bea1b6a88e9b9c7514a950ed24c5f9016b1d4d90` : [89 tests intégrés](keyboard-fr/integration-tests-89.txt) puis [16 tests du helper](keyboard-fr/integration-helper-tests-16.txt), soit 105 tests distincts réussis. Le filtre du premier lancement référençait un chemin erroné pour le helper ; ses 16 tests ont donc été exécutés séparément, sans les compter deux fois. Typage web `tsc --noEmit -p tsconfig.web.json`, lint et format ciblés : code0. Build `NODE_OPTIONS=--max-old-space-size=6144 npm run build` : code0, client1m39s et SSR21,76s. Index régénéré à531 fiches, six gardes verts. Revue indépendante favorable du correctif clavier. Ces vérifications ne remplacent pas les futures validations CI de la tête publiée.
+
+Les 72 observations de libellés et 18 de zoom natif200% utilisent le composant réel en isolation, avec les limites de CSS/police/stubs précisées dans leur reçu. Les quatre parcours clavier après correction sont également isolés ; aucune nouvelle recette complète IDE, sauvegarde fournisseur ou production n'est revendiquée.
+
 ## Correction du glossaire après la première CI de #819
 
 La tête `76c6b3ce` a échoué au garde `app/lib/i18n/runtime-glossary.spec.ts:34` : deux nouveaux libellés français contenaient le terme non traduit « runtime ». Les 10 547 autres tests unitaires ont passé, quatre étaient ignorés ; les étapes intégration/build de Production CI ont été ignorées après cet échec. Ce résultat n'est pas présenté comme une validation complète.

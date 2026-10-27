@@ -1,0 +1,22 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-contract812
+
+ ✓ app/components/chat/AssistantMessage.i18n.spec.tsx (25 tests) 475ms
+ ✓ app/lib/i18n/runtime-glossary.spec.ts (1 test) 118ms
+ ✓ app/components/chat/MessageContextMenu.spec.tsx (25 tests) 1414ms
+   ✓ <MenuContextuel /> sur une bulle > sur téléphone, le menu se rend à la racine du gabarit mobile, hors de la bulle  568ms
+   ✓ <MenuContextuel /> sur une bulle > sur téléphone, le focus va au MENU et non à sa première action — ailleurs, à la première action  570ms
+ ✓ app/lib/runtime/agent-lane-shortfall.spec.ts (12 tests) 6ms
+ ✓ app/lib/runtime/agent-write-receipts.spec.ts (8 tests) 7ms
+ ✓ app/lib/project-agent-layout.spec.ts (3 tests) 3ms
+ ✓ app/lib/model-output-evidence.spec.ts (4 tests) 3ms
+ ✓ app/lib/runtime/agent-lane-writes.purete.spec.ts (2 tests) 9ms
+ ✓ app/lib/hooks/useStickToBottom.conteneur.spec.tsx (9 tests) 2365ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > recolle en bas quand le conteneur se contracte alors que le fil est censé y être  303ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > ne ramène JAMAIS de force un utilisateur qui a remonté le fil  434ms
+   ✓ useStickToBottom — le conteneur contraint APRÈS le premier calcul (ordre WebKit) > garde le collage après un clamp au nouveau bas puis une croissance  380ms
+
+ Test Files  9 passed (9)
+      Tests  89 passed (89)
+   Start at  17:19:58
+   Duration  6.08s (transform 2.14s, setup 266ms, collect 1.77s, tests 4.40s, environment 1.66s, prepare 728ms)

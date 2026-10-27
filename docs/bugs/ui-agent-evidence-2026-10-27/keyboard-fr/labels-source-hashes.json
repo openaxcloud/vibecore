@@ -1,0 +1,38 @@
+[
+  {
+    "path": "app/components/chat/AssistantMessage.tsx",
+    "sha256": "e6cab7cdd71c0f5f48120e1d6355606ab6fa2265f2621b0f6ecd81964fb16421"
+  },
+  {
+    "path": "app/components/chat/AgentLaneSummary.tsx",
+    "sha256": "469861cf3f6c5219983bf28f1be13aa17953656cff78891c3c00070f8b8a1ef8"
+  },
+  {
+    "path": "app/lib/runtime/agent-lane-writes.ts",
+    "sha256": "326e2cc0bb331b89e890baa7291f1018bf238f51b243007b2cf4d055e52fdce2"
+  },
+  {
+    "path": "app/lib/i18n/catalogs/assistant-message.ts",
+    "sha256": "84a37c63dd9d387e6b74708ce66da2451feb7742eb5906231e80cec8d29864bd"
+  },
+  {
+    "path": "app/styles/index.scss",
+    "sha256": "d9be3646fb7de05f401c931b054c393dda7af67073209491b94df2340f56c13a"
+  },
+  {
+    "path": "app/styles/variables.scss",
+    "sha256": "cc754cccd82d6adf9293388ca7286cdad2f2639dd8217dbe34ac5061f4dc8a94"
+  },
+  {
+    "path": "compiled-reset.css",
+    "sha256": "6a7336f86d2856f15e32ba29c4d72178d1a019e266ae29a608cd36d12d7e520b"
+  },
+  {
+    "path": "compiled-root.css",
+    "sha256": "4f81822b988f9a8b4a0ebb3df246926544dc3bc81043b34878504bad64e6e1e9"
+  },
+  {
+    "path": "compiled-global.css",
+    "sha256": "72398ad6cc5a67a4db4544338905381692c38cb569b302bcea306896cf844338"
+  }
+]

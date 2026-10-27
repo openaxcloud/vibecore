@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-message-keys-next
+
+ ✓ app/components/chat/message-context-menu.spec.ts (16 tests) 5ms
+ ✓ app/components/chat/MessageContextMenu.spec.tsx (25 tests) 1292ms
+   ✓ <MenuContextuel /> sur une bulle > sur téléphone, le menu se rend à la racine du gabarit mobile, hors de la bulle  558ms
+   ✓ <MenuContextuel /> sur une bulle > sur téléphone, le focus va au MENU et non à sa première action — ailleurs, à la première action  563ms
+
+ Test Files  2 passed (2)
+      Tests  41 passed (41)
+   Start at  17:17:02
+   Duration  3.76s (transform 1.12s, setup 46ms, collect 176ms, tests 1.30s, environment 297ms, prepare 112ms)
