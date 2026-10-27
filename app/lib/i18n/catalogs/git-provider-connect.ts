@@ -26,6 +26,11 @@ export const gitProviderConnectEn = {
   'gitProvider.connectedToast': '{provider} connected as {account}',
   'gitProvider.connectionFailed': '{provider} connection failed.',
   'gitProvider.oauthStartFailed': 'Unable to start the {provider} OAuth flow.',
+  'gitProvider.oauthUnavailable': 'This OAuth connection is unavailable on the platform. Contact your administrator.',
+  'gitProvider.sessionRequired': 'Your session is unavailable or expired. Sign in again before connecting a provider.',
+  'gitProvider.oauthForbidden':
+    'Connection was refused. Check your access to this project and your account requirements.',
+  'gitProvider.oauthRateLimited': 'Too many connection attempts. Wait before trying again.',
   'gitProvider.repoPicker.show': 'Choose from your GitHub repositories',
   'gitProvider.repoPicker.hide': 'Hide your GitHub repositories',
   'gitProvider.remote.dialogAria': 'Configure {provider}',
@@ -41,6 +46,9 @@ export const gitProviderConnectEn = {
   'gitProvider.remote.saveFailed': 'Unable to configure this Git remote.',
   'gitProvider.repositories.connectFirst': 'Connect GitHub above first to list your repositories.',
   'gitProvider.repositories.loadFailed': 'Could not load your GitHub repositories.',
+  'gitProvider.repositories.forbidden':
+    'Access to the repository list was refused. Check your existing GitHub access and organization restrictions.',
+  'gitProvider.repositories.rateLimited': 'Too many requests. Wait before loading your GitHub repositories again.',
   'gitProvider.repositories.search': 'Search your repositories',
   'gitProvider.repositories.placeholder': 'owner/name',
   'gitProvider.repositories.loading': 'Loading your repositories…',
@@ -79,6 +87,13 @@ export const gitProviderConnectFr: GitProviderConnectCopy = {
   'gitProvider.connectedToast': '{provider} connecté en tant que {account}',
   'gitProvider.connectionFailed': 'Échec de la connexion à {provider}.',
   'gitProvider.oauthStartFailed': 'Impossible de lancer le flux OAuth {provider}.',
+  'gitProvider.oauthUnavailable':
+    'Cette connexion OAuth est indisponible sur la plateforme. Contactez votre administrateur.',
+  'gitProvider.sessionRequired':
+    'Votre session est indisponible ou expirée. Reconnectez-vous avant de connecter un fournisseur.',
+  'gitProvider.oauthForbidden':
+    'La connexion a été refusée. Vérifiez votre accès à ce projet et les exigences de votre compte.',
+  'gitProvider.oauthRateLimited': 'Trop de tentatives de connexion. Patientez avant de réessayer.',
   'gitProvider.repoPicker.show': 'Choisir parmi vos dépôts GitHub',
   'gitProvider.repoPicker.hide': 'Masquer vos dépôts GitHub',
   'gitProvider.remote.dialogAria': 'Configurer {provider}',
@@ -95,6 +110,9 @@ export const gitProviderConnectFr: GitProviderConnectCopy = {
   'gitProvider.remote.saveFailed': 'Impossible de configurer ce dépôt Git distant.',
   'gitProvider.repositories.connectFirst': 'Connectez d’abord GitHub ci-dessus pour afficher la liste de vos dépôts.',
   'gitProvider.repositories.loadFailed': 'Impossible de charger vos dépôts GitHub.',
+  'gitProvider.repositories.forbidden':
+    'L’accès à la liste des dépôts a été refusé. Vérifiez vos accès GitHub existants et les restrictions de votre organisation.',
+  'gitProvider.repositories.rateLimited': 'Trop de requêtes. Patientez avant de recharger vos dépôts GitHub.',
   'gitProvider.repositories.search': 'Rechercher dans vos dépôts',
   'gitProvider.repositories.placeholder': 'propriétaire/nom',
   'gitProvider.repositories.loading': 'Chargement de vos dépôts…',
