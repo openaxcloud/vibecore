@@ -1,6 +1,18 @@
-{
-  "build/server/index.js": "ef98ce46d5ecb9bbb7bf7fbcfd012b29a983e9d923001874521f1d663fe28f54",
-  "app/components/chat/AgentPowerControls.tsx": "5bddf480a911d73a5c13d8e62b39cf24aa3b2c4c3daaeabfbccb4289e81eee86",
-  "app/components/chat/FeuilleDesModes.tsx": "bbbdc0ca5ec99ff94285f44eb78cad782b6edc55884f26dbd3a8f7ff6ee74362",
-  "app/lib/hooks/useKeybindings.ts": "fb7636030108b7e58103a8d1a1547f9446296ae9e5352bd17cdadbe1f9d6d065"
-}
+[
+  {
+    "path": "build/server/index.js",
+    "sha256": "ef98ce46d5ecb9bbb7bf7fbcfd012b29a983e9d923001874521f1d663fe28f54"
+  },
+  {
+    "path": "app/components/chat/AgentPowerControls.tsx",
+    "sha256": "5bddf480a911d73a5c13d8e62b39cf24aa3b2c4c3daaeabfbccb4289e81eee86"
+  },
+  {
+    "path": "app/components/chat/FeuilleDesModes.tsx",
+    "sha256": "bbbdc0ca5ec99ff94285f44eb78cad782b6edc55884f26dbd3a8f7ff6ee74362"
+  },
+  {
+    "path": "app/lib/hooks/useKeybindings.ts",
+    "sha256": "fb7636030108b7e58103a8d1a1547f9446296ae9e5352bd17cdadbe1f9d6d065"
+  }
+]

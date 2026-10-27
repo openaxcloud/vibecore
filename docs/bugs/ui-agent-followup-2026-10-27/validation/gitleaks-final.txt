@@ -1,0 +1,7 @@
+Gitleaks 8.21.2; tracked tree exported from c96baacd3 plus three JSON formatting corrections.
+Command: gitleaks detect --no-git --source . --config .gitleaks.toml --redact --no-banner --report-format json
+Working directory: isolated tracked-tree export (repository .gitleaksignore retained).
+Exit code: 0
+Findings: []
+Scan duration: 25.5 seconds
+No security configuration or allowlist changes.

@@ -33,3 +33,7 @@ Le zoom utilise les fenêtres physiques1440×1000 et2560×1440 ; les dimensions 
 Le typage a d’abord échoué sur des liens absents puis sur deux identités Prisma issues de namespaces pointant vers l’ancien worktree. Des wrappers locaux de dépendances ont été alignés vers ce worktree, avec pnpm9.14.4 déjà installé ; aucun manifeste, lockfile, client ou schéma backend n’a été modifié. Un lancement initial du garde d’index avec node:test était inadapté ; le garde a ensuite été exécuté avec Vitest, son moteur réel.
 
 Aucune recette authentifiée de production du correctif, aucun appareil Safari physique, aucune course de changement de projet SPA, aucune certification globale UI. Ni palette#768 ni publication groupée interrompue reprises. Les appels de navigation de la recette ne créent pas de projet réel. La livraison et les verdicts CI sont suivis dans la PR ; ces preuves locales ne les remplacent pas.
+
+## Contrôle de sécurité des preuves
+
+La première CI sur `c96baacd3` a bloqué sur trois détections `generic-api-key` dans les JSON d’empreintes : le chemin `useKeybindings.ts` et son SHA-256 étaient sur la même ligne. Ces trois fichiers utilisent désormais des champs `path` et `sha256` séparés, sans changer aucune empreinte. Aucun secret, aucune règle ni liste d’exclusion n’a été ajouté. Gitleaks 8.21.2, avec la configuration et les exclusions du dépôt, a ensuite analysé l’arbre suivi exporté : sortie 0, aucune détection. [Reçu local](validation/gitleaks-final.txt). Cette correction documentaire exige ses nouvelles validations CI avant fusion.
