@@ -1,0 +1,23 @@
+[
+  {
+    "width": 390,
+    "draftPreserved": true,
+    "sameNode": true,
+    "focusPreserved": true
+  },
+  {
+    "width": 1280,
+    "draftPreserved": true,
+    "sameNode": true,
+    "focusPreserved": true
+  },
+  {
+    "width": 390,
+    "draftPreserved": true,
+    "sameNode": true,
+    "focusPreserved": true
+  },
+  {
+    "nestedEscapeKeepsMenu": true
+  }
+]

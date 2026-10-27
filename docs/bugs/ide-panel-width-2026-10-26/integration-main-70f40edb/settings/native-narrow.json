@@ -1,0 +1,26 @@
+{
+  "native": {
+    "title": null,
+    "label": "Files",
+    "tooltip": null,
+    "focusTitle": null,
+    "focusPreserved": true
+  },
+  "rows": [
+    {
+      "width": 669,
+      "scroll": 669,
+      "table": [
+        {
+          "width": 633,
+          "scroll": 633
+        }
+      ]
+    },
+    {
+      "width": 669,
+      "scroll": 669,
+      "table": []
+    }
+  ]
+}

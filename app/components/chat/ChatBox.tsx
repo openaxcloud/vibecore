@@ -29,9 +29,8 @@ import { SupabaseConnection } from './SupabaseConnection';
 import { WebSearch } from './WebSearch.client';
 import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
-import { createPortal } from 'react-dom';
+import { ComposerToolsPortal } from './ComposerToolsPortal';
 import { useComposerToolsMenu } from './ComposerToolsState';
-import { cibleFeuilleMobile } from './feuille-mobile';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import {
@@ -164,6 +163,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useComposerToolsMenu();
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
   const toolsPanelRef = React.useRef<HTMLDivElement>(null);
+  const toolsKeyboardOpenRef = React.useRef(false);
 
   /*
    * UNIF-04 (audit C4) : le feedback de glisser-déposer vit sur la COQUE
@@ -346,8 +346,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        const target = event.target;
+
+        if (event.composedPath().some((node) => node instanceof Element && node.matches('[role="dialog"]'))) {
+          return;
+        }
+
+        const menuHadFocus =
+          Boolean(toolsPanelRef.current && event.composedPath().includes(toolsPanelRef.current)) ||
+          (target instanceof Node && toolsPanelRef.current?.contains(target));
         setIsToolsMenuOpen(false);
+
+        if (menuHadFocus) {
+          toolsMenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+        }
       }
     };
 
@@ -444,131 +457,131 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <IconButton
           title={copy['chatBox.tools.more']}
           tooltip={copy['chatBox.tools.more']}
+          hideTooltip={isToolsMenuOpen}
           className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
           ariaExpanded={isToolsMenuOpen}
           ariaHasPopup="menu"
-          onClick={() => setIsToolsMenuOpen((open) => !open)}
+          onClick={(event) => {
+            toolsKeyboardOpenRef.current = !isToolsMenuOpen && event.detail === 0;
+            setIsToolsMenuOpen((open) => !open);
+          }}
         >
           <div className="i-ph:dots-three-outline text-lg" />
         </IconButton>
 
-        {isToolsMenuOpen
-          ? /*
-             * SUR TÉLÉPHONE, LA FEUILLE SE REND À LA RACINE DU GABARIT MOBILE —
-             * comme « Agent » et « Économique » depuis le 06/09 (feuille-mobile.ts).
-             * Rendue ici, dans le composeur, elle est bornée par ses ancêtres
-             * (confinement, collant, défilement) : capture d'Avi, 07/09 08:07,
-             * « Ouvrir Supabase » en haut d'une feuille tranchée, posée sur le
-             * composeur — « on ne voit rien ».
-             */
-            porterSurTelephone(
-              <div
-                ref={toolsPanelRef}
-                className="bolt-chatbox-tools-menu"
-                role="menu"
-                aria-label={copy['chatBox.tools.menuAria']}
-                data-testid="composer-tools-menu"
+        {isToolsMenuOpen ? (
+          <ComposerToolsPortal
+            anchorRef={toolsMenuRef}
+            menuRef={toolsPanelRef}
+            focusOnMount={toolsKeyboardOpenRef.current}
+          >
+            <div
+              ref={toolsPanelRef}
+              className="bolt-chatbox-tools-menu"
+              role="menu"
+              aria-label={copy['chatBox.tools.menuAria']}
+              data-testid="composer-tools-menu"
+            >
+              <ColorSchemeDialog
+                designScheme={props.designScheme}
+                setDesignScheme={props.setDesignScheme}
+                triggerVariant="menu"
+              />
+              <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
+              <WebSearch
+                onSearchResult={(result) => props.onWebSearchResult?.(result)}
+                disabled={props.isStreaming}
+                triggerVariant="menu"
+                triggerLabel={copy['chatBox.tools.fetchUrl']}
+              />
+              {/*
+               * Le dialogue Supabase vit DANS cette entrée : fermer le menu à
+               * l'ouverture le démontait aussitôt — « Ouvrir Supabase » n'ouvrait
+               * rien, sur téléphone comme sur bureau (mesuré le 07/09, sonde
+               * probe-supabase.mjs : 0 dialogue après le clic). Le menu reste,
+               * comme pour les outils MCP et la palette.
+               */}
+              <SupabaseConnection triggerVariant="menu" />
+              <IconButton
+                title={enhancePromptTitle}
+                tooltip={enhancePromptTitle}
+                disabled={props.input.length === 0 || props.enhancingPrompt}
+                className={classNames('bolt-chatbox-tools-menu-item', props.enhancingPrompt ? 'opacity-100' : '')}
+                onClick={enhancePrompt}
               >
-                <ColorSchemeDialog
-                  designScheme={props.designScheme}
-                  setDesignScheme={props.setDesignScheme}
-                  triggerVariant="menu"
-                />
-                <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
-                <WebSearch
-                  onSearchResult={(result) => props.onWebSearchResult?.(result)}
-                  disabled={props.isStreaming}
-                  triggerVariant="menu"
-                  triggerLabel={copy['chatBox.tools.fetchUrl']}
-                />
-                {/*
-                 * Le dialogue Supabase vit DANS cette entrée : fermer le menu à
-                 * l'ouverture le démontait aussitôt — « Ouvrir Supabase » n'ouvrait
-                 * rien, sur téléphone comme sur bureau (mesuré le 07/09, sonde
-                 * probe-supabase.mjs : 0 dialogue après le clic). Le menu reste,
-                 * comme pour les outils MCP et la palette.
-                 */}
-                <SupabaseConnection triggerVariant="menu" />
-                <IconButton
-                  title={enhancePromptTitle}
-                  tooltip={enhancePromptTitle}
-                  disabled={props.input.length === 0 || props.enhancingPrompt}
-                  className={classNames('bolt-chatbox-tools-menu-item', props.enhancingPrompt ? 'opacity-100' : '')}
-                  onClick={enhancePrompt}
-                >
-                  <>
-                    {props.enhancingPrompt ? (
-                      <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-                    ) : (
-                      <div className="i-bolt:stars text-xl"></div>
-                    )}
-                    <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                      {copy['chatBox.enhance.action']}
-                    </span>
-                  </>
-                </IconButton>
+                <>
+                  {props.enhancingPrompt ? (
+                    <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                  ) : (
+                    <div className="i-bolt:stars text-xl"></div>
+                  )}
+                  <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                    {copy['chatBox.enhance.action']}
+                  </span>
+                </>
+              </IconButton>
 
-                {/* In the IDE the mic is surfaced directly on the composer bar
+              {/* In the IDE the mic is surfaced directly on the composer bar
                       (Replit parity), so it's omitted from this menu to avoid a
                       duplicate; the standalone composer keeps it here. */}
-                {!props.projectIdeMode ? (
-                  <SpeechRecognitionButton
-                    isListening={props.isListening}
-                    phase={props.dictationPhase}
-                    onStart={() => {
-                      props.startListening();
-                      setIsToolsMenuOpen(false);
-                    }}
-                    onStop={() => {
-                      props.stopListening();
-                      setIsToolsMenuOpen(false);
-                    }}
-                    disabled={props.isStreaming}
-                    triggerVariant="menu"
-                    triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
-                  />
-                ) : null}
+              {!props.projectIdeMode ? (
+                <SpeechRecognitionButton
+                  isListening={props.isListening}
+                  phase={props.dictationPhase}
+                  onStart={() => {
+                    props.startListening();
+                    setIsToolsMenuOpen(false);
+                  }}
+                  onStop={() => {
+                    props.stopListening();
+                    setIsToolsMenuOpen(false);
+                  }}
+                  disabled={props.isStreaming}
+                  triggerVariant="menu"
+                  triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
+                />
+              ) : null}
 
-                {props.chatStarted && !props.projectIdeMode ? (
-                  <IconButton
-                    title={copy['chatBox.discuss.title']}
-                    tooltip={copy['chatBox.discuss.title']}
-                    className={classNames('bolt-chatbox-tools-menu-item', {
-                      'is-active': props.chatMode === 'discuss',
-                    })}
-                    onClick={toggleChatMode}
-                  >
-                    <>
-                      <div className="i-ph:chats text-xl" />
-                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                        {props.chatMode === 'discuss'
-                          ? copy['chatBox.discuss.switchToBuild']
-                          : copy['chatBox.discuss.title']}
-                      </span>
-                    </>
-                  </IconButton>
-                ) : null}
-
+              {props.chatStarted && !props.projectIdeMode ? (
                 <IconButton
-                  title={settingsToggleTitle}
-                  tooltip={settingsToggleTitle}
-                  data-testid="composer-tools-menu-settings"
+                  title={copy['chatBox.discuss.title']}
+                  tooltip={copy['chatBox.discuss.title']}
                   className={classNames('bolt-chatbox-tools-menu-item', {
-                    'is-active': props.isModelSettingsCollapsed,
+                    'is-active': props.chatMode === 'discuss',
                   })}
-                  onClick={toggleModelSettings}
-                  disabled={!props.providerList || props.providerList.length === 0}
+                  onClick={toggleChatMode}
                 >
                   <>
-                    <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
+                    <div className="i-ph:chats text-xl" />
                     <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                      {settingsToggleTitle}
+                      {props.chatMode === 'discuss'
+                        ? copy['chatBox.discuss.switchToBuild']
+                        : copy['chatBox.discuss.title']}
                     </span>
                   </>
                 </IconButton>
-              </div>,
-            )
-          : null}
+              ) : null}
+
+              <IconButton
+                title={settingsToggleTitle}
+                tooltip={settingsToggleTitle}
+                data-testid="composer-tools-menu-settings"
+                className={classNames('bolt-chatbox-tools-menu-item', {
+                  'is-active': props.isModelSettingsCollapsed,
+                })}
+                onClick={toggleModelSettings}
+                disabled={!props.providerList || props.providerList.length === 0}
+              >
+                <>
+                  <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
+                  <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                    {settingsToggleTitle}
+                  </span>
+                </>
+              </IconButton>
+            </div>
+          </ComposerToolsPortal>
+        ) : null}
       </div>
     </>
   );
@@ -927,14 +940,3 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     </div>
   );
 };
-
-/*
- * Sur téléphone, une feuille se rend à la racine du gabarit mobile — hors du
- * composeur et de ses ancêtres qui bornent un élément fixé (feuille-mobile.ts).
- * Sur bureau, elle reste ancrée à son déclencheur.
- */
-function porterSurTelephone(menu: React.ReactElement) {
-  const cible = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
-
-  return cible ? createPortal(menu, cible) : menu;
-}

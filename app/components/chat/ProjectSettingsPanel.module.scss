@@ -1,0 +1,45 @@
+.panel {
+  container-name: project-settings;
+}
+
+.panel.panel .responsiveGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+}
+
+.panel.panel .limits {
+  overflow-x: auto;
+  max-width: 100%;
+
+  > div,
+  > div:first-child {
+    display: grid;
+    min-width: 400px;
+    grid-template-columns: minmax(160px, 1fr) 80px 120px;
+  }
+}
+
+.panel.panel :global(.bolt-project-memory-fields) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+
+.panel.panel :global(.bolt-project-settings-card) {
+  label,
+  input,
+  select,
+  textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@container project-settings (max-width: 1000px) {
+  .panel.panel :global(.bolt-project-settings-layout) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel.panel :global(.bolt-project-settings-sidebar) {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  }
+}
