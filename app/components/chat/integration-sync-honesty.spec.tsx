@@ -5,6 +5,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { IntegrationGithubVerification } from './IntegrationGithubVerification';
 import { platformStateLabel } from './platform-state-label';
 import { PanelButton, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -77,6 +78,7 @@ async function mount(
     (copy[key] ?? key).replace(/\{(\w+)\}/gu, (_, name: string) => String(vars?.[name] ?? `{${name}}`));
   const bindings = {
     React,
+    IntegrationGithubVerification,
     useState: React.useState,
     PanelButton,
     PanelInput,
@@ -97,7 +99,10 @@ async function mount(
   const data = {
     ...(capability ? { integrationSync: { available: false, code: 'INTEGRATION_SYNC_UNAVAILABLE' } } : {}),
     integrationsState: {
-      integrations: { github: { connected: true, status: 'active', lastSync: '2020-01-01T00:00:00.000Z' } },
+      integrations: {
+        slack: { connected: true, status: 'active', lastSync: '2020-01-01T00:00:00.000Z' },
+        github: { connected: true, status: 'active', lastSync: '2020-01-01T00:00:00.000Z' },
+      },
       webhooks,
       apiKeys,
     },
@@ -130,10 +135,26 @@ for (const language of ['en', 'fr'] as const) {
         expect(onSubmit).not.toHaveBeenCalled();
       });
     }
+    it('uses personal GitHub verification instead of the legacy token configuration', async () => {
+      const { container, onSubmit } = await mount(language, true);
+      const card = container.querySelector('[data-testid="integration-card-github"]')!;
+      expect(card.querySelector('em[data-status="active"]')).toBeNull();
+      await act(async () =>
+        container.querySelector<HTMLButtonElement>('[data-testid="button-connect-github"]')!.click(),
+      );
+
+      const config = container.querySelector('[data-testid="dialog-integration-config"]')!;
+      expect(config.querySelector('input[name="apiToken"]')).toBeNull();
+      expect(config.querySelector('input[value="connect"]')).toBeNull();
+      expect(config.querySelector('input[value="disconnect"]')).toBeNull();
+      expect(config.textContent).not.toContain('2020');
+      expect(config.textContent).toMatch(language === 'fr' ? /GitHub/ : /GitHub/);
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
     it('does not turn a stored timestamp into verified history, while keeping configuration reachable', async () => {
       const { container, data } = await mount(language, true);
       await act(async () =>
-        container.querySelector<HTMLButtonElement>('[data-testid="button-connect-github"]')!.click(),
+        container.querySelector<HTMLButtonElement>('[data-testid="button-connect-slack"]')!.click(),
       );
 
       const config = container.querySelector('[data-testid="dialog-integration-config"]')!;
@@ -141,7 +162,7 @@ for (const language of ['en', 'fr'] as const) {
       expect(config.textContent).not.toContain('2020');
       expect(config.textContent).not.toMatch(/stops all syncs|arrête immédiatement toutes les synchronisations/i);
       expect(config.querySelector('input[value="disconnect"]')).not.toBeNull();
-      expect(data.integrationsState.integrations.github.lastSync).toBe('2020-01-01T00:00:00.000Z');
+      expect(data.integrationsState.integrations.slack.lastSync).toBe('2020-01-01T00:00:00.000Z');
     });
   });
   describe(`webhook delivery metrics UI ${language}`, () => {
