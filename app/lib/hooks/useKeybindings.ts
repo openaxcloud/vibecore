@@ -122,6 +122,7 @@ export function useKeybindings({
        * Radix dialogs own Escape dismissal (including nested layers). Window
        * capture must not consume it before their content/document listeners.
        * The composer tools menu also owns Escape and restores its opener focus.
+       * Agent settings own their first panel, portalled subpanel and open trigger.
        * Other shortcuts and custom IDE overlays retain their existing routing.
        */
       if (
@@ -129,7 +130,10 @@ export function useKeybindings({
         binding.action === 'overlay.close' &&
         event.target instanceof Element &&
         (event.target.closest('[role="dialog"]')?.getAttribute('data-state') === 'open' ||
-          event.target.closest('[data-testid="composer-tools-menu"][role="menu"]') !== null)
+          event.target.closest('[data-testid="composer-tools-menu"][role="menu"]') !== null ||
+          event.target.closest('[data-escape-owner="agent-settings"]') !== null ||
+          (event.target === document.body &&
+            document.querySelector('[role="dialog"][data-escape-owner="agent-settings"]') !== null))
       ) {
         return;
       }

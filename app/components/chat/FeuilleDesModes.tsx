@@ -24,7 +24,7 @@ import {
   resolutionDuChoix,
   type ChoixDuMode,
 } from './feuille-des-modes';
-import { placerSecondPanneau, type PlacementSecondPanneau } from './placement-second-panneau';
+import { MARGE_BORD, placerSecondPanneau, type PlacementSecondPanneau } from './placement-second-panneau';
 import { formatChatControlsCopy, type ChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 import { classNames } from '~/utils/classNames';
 
@@ -334,8 +334,18 @@ export function FeuilleDesModes({
               <div
                 className="bolt-feuille-second"
                 data-testid="feuille-second-panneau"
+                data-escape-owner="agent-settings"
                 data-cote={placement?.cote ?? 'droite'}
-                style={placement ? { position: 'fixed', left: placement.left, top: placement.top } : undefined}
+                style={
+                  placement
+                    ? {
+                        position: 'fixed',
+                        left: placement.left,
+                        top: placement.top,
+                        maxHeight: `max(0px, calc(100dvh - ${placement.top}px - ${MARGE_BORD}px))`,
+                      }
+                    : undefined
+                }
               >
                 {secondEcran()}
               </div>,
