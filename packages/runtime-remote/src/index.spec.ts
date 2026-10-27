@@ -775,6 +775,44 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(logs).toEqual(['server ready']);
   });
 
+  it('deduplicates source event IDs across log reconnects, never equal text alone', async () => {
+    vi.useFakeTimers();
+    FakeWebSocket.instances = [];
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'fixture',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const received: unknown[] = [];
+    const stop = await adapter.watchLogs((event) => received.push(event));
+
+    const frame = {
+      type: 'stdout',
+      data: 'same failure',
+      timestamp: '2026-10-27T14:00:00.123456789Z',
+      eventId: 'source-a',
+    };
+
+    const emit = (socket: FakeWebSocket, value: unknown) => socket.emit('message', { data: JSON.stringify(value) });
+
+    emit(FakeWebSocket.instances[0], frame);
+    FakeWebSocket.instances[0].emit('close', {});
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    emit(FakeWebSocket.instances[1], { ...frame, receivedAt: '2026-10-27T15:02:54.740Z' });
+    emit(FakeWebSocket.instances[1], { ...frame, eventId: 'source-b' });
+    emit(FakeWebSocket.instances[1], { ...frame, eventId: undefined, timestamp: '' });
+    emit(FakeWebSocket.instances[1], { ...frame, eventId: undefined, timestamp: '' });
+    expect(received).toHaveLength(4);
+    expect(received[0]).toEqual(frame);
+    stop();
+    vi.useRealTimers();
+  });
+
   it('marks the managed shell with managed=1 so the API skips the terminals.concurrent quota', async () => {
     FakeWebSocket.instances = [];
 

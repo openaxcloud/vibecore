@@ -1434,7 +1434,16 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
      */
     const { stdout } = await execFile(
       this.kubectl,
-      [...this.configArgs, 'logs', name, '-n', namespace, '--tail=500', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      [
+        ...this.configArgs,
+        'logs',
+        name,
+        '-n',
+        namespace,
+        '--timestamps',
+        '--tail=500',
+        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+      ],
       {
         maxBuffer: 16 * 1024 * 1024,
         timeout: KUBECTL_TIMEOUT_MS,
