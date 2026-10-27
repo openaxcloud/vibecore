@@ -1,0 +1,94 @@
+{
+  "source": "9e4c9c719",
+  "synthetic": true,
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "language": "en",
+  "rows": [
+    {
+      "case": "new-turn-no-output",
+      "label": "Stop agent"
+    },
+    {
+      "case": "selection-only",
+      "label": "Stop agent"
+    },
+    {
+      "case": "receipt-received",
+      "label": "Stop Claude"
+    },
+    {
+      "case": "latest-receipt",
+      "label": "Stop agent"
+    },
+    {
+      "case": "wrong-id-ignored",
+      "label": "Stop agent"
+    },
+    {
+      "case": "second-turn-neutral",
+      "label": "Stop agent"
+    },
+    {
+      "case": "cleared-thread-new-turn-neutral",
+      "label": "Stop agent"
+    },
+    {
+      "case": "second-project-full-navigation-neutral",
+      "label": "Stop agent"
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/projects/synthetic-first/ide-state"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-first/ai/conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/synthetic-second/ai/conversations"
+    }
+  ]
+}

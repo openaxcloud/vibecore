@@ -1,0 +1,32 @@
+{
+  "processes": [
+    {
+      "pid": 11018,
+      "args": [
+        "node",
+        "docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs"
+      ],
+      "startTicks": "669202",
+      "afterTerm": "absent",
+      "finalState": "absent"
+    },
+    {
+      "pid": 11032,
+      "args": [
+        "node",
+        "--require",
+        "./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs",
+        "node_modules/@react-router/serve/bin.js",
+        "build/server/index.js"
+      ],
+      "startTicks": "669330",
+      "afterTerm": "S",
+      "residualTerminated": true,
+      "finalState": "absent"
+    }
+  ],
+  "portConnectResults": {
+    "18199": 111,
+    "8199": 111
+  }
+}

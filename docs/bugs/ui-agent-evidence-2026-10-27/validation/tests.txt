@@ -1,0 +1,15 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-contract812
+
+ ✓ app/lib/runtime/agent-write-receipts.spec.ts (8 tests) 8ms
+ ✓ app/lib/runtime/agent-lane-shortfall.spec.ts (12 tests) 8ms
+ ✓ app/lib/runtime/agent-lane-writes.purete.spec.ts (2 tests) 3ms
+ ✓ app/lib/model-output-evidence.spec.ts (4 tests) 4ms
+ ✓ app/lib/project-agent-layout.spec.ts (3 tests) 3ms
+ ✓ app/components/chat/AssistantMessage.i18n.spec.tsx (25 tests) 615ms
+
+ Test Files  6 passed (6)
+      Tests  54 passed (54)
+   Start at  15:04:44
+   Duration  4.93s (transform 1.86s, setup 234ms, collect 770ms, tests 641ms, environment 611ms, prepare 644ms)
+

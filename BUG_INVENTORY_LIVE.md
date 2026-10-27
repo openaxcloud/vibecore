@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-528 entrées.
+529 entrées.
 
 ## Sans section
 
@@ -692,6 +692,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Génération et orchestration
 
 - [BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026](docs/bugs/BUG-PROVIDER-QUOTA-CLASSIFICATION-20261026.md) — 📤 Dispatché : ☑ 26/10 — diagnostic sur main `90d92ff12`. · 💻 Codé : ☐ — correctif local testé ; non fusionné et non déployé. · ✅ Testé live : ☐ — aucune invocation fournisseur ni lecture de solde.
+- [BUG-AGENT-UI-EVIDENCE-RECEIPTS-20261027](docs/bugs/BUG-AGENT-UI-EVIDENCE-RECEIPTS-20261027.md) — 📤 Dispatché : ☑ 27/10 — complément UI du contrat backend #812, séparé du lot responsive #811. · 💻 Codé : ☐ sur main — correctif local préparé, publication et livraison encore attendues. · ✅ Testé live : ☐ — aucune recette fournisseur ou projet client ; validations locales synthétiques seulement.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
