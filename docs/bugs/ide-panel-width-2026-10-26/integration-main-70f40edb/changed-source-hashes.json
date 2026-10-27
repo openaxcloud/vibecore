@@ -1,0 +1,5 @@
+{
+  "app/components/chat/BaseChat.tsx": "5f41853b7795f1538ff0f4936b4939b442ea41ac7dad3724537c768cf1d32ef1",
+  "app/components/chat/ProjectSettingsPanel.module.scss": "49f15b6cb02b9f8e9662d093e39e3e6c371e0c691a210e9063ede0491198d9e6",
+  "app/styles/ide-mobile-panels.spec.ts": "22e3d65ee1bd6ad6171455d47923ce2e75854f958a84044655834cbeabd03ff8"
+}

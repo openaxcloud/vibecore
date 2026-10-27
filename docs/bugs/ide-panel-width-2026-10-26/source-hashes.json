@@ -1,0 +1,14 @@
+{
+  "app/components/chat/Artifact.tsx": "b65b5600c4fbd5d7e37409ce5e82b9f7142315ae73f99f1c269379092bf930de",
+  "app/components/chat/Artifact.scss": "c28ccb611d562e1e31367432e7948a3d0f184d4bdb135cf4c452b2582f5f5275",
+  "app/components/chat/ChatBox.tsx": "948c38dc72218eb70bff3fd4cf83ca113170d1e121ecabd7a81c81f5ccfe844d",
+  "app/components/chat/ComposerToolsPortal.tsx": "b08282e602cfa934e98aba387910ac0514adba13abbf5ee4cf9e0a6dee9c6940",
+  "app/components/chat/ComposerToolsPortal.spec.tsx": "c9d71fc5eaf559cb20bac470cdf8d0f9c785f9d164772e1ac22411ca90c21c2b",
+  "app/components/ui/IconButton.tsx": "da2aef2da4a844fc5cf6f5f035fba1986b5c2c7cb5510879e84e4e611a712d54",
+  "app/components/ui/IconButton.tooltip.spec.tsx": "ac53add2277bb2aeb4b18093e15741ba853e5983c05bfd1207c10ea7414c8191",
+  "app/components/ui/GlobalTooltip.tsx": "aa91bb01b577dc241273c0c2f59f500ac9203051261955bf726723209fffddec",
+  "app/components/ui/GlobalTooltip.spec.tsx": "45c6e28f69d950cacc49778e75d913dce4b0001aeb55294d6e452c39f9902968",
+  "app/components/ui/useIdeToastLayout.ts": "c631569973df834fe8b0532c6e8304e36467e796e6f97b3094aca6cc8c3600e0",
+  "app/components/ui/useIdeToastLayout.spec.tsx": "d23fef9c242c212bf98e78068cba9262b30c1cd4902eda8402d2316f4c7879ac",
+  "app/styles/components/toast.scss": "319e33f59c49ed8b034609bfa4f2dc79fe7200ca4d343843cb6c7e47ad199116"
+}

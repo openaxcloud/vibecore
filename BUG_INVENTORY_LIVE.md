@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-528 entrées.
+529 entrées.
 
 ## Sans section
 
@@ -684,6 +684,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-TAB-SEARCH-HANDOFF-20261026](docs/bugs/BUG-IDE-TAB-SEARCH-HANDOFF-20261026.md) — Le remplacement réel de PendingComposerShell par ChatImpl conserve le menu et son focus après #799, mais perd la recherche saisie : `Webview` devient une chaîne — 📤 Dispatché : 26/10/2026 — correction locale distincte demandée après audit IDE ; #799 reste stable. · 💻 Codé : ☐ — local seulement, publication interdite avant coordination. L'état de recherche est porté par le contexte p · ✅ Testé live : ☐ — aucune production authentifiée. Reproduction rouge navigateur locale confirmée ; 13 tests focus/recherche
 - [BUG-PORTFOLIO-GENERATION-20261026](docs/bugs/BUG-PORTFOLIO-GENERATION-20261026.md) — 📤 Dispatché : ☑ 26 octobre 2026 — Lot portfolio isolé, PR #806. · 💻 Codé : ☐ Sur main. Correctif proposé dans #806 ; validation CI de la nouvelle tête requise. · ✅ Testé live : ☐ Aucune recette de génération en production ; accès au projet non disponible.
 - [BUG-PUBLISH-CONTAINER-LAYOUT-20261026](docs/bugs/BUG-PUBLISH-CONTAINER-LAYOUT-20261026.md) — Publish : contenu décalé et coupé entre les panneaux latéraux. — 📤 Dispatché : ☑ 26/10/2026 — captures utilisateur 11:41–11:43, lot Publish/Domains/Manage distinct de #808 et de la palette · 💻 Codé : ☐ — correctif local validé, revue indépendante favorable ; aucune livraison de ce lot. · ✅ Testé live : ☐ — aucune recette authentifiée de production, modification DNS ou publication cliente.
+- [BUG-IDE-PANEL-WIDTH-20261026](docs/bugs/BUG-IDE-PANEL-WIDTH-20261026.md) — 📤 Dispatché : Oui — lot Agent séparé de #807 ; Settings préparé hors fichier réservé. · 💻 Codé : Non sur main — corrections Agent validées localement, PR en préparation. · ✅ Testé live : Non — composants locaux synthétiques, aucune recette authentifiée client.
 
 ## Runtime et preview
 

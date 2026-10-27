@@ -1,0 +1,183 @@
+{
+  "rows": [
+    {
+      "width": 360,
+      "after": false,
+      "tab": "project",
+      "rootWidth": 360,
+      "rootScroll": 426,
+      "layoutColumns": "280px 64px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 360,
+      "after": false,
+      "tab": "usage",
+      "rootWidth": 360,
+      "rootScroll": 437,
+      "layoutColumns": "280px 64px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 360,
+      "after": false,
+      "tab": "memory",
+      "rootWidth": 360,
+      "rootScroll": 633,
+      "layoutColumns": "280px 64px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 360,
+      "after": false,
+      "tab": "account",
+      "rootWidth": 360,
+      "rootScroll": 504,
+      "layoutColumns": "280px 64px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 360,
+      "after": true,
+      "tab": "project",
+      "rootWidth": 360,
+      "rootScroll": 426,
+      "layoutColumns": "280px 64px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 360,
+      "after": true,
+      "tab": "usage",
+      "rootWidth": 360,
+      "rootScroll": 360,
+      "layoutColumns": "360px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "static",
+      "containerName": "project-settings"
+    },
+    {
+      "width": 360,
+      "after": true,
+      "tab": "memory",
+      "rootWidth": 360,
+      "rootScroll": 360,
+      "layoutColumns": "360px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "static",
+      "containerName": "project-settings",
+      "draftAndFocus": true
+    },
+    {
+      "width": 360,
+      "after": true,
+      "tab": "account",
+      "rootWidth": 360,
+      "rootScroll": 504,
+      "layoutColumns": "280px 64px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 640,
+      "after": false,
+      "tab": "project",
+      "rootWidth": 640,
+      "rootScroll": 640,
+      "layoutColumns": "280px 344px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 640,
+      "after": false,
+      "tab": "usage",
+      "rootWidth": 640,
+      "rootScroll": 640,
+      "layoutColumns": "280px 344px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 640,
+      "after": false,
+      "tab": "memory",
+      "rootWidth": 640,
+      "rootScroll": 660,
+      "layoutColumns": "280px 344px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 640,
+      "after": false,
+      "tab": "account",
+      "rootWidth": 640,
+      "rootScroll": 640,
+      "layoutColumns": "280px 344px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 640,
+      "after": true,
+      "tab": "project",
+      "rootWidth": 640,
+      "rootScroll": 640,
+      "layoutColumns": "280px 344px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    },
+    {
+      "width": 640,
+      "after": true,
+      "tab": "usage",
+      "rootWidth": 640,
+      "rootScroll": 640,
+      "layoutColumns": "640px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "static",
+      "containerName": "project-settings"
+    },
+    {
+      "width": 640,
+      "after": true,
+      "tab": "memory",
+      "rootWidth": 640,
+      "rootScroll": 640,
+      "layoutColumns": "640px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "static",
+      "containerName": "project-settings",
+      "draftAndFocus": true
+    },
+    {
+      "width": 640,
+      "after": true,
+      "tab": "account",
+      "rootWidth": 640,
+      "rootScroll": 640,
+      "layoutColumns": "280px 344px",
+      "sidebarDisplay": "grid",
+      "sidebarPosition": "sticky",
+      "containerName": "none"
+    }
+  ],
+  "errors": []
+}

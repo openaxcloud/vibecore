@@ -97,3 +97,15 @@ body:has(.bolt-project-ide-shell, .bolt-responsive-ide) .Toastify__toast-contain
     padding: 0;
   }
 }
+
+/* Desktop IDE notifications stay inside the visible Agent pane, even when the
+   viewport is wide but adjacent Library/Settings panes leave little room. */
+@media (min-width: 1024px) {
+  body:has(.bolt-project-ide-shell, .bolt-responsive-ide) .Toastify__toast-container.vc-ide-compact-toasts {
+    left: var(--vc-ide-toast-left, auto);
+    right: 8px;
+    top: var(--vc-ide-toast-top, 60px);
+    width: var(--vc-ide-toast-width, 380px);
+    max-width: calc(100vw - 16px);
+  }
+}

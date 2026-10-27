@@ -11,6 +11,7 @@ interface BaseIconButtonProps {
   'data-testid'?: string;
   title?: string;
   tooltip?: string;
+  hideTooltip?: boolean;
   tooltipLocked?: boolean;
   role?: AriaRole;
   ariaExpanded?: boolean;
@@ -48,6 +49,7 @@ export const IconButton = memo(
         disabled = false,
         title,
         tooltip,
+        hideTooltip,
         tooltipLocked,
         role,
         ariaExpanded,
@@ -72,15 +74,16 @@ export const IconButton = memo(
             },
             className,
           )}
-          title={title}
+          title={hideTooltip ? undefined : title}
           aria-label={title ?? tooltip}
           aria-expanded={ariaExpanded}
           aria-busy={ariaBusy}
           aria-haspopup={ariaHasPopup}
           aria-pressed={ariaPressed}
           data-state={dataState}
-          data-vc-tooltip={tooltip ?? title}
-          data-vc-tooltip-locked={tooltipLocked ? 'true' : undefined}
+          data-vc-tooltip={hideTooltip ? undefined : (tooltip ?? title)}
+          data-vc-tooltip-hidden={hideTooltip ? 'true' : undefined}
+          data-vc-tooltip-locked={tooltipLocked || hideTooltip ? 'true' : undefined}
           data-testid={dataTestId}
           disabled={disabled}
           onClick={(event) => {
