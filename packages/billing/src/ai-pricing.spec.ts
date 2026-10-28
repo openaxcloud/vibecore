@@ -93,3 +93,9 @@ describe('computeAiCostCents', () => {
     expect(result.costCents).toBe(1);
   });
 });
+
+it('prices the documented Luna standard model instead of returning an unknown zero', () => {
+  expect(
+    computeAiCostCents({ model: 'gpt-5.6-luna', provider: 'openai', inputTokens: 1000000, outputTokens: 1000000 }),
+  ).toMatchObject({ matched: true, costCents: 140 });
+});

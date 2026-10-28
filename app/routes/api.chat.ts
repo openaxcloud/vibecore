@@ -1,5 +1,7 @@
 /* eslint-disable import/order */
 import { type ActionFunctionArgs } from 'react-router';
+import type { ExplicitRunPermit } from '@vibecore/billing/src/explicit-run';
+import { createExplicitRunExecution, type ExplicitRunExecution } from '~/lib/.server/llm/bounded-explicit-run';
 import { createDataStream, formatDataStreamPart, generateId, type JSONValue } from 'ai';
 import {
   agentMemoryAnnotation,
@@ -156,7 +158,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     return headers;
   };
 
+  const explicitRunFailure = (error: unknown) =>
+    error && typeof error === 'object' && 'code' in error && error.code === 'EXPLICIT_RUN_LIMIT'
+      ? { error: true, code: 'EXPLICIT_RUN_LIMIT', message: copy.explicitRunLimit, statusCode: 400, isRetryable: false }
+      : undefined;
+
   const serializeLocalizedStreamError = (error: unknown): string => {
+    const explicitFailure = explicitRunFailure(error);
+
+    if (explicitFailure) {
+      return JSON.stringify(explicitFailure);
+    }
+
     const payload = buildChatStreamErrorPayload(error);
 
     if (error instanceof ChatQuotaError) {
@@ -240,6 +253,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      */
     conversationId?: string;
     clientMessageId?: string;
+    explicitModelChoice?: unknown;
+    explicitRunId?: string;
     contextOptimization: boolean;
     chatMode: 'discuss' | 'build';
     designScheme?: DesignScheme;
@@ -305,6 +320,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     projectId,
     conversationId,
     clientMessageId,
+    explicitModelChoice,
+    explicitRunId,
     contextOptimization,
     supabase,
     chatMode,
@@ -406,7 +423,54 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   let agentRoute: AgentRouteResolution | undefined;
 
-  if (!isAgentModeRoutingDisabled()) {
+  let explicitRun: ExplicitRunExecution | undefined;
+  let explicitPermit: ExplicitRunPermit | undefined;
+
+  if (explicitModelChoice !== undefined) {
+    try {
+      if (!projectId || !explicitRunId || agentPower?.extendedThinking || planFirstEnabled || planApproved) {
+        throw new Error(copy.explicitRunRefused);
+      }
+
+      explicitPermit = await apiRequest<ExplicitRunPermit>(
+        request,
+        `/projects/${encodeURIComponent(projectId)}/agent/explicit-run`,
+        {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({ runId: explicitRunId, choice: explicitModelChoice, ...agentSelection }),
+        },
+      );
+      explicitRun = createExplicitRunExecution(explicitPermit);
+      agentRoute = {
+        routingVersion: explicitPermit.routingVersion,
+        mode: 'lite',
+        plan: 'validated',
+        base: {
+          lineKey: explicitPermit.lineKey,
+          provider: explicitPermit.provider,
+          model: explicitPermit.model,
+          multiplier: explicitPermit.multiplier,
+        },
+      };
+    } catch (error) {
+      // Do not leak backend/provider details, and never silently fall back to Auto.
+      return new Response(
+        JSON.stringify({
+          error: true,
+          code: 'EXPLICIT_RUN_REFUSED',
+          isRetryable: false,
+          message: copy.explicitRunRefused,
+        }),
+        {
+          status: error instanceof Response ? error.status : 400,
+          headers: responseHeaders({ 'Content-Type': 'application/json' }),
+        },
+      );
+    }
+  }
+
+  if (!explicitRun && !isAgentModeRoutingDisabled()) {
     const routeResult = await resolveAgentRoute({
       projectId,
       selection: agentSelection,
@@ -688,26 +752,28 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * tearing down and rebuilding clients on every message needlessly.
      */
     try {
-      const { mcpConfig, maxLLMSteps: serverMaxLLMSteps } = await loadUserMcpConfig(request);
+      if (!explicitRun) {
+        const { mcpConfig, maxLLMSteps: serverMaxLLMSteps } = await loadUserMcpConfig(request);
 
-      /*
-       * Prefer the user's server-persisted step cap (clamped 1–50 at save time)
-       * over the unvalidated client value, so the saved Configuration-tab setting
-       * actually governs tool-loop depth and bounds runaway tool loops.
-       */
-      if (typeof serverMaxLLMSteps === 'number' && Number.isFinite(serverMaxLLMSteps)) {
-        resolvedMaxSteps = Math.max(1, Math.min(50, Math.floor(serverMaxLLMSteps)));
-      }
+        /*
+         * Prefer the user's server-persisted step cap (clamped 1–50 at save time)
+         * over the unvalidated client value, so the saved Configuration-tab setting
+         * actually governs tool-loop depth and bounds runaway tool loops.
+         */
+        if (typeof serverMaxLLMSteps === 'number' && Number.isFinite(serverMaxLLMSteps)) {
+          resolvedMaxSteps = Math.max(1, Math.min(50, Math.floor(serverMaxLLMSteps)));
+        }
 
-      /*
-       * Per-request MCP server toggle: drop servers the user disabled for this
-       * message BEFORE they're connected, so their tools never reach the LLM and
-       * no transport is opened for them. undefined = no override (all kept).
-       */
-      const effectiveMcpConfig = filterEnabledMcpServers(mcpConfig, resolvedEnabledMcpServers);
+        /*
+         * Per-request MCP server toggle: drop servers the user disabled for this
+         * message BEFORE they're connected, so their tools never reach the LLM and
+         * no transport is opened for them. undefined = no override (all kept).
+         */
+        const effectiveMcpConfig = filterEnabledMcpServers(mcpConfig, resolvedEnabledMcpServers);
 
-      if (Object.keys(effectiveMcpConfig.mcpServers).length > 0 || mcpService.configuredServerCount > 0) {
-        await mcpService.updateConfig(effectiveMcpConfig);
+        if (Object.keys(effectiveMcpConfig.mcpServers).length > 0 || mcpService.configuredServerCount > 0) {
+          await mcpService.updateConfig(effectiveMcpConfig);
+        }
       }
     } catch (error) {
       logger.warn('Failed to load MCP config for chat request', error);
@@ -774,6 +840,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           finishReason: code === 'CHAIN_DEADLINE' ? 'chain-deadline' : factureAbandon.finishReason,
           cookieHeader: request.headers.get('Cookie') ?? undefined,
           source: 'chat',
+          ...(explicitPermit
+            ? {
+                agentRouting: {
+                  mode: explicitPermit.lineKey,
+                  highEffort: false,
+                  escalated: false,
+                  turbo: false,
+                  lineKey: 'lite',
+                  explicitRunId: explicitPermit.runId,
+                  source: 'chat',
+                },
+              }
+            : {}),
         }).catch(() => undefined);
       }
     };
@@ -940,7 +1019,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let summary: string | undefined = undefined;
         let messageSliceId = 0;
 
-        const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
+        const processedMessages = explicitRun
+          ? [...messages]
+          : await mcpService.processToolInvocations(messages, dataStream);
 
         /*
          * Écrit la réponse complète du serveur sur la ligne du navigateur (même
@@ -1029,31 +1110,40 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * Le même client veut dire la même clé, donc un seul budget par projet —
          * pas un budget par chemin.
          */
-        const webReferenceRedis = await getWebReferenceRateLimitRedis(
-          context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
-        );
+        const webReferenceRedis = explicitRun
+          ? null
+          : await getWebReferenceRateLimitRedis(
+              context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+            );
 
-        const { messagesForAgents, webReferenceContext, webReferenceContextForContinuation } =
-          await prepareWebReferenceForChat({
-            messages: processedMessages,
-            chatMode,
-            language,
-            signal: request.signal,
-            dataStream,
-            nextProgressOrder: () => progressCounter++,
+        const { messagesForAgents, webReferenceContext, webReferenceContextForContinuation } = explicitRun
+          ? {
+              messagesForAgents: processedMessages,
+              webReferenceContext: undefined,
+              webReferenceContextForContinuation: undefined,
+            }
+          : await prepareWebReferenceForChat({
+              messages: processedMessages,
+              chatMode,
+              language,
+              signal: request.signal,
+              dataStream,
+              nextProgressOrder: () => progressCounter++,
 
-            /* Only a project chat (the quota-gated path) may make the web pod fetch. */
-            rateLimitKey: projectId,
+              /* Only a project chat (the quota-gated path) may make the web pod fetch. */
+              rateLimitKey: projectId,
 
-            /*
-             * Plafond PARTAGÉ entre les replicas du pod web : sans lui, « 12
-             * lectures par 10 minutes » vaut 12 × nombre de pods. `null` quand
-             * REDIS_URL est absent → compteur par pod, jamais illimité.
-             */
-            rateLimitRedis: webReferenceRedis,
-          });
+              /*
+               * Plafond PARTAGÉ entre les replicas du pod web : sans lui, « 12
+               * lectures par 10 minutes » vaut 12 × nombre de pods. `null` quand
+               * REDIS_URL est absent → compteur par pod, jamais illimité.
+               */
+              rateLimitRedis: webReferenceRedis,
+            });
 
-        const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
+        const agentMemory = explicitRun
+          ? undefined
+          : await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
 
         if (agentMemory?.memories.length) {
           dataStream.writeMessageAnnotation(agentMemoryAnnotation(agentMemory.memories) as ContextAnnotation);
@@ -1191,9 +1281,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * the (LLM) planner when it matters. Plan mode forces orchestration even
          * for short prompts.
          */
-        const willOrchestrate = shouldUseAgentOrchestration(processedMessages, chatMode, {
-          planFirst: planFirstEnabled,
-        });
+        const willOrchestrate =
+          !explicitRun &&
+          shouldUseAgentOrchestration(processedMessages, chatMode, {
+            planFirst: planFirstEnabled,
+          });
 
         /*
          * Prompt-driven planner: ask the user's model to decompose the request
@@ -1231,16 +1323,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           }
         }
 
-        let orchestrationPlan = buildAgentOrchestrationPlan({
-          messages: processedMessages,
-          chatMode,
-          subagentsAvailable: areParallelSubagentsAvailable(
-            context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
-          ),
-          parallelAgents,
-          planFirst: planFirstEnabled,
-          selectedRoleIds,
-        });
+        let orchestrationPlan = explicitRun
+          ? { enabled: false, mode: 'single-model-lanes' as const, reason: copy.boundedExplicitRun, roles: [] }
+          : buildAgentOrchestrationPlan({
+              messages: processedMessages,
+              chatMode,
+              subagentsAvailable: areParallelSubagentsAvailable(
+                context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+              ),
+              parallelAgents,
+              planFirst: planFirstEnabled,
+              selectedRoleIds,
+            });
 
         /*
          * PLAN-APPROVAL GATE (Plan mode, step 1): when the user turned on "Plan"
@@ -1502,7 +1596,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          */
         const progressionDuContexte = creerSuiviDeProgression((annotation) => dataStream.writeData(annotation));
 
-        if (filePaths.length > 0 && contextOptimization) {
+        if (!explicitRun && filePaths.length > 0 && contextOptimization) {
           try {
             /*
              * A1 (Wave A): only summarise when the history is actually large
@@ -1741,19 +1835,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
            * ECODE_WEB_FETCH_TOOL_ENABLED and only on a project (rate-limit
            * tenant). Empty object when off: the request shape is unchanged.
            */
-          tools: {
-            ...mcpService.toolsWithoutExecute,
-            ...webFetchToolSet({
-              env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
-              rateLimitKey: projectId,
+          tools: explicitRun
+            ? {}
+            : {
+                ...mcpService.toolsWithoutExecute,
+                ...webFetchToolSet({
+                  env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+                  rateLimitKey: projectId,
 
-              /* Même client, donc même clé : l'outil et la référence automatique partagent un seul plafond. */
-              redis: webReferenceRedis,
-              language,
-              signal: request.signal,
-            }),
-          },
-          maxSteps: resolvedMaxSteps,
+                  /* Même client, donc même clé : l'outil et la référence automatique partagent un seul plafond. */
+                  redis: webReferenceRedis,
+                  language,
+                  signal: request.signal,
+                }),
+              },
+          maxSteps: explicitRun ? 1 : resolvedMaxSteps,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
@@ -1978,6 +2074,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                                 ? agentRoute.fallback.lineKey
                                 : agentTargetLine.lineKey,
                             source: 'chat',
+                            ...(explicitPermit ? { explicitRunId: explicitPermit.runId } : {}),
                           },
                         }
                       : {}),
@@ -2156,11 +2253,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 } satisfies ProgressAnnotation);
                 await new Promise((resolve) => setTimeout(resolve, 0));
                 jalonOnFinish('avant-memoire');
-                await persistAgentMemoryCandidate(request, {
-                  messages: processedMessages,
-                  assistantText: content,
-                  projectId,
-                });
+
+                if (!explicitRun) {
+                  await persistAgentMemoryCandidate(request, {
+                    messages: processedMessages,
+                    assistantText: content,
+                    projectId,
+                  });
+                }
 
                 jalonOnFinish('apres-memoire');
 
@@ -2172,7 +2272,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 return;
               }
 
-              if (continuationSegments >= MAX_RESPONSE_SEGMENTS) {
+              if (continuationSegments >= (explicitPermit ? explicitPermit.maxCalls - 1 : MAX_RESPONSE_SEGMENTS)) {
                 /*
                  * Hard stop after MAX_RESPONSE_SEGMENTS continuations. End the
                  * stream cleanly with a truncation note rather than throwing (a
@@ -2219,7 +2319,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
               continuationSegments += 1;
 
-              const switchesLeft = MAX_RESPONSE_SEGMENTS - continuationSegments;
+              const switchesLeft =
+                (explicitPermit ? explicitPermit.maxCalls - 1 : MAX_RESPONSE_SEGMENTS) - continuationSegments;
 
               logger.info(
                 `Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} segments left)`,
@@ -2264,6 +2365,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 suiviDeChaine.debut();
 
                 const result = await streamText({
+                  explicitRun,
                   messages: [...processedMessages],
                   forcedRoute: agentTargetLine
                     ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
@@ -2369,7 +2471,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * in the annotation.
          */
         if (agentRoute) {
-          if (agentSelection.highEffort && agentRoute.escalation) {
+          if (!explicitRun && agentSelection.highEffort && agentRoute.escalation) {
             const lastUserTextForHardness = (() => {
               const lastUser = [...processedMessages].reverse().find((message) => message.role === 'user');
               return typeof lastUser?.content === 'string' ? lastUser.content : '';
@@ -2459,6 +2561,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         suiviDeChaine.debut();
 
         const result = await streamText({
+          explicitRun,
           messages: [...processedMessages],
           forcedRoute: agentTargetLine
             ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
@@ -2859,6 +2962,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   } catch (error: any) {
     logger.error(error);
+
+    const explicitFailure = explicitRunFailure(error);
+
+    if (explicitFailure) {
+      return new Response(JSON.stringify(explicitFailure), {
+        status: explicitFailure.statusCode,
+        headers: responseHeaders({ 'Content-Type': 'application/json' }),
+      });
+    }
 
     const errorCode = classifyStreamError(error);
     const rawMessage = typeof error?.message === 'string' ? error.message : '';

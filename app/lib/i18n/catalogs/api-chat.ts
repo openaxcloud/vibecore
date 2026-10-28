@@ -12,6 +12,13 @@ export const API_CHAT_PROGRESS_LABELS = {
 
 export const apiChatCatalog = {
   en: {
+    explicitRunLimit:
+      'This explicit run stopped because its request size, call limit or provider configuration could not be validated. No automatic retry was made.',
+
+    explicitRunRefused:
+      'The explicit selection is unavailable or its budget is exhausted. Use Lite and Luna Standard without Plan or advanced options; no automatic fallback will run.',
+    boundedExplicitRun: 'Bounded explicit run',
+
     analysisComplete: 'Analysis Complete',
     analysingRequest: 'Analysing Request',
     agentExecutionFailed: 'This specialist agent could not complete its task.',
@@ -102,6 +109,13 @@ export const apiChatCatalog = {
     unexpectedError: 'An unexpected error occurred',
   },
   fr: {
+    explicitRunLimit:
+      'Cette génération explicite est arrêtée : la taille de la demande, la limite d’appels ou la configuration du fournisseur ne peut pas être validée. Aucun nouvel essai automatique n’a été effectué.',
+
+    explicitRunRefused:
+      'Le choix explicite est indisponible ou son budget est épuisé. Utilisez Lite et Luna Standard sans Plan ni options avancées ; aucun repli automatique ne sera effectué.',
+    boundedExplicitRun: 'Génération explicite avec budget limité',
+
     analysisComplete: 'Analyse terminée',
     analysingRequest: 'Analyse de la demande',
     agentExecutionFailed: 'Cet agent spécialisé n’a pas pu terminer sa tâche.',

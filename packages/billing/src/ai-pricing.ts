@@ -35,6 +35,15 @@ export interface AiModel {
 
 export const aiModelCatalog: AiModel[] = [
   {
+    id: 'gpt-5.6-luna',
+    provider: 'openai',
+    displayName: 'GPT-5.6 Luna',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 20,
+    outputCentsPerMillion: 120,
+    contextWindow: 1_050_000,
+  },
+  {
     id: 'gpt-4.1',
     provider: 'openai',
     displayName: 'GPT-4.1',

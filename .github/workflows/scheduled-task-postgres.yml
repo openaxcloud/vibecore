@@ -61,6 +61,9 @@ jobs:
       - name: Require all 7 PostgreSQL scenarios and zero skipped tests
         run: sh services/api/scripts/verify-scheduled-task-postgres.sh "$RUNNER_TEMP/scheduled-task-proof"
 
+      - name: Require all 4 explicit-budget PostgreSQL scenarios and zero skips
+        run: sh services/api/scripts/verify-explicit-run-postgres.sh "$RUNNER_TEMP/explicit-run-proof"
+
       - name: Verify the exact tested commit and publish the receipt
         run: |
           node --input-type=module <<'JS'
@@ -84,5 +87,8 @@ jobs:
             ${{ runner.temp }}/scheduled-task-proof/tests.json
             ${{ runner.temp }}/scheduled-task-proof/tests-summary.json
             ${{ runner.temp }}/scheduled-task-proof/receipt.json
+            ${{ runner.temp }}/explicit-run-proof/tests.log
+            ${{ runner.temp }}/explicit-run-proof/tests.json
+            ${{ runner.temp }}/explicit-run-proof/summary.json
           if-no-files-found: error
           retention-days: 7

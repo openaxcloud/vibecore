@@ -640,6 +640,11 @@ export function AgentPowerControls({
                     avance={reglagesAvances}
                     disposition={ancre ? 'cote-a-cote' : 'feuille'}
                   />
+                  {choixParMode[value.buildTier]?.modele ? (
+                    <p className="mt-2 text-xs text-bolt-elements-textSecondary" role="note">
+                      {copy['chatControls.power.explicitBudget']}
+                    </p>
+                  ) : null}
                   {planFirstToggle}
                   {ligneDeCout}
                 </>

@@ -8,6 +8,11 @@ const { validateAndFormatHunkMock, buildSelfRepairPromptMock, applyEntryExportRe
   applyEntryExportReconcileMock: vi.fn(),
 }));
 
+const repairBoundary = vi.hoisted(() => ({ budget: vi.fn(), model: vi.fn() }));
+vi.mock('~/lib/.server/llm/stream-text', () => ({ streamText: repairBoundary.model }));
+vi.mock('~/lib/.server/require-session', () => ({ requireWebSession: vi.fn() }));
+vi.mock('~/lib/enterprise-api.server', () => ({ apiRequest: repairBoundary.budget }));
+
 vi.mock('./hunk-validate', async () => {
   const actual = await vi.importActual<typeof import('./hunk-validate')>('./hunk-validate');
   return {
@@ -713,6 +718,11 @@ describe('ActionRunner self-repair retry loop', () => {
         readFile: vi.fn().mockResolvedValue({ content: 'const fixed = 1;\n' }),
       } as Partial<RuntimeAdapter>),
       () => createShell() as any,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'fixture-ast-project',
     );
 
     runner.addAction(fileAction);
@@ -721,6 +731,7 @@ describe('ActionRunner self-repair retry loop', () => {
     expect(runner.consumeConfirmedFileWrite(fileAction.actionId)?.filePath).toBe('src/App.tsx');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('/api/agent/self-repair');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).projectId).toBe('fixture-ast-project');
 
     expect(writeFile).toHaveBeenCalledTimes(1);
     expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n', { streaming: false });
@@ -1332,4 +1343,64 @@ describe('BUG-AGENT-001 — une réécriture octet-pour-octet ne repart pas sur 
 
     expect(cssWrites(runtime).length).toBeGreaterThanOrEqual(2);
   });
+});
+
+describe('automatic repair project budget transport', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    repairBoundary.budget.mockReset();
+    repairBoundary.model.mockReset();
+  });
+
+  it.each([true, false])(
+    'forwards the captured artifact project through the real route; bounded=%s',
+    async (bounded) => {
+      const { action } = await import('../../routes/api.agent.self-repair');
+      repairBoundary.budget.mockResolvedValue({ bounded });
+      repairBoundary.model.mockResolvedValue({
+        text: Promise.resolve('const fixed = 1;'),
+        finishReason: Promise.resolve('stop'),
+      });
+
+      const transport = vi.fn<typeof fetch>(async (url, options) => {
+        expect(url).toBe('/api/agent/self-repair');
+        return action({
+          request: new Request('https://fixture.local/api/agent/self-repair', options),
+          context: { cloudflare: { env: {} } },
+          params: {},
+        } as never);
+      });
+      vi.stubGlobal('fetch', transport);
+
+      let currentProject = 'project-a';
+
+      const runner = new ActionRunner(
+        createRuntime(),
+        () => createShell() as any,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        currentProject,
+      );
+      currentProject = 'project-b';
+      runner.setRuntime(createRuntime());
+
+      const output = await runner.recoverDiffViaFullFileReemit(
+        'src/a.ts',
+        'const old = 1;',
+        'invalid patch',
+        new AbortController().signal,
+      );
+      expect(JSON.parse(transport.mock.calls[0][1]!.body as string).projectId).toBe('project-a');
+      expect(repairBoundary.budget).toHaveBeenCalledWith(
+        expect.any(Request),
+        '/projects/project-a/agent/explicit-run',
+        { redirectOn401: false },
+      );
+      expect(repairBoundary.model).toHaveBeenCalledTimes(bounded ? 0 : 1);
+      expect(output).toBe(bounded ? null : 'const fixed = 1;');
+      expect(currentProject).toBe('project-b');
+    },
+  );
 });

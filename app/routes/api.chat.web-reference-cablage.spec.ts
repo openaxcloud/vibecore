@@ -28,7 +28,7 @@ describe('api.chat.ts — la référence web atteint le modèle, le planificateu
      * budget par projet. Deux résolutions séparées passeraient ce test à l'œil
      * nu tout en ouvrant deux budgets — d'où le compte exact.
      */
-    expect(chat).toContain('const webReferenceRedis = await getWebReferenceRateLimitRedis(');
+    expect(chat).toMatch(/const webReferenceRedis = explicitRun\s*\? null\s*: await getWebReferenceRateLimitRedis\(/u);
     expect(count(chat, 'await getWebReferenceRateLimitRedis(')).toBe(1);
 
     // Chemin 1 — la référence automatique.
@@ -42,7 +42,7 @@ describe('api.chat.ts — la référence web atteint le modèle, le planificateu
   it('lit le site via prepareWebReferenceForChat, sur le chemin quota (projectId comme clé)', () => {
     expect(chat).toContain("import { prepareWebReferenceForChat } from '~/lib/.server/web/chat-web-reference';");
     expect(chat).toMatch(
-      /const \{ messagesForAgents, webReferenceContext, webReferenceContextForContinuation \} =\s*await prepareWebReferenceForChat\(\{/u,
+      /const \{ messagesForAgents, webReferenceContext, webReferenceContextForContinuation \} = explicitRun[\s\S]*?: await prepareWebReferenceForChat\(\{/u,
     );
     expect(chat).toContain('rateLimitKey: projectId,');
     expect(chat).toContain('nextProgressOrder: () => progressCounter++,');
@@ -83,7 +83,11 @@ describe('api.chat.ts — outil fetch_web_page (RP-WEB-03, derrière drapeau)', 
   it('fusionne webFetchToolSet aux outils MCP, avec projectId comme clé de limitation', () => {
     expect(chat).toContain("import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';");
 
-    const tools = chat.slice(chat.indexOf('tools: {'), chat.indexOf('tools: {') + 700);
+    const start = chat.indexOf('tools: explicitRun');
+    expect(start).toBeGreaterThan(0);
+
+    const tools = chat.slice(start, start + 900);
+    expect(tools).toMatch(/tools: explicitRun\s*\? \{\}/u);
 
     expect(tools).toContain('...mcpService.toolsWithoutExecute,');
     expect(tools).toContain('...webFetchToolSet({');

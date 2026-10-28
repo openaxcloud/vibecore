@@ -111,6 +111,7 @@ export interface RecordChatUsageInput {
     escalated: boolean;
     turbo: boolean;
     lineKey: string;
+    explicitRunId?: string;
     source?: string;
   };
 

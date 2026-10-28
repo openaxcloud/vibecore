@@ -1,0 +1,41 @@
+---
+id: BUG-AGENT-EXPLICIT-MODEL-20261028
+---
+
+# Choix explicite affiché mais ignoré par la génération
+
+📤 Dispatché : ☑ 28 octobre 2026.
+💻 Codé : ☐ Correctif local, pas encore livré sur main.
+✅ Testé live : ☐ Aucun appel fournisseur ni génération de production pour ce lot.
+
+## Défaut et correction
+
+La feuille des modes persistait son choix, mais Chat.client ne le transmettait pas ; la carte globale décidait encore du fournisseur. La requête lit maintenant le choix au moment de l'envoi. Auto conserve sa résolution habituelle. Un choix explicite incompatible est refusé, jamais remplacé silencieusement.
+
+Le premier parcours borné autorise uniquement Lite / OpenAI `gpt-5.6-luna` / Standard, pour un projet accessible en écriture, une organisation non suspendue, un abonnement et une carte active admissibles, et l'intégration OpenAI existante activée. Aucune clé créée, copiée ou exposée. Aucun changement de carte globale. Il ne prouve pas que le compte fournisseur dispose de crédits.
+
+La réservation persistante et atomique couvre un total prospectif de 20 USD par projet, fournisseur et tarif plateforme comptés séparément. Le run réserve avant tout appel ; le même identifiant ne peut pas être rejoué. Les réserves sont conservées après erreur, interruption ou absence de mesure fiable. Le plafond n'est ni un débit ni une recharge du portefeuille. La facturation active par crédits est refusée pour ce parcours, faute de garantie de son tarif de règlement ; Auto ne change pas.
+
+La garde de taille de requête n'est pas un tokenizer certifié. Le budget réserve donc le pire cas documenté : 1 050 000 tokens d'entrée par appel, 8 192 de sortie incluant raisonnement, majorations longue fenêtre, écriture de cache et région. Les tarifs fournisseur réservés sont55/198 cents par million ; les prix de comptabilité normale restent distincts. Avec les tarifs Lite par défaut, 15,26 USD sont réservés pour deux appels maximum (génération et une continuation). Une carte différente peut autoriser de1 à8appels sous20USD. La limite entière n'est pas renouvelée par clic. Les appels historiques ne sont pas rétroactivement réconciliés par cette réserve.
+
+Planner, lanes, résumé, sélection LLM de contexte, mémoire/embeddings, MCP, outils web et retries sont désactivés pour ce seul parcours. Les continuations partagent le même compteur. La requête finale impose l'endpoint OpenAI global, le modèle exact, `service_tier: default`, `max_completion_tokens:8192`, aucun outil/multimédia ni redirection. Aucun repli ou appel dynamique de découverte.
+
+L'audit du parcours complet a également identifié des appels hors du flux chat : sélection automatique du template, auto-réparation AST/diff et rejeu de pendingPrompt après réouverture. Le choix explicite court-circuite la sélection payante du template. Chaque ActionRunner capture son projet à sa création ; la route de réparation exige ce contexte et lit la garde persistée côté API avant tout appel modèle. Une réservation existante, même malformée, interdit la réparation automatique ; une lecture indéterminée échoue fermée. Cette interdiction reste valable après rechargement et même pour une réparation Auto ultérieure dans ce projet. Auto reste fonctionnel dans les projets sans réservation. Le rejeu automatique d'un prompt en attente exige également une réponse serveur explicite `bounded:false` ; le prompt de secours reste disponible sans dépense implicite.
+
+La borne concerne ce parcours explicite et ses appels automatiques. Elle n'autorise ni ne comptabilise rétroactivement d'autres appels IA déclenchés volontairement hors de ce parcours. La recette utilise uniquement le choix Lite / Luna Standard et conserve son plafond total de 20 USD.
+
+## Sources du modèle et du prix
+
+- https://developers.openai.com/api/docs/models/gpt-5.6-luna
+- https://developers.openai.com/api/docs/guides/fast-mode
+- https://developers.openai.com/api/docs/pricing
+
+Consultées le28octobre2026. Standard est forcé car l'absence de service_tier peut hériter d'un réglage Fast. Les noms affichés ne sont pas assimilés à des modèles historiques.
+
+## Validation et limites
+
+Tests de contrats avec transport isolé et vrai SDK : modèle/tier/sortie, refus avant réseau, compteur commun, aucune répétition, aucun auxiliaire en strict, Auto préservé. Tests API projet/plan/configuration/budget/rejeu et preuve PostgreSQL réelle : quatre scénarios réussis sans omission, deux connexions distinctes, concurrence sérialisée, doublon et rejeu refusés, snapshot relu après reconnexion. Réserve de 15,26 USD et reste de 4,74 USD vérifiés ; tarifs normaux et bornes distincts. Base locale éphémère et fixtures UUID nettoyées. Le runner CI impose la tête exacte, un arbre propre et zéro test ignoré ; ces exigences s’ajoutent aux sept scénarios PostgreSQL existants. Les preuves locales portent les empreintes sources et dirty:true, sans prétendre être le verdict du commit distant. Aucun test sur données réelles ni preuve de génération financée, d'aperçu, GitHub, publication ou réouverture en production. La recette authentifiée reste à coordonner dans son budget total, incluant toute consommation antérieure indéterminée.
+
+La première CI de #826 a refusé les messages non localisés. Le complément les catalogue en FR/EN et conserve les codes internes typés ; aucune baseline ni règle n’est assouplie. Les refus de garde de budget restent non réessayables et expurgés dans les réponses HTTP et SSE.
+
+Compléments de couverture : 105 tests ActionRunner/route de réparation, 23 tests template/rejeu/BFF, neuf contrats API et quatre preuves PostgreSQL réelles, dont garde relue après reconnexion. Aucun appel fournisseur dans ces tests. Un passage de CI a détecté EXPECTED_SHA absent de .env.example, documenté sans modifier la garde. Un autre a rencontré EADDRINUSE sur le port aléatoire d'une fixture d'arrêt du serveur inchangée ; ses trois tests passent isolément et le job a été repris normalement sur le même SHA. Ces reprises ne sont pas présentées comme des réussites au premier passage.
