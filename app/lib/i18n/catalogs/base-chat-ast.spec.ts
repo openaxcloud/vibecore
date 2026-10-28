@@ -197,10 +197,16 @@ describe('BaseChat strengthened-AST catalog', () => {
      *      Terminal/menu bas modifié ; le scope réel du panneau évite la perte
      *      du brouillon lors du remplacement de coque.
      *
+     *   9. Transfert Editor responsive du 28/10 : comparaison exacte à #836
+     *      cea27731c, un seul hunk enveloppe ClientOnly dans une frontière de
+     *      focus sans DOM et généralise searchPaneId en paneId. Les enfants,
+     *      classes, textes, callbacks, Terminal et navigation basse restent
+     *      identiques. La frontière réserve le reçu pendant le chargement lazy.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('3eda01b51db8beef7a2a6e9446e77a454b4f500e5696e11f98596d81c52dac85');
+    expect(frozenHash).toBe('5f57b671b48ef9f528b0ed4f1e700a5a37842a0505be1a43ae82b05387acace3');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

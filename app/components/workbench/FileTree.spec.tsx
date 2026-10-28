@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { atom } from 'nanostores';
 import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FileTree } from './FileTree';
 import { resolveEmptyExplorerState } from './file-tree-empty-state';
+import { useKeybindings } from '~/lib/hooks/useKeybindings';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 import type { FileMap } from '~/lib/stores/files';
 
@@ -285,5 +286,38 @@ describe('inline file-name submission and cancellation', () => {
     expect(screen.queryByRole('textbox', { name: 'Enter file name…' })).toBeNull();
     expect(workbenchStore.createFile).not.toHaveBeenCalled();
     expect(parentKey).not.toHaveBeenCalled();
+  });
+});
+
+describe('file context menu with global IDE shortcuts', () => {
+  afterEach(cleanup);
+
+  it('closes on Escape and restores the file opener without closing the IDE overlay', async () => {
+    const runAction = vi.fn();
+
+    function Harness() {
+      useKeybindings({
+        bindings: [{ combo: 'escape', action: 'overlay.close', label: '', description: '', category: 'Help' }],
+        getContext: () => ({}),
+        runAction,
+      });
+      return <FileTree files={files} rootFolder="/home/project" hideRoot />;
+    }
+    renderInEnglish(<Harness />);
+
+    const opener = screen.getByRole('button', { name: 'package.json' });
+    opener.focus();
+    fireEvent.contextMenu(opener);
+
+    expect(screen.getByRole('menu').style.maxWidth).toBe('var(--radix-context-menu-content-available-width)');
+
+    const action = screen.getByRole('menuitem', { name: 'Rename' });
+    action.focus();
+    fireEvent.keyDown(action, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    expect(runAction).not.toHaveBeenCalled();
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+    fireEvent.keyDown(opener, { key: 'Escape' });
+    expect(runAction).toHaveBeenCalledOnce();
   });
 });

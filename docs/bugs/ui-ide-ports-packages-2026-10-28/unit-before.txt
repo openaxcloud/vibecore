@@ -1,0 +1,63 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-local-escape
+
+ ❯ app/components/chat/ports-packages-accessibility.spec.tsx (8 tests | 3 failed) 72ms
+   × Ports and Packages accessibility (fr) > keeps visibility action canonical for undefined 32ms
+     → expected 'public' to be 'private' // Object.is equality
+   ✓ Ports and Packages accessibility (fr) > keeps visibility action canonical for public 5ms
+   ✓ Ports and Packages accessibility (fr) > keeps visibility action canonical for private 4ms
+   × Ports and Packages accessibility (fr) > exposes the selected manager and updates it without submitting 13ms
+     → expected [ null, null, null, null ] to deeply equal [ 'true', 'false', 'false', 'false' ]
+   ✓ Ports and Packages accessibility (en) > keeps visibility action canonical for undefined 4ms
+   ✓ Ports and Packages accessibility (en) > keeps visibility action canonical for public 3ms
+   ✓ Ports and Packages accessibility (en) > keeps visibility action canonical for private 3ms
+   × Ports and Packages accessibility (en) > exposes the selected manager and updates it without submitting 8ms
+     → expected [ null, null, null, null ] to deeply equal [ 'true', 'false', 'false', 'false' ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/chat/ports-packages-accessibility.spec.tsx > Ports and Packages accessibility (fr) > keeps visibility action canonical for undefined
+AssertionError: expected 'public' to be 'private' // Object.is equality
+
+Expected: "private"
+Received: "public"
+
+ ❯ app/components/chat/ports-packages-accessibility.spec.tsx:38:25
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  app/components/chat/ports-packages-accessibility.spec.tsx > Ports and Packages accessibility (fr) > exposes the selected manager and updates it without submitting
+ FAIL  app/components/chat/ports-packages-accessibility.spec.tsx > Ports and Packages accessibility (en) > exposes the selected manager and updates it without submitting
+AssertionError: expected [ null, null, null, null ] to deeply equal [ 'true', 'false', 'false', 'false' ]
+
+- Expected
++ Received
+
+  [
+-   "true",
+-   "false",
+-   "false",
+-   "false",
++   null,
++   null,
++   null,
++   null,
+  ]
+
+ ❯ app/components/chat/ports-packages-accessibility.spec.tsx:50:74
+     48|     const group = container.querySelector('.bolt-project-package-manag…
+     49|     const buttons = [...group.querySelectorAll('button')];
+     50|     expect(buttons.map((button) => button.getAttribute('aria-pressed')…
+       |                                                                          ^
+     51|     fireEvent.click(buttons[1]);
+     52|     expect(buttons.map((button) => button.getAttribute('aria-pressed')…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 5 passed (8)
+   Start at  21:07:34
+   Duration  3.13s (transform 1.13s, setup 21ms, collect 712ms, tests 72ms, environment 287ms, prepare 59ms)
+

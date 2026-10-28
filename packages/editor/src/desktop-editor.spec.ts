@@ -1,10 +1,14 @@
 /** @vitest-environment jsdom */
+import { EditorSelection } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
-import { createElement, StrictMode } from 'react';
+import { createElement, StrictMode, Suspense, lazy } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   DesktopCodeEditor,
+  EditorAdapter,
   DesktopEditorFocusProvider,
+  EditorFocusHandoffBoundary,
   preloadDesktopCodeEditor,
   useDesktopEditorFocusHandoff,
   useDesktopEditorComposing,
@@ -17,11 +21,27 @@ type TestModel = {
   getValue: () => string;
   setValue: (value: string) => void;
   dispose: () => void;
+  getOffsetAt: (position: { lineNumber: number; column: number }) => number;
+  getPositionAt: (offset: number) => { lineNumber: number; column: number };
 };
 type TestEditor = {
   getModel: () => TestModel;
   getValue: () => string;
   contentChanged: () => void;
+  getSelections: () => Array<{
+    selectionStartLineNumber: number;
+    selectionStartColumn: number;
+    positionLineNumber: number;
+    positionColumn: number;
+  }>;
+  setSelections: (
+    selections: Array<{
+      selectionStartLineNumber: number;
+      selectionStartColumn: number;
+      positionLineNumber: number;
+      positionColumn: number;
+    }>,
+  ) => void;
   updateOptions: ReturnType<typeof vi.fn>;
   disposed: boolean;
   input: HTMLTextAreaElement;
@@ -75,6 +95,17 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
       uri,
       isDisposed: () => disposed,
       getValue: () => value,
+      getOffsetAt: ({ lineNumber, column }) =>
+        value
+          .split('\n')
+          .slice(0, lineNumber - 1)
+          .reduce((sum, line) => sum + line.length + 1, 0) +
+        column -
+        1,
+      getPositionAt: (offset) => {
+        const lines = value.slice(0, offset).split('\n');
+        return { lineNumber: lines.length, column: lines[lines.length - 1].length + 1 };
+      },
       setValue: (next) => {
         value = next;
 
@@ -116,7 +147,15 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
         let onCompositionStart = () => undefined as void;
         let onCompositionEnd = () => undefined as void;
 
+        let selections = [
+          { selectionStartLineNumber: 1, selectionStartColumn: 1, positionLineNumber: 1, positionColumn: 1 },
+        ];
+
         const editor = {
+          getSelections: () => selections,
+          setSelections: (next: typeof selections) => {
+            selections = next;
+          },
           input,
           startComposition: () => onCompositionStart(),
           endComposition: () => onCompositionEnd(),
@@ -580,3 +619,363 @@ it('keeps simultaneous compositions independent within the same provider', async
   act(() => second.endComposition());
   expect(mounted.getByTestId('composition-status').textContent).toBe('false');
 });
+
+function resizeEditor(width: number) {
+  Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches: false,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  });
+  Object.defineProperty(HTMLElement.prototype, 'getClientRects', { configurable: true, value: () => [] });
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() });
+  window.dispatchEvent(new Event('orientationchange'));
+}
+
+function portableTree(
+  scope = 'project-a',
+  identity = 'pane-main:/portable.txt',
+  value = 'A😀B\nSecond line',
+  filePath = '/portable.txt',
+) {
+  return createElement(DesktopEditorFocusProvider, {
+    key: scope,
+    children: createElement(EditorAdapter, { value, filePath, focusIdentity: identity }),
+  });
+}
+
+function mobileView(container: HTMLElement) {
+  return EditorView.findFromDOM(container.querySelector('.cm-content')!)!;
+}
+
+it.each([false, true])(
+  'keeps portable UTF16 selection and focus through CodeMirror to Monaco and back (StrictMode %s)',
+  async (strict) => {
+    resizeEditor(390);
+
+    const mounted = render(strict ? createElement(StrictMode, { children: portableTree() }) : portableTree());
+    const mobile = mobileView(mounted.container);
+    mobile.dispatch({ selection: EditorSelection.single(8, 3) });
+    mobile.focus();
+    await act(async () => {
+      resizeEditor(1280);
+    });
+
+    const desktop = await newestEditor();
+    expect(document.activeElement).toBe(desktop.input);
+    expect(desktop.getSelections()).toEqual([
+      { selectionStartLineNumber: 2, selectionStartColumn: 4, positionLineNumber: 1, positionColumn: 4 },
+    ]);
+    await act(async () => {
+      resizeEditor(390);
+    });
+
+    const restored = mobileView(mounted.container);
+    expect(restored.hasFocus).toBe(true);
+    expect([restored.state.selection.main.anchor, restored.state.selection.main.head]).toEqual([8, 3]);
+  },
+);
+
+it('does not refocus a resized editor after the user focuses an outside control', async () => {
+  resizeEditor(390);
+
+  const mounted = render(portableTree());
+  mobileView(mounted.container).focus();
+
+  const outside = document.createElement('button');
+  document.body.append(outside);
+
+  try {
+    outside.focus();
+    await act(async () => {
+      resizeEditor(1280);
+    });
+
+    const desktop = await newestEditor();
+    expect(document.activeElement).toBe(outside);
+    expect(desktop.getSelections()[0].positionColumn).toBe(1);
+  } finally {
+    outside.remove();
+  }
+});
+
+it.each(['scope', 'identity', 'contents', 'filePath'])(
+  'rejects cross-engine focus when %s changed',
+  async (changed) => {
+    resizeEditor(390);
+
+    const mounted = render(portableTree());
+    const mobile = mobileView(mounted.container);
+    mobile.dispatch({ selection: EditorSelection.single(8, 3) });
+    mobile.focus();
+    await act(async () => {
+      resizeEditor(1280);
+      mounted.rerender(
+        portableTree(
+          changed === 'scope' ? 'project-b' : 'project-a',
+          changed === 'identity' ? 'pane-other:/portable.txt' : 'pane-main:/portable.txt',
+          changed === 'contents' ? 'DIFFERENT' : 'A😀B\nSecond line',
+          changed === 'filePath' ? '/other.txt' : '/portable.txt',
+        ),
+      );
+    });
+
+    const desktop = await newestEditor();
+    expect(document.activeElement).not.toBe(desktop.input);
+    expect(desktop.getSelections()[0].positionColumn).toBe(1);
+  },
+);
+
+it.each(['pointer', 'keyboard', 'focus'])(
+  'cancels an async cross-engine handoff after outside %s',
+  async (interaction) => {
+    resizeEditor(390);
+
+    const mounted = render(portableTree());
+    mobileView(mounted.container).focus();
+
+    const outside = document.createElement('button');
+    document.body.append(outside);
+
+    try {
+      act(() => {
+        resizeEditor(1280);
+      });
+
+      if (interaction === 'pointer') {
+        outside.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      }
+
+      if (interaction === 'keyboard') {
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+      }
+
+      if (interaction === 'focus') {
+        outside.focus();
+      }
+
+      const desktop = await newestEditor();
+      expect(document.activeElement).not.toBe(desktop.input);
+    } finally {
+      outside.remove();
+    }
+  },
+);
+
+it('does not transfer unfinished native composition to another engine', async () => {
+  resizeEditor(390);
+
+  const mounted = render(portableTree());
+  const mobile = mobileView(mounted.container);
+  mobile.focus();
+  mobile.contentDOM.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  await act(async () => {
+    resizeEditor(1280);
+  });
+
+  const desktop = await newestEditor();
+  expect(document.activeElement).not.toBe(desktop.input);
+});
+
+it('does not refocus a later editor after closing the route', async () => {
+  resizeEditor(390);
+
+  const mounted = render(portableTree());
+  mobileView(mounted.container).focus();
+  mounted.unmount();
+  await Promise.resolve();
+  resizeEditor(1280);
+  render(portableTree());
+
+  const desktop = await newestEditor();
+  expect(document.activeElement).not.toBe(desktop.input);
+});
+
+it('preserves multiple portable ranges and the primary range across engines', async () => {
+  resizeEditor(390);
+
+  const mounted = render(portableTree());
+  const mobile = mobileView(mounted.container);
+  mobile.dispatch({ selection: EditorSelection.create([EditorSelection.range(0, 1), EditorSelection.range(9, 6)], 1) });
+  mobile.focus();
+  await act(async () => {
+    resizeEditor(1280);
+  });
+
+  const desktop = await newestEditor();
+  expect(desktop.getSelections()).toEqual([
+    { selectionStartLineNumber: 2, selectionStartColumn: 5, positionLineNumber: 2, positionColumn: 2 },
+    { selectionStartLineNumber: 1, selectionStartColumn: 1, positionLineNumber: 1, positionColumn: 2 },
+  ]);
+  await act(async () => {
+    resizeEditor(390);
+  });
+
+  const restored = mobileView(mounted.container);
+  expect(restored.state.selection.mainIndex).toBe(1);
+  expect(restored.state.selection.ranges.map(({ anchor, head }) => [anchor, head])).toEqual([
+    [0, 1],
+    [9, 6],
+  ]);
+  expect(restored.hasFocus).toBe(true);
+});
+
+it('does not transfer unfinished Monaco composition into CodeMirror', async () => {
+  resizeEditor(1280);
+
+  const mounted = render(portableTree());
+  const desktop = await newestEditor();
+  desktop.input.focus();
+  desktop.startComposition();
+  await act(async () => {
+    resizeEditor(390);
+  });
+  expect(mobileView(mounted.container).hasFocus).toBe(false);
+});
+
+it('does not steal outside focus when switching Monaco into CodeMirror', async () => {
+  resizeEditor(1280);
+
+  const mounted = render(portableTree());
+  (await newestEditor()).input.focus();
+
+  const outside = document.createElement('button');
+  document.body.append(outside);
+
+  try {
+    outside.focus();
+    await act(async () => {
+      resizeEditor(390);
+    });
+    expect(document.activeElement).toBe(outside);
+    expect(mobileView(mounted.container).hasFocus).toBe(false);
+  } finally {
+    outside.remove();
+  }
+});
+
+// Characterization: portable offsets currently require identical engine serialization.
+it('declines CRLF-to-LF handoff instead of applying physical CRLF offsets to CodeMirror', async () => {
+  resizeEditor(1280);
+
+  const source = 'A😀B\r\nSecond line';
+  const mounted = render(portableTree('project-a', 'pane-main:/portable.txt', source));
+  const desktop = await newestEditor();
+  desktop.setSelections([
+    { selectionStartLineNumber: 2, selectionStartColumn: 4, positionLineNumber: 1, positionColumn: 4 },
+  ]);
+  desktop.input.focus();
+  expect(desktop.getModel().getOffsetAt({ lineNumber: 2, column: 4 })).toBe(9);
+  await act(async () => {
+    resizeEditor(390);
+  });
+
+  const mobile = mobileView(mounted.container);
+  expect(mobile.state.doc.toString()).toBe('A😀B\nSecond line');
+  expect(mobile.state.doc.line(2).from + 3).toBe(8);
+  expect(mobile.hasFocus).toBe(false);
+  expect([mobile.state.selection.main.anchor, mobile.state.selection.main.head]).toEqual([0, 0]);
+});
+
+it.each(['resolved', 'focus', 'pointer', 'navigation', 'scope', 'cancel', 'composition', 'strict'])(
+  'owns a deferred editor destination until %s',
+  async (scenario) => {
+    resizeEditor(1280);
+
+    let release!: (module: { default: typeof EditorAdapter }) => void;
+
+    const Deferred = lazy(
+      () =>
+        new Promise<{ default: typeof EditorAdapter }>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const identity = 'pane-main:/portable.txt';
+    const props = { value: 'A😀B\nSecond line', filePath: '/portable.txt', focusIdentity: identity };
+
+    const makeTree = (phase: 'source' | 'pending' | 'off', scope = 'project-a') => {
+      const children =
+        phase === 'source'
+          ? createElement(EditorAdapter, props)
+          : createElement(EditorFocusHandoffBoundary, {
+              identity: phase === 'pending' ? identity : undefined,
+              children: createElement(Suspense, {
+                fallback: createElement('span', null, 'Loading destination'),
+                children: createElement(Deferred, props),
+              }),
+            });
+
+      const tree = createElement(DesktopEditorFocusProvider, { key: scope, children });
+
+      return scenario === 'strict' ? createElement(StrictMode, { children: tree }) : tree;
+    };
+
+    const mounted = render(makeTree('source'));
+    const desktop = await newestEditor();
+    desktop.setSelections([
+      { selectionStartLineNumber: 2, selectionStartColumn: 4, positionLineNumber: 1, positionColumn: 4 },
+    ]);
+    desktop.input.focus();
+
+    if (scenario === 'composition') {
+      desktop.startComposition();
+    }
+
+    await act(async () => {
+      resizeEditor(390);
+      mounted.rerender(makeTree('pending'));
+    });
+    expect(mounted.getByText('Loading destination')).toBeTruthy();
+    expect(mounted.container.querySelector('.cm-content')).toBeNull();
+
+    const outside = document.createElement('button');
+    document.body.append(outside);
+
+    try {
+      if (scenario === 'focus') {
+        outside.focus();
+      }
+
+      if (scenario === 'pointer') {
+        outside.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      }
+
+      if (scenario === 'navigation') {
+        mounted.rerender(makeTree('off'));
+        mounted.rerender(makeTree('pending'));
+      }
+
+      if (scenario === 'scope') {
+        mounted.rerender(makeTree('pending', 'other-project'));
+      }
+
+      if (scenario === 'cancel') {
+        mounted.unmount();
+      }
+
+      await act(async () => {
+        release({ default: EditorAdapter });
+      });
+
+      if (scenario === 'cancel') {
+        expect(document.querySelector('.cm-content')).toBeNull();
+        return;
+      }
+
+      const mobile = mobileView(mounted.container);
+      const allowed = scenario === 'resolved' || scenario === 'strict';
+      expect(mobile.hasFocus).toBe(allowed);
+      expect([mobile.state.selection.main.anchor, mobile.state.selection.main.head]).toEqual(allowed ? [8, 3] : [0, 0]);
+
+      if (scenario === 'focus') {
+        expect(document.activeElement).toBe(outside);
+      }
+    } finally {
+      outside.remove();
+    }
+  },
+);

@@ -131,7 +131,7 @@ function fixture({
     <I18nextProvider i18n={i18n}>
       <SearchDraftProvider projectId={project} workspaceId={workspace} windowId={window}>
         {!visible ? null : mobile ? (
-          <EditorPanel key={`${instance}:${pane}`} mobilePanel="search" searchPaneId={pane || undefined} />
+          <EditorPanel key={`${instance}:${pane}`} mobilePanel="search" paneId={pane || undefined} />
         ) : (
           <Search key={`${instance}:${pane}`} paneId={pane || undefined} />
         )}

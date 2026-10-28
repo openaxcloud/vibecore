@@ -281,7 +281,7 @@ import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
-import { editorKindForLayout, useResponsiveLayout } from '@vibecore/editor';
+import { editorKindForLayout, useResponsiveLayout, EditorFocusHandoffBoundary } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
@@ -2983,10 +2983,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ? projectPanelResolution.panel
         : '';
 
-    /* An explicit Search route must survive a shell handoff without an intermediate Agent commit. */
+    /* Explicit Search and Editor routes must survive a shell handoff without an intermediate Agent commit. */
     const [mobilePanel, setMobilePanel] = useState<
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
-    >(() => (projectIdeMode && activeProjectPanel === 'search' ? 'search' : 'chat'));
+    >(() =>
+      projectIdeMode && (activeProjectPanel === 'search' || activeProjectPanel === 'editor')
+        ? activeProjectPanel
+        : 'chat',
+    );
 
     /*
      * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — keep-alive du Workbench mobile.
@@ -3376,8 +3380,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [ECODE_MOBILE_TAB_META, t]);
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState(() =>
-      projectIdeMode && activeProjectPanel === 'search' ? 'search' : 'agent',
+      projectIdeMode && (activeProjectPanel === 'search' || activeProjectPanel === 'editor')
+        ? activeProjectPanel
+        : 'agent',
     );
+
+    const [previousEditorDestination, setPreviousEditorDestination] = useState(activeProjectPanel);
+
+    // Prepare Editor before CSS can enter the compact layout, without overriding an in-flight tab choice.
+    if (previousEditorDestination !== activeProjectPanel) {
+      setPreviousEditorDestination(activeProjectPanel);
+
+      if (projectIdeMode && activeProjectPanel === 'editor') {
+        setMobilePanel('editor');
+        setActiveMobileOpenTabId('editor');
+      }
+    }
 
     /*
      * Panneau de service rendu par la surface mobile « deploy ». En-tête ET
@@ -10542,32 +10560,40 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   data-active={!useMobileIde || mobileWorkbenchPanelActive ? 'true' : 'false'}
                   aria-hidden={!useMobileIde || mobileWorkbenchPanelActive ? undefined : true}
                 >
-                  <ClientOnly>
-                    {() => (
-                      <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
-                        <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
-                          <LazyWorkbench
-                            chatStarted={chatStarted || useMobileIde}
-                            isStreaming={isStreaming}
-                            setSelectedElement={setSelectedElement}
-                            mobilePanel={resolveMobileWorkbenchPanel({
-                              mobilePanel,
-                              lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
-                            })}
-                            projectId={projectId}
-                            searchPaneId={projectIdeMode ? activePaneId : undefined}
-                            onUserFileSelect={onUserProjectFileSelect}
-                            onMobilePanelChange={(panel) => {
-                              if (panel === 'editor') {
-                                setMobileIdePanel('editor');
-                                setProjectPanelSearchParam('editor');
-                              }
-                            }}
-                          />
-                        </Suspense>
-                      </PanelBoundary>
-                    )}
-                  </ClientOnly>
+                  <EditorFocusHandoffBoundary
+                    identity={
+                      projectIdeMode && useMobileIde && mobilePanel === 'editor' && currentDocument
+                        ? JSON.stringify([activePaneId, currentDocument.filePath])
+                        : undefined
+                    }
+                  >
+                    <ClientOnly>
+                      {() => (
+                        <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
+                          <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
+                            <LazyWorkbench
+                              chatStarted={chatStarted || useMobileIde}
+                              isStreaming={isStreaming}
+                              setSelectedElement={setSelectedElement}
+                              mobilePanel={resolveMobileWorkbenchPanel({
+                                mobilePanel,
+                                lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
+                              })}
+                              projectId={projectId}
+                              paneId={projectIdeMode ? activePaneId : undefined}
+                              onUserFileSelect={onUserProjectFileSelect}
+                              onMobilePanelChange={(panel) => {
+                                if (panel === 'editor') {
+                                  setMobileIdePanel('editor');
+                                  setProjectPanelSearchParam('editor');
+                                }
+                              }}
+                            />
+                          </Suspense>
+                        </PanelBoundary>
+                      )}
+                    </ClientOnly>
+                  </EditorFocusHandoffBoundary>
                 </div>
               ) : null}
             </>
@@ -19161,6 +19187,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                 key={manager}
                 type="button"
                 className={manager === packageManager ? 'selected' : undefined}
+                aria-pressed={manager === packageManager}
                 onClick={() => setPackageManager(manager)}
               >
                 {manager}
@@ -19344,7 +19371,7 @@ function ProjectPortsPanel({
             {ports.map((entry) => {
               const portNumber = entry.port;
               const isPrimary = primaryPort != null && Number(primaryPort) === Number(portNumber);
-              const vis = visibility[String(portNumber)] ?? t('chat.copy.public_61c9b2b1');
+              const vis = visibility[String(portNumber)] ?? 'public';
 
               return (
                 <div
@@ -19362,7 +19389,7 @@ function ProjectPortsPanel({
                       {entry.ready ? t('chat.copy.ready_75c05337') : t('chat.copy.starting_9493af05')}
                     </span>
                     <span className="ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary">
-                      {vis}
+                      {visibility[String(portNumber)] ?? t('chat.copy.public_61c9b2b1')}
                     </span>
                     {entry.url ? (
                       <div className="mt-0.5 truncate font-mono text-bolt-elements-textSecondary">{entry.url}</div>

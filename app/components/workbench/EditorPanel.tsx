@@ -31,7 +31,7 @@ import { renderLogger } from '~/utils/logger';
 import { isMobile } from '~/utils/mobile';
 
 interface EditorPanelProps {
-  searchPaneId?: string;
+  paneId?: string;
   files?: FileMap;
   unsavedFiles?: Set<string>;
   editorDocument?: EditorDocument;
@@ -61,7 +61,7 @@ export const EditorPanel = memo(
     onFileSave,
     onFileReset,
     mobilePanel,
-    searchPaneId,
+    paneId,
   }: EditorPanelProps) => {
     renderLogger.trace('EditorPanel');
 
@@ -198,7 +198,7 @@ export const EditorPanel = memo(
         </Tabs.Content>
 
         <Tabs.Content value="search" className="flex-grow overflow-auto focus-visible:outline-none">
-          <Search paneId={searchPaneId} />
+          <Search paneId={paneId} />
         </Tabs.Content>
 
         <Tabs.Content value="locks" className="flex-grow overflow-auto focus-visible:outline-none">
@@ -311,6 +311,7 @@ export const EditorPanel = memo(
               className="h-full w-full"
               value={editorDocument.value}
               filePath={editorDocument.filePath}
+              focusIdentity={paneId ? JSON.stringify([paneId, editorDocument.filePath]) : undefined}
               readOnly={editorReadOnly}
               theme={theme === 'dark' ? 'dark' : 'light'}
               autoFocus={!isMobile() && !useMobilePanelLayout}
@@ -359,7 +360,7 @@ export const EditorPanel = memo(
         return (
           <PanelBoundary title={t('idePanels.editor.search')}>
             <div className="h-full overflow-auto" data-testid="mobile-search-panel">
-              <Search paneId={searchPaneId} />
+              <Search paneId={paneId} />
             </div>
           </PanelBoundary>
         );

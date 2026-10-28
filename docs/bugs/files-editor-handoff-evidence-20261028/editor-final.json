@@ -1,0 +1,4571 @@
+[
+  {
+    "width": 390,
+    "lang": "fr",
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      }
+    ],
+    "findings": [],
+    "file": {
+      "rect": {
+        "x": 8,
+        "y": 128,
+        "width": 364,
+        "height": 40,
+        "top": 128,
+        "right": 372,
+        "bottom": 168,
+        "left": 8
+      },
+      "title": "",
+      "text": "DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "client": 364,
+      "scroll": 364
+    },
+    "selectionBefore": {
+      "kind": "codemirror",
+      "focus": true,
+      "selection": {
+        "anchor": 3,
+        "head": 7
+      },
+      "filePath": "/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "focusIdentity": "[\"pane-main\",\"/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx\"]"
+    },
+    "beforeResizeAt": 3980.380000002682,
+    "geometry": {
+      "client": 390,
+      "scroll": 390,
+      "tabs": []
+    },
+    "selectionAfter": {
+      "kind": "monaco",
+      "focus": true,
+      "selection": {
+        "startLine": 1,
+        "startColumn": 4,
+        "positionLine": 1,
+        "positionColumn": 8
+      },
+      "filePath": "/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "focusIdentity": "[\"pane-main\",\"/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx\"]"
+    },
+    "surfaceEvents": [
+      {
+        "at": 1393.9200000017881,
+        "panel": "chat",
+        "width": 390,
+        "agentRect": {
+          "width": 390,
+          "height": 852
+        }
+      },
+      {
+        "at": 1525.7600000053644,
+        "panel": "files",
+        "width": 390,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "at": 1700.2250000014901,
+        "panel": "chat",
+        "width": 390,
+        "agentRect": {
+          "width": 390,
+          "height": 852
+        }
+      },
+      {
+        "at": 1761.375,
+        "panel": "files",
+        "width": 390,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "at": 2134.945000000298,
+        "panel": "chat",
+        "width": 390,
+        "agentRect": {
+          "width": 390,
+          "height": 852
+        }
+      },
+      {
+        "at": 2169.8600000068545,
+        "panel": "files",
+        "width": 390,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "at": 3605.0500000044703,
+        "panel": "editor",
+        "width": 390,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      }
+    ],
+    "frames": [
+      {
+        "at": 4207.660000003874,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 364,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4217.7900000065565,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 364,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4232.5250000059605,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 370.078125,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4245.260000005364,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 393.984375,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4263.255000002682,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 447.359375,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4530.5,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 4638.030000001192,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 4692.295000001788,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 4707.515000000596,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 4727.70000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 5006.990000002086,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5098.755000002682,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5110.195000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5118.140000000596,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5133.375,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5166.765000000596,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5168.260000005364,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5205.090000003576,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5209.835000000894,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5217.22500000149,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5233.465000003576,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5250.280000001192,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5267.465000003576,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5283.32500000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5300.160000003874,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5316.730000004172,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5333.715000003576,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5350.32500000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5366.730000004172,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5383.270000003278,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5400.885000005364,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5416.4700000062585,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5433.495000004768,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5450.185000002384,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5466.705000005662,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5483.340000003576,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5500.030000001192,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5516.955000005662,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5533.490000002086,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5550.060000002384,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5566.770000003278,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5583.395000003278,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5601.060000002384,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5617.160000003874,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5633.70000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5649.905000001192,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5666.5950000062585,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5683.4150000065565,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5705.240000002086,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5716.70000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5733.57500000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5752.835000000894,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5767.315000005066,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5783.45000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5800.180000007153,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5816.815000005066,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5833.520000003278,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5850.20000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5866.960000000894,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5883.9700000062585,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5900.8450000062585,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5919.455000005662,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5937.805000007153,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5950.380000002682,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 5967.535000003874,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      }
+    ],
+    "agentVisibleAfterResize": [],
+    "agentMutationAfterResize": [],
+    "resize": {
+      "to": 1280,
+      "preserved": true,
+      "editorKind": "view-lines monaco-mouse-cursor-text",
+      "focus": {
+        "tag": "TEXTAREA",
+        "class": "inputarea monaco-mouse-cursor-text"
+      }
+    },
+    "completed": true,
+    "pass": true
+  },
+  {
+    "width": 820,
+    "lang": "fr",
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      }
+    ],
+    "findings": [],
+    "file": {
+      "rect": {
+        "x": 8,
+        "y": 128,
+        "width": 794,
+        "height": 40,
+        "top": 128,
+        "right": 802,
+        "bottom": 168,
+        "left": 8
+      },
+      "title": "",
+      "text": "DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "client": 794,
+      "scroll": 794
+    },
+    "selectionBefore": {
+      "kind": "codemirror",
+      "focus": true,
+      "selection": {
+        "anchor": 7,
+        "head": 3
+      },
+      "filePath": "/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "focusIdentity": "[\"pane-main\",\"/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx\"]"
+    },
+    "beforeResizeAt": 2986.5349999964237,
+    "geometry": {
+      "client": 820,
+      "scroll": 820,
+      "tabs": []
+    },
+    "selectionAfter": {
+      "kind": "monaco",
+      "focus": true,
+      "selection": {
+        "startLine": 1,
+        "startColumn": 8,
+        "positionLine": 1,
+        "positionColumn": 4
+      },
+      "filePath": "/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "focusIdentity": "[\"pane-main\",\"/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx\"]"
+    },
+    "surfaceEvents": [
+      {
+        "at": 1092.640000000596,
+        "panel": "chat",
+        "width": 820,
+        "agentRect": {
+          "width": 820,
+          "height": 852
+        }
+      },
+      {
+        "at": 1145.6449999958277,
+        "panel": "files",
+        "width": 820,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "at": 1309.8799999952316,
+        "panel": "chat",
+        "width": 820,
+        "agentRect": {
+          "width": 820,
+          "height": 852
+        }
+      },
+      {
+        "at": 1388.539999999106,
+        "panel": "files",
+        "width": 820,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "at": 1567.780000001192,
+        "panel": "chat",
+        "width": 820,
+        "agentRect": {
+          "width": 820,
+          "height": 852
+        }
+      },
+      {
+        "at": 1605.2149999961257,
+        "panel": "files",
+        "width": 820,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "at": 2717.814999997616,
+        "panel": "editor",
+        "width": 820,
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        }
+      }
+    ],
+    "frames": [
+      {
+        "at": 3074.244999997318,
+        "width": 820,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 820,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3162.759999997914,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 794,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3172.4799999967217,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 794,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3174.454999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 794,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3191.2849999964237,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 792.65625,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3210.820000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 787.390625,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3224.329999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 775.640625,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3260.0999999940395,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 743.84375,
+            "height": 656
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 3487.280000001192,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 3579.835000000894,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 3591.9649999961257,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 3608.9799999967217,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 3622.2399999946356,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 3625.994999997318,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full"
+        }
+      },
+      {
+        "at": 3852.7849999964237,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 3980.3649999946356,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 3990.509999997914,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4025.7249999940395,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4029.335000000894,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4039.2149999961257,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4056.1049999967217,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4072.6149999946356,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4089.234999999404,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4105.82499999553,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4122.780000001192,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4139.54999999702,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4156.329999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4172.589999996126,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4189.460000000894,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4206.335000000894,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4222.695000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4239.554999999702,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4256.829999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4272.765000000596,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4289.27499999851,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4307.015000000596,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4323.214999996126,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4339.414999999106,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4356.284999996424,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4373.064999997616,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4389.204999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4406.104999996722,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4422.964999996126,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4439.454999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4456.579999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4472.884999997914,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4489.964999996126,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4506.159999996424,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4522.539999999106,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4539.5,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4555.844999998808,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4572.539999999106,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4589.405000001192,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4606.104999996722,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4622.704999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4639.39999999851,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4656.195000000298,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4672.689999997616,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4689.269999995828,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4705.954999998212,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4722.5999999940395,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 4739.439999997616,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      }
+    ],
+    "agentVisibleAfterResize": [],
+    "agentMutationAfterResize": [],
+    "resize": {
+      "to": 1280,
+      "preserved": true,
+      "editorKind": "view-lines monaco-mouse-cursor-text",
+      "focus": {
+        "tag": "TEXTAREA",
+        "class": "inputarea monaco-mouse-cursor-text"
+      }
+    },
+    "completed": true,
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "lang": "fr",
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/write"
+      }
+    ],
+    "findings": [],
+    "file": {
+      "rect": {
+        "x": 1027.65625,
+        "y": 251.03125,
+        "width": 234.34375,
+        "height": 24,
+        "top": 251.03125,
+        "right": 1262,
+        "bottom": 275.03125,
+        "left": 1027.65625
+      },
+      "title": "",
+      "text": "DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "client": 234,
+      "scroll": 585
+    },
+    "selectionBefore": {
+      "kind": "monaco",
+      "focus": true,
+      "selection": {
+        "startLine": 1,
+        "startColumn": 4,
+        "positionLine": 1,
+        "positionColumn": 8
+      },
+      "filePath": "/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "focusIdentity": "[\"pane-main\",\"/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx\"]"
+    },
+    "beforeResizeAt": 3551.9499999955297,
+    "geometry": {
+      "client": 1280,
+      "scroll": 1280,
+      "tabs": [
+        {
+          "text": "components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx●",
+          "rect": {
+            "x": 401,
+            "y": 36,
+            "width": 230.390625,
+            "height": 39,
+            "top": 36,
+            "right": 631.390625,
+            "bottom": 75,
+            "left": 401
+          }
+        },
+        {
+          "text": "Webview×",
+          "rect": {
+            "x": 632.390625,
+            "y": 36,
+            "width": 98.4375,
+            "height": 39,
+            "top": 36,
+            "right": 730.828125,
+            "bottom": 75,
+            "left": 632.390625
+          }
+        }
+      ]
+    },
+    "selectionAfter": {
+      "kind": "codemirror",
+      "focus": true,
+      "selection": {
+        "anchor": 3,
+        "head": 7
+      },
+      "filePath": "/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx",
+      "focusIdentity": "[\"pane-main\",\"/home/project/src/components/DocumentationDesParcoursUtilisateursEtValidationResponsiveFrancaise.tsx\"]"
+    },
+    "surfaceEvents": [
+      {
+        "at": 1312.7249999940395,
+        "panel": "chat",
+        "width": 1280,
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        }
+      },
+      {
+        "at": 3213.6549999937415,
+        "panel": "editor",
+        "width": 1280,
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        }
+      }
+    ],
+    "frames": [
+      {
+        "at": 3623.3099999949336,
+        "width": 1280,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 788
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 613.65625,
+            "height": 756
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 3714.414999999106,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 776
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 0,
+            "height": 724
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 3732.179999999702,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 776
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 0,
+            "height": 724
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 3794.234999999404,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 776
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 0,
+            "height": 724
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 3806.625,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 339,
+          "height": 776
+        },
+        "editorHosts": [
+          {
+            "kind": "monaco",
+            "width": 0,
+            "height": 724
+          }
+        ],
+        "active": {
+          "tag": "TEXTAREA",
+          "className": "inputarea monaco-mouse-cursor-text"
+        }
+      },
+      {
+        "at": 3898.6999999955297,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full enable-motion underline-links"
+        }
+      },
+      {
+        "at": 3921.4599999934435,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full enable-motion underline-links"
+        }
+      },
+      {
+        "at": 3927.134999997914,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full enable-motion underline-links"
+        }
+      },
+      {
+        "at": 3943.0599999949336,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [],
+        "active": {
+          "tag": "BODY",
+          "className": "h-full w-full enable-motion underline-links"
+        }
+      },
+      {
+        "at": 4092.314999997616,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4147.379999995232,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4168.544999994338,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4203.0149999931455,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4209.734999999404,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4245.504999995232,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4373.954999998212,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4379.329999998212,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4390.14999999851,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4407.484999999404,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4427.219999998808,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4439.945000000298,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4455.57499999553,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4472.2649999931455,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4488.759999997914,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4506.0299999937415,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4522.52499999851,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4538.729999996722,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4555.689999997616,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4572.059999994934,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4588.869999997318,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4605.739999994636,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4622.54999999702,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4638.934999994934,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4655.4599999934435,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4672.3499999940395,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4688.77499999851,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4705.469999998808,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4722.1399999931455,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4738.879999995232,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4756.239999994636,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4772.059999994934,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4788.844999998808,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4805.309999994934,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4822.119999997318,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4838.7099999934435,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4856.109999999404,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4872.25,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4888.79999999702,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4905.914999999106,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4922.369999997318,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4939.979999996722,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4955.320000000298,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4972.039999999106,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 4990.954999998212,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5006.7099999934435,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5022.304999999702,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5039.039999999106,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5055.354999996722,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5072.5849999934435,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5088.734999999404,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5105.239999994636,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      },
+      {
+        "at": 5122.02499999851,
+        "width": 390,
+        "panel": "editor",
+        "agentRect": {
+          "width": 0,
+          "height": 0
+        },
+        "editorHosts": [
+          {
+            "kind": "codemirror",
+            "width": 390,
+            "height": 643
+          }
+        ],
+        "active": {
+          "tag": "DIV",
+          "className": "cm-content cm-lineWrapping"
+        }
+      }
+    ],
+    "agentVisibleAfterResize": [],
+    "agentMutationAfterResize": [],
+    "resize": {
+      "to": 390,
+      "preserved": true,
+      "editorKind": "cm-content cm-lineWrapping",
+      "focus": {
+        "tag": "DIV",
+        "class": "cm-content cm-lineWrapping"
+      }
+    },
+    "completed": true,
+    "pass": true
+  }
+]

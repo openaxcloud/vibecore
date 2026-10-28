@@ -205,3 +205,113 @@ for (const moveOutside of [false, true]) {
     }
   });
 }
+
+test('Files editor preserves its selection through desktop, mobile and desktop', async ({ page, baseURL }, info) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  const projectId = await createProject(page, baseURL!);
+
+  // Fixture creation above is isolated. Editing below must never write to a backend.
+  await page.route('**/*', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (!['127.0.0.1', 'localhost'].includes(url.hostname) || !['GET', 'HEAD', 'OPTIONS'].includes(request.method())) {
+      await route.abort();
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await page.goto(`/projects/${projectId}/ide?panel=files`, { waitUntil: 'domcontentloaded' });
+
+  const file = page
+    .locator('.bolt-file-tree-node')
+    .filter({ visible: true })
+    .filter({ hasText: /^README\.md$/ });
+  await expect(file).toBeVisible({ timeout: 30_000 });
+  await file.focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/panel=editor/);
+
+  const desktop = page.locator('.monaco-editor textarea.inputarea').filter({ visible: true }).first();
+  await expect(desktop).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.bolt-user-message-bubble').filter({ hasText: readyMarker }).first()).toBeVisible();
+
+  const original = await documentValue(page);
+  expect(original).toBe('# Keyboard fixture\nTab indents until navigation mode is enabled.\n');
+  await desktop.focus();
+  await page.keyboard.press('Control+Home');
+
+  for (let index = 0; index < 3; index++) {
+    await page.keyboard.press('ArrowRight');
+  }
+  await page.keyboard.down('Shift');
+
+  for (let index = 0; index < 4; index++) {
+    await page.keyboard.press('ArrowRight');
+  }
+  await page.keyboard.up('Shift');
+
+  const originalDesktop = await desktop.elementHandle();
+  expect(originalDesktop).not.toBeNull();
+  await page.setViewportSize({ width: 390, height: 900 });
+
+  const mobile = page.locator('.cm-content[contenteditable=true]').filter({ visible: true }).first();
+  await expect(mobile).toBeVisible();
+  await expect.poll(() => originalDesktop!.evaluate((node) => node.isConnected)).toBe(false);
+
+  // No focus()/locator.press() after either engine handoff: native focus must survive.
+  await expect(mobile).toBeFocused();
+  await expect
+    .poll(() => mobile.locator('.cm-line').evaluateAll((lines) => lines.map((line) => line.textContent).join('\n')))
+    .toBe(original);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const selection = window.getSelection();
+        const line = document.querySelector('.cm-content .cm-line');
+
+        const lineOffset = (node: Node | null | undefined, offset: number | undefined) => {
+          if (!line || !node || !line.contains(node) || offset === undefined) {
+            return null;
+          }
+
+          // Syntax highlighting splits a line into text nodes; DOM offsets are node-relative.
+          const prefix = document.createRange();
+          prefix.setStart(line, 0);
+          prefix.setEnd(node, offset);
+
+          return prefix.toString().length;
+        };
+
+        return {
+          text: selection?.toString(),
+          anchor: lineOffset(selection?.anchorNode, selection?.anchorOffset),
+          head: lineOffset(selection?.focusNode, selection?.focusOffset),
+        };
+      }),
+    )
+    .toEqual({ text: original.slice(3, 7), anchor: 3, head: 7 });
+
+  const originalMobile = await mobile.elementHandle();
+  expect(originalMobile).not.toBeNull();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(desktop).toBeVisible();
+  await expect.poll(() => originalMobile!.evaluate((node) => node.isConnected)).toBe(false);
+  await expect(desktop).toBeFocused();
+  expect(await documentValue(page)).toBe(original);
+
+  // A native replacement proves Monaco restored the range, rather than just focus.
+  await page.keyboard.insertText('ROUNDTRIP');
+
+  const expected = `${original.slice(0, 3)}ROUNDTRIP${original.slice(7)}`;
+  await expect.poll(() => documentValue(page)).toBe(expected);
+  await expect(desktop).toBeFocused();
+  await info.attach('editor-responsive-selection.json', {
+    body: JSON.stringify({ projectId, original, expected, final: await documentValue(page) }, null, 2),
+    contentType: 'application/json',
+  });
+});

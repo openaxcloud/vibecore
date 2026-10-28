@@ -6,47 +6,50 @@ import { useKeybindings } from './useKeybindings';
 
 afterEach(cleanup);
 
-it.each(['terminal-menu', 'file-breadcrumb'])('defers Escape only while the %s owner is open', (owner) => {
-  const runAction = vi.fn();
-  const localEscape = vi.fn();
+it.each(['terminal-menu', 'file-breadcrumb', 'file-context-menu'])(
+  'defers Escape only while the %s owner is open',
+  (owner) => {
+    const runAction = vi.fn();
+    const localEscape = vi.fn();
 
-  function Harness() {
-    const [open, setOpen] = useState(true);
-    useKeybindings({
-      bindings: [
-        { combo: 'escape', action: 'overlay.close', label: '', description: '', category: 'Help' },
-        { combo: 'cmd+s', action: 'file.save', label: '', description: '', category: 'File' },
-      ],
-      getContext: () => ({}),
-      runAction,
-    });
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      useKeybindings({
+        bindings: [
+          { combo: 'escape', action: 'overlay.close', label: '', description: '', category: 'Help' },
+          { combo: 'cmd+s', action: 'file.save', label: '', description: '', category: 'File' },
+        ],
+        getContext: () => ({}),
+        runAction,
+      });
 
-    return (
-      <div
-        data-ide-escape-owner={open ? owner : undefined}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape' && open) {
-            localEscape(event.defaultPrevented);
-            setOpen(false);
-          }
-        }}
-      >
-        <button>Menu control</button>
-      </div>
-    );
-  }
+      return (
+        <div
+          data-ide-escape-owner={open ? owner : undefined}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && open) {
+              localEscape(event.defaultPrevented);
+              setOpen(false);
+            }
+          }}
+        >
+          <button>Menu control</button>
+        </div>
+      );
+    }
 
-  render(<Harness />);
+    render(<Harness />);
 
-  const control = screen.getByRole('button', { name: 'Menu control' });
-  fireEvent.keyDown(control, { key: 's', ctrlKey: true });
-  expect(runAction.mock.calls[0][0]).toBe('file.save');
-  fireEvent.keyDown(control, { key: 'Escape' });
-  expect(localEscape).toHaveBeenCalledWith(false);
-  expect(runAction).toHaveBeenCalledTimes(1);
-  fireEvent.keyDown(control, { key: 'Escape' });
-  expect(runAction.mock.calls[1][0]).toBe('overlay.close');
-});
+    const control = screen.getByRole('button', { name: 'Menu control' });
+    fireEvent.keyDown(control, { key: 's', ctrlKey: true });
+    expect(runAction.mock.calls[0][0]).toBe('file.save');
+    fireEvent.keyDown(control, { key: 'Escape' });
+    expect(localEscape).toHaveBeenCalledWith(false);
+    expect(runAction).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(control, { key: 'Escape' });
+    expect(runAction.mock.calls[1][0]).toBe('overlay.close');
+  },
+);
 
 it('leaves dialog Escape to its owner without suppressing other shortcuts or IDE Escape', () => {
   const runAction = vi.fn();
