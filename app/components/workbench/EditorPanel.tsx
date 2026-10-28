@@ -31,6 +31,7 @@ import { renderLogger } from '~/utils/logger';
 import { isMobile } from '~/utils/mobile';
 
 interface EditorPanelProps {
+  searchPaneId?: string;
   files?: FileMap;
   unsavedFiles?: Set<string>;
   editorDocument?: EditorDocument;
@@ -60,6 +61,7 @@ export const EditorPanel = memo(
     onFileSave,
     onFileReset,
     mobilePanel,
+    searchPaneId,
   }: EditorPanelProps) => {
     renderLogger.trace('EditorPanel');
 
@@ -196,7 +198,7 @@ export const EditorPanel = memo(
         </Tabs.Content>
 
         <Tabs.Content value="search" className="flex-grow overflow-auto focus-visible:outline-none">
-          <Search />
+          <Search paneId={searchPaneId} />
         </Tabs.Content>
 
         <Tabs.Content value="locks" className="flex-grow overflow-auto focus-visible:outline-none">
@@ -357,7 +359,7 @@ export const EditorPanel = memo(
         return (
           <PanelBoundary title={t('idePanels.editor.search')}>
             <div className="h-full overflow-auto" data-testid="mobile-search-panel">
-              <Search />
+              <Search paneId={searchPaneId} />
             </div>
           </PanelBoundary>
         );

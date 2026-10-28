@@ -8863,7 +8863,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (panel === 'search') {
-          return <Search />;
+          return <Search paneId={paneId} />;
         }
 
         if (panel === 'locks') {
@@ -10551,6 +10551,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
                             })}
                             projectId={projectId}
+                            searchPaneId={projectIdeMode ? activePaneId : undefined}
                             onUserFileSelect={onUserProjectFileSelect}
                             onMobilePanelChange={(panel) => {
                               if (panel === 'editor') {

@@ -3,6 +3,7 @@ import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useSearchDraft } from './SearchDraftState';
 import { rechercheDemandee } from './recherche-demandee';
 import {
   computeReplacement,
@@ -40,7 +41,7 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
   );
 }
 
-export function Search() {
+export function Search({ paneId }: { paneId?: string }) {
   const { t } = useTranslation();
 
   /*
@@ -48,11 +49,19 @@ export function Search() {
    * has no workspaceId and fails in remote-kubernetes mode → broken file search).
    */
   const runtimeAdapter = useRuntimeAdapter();
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    searchQuery,
+    setSearchQuery,
+    replaceQuery,
+    setReplaceQuery,
+    caseSensitive,
+    setCaseSensitive,
+    isRegex,
+    setIsRegex,
+  } = useSearchDraft(paneId);
+
   const demande = useStore(rechercheDemandee);
-  const [replaceQuery, setReplaceQuery] = useState('');
-  const [caseSensitive, setCaseSensitive] = useState(false);
-  const [isRegex, setIsRegex] = useState(false);
   const [searchResults, setSearchResults] = useState<DisplayMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isReplacing, setIsReplacing] = useState(false);
