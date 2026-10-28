@@ -48,8 +48,26 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
   const fetcher = useFetcher<ProjectActionResult>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const lastIntentRef = useRef<ProjectActionIntent | null>(null);
+  const submittingRef = useRef(false);
+  const previousResultRef = useRef<ProjectActionResult>();
+  const [submitting, setSubmitting] = useState(false);
+  const pending = submitting || fetcher.state !== 'idle';
 
-  const submit = (intent: ProjectActionIntent) => {
+  useEffect(() => {
+    if (fetcher.state === 'idle') {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  const submit = (intent: ProjectActionIntent, confirmName?: string) => {
+    if (pending || submittingRef.current) {
+      return false;
+    }
+
+    submittingRef.current = true;
+    setSubmitting(true);
+    previousResultRef.current = fetcher.data;
     lastIntentRef.current = intent;
 
     const payload: Record<string, string> =
@@ -58,9 +76,20 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
             intent,
             name: formatProjectCardMenuCopy(copy['projectCardMenu.duplicate.name'], { name: project.name }),
           }
-        : { intent };
+        : { intent, ...(confirmName === undefined ? {} : { confirmName }) };
 
-    fetcher.submit(payload, { method: 'post', action: projectActionPath(project) });
+    try {
+      fetcher.submit(payload, { method: 'post', action: projectActionPath(project) });
+    } catch {
+      submittingRef.current = false;
+      setSubmitting(false);
+      lastIntentRef.current = null;
+      toast.error(copy['projectCardMenu.error.actionFailed']);
+
+      return false;
+    }
+
+    return true;
   };
 
   /*
@@ -69,14 +98,14 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
    * unmounts the menu, so an idle-gated effect would never fire.
    */
   useEffect(() => {
-    if (!fetcher.data || !lastIntentRef.current) {
+    if (!fetcher.data || fetcher.data === previousResultRef.current || !lastIntentRef.current) {
       return;
     }
 
     const intent = lastIntentRef.current;
     lastIntentRef.current = null;
 
-    if (fetcher.data.ok === false) {
+    if (fetcher.data.ok !== true) {
       toast.error(copy['projectCardMenu.error.actionFailed']);
       return;
     }
@@ -108,17 +137,26 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
         trigger={
           <button
             type="button"
+            disabled={pending}
+            aria-busy={pending || undefined}
             aria-label={formatProjectCardMenuCopy(copy['projectCardMenu.actions.ariaLabel'], {
               name: project.name,
             })}
-            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-wait disabled:opacity-60"
             onClick={stopCardNavigation}
           >
             <MoreHorizontal className="h-4 w-4" aria-hidden />
           </button>
         }
       >
-        <DropdownItem onSelect={onRename} className="min-h-[44px]">
+        <DropdownItem
+          onSelect={() => {
+            if (!pending && !submittingRef.current) {
+              onRename();
+            }
+          }}
+          className="min-h-[44px]"
+        >
           <Pencil className="h-4 w-4" aria-hidden />
           {copy['projectCardMenu.actions.rename']}
         </DropdownItem>
@@ -138,7 +176,14 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
           </DropdownItem>
         )}
         <DropdownSeparator />
-        <DropdownItem onSelect={() => setConfirmingDelete(true)} className="min-h-[44px]">
+        <DropdownItem
+          onSelect={() => {
+            if (!pending && !submittingRef.current) {
+              setConfirmingDelete(true);
+            }
+          }}
+          className="min-h-[44px]"
+        >
           <span className="flex items-center gap-2" style={destructiveStyle}>
             <Trash2 className="h-4 w-4" aria-hidden />
             {copy['projectCardMenu.actions.delete']}
@@ -148,12 +193,13 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
       <DeleteProjectDialog
         project={project}
         open={confirmingDelete}
-        pending={fetcher.state !== 'idle'}
+        pending={pending}
         onClose={() => setConfirmingDelete(false)}
         copy={copy}
-        onConfirm={() => {
-          submit('delete-permanent');
-          setConfirmingDelete(false);
+        onConfirm={(confirmName) => {
+          if (submit('delete-permanent', confirmName)) {
+            setConfirmingDelete(false);
+          }
         }}
       />
     </>
@@ -219,7 +265,7 @@ function DeleteProjectDialog({
   open: boolean;
   pending: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (confirmName: string) => void;
   copy: ProjectCardMenuCopy;
 }) {
   /*
@@ -266,13 +312,20 @@ function DeleteProjectDialog({
               />
             ) : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="outline" onClick={onClose} disabled={pending} className="min-h-[44px] whitespace-normal">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                disabled={pending}
+                style={{ minHeight: 44 }}
+                className="min-h-[44px] whitespace-normal"
+              >
                 {copy['projectCardMenu.delete.cancel']}
               </Button>
               <Button
                 variant="outline"
-                onClick={onConfirm}
+                onClick={() => onConfirm(requiresName ? typedName : project.name)}
                 disabled={!canConfirm}
+                style={{ minHeight: 44 }}
                 className="min-h-[44px] whitespace-normal border-[color-mix(in_srgb,var(--status-error-text)_45%,transparent)] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)] hover:text-[var(--status-error-text)]"
               >
                 {copy['projectCardMenu.delete.confirm']}
@@ -299,32 +352,74 @@ export function ProjectRenameForm({
   const fetcher = useFetcher<ProjectActionResult>();
   const [name, setName] = useState(project.name);
   const inputRef = useRef<HTMLInputElement>(null);
-  const pending = fetcher.state !== 'idle';
+  const submittingRef = useRef(false);
+  const previousResultRef = useRef<ProjectActionResult>();
+  const awaitingResultRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+  const pending = submitting || fetcher.state !== 'idle';
 
   useEffect(() => {
     inputRef.current?.select();
   }, []);
 
   useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data) {
-      if (fetcher.data.ok === false) {
-        toast.error(copy['projectCardMenu.error.renameFailed']);
-      }
-
-      // Success: the route loaders revalidate and the card shows the new name.
-      onDone();
+    if (fetcher.state === 'idle') {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
-  }, [copy, fetcher.state, fetcher.data, onDone]);
+  }, [fetcher.state, fetcher.data]);
 
-  const commit = () => {
-    const trimmed = name.trim();
-
-    if (!trimmed || trimmed === project.name) {
-      onDone();
+  useEffect(() => {
+    if (
+      fetcher.state !== 'idle' ||
+      !fetcher.data ||
+      fetcher.data === previousResultRef.current ||
+      !awaitingResultRef.current ||
+      cancelledRef.current
+    ) {
       return;
     }
 
-    fetcher.submit({ intent: 'rename', name: trimmed }, { method: 'post', action: projectActionPath(project) });
+    awaitingResultRef.current = false;
+
+    if (fetcher.data.ok !== true) {
+      toast.error(copy['projectCardMenu.error.renameFailed']);
+      return;
+    }
+
+    // Only success ends editing; an error leaves the draft available for retry.
+    cancelledRef.current = true;
+    onDone();
+  }, [copy, fetcher.state, fetcher.data, onDone]);
+
+  const commit = () => {
+    if (cancelledRef.current || pending || submittingRef.current) {
+      return;
+    }
+
+    const trimmed = name.trim();
+
+    if (!trimmed || trimmed === project.name) {
+      cancelledRef.current = true;
+      onDone();
+
+      return;
+    }
+
+    submittingRef.current = true;
+    setSubmitting(true);
+    awaitingResultRef.current = true;
+    previousResultRef.current = fetcher.data;
+
+    try {
+      fetcher.submit({ intent: 'rename', name: trimmed }, { method: 'post', action: projectActionPath(project) });
+    } catch {
+      submittingRef.current = false;
+      setSubmitting(false);
+      awaitingResultRef.current = false;
+      toast.error(copy['projectCardMenu.error.renameFailed']);
+    }
   };
 
   return (
@@ -343,6 +438,7 @@ export function ProjectRenameForm({
           commit();
         } else if (event.key === 'Escape') {
           event.preventDefault();
+          cancelledRef.current = true;
           onDone();
         }
       }}
