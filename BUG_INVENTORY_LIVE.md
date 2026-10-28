@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-550 entrées.
+551 entrées.
 
 ## Sans section
 
@@ -735,6 +735,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-SEARCH-DRAFT-HANDOFF-20261028](docs/bugs/BUG-IDE-SEARCH-DRAFT-HANDOFF-20261028.md) — Le brouillon Search disparaît au remplacement de la coquille IDE. — 📤 Dispatché : ☑ 28/10/2026 — lot Search isolé, hors modèles, budget, workbench store et menus Terminal. · 💻 Codé : ☐ main — correctif local revu, compilé et vérifié en navigateur ; CI exacte, fusion et livraison restent à obt · ✅ Testé live : ☐ production — recette Chromium locale exécutée avec API synthétiques ; aucune recette production, Safari ou a
 - [BUG-IDE-FILES-EDITOR-HANDOFF-20261028](docs/bugs/BUG-IDE-FILES-EDITOR-HANDOFF-20261028.md) — Le menu contextuel Fichiers ne ferme pas avec Escape et déborde sur mobile. Le passage entre CodeMirror et Monaco conserve le texte mais perd focus et sélection — 📤 Dispatché : ☑ 28/10/2026 — lot Fichiers/éditeur, distinct de Memory ; basé sur les lots #833 et #836. Aucun changement du · 💻 Codé : ☐ main — correctif local en validation, non publié, non fusionné et non déployé. · ✅ Testé live : ☐ production — contrepreuve finale Chromium locale réussie ; aucune recette production.
 - [BUG-IDE-PORTS-PACKAGES-STATE-20261028](docs/bugs/BUG-IDE-PORTS-PACKAGES-STATE-20261028.md) — Ports utilise le libellé traduit « publique » comme valeur fonctionnelle lorsque la visibilité du port n’est pas enregistrée. En français, le bouton propose alo — 📤 Dispatché : ☑ Reproduction et correction locale ciblée autorisées le 28/10/2026. · 💻 Codé : ☐ main — trois changements locaux dans les fonctions Ports/Packages de BaseChat : valeur canonique distincte d · ✅ Testé live : ☐ Production non testée. Avant correction : quatre contextes Chromium sur route compilée locale, FR/EN à1280×9
+- [BUG-IDE-PROBLEMS-LONG-PATH-20261028](docs/bugs/BUG-IDE-PROBLEMS-LONG-PATH-20261028.md) — Dans Problems, un chemin de fichier long déborde du bouton ouvrir-fichier et de la largeur visible de la liste. Le texte du diagnostic en dessous se replie, mai — 📤 Dispatché : ☑ 28/10/2026 — correction CSS locale autorisée dans un worktree distinct de #837. · 💻 Codé : ☐ main — cinq propriétés locales de `.bolt-project-problem-open` bornent la largeur et permettent le repliemen · ✅ Testé live : ☐ Production non testée. Mesures avant et contrepreuve CSS navigateur sur trois formats ; build66352 terminé e
 
 ## Résidus non tabulaires — reportés mot pour mot
 

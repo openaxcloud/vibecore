@@ -18364,6 +18364,11 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-problem-open {
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
   align-items: center;
   gap: 4px;
   border: 0;

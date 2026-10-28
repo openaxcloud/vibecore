@@ -1,0 +1,403 @@
+[
+  {
+    "width": 390,
+    "panel": "problems",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "errors": [],
+    "stateInjection": true,
+    "injected": {
+      "path": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx",
+      "logs": [
+        "Error: /workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx:27:5 Synthetic diagnostic with a long file location"
+      ],
+      "keys": [
+        "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx"
+      ]
+    },
+    "geometry": {
+      "rect": {
+        "x": 51,
+        "y": 232.078125,
+        "width": 316,
+        "height": 143.125,
+        "top": 232.078125,
+        "right": 367,
+        "bottom": 375.203125,
+        "left": 51
+      },
+      "textRect": {
+        "x": 59,
+        "y": 234.078125,
+        "width": 299.5,
+        "height": 138.25,
+        "top": 234.078125,
+        "right": 358.5,
+        "bottom": 372.328125,
+        "left": 59
+      },
+      "text": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx:27",
+      "ancestors": [
+        {
+          "class": "bolt-project-problem-title",
+          "rect": {
+            "x": 51,
+            "y": 202.203125,
+            "width": 316,
+            "height": 173,
+            "top": 202.203125,
+            "right": 367,
+            "bottom": 375.203125,
+            "left": 51
+          },
+          "client": 316,
+          "scroll": 316,
+          "overflow": "visible"
+        },
+        {
+          "class": "bolt-project-problem-body",
+          "rect": {
+            "x": 51,
+            "y": 202.203125,
+            "width": 316,
+            "height": 338,
+            "top": 202.203125,
+            "right": 367,
+            "bottom": 540.203125,
+            "left": 51
+          },
+          "client": 316,
+          "scroll": 316,
+          "overflow": "visible"
+        },
+        {
+          "class": "bolt-project-problems-list",
+          "rect": {
+            "x": 0,
+            "y": 99.453125,
+            "width": 390,
+            "height": 463.75,
+            "top": 99.453125,
+            "right": 390,
+            "bottom": 563.203125,
+            "left": 0
+          },
+          "client": 390,
+          "scroll": 390,
+          "overflow": "auto"
+        },
+        {
+          "class": "bolt-project-problems-panel",
+          "rect": {
+            "x": 0,
+            "y": 48,
+            "width": 390,
+            "height": 515.203125,
+            "top": 48,
+            "right": 390,
+            "bottom": 563.203125,
+            "left": 0
+          },
+          "client": 390,
+          "scroll": 390,
+          "overflow": "hidden auto"
+        }
+      ]
+    },
+    "focusBeforeOpen": true,
+    "openedFile": {
+      "selected": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx",
+      "view": "code"
+    },
+    "doc": {
+      "width": 390,
+      "scroll": 390
+    }
+  },
+  {
+    "width": 820,
+    "panel": "problems",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "errors": [],
+    "stateInjection": true,
+    "injected": {
+      "path": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx",
+      "logs": [
+        "Error: /workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx:27:5 Synthetic diagnostic with a long file location"
+      ],
+      "keys": [
+        "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx"
+      ]
+    },
+    "geometry": {
+      "rect": {
+        "x": 51,
+        "y": 228.625,
+        "width": 746,
+        "height": 63.625,
+        "top": 228.625,
+        "right": 797,
+        "bottom": 292.25,
+        "left": 51
+      },
+      "textRect": {
+        "x": 59,
+        "y": 230.625,
+        "width": 729.703125,
+        "height": 58.75,
+        "top": 230.625,
+        "right": 788.703125,
+        "bottom": 289.375,
+        "left": 59
+      },
+      "text": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx:27",
+      "ancestors": [
+        {
+          "class": "bolt-project-problem-title",
+          "rect": {
+            "x": 51,
+            "y": 198.75,
+            "width": 746,
+            "height": 93.5,
+            "top": 198.75,
+            "right": 797,
+            "bottom": 292.25,
+            "left": 51
+          },
+          "client": 746,
+          "scroll": 746,
+          "overflow": "visible"
+        },
+        {
+          "class": "bolt-project-problem-body",
+          "rect": {
+            "x": 51,
+            "y": 198.75,
+            "width": 746,
+            "height": 179,
+            "top": 198.75,
+            "right": 797,
+            "bottom": 377.75,
+            "left": 51
+          },
+          "client": 746,
+          "scroll": 746,
+          "overflow": "visible"
+        },
+        {
+          "class": "bolt-project-problems-list",
+          "rect": {
+            "x": 0,
+            "y": 96,
+            "width": 820,
+            "height": 304.75,
+            "top": 96,
+            "right": 820,
+            "bottom": 400.75,
+            "left": 0
+          },
+          "client": 820,
+          "scroll": 820,
+          "overflow": "auto"
+        },
+        {
+          "class": "bolt-project-problems-panel",
+          "rect": {
+            "x": 0,
+            "y": 48,
+            "width": 820,
+            "height": 352.75,
+            "top": 48,
+            "right": 820,
+            "bottom": 400.75,
+            "left": 0
+          },
+          "client": 820,
+          "scroll": 820,
+          "overflow": "hidden auto"
+        }
+      ]
+    },
+    "focusBeforeOpen": true,
+    "openedFile": {
+      "selected": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx",
+      "view": "code"
+    },
+    "doc": {
+      "width": 820,
+      "scroll": 820
+    }
+  },
+  {
+    "width": 1280,
+    "panel": "problems",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "errors": [],
+    "stateInjection": true,
+    "injected": {
+      "path": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx",
+      "logs": [
+        "Error: /workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx:27:5 Synthetic diagnostic with a long file location"
+      ],
+      "keys": [
+        "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx"
+      ]
+    },
+    "geometry": {
+      "rect": {
+        "x": 448,
+        "y": 647.09375,
+        "width": 539.65625,
+        "height": 72.125,
+        "top": 647.09375,
+        "right": 987.65625,
+        "bottom": 719.21875,
+        "left": 448
+      },
+      "textRect": {
+        "x": 456,
+        "y": 649.09375,
+        "width": 523.171875,
+        "height": 68.09375,
+        "top": 649.09375,
+        "right": 979.171875,
+        "bottom": 717.1875,
+        "left": 456
+      },
+      "text": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx:27",
+      "ancestors": [
+        {
+          "class": "bolt-project-problem-title",
+          "rect": {
+            "x": 448,
+            "y": 620.0625,
+            "width": 539.65625,
+            "height": 99.15625,
+            "top": 620.0625,
+            "right": 987.65625,
+            "bottom": 719.21875,
+            "left": 448
+          },
+          "client": 540,
+          "scroll": 540,
+          "overflow": "visible"
+        },
+        {
+          "class": "bolt-project-problem-body",
+          "rect": {
+            "x": 448,
+            "y": 620.0625,
+            "width": 539.65625,
+            "height": 190.3125,
+            "top": 620.0625,
+            "right": 987.65625,
+            "bottom": 810.375,
+            "left": 448
+          },
+          "client": 540,
+          "scroll": 540,
+          "overflow": "visible"
+        },
+        {
+          "class": "bolt-project-problems-list",
+          "rect": {
+            "x": 397,
+            "y": 523,
+            "width": 613.65625,
+            "height": 345,
+            "top": 523,
+            "right": 1010.65625,
+            "bottom": 868,
+            "left": 397
+          },
+          "client": 614,
+          "scroll": 614,
+          "overflow": "auto"
+        },
+        {
+          "class": "bolt-project-problems-panel",
+          "rect": {
+            "x": 397,
+            "y": 487,
+            "width": 613.65625,
+            "height": 381,
+            "top": 487,
+            "right": 1010.65625,
+            "bottom": 868,
+            "left": 397
+          },
+          "client": 614,
+          "scroll": 614,
+          "overflow": "visible"
+        }
+      ]
+    },
+    "focusBeforeOpen": true,
+    "openedFile": {
+      "selected": "/workspace/src/components/DocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateursDocumentationDesParcoursUtilisateurs.tsx",
+      "view": "code"
+    },
+    "doc": {
+      "width": 1280,
+      "scroll": 1280
+    }
+  }
+]
