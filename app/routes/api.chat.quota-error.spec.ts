@@ -126,22 +126,3 @@ describe('createDataStream quota throw → error part', () => {
     expect(parsed.message).toContain('quota');
   });
 });
-
-describe('provider credits in the real SDK stream contract', () => {
-  it.each([
-    'Your prepayment credits are depleted. Please go to AI Studio',
-    'Your credit balance is too low to access the Anthropic API.',
-  ])('emits a safe non-retryable error for %s', async (message) => {
-    const stream = createDataStream({
-      onError: serializeChatStreamError,
-      async execute() {
-        throw new Error(message);
-      },
-    });
-
-    const payload = JSON.parse((await readErrorPart(stream))!);
-    expect(payload).toMatchObject({ code: 'PROVIDER_CREDITS_EXHAUSTED', statusCode: 503, isRetryable: false });
-    expect(payload.message).toContain('platform administrator');
-    expect(payload.message).not.toContain(message);
-  });
-});

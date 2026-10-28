@@ -8,6 +8,7 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.command.pnpmInstall': 'pnpm install',
   'workbenchRuntime.command.yarnInstall': 'yarn install',
   'workbenchRuntime.preview.starting': 'Preview is starting',
+  'workbenchRuntime.preview.stoppedByUser': 'Preview stopped. Select Run to start it again.',
   'workbenchRuntime.preview.detecting': 'Detecting preview command',
   'workbenchRuntime.preview.staticCommand': 'Static HTML preview',
   'workbenchRuntime.preview.staticReady': 'Using a static HTML preview; this project does not need a dev server.',
@@ -151,6 +152,7 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
   'workbenchRuntime.command.pnpmInstall': 'pnpm install',
   'workbenchRuntime.command.yarnInstall': 'yarn install',
   'workbenchRuntime.preview.starting': 'Démarrage de l’aperçu',
+  'workbenchRuntime.preview.stoppedByUser': 'Aperçu arrêté. Sélectionnez Exécuter pour le redémarrer.',
   'workbenchRuntime.preview.detecting': 'Détection de la commande d’aperçu',
   'workbenchRuntime.preview.staticCommand': 'Aperçu HTML statique',
   'workbenchRuntime.preview.staticReady':

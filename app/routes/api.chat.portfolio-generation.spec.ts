@@ -5,24 +5,12 @@ import { consignePremierProjet } from '~/lib/common/prompts/premier-projet';
 
 const boundary = vi.hoisted(() => ({
   streamText: vi.fn(),
-  streamStartup: vi.fn(),
   quota: vi.fn(),
   close: vi.fn(),
   usage: vi.fn(),
   api: vi.fn(),
   fetch: vi.fn(),
 }));
-vi.mock('ai', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('ai')>();
-
-  return {
-    ...actual,
-    createDataStream: (...args: Parameters<typeof actual.createDataStream>) => {
-      boundary.streamStartup();
-      return actual.createDataStream(...args);
-    },
-  };
-});
 vi.mock('~/lib/.server/llm/stream-text', () => ({ streamText: boundary.streamText }));
 vi.mock('~/lib/.server/ai-usage', () => ({
   checkChatQuota: boundary.quota,
@@ -81,7 +69,6 @@ const generatedFixture =
 
 beforeEach(() => {
   vi.clearAllMocks();
-  boundary.streamStartup.mockReset();
   boundary.quota.mockResolvedValue({ ok: true });
   boundary.close.mockResolvedValue(undefined);
   boundary.usage.mockResolvedValue(undefined);
@@ -257,43 +244,3 @@ test('continuations publish their own model output receipt instead of retaining 
   expect(stream).toContain('"model":"synthetic-segment-1"');
   expect(stream).toContain('"model":"synthetic-segment-2"');
 });
-
-for (const language of ['en', 'fr']) {
-  test(`HTTP startup credit error preserves safe non-retryable contract (${language})`, async () => {
-    boundary.streamStartup.mockImplementationOnce(() => {
-      throw Object.assign(new Error('API key private-test-marker: Your prepayment credits are depleted.'), {
-        statusCode: 400,
-        isRetryable: true,
-      });
-    });
-
-    const response = await action({
-      request: new Request('http://synthetic.local/api/chat', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'accept-language': language },
-        body: JSON.stringify({
-          messages: [{ id: 'credit-contract', role: 'user', content: 'Hello' }],
-          projectId: 'synthetic-project',
-          contextOptimization: false,
-          agentPower: { buildTier: 'lite' },
-        }),
-      }),
-      params: {},
-      context: {},
-    } as Parameters<typeof action>[0]);
-    expect(response.status).toBe(503);
-    expect(response.headers.get('content-type')).toContain('application/json');
-
-    const payload = await response.json();
-    expect(payload).toMatchObject({
-      error: true,
-      code: 'PROVIDER_CREDITS_EXHAUSTED',
-      statusCode: 503,
-      isRetryable: false,
-    });
-    expect(payload.message).toContain(language === 'fr' ? 'administrateur de la plateforme' : 'platform administrator');
-    expect(JSON.stringify(payload)).not.toContain('private-test-marker');
-    expect(boundary.streamText).not.toHaveBeenCalled();
-    expect(boundary.fetch).not.toHaveBeenCalled();
-  });
-}

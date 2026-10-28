@@ -60,8 +60,6 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
 
   const getErrorMessage = () => {
     switch (errorType) {
-      case 'provider_credits':
-        return copy['chatClient.error.providerCredits'];
       case 'authentication':
         return formatChatClientCopy(copy['chatClient.error.authentication'], { provider: providerLabel });
       case 'rate_limit':
@@ -81,8 +79,6 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
 
   const getErrorTitle = () => {
     switch (errorType) {
-      case 'provider_credits':
-        return copy['chatClient.error.title.providerCredits'];
       case 'authentication':
         return copy['chatClient.error.title.authentication'];
       case 'rate_limit':
@@ -152,7 +148,7 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
                  * via a window event that Chat.client listens for (reload()), so no
                  * callback threading through BaseChat.
                  */}
-                {errorType !== 'quota' && errorType !== 'provider_credits' && (
+                {errorType !== 'quota' && (
                   <button
                     onClick={() => {
                       clearAlert();
@@ -172,7 +168,7 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
                     {copy['chatClient.error.retry']}
                   </button>
                 )}
-                {errorType !== 'quota' && errorType !== 'provider_credits' && alternativeModels.length > 0 && (
+                {errorType !== 'quota' && alternativeModels.length > 0 && (
                   <select
                     aria-label={copy['chatClient.error.retryWith.aria']}
                     defaultValue=""

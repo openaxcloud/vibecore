@@ -7,6 +7,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
+    previewStoppedByUser: atom(false),
     previews: atom([]),
     workspaceLoading: atom(true),
     workspaceStatus: atom(undefined),

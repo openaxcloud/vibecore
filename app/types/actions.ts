@@ -110,7 +110,7 @@ export interface LlmErrorAlertType {
   description: string;
   content?: string;
   provider?: string;
-  errorType?: 'authentication' | 'rate_limit' | 'quota' | 'provider_credits' | 'network' | 'unknown';
+  errorType?: 'authentication' | 'rate_limit' | 'quota' | 'network' | 'unknown';
 }
 
 export interface FileHistory {

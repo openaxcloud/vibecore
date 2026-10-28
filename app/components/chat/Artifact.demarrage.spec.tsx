@@ -89,6 +89,7 @@ describe('« Démarrer l’application » lance vraiment le serveur', () => {
     bouton.click();
 
     expect(startPreviewServerMock).toHaveBeenCalledTimes(1);
+    expect(startPreviewServerMock).toHaveBeenCalledWith({ intent: 'user' });
   });
 
   it('bascule aussi la vue sur l’aperçu, pour qu’on voie le démarrage', async () => {
