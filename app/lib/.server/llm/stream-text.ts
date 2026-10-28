@@ -5,6 +5,7 @@ import {
   buildAgentOrchestrationPlan,
   createAgentOrchestrationPrompt,
 } from './agent-orchestration';
+import { createExplicitRunModel, rejectExplicitRun, type ExplicitRunExecution } from './bounded-explicit-run';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,
@@ -31,7 +32,7 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, WORK_DIR } from '~/utils/constants';
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 import { allowedHTMLElements } from '~/utils/markdown';
 
@@ -341,6 +342,7 @@ export function resolveTurnModel(
 }
 
 export async function streamText(props: {
+  explicitRun?: ExplicitRunExecution;
   messages: Omit<Message, 'id'>[];
   env?: Env;
   options?: StreamingOptions;
@@ -522,12 +524,21 @@ export async function streamText(props: {
    * would throw "Missing API key" and the client renders a fatal "Authentication
    * Error", killing code generation. Resolve to a credentialed provider instead.
    */
-  const resolved = resolveUsableProvider({
-    requestedProvider: currentProvider,
-    requestedModel: currentModel,
-    apiKeys,
-    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
-  });
+  const strictProvider = props.explicitRun ? PROVIDER_LIST.find((entry) => entry.name === 'OpenAI') : undefined;
+
+  if (props.explicitRun && !strictProvider) {
+    rejectExplicitRun('EXPLICIT_PROVIDER_UNAVAILABLE');
+  }
+
+  const resolved =
+    props.explicitRun && strictProvider
+      ? { provider: strictProvider, model: props.explicitRun.permit.model }
+      : resolveUsableProvider({
+          requestedProvider: currentProvider,
+          requestedModel: currentModel,
+          apiKeys,
+          serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+        });
 
   /*
    * Deuxième repli, à l'EXÉCUTION cette fois. `resolveUsableProvider` ci-dessus
@@ -542,21 +553,25 @@ export async function streamText(props: {
    * les cinq minutes ; un échec qui ne désigne pas le fournisseur (prompt,
    * abandon client) ne déclenche aucune bascule.
    */
-  await ensureProviderProbed({
-    provider: resolved.provider,
-    model: resolved.model,
-    apiKeys,
-    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
-    abortSignal,
-  });
+  if (!props.explicitRun) {
+    await ensureProviderProbed({
+      provider: resolved.provider,
+      model: resolved.model,
+      apiKeys,
+      serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+      abortSignal,
+    });
+  }
 
-  const runtimeChoice = resolveRuntimeProvider({
-    provider: resolved.provider,
-    model: resolved.model,
-    apiKeys,
-    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
-    ...(props.repliDeCarte === undefined ? {} : { chaine: props.repliDeCarte ? [props.repliDeCarte] : [] }),
-  });
+  const runtimeChoice = props.explicitRun
+    ? { ...resolved, switchedFrom: undefined }
+    : resolveRuntimeProvider({
+        provider: resolved.provider,
+        model: resolved.model,
+        apiKeys,
+        serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+        ...(props.repliDeCarte === undefined ? {} : { chaine: props.repliDeCarte ? [props.repliDeCarte] : [] }),
+      });
 
   const provider = runtimeChoice.provider;
   currentModel = runtimeChoice.model;
@@ -637,12 +652,20 @@ export async function streamText(props: {
    * `getStaticModelListFromProvider` et `getModelListFromProvider` — le nom
    * `getStaticModelList` cité ici n'existe pas seul, il a dérivé.)
    */
-  currentModel = turnModelResolution.model;
+  currentModel = props.explicitRun?.permit.model ?? turnModelResolution.model;
 
   // Let the chat route capture the concrete model so continuations reuse it.
   props.onModelDecision?.(currentModel, provider.name);
 
-  let modelDetails = staticModels.find((m) => m.name === currentModel);
+  let modelDetails = props.explicitRun
+    ? {
+        name: props.explicitRun.permit.model,
+        label: props.explicitRun.permit.model,
+        provider: 'OpenAI',
+        maxTokenAllowed: props.explicitRun.permit.maxInputTokens,
+        maxCompletionTokens: props.explicitRun.permit.maxOutputTokens,
+      }
+    : staticModels.find((m) => m.name === currentModel);
 
   if (!modelDetails) {
     const modelsList = [
@@ -992,13 +1015,15 @@ ${props.summary}
     }),
   );
 
-  const modelInstance = provider.getModelInstance({
-    model: modelDetails.name,
-    serverEnv: effectiveServerEnv,
-    apiKeys,
-    providerSettings,
-    cacheAffinityKey: chatId,
-  });
+  const modelInstance = props.explicitRun
+    ? createExplicitRunModel(props.explicitRun, effectiveServerEnv as Record<string, unknown> | undefined)
+    : provider.getModelInstance({
+        model: modelDetails.name,
+        serverEnv: effectiveServerEnv,
+        apiKeys,
+        providerSettings,
+        cacheAffinityKey: chatId,
+      });
 
   /*
    * Discuss/Ask/Plan mode uses discussPrompt() instead of the build systemPrompt,
@@ -1068,6 +1093,18 @@ ${props.summary}
 
     ...temperatureOptionsForModel(modelDetails.name, modelDetails.provider),
     ...(abortSignal ? { abortSignal } : {}),
+    ...(props.explicitRun
+      ? {
+          model: removeUnsupportedModelSettings(modelInstance, modelDetails.name, modelDetails.provider),
+          maxRetries: 0,
+          maxSteps: 1,
+          maxTokens: props.explicitRun.permit.maxOutputTokens,
+          tools: undefined,
+          toolChoice: undefined,
+          experimental_activeTools: undefined,
+          providerOptions: undefined,
+        }
+      : {}),
   };
 
   /*

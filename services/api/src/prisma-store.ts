@@ -1,7 +1,13 @@
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import {
+  reserveExplicitRunBudget,
+  type ExplicitRunPermit,
+  type ExplicitRunReservation,
+  type PlanKey,
+  type QuotaKey,
+} from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
@@ -4193,6 +4199,57 @@ export class PrismaApiStore implements ApiStore {
       });
 
       return next;
+    });
+  }
+
+  async hasExplicitRunBudget(projectId: string): Promise<boolean> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: `agent.explicit-run.v1:${projectId}` },
+      select: { id: true },
+    });
+
+    // Even a malformed reservation is bounded: never infer unlimited execution.
+    return row !== null;
+  }
+
+  async getExplicitRunProviderConfiguration() {
+    return (
+      (await this.prisma.providerConfig.findUnique({
+        where: { provider: 'OpenAI' },
+        select: { enabled: true, baseUrl: true },
+      })) ?? undefined
+    );
+  }
+
+  async getExplicitRunPermit(projectId: string, runId: string): Promise<ExplicitRunPermit | undefined> {
+    const key = `agent.explicit-run.v1:${projectId}`;
+    const row = await this.prisma.systemSetting.findUnique({ where: { key } });
+    const value = row?.value as { permits?: ExplicitRunPermit[] } | undefined;
+
+    return Array.isArray(value?.permits)
+      ? value.permits.find(
+          (permit) => permit.projectId === projectId && permit.runId === runId && permit.kind === 'bounded-explicit-v1',
+        )
+      : undefined;
+  }
+
+  async reserveExplicitRun(permit: ExplicitRunPermit): Promise<ExplicitRunReservation> {
+    const key = `agent.explicit-run.v1:${permit.projectId}`;
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `system-setting:${key}`);
+
+      const existing = await tx.systemSetting.findUnique({ where: { key } });
+      const result = reserveExplicitRunBudget(existing ? existing.value : undefined, permit);
+
+      if (result.ok) {
+        await tx.systemSetting.upsert({
+          where: { key },
+          create: { key, value: result.state as unknown as Prisma.InputJsonValue },
+          update: { value: result.state as unknown as Prisma.InputJsonValue },
+        });
+      }
+
+      return result;
     });
   }
 

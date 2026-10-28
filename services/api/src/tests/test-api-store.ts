@@ -1,6 +1,12 @@
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import {
+  reserveExplicitRunBudget,
+  type ExplicitRunPermit,
+  type ExplicitRunReservation,
+  type PlanKey,
+  type QuotaKey,
+} from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
 import {
@@ -3180,6 +3186,39 @@ export class TestApiStore implements ApiStore {
     this.systemSettings.set(key, { key, value: next, updatedAt: now() });
 
     return next;
+  }
+
+  async hasExplicitRunBudget(projectId: string): Promise<boolean> {
+    return this.systemSettings.has(`agent.explicit-run.v1:${projectId}`);
+  }
+
+  async getExplicitRunProviderConfiguration() {
+    const config = this.providerConfigs.get('OpenAI');
+    return config ? { enabled: config.enabled, baseUrl: config.baseUrl } : undefined;
+  }
+
+  async getExplicitRunPermit(projectId: string, runId: string): Promise<ExplicitRunPermit | undefined> {
+    const key = `agent.explicit-run.v1:${projectId}`;
+    const row = this.systemSettings.get(key);
+    const value = row?.value as { permits?: ExplicitRunPermit[] } | undefined;
+
+    return Array.isArray(value?.permits)
+      ? value.permits.find(
+          (permit) => permit.projectId === projectId && permit.runId === runId && permit.kind === 'bounded-explicit-v1',
+        )
+      : undefined;
+  }
+
+  async reserveExplicitRun(permit: ExplicitRunPermit): Promise<ExplicitRunReservation> {
+    const key = `agent.explicit-run.v1:${permit.projectId}`;
+    const existing = this.systemSettings.get(key);
+    const result = reserveExplicitRunBudget(existing ? existing.value : undefined, permit);
+
+    if (result.ok) {
+      this.systemSettings.set(key, { key, value: result.state, updatedAt: now() });
+    }
+
+    return result;
   }
 
   async listSystemSettings() {

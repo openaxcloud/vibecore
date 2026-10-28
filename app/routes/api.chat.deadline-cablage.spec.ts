@@ -90,6 +90,7 @@ describe('borne de génération : câblage et sorties terminales', () => {
       'persisterLaReponseDuServeur',
       `
       let tourDejaFacture = false;
+      const explicitPermit = undefined;
       const projectId = 'project', chatMode = 'build', routedTurnProvider = 'provider', routedTurnModel = 'model';
       const request = { headers: { get: () => null } }, logger = { info() {} };
       const cumulativeUsage = { promptTokens: 12, completionTokens: 3, totalTokens: 15 };

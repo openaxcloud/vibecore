@@ -5,6 +5,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const streamTextMock = vi.fn();
+const budgetMock = vi.fn();
+vi.mock('~/lib/enterprise-api.server', () => ({ apiRequest: budgetMock }));
 
 vi.mock('~/lib/.server/llm/stream-text', () => ({
   streamText: streamTextMock,
@@ -37,10 +39,50 @@ function actionArgs(request: Request) {
 describe('POST /api/agent/self-repair', () => {
   beforeEach(() => {
     streamTextMock.mockReset();
+    budgetMock.mockReset().mockResolvedValue({ bounded: false });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('requires project context before any budget lookup or model call', async () => {
+    const action = await loadAction();
+    const response = await action(actionArgs(makeRequest({ body: JSON.stringify({ prompt: 'fix' }) })));
+    expect(response.status).toBe(400);
+    expect(budgetMock).not.toHaveBeenCalled();
+    expect(streamTextMock).not.toHaveBeenCalled();
+  });
+
+  it.each([{ bounded: true }, {}, null])(
+    'refuses a bounded or unverified project before any model call: %j',
+    async (budget) => {
+      budgetMock.mockResolvedValueOnce(budget);
+
+      const action = await loadAction();
+
+      const response = await action(
+        actionArgs(makeRequest({ body: JSON.stringify({ projectId: 'fixture-project', prompt: 'fix' }) })),
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({ code: 'EXPLICIT_RUN_AUXILIARY_DISABLED', isRetryable: false });
+      expect(budgetMock).toHaveBeenCalledWith(expect.any(Request), '/projects/fixture-project/agent/explicit-run', {
+        redirectOn401: false,
+      });
+      expect(streamTextMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('fails closed when the authenticated project ledger cannot be read', async () => {
+    budgetMock.mockRejectedValueOnce(new Error('fixture DB unavailable'));
+
+    const action = await loadAction();
+
+    const response = await action(
+      actionArgs(makeRequest({ body: JSON.stringify({ projectId: 'fixture-project', prompt: 'fix' }) })),
+    );
+    expect(response.status).toBe(503);
+    expect(streamTextMock).not.toHaveBeenCalled();
   });
 
   it('returns 405 for non-POST methods', async () => {
@@ -71,14 +113,19 @@ describe('POST /api/agent/self-repair', () => {
     const missing = await action(actionArgs(makeRequest({ body: JSON.stringify({}) })));
     expect(missing.status).toBe(400);
 
-    const empty = await action(actionArgs(makeRequest({ body: JSON.stringify({ prompt: '' }) })));
+    const empty = await action(
+      actionArgs(makeRequest({ body: JSON.stringify({ projectId: 'fixture-project', prompt: '' }) })),
+    );
     expect(empty.status).toBe(400);
   });
 
   it('returns 413 when prompt exceeds the size budget', async () => {
     const action = await loadAction();
     const huge = 'x'.repeat(64_001);
-    const response = await action(actionArgs(makeRequest({ body: JSON.stringify({ prompt: huge }) })));
+
+    const response = await action(
+      actionArgs(makeRequest({ body: JSON.stringify({ projectId: 'fixture-project', prompt: huge }) })),
+    );
 
     expect(response.status).toBe(413);
   });
@@ -91,7 +138,7 @@ describe('POST /api/agent/self-repair', () => {
     const response = await action(
       actionArgs(
         makeRequest({
-          body: JSON.stringify({ prompt: 'fix this hunk' }),
+          body: JSON.stringify({ projectId: 'fixture-project', prompt: 'fix this hunk' }),
           cookie:
             'apiKeys=' +
             encodeURIComponent(JSON.stringify({ Anthropic: 'sk-test' })) +
@@ -117,7 +164,7 @@ describe('POST /api/agent/self-repair', () => {
     streamTextMock.mockResolvedValueOnce({ text: Promise.resolve('ok') });
 
     const action = await loadAction();
-    const request = makeRequest({ body: JSON.stringify({ prompt: 'fix this hunk' }) });
+    const request = makeRequest({ body: JSON.stringify({ projectId: 'fixture-project', prompt: 'fix this hunk' }) });
 
     await action(actionArgs(request));
 
@@ -140,6 +187,7 @@ describe('POST /api/agent/self-repair', () => {
       actionArgs(
         makeRequest({
           body: JSON.stringify({
+            projectId: 'fixture-project',
             prompt: 'fix this hunk',
             model: 'claude-3-5-sonnet-latest',
             provider: 'Anthropic',
@@ -170,7 +218,9 @@ describe('POST /api/agent/self-repair', () => {
 
     const action = await loadAction();
 
-    await action(actionArgs(makeRequest({ body: JSON.stringify({ prompt: 'fix this hunk' }) })));
+    await action(
+      actionArgs(makeRequest({ body: JSON.stringify({ projectId: 'fixture-project', prompt: 'fix this hunk' }) })),
+    );
 
     const call = streamTextMock.mock.calls[0][0];
     expect(call.messages).toEqual([{ id: 'self-repair', role: 'user', content: 'fix this hunk' }]);
@@ -180,7 +230,10 @@ describe('POST /api/agent/self-repair', () => {
     streamTextMock.mockRejectedValueOnce(new Error('SECRET_PROVIDER_DETAIL: quota exhausted'));
 
     const action = await loadAction();
-    const response = await action(actionArgs(makeRequest({ body: JSON.stringify({ prompt: 'fix this hunk' }) })));
+
+    const response = await action(
+      actionArgs(makeRequest({ body: JSON.stringify({ projectId: 'fixture-project', prompt: 'fix this hunk' }) })),
+    );
 
     expect(response.status).toBe(502);
 
@@ -222,7 +275,7 @@ describe('POST /api/agent/self-repair', () => {
     const response = await action(
       actionArgs(
         makeRequest({
-          body: JSON.stringify({ prompt: 'fix' }),
+          body: JSON.stringify({ projectId: 'fixture-project', prompt: 'fix' }),
           cookie: 'apiKeys=' + encodeURIComponent('not-json'),
         }),
       ),

@@ -3741,6 +3741,9 @@ export class WorkbenchStore {
          * the client's own auto-run rather than double-launching.
          */
         () => this.startPreviewServer(),
+
+        // Capture the artifact's project now; late repairs must never follow a project switch.
+        this.#projectId,
       ),
     });
   }

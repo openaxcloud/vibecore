@@ -2782,5 +2782,29 @@
   "GIT_REMOTE_NOT_ALLOWED": {
     "en": "This repository address cannot be reached.",
     "fr": "Cette adresse de dépôt ne peut pas être atteinte."
+  },
+  "EXPLICIT_RUN_LIVE_BILLING_UNSUPPORTED": {
+    "en": "Bounded runs require disabled live credit billing.",
+    "fr": "Les exécutions limitées nécessitent que la facturation réelle des crédits soit désactivée."
+  },
+  "EXPLICIT_RUN_PROVIDER_UNAVAILABLE": {
+    "en": "Explicit provider unavailable.",
+    "fr": "Le fournisseur choisi est indisponible."
+  },
+  "EXPLICIT_RUN_UNAVAILABLE": {
+    "en": "Explicit run unavailable.",
+    "fr": "Cette exécution avec choix explicite est indisponible."
+  },
+  "EXPLICIT_RUN_PRICE_OR_PLAN_UNAVAILABLE": {
+    "en": "Explicit run price or plan unavailable.",
+    "fr": "Le tarif ou le forfait de cette exécution est indisponible."
+  },
+  "EXPLICIT_RUN_RESERVATION_REFUSED": {
+    "en": "Explicit run reservation refused.",
+    "fr": "La réservation du budget de cette exécution a été refusée."
+  },
+  "EXPLICIT_RUN_USAGE_MISMATCH": {
+    "en": "Explicit run usage does not match its reservation.",
+    "fr": "L’utilisation déclarée pour cette exécution ne correspond pas à sa réservation."
   }
 }

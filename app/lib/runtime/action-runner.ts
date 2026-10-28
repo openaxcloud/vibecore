@@ -160,7 +160,7 @@ export function seRejoueSansRisque(action: BoltAction): boolean {
   return action.type === 'shell' && INSTALLATION_SEULE.test(action.content ?? '');
 }
 
-async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Promise<string> {
+async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal, projectId?: string): Promise<string> {
   /*
    * Bound the request so a silent network stall (half-open connection, no RST)
    * can't hang the file action indefinitely. Combine the caller's signal with a
@@ -173,7 +173,7 @@ async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Pro
     method: 'POST',
     credentials: 'include',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, projectId }),
     signal: combinedSignal,
   });
 
@@ -428,6 +428,7 @@ export class ActionRunner {
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
     onStartDevServer?: (command: string) => Promise<unknown> | unknown,
+    private readonly _repairProjectId?: string,
   ) {
     this.#runtime = runtime;
     this.#shellTerminal = getShellTerminal;
@@ -1481,7 +1482,7 @@ export class ActionRunner {
 
     try {
       const repairPrompt = buildDiffFullFileReemitPrompt(filePath, originalFile, diffPayload);
-      const fullFile = await callSelfRepairEndpoint(repairPrompt, abortSignal);
+      const fullFile = await callSelfRepairEndpoint(repairPrompt, abortSignal, this._repairProjectId);
 
       if (fullFile && fullFile.trim().length > 0 && !abortSignal.aborted) {
         logger.info(`[diff]: recovered ${filePath} via full-file re-emit`);
@@ -1753,7 +1754,7 @@ export class ActionRunner {
         const prompt = buildSelfRepairPrompt(relativePath, payload, lastError);
 
         // Propagate the action's abort signal so Stop cancels the self-repair LLM call.
-        const corrected = await callSelfRepairEndpoint(prompt, signal);
+        const corrected = await callSelfRepairEndpoint(prompt, signal, this._repairProjectId);
         const reValidation = await validateAndFormatHunk(relativePath, corrected);
 
         if (reValidation.kind === 'ok') {
