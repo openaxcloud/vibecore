@@ -1,0 +1,43 @@
+{
+  "processes": [
+    {
+      "role": "fixture",
+      "pid": 73797,
+      "before": {
+        "state": "S",
+        "startTicks": "4856382",
+        "cmdline": "node docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs "
+      },
+      "signals": [
+        "SIGTERM"
+      ],
+      "after": {
+        "state": "Z",
+        "startTicks": "4856382",
+        "cmdline": ""
+      }
+    },
+    {
+      "role": "app",
+      "pid": 73798,
+      "before": {
+        "state": "S",
+        "startTicks": "4856382",
+        "cmdline": "node --require ./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs node_modules/@react-router/serve/bin.js build/server/index.js "
+      },
+      "signals": [
+        "SIGTERM",
+        "SIGKILL"
+      ],
+      "after": {
+        "state": "Z",
+        "startTicks": "4856382",
+        "cmdline": ""
+      }
+    }
+  ],
+  "ports": {
+    "20999": 111,
+    "8699": 111
+  }
+}

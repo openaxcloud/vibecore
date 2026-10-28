@@ -175,7 +175,12 @@ import {
   useIdePalette,
   useRetainIdePalettes,
 } from './IdePaletteState';
-import { parseMemoryTags, useIdeSettingsDraft } from './IdeSettingsDraftState';
+import {
+  parseMemoryTags,
+  useIdeSettingsDraft,
+  useIdeSettingsFormDraft,
+  type SettingsFormValues,
+} from './IdeSettingsDraftState';
 
 import {
   deposerDisposition,
@@ -8941,6 +8946,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return (
           <ProjectIdeServicePanel
             key={`${projectId ?? 'project'}:${panel}`}
+            paneId={paneId}
             projectId={projectId}
             panel={panel}
             initialPayload={initialIdePanels?.[panel]}
@@ -10534,6 +10540,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
                     <ProjectIdeServicePanel
                       key={`${projectId ?? 'project'}:mobile:${activeMobileServicePanel}`}
+                      paneId={activePaneId}
                       projectId={projectId}
                       panel={activeMobileServicePanel}
                       displayTitle={mobileServiceHeaderTab?.name}
@@ -11742,6 +11749,7 @@ function LegacyDomainsServicePanel({ projectId }: { projectId?: string }) {
 }
 
 function ProjectIdeApiServicePanel({
+  paneId,
   projectId,
   panel,
   displayTitle,
@@ -11749,6 +11757,7 @@ function ProjectIdeApiServicePanel({
   initialPayload,
   requestedWorkspaceId,
 }: {
+  paneId?: string;
   projectId?: string;
   panel: string;
   displayTitle?: string;
@@ -12329,6 +12338,7 @@ function ProjectIdeApiServicePanel({
             })}
           >
             <ProjectIdePanelContent
+              paneId={paneId}
               panel={panel}
               data={data}
               project={project}
@@ -14701,6 +14711,7 @@ function ProjectWelcomeState({
 }
 
 function ProjectIdePanelContent({
+  paneId,
   panel,
   data,
   project,
@@ -14710,6 +14721,7 @@ function ProjectIdePanelContent({
   reload,
   lastLoadedAt,
 }: {
+  paneId?: string;
   panel: string;
   data: any;
   project: any;
@@ -15227,7 +15239,7 @@ function ProjectIdePanelContent({
   if (panel === 'settings') {
     const settings = data.project ?? project;
 
-    return <ProjectSettingsPanel settings={settings} data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectSettingsPanel paneId={paneId} settings={settings} data={data} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'activity') {
@@ -15894,11 +15906,13 @@ function classifyProjectActivity(action: string) {
 }
 
 function ProjectSettingsPanel({
+  paneId,
   settings,
   data,
   onSubmit,
   busy,
 }: {
+  paneId?: string;
   settings: any;
   data: any;
   onSubmit: any;
@@ -16094,6 +16108,22 @@ function ProjectSettingsPanel({
     ),
   })).filter((section) => section.bindings.length > 0);
 
+  const formValues: SettingsFormValues = {
+    'profile.name': accountUser.name ?? '',
+    'profile.email': accountUser.email ?? '',
+    'preferences.theme': preferences.theme ?? 'system',
+    'preferences.keyboardMode': String(Boolean(preferences.keyboardMode)),
+    'preferences.creditAlertThreshold': String(preferences.creditAlertThreshold ?? 80),
+  };
+
+  for (const section of keyboardSections) {
+    for (const binding of section.bindings) {
+      formValues[`keybinding:${binding.action}`] = binding.combo;
+    }
+  }
+
+  const formDraft = useIdeSettingsFormDraft(settings.id, paneId, formValues);
+
   const keyboardConflicts = detectKeybindingConflicts(
     applyKeybindingOverrides(localizedProjectKeybindings, keybindingOverrides),
   );
@@ -16227,10 +16257,7 @@ function ProjectSettingsPanel({
   );
 
   return (
-    <div
-      className={`bolt-project-settings-hub ${settingsTab === 'usage' || settingsTab === 'memory' ? settingsPanelStyles.panel : ''}`}
-      data-testid="settings-hub-panel"
-    >
+    <div className={`bolt-project-settings-hub ${settingsPanelStyles.panel}`} data-testid="settings-hub-panel">
       <header>
         <div>
           <h3>{t('chat.copy.accountSettings_e3270761')}</h3>
@@ -16352,7 +16379,8 @@ function ProjectSettingsPanel({
                   {t('chat.copy.displayName_c7874aaa')}
                   <PanelInput
                     name="name"
-                    defaultValue={accountUser.name ?? ''}
+                    value={formDraft.values['profile.name'] ?? ''}
+                    onChange={(event) => formDraft.setField('profile.name', event.currentTarget.value)}
                     required
                     aria-label={t('chat.copy.displayName_c7874aaa')}
                   />
@@ -16362,7 +16390,8 @@ function ProjectSettingsPanel({
                   <PanelInput
                     name="email"
                     type="email"
-                    defaultValue={accountUser.email ?? ''}
+                    value={formDraft.values['profile.email'] ?? ''}
+                    onChange={(event) => formDraft.setField('profile.email', event.currentTarget.value)}
                     required
                     aria-label={t('chat.copy.emailAddress_c94d3175')}
                   />
@@ -17043,7 +17072,11 @@ function ProjectSettingsPanel({
                 </div>
                 <label>
                   {t('chat.copy.theme_a797e309')}
-                  <select name="theme" defaultValue={preferences.theme}>
+                  <select
+                    name="theme"
+                    value={formDraft.values['preferences.theme'] ?? ''}
+                    onChange={(event) => formDraft.setField('preferences.theme', event.currentTarget.value)}
+                  >
                     <option value="dark">{t('chat.copy.dark_ae1ef014')}</option>
                     <option value="light">{t('chat.copy.light_a36ef8ab')}</option>
                     <option value="system">{t('chat.copy.system_bc0792d8')}</option>
@@ -17063,7 +17096,11 @@ function ProjectSettingsPanel({
                 </label>
                 <label>
                   {t('chat.copy.keyboardMode_648b32a7')}
-                  <select name="keyboardMode" defaultValue={String(Boolean(preferences.keyboardMode))}>
+                  <select
+                    name="keyboardMode"
+                    value={formDraft.values['preferences.keyboardMode'] ?? ''}
+                    onChange={(event) => formDraft.setField('preferences.keyboardMode', event.currentTarget.value)}
+                  >
                     <option value="false">{t('chat.copy.standardBrowserShortcuts_ac1cbde1')}</option>
                     <option value="true">{t('chat.copy.hardwareKeyboardIdeShortcuts_80e616e2')}</option>
                   </select>
@@ -17075,7 +17112,10 @@ function ProjectSettingsPanel({
                     type="number"
                     min="10"
                     max="100"
-                    defaultValue={preferences.creditAlertThreshold ?? 80}
+                    value={formDraft.values['preferences.creditAlertThreshold'] ?? ''}
+                    onChange={(event) =>
+                      formDraft.setField('preferences.creditAlertThreshold', event.currentTarget.value)
+                    }
                   />
                 </label>
                 <PanelButton disabled={busy}>{t('chat.copy.savePreferences_d8ab74e1')}</PanelButton>
@@ -17119,7 +17159,10 @@ function ProjectSettingsPanel({
                             </span>
                             <input
                               name={`keybinding:${binding.action}`}
-                              defaultValue={binding.combo}
+                              value={formDraft.values[`keybinding:${binding.action}`] ?? binding.combo}
+                              onChange={(event) =>
+                                formDraft.setField(`keybinding:${binding.action}`, event.currentTarget.value)
+                              }
                               spellCheck={false}
                               autoCapitalize="none"
                               aria-label={t('chat.copy.value0Shortcut_3842fc24', { value0: binding.label })}

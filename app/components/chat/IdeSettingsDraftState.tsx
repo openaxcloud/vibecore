@@ -24,10 +24,22 @@ export function parseMemoryTags(value: string) {
   ].slice(0, 20);
 }
 
-/** Ephemeral route state only. No account, credentials or persistent browser storage. */
+type SettingsFormField =
+  | 'profile.name'
+  | 'profile.email'
+  | 'preferences.theme'
+  | 'preferences.keyboardMode'
+  | 'preferences.creditAlertThreshold'
+  | `keybinding:${string}`;
+export type SettingsFormValues = Partial<Record<SettingsFormField, string>>;
+type SettingsFormDraft = Partial<Record<SettingsFormField, { value: string; baseline: string }>>;
+type SettingsFormDrafts = Record<string, SettingsFormDraft>;
+
+/** Ephemeral route state only. No credentials or persistent browser storage. */
 function useSettingsState(projectId: string) {
   const { t } = useTranslation();
   const [settingsTab, setSettingsTab] = useState('project');
+  const [formDrafts, setFormDrafts] = useState<SettingsFormDrafts>({});
   const [memoryDraft, setMemoryDraft] = useState('');
   const [memoryType, setMemoryType] = useState('semantic');
   const [memoryTags, setMemoryTags] = useState('');
@@ -346,6 +358,8 @@ function useSettingsState(projectId: string) {
   const saveEditedMemory = (id: string) => run(() => saveEditedMemoryRequest(id));
 
   return {
+    formDrafts,
+    setFormDrafts,
     settingsTab,
     setSettingsTab,
     memoryDraft,
@@ -391,4 +405,69 @@ export function useIdeSettingsDraft(projectId: string) {
   const local = useSettingsState(shared ? '' : projectId);
 
   return shared ?? local;
+}
+
+/** Only the explicit non-sensitive fields above may outlive a Settings surface. */
+export function useIdeSettingsFormDraft(
+  projectId: string,
+  paneId: string | undefined,
+  serverValues: SettingsFormValues,
+) {
+  const shared = useContext(SettingsContext);
+  const [local, setLocal] = useState<SettingsFormDrafts>({});
+  const drafts = shared && paneId ? shared.formDrafts : local;
+  const setDrafts = shared && paneId ? shared.setFormDrafts : setLocal;
+  const scope = JSON.stringify([projectId, paneId ?? 'local']);
+  const serialized = JSON.stringify(serverValues);
+  const current = drafts[scope] ?? {};
+  const values: SettingsFormValues = { ...serverValues };
+
+  for (const field of Object.keys(serverValues) as SettingsFormField[]) {
+    const entry = current[field];
+
+    if (entry && entry.value !== entry.baseline) {
+      values[field] = entry.value;
+    }
+  }
+  useEffect(() => {
+    const fresh = JSON.parse(serialized) as SettingsFormValues;
+    setDrafts((all) => {
+      const existing = all[scope];
+
+      if (!existing) {
+        return all;
+      }
+
+      const next = { ...existing };
+
+      let changed = false;
+
+      for (const field of Object.keys(existing) as SettingsFormField[]) {
+        const entry = existing[field]!;
+
+        if (fresh[field] === undefined) {
+          continue;
+        }
+
+        if (entry.value === entry.baseline || entry.value === fresh[field]) {
+          delete next[field];
+          changed = true;
+        } else if (entry.baseline !== fresh[field]) {
+          next[field] = { ...entry, baseline: fresh[field]! };
+          changed = true;
+        }
+      }
+
+      return changed ? { ...all, [scope]: next } : all;
+    });
+  }, [scope, serialized, setDrafts]);
+
+  const setField = (field: SettingsFormField, value: string) => {
+    setDrafts((all) => ({
+      ...all,
+      [scope]: { ...all[scope], [field]: { value, baseline: serverValues[field] ?? '' } },
+    }));
+  };
+
+  return { values, setField };
 }

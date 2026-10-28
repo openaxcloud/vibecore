@@ -2,7 +2,8 @@
   container-name: project-settings;
 }
 
-.panel.panel .responsiveGrid {
+.panel.panel .responsiveGrid,
+.panel.panel :global(.bolt-project-settings-grid) {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
 }
 

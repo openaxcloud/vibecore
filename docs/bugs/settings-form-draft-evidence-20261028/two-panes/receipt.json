@@ -1,0 +1,2511 @@
+[
+  {
+    "width": 1920,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "hub": {
+      "x": 521.28125,
+      "y": 125,
+      "width": 1100.671875,
+      "height": 694.328125
+    },
+    "accountGeometry": {
+      "hub": {
+        "x": 521.28125,
+        "y": 125,
+        "width": 1100.671875,
+        "height": 694.328125,
+        "top": 125,
+        "right": 1621.953125,
+        "bottom": 819.328125,
+        "left": 521.28125
+      },
+      "client": 1101,
+      "scroll": 1101,
+      "layoutColumns": "280px 804.672px",
+      "sidebar": {
+        "rect": {
+          "x": 521.28125,
+          "y": 214.484375,
+          "width": 280,
+          "height": 604.84375,
+          "top": 214.484375,
+          "right": 801.28125,
+          "bottom": 819.328125,
+          "left": 521.28125
+        },
+        "position": "sticky"
+      },
+      "cards": [
+        {
+          "rect": {
+            "x": 817.28125,
+            "y": 293.546875,
+            "width": 394.328125,
+            "height": 452.671875,
+            "top": 293.546875,
+            "right": 1211.609375,
+            "bottom": 746.21875,
+            "left": 817.28125
+          },
+          "client": 392,
+          "scroll": 392,
+          "columns": "360.328px"
+        },
+        {
+          "rect": {
+            "x": 1227.609375,
+            "y": 293.546875,
+            "width": 394.34375,
+            "height": 452.671875,
+            "top": 293.546875,
+            "right": 1621.953125,
+            "bottom": 746.21875,
+            "left": 1227.609375
+          },
+          "client": 392,
+          "scroll": 392,
+          "columns": "360.344px"
+        }
+      ],
+      "controls": [
+        {
+          "name": "name",
+          "tag": "INPUT",
+          "rect": {
+            "x": 834.28125,
+            "y": 518.28125,
+            "width": 360.328125,
+            "height": 38,
+            "top": 518.28125,
+            "right": 1194.609375,
+            "bottom": 556.28125,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "email",
+          "tag": "INPUT",
+          "rect": {
+            "x": 834.28125,
+            "y": 612.875,
+            "width": 360.328125,
+            "height": 38,
+            "top": 612.875,
+            "right": 1194.609375,
+            "bottom": 650.875,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 834.28125,
+            "y": 673.65625,
+            "width": 360.328125,
+            "height": 34,
+            "top": 673.65625,
+            "right": 1194.609375,
+            "bottom": 707.65625,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "BUTTON"
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1244.609375,
+            "y": 603.21875,
+            "width": 206.03125,
+            "height": 34,
+            "top": 603.21875,
+            "right": 1450.640625,
+            "bottom": 637.21875,
+            "left": 1244.609375
+          },
+          "client": 204,
+          "scroll": 204,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "BUTTON"
+          }
+        }
+      ],
+      "activeTab": "button-settings-tab-account"
+    },
+    "themeHit": {
+      "rect": {
+        "x": 834.28125,
+        "y": 434.90625,
+        "width": 360.328125,
+        "height": 50.84375,
+        "top": 434.90625,
+        "right": 1194.609375,
+        "bottom": 485.75,
+        "left": 834.28125
+      },
+      "reachable": true,
+      "hitTag": "SELECT",
+      "sidebar": false
+    },
+    "themeKeyboardFocus": true,
+    "preferencesGeometry": {
+      "hub": {
+        "x": 521.28125,
+        "y": 125,
+        "width": 1100.671875,
+        "height": 1558.140625,
+        "top": 125,
+        "right": 1621.953125,
+        "bottom": 1683.140625,
+        "left": 521.28125
+      },
+      "client": 1101,
+      "scroll": 1101,
+      "layoutColumns": "280px 804.672px",
+      "sidebar": {
+        "rect": {
+          "x": 521.28125,
+          "y": 214.484375,
+          "width": 280,
+          "height": 604.84375,
+          "top": 214.484375,
+          "right": 801.28125,
+          "bottom": 819.328125,
+          "left": 521.28125
+        },
+        "position": "sticky"
+      },
+      "cards": [
+        {
+          "rect": {
+            "x": 817.28125,
+            "y": 293.546875,
+            "width": 394.328125,
+            "height": 577.015625,
+            "top": 293.546875,
+            "right": 1211.609375,
+            "bottom": 870.5625,
+            "left": 817.28125
+          },
+          "client": 392,
+          "scroll": 392,
+          "columns": "360.328px"
+        },
+        {
+          "rect": {
+            "x": 1227.609375,
+            "y": 293.546875,
+            "width": 394.34375,
+            "height": 577.015625,
+            "top": 293.546875,
+            "right": 1621.953125,
+            "bottom": 870.5625,
+            "left": 1227.609375
+          },
+          "client": 392,
+          "scroll": 392,
+          "columns": "360.344px"
+        },
+        {
+          "rect": {
+            "x": 817.28125,
+            "y": 886.5625,
+            "width": 394.328125,
+            "height": 796.578125,
+            "top": 886.5625,
+            "right": 1211.609375,
+            "bottom": 1683.140625,
+            "left": 817.28125
+          },
+          "client": 392,
+          "scroll": 392,
+          "columns": "360.328px"
+        }
+      ],
+      "controls": [
+        {
+          "name": "theme",
+          "tag": "SELECT",
+          "rect": {
+            "x": 834.28125,
+            "y": 434.90625,
+            "width": 360.328125,
+            "height": 50.84375,
+            "top": 434.90625,
+            "right": 1194.609375,
+            "bottom": 485.75,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "",
+          "tag": "SELECT",
+          "rect": {
+            "x": 834.28125,
+            "y": 533.609375,
+            "width": 360.328125,
+            "height": 50.84375,
+            "top": 533.609375,
+            "right": 1194.609375,
+            "bottom": 584.453125,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "keyboardMode",
+          "tag": "SELECT",
+          "rect": {
+            "x": 834.28125,
+            "y": 632.3125,
+            "width": 360.328125,
+            "height": 50.84375,
+            "top": 632.3125,
+            "right": 1194.609375,
+            "bottom": 683.15625,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "creditAlertThreshold",
+          "tag": "INPUT",
+          "rect": {
+            "x": 834.28125,
+            "y": 731.03125,
+            "width": 360.328125,
+            "height": 50.84375,
+            "top": 731.03125,
+            "right": 1194.609375,
+            "bottom": 781.875,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 834.28125,
+            "y": 793.875,
+            "width": 360.328125,
+            "height": 34,
+            "top": 793.875,
+            "right": 1194.609375,
+            "bottom": 827.875,
+            "left": 834.28125
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "BUTTON"
+          }
+        },
+        {
+          "name": "keybinding:file.save",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 431.234375,
+            "width": 160,
+            "height": 38,
+            "top": 431.234375,
+            "right": 1537.59375,
+            "bottom": 469.234375,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:file.saveAll",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1363.15625,
+            "y": 522.765625,
+            "width": 160,
+            "height": 38,
+            "top": 522.765625,
+            "right": 1523.15625,
+            "bottom": 560.765625,
+            "left": 1363.15625
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:file.quickOpen",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 660.359375,
+            "width": 160,
+            "height": 38,
+            "top": 660.359375,
+            "right": 1537.59375,
+            "bottom": 698.359375,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:command.palette",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1363.15625,
+            "y": 774.59375,
+            "width": 160,
+            "height": 38,
+            "top": 774.59375,
+            "right": 1523.15625,
+            "bottom": 812.59375,
+            "left": 1363.15625
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:command.palette",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 894.5,
+            "width": 160,
+            "height": 38,
+            "top": 894.5,
+            "right": 1537.59375,
+            "bottom": 932.5,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:workbench.tools",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 998.796875,
+            "width": 160,
+            "height": 38,
+            "top": 998.796875,
+            "right": 1537.59375,
+            "bottom": 1036.796875,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:tab.close",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 1103.75,
+            "width": 160,
+            "height": 38,
+            "top": 1103.75,
+            "right": 1537.59375,
+            "bottom": 1141.75,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:tab.reopenClosed",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1363.15625,
+            "y": 1186.765625,
+            "width": 160,
+            "height": 38,
+            "top": 1186.765625,
+            "right": 1523.15625,
+            "bottom": 1224.765625,
+            "left": 1363.15625
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:sidebar.toggle",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 1293.90625,
+            "width": 160,
+            "height": 38,
+            "top": 1293.90625,
+            "right": 1537.59375,
+            "bottom": 1331.90625,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:workspace.run",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 1408.140625,
+            "width": 160,
+            "height": 38,
+            "top": 1408.140625,
+            "right": 1537.59375,
+            "bottom": 1446.140625,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:settings.open",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 1506.765625,
+            "width": 160,
+            "height": 38,
+            "top": 1506.765625,
+            "right": 1537.59375,
+            "bottom": 1544.765625,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.toggleComment",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 1637.265625,
+            "width": 160,
+            "height": 38,
+            "top": 1637.265625,
+            "right": 1537.59375,
+            "bottom": 1675.265625,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.rename",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1406.5,
+            "y": 1728.796875,
+            "width": 160,
+            "height": 38,
+            "top": 1728.796875,
+            "right": 1566.5,
+            "bottom": 1766.796875,
+            "left": 1406.5
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.goToDefinition",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1399.265625,
+            "y": 1804.71875,
+            "width": 160,
+            "height": 38,
+            "top": 1804.71875,
+            "right": 1559.265625,
+            "bottom": 1842.71875,
+            "left": 1399.265625
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.findReferences",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1384.828125,
+            "y": 1896.25,
+            "width": 160,
+            "height": 38,
+            "top": 1896.25,
+            "right": 1544.828125,
+            "bottom": 1934.25,
+            "left": 1384.828125
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.quickFix",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 1986.359375,
+            "width": 160,
+            "height": 38,
+            "top": 1986.359375,
+            "right": 1537.59375,
+            "bottom": 2024.359375,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:agent.focus",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 2105.5,
+            "width": 160,
+            "height": 38,
+            "top": 2105.5,
+            "right": 1537.59375,
+            "bottom": 2143.5,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:terminal.toggle",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 2234.578125,
+            "width": 160,
+            "height": 38,
+            "top": 2234.578125,
+            "right": 1537.59375,
+            "bottom": 2272.578125,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:terminal.focus",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 2334.625,
+            "width": 160,
+            "height": 38,
+            "top": 2334.625,
+            "right": 1537.59375,
+            "bottom": 2372.625,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:help.keyboard",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1377.59375,
+            "y": 2455.1875,
+            "width": 160,
+            "height": 38,
+            "top": 2455.1875,
+            "right": 1537.59375,
+            "bottom": 2493.1875,
+            "left": 1377.59375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:help.keyboard",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1399.265625,
+            "y": 2529.6875,
+            "width": 160,
+            "height": 38,
+            "top": 2529.6875,
+            "right": 1559.265625,
+            "bottom": 2567.6875,
+            "left": 1399.265625
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:overlay.close",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1399.265625,
+            "y": 2612.703125,
+            "width": 160,
+            "height": 38,
+            "top": 2612.703125,
+            "right": 1559.265625,
+            "bottom": 2650.703125,
+            "left": 1399.265625
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1244.609375,
+            "y": 819.5625,
+            "width": 360.34375,
+            "height": 34,
+            "top": 819.5625,
+            "right": 1604.953125,
+            "bottom": 853.5625,
+            "left": 1244.609375
+          },
+          "client": 358,
+          "scroll": 358,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "BUTTON"
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1114.453125,
+            "y": 1003.1875,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1003.1875,
+            "right": 1183.609375,
+            "bottom": 1037.1875,
+            "left": 1114.453125
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1114.453125,
+            "y": 1125.875,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1125.875,
+            "right": 1183.609375,
+            "bottom": 1159.875,
+            "left": 1114.453125
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1114.453125,
+            "y": 1248.5625,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1248.5625,
+            "right": 1183.609375,
+            "bottom": 1282.5625,
+            "left": 1114.453125
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1114.453125,
+            "y": 1364.15625,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1364.15625,
+            "right": 1183.609375,
+            "bottom": 1398.15625,
+            "left": 1114.453125
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1114.453125,
+            "y": 1479.75,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1479.75,
+            "right": 1183.609375,
+            "bottom": 1513.75,
+            "left": 1114.453125
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1114.453125,
+            "y": 1595.34375,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1595.34375,
+            "right": 1183.609375,
+            "bottom": 1629.34375,
+            "left": 1114.453125
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        }
+      ],
+      "activeTab": "button-settings-tab-preferences"
+    },
+    "accountAfterTab": "Brouillon local français — non enregistré",
+    "accountDraftPreserved": true,
+    "preferencesAfterTab": "77",
+    "preferencesDraftPreserved": true,
+    "afterResizeGeometry": {
+      "hub": {
+        "x": 16,
+        "y": 62,
+        "width": 358,
+        "height": 5514.84375,
+        "top": 62,
+        "right": 374,
+        "bottom": 5576.84375,
+        "left": 16
+      },
+      "client": 358,
+      "scroll": 358,
+      "layoutColumns": "358px",
+      "sidebar": {
+        "rect": {
+          "x": 16,
+          "y": 224.65625,
+          "width": 358,
+          "height": 346,
+          "top": 224.65625,
+          "right": 374,
+          "bottom": 570.65625,
+          "left": 16
+        },
+        "position": "static"
+      },
+      "cards": [
+        {
+          "rect": {
+            "x": 16,
+            "y": 586.65625,
+            "width": 358,
+            "height": 432.90625,
+            "top": 586.65625,
+            "right": 374,
+            "bottom": 1019.5625,
+            "left": 16
+          },
+          "client": 356,
+          "scroll": 356,
+          "columns": "328px"
+        },
+        {
+          "rect": {
+            "x": 16,
+            "y": 1035.5625,
+            "width": 358,
+            "height": 3348.875,
+            "top": 1035.5625,
+            "right": 374,
+            "bottom": 4384.4375,
+            "left": 16
+          },
+          "client": 356,
+          "scroll": 356,
+          "columns": "328px"
+        },
+        {
+          "rect": {
+            "x": 16,
+            "y": 4400.4375,
+            "width": 358,
+            "height": 1176.40625,
+            "top": 4400.4375,
+            "right": 374,
+            "bottom": 5576.84375,
+            "left": 16
+          },
+          "client": 356,
+          "scroll": 356,
+          "columns": "328px"
+        }
+      ],
+      "controls": [
+        {
+          "name": "theme",
+          "tag": "SELECT",
+          "rect": {
+            "x": 31,
+            "y": 690.9375,
+            "width": 328,
+            "height": 38,
+            "top": 690.9375,
+            "right": 359,
+            "bottom": 728.9375,
+            "left": 31
+          },
+          "client": 326,
+          "scroll": 326,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "",
+          "tag": "SELECT",
+          "rect": {
+            "x": 31,
+            "y": 764.8125,
+            "width": 328,
+            "height": 38,
+            "top": 764.8125,
+            "right": 359,
+            "bottom": 802.8125,
+            "left": 31
+          },
+          "client": 326,
+          "scroll": 326,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "keyboardMode",
+          "tag": "SELECT",
+          "rect": {
+            "x": 31,
+            "y": 838.6875,
+            "width": 328,
+            "height": 38,
+            "top": 838.6875,
+            "right": 359,
+            "bottom": 876.6875,
+            "left": 31
+          },
+          "client": 326,
+          "scroll": 326,
+          "hit": {
+            "self": false,
+            "sidebar": false,
+            "tag": "SPAN"
+          }
+        },
+        {
+          "name": "creditAlertThreshold",
+          "tag": "INPUT",
+          "rect": {
+            "x": 31,
+            "y": 912.5625,
+            "width": 328,
+            "height": 38,
+            "top": 912.5625,
+            "right": 359,
+            "bottom": 950.5625,
+            "left": 31
+          },
+          "client": 326,
+          "scroll": 326,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 31,
+            "y": 960.5625,
+            "width": 328,
+            "height": 44,
+            "top": 960.5625,
+            "right": 359,
+            "bottom": 1004.5625,
+            "left": 31
+          },
+          "client": 326,
+          "scroll": 326,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:file.save",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 1205.25,
+            "width": 312,
+            "height": 38,
+            "top": 1205.25,
+            "right": 351,
+            "bottom": 1243.25,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:file.saveAll",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 1349.4375,
+            "width": 312,
+            "height": 38,
+            "top": 1349.4375,
+            "right": 351,
+            "bottom": 1387.4375,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:file.quickOpen",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 1506.46875,
+            "width": 312,
+            "height": 38,
+            "top": 1506.46875,
+            "right": 351,
+            "bottom": 1544.46875,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:command.palette",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 1634.46875,
+            "width": 312,
+            "height": 38,
+            "top": 1634.46875,
+            "right": 351,
+            "bottom": 1672.46875,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:command.palette",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 1778.65625,
+            "width": 312,
+            "height": 38,
+            "top": 1778.65625,
+            "right": 351,
+            "bottom": 1816.65625,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:workbench.tools",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 1922.84375,
+            "width": 312,
+            "height": 38,
+            "top": 1922.84375,
+            "right": 351,
+            "bottom": 1960.84375,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:tab.close",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 2079.875,
+            "width": 312,
+            "height": 38,
+            "top": 2079.875,
+            "right": 351,
+            "bottom": 2117.875,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:tab.reopenClosed",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 2207.875,
+            "width": 312,
+            "height": 38,
+            "top": 2207.875,
+            "right": 351,
+            "bottom": 2245.875,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:sidebar.toggle",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 2352.0625,
+            "width": 312,
+            "height": 38,
+            "top": 2352.0625,
+            "right": 351,
+            "bottom": 2390.0625,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:workspace.run",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 2496.25,
+            "width": 312,
+            "height": 38,
+            "top": 2496.25,
+            "right": 351,
+            "bottom": 2534.25,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:settings.open",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 2624.25,
+            "width": 312,
+            "height": 38,
+            "top": 2624.25,
+            "right": 351,
+            "bottom": 2662.25,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.toggleComment",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 2781.28125,
+            "width": 312,
+            "height": 38,
+            "top": 2781.28125,
+            "right": 351,
+            "bottom": 2819.28125,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.rename",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 2909.28125,
+            "width": 312,
+            "height": 38,
+            "top": 2909.28125,
+            "right": 351,
+            "bottom": 2947.28125,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.goToDefinition",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 3037.28125,
+            "width": 312,
+            "height": 38,
+            "top": 3037.28125,
+            "right": 351,
+            "bottom": 3075.28125,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.findReferences",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 3181.46875,
+            "width": 312,
+            "height": 38,
+            "top": 3181.46875,
+            "right": 351,
+            "bottom": 3219.46875,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.quickFix",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 3325.65625,
+            "width": 312,
+            "height": 38,
+            "top": 3325.65625,
+            "right": 351,
+            "bottom": 3363.65625,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:agent.focus",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 3498.875,
+            "width": 312,
+            "height": 38,
+            "top": 3498.875,
+            "right": 351,
+            "bottom": 3536.875,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:terminal.toggle",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 3655.90625,
+            "width": 312,
+            "height": 38,
+            "top": 3655.90625,
+            "right": 351,
+            "bottom": 3693.90625,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:terminal.focus",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 3800.09375,
+            "width": 312,
+            "height": 38,
+            "top": 3800.09375,
+            "right": 351,
+            "bottom": 3838.09375,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:help.keyboard",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 3973.3125,
+            "width": 312,
+            "height": 38,
+            "top": 3973.3125,
+            "right": 351,
+            "bottom": 4011.3125,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:help.keyboard",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 4101.3125,
+            "width": 312,
+            "height": 38,
+            "top": 4101.3125,
+            "right": 351,
+            "bottom": 4139.3125,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:overlay.close",
+          "tag": "INPUT",
+          "rect": {
+            "x": 39,
+            "y": 4245.5,
+            "width": 312,
+            "height": 38,
+            "top": 4245.5,
+            "right": 351,
+            "bottom": 4283.5,
+            "left": 39
+          },
+          "client": 310,
+          "scroll": 310,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 31,
+            "y": 4325.4375,
+            "width": 328,
+            "height": 44,
+            "top": 4325.4375,
+            "right": 359,
+            "bottom": 4369.4375,
+            "left": 31
+          },
+          "client": 326,
+          "scroll": 326,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 42,
+            "y": 4608.46875,
+            "width": 306,
+            "height": 44,
+            "top": 4608.46875,
+            "right": 348,
+            "bottom": 4652.46875,
+            "left": 42
+          },
+          "client": 304,
+          "scroll": 304,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 42,
+            "y": 4801.09375,
+            "width": 306,
+            "height": 44,
+            "top": 4801.09375,
+            "right": 348,
+            "bottom": 4845.09375,
+            "left": 42
+          },
+          "client": 304,
+          "scroll": 304,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 42,
+            "y": 4977.53125,
+            "width": 306,
+            "height": 44,
+            "top": 4977.53125,
+            "right": 348,
+            "bottom": 5021.53125,
+            "left": 42
+          },
+          "client": 304,
+          "scroll": 304,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 42,
+            "y": 5153.96875,
+            "width": 306,
+            "height": 44,
+            "top": 5153.96875,
+            "right": 348,
+            "bottom": 5197.96875,
+            "left": 42
+          },
+          "client": 304,
+          "scroll": 304,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 42,
+            "y": 5330.40625,
+            "width": 306,
+            "height": 44,
+            "top": 5330.40625,
+            "right": 348,
+            "bottom": 5374.40625,
+            "left": 42
+          },
+          "client": 304,
+          "scroll": 304,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 42,
+            "y": 5506.84375,
+            "width": 306,
+            "height": 44,
+            "top": 5506.84375,
+            "right": 348,
+            "bottom": 5550.84375,
+            "left": 42
+          },
+          "client": 304,
+          "scroll": 304,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        }
+      ],
+      "activeTab": "button-settings-tab-preferences"
+    },
+    "preferencesAfterResize": "77",
+    "preferencesAfterReopen": "77",
+    "returnGeometry": {
+      "hub": {
+        "x": 521.28125,
+        "y": 125,
+        "width": 1102.515625,
+        "height": 1558.140625,
+        "top": 125,
+        "right": 1623.796875,
+        "bottom": 1683.140625,
+        "left": 521.28125
+      },
+      "client": 1103,
+      "scroll": 1103,
+      "layoutColumns": "280px 806.516px",
+      "sidebar": {
+        "rect": {
+          "x": 521.28125,
+          "y": 214.484375,
+          "width": 280,
+          "height": 604.84375,
+          "top": 214.484375,
+          "right": 801.28125,
+          "bottom": 819.328125,
+          "left": 521.28125
+        },
+        "position": "sticky"
+      },
+      "cards": [
+        {
+          "rect": {
+            "x": 817.28125,
+            "y": 293.546875,
+            "width": 395.25,
+            "height": 577.015625,
+            "top": 293.546875,
+            "right": 1212.53125,
+            "bottom": 870.5625,
+            "left": 817.28125
+          },
+          "client": 393,
+          "scroll": 393,
+          "columns": "361.25px"
+        },
+        {
+          "rect": {
+            "x": 1228.53125,
+            "y": 293.546875,
+            "width": 395.265625,
+            "height": 577.015625,
+            "top": 293.546875,
+            "right": 1623.796875,
+            "bottom": 870.5625,
+            "left": 1228.53125
+          },
+          "client": 393,
+          "scroll": 393,
+          "columns": "361.266px"
+        },
+        {
+          "rect": {
+            "x": 817.28125,
+            "y": 886.5625,
+            "width": 395.25,
+            "height": 796.578125,
+            "top": 886.5625,
+            "right": 1212.53125,
+            "bottom": 1683.140625,
+            "left": 817.28125
+          },
+          "client": 393,
+          "scroll": 393,
+          "columns": "361.25px"
+        }
+      ],
+      "controls": [
+        {
+          "name": "theme",
+          "tag": "SELECT",
+          "rect": {
+            "x": 834.28125,
+            "y": 434.90625,
+            "width": 361.25,
+            "height": 50.84375,
+            "top": 434.90625,
+            "right": 1195.53125,
+            "bottom": 485.75,
+            "left": 834.28125
+          },
+          "client": 359,
+          "scroll": 359,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "",
+          "tag": "SELECT",
+          "rect": {
+            "x": 834.28125,
+            "y": 533.609375,
+            "width": 361.25,
+            "height": 50.84375,
+            "top": 533.609375,
+            "right": 1195.53125,
+            "bottom": 584.453125,
+            "left": 834.28125
+          },
+          "client": 359,
+          "scroll": 359,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "keyboardMode",
+          "tag": "SELECT",
+          "rect": {
+            "x": 834.28125,
+            "y": 632.3125,
+            "width": 361.25,
+            "height": 50.84375,
+            "top": 632.3125,
+            "right": 1195.53125,
+            "bottom": 683.15625,
+            "left": 834.28125
+          },
+          "client": 359,
+          "scroll": 359,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "SELECT"
+          }
+        },
+        {
+          "name": "creditAlertThreshold",
+          "tag": "INPUT",
+          "rect": {
+            "x": 834.28125,
+            "y": 731.03125,
+            "width": 361.25,
+            "height": 50.84375,
+            "top": 731.03125,
+            "right": 1195.53125,
+            "bottom": 781.875,
+            "left": 834.28125
+          },
+          "client": 359,
+          "scroll": 359,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 834.28125,
+            "y": 793.875,
+            "width": 361.25,
+            "height": 34,
+            "top": 793.875,
+            "right": 1195.53125,
+            "bottom": 827.875,
+            "left": 834.28125
+          },
+          "client": 359,
+          "scroll": 359,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "BUTTON"
+          }
+        },
+        {
+          "name": "keybinding:file.save",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 431.234375,
+            "width": 160,
+            "height": 38,
+            "top": 431.234375,
+            "right": 1539.4375,
+            "bottom": 469.234375,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:file.saveAll",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1365,
+            "y": 522.765625,
+            "width": 160,
+            "height": 38,
+            "top": 522.765625,
+            "right": 1525,
+            "bottom": 560.765625,
+            "left": 1365
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:file.quickOpen",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 660.359375,
+            "width": 160,
+            "height": 38,
+            "top": 660.359375,
+            "right": 1539.4375,
+            "bottom": 698.359375,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:command.palette",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1365,
+            "y": 774.59375,
+            "width": 160,
+            "height": 38,
+            "top": 774.59375,
+            "right": 1525,
+            "bottom": 812.59375,
+            "left": 1365
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "INPUT"
+          }
+        },
+        {
+          "name": "keybinding:command.palette",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 894.5,
+            "width": 160,
+            "height": 38,
+            "top": 894.5,
+            "right": 1539.4375,
+            "bottom": 932.5,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:workbench.tools",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 998.796875,
+            "width": 160,
+            "height": 38,
+            "top": 998.796875,
+            "right": 1539.4375,
+            "bottom": 1036.796875,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:tab.close",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 1103.75,
+            "width": 160,
+            "height": 38,
+            "top": 1103.75,
+            "right": 1539.4375,
+            "bottom": 1141.75,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:tab.reopenClosed",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1365,
+            "y": 1186.765625,
+            "width": 160,
+            "height": 38,
+            "top": 1186.765625,
+            "right": 1525,
+            "bottom": 1224.765625,
+            "left": 1365
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:sidebar.toggle",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 1293.90625,
+            "width": 160,
+            "height": 38,
+            "top": 1293.90625,
+            "right": 1539.4375,
+            "bottom": 1331.90625,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:workspace.run",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 1408.140625,
+            "width": 160,
+            "height": 38,
+            "top": 1408.140625,
+            "right": 1539.4375,
+            "bottom": 1446.140625,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:settings.open",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 1506.765625,
+            "width": 160,
+            "height": 38,
+            "top": 1506.765625,
+            "right": 1539.4375,
+            "bottom": 1544.765625,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.toggleComment",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 1637.265625,
+            "width": 160,
+            "height": 38,
+            "top": 1637.265625,
+            "right": 1539.4375,
+            "bottom": 1675.265625,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.rename",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1408.34375,
+            "y": 1728.796875,
+            "width": 160,
+            "height": 38,
+            "top": 1728.796875,
+            "right": 1568.34375,
+            "bottom": 1766.796875,
+            "left": 1408.34375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.goToDefinition",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1401.109375,
+            "y": 1804.71875,
+            "width": 160,
+            "height": 38,
+            "top": 1804.71875,
+            "right": 1561.109375,
+            "bottom": 1842.71875,
+            "left": 1401.109375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.findReferences",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1386.671875,
+            "y": 1896.25,
+            "width": 160,
+            "height": 38,
+            "top": 1896.25,
+            "right": 1546.671875,
+            "bottom": 1934.25,
+            "left": 1386.671875
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:editor.quickFix",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 1986.359375,
+            "width": 160,
+            "height": 38,
+            "top": 1986.359375,
+            "right": 1539.4375,
+            "bottom": 2024.359375,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:agent.focus",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 2105.5,
+            "width": 160,
+            "height": 38,
+            "top": 2105.5,
+            "right": 1539.4375,
+            "bottom": 2143.5,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:terminal.toggle",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 2234.578125,
+            "width": 160,
+            "height": 38,
+            "top": 2234.578125,
+            "right": 1539.4375,
+            "bottom": 2272.578125,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:terminal.focus",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 2334.625,
+            "width": 160,
+            "height": 38,
+            "top": 2334.625,
+            "right": 1539.4375,
+            "bottom": 2372.625,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:help.keyboard",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1379.4375,
+            "y": 2455.1875,
+            "width": 160,
+            "height": 38,
+            "top": 2455.1875,
+            "right": 1539.4375,
+            "bottom": 2493.1875,
+            "left": 1379.4375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:help.keyboard",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1401.109375,
+            "y": 2529.6875,
+            "width": 160,
+            "height": 38,
+            "top": 2529.6875,
+            "right": 1561.109375,
+            "bottom": 2567.6875,
+            "left": 1401.109375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "keybinding:overlay.close",
+          "tag": "INPUT",
+          "rect": {
+            "x": 1401.109375,
+            "y": 2612.703125,
+            "width": 160,
+            "height": 38,
+            "top": 2612.703125,
+            "right": 1561.109375,
+            "bottom": 2650.703125,
+            "left": 1401.109375
+          },
+          "client": 158,
+          "scroll": 158,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1245.53125,
+            "y": 819.5625,
+            "width": 361.265625,
+            "height": 34,
+            "top": 819.5625,
+            "right": 1606.796875,
+            "bottom": 853.5625,
+            "left": 1245.53125
+          },
+          "client": 359,
+          "scroll": 359,
+          "hit": {
+            "self": true,
+            "sidebar": false,
+            "tag": "BUTTON"
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1115.375,
+            "y": 1003.1875,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1003.1875,
+            "right": 1184.53125,
+            "bottom": 1037.1875,
+            "left": 1115.375
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1115.375,
+            "y": 1125.875,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1125.875,
+            "right": 1184.53125,
+            "bottom": 1159.875,
+            "left": 1115.375
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1115.375,
+            "y": 1248.5625,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1248.5625,
+            "right": 1184.53125,
+            "bottom": 1282.5625,
+            "left": 1115.375
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1115.375,
+            "y": 1364.15625,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1364.15625,
+            "right": 1184.53125,
+            "bottom": 1398.15625,
+            "left": 1115.375
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1115.375,
+            "y": 1479.75,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1479.75,
+            "right": 1184.53125,
+            "bottom": 1513.75,
+            "left": 1115.375
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        },
+        {
+          "name": "",
+          "tag": "BUTTON",
+          "rect": {
+            "x": 1115.375,
+            "y": 1595.34375,
+            "width": 69.15625,
+            "height": 34,
+            "top": 1595.34375,
+            "right": 1184.53125,
+            "bottom": 1629.34375,
+            "left": 1115.375
+          },
+          "client": 67,
+          "scroll": 67,
+          "hit": {
+            "self": false,
+            "sidebar": false
+          }
+        }
+      ],
+      "activeTab": "button-settings-tab-preferences"
+    },
+    "returnPreferencesValue": "77",
+    "accountAfterResize": "Brouillon local français — non enregistré",
+    "twoPanes": {
+      "left": "pane-main",
+      "right": "pane",
+      "leftThreshold": 77,
+      "rightThreshold": 80,
+      "accountDraftsIsolated": true
+    },
+    "completed": true,
+    "pass": true
+  }
+]

@@ -203,10 +203,15 @@ describe('BaseChat strengthened-AST catalog', () => {
      *      classes, textes, callbacks, Terminal et navigation basse restent
      *      identiques. La frontière réserve le reçu pendant le chargement lazy.
      *
+     *   10. Brouillons Compte/Préférences du 28/10 : comparaison exacte à
+     *       l'assemblage 6ee052210, une seule ligne transmet activePaneId au
+     *       panneau de service mobile. Aucun markup, texte, classe, callback
+     *       ou comportement Terminal/navigation basse modifié dans la tranche.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('5f57b671b48ef9f528b0ed4f1e700a5a37842a0505be1a43ae82b05387acace3');
+    expect(frozenHash).toBe('b55951a9b74d00fa782b4a52b9ac6650ba2399aab27f81270bf81f8ed77cf584');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-552 entrées.
+554 entrées.
 
 ## Sans section
 
@@ -737,6 +737,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-FILES-EDITOR-HANDOFF-20261028](docs/bugs/BUG-IDE-FILES-EDITOR-HANDOFF-20261028.md) — Le menu contextuel Fichiers ne ferme pas avec Escape et déborde sur mobile. Le passage entre CodeMirror et Monaco conserve le texte mais perd focus et sélection — 📤 Dispatché : ☑ 28/10/2026 — lot Fichiers/éditeur, distinct de Memory ; basé sur les lots #833 et #836. Aucun changement du · 💻 Codé : ☐ main — correctif local en validation, non publié, non fusionné et non déployé. · ✅ Testé live : ☐ production — contrepreuve finale Chromium locale réussie ; aucune recette production.
 - [BUG-IDE-PORTS-PACKAGES-STATE-20261028](docs/bugs/BUG-IDE-PORTS-PACKAGES-STATE-20261028.md) — Ports utilise le libellé traduit « publique » comme valeur fonctionnelle lorsque la visibilité du port n’est pas enregistrée. En français, le bouton propose alo — 📤 Dispatché : ☑ Reproduction et correction locale ciblée autorisées le 28/10/2026. · 💻 Codé : ☐ main — trois changements locaux dans les fonctions Ports/Packages de BaseChat : valeur canonique distincte d · ✅ Testé live : ☐ Production non testée. Avant correction : quatre contextes Chromium sur route compilée locale, FR/EN à1280×9
 - [BUG-IDE-PROBLEMS-LONG-PATH-20261028](docs/bugs/BUG-IDE-PROBLEMS-LONG-PATH-20261028.md) — Dans Problems, un chemin de fichier long déborde du bouton ouvrir-fichier et de la largeur visible de la liste. Le texte du diagnostic en dessous se replie, mai — 📤 Dispatché : ☑ 28/10/2026 — correction CSS locale autorisée dans un worktree distinct de #837. · 💻 Codé : ☐ main — cinq propriétés locales de `.bolt-project-problem-open` bornent la largeur et permettent le repliemen · ✅ Testé live : ☐ Production non testée. Mesures avant et contrepreuve CSS navigateur sur trois formats ; build66352 terminé e
+- [BUG-IDE-SETTINGS-NONSENSITIVE-DRAFT-20261028](docs/bugs/BUG-IDE-SETTINGS-NONSENSITIVE-DRAFT-20261028.md) — Les brouillons non sensibles Compte/Préférences disparaissent au changement de sous-page ou de coque. Défaut reproduit en navigateur local avec données synthéti — 📤 Dispatché : ☑ 28/10/2026 — complément Settings après intégration locale de #835, distinct des secrets et des opérations ba · 💻 Codé : ☐ main — correction locale revue et validée dans l’assemblage ; pas de fusion ni déploiement. · ✅ Testé live : ☐ production — six recettes Chromium locales réussies, données synthétiques et aucune soumission backend. Buil
+- [BUG-SETTINGS-SIDEBAR-NARROW-PANEL-20261028](docs/bugs/BUG-SETTINGS-SIDEBAR-NARROW-PANEL-20261028.md) — À viewport1280, le panneau Settings ne dispose que de588px. Sa grille principale est déjà réduite à une colonne, mais la navigation latérale reste sticky et rec — 📤 Dispatché : ☑ 28/10/2026 — correctif local CSS Settings, distinct des brouillons et de Problems. · 💻 Codé : ☐ main — correction locale validée : classe de conteneur Settings appliquée à toutes les sous-pages par leur p · ✅ Testé live : ☐ production — aucune recette production ni backend réel. Recette compilée finale réussie sur l’assemblage Set
 
 ## Résidus non tabulaires — reportés mot pour mot
 
