@@ -15,3 +15,5 @@ Revue indépendante : aucun défaut bloquant,16/16 tests exécutés séparément
 Deux parcours de redimensionnement en cours de saisie passent : départ390 et1280, transition768→1280→format initial, brouillon conservé puis mêmes assertions des deux menus. 16 tests inventaire passent avec Vitest.
 
 Complément FR : 3/3 recettes320/768/1280 réussies, mêmes assertions sans changement de langue dans le produit. Gitleaks sur les fichiers modifiés : aucun secret détecté.
+
+Captures stabilisées : 3/3 recettes844paysage/320/1280 passent avec attente explicite opacity=1 avant mesures et captures ; ces images remplacent l’usage des premières captures de dialogue prises pendant animation. Le typage complet dépôt passe également.
