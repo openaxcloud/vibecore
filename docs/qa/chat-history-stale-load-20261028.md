@@ -1,6 +1,6 @@
 # Isolation des lectures tardives de l’historique
 
-Base : `9ec6ebf75`. Validation locale synthétique, sans fournisseur IA ni données utilisateur.
+Base initiale : `9ec6ebf75` ; assemblage avec main `63e663830` (#828/#829). Validation locale synthétique, sans fournisseur IA ni données utilisateur.
 
 ## Défaut reproduit
 
@@ -19,6 +19,8 @@ Le test existant du branchement serveur conserve désormais une instance stable 
 - 37 tests ciblés réussis : `useChatHistory.stale-load`, `useChatHistory.fil-serveur`, `useChatHistory.i18n`, `serveur-fil-projet`.
 - Quatre nouvelles régressions : transition dans le même montage, démontage/remontage, repli serveur tardif sans adoption/écriture et rejet mémoire tardif sans toast.
 - ESLint ciblé et `git diff --check` réussis.
-- Phase web du typecheck officiel réussie ; phases suivantes arrêtées volontairement pour laisser la validation générale au coordinateur.
+- Typage officiel complet réussi après isolation des dépendances du worktree ; lint complet sans erreur (52 avertissements préexistants).
+- 43 tests assemblés avec le contrôle d’inventaire ; revue indépendante favorable (19 tests rejoués).
+- Revue d’assemblage : tous les fichiers produit propres et entrants préservés, seule union de l’index à 547 entrées.
 
 Pas de preuve navigateur, mobile, production, déploiement ou exécution de modèle. Cette correction ne prétend pas annuler une restauration de fichiers déjà engagée ni résoudre tous les cas de concurrence entre instances simultanées du chat.
