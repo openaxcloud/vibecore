@@ -157,6 +157,7 @@ export type StreamErrorCode =
   | 'STREAM_ABORTED'
   | 'MODEL_NOT_FOUND'
   | 'INVALID_RESPONSE'
+  | 'PROVIDER_CREDITS_EXHAUSTED'
   | 'AUTH_FAILED'
   | 'TOKEN_LIMIT'
   | 'RATE_LIMIT'
@@ -168,6 +169,8 @@ export const streamErrorCodeMessages: Record<StreamErrorCode, string> = {
   MODEL_NOT_FOUND: 'Invalid model selected. Please check that the model name is correct and available.',
   INVALID_RESPONSE:
     'The AI service or generated files returned invalid JSON. Check the generated file diagnostics and retry after the manifest is repaired.',
+  PROVIDER_CREDITS_EXHAUSTED:
+    'The AI provider has no available credits. Contact the platform administrator to restore provider service before retrying. Your project plan allowance is separate.',
   AUTH_FAILED: 'Invalid or missing API key. Please check your API key configuration.',
   TOKEN_LIMIT:
     'Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.',
@@ -179,6 +182,10 @@ export const streamErrorCodeMessages: Record<StreamErrorCode, string> = {
 export function classifyStreamError(error: unknown): StreamErrorCode {
   if (error && typeof error === 'object' && 'name' in error && (error as { name?: string }).name === 'AbortError') {
     return 'STREAM_ABORTED';
+  }
+
+  if (hasExhaustedProviderCredits(error)) {
+    return 'PROVIDER_CREDITS_EXHAUSTED';
   }
 
   const message = (error as { message?: string } | undefined)?.message ?? '';
@@ -253,4 +260,27 @@ export function classifyStreamError(error: unknown): StreamErrorCode {
   }
 
   return 'UNKNOWN';
+}
+
+/** Only explicit billing exhaustion counts; rate limits/resource exhaustion do not. */
+export function hasExhaustedProviderCredits(error: unknown, depth = 0): boolean {
+  if (depth > 4 || error == null) {
+    return false;
+  }
+
+  if (typeof error === 'string') {
+    return /credit balance is too low|prepayment credits are depleted|PROVIDER_CREDITS_EXHAUSTED|insufficient[_ ]quota|billing[_ ]hard[_ ]limit/i.test(
+      error,
+    );
+  }
+
+  if (typeof error !== 'object') {
+    return false;
+  }
+
+  const record = error as Record<string, unknown>;
+
+  return ['message', 'responseBody', 'body', 'detail', 'error', 'code', 'cause', 'lastError'].some((key) =>
+    hasExhaustedProviderCredits(record[key], depth + 1),
+  );
 }

@@ -198,22 +198,30 @@ describe('choix du fournisseur pour le tour', () => {
     expect(choix.provider.name).toBe('Google');
   });
 
-  /*
-   * Chaîne épuisée : on RETOURNE le fournisseur demandé plutôt que d'inventer
-   * une erreur maison. C'est le message du fournisseur — « recharge ton crédit »
-   * — qui dit à l'utilisateur quoi faire ; le masquer derrière une erreur de
-   * repli lui retirerait la seule information actionnable.
-   */
-  it('conserve le fournisseur demandé quand toute la chaîne est indisponible', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+  it('arrête la génération quand le crédit est épuisé et toute la chaîne indisponible', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'private provider diagnostic');
     markProviderUnhealthy('OpenAI', 'auth', '401');
     markProviderUnhealthy('Google', 'server', '503');
 
-    const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-sonnet-4-5-20250929', apiKeys: CLES });
-
-    expect(choix.provider.name).toBe('Anthropic');
-    expect(choix.switchedFrom).toBeUndefined();
+    expect(() =>
+      resolveRuntimeProvider({ provider: anthropic, model: 'claude-sonnet-4-5-20250929', apiKeys: CLES }),
+    ).toThrow(expect.objectContaining({ code: 'PROVIDER_CREDITS_EXHAUSTED', statusCode: 503, isRetryable: false }));
+    expect(() =>
+      resolveRuntimeProvider({ provider: anthropic, model: 'claude-sonnet-4-5-20250929', apiKeys: CLES }),
+    ).not.toThrow('private provider diagnostic');
   });
+
+  it.each(['auth', 'rate-limit', 'server', 'timeout'] as const)(
+    'conserve le fournisseur sans repli pour une panne %s',
+    (kind) => {
+      markProviderUnhealthy('Anthropic', kind, 'original diagnostic');
+
+      const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES, chaine: [] });
+
+      expect(choix.provider.name).toBe('Anthropic');
+      expect(choix.switchedFrom).toBeUndefined();
+    },
+  );
 
   it('ne se choisit pas lui-même comme repli', () => {
     markProviderUnhealthy('OpenAI', 'rate-limit', '429');
@@ -307,13 +315,26 @@ describe('le repli est CELUI DE LA CARTE de routage (2026-09-28)', () => {
     expect(choix.switchedFrom).toMatchObject({ provider: 'Anthropic', model: 'claude-opus-5', reason: 'credit' });
   });
 
-  it('la carte ne déclare AUCUN repli : on garde le modèle demandé et son erreur réelle', () => {
+  it('arrête un compte épuisé quand la carte ne déclare aucun repli', () => {
     markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
 
-    const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES, chaine: [] });
+    expect(() =>
+      resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES, chaine: [] }),
+    ).toThrow(expect.objectContaining({ code: 'PROVIDER_CREDITS_EXHAUSTED', isRetryable: false }));
+  });
 
-    expect(choix.provider.name).toBe('Anthropic');
-    expect(choix.switchedFrom).toBeUndefined();
+  it('ne sort pas de la carte quand son seul repli est indisponible', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+    markProviderUnhealthy('Google', 'credit', 'solde épuisé');
+
+    expect(() =>
+      resolveRuntimeProvider({
+        provider: anthropic,
+        model: 'claude-opus-5',
+        apiKeys: CLES,
+        chaine: [{ provider: 'Google', model: 'gemini-2.5-pro' }],
+      }),
+    ).toThrow(expect.objectContaining({ code: 'PROVIDER_CREDITS_EXHAUSTED', isRetryable: false }));
   });
 
   it('TÉMOIN — sans carte, la chaîne historique reste le dernier recours', () => {
