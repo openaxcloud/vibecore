@@ -17287,6 +17287,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const language = resolvedBaseChatLanguage(i18n);
   const [prefix, setPrefix] = useState('');
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [statusProbeFailed, setStatusProbeFailed] = useState(false);
 
   // Per-project bucket provisioning (Replit App Storage first-run). null = unknown.
   const [provisioned, setProvisioned] = useState<boolean | null>(null);
@@ -17328,9 +17329,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         body: form,
       });
 
-      return (await response.json().catch(() => ({}))) as any;
+      const result = (await response.json().catch(() => ({}))) as any;
+
+      if (fields.intent === 'status' && !response.ok) {
+        console.warn('Object storage status request failed', { status: response.status, serverError: result.error });
+        throw new Error(t('baseChatAst.storage.unreachable'));
+      }
+
+      return result;
     },
-    [projectId],
+    [projectId, t],
   );
 
   const refresh = useCallback(
@@ -17379,6 +17387,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       return;
     }
 
+    setStatusProbeFailed(false);
+    setEnabled(null);
+    setProvisioned(null);
+    setStatus(null);
+
     /*
      * `enabled === null` renders "Checking object storage…", so ANY unresolved
      * probe left that spinner on screen forever with no error — which is what
@@ -17390,11 +17403,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     try {
       const result = await postIntent({ intent: 'status' });
 
-      if (!result || result.error) {
+      if (
+        !result ||
+        result.error ||
+        typeof result.enabled !== 'boolean' ||
+        (result.enabled && typeof result.provisioned !== 'boolean')
+      ) {
         console.warn('Object storage status request failed', { serverError: result?.error });
         setEnabled(false);
-        setProvisioned(false);
-        setStatus(t('baseChatAst.storage.unreachable'));
+        setProvisioned(null);
+        setStatusProbeFailed(true);
 
         return;
       }
@@ -17404,8 +17422,8 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     } catch (error) {
       console.error('Object storage status request failed', error);
       setEnabled(false);
-      setProvisioned(false);
-      setStatus(t('baseChatAst.storage.unreachable'));
+      setProvisioned(null);
+      setStatusProbeFailed(true);
     }
   }, [postIntent, projectId, t]);
 
@@ -17425,6 +17443,8 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     if (enabled !== null) {
       return undefined;
     }
+
+    setCheckSeconds(0);
 
     const started = Date.now();
     const timer = setInterval(() => setCheckSeconds(Math.round((Date.now() - started) / 1000)), 1000);
@@ -17646,6 +17666,25 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const visibleObjects = normalizedFilter
     ? objects.filter((object) => object.key.replace(prefix, '').toLowerCase().includes(normalizedFilter))
     : objects;
+
+  if (statusProbeFailed) {
+    return (
+      <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
+        <div className="bolt-project-empty-panel grid gap-3 text-sm" role="alert">
+          <span>{t('baseChatAst.storage.unreachable')}</span>
+          <PanelButton
+            type="button"
+            variant="outline"
+            onClick={() => void loadStatus()}
+            disabled={busy}
+            className="w-fit"
+          >
+            {t('chat.copy.retry_9f5cd8a2')}
+          </PanelButton>
+        </div>
+      </div>
+    );
+  }
 
   if (enabled === null) {
     /*
