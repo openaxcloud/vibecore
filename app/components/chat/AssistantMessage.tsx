@@ -72,6 +72,9 @@ export interface AssistantMessageProps {
    * par la liste des messages ; on ne les pose pas deux fois.
    */
   masquerLesPuces?: boolean;
+
+  /** Streaming belongs to this response, not every message in the transcript. */
+  isStreaming?: boolean;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -113,6 +116,7 @@ export const AssistantMessage = memo(
     parts,
     addToolResult,
     masquerLesPuces = false,
+    isStreaming: messageIsStreaming,
   }: AssistantMessageProps) => {
     const { i18n } = useTranslation();
     const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
@@ -122,12 +126,12 @@ export const AssistantMessage = memo(
       formatAssistantMessageCopy(template, values);
 
     /*
-     * Global streaming flag (set by Chat.client while a chat request is in
-     * flight). Used to decide whether a parallel-agent lane still marked
-     * 'running' is genuinely in-flight or stranded by a Stop/abort — see
-     * resolveLaneState.
+     * The transcript supplies message-local activity. Keep the legacy global
+     * fallback for standalone consumers, but never revive historical lanes
+     * just because another response is streaming.
      */
-    const isStreaming = useStore(streamingState);
+    const globalIsStreaming = useStore(streamingState);
+    const isStreaming = messageIsStreaming ?? globalIsStreaming;
     useStore(confirmationsEcritureVersion);
 
     const confirmedPaths = messageId ? cheminsEcritsParLesLanes(messageId) : undefined;
@@ -385,8 +389,8 @@ export const AssistantMessage = memo(
       Boolean(agentPlan) ||
       Boolean(basculeTexte) ||
       Boolean(observedModel) ||
-      Boolean(agentModeChipText) ||
-      Boolean(usageChipText);
+      Boolean(agentLaneStreams?.length) ||
+      (!masquerLesPuces && Boolean(agentModeChipText || usageChipText));
 
     if (!aQuelqueChoseAMontrer) {
       return null;
@@ -917,11 +921,11 @@ export const AssistantMessage = memo(
                           ? localizeAssistantEnum(copy, 'outcome', agentExecution.consensus.outcome)
                           : localizeAssistantEnum(copy, 'status', agentExecution.status),
                       })
-                    : agentLaneStreams?.some((lane) => lane.status === 'running')
-                      ? isStreaming
+                    : !isStreaming
+                      ? copy['assistantMessage.lanes.stopped']
+                      : agentLaneStreams?.some((lane) => lane.status === 'running')
                         ? copy['assistantMessage.lanes.running']
-                        : copy['assistantMessage.lanes.stopped']
-                      : copy['assistantMessage.lanes.finalizing']}
+                        : copy['assistantMessage.lanes.finalizing']}
                 </span>
               </div>
               <p

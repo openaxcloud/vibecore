@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import type { JSONValue } from 'ai';
 import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const toastMocks = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
@@ -51,10 +52,15 @@ vi.mock('~/lib/stores/workbench', () => ({
 vi.mock('~/utils/logger', () => ({
   createScopedLogger: () => ({ warn: vi.fn() }),
 }));
-vi.mock('~/utils/constants', () => ({ WORK_DIR: '/workspace' }));
+vi.mock('~/utils/constants', () => ({
+  WORK_DIR: '/workspace',
+  MODEL_REGEX: /^\[Model: (.*?)\]\n\n/,
+  PROVIDER_REGEX: /\[Provider: (.*?)\]\n\n/,
+}));
 
 import { AgentLaneSummary, AgentVerificationClaims } from './AgentLaneSummary';
 import { AssistantMessage } from './AssistantMessage';
+import { Messages } from './Messages.client';
 import {
   formatAssistantCost,
   formatAssistantDuration,
@@ -730,5 +736,106 @@ describe('runtime evidence UI with synthetic receipts', () => {
     expect(text).toContain('continuation');
     expect(text).not.toContain('wrong-turn');
     expect(text).toContain(language === 'fr' ? 'fin de réponse non confirmée' : 'completion is not confirmed');
+  });
+});
+
+describe('message-scoped agent evidence', () => {
+  afterEach(cleanup);
+
+  it('does not revive an interrupted historical lane during another response', async () => {
+    const { streamingState } = await import('~/lib/stores/streaming');
+
+    const annotations = [
+      {
+        type: 'agentOrchestration',
+        mode: 'parallel-subagents',
+        reason: 'fixture',
+        roles: [{ id: 'backend', title: 'Backend', responsibility: 'Fixture' }],
+      },
+      { type: 'agentLaneStream', kind: 'start', roleId: 'backend' },
+    ];
+
+    const messages = [
+      { id: 'old', role: 'assistant' as const, content: 'Old interrupted response', annotations },
+      { id: 'next', role: 'user' as const, content: 'Continue' },
+      { id: 'current', role: 'assistant' as const, content: 'Current response', annotations },
+      { id: 'internal', role: 'system' as const, content: 'Hidden metadata' },
+    ];
+    streamingState.set(true);
+
+    try {
+      const i18n = createI18nInstance('fr');
+
+      const view = (active: boolean) => (
+        <MemoryRouter>
+          <I18nextProvider i18n={i18n}>
+            <Messages messages={messages} isStreaming={active} addToolResult={() => undefined} />
+          </I18nextProvider>
+        </MemoryRouter>
+      );
+
+      const { container, rerender } = render(view(true));
+      expect(
+        container.querySelector('#chat-message-old [data-testid="agent-lane-backend"]')?.getAttribute('data-state'),
+      ).toBe('failed');
+      expect(
+        container.querySelector('#chat-message-current [data-testid="agent-lane-backend"]')?.getAttribute('data-state'),
+      ).toBe('running');
+
+      const pending = getAssistantMessageCopy('fr')['assistantMessage.lanes.writePending'];
+      expect(
+        container.querySelector('#chat-message-old [data-testid="agent-write-evidence"]')?.textContent,
+      ).not.toContain(pending);
+      expect(
+        container.querySelector('#chat-message-current [data-testid="agent-write-evidence"]')?.textContent,
+      ).toContain(pending);
+      rerender(view(false));
+      expect(
+        container.querySelector('#chat-message-current [data-testid="agent-lane-backend"]')?.getAttribute('data-state'),
+      ).toBe('failed');
+    } finally {
+      act(() => streamingState.set(false));
+    }
+  });
+
+  it('renders a standalone terminal lane error even without prose or orchestration', () => {
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content=""
+          messageId="lane-error"
+          parts={[]}
+          annotations={[
+            {
+              type: 'agentLaneStream',
+              kind: 'done',
+              roleId: 'backend',
+              status: 'failed',
+              summary: 'Synthetic tool failure',
+            },
+          ]}
+          addToolResult={() => undefined}
+        />
+      </I18nextProvider>,
+    );
+    expect(screen.getByTestId('agent-lane-backend').getAttribute('data-state')).toBe('failed');
+    expect(screen.getByTestId('agent-lane-apercu').textContent).toBe('Synthetic tool failure');
+    expect(screen.queryByText(getAssistantMessageCopy('fr')['assistantMessage.lanes.finalizing'])).toBeNull();
+  });
+
+  it('does not create an empty message shell from badges suppressed in the IDE', () => {
+    const { container } = render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content=""
+          messageId="metadata-only"
+          parts={[]}
+          masquerLesPuces
+          annotations={[{ type: 'agentModeRouting', mode: 'build' }]}
+          addToolResult={() => undefined}
+        />
+      </I18nextProvider>,
+    );
+    expect(container.querySelector('.bolt-assistant-message')).toBeNull();
   });
 });
