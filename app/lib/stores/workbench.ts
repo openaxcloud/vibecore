@@ -275,6 +275,10 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   return Buffer.from(binary, 'binary').toString('base64');
 }
 
+type PreviewStartOptions = { forceInstall?: boolean; forceRestart?: boolean; intent?: 'user' };
+
+class PreviewStartCancelled extends Error {}
+
 export class WorkbenchStore {
   /*
    * Hydration mutates this instance; share only its in-flight calls, never a
@@ -316,6 +320,11 @@ export class WorkbenchStore {
    * pass that check and launch two dev servers. This flag is set synchronously at
    * entry to dedup them.
    */
+  #previewRunEpoch = 0;
+  #previewIntentProject: string | undefined;
+  #stoppedPreviewProjects = new Set<string>();
+  #previewStopPromise: Promise<number> | undefined;
+  previewStoppedByUser = atom(false);
   #previewStarting = false;
   #previewCommandRunning = false;
   #projectId: string | undefined;
@@ -578,6 +587,14 @@ export class WorkbenchStore {
   }
 
   configureRuntime(runtime: RuntimeAdapter, projectId?: string) {
+    if (runtime !== this.#runtime) {
+      this.#previewRunEpoch++;
+      this.#previewStopPromise = undefined;
+      this.#previewStarting = false;
+      this.#previewStartPromise = undefined;
+      this.#previewCommandRunning = false;
+    }
+
     /*
      * Remote adapters are recreated during workspace attachment. Their project
      * destination remains the same, so in-flight disk writes must keep their
@@ -629,6 +646,24 @@ export class WorkbenchStore {
     const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
     const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
     this.#projectId = projectId;
+
+    if (projectId && projectId !== this.#previewIntentProject) {
+      this.#previewRunEpoch++;
+      this.#previewStopPromise = undefined;
+      this.#previewStarting = false;
+      this.#previewCommandRunning = false;
+      this.#previewStartPromise = undefined;
+      this.#previewIntentProject = projectId;
+
+      let stopped = this.#stoppedPreviewProjects.has(projectId);
+
+      try {
+        stopped ||= sessionStorage.getItem(`vibecore.preview-stopped:${projectId}`) === '1';
+      } catch {
+        /* Storage may be unavailable; the in-memory intent remains authoritative. */
+      }
+      this.previewStoppedByUser.set(stopped);
+    }
 
     if (changedFileProject) {
       /*
@@ -996,7 +1031,12 @@ export class WorkbenchStore {
   }
 
   async refreshRuntimePorts() {
+    const epoch = this.#previewRunEpoch;
     await this.#previewsStore.refreshPorts();
+
+    if (epoch !== this.#previewRunEpoch || this.previewStoppedByUser.get()) {
+      return;
+    }
 
     /*
      * BUG-UX-DEV-BLOCKED-STUCK: a latched `error` state (transient "stream
@@ -1012,17 +1052,47 @@ export class WorkbenchStore {
     }
   }
 
-  async startPreviewServer(options: { forceInstall?: boolean; forceRestart?: boolean } = {}) {
-    /*
-     * Dedup concurrent starts synchronously (before any await) — see #previewStarting.
-     * A USER-initiated recovery (Run / Reinstall → forceRestart) must bypass this
-     * dedup: a PRIOR start that WEDGED (an unbounded runtime await in
-     * #runStartPreviewServer never returned, so #previewStarting/#previewStartPromise
-     * were never cleared) would otherwise make every subsequent start — including the
-     * Run button — early-return the dead promise and relaunch NOTHING. That is the
-     * "Run does nothing" no-op. On an explicit forceRestart we punch through and
-     * relaunch for real.
-     */
+  #setPreviewStoppedByUser(stopped: boolean) {
+    const projectId = this.#previewIntentProject;
+
+    if (projectId) {
+      if (stopped) {
+        this.#stoppedPreviewProjects.add(projectId);
+      } else {
+        this.#stoppedPreviewProjects.delete(projectId);
+      }
+
+      try {
+        const key = `vibecore.preview-stopped:${projectId}`;
+
+        if (stopped) {
+          sessionStorage.setItem(key, '1');
+        } else {
+          sessionStorage.removeItem(key);
+        }
+      } catch {
+        /* Keep the in-memory intent if browser storage is denied. */
+      }
+    }
+
+    this.previewStoppedByUser.set(stopped);
+  }
+
+  #assertPreviewRunCurrent(epoch: number) {
+    if (epoch !== this.#previewRunEpoch || this.previewStoppedByUser.get()) {
+      throw new PreviewStartCancelled();
+    }
+  }
+
+  async startPreviewServer(options: PreviewStartOptions = {}) {
+    if (options.intent === 'user') {
+      this.#setPreviewStoppedByUser(false);
+    }
+
+    if (this.previewStoppedByUser.get()) {
+      return workbenchText('workbenchRuntime.preview.stoppedByUser');
+    }
+
     const forceRestart = options.forceRestart ?? false;
 
     if (!forceRestart && this.#previewStartPromise) {
@@ -1033,16 +1103,36 @@ export class WorkbenchStore {
       return workbenchText('workbenchRuntime.preview.starting');
     }
 
+    let epoch = this.#previewRunEpoch;
     this.#previewStarting = true;
 
     try {
-      return await this.#runStartPreviewServer(options);
+      if (this.#previewStopPromise) {
+        await this.#previewStopPromise;
+      }
+
+      this.#assertPreviewRunCurrent(epoch);
+      epoch = ++this.#previewRunEpoch;
+
+      return await this.#runStartPreviewServer(options, epoch);
+    } catch (error) {
+      if (error instanceof PreviewStartCancelled) {
+        return workbenchText('workbenchRuntime.preview.stoppedByUser');
+      }
+
+      if (epoch === this.#previewRunEpoch) {
+        this.previewServerState.set({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+      }
+
+      throw error;
     } finally {
-      this.#previewStarting = false;
+      if (epoch === this.#previewRunEpoch) {
+        this.#previewStarting = false;
+      }
     }
   }
 
-  async #runStartPreviewServer(options: { forceInstall?: boolean; forceRestart?: boolean } = {}) {
+  async #runStartPreviewServer(options: PreviewStartOptions, epoch: number) {
     const forceInstall = options.forceInstall ?? false;
     const forceRestart = options.forceRestart ?? false;
     const previousPreviewState = this.previewServerState.get();
@@ -1075,12 +1165,14 @@ export class WorkbenchStore {
      */
     if (!forceInstall && !forceRestart) {
       await this.refreshRuntimePorts().catch(() => undefined);
+      this.#assertPreviewRunCurrent(epoch);
 
       if (this.#previewStartPromise) {
         return this.#previewStartPromise;
       }
 
       if (await this.#canShortCircuitToExistingPreview()) {
+        this.#assertPreviewRunCurrent(epoch);
         this.previewServerState.set({ status: 'running' });
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reattached'));
 
@@ -1095,9 +1187,12 @@ export class WorkbenchStore {
      * just fail again. Reprovision the pod first so the recovery buttons actually
      * revive a dead workspace, not only a stopped dev process.
      */
+    this.#assertPreviewRunCurrent(epoch);
     await this.#ensureWorkspaceProvisioned();
+    this.#assertPreviewRunCurrent(epoch);
 
     await this.refreshRuntimePorts().catch(() => undefined);
+    this.#assertPreviewRunCurrent(epoch);
 
     if (!forceRestart && this.#previewStartPromise) {
       return this.#previewStartPromise;
@@ -1132,11 +1227,14 @@ export class WorkbenchStore {
      * server on a NON-forced (auto) start.
      */
     if (!forceInstall && !forceRestart && (await this.#canShortCircuitToExistingPreview())) {
+      this.#assertPreviewRunCurrent(epoch);
       this.previewServerState.set({ status: 'running' });
       this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reattached'));
 
       return workbenchText('workbenchRuntime.preview.reattachedResult');
     }
+
+    this.#assertPreviewRunCurrent(epoch);
 
     let dependenciesChanged = false;
 
@@ -1146,10 +1244,13 @@ export class WorkbenchStore {
       return false;
     });
 
+    this.#assertPreviewRunCurrent(epoch);
+
     const shouldInstall = dependenciesChanged || forceInstall;
 
     if (shouldInstall || this.#findPackageJsonEntry()) {
       await this.loadRuntimeFiles('.').catch(() => undefined);
+      this.#assertPreviewRunCurrent(epoch);
     }
 
     if (shouldInstall || forceRestart) {
@@ -1159,17 +1260,25 @@ export class WorkbenchStore {
        * holder (including the untracked jsh-PTY dev server that stopPreviewServer's
        * tracked-only kill cannot reap) before binding a fresh, tracked dev server.
        */
-      await this.stopPreviewServer({ raison: 'redemarrage' });
+      await this.#stopPreviewProcesses(epoch);
+      this.#assertPreviewRunCurrent(epoch);
     } else if (await this.#canShortCircuitToExistingPreview()) {
+      this.#assertPreviewRunCurrent(epoch);
       this.previewServerState.set({ status: 'running' });
+
       return workbenchText('workbenchRuntime.preview.existingResult');
     }
+
+    this.#assertPreviewRunCurrent(epoch);
 
     let command: PreviewCommand;
 
     try {
       command = await this.#detectPreviewCommand(shouldInstall);
+      this.#assertPreviewRunCurrent(epoch);
     } catch (error) {
+      this.#assertPreviewRunCurrent(epoch);
+
       const message = error instanceof Error ? error.message : String(error);
       this.previewServerState.set({
         status: 'error',
@@ -1241,6 +1350,7 @@ export class WorkbenchStore {
       // best-effort guarantee; fall through with the detected command as-is
     }
 
+    this.#assertPreviewRunCurrent(epoch);
     this.toggleTerminal(true);
 
     this.#previewStartPromise = Promise.resolve(command.label);
@@ -1250,6 +1360,8 @@ export class WorkbenchStore {
     void (async () => {
       try {
         for (const setupCommand of command.setupCommands ?? []) {
+          this.#assertPreviewRunCurrent(epoch);
+
           const directory = setupCommand.cwd
             ? workbenchText('workbenchRuntime.preview.directory', { directory: setupCommand.cwd })
             : '';
@@ -1257,7 +1369,8 @@ export class WorkbenchStore {
             workbenchText('workbenchRuntime.preview.preparing', { command: setupCommand.label, directory }),
           );
 
-          const setupExitCode = await this.#runSetupCommandWithRetry(setupCommand);
+          const setupExitCode = await this.#runSetupCommandWithRetry(setupCommand, epoch);
+          this.#assertPreviewRunCurrent(epoch);
 
           if (setupExitCode !== 0) {
             this.previewServerState.set({
@@ -1273,6 +1386,8 @@ export class WorkbenchStore {
           }
         }
 
+        this.#assertPreviewRunCurrent(epoch);
+
         const directory = command.cwd
           ? workbenchText('workbenchRuntime.preview.directory', { directory: command.cwd })
           : '';
@@ -1284,6 +1399,7 @@ export class WorkbenchStore {
           exitMessage: workbenchText('workbenchRuntime.preview.commandExited'),
           refreshPortsOnOutput: true,
           lifecycle: 'preview-service',
+          epoch,
         });
 
         /*
@@ -1295,6 +1411,8 @@ export class WorkbenchStore {
          * lingering/phantom port. This is the "workspace RUNNING + 0 processes + 502
          * but status says Running on Port 5173" lie the P0 hinged on.
          */
+        this.#assertPreviewRunCurrent(epoch);
+
         if (devExitCode !== 0) {
           this.previewServerState.set({
             status: 'error',
@@ -1309,6 +1427,10 @@ export class WorkbenchStore {
           });
         }
       } catch (error) {
+        if (epoch !== this.#previewRunEpoch || this.previewStoppedByUser.get()) {
+          return;
+        }
+
         /*
          * On garde le message RÉEL de l'erreur (et non un libellé générique) :
          * c'est le seul indice exploitable quand le démarrage casse pour une
@@ -1318,20 +1440,26 @@ export class WorkbenchStore {
         this.previewServerState.set({ status: 'error', command: command.label, error: message });
         this.appendWorkspaceLog(message);
       } finally {
-        this.#previewStartPromise = undefined;
-        this.#previewCommandRunning = false;
+        if (epoch === this.#previewRunEpoch) {
+          this.#previewStartPromise = undefined;
+          this.#previewCommandRunning = false;
 
-        if (this.previewServerState.get().status !== 'error') {
-          this.previewServerState.set({
-            status: previewServerLooksRunning(this.previews.get()) ? 'running' : 'idle',
-            command: command.label,
-          });
+          if (this.previewServerState.get().status !== 'error') {
+            this.previewServerState.set({
+              status: previewServerLooksRunning(this.previews.get()) ? 'running' : 'idle',
+              command: command.label,
+            });
+          }
         }
       }
     })();
 
     [500, 1000, 2000, 3500, 5500, 8000].forEach((delay) => {
-      window.setTimeout(() => void this.refreshRuntimePorts().catch(() => undefined), delay);
+      window.setTimeout(() => {
+        if (epoch === this.#previewRunEpoch) {
+          void this.refreshRuntimePorts().catch(() => undefined);
+        }
+      }, delay);
     });
 
     return command.label;
@@ -1404,22 +1532,54 @@ export class WorkbenchStore {
   }
 
   async stopPreviewServer(options: { raison?: RaisonArretPreview } = {}) {
-    /*
-     * LE DEMONTAGE N'EST PAS UN ORDRE D'ARRET — voir `doitArreterLePreview`.
-     * On journalise l'abstention : sans trace, un serveur qui survit ressemble
-     * a un serveur qu'on a oublie de tuer.
-     */
     if (!doitArreterLePreview(options.raison)) {
       console.info(JSON.stringify({ event: 'preview.arret.refuse', raison: options.raison ?? 'inconnue' }));
-
-      /* Zero processus arrete : la valeur de retour reste homogene avec le cas nominal. */
       return 0;
     }
 
     console.info(JSON.stringify({ event: 'preview.arret.demande', raison: options.raison ?? 'historique' }));
+
+    if (options.raison === 'utilisateur') {
+      this.#setPreviewStoppedByUser(true);
+    }
+
+    const epoch = ++this.#previewRunEpoch;
+    this.#previewStarting = false;
+    this.#previewStartPromise = undefined;
+    this.#previewCommandRunning = false;
     this.previewServerState.set({ status: 'stopping', command: this.previewServerState.get().command });
 
-    const processes = await this.#runtime.listProcesses().catch(() => []);
+    const stopping = this.#stopPreviewProcesses(epoch, options.raison ?? 'historique');
+    this.#previewStopPromise = stopping;
+
+    try {
+      const count = await stopping;
+
+      if (epoch === this.#previewRunEpoch) {
+        this.previewServerState.set({ status: 'idle' });
+      }
+
+      return count;
+    } catch (error) {
+      if (epoch === this.#previewRunEpoch) {
+        this.previewServerState.set({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+      }
+
+      throw error;
+    } finally {
+      if (this.#previewStopPromise === stopping) {
+        this.#previewStopPromise = undefined;
+      }
+    }
+  }
+
+  async #stopPreviewProcesses(epoch: number, raison = 'redemarrage') {
+    const runtime = this.#runtime;
+    const processes = await runtime.listProcesses();
+
+    if (epoch !== this.#previewRunEpoch) {
+      return 0;
+    }
 
     const previewProcesses = processes.filter((process) => {
       const command = [process.command, ...(process.args ?? [])].join(' ').toLowerCase();
@@ -1433,7 +1593,13 @@ export class WorkbenchStore {
       );
     });
 
+    let failure: unknown;
+
     for (const process of previewProcesses) {
+      if (epoch !== this.#previewRunEpoch) {
+        return 0;
+      }
+
       /*
        * CHAQUE MISE A MORT SE NOMME. On a passe une soiree a ignorer QUI tuait
        * le serveur parce qu'aucun des huit chemins ne le disait. Chaine
@@ -1444,55 +1610,32 @@ export class WorkbenchStore {
           event: 'preview.mort.stopPreviewServer',
           processId: process.id,
           commande: [process.command, ...(process.args ?? [])].join(' ').slice(0, 80),
-          raison: options.raison ?? 'historique',
+          raison,
         }),
       );
-      await this.#runtime.killProcess(process.id).catch((error) => {
+      await runtime.killProcess(process.id).catch((error) => {
+        failure ??= error;
         this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
       });
     }
 
-    await this.refreshRuntimePorts().catch(() => undefined);
+    if (failure) {
+      throw failure;
+    }
 
-    /*
-     * Clear the in-flight start guard. startPreviewServer() early-returns when
-     * #previewStartPromise is set (it is a resolved promise once the dev command
-     * is streaming), so if a stop leaves it stale the NEXT start — the Run button,
-     * or reopening the project — returns the dead promise and never relaunches the
-     * dev server, stranding it on "starting". The streaming finally normally
-     * clears it, but a kill (or a stop racing an in-flight start) can beat that.
-     * restartPreviewServer/reinstallDependencies already cleared it manually; do
-     * it here so EVERY stop→start path relaunches.
-     */
-    this.#previewStartPromise = undefined;
-    this.#previewCommandRunning = false;
-    this.previewServerState.set({ status: 'idle' });
+    if (epoch === this.#previewRunEpoch) {
+      await this.refreshRuntimePorts().catch(() => undefined);
+    }
 
     return previewProcesses.length;
   }
 
-  async restartPreviewServer() {
-    await this.stopPreviewServer({ raison: 'redemarrage' });
-
-    /*
-     * forceRestart: an explicit user Run must relaunch for real — punch through a
-     * wedged start guard AND the "reattach to existing" short-circuit, so it can
-     * never be a no-op that adopts a dead/dying preview.
-     */
-    return this.startPreviewServer({ forceRestart: true });
+  async restartPreviewServer(options: Pick<PreviewStartOptions, 'intent'> = {}) {
+    return this.startPreviewServer({ forceRestart: true, ...options });
   }
 
-  /**
-   * User-triggerable recovery action: force a fresh dependency install and
-   * restart the preview. Used when the initial install was skipped (e.g. the
-   * workspace pod returned a transient 502 during provisioning) and the editor
-   * is left with an empty node_modules / broken preview.
-   */
-  async reinstallDependencies() {
-    this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reinstalling'));
-    await this.stopPreviewServer({ raison: 'redemarrage' });
-
-    return this.startPreviewServer({ forceInstall: true, forceRestart: true });
+  async reinstallDependencies(options: Pick<PreviewStartOptions, 'intent'> = {}) {
+    return this.startPreviewServer({ forceInstall: true, forceRestart: true, ...options });
   }
 
   /*
@@ -1504,15 +1647,20 @@ export class WorkbenchStore {
    * cold-start drop mid-install doesn't blank the preview while a real package
    * error still fails fast.
    */
-  async #runSetupCommandWithRetry(setupCommand: PreviewCommand): Promise<number> {
+  async #runSetupCommandWithRetry(setupCommand: PreviewCommand, epoch: number): Promise<number> {
     let exitCode = 0;
 
     for (let attempt = 1; attempt <= PREVIEW_SETUP_RETRY_ATTEMPTS; attempt++) {
+      this.#assertPreviewRunCurrent(epoch);
+
       const tailStart = this.#currentWorkspaceLogLength();
 
       exitCode = await this.#streamWorkspaceCommand(setupCommand, {
         exitMessage: workbenchText('workbenchRuntime.preview.setupExited'),
+        epoch,
       });
+
+      this.#assertPreviewRunCurrent(epoch);
 
       if (exitCode === 0) {
         return 0;
@@ -1557,7 +1705,12 @@ export class WorkbenchStore {
 
   async #streamWorkspaceCommand(
     command: CommandRequest & { label: string },
-    options: { exitMessage: string; refreshPortsOnOutput?: boolean; lifecycle?: CommandRequest['lifecycle'] },
+    options: {
+      exitMessage: string;
+      refreshPortsOnOutput?: boolean;
+      lifecycle?: CommandRequest['lifecycle'];
+      epoch?: number;
+    },
   ) {
     let exitCode = 0;
 
@@ -1585,6 +1738,11 @@ export class WorkbenchStore {
       } else if (!trailingPortRefresh) {
         trailingPortRefresh = setTimeout(() => {
           trailingPortRefresh = undefined;
+
+          if (options.epoch !== undefined && options.epoch !== this.#previewRunEpoch) {
+            return;
+          }
+
           lastPortRefresh = Date.now();
           void this.refreshRuntimePorts().catch(() => undefined);
         }, PORT_REFRESH_THROTTLE_MS - since);
@@ -1599,6 +1757,10 @@ export class WorkbenchStore {
         env: command.env,
         ...(options.lifecycle ? { lifecycle: options.lifecycle } : {}),
       })) {
+        if (options.epoch !== undefined) {
+          this.#assertPreviewRunCurrent(options.epoch);
+        }
+
         this.appendWorkspaceLog(event);
 
         if (options.refreshPortsOnOutput && (event.type === 'stdout' || event.type === 'stderr')) {
@@ -1633,7 +1795,7 @@ export class WorkbenchStore {
        * Always do one final refresh so a port opened by the last output line
        * (or after the stream ends) is still detected despite the throttle.
        */
-      if (options.refreshPortsOnOutput) {
+      if (options.refreshPortsOnOutput && (options.epoch === undefined || options.epoch === this.#previewRunEpoch)) {
         void this.refreshRuntimePorts().catch(() => undefined);
       }
     }
