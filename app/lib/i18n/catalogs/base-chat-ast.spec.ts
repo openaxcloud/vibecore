@@ -191,10 +191,16 @@ describe('BaseChat strengthened-AST catalog', () => {
      *      en référence partagée onUserProjectFileSelect. Aucun markup, texte,
      *      classe ni interaction du menu bas modifié.
      *
+     *   8. Brouillon Search responsive, demande UI IDE du 28/10 : comparaison
+     *      exacte à main 63e663830, une seule ligne ajoutée transmet searchPaneId
+     *      au Workbench mobile. Aucun markup, texte, classe ou comportement
+     *      Terminal/menu bas modifié ; le scope réel du panneau évite la perte
+     *      du brouillon lors du remplacement de coque.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('b7ba1b1557bd004ccd71a90315096ebfe701ca9ac1fe7662ad215b56f476e27b');
+    expect(frozenHash).toBe('3eda01b51db8beef7a2a6e9446e77a454b4f500e5696e11f98596d81c52dac85');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

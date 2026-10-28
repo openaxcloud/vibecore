@@ -1785,11 +1785,23 @@ createServer((request, response) => {
         .toEqual([1, 4, 'backward']);
       await mobileBottomNavigation(page).getByTestId('tab-agent').click();
       await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+
+      /*
+       * The compact surface changes before the router commits its loader/history entry.
+       * Back must start from Agent's committed URL, not the still-pending Search entry.
+       */
+      await expect(page).toHaveURL(
+        (url) => url.pathname === `/projects/${projectId}/ide` && !url.searchParams.has('panel'),
+      );
       await page.goBack();
+      await expect(page).toHaveURL((url) => url.searchParams.get('panel') === 'search');
       await expect(query).toBeVisible();
       await expect(query).toHaveValue('alpha');
       await expect(query).not.toBeFocused();
       await page.goForward();
+      await expect(page).toHaveURL(
+        (url) => url.pathname === `/projects/${projectId}/ide` && !url.searchParams.has('panel'),
+      );
       await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
     } finally {
       releaseMemory();
