@@ -439,7 +439,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                          * plutôt qu'un écran figé.
                          */
                         workbenchStore.currentView.set('preview');
-                        void workbenchStore.startPreviewServer();
+                        void workbenchStore.startPreviewServer({ intent: 'user' });
                       }}
                       className="bolt-action-target flex min-w-0 flex-1 items-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
                     >

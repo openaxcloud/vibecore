@@ -864,6 +864,7 @@ function IdeProjectTopBar({
                 window.dispatchEvent(
                   new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'preview' } }),
                 );
+                void workbenchStore.startPreviewServer({ intent: 'user' }).catch(() => undefined);
               }}
             >
               {previewRunning ? (

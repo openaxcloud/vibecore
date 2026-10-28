@@ -4549,7 +4549,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       setMobilePreviewRunFeedbackState('starting');
-      void workbenchStore.startPreviewServer().catch((error) => {
+      void workbenchStore.startPreviewServer({ intent: 'user' }).catch((error) => {
         setMobilePreviewRunFeedbackState(null);
         console.error('Preview server start failed', error);
         toast.error(t('baseChatAst.preview.startFailed'));
@@ -6837,7 +6837,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           openBottomTerminal('terminal');
         } else if (action === 'workspace.run') {
           openWorkspacePanel('preview');
-          void workbenchStore.startPreviewServer();
+          void workbenchStore.startPreviewServer({ intent: 'user' });
         } else if (action === 'agent.focus') {
           focusAgentPanel();
         } else if (action === 'settings.open') {
@@ -10058,7 +10058,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               openWorkspacePanel('preview');
             }
 
-            void workbenchStore.startPreviewServer();
+            void workbenchStore.startPreviewServer({ intent: 'user' });
           } else if (entry.command === 'stop') {
             void workbenchStore.stopPreviewServer({ raison: 'utilisateur' });
 
