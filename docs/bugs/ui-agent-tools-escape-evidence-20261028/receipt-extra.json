@@ -1,0 +1,847 @@
+[
+  {
+    "width": 320,
+    "height": 640,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/supabase"
+      },
+      {
+        "blocked": true,
+        "method": "POST",
+        "path": "/api/mcp-update-config"
+      }
+    ],
+    "observations": [
+      {
+        "label": "tools",
+        "bounds": {
+          "x": 0,
+          "y": 252,
+          "width": 320,
+          "height": 316
+        },
+        "viewport": {
+          "width": 320,
+          "height": 640
+        },
+        "clientWidth": 318,
+        "scrollWidth": 318,
+        "clientHeight": 314,
+        "scrollHeight": 314,
+        "panelWidth": 320,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "More composer & tools"
+        },
+        "pageOverflow": false
+      },
+      {
+        "label": "advanced",
+        "bounds": {
+          "x": 8,
+          "y": 175.5,
+          "width": 304,
+          "height": 441.2750244140625
+        },
+        "viewport": {
+          "width": 320,
+          "height": 640
+        },
+        "clientWidth": 318,
+        "scrollWidth": 318,
+        "clientHeight": 463,
+        "scrollHeight": 463,
+        "panelWidth": 320,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "Agent mode: Power. Opens advanced settings."
+        },
+        "pageOverflow": false
+      }
+    ],
+    "pass": true
+  },
+  {
+    "width": 360,
+    "height": 740,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/supabase"
+      },
+      {
+        "blocked": true,
+        "method": "POST",
+        "path": "/api/mcp-update-config"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [
+      {
+        "label": "tools",
+        "bounds": {
+          "x": 0,
+          "y": 352,
+          "width": 360,
+          "height": 316
+        },
+        "viewport": {
+          "width": 360,
+          "height": 740
+        },
+        "clientWidth": 358,
+        "scrollWidth": 358,
+        "clientHeight": 314,
+        "scrollHeight": 314,
+        "panelWidth": 360,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "More composer & tools"
+        },
+        "pageOverflow": false
+      },
+      {
+        "label": "advanced",
+        "bounds": {
+          "x": 7.7863922119140625,
+          "y": 295.375,
+          "width": 344.42724609375,
+          "height": 425.3914794921875
+        },
+        "viewport": {
+          "width": 360,
+          "height": 740
+        },
+        "clientWidth": 358,
+        "scrollWidth": 358,
+        "clientHeight": 443,
+        "scrollHeight": 443,
+        "panelWidth": 360,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "Agent mode: Power. Opens advanced settings."
+        },
+        "pageOverflow": false
+      }
+    ],
+    "pass": true
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/supabase"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "blocked": true,
+        "method": "POST",
+        "path": "/api/mcp-update-config"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [
+      {
+        "label": "tools",
+        "bounds": {
+          "x": 42,
+          "y": 24,
+          "width": 760,
+          "height": 294
+        },
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "clientWidth": 758,
+        "scrollWidth": 758,
+        "clientHeight": 292,
+        "scrollHeight": 314,
+        "panelWidth": 844,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "More composer & tools"
+        },
+        "pageOverflow": false
+      },
+      {
+        "label": "advanced",
+        "bounds": {
+          "x": 61,
+          "y": 24,
+          "width": 722,
+          "height": 347.6999816894531
+        },
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "clientWidth": 758,
+        "scrollWidth": 758,
+        "clientHeight": 364,
+        "scrollHeight": 443,
+        "panelWidth": 844,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "Agent mode: Power. Opens advanced settings."
+        },
+        "pageOverflow": false
+      }
+    ],
+    "pass": true
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/supabase"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "blocked": true,
+        "method": "POST",
+        "path": "/api/mcp-update-config"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [
+      {
+        "label": "tools",
+        "bounds": {
+          "x": 4,
+          "y": 636,
+          "width": 760,
+          "height": 316
+        },
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "clientWidth": 758,
+        "scrollWidth": 758,
+        "clientHeight": 314,
+        "scrollHeight": 314,
+        "panelWidth": 768,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "More composer & tools"
+        },
+        "pageOverflow": false
+      },
+      {
+        "label": "advanced",
+        "bounds": {
+          "x": 20.438262939453125,
+          "y": 579.375,
+          "width": 727.12353515625,
+          "height": 425.39117431640625
+        },
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "clientWidth": 758,
+        "scrollWidth": 758,
+        "clientHeight": 443,
+        "scrollHeight": 443,
+        "panelWidth": 768,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "Agent mode: Power. Opens advanced settings."
+        },
+        "pageOverflow": false
+      }
+    ],
+    "pass": true
+  },
+  {
+    "width": 1920,
+    "height": 1080,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/supabase"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "blocked": true,
+        "method": "POST",
+        "path": "/api/mcp-update-config"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [
+      {
+        "label": "tools",
+        "bounds": {
+          "x": 163.28125,
+          "y": 753,
+          "width": 260,
+          "height": 228
+        },
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "clientWidth": 258,
+        "scrollWidth": 258,
+        "clientHeight": 226,
+        "scrollHeight": 226,
+        "panelWidth": 442.28125,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "More composer & tools"
+        },
+        "pageOverflow": false
+      },
+      {
+        "label": "advanced",
+        "bounds": {
+          "x": 176.99432373046875,
+          "y": 567.75,
+          "width": 208.0113525390625,
+          "height": 390.261962890625
+        },
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "clientWidth": 214,
+        "scrollWidth": 214,
+        "clientHeight": 403,
+        "scrollHeight": 403,
+        "panelWidth": 442.28125,
+        "active": {
+          "tag": "BUTTON",
+          "role": null,
+          "label": "Agent mode: Power. Opens advanced settings."
+        },
+        "pageOverflow": false
+      }
+    ],
+    "pass": true
+  }
+]

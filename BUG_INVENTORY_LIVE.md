@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-556 entrées.
+557 entrées.
 
 ## Sans section
 
@@ -741,6 +741,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-SETTINGS-SIDEBAR-NARROW-PANEL-20261028](docs/bugs/BUG-SETTINGS-SIDEBAR-NARROW-PANEL-20261028.md) — À viewport1280, le panneau Settings ne dispose que de588px. Sa grille principale est déjà réduite à une colonne, mais la navigation latérale reste sticky et rec — 📤 Dispatché : ☑ 28/10/2026 — correctif local CSS Settings, distinct des brouillons et de Problems. · 💻 Codé : ☐ main — correction locale validée : classe de conteneur Settings appliquée à toutes les sous-pages par leur p · ✅ Testé live : ☐ production — aucune recette production ni backend réel. Recette compilée finale réussie sur l’assemblage Set
 - [BUG-IDE-SETTINGS-MOBILE-TAB-STRIP-20261028](docs/bugs/BUG-IDE-SETTINGS-MOBILE-TAB-STRIP-20261028.md) — La classe de conteneur ajoutée aux sous-pages Settings active une règle desktop sur la navigation mobile : les sept onglets s’empilent sur 346 px au lieu d’une  — 📤 Dispatché : ☑ 28/10/2026 — régression détectée par la CI de #838, tête `20e0860d0`. · 💻 Codé : ☐ main — correctif local d’un sélecteur ; aucune fusion ni livraison. · ✅ Testé live : ☐ production — six recettes Chromium du build final réussies, données synthétiques ; aucune opération de compt
 - [BUG-IDE-TERMINAL-STARTUP-MENU-20261028](docs/bugs/BUG-IDE-TERMINAL-STARTUP-MENU-20261028.md) — L’arrivée de la mémoire IDE remplace la coque de démarrage alors que le menu Terminal est utilisé : le menu disparaît et le focus revient au document. — 📤 Dispatché : ☑ 28/10/2026 — diagnostic après le verdict E2E rouge de #837 ; correctif UI distinct des sessions et commandes · 💻 Codé : ☐ main — travail local, aucune fusion ni livraison. · ✅ Testé live : ☐ production — trois recettes finales Chromium locales réussies à390/768/1280, API synthétiques ; aucune comma
+- [BUG-AGENT-TOOLS-ESCAPE-20261028](docs/bugs/BUG-AGENT-TOOLS-ESCAPE-20261028.md) — Le menu outils du compositeur Agent ouvert au pointeur reste ouvert après Escape : le raccourci global consomme l’événement lorsque le focus reste sur son décle — 📤 Dispatché : ☑ 28/10/2026 — reproduction Chromium local sur quatre formats. · 💻 Codé : ☐ main — correctif local séparé de #838 en validation, aucune fusion ni livraison. · ✅ Testé live : ☐ production — recette locale compilée synthétique uniquement.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

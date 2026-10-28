@@ -6,7 +6,7 @@ import { useKeybindings } from './useKeybindings';
 
 afterEach(cleanup);
 
-it.each(['terminal-menu', 'file-breadcrumb', 'file-context-menu'])(
+it.each(['terminal-menu', 'file-breadcrumb', 'file-context-menu', 'composer-tools'])(
   'defers Escape only while the %s owner is open',
   (owner) => {
     const runAction = vi.fn();

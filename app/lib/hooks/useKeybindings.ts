@@ -134,7 +134,7 @@ export function useKeybindings({
           event.target.closest('[data-testid="composer-tools-menu"][role="menu"]') !== null ||
           event.target.closest('[data-escape-owner="agent-settings"]') !== null ||
           event.target.closest(
-            '[data-ide-escape-owner="terminal-menu"], [data-ide-escape-owner="file-breadcrumb"], [data-ide-escape-owner="file-context-menu"]',
+            '[data-ide-escape-owner="terminal-menu"], [data-ide-escape-owner="file-breadcrumb"], [data-ide-escape-owner="file-context-menu"], [data-ide-escape-owner="composer-tools"]',
           ) !== null ||
           (event.target === document.body &&
             document.querySelector('[role="dialog"][data-escape-owner="agent-settings"]') !== null))
