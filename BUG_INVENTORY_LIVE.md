@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-541 entrées.
+542 entrées.
 
 ## Sans section
 
@@ -716,7 +716,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Preview et runtime
 
 - [BUG-PREVIEW-SERVICE-DEADLINE-20261028](docs/bugs/BUG-PREVIEW-SERVICE-DEADLINE-20261028.md) — 📤 Dispatché : ☑ 28/10 — diagnostic sur main `58fa0702a`, contenant #821. · 💻 Codé : ☐ — investigation et validation isolée ; aucun correctif livré à ce stade. · ✅ Testé live : ☐ — aucun lancement ni changement du projet client par cette session.
-- [BUG-PREVIEW-USER-STOP-20261028](docs/bugs/BUG-PREVIEW-USER-STOP-20261028.md) — 📤 Dispatché : ☑ 28/10 — diagnostic sur main `58fa0702a` ; distinct du timeout de #822. · 💻 Codé : ☐ — préparation isolée ; aucun correctif livré. · ✅ Testé live : ☐ — incident observé en production, aucun correctif testé sur le projet client.
+- [BUG-PREVIEW-USER-STOP-20261028](docs/bugs/BUG-PREVIEW-USER-STOP-20261028.md) — 📤 Dispatché : ☑ 28/10 — diagnostic sur main `58fa0702a` ; distinct du timeout de #822. · 💻 Codé : ☑ — #825 fusionnée dans main `cb1cefa892`, livrée le 28/10 à 14:13:12 UTC. · ✅ Testé live : ☐ — recette partielle : le garde-fou serveur fonctionne, mais interface et sondes restent incorrectes après St
+- [BUG-PREVIEW-STOP-OBSERVERS-20261028](docs/bugs/BUG-PREVIEW-STOP-OBSERVERS-20261028.md) — 📤 Dispatché : ☑ 28/10 — recette après livraison #825 ; base `cb1cefa892`. · 💻 Codé : ☐ — correction isolée, pas encore intégrée à main. · ✅ Testé live : ☐ — défaut constaté ; correction non livrée et non recettée en production.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

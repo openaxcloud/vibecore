@@ -587,6 +587,12 @@ export class WorkbenchStore {
   }
 
   configureRuntime(runtime: RuntimeAdapter, projectId?: string) {
+    // Restore before binding: a reload must not open a watcher for a stopped preview.
+    if (projectId && projectId !== this.#previewIntentProject) {
+      this.#previewsStore.setObservationEnabled(false);
+      this.#restorePreviewStopIntent(projectId);
+    }
+
     if (runtime !== this.#runtime) {
       this.#previewRunEpoch++;
       this.#previewStopPromise = undefined;
@@ -605,6 +611,7 @@ export class WorkbenchStore {
       runtime.mode === 'remote-kubernetes' && projectId ? `remote-project:${projectId}` : undefined;
 
     if (this.#runtime === runtime && this.#runtimeWriteDestination === writeDestination) {
+      this.#previewsStore.setObservationEnabled(!this.previewStoppedByUser.get());
       return;
     }
 
@@ -615,6 +622,7 @@ export class WorkbenchStore {
     this.#runtimeWriteDestination = writeDestination;
     this.#enregistrementsDeLAgent.clear();
     this.#previewsStore.setRuntime(runtime);
+    this.#previewsStore.setObservationEnabled(!this.previewStoppedByUser.get());
     this.#filesStore.setRuntime(runtime, writeDestination);
     this.#terminalStore.setRuntime(runtime);
 
@@ -641,12 +649,7 @@ export class WorkbenchStore {
     this.#snapshottedArtifacts.clear();
   }
 
-  configureProject(projectId?: string) {
-    const changed = this.#projectId !== projectId;
-    const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
-    const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
-    this.#projectId = projectId;
-
+  #restorePreviewStopIntent(projectId?: string) {
     if (projectId && projectId !== this.#previewIntentProject) {
       this.#previewRunEpoch++;
       this.#previewStopPromise = undefined;
@@ -654,6 +657,7 @@ export class WorkbenchStore {
       this.#previewCommandRunning = false;
       this.#previewStartPromise = undefined;
       this.#previewIntentProject = projectId;
+      this.previewServerState.set({ status: 'idle' });
 
       let stopped = this.#stoppedPreviewProjects.has(projectId);
 
@@ -664,6 +668,16 @@ export class WorkbenchStore {
       }
       this.previewStoppedByUser.set(stopped);
     }
+  }
+
+  configureProject(projectId?: string) {
+    const changed = this.#projectId !== projectId;
+    const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
+    const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
+    this.#projectId = projectId;
+
+    this.#restorePreviewStopIntent(projectId);
+    this.#previewsStore.setObservationEnabled(!this.previewStoppedByUser.get());
 
     if (changedFileProject) {
       /*
@@ -1031,6 +1045,10 @@ export class WorkbenchStore {
   }
 
   async refreshRuntimePorts() {
+    if (this.previewStoppedByUser.get()) {
+      return;
+    }
+
     const epoch = this.#previewRunEpoch;
     await this.#previewsStore.refreshPorts();
 
@@ -1076,6 +1094,7 @@ export class WorkbenchStore {
     }
 
     this.previewStoppedByUser.set(stopped);
+    this.#previewsStore.setObservationEnabled(!stopped);
   }
 
   #assertPreviewRunCurrent(epoch: number) {

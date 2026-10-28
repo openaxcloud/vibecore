@@ -70,6 +70,7 @@ vi.mock('./previews', async () => {
     PreviewsStore: class {
       previews = atom([]);
 
+      setObservationEnabled = vi.fn();
       setRuntime = vi.fn();
       refreshPorts = vi.fn(async () => undefined);
     },

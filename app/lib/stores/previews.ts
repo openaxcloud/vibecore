@@ -48,6 +48,7 @@ export class PreviewsStore {
    */
   #initGeneration = 0;
   #disposed = false;
+  #observationEnabled = true;
   #storageSyncTimer?: ReturnType<typeof setTimeout>;
 
   /*
@@ -245,6 +246,10 @@ export class PreviewsStore {
   async #init() {
     const generation = ++this.#initGeneration;
 
+    if (this.#disposed || !this.#observationEnabled) {
+      return;
+    }
+
     /*
      * The WorkbenchStore constructs this store with the ID-less module-singleton
      * runtime adapter and calls #init() eagerly, BEFORE ProjectWorkspaceProvider
@@ -264,7 +269,11 @@ export class PreviewsStore {
       this.#stopWatchingPorts?.();
       this.#stopWatchingPorts = undefined;
 
-      const stop = await this.#runtime.watchPorts((port) => this.#applyPortEvent(port));
+      const stop = await this.#runtime.watchPorts((port) => {
+        if (generation === this.#initGeneration) {
+          this.#applyPortEvent(port);
+        }
+      });
 
       /*
        * If a project switch (setRuntime) or another #init started while
@@ -289,6 +298,36 @@ export class PreviewsStore {
     }
   }
 
+  /** Suspend observations only; this never starts or stops a runtime process. */
+  setObservationEnabled(enabled: boolean) {
+    if (this.#disposed || enabled === this.#observationEnabled) {
+      return;
+    }
+
+    this.#observationEnabled = enabled;
+    ++this.#initGeneration;
+    this.#stopWatchingPorts?.();
+    this.#stopWatchingPorts = undefined;
+
+    if (this.#reconnectTimer) {
+      window.clearTimeout(this.#reconnectTimer);
+      this.#reconnectTimer = undefined;
+    }
+
+    for (const timeout of this.#refreshTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+
+    this.#refreshTimeouts.clear();
+    this.#reconnectAttempts = 0;
+    this.#availablePreviews.clear();
+    this.previews.set([]);
+
+    if (enabled) {
+      void this.#init();
+    }
+  }
+
   setRuntime(runtime: RuntimeAdapter) {
     this.#runtime = runtime;
     this.#stopWatchingPorts?.();
@@ -310,7 +349,7 @@ export class PreviewsStore {
   }
 
   #scheduleReconnect() {
-    if (this.#disposed || this.#reconnectTimer || typeof window === 'undefined') {
+    if (this.#disposed || !this.#observationEnabled || this.#reconnectTimer || typeof window === 'undefined') {
       return;
     }
 
@@ -327,7 +366,17 @@ export class PreviewsStore {
   }
 
   async refreshPorts() {
+    if (this.#disposed || !this.#observationEnabled) {
+      return;
+    }
+
+    const generation = this.#initGeneration;
     const ports = await this.#runtime.listPorts();
+
+    if (generation !== this.#initGeneration || this.#disposed || !this.#observationEnabled) {
+      return;
+    }
+
     ports.forEach((port) => this.#applyPortEvent(port));
 
     /*
@@ -353,6 +402,10 @@ export class PreviewsStore {
   }
 
   #applyPortEvent({ port, type, url, ready, serving }: WorkspacePort) {
+    if (this.#disposed || !this.#observationEnabled) {
+      return;
+    }
+
     let previewInfo = this.#availablePreviews.get(port);
 
     if (type === 'close' && previewInfo) {
@@ -468,6 +521,12 @@ export class PreviewsStore {
 
   // Method to refresh a specific preview
   refreshPreview(previewId: string) {
+    if (this.#disposed || !this.#observationEnabled) {
+      return;
+    }
+
+    const generation = this.#initGeneration;
+
     // Clear any pending refresh for this preview
     const existingTimeout = this.#refreshTimeouts.get(previewId);
 
@@ -477,7 +536,7 @@ export class PreviewsStore {
 
     // Set a new timeout for this refresh
     const timeout = setTimeout(() => {
-      if (this.#disposed) {
+      if (this.#disposed || !this.#observationEnabled || generation !== this.#initGeneration) {
         this.#refreshTimeouts.delete(previewId);
         return;
       }
@@ -490,7 +549,7 @@ export class PreviewsStore {
         this.previews.set([...previews]);
 
         requestAnimationFrame(() => {
-          if (this.#disposed) {
+          if (this.#disposed || !this.#observationEnabled || generation !== this.#initGeneration) {
             return;
           }
 

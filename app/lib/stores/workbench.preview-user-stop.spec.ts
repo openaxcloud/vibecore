@@ -4,7 +4,7 @@ import { get } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbenchStore } from './workbench';
 
-const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
+const { runtimeAdapterMock, runtimeFiles, previewObservation } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
 
   const fileNodes = () =>
@@ -18,6 +18,7 @@ const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
 
   return {
     runtimeFiles,
+    previewObservation: { enabled: vi.fn(), bind: vi.fn(), refresh: vi.fn(async () => undefined) },
     runtimeAdapterMock: {
       workdir: '/home/project',
       mode: 'test',
@@ -66,8 +67,9 @@ vi.mock('./previews', async () => {
     PreviewsStore: class {
       previews = atom([]);
 
-      setRuntime = vi.fn();
-      refreshPorts = vi.fn(async () => undefined);
+      setRuntime = previewObservation.bind;
+      setObservationEnabled = previewObservation.enabled;
+      refreshPorts = previewObservation.refresh;
     },
   };
 });
@@ -250,6 +252,51 @@ afterEach(() => {
 });
 
 describe('durable user preview Stop', () => {
+  it('does not inherit another project run state when returning to a stopped project', async () => {
+    const store = await readyStore();
+    store.configureProject('stopped-a');
+    await store.stopPreviewServer({ raison: 'utilisateur' });
+    store.configureProject('running-b');
+    store.previewServerState.set({ status: 'running' });
+    store.configureProject('stopped-a');
+    expect(store.previewStoppedByUser.get()).toBe(true);
+    expect(store.previewServerState.get().status).toBe('idle');
+  });
+
+  it('does not send port probes after Stop or from automatic refresh callbacks', async () => {
+    const store = await readyStore();
+    previewObservation.refresh.mockClear();
+    await store.stopPreviewServer({ raison: 'utilisateur' });
+    await store.refreshRuntimePorts();
+    expect(previewObservation.refresh).not.toHaveBeenCalled();
+    expect(previewObservation.enabled).toHaveBeenLastCalledWith(false);
+  });
+
+  it('restores a stopped project before binding its runtime observer on reload', () => {
+    sessionStorage.setItem('vibecore.preview-stopped:project-stopped', '1');
+
+    const store = new WorkbenchStore();
+    stores.push(store);
+    store.configureRuntime({ ...runtimeAdapterMock } as never, 'project-stopped');
+    expect(store.previewStoppedByUser.get()).toBe(true);
+    expect(previewObservation.enabled).toHaveBeenLastCalledWith(false);
+    expect(previewObservation.enabled.mock.invocationCallOrder[0]).toBeLessThan(
+      previewObservation.bind.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('keeps observers paused across runtime reattachment and resumes only on user Run', async () => {
+    const store = await readyStore();
+    store.configureProject('project-stopped');
+    await store.stopPreviewServer({ raison: 'utilisateur' });
+    previewObservation.enabled.mockClear();
+    store.configureRuntime({ ...runtimeAdapterMock } as never, 'project-stopped');
+    await store.startPreviewServer();
+    expect(previewObservation.enabled).not.toHaveBeenCalledWith(true);
+    await userRun(store);
+    expect(previewObservation.enabled).toHaveBeenCalledWith(true);
+  });
+
   it('does not relaunch after user Stop until an explicit user Run releases the stop', async () => {
     const store = await readyStore();
     await store.stopPreviewServer({ raison: 'utilisateur' });
