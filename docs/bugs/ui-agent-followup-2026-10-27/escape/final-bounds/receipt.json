@@ -1,0 +1,254 @@
+[
+  {
+    "key": "1440x900-zoom1",
+    "dims": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1440,
+      "outerHeight": 900,
+      "dpr": 1,
+      "scale": 1
+    },
+    "bounds": {
+      "x": 389,
+      "y": 412.75,
+      "width": 240,
+      "height": 475.25
+    },
+    "lastModelReachable": true,
+    "effort": {
+      "disabled": true,
+      "rect": {
+        "x": 410,
+        "y": 825,
+        "width": 198,
+        "height": 16
+      },
+      "owner": {
+        "x": 389,
+        "y": 412.75,
+        "width": 240,
+        "height": 475.25
+      },
+      "visibleWithin": true,
+      "hit": true,
+      "scrollTop": 0,
+      "scrollHeight": 491,
+      "clientHeight": 473
+    },
+    "scrollEnd": {
+      "scrollTop": 18,
+      "scrollHeight": 491,
+      "clientHeight": 473,
+      "lastBottom": 867.09375,
+      "ownerBottom": 888
+    },
+    "escape": true,
+    "focusReturned": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ]
+  },
+  {
+    "key": "1280x720-zoom1",
+    "dims": {
+      "innerWidth": 1280,
+      "innerHeight": 720,
+      "outerWidth": 1280,
+      "outerHeight": 720,
+      "dpr": 1,
+      "scale": 1
+    },
+    "bounds": {
+      "x": 389,
+      "y": 232.75,
+      "width": 240,
+      "height": 475.25
+    },
+    "lastModelReachable": true,
+    "effort": {
+      "disabled": true,
+      "rect": {
+        "x": 410,
+        "y": 645,
+        "width": 198,
+        "height": 16
+      },
+      "owner": {
+        "x": 389,
+        "y": 232.75,
+        "width": 240,
+        "height": 475.25
+      },
+      "visibleWithin": true,
+      "hit": true,
+      "scrollTop": 0,
+      "scrollHeight": 491,
+      "clientHeight": 473
+    },
+    "scrollEnd": {
+      "scrollTop": 18,
+      "scrollHeight": 491,
+      "clientHeight": 473,
+      "lastBottom": 687.09375,
+      "ownerBottom": 708
+    },
+    "escape": true,
+    "focusReturned": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ]
+  },
+  {
+    "key": "720x500-zoom2",
+    "dims": {
+      "innerWidth": 720,
+      "innerHeight": 456,
+      "outerWidth": 1440,
+      "outerHeight": 1000,
+      "dpr": 2,
+      "scale": 1
+    },
+    "bounds": {
+      "x": 0,
+      "y": 24,
+      "width": 720,
+      "height": 432.5
+    },
+    "lastModelReachable": true,
+    "effort": {
+      "disabled": true,
+      "rect": {
+        "x": 19.5,
+        "y": 376.125,
+        "width": 681,
+        "height": 16
+      },
+      "owner": {
+        "x": 0,
+        "y": 24,
+        "width": 720,
+        "height": 432.5
+      },
+      "visibleWithin": true,
+      "hit": true,
+      "scrollTop": 0,
+      "scrollHeight": 521,
+      "clientHeight": 431
+    },
+    "scrollEnd": {
+      "scrollTop": 90,
+      "scrollHeight": 521,
+      "clientHeight": 431,
+      "lastBottom": 352.75,
+      "ownerBottom": 456.5
+    },
+    "escape": true,
+    "focusReturned": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ]
+  },
+  {
+    "key": "1280x720-zoom2",
+    "dims": {
+      "innerWidth": 1280,
+      "innerHeight": 676,
+      "outerWidth": 2560,
+      "outerHeight": 1440,
+      "dpr": 2,
+      "scale": 1
+    },
+    "bounds": {
+      "x": 389,
+      "y": 190.1875,
+      "width": 240,
+      "height": 474.3125
+    },
+    "lastModelReachable": true,
+    "effort": {
+      "disabled": true,
+      "rect": {
+        "x": 410,
+        "y": 602.5,
+        "width": 198,
+        "height": 16
+      },
+      "owner": {
+        "x": 389,
+        "y": 190.1875,
+        "width": 240,
+        "height": 474.3125
+      },
+      "visibleWithin": true,
+      "hit": true,
+      "scrollTop": 0,
+      "scrollHeight": 491,
+      "clientHeight": 472
+    },
+    "scrollEnd": {
+      "scrollTop": 19,
+      "scrollHeight": 491,
+      "clientHeight": 472,
+      "lastBottom": 643.6171875,
+      "ownerBottom": 664.5
+    },
+    "escape": true,
+    "focusReturned": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ]
+  }
+]

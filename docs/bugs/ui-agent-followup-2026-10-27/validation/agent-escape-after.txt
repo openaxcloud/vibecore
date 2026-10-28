@@ -1,0 +1,21 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-agent-followup
+
+stderr | app/components/chat/feuille-cote-a-cote.spec.tsx > le chevron de retour ramène aux modes, il ne referme pas tout > depuis « modele », le chevron rend la liste des modes
+react-i18next:: useTranslation: You will need to pass in an i18next instance by using initReactI18next { code: 'NO_I18NEXT_INSTANCE' }
+
+ ✓ app/components/chat/feuille-cote-a-cote.spec.tsx (7 tests) 162ms
+ ✓ app/components/chat/FeuilleDesModes.spec.tsx (16 tests) 209ms
+ ✓ app/components/chat/AgentPowerControls.escape.spec.tsx (6 tests) 248ms
+ ✓ app/lib/hooks/useKeybindings.dialog.spec.tsx (2 tests) 103ms
+
+ Test Files  4 passed (4)
+      Tests  31 passed (31)
+   Start at  20:13:57
+   Duration  3.57s (transform 1.39s, setup 106ms, collect 1.12s, tests 723ms, environment 1.33s, prepare 243ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

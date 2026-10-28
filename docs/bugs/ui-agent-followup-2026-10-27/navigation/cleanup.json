@@ -1,0 +1,51 @@
+{
+  "processes": [
+    {
+      "pid": 25773,
+      "expectedArgs": [
+        "node",
+        "docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs"
+      ],
+      "expectedStartTicks": "2480466",
+      "observedArgs": [
+        "node",
+        "docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs"
+      ],
+      "observedStartTicks": "2480466",
+      "signal": "SIGTERM",
+      "result": "terminated, zombie awaiting parent reap",
+      "finalState": "Z",
+      "finalStartTicks": "2480466",
+      "finalArgs": []
+    },
+    {
+      "pid": 25787,
+      "expectedArgs": [
+        "node",
+        "--require",
+        "./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs",
+        "node_modules/@react-router/serve/bin.js",
+        "build/server/index.js"
+      ],
+      "expectedStartTicks": "2480487",
+      "observedArgs": [
+        "node",
+        "--require",
+        "./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs",
+        "node_modules/@react-router/serve/bin.js",
+        "build/server/index.js"
+      ],
+      "observedStartTicks": "2480487",
+      "signal": "SIGTERM",
+      "result": "terminated, zombie awaiting parent reap",
+      "finalState": "Z",
+      "finalStartTicks": "2480487",
+      "finalArgs": [],
+      "residualSignal": "SIGKILL"
+    }
+  ],
+  "ports": {
+    "18299": 111,
+    "8299": 111
+  }
+}

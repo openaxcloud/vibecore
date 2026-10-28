@@ -1,0 +1,323 @@
+{
+  "rows": [
+    {
+      "width": 320,
+      "mode": "default",
+      "expected": "chat",
+      "restored": true,
+      "history": "preview/reload/Back Agent/Forward preview passed"
+    },
+    {
+      "width": 320,
+      "mode": "explicit",
+      "expected": "preview",
+      "restored": true
+    },
+    {
+      "width": 320,
+      "mode": "pending",
+      "expected": "files",
+      "restored": true
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "expected": "chat",
+      "restored": true,
+      "history": "preview/reload/Back Agent/Forward preview passed"
+    },
+    {
+      "width": 768,
+      "mode": "explicit",
+      "expected": "preview",
+      "restored": true
+    },
+    {
+      "width": 768,
+      "mode": "pending",
+      "expected": "files",
+      "restored": true
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "expected": "chat",
+      "restored": true,
+      "history": "preview/reload/Back Agent/Forward preview passed",
+      "resizeTyping": "1180→1440→768→320→1180 passed"
+    },
+    {
+      "width": 1180,
+      "mode": "explicit",
+      "expected": "preview",
+      "restored": true
+    },
+    {
+      "width": 1180,
+      "mode": "pending",
+      "expected": "files",
+      "restored": true
+    },
+    {
+      "width": 1440,
+      "mode": "default",
+      "expected": "chat",
+      "restored": true
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "width": 320,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "default",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 320,
+      "mode": "default",
+      "method": "PUT",
+      "path": "/api/projects/synthetic-first/ide-state"
+    },
+    {
+      "width": 320,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "default",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 320,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 320,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 320,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "method": "PUT",
+      "path": "/api/projects/synthetic-first/ide-state"
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "default",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 768,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 768,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 768,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "method": "PUT",
+      "path": "/api/projects/synthetic-first/ide-state"
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "default",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 1180,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "explicit",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 1180,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1180,
+      "mode": "pending",
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "width": 1440,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1440,
+      "mode": "default",
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "width": 1440,
+      "mode": "default",
+      "method": "GET",
+      "path": "/headless"
+    }
+  ]
+}

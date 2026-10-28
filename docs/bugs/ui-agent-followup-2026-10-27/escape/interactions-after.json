@@ -1,0 +1,188 @@
+[
+  {
+    "width": 320,
+    "rectangle": {
+      "x": 0,
+      "y": 321.75,
+      "width": 320,
+      "height": 578.25
+    },
+    "geometryFits": true,
+    "stream": null,
+    "focusReturned": true,
+    "reopened": true,
+    "back": true,
+    "resized": true,
+    "draftPreserved": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "rectangle": {
+      "x": 0,
+      "y": 357.5,
+      "width": 390,
+      "height": 542.5
+    },
+    "geometryFits": true,
+    "stream": null,
+    "focusReturned": true,
+    "reopened": true,
+    "back": true,
+    "resized": true,
+    "draftPreserved": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "rectangle": {
+      "x": 4,
+      "y": 377.375,
+      "width": 760,
+      "height": 522.625
+    },
+    "geometryFits": true,
+    "stream": null,
+    "focusReturned": true,
+    "reopened": true,
+    "back": true,
+    "resized": true,
+    "draftPreserved": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ]
+  },
+  {
+    "width": 1180,
+    "rectangle": {
+      "x": 210,
+      "y": 237.875,
+      "width": 760,
+      "height": 519.125
+    },
+    "geometryFits": true,
+    "stream": {
+      "afterEscapeAborted": false,
+      "explicitStopAborted": true
+    },
+    "focusReturned": true,
+    "reopened": true,
+    "back": true,
+    "resized": true,
+    "draftPreserved": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/synthetic-first/ai/conversations"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "rectangle": {
+      "x": 389,
+      "y": 411.75,
+      "width": 240,
+      "height": 476.25
+    },
+    "geometryFits": true,
+    "stream": null,
+    "focusReturned": true,
+    "reopened": true,
+    "back": true,
+    "resized": true,
+    "draftPreserved": true,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ]
+  }
+]

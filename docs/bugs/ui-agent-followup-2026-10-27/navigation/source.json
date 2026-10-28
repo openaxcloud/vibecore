@@ -1,0 +1,13 @@
+{
+  "beforeRepository": "/workspace/vibecore-ui-contract812",
+  "beforeSourceCommit": "449daadfa655c4acd47e9493437c2463fc3c13d9",
+  "beforeTreeMatchesMain": "6de692cf5d58f7e084c117ed8fd58c7c6e74cd6a",
+  "afterBase": "6de692cf5d58f7e084c117ed8fd58c7c6e74cd6a",
+  "afterFiles": {
+    "app/components/chat/BaseChat.tsx": "13af879d657e07b603c2b116e75e198566026f70359ad8c97f0d338ad150ca6c",
+    "tests/e2e/responsive-ide.spec.ts": "346bdc10799d8532d3abf5a59930818d10074eaaa6d9b6b8b0acf8cf9b9c70df"
+  },
+  "browser": "Chromium /usr/bin/chromium",
+  "api": "Synthetic localhost fixture, external/mutation calls blocked, no customer project",
+  "scope": "Real compiled UI route; no authenticated production session in this agent"
+}

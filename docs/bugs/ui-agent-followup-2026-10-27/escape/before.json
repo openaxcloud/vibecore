@@ -1,0 +1,43 @@
+{
+  "viewport": {
+    "width": 1180,
+    "height": 757
+  },
+  "before": 1,
+  "after": 1,
+  "focusBefore": {
+    "tag": "BUTTON",
+    "text": ""
+  },
+  "entries": [
+    {
+      "id": "feuille-entree-modele",
+      "text": "Primary model — PowerAuto · default",
+      "disabled": false
+    },
+    {
+      "id": "feuille-entree-avance",
+      "text": "Advanced settingsEffort, redundancy and billing options.",
+      "disabled": false
+    }
+  ],
+  "errors": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    }
+  ],
+  "active": {
+    "tag": "BUTTON",
+    "text": ""
+  }
+}

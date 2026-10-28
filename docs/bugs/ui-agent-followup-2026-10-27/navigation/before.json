@@ -1,0 +1,202 @@
+[
+  {
+    "width": 320,
+    "requested": true,
+    "before": {
+      "panel": "chat",
+      "agentSelected": "true",
+      "agentVisible": true,
+      "marks": [
+        "archive-fetch-start",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "layout-restore-requested",
+        "session-indicator-resolved"
+      ]
+    },
+    "after": {
+      "panel": "preview",
+      "agentSelected": "true",
+      "agentVisible": false,
+      "marks": [
+        "archive-fetch-start",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "layout-restore-requested",
+        "session-indicator-resolved",
+        "layout-memory-ready",
+        "layout-memory-ready",
+        "layout-restored"
+      ]
+    }
+  },
+  {
+    "width": 768,
+    "requested": true,
+    "before": {
+      "panel": "chat",
+      "agentSelected": "true",
+      "agentVisible": true,
+      "marks": [
+        "archive-fetch-start",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "layout-restore-requested",
+        "session-indicator-resolved"
+      ]
+    },
+    "after": {
+      "panel": "preview",
+      "agentSelected": "true",
+      "agentVisible": false,
+      "marks": [
+        "archive-fetch-start",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "layout-restore-requested",
+        "session-indicator-resolved",
+        "layout-memory-ready",
+        "layout-memory-ready",
+        "layout-restored",
+        "session-indicator-resolved"
+      ]
+    }
+  },
+  {
+    "width": 1180,
+    "requested": true,
+    "before": {
+      "panel": "chat",
+      "agentSelected": "true",
+      "agentVisible": true,
+      "marks": [
+        "archive-fetch-start",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "layout-restore-requested",
+        "session-indicator-resolved"
+      ]
+    },
+    "after": {
+      "panel": "preview",
+      "agentSelected": "true",
+      "agentVisible": false,
+      "marks": [
+        "archive-fetch-start",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "layout-restore-requested",
+        "session-indicator-resolved",
+        "layout-memory-ready",
+        "layout-memory-ready",
+        "layout-restored",
+        "documents-set"
+      ]
+    }
+  },
+  {
+    "width": 1440,
+    "requested": true,
+    "before": {
+      "panel": "chat",
+      "agentVisible": true,
+      "marks": [
+        "archive-fetch-start",
+        "monaco-import-requested",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "monaco-import-resolved",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested"
+      ]
+    },
+    "after": {
+      "panel": "chat",
+      "agentVisible": true,
+      "marks": [
+        "archive-fetch-start",
+        "monaco-import-requested",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "monaco-import-resolved",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "session-indicator-resolved",
+        "layout-memory-ready",
+        "layout-memory-ready",
+        "layout-restored",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "layout-memory-ready",
+        "layout-restored"
+      ]
+    }
+  }
+]

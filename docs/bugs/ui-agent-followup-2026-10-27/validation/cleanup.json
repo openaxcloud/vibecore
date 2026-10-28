@@ -1,0 +1,8 @@
+{
+  "pid": 33498,
+  "command": "node --require ./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs node_modules/@react-router/serve/bin.js build/server/index.js ",
+  "origin": "root final recipe server18399 in vibecore-ui-agent-followup",
+  "action": "SIGTERM",
+  "port18399Connect": 111,
+  "processState": "S"
+}

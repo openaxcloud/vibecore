@@ -130,6 +130,7 @@ export function AgentPowerControls({
   ];
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const advancedTriggerRef = useRef<HTMLButtonElement>(null);
 
   /*
    * Ancre du panneau sur BUREAU. Sur téléphone la feuille part à la racine du
@@ -294,8 +295,11 @@ export function AgentPowerControls({
       setAdvancedOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        event.preventDefault();
+        event.stopPropagation();
         setAdvancedOpen(false);
+        advancedTriggerRef.current?.focus();
       }
     };
 
@@ -368,6 +372,7 @@ export function AgentPowerControls({
       onClick={() => setAdvancedOpen((prev) => !prev)}
       title={copy['chatControls.power.advancedTitle']}
       data-testid="agent-mode-advanced"
+      ref={advancedTriggerRef}
       className={classNames(
         'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
         'disabled:cursor-not-allowed disabled:opacity-50',
@@ -422,6 +427,7 @@ export function AgentPowerControls({
       title={copy['chatControls.power.advancedTitle']}
       aria-label={formatChatControlsCopy(copy['chatControls.power.compactAria'], { mode: activeTier.label })}
       data-testid="agent-mode-advanced"
+      ref={advancedTriggerRef}
       className={classNames('bolt-composer-chip', { 'is-open': advancedOpen })}
     >
       <span className="bolt-composer-chip-label">{activeTier.label}</span>
@@ -587,6 +593,7 @@ export function AgentPowerControls({
   return (
     <div
       ref={rootRef}
+      data-escape-owner={advancedOpen ? 'agent-settings' : undefined}
       className={classNames(
         'relative flex items-center',
         compact ? 'bolt-agent-power-compact' : 'flex-wrap gap-2',
@@ -605,6 +612,7 @@ export function AgentPowerControls({
             <div
               id={panelId}
               ref={panelRef}
+              data-escape-owner="agent-settings"
               role="dialog"
               aria-label={copy['chatControls.power.dialogAria']}
               className={classNames(

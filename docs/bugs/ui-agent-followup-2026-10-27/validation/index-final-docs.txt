@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-agent-followup
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 23ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  20:31:06
+   Duration  2.21s (transform 1.10s, setup 29ms, collect 9ms, tests 23ms, environment 0ms, prepare 70ms)

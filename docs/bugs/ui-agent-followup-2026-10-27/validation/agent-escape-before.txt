@@ -1,0 +1,466 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-agent-followup
+
+ ❯ app/components/chat/AgentPowerControls.escape.spec.tsx (3 tests | 3 failed) 162ms
+   × Escape closes actual model subpanel and restores opener (mobile=false) 114ms
+     → expected <div id=":r0:" role="dialog" …(3)>…(2)</div> to be null
+   × Escape closes actual model subpanel and restores opener (mobile=true) 34ms
+     → expected <div id=":r2:" role="dialog" …(2)>…(2)</div> to be null
+   × keeps a consumed child Escape local before closing on the next Escape 14ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st spy call:
+
+    Array [
+      "overlay.close",
+      Object {
+        "action": "overlay.close",
+        "category": "Help",
+        "combo": "escape",
+        "description": "",
+        "label": "",
+      },
+      KeyboardEvent {
+        "isTrusted": false,
+      },
+    ]
+
+
+Number of calls: 1
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/chat/AgentPowerControls.escape.spec.tsx > Escape closes actual model subpanel and restores opener (mobile=false)
+AssertionError: expected <div id=":r0:" role="dialog" …(3)>…(2)</div> to be null
+
+- Expected:
+null
+
++ Received:
+<div
+  aria-label="Advanced agent settings"
+  class="bolt-agent-power-popover mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl bolt-agent-power-popover-flottant"
+  id=":r0:"
+  role="dialog"
+  style="position: fixed; left: 0px; bottom: 776px;"
+>
+  <div>
+    <div
+      class="bolt-feuille"
+      data-ecran="modes"
+    >
+      <p
+        class="bolt-feuille-titre"
+      >
+        Agent modes
+      </p>
+      <div
+        aria-label="Agent mode (press Command-Shift-I to cycle)"
+        role="radiogroup"
+      >
+        <button
+          aria-checked="false"
+          class="bolt-feuille-rangee"
+          data-selected="false"
+          data-testid="feuille-mode-lite"
+          role="radio"
+          type="button"
+        >
+          <span
+            class="bolt-feuille-rangee-nom"
+          >
+            Lite
+          </span>
+          <span
+            class="bolt-feuille-rangee-valeur"
+          >
+            Auto
+          </span>
+        </button>
+        <button
+          aria-checked="true"
+          class="bolt-feuille-rangee"
+          data-selected="true"
+          data-testid="feuille-mode-power"
+          role="radio"
+          type="button"
+        >
+          <span
+            class="bolt-feuille-rangee-nom"
+          >
+            Power
+          </span>
+          <span
+            class="bolt-feuille-rangee-valeur"
+          >
+            Auto
+          </span>
+        </button>
+        <button
+          aria-checked="false"
+          class="bolt-feuille-rangee"
+          data-selected="false"
+          data-testid="feuille-mode-max"
+          role="radio"
+          type="button"
+        >
+          <span
+            class="bolt-feuille-rangee-nom"
+          >
+            Max
+          </span>
+          <span
+            class="bolt-feuille-rangee-valeur"
+          >
+            Auto
+          </span>
+        </button>
+      </div>
+      <p
+        class="bolt-feuille-description"
+      >
+        The right balance.
+      </p>
+      <button
+        class="bolt-feuille-entree"
+        data-testid="feuille-entree-modele"
+        data-verrouillee="false"
+        type="button"
+      >
+        <span
+          class="bolt-feuille-entree-nom"
+        >
+          Primary model — Power
+        </span>
+        <span
+          class="bolt-feuille-entree-hint"
+        >
+          Auto · default
+        </span>
+        <span
+          aria-hidden="true"
+          class="bolt-feuille-chevron i-ph:caret-right"
+        />
+      </button>
+      <button
+        class="bolt-feuille-entree"
+        data-testid="feuille-entree-avance"
+        data-verrouillee="false"
+        type="button"
+      >
+        <span
+          class="bolt-feuille-entree-nom"
+        >
+          Advanced settings
+        </span>
+        <span
+          class="bolt-feuille-entree-hint"
+        >
+          Effort, redundancy and billing options.
+        </span>
+        <span
+          aria-hidden="true"
+          class="bolt-feuille-chevron i-ph:caret-right"
+        />
+      </button>
+    </div>
+  </div>
+  <div
+    class="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs"
+  >
+    <span
+      class="text-bolt-elements-textSecondary"
+    >
+      Est. cost
+    </span>
+    <span
+      class="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary"
+    >
+      <span
+        aria-hidden="true"
+        class="i-ph:sparkle text-sm"
+        style="color: var(--vc-ide-accent-action);"
+      />
+      —
+    </span>
+  </div>
+</div>
+
+ ❯ app/components/chat/AgentPowerControls.escape.spec.tsx:50:40
+     48|   expect(runAction.mock.calls.map(([action]) => action)).toEqual(['fil…
+     49|   fireEvent.keyDown(target, { key: 'Escape' });
+     50|   expect(screen.queryByRole('dialog')).toBeNull();
+       |                                        ^
+     51|   expect(screen.queryByTestId('feuille-second-panneau')).toBeNull();
+     52|   expect(document.activeElement).toBe(trigger);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  app/components/chat/AgentPowerControls.escape.spec.tsx > Escape closes actual model subpanel and restores opener (mobile=true)
+AssertionError: expected <div id=":r2:" role="dialog" …(2)>…(2)</div> to be null
+
+- Expected:
+null
+
++ Received:
+<div
+  aria-label="Advanced agent settings"
+  class="bolt-agent-power-popover mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl absolute bottom-full left-0 z-50"
+  id=":r2:"
+  role="dialog"
+>
+  <div
+    class="bolt-feuille"
+    data-ecran="modele"
+  >
+    <div
+      class="bolt-feuille-entete"
+    >
+      <button
+        aria-label="Agent modes"
+        class="bolt-feuille-retour i-ph:caret-left"
+        data-testid="feuille-retour"
+        type="button"
+      />
+      <p
+        class="bolt-feuille-titre"
+      >
+        Primary model — Power
+      </p>
+    </div>
+    <button
+      aria-checked="true"
+      class="bolt-feuille-rangee bolt-feuille-rangee-modele"
+      data-etat="auto"
+      data-selected="true"
+      data-testid="feuille-modele-auto"
+      role="radio"
+      type="button"
+    >
+      <span
+        class="bolt-feuille-rangee-nom"
+      >
+        Choose automatically
+      </span>
+      <span
+        class="bolt-feuille-pastille"
+      >
+        recommended
+      </span>
+      <span
+        class="bolt-feuille-rangee-hint"
+      >
+        We pick the least expensive model in this mode.
+      </span>
+    </button>
+    <button
+      aria-checked="false"
+      class="bolt-feuille-rangee bolt-feuille-rangee-modele"
+      data-etat="inconnu"
+      data-selected="false"
+      data-testid="feuille-modele-gpt-5.6-luna-fast"
+      role="radio"
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="bolt-feuille-fournisseur"
+        data-fournisseur="openai"
+      >
+        O
+      </span>
+      <span
+        class="bolt-feuille-rangee-nom"
+      >
+        gpt-5.6-luna
+         · fast
+      </span>
+    </button>
+    <button
+      aria-checked="false"
+      class="bolt-feuille-rangee bolt-feuille-rangee-modele"
+      data-etat="inconnu"
+      data-selected="false"
+      data-testid="feuille-modele-claude-sonnet-5-std"
+      role="radio"
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="bolt-feuille-fournisseur"
+        data-fournisseur="anthropic"
+      >
+        A
+      </span>
+      <span
+        class="bolt-feuille-rangee-nom"
+      >
+        claude-sonnet-5
+      </span>
+    </button>
+    <button
+      aria-checked="false"
+      class="bolt-feuille-rangee bolt-feuille-rangee-modele"
+      data-etat="inconnu"
+      data-selected="false"
+      data-testid="feuille-modele-gpt-5.6-terra-std"
+      role="radio"
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="bolt-feuille-fournisseur"
+        data-fournisseur="openai"
+      >
+        O
+      </span>
+      <span
+        class="bolt-feuille-rangee-nom"
+      >
+        gpt-5.6-terra
+      </span>
+    </button>
+    <button
+      aria-checked="false"
+      class="bolt-feuille-rangee bolt-feuille-rangee-modele"
+      data-etat="inconnu"
+      data-selected="false"
+      data-testid="feuille-modele-claude-sonnet-4-6-std"
+      role="radio"
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="bolt-feuille-fournisseur"
+        data-fournisseur="anthropic"
+      >
+        A
+      </span>
+      <span
+        class="bolt-feuille-rangee-nom"
+      >
+        claude-sonnet-4-6
+      </span>
+    </button>
+    <div
+      aria-disabled="true"
+      class="bolt-feuille-effort is-inerte"
+      data-testid="feuille-effort-absent"
+    >
+      <div
+        class="bolt-feuille-effort-tete"
+      >
+        <span
+          class="bolt-feuille-effort-nom"
+        >
+          Effort
+        </span>
+      </div>
+      <input
+        aria-label="Effort"
+        data-testid="feuille-effort-rail-inerte"
+        disabled=""
+        max="4"
+        min="0"
+        readonly=""
+        step="1"
+        tabindex="-1"
+        type="range"
+        value="2"
+      />
+      <div
+        class="bolt-feuille-effort-bornes"
+      >
+        <span>
+          Min
+        </span>
+        <span>
+          Max
+        </span>
+      </div>
+      <p
+        class="bolt-feuille-effort-phrase"
+      >
+        This model has no effort setting.
+      </p>
+    </div>
+  </div>
+  <div
+    class="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs"
+  >
+    <span
+      class="text-bolt-elements-textSecondary"
+    >
+      Est. cost
+    </span>
+    <span
+      class="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary"
+    >
+      <span
+        aria-hidden="true"
+        class="i-ph:sparkle text-sm"
+        style="color: var(--vc-ide-accent-action);"
+      />
+      —
+    </span>
+  </div>
+</div>
+
+ ❯ app/components/chat/AgentPowerControls.escape.spec.tsx:50:40
+     48|   expect(runAction.mock.calls.map(([action]) => action)).toEqual(['fil…
+     49|   fireEvent.keyDown(target, { key: 'Escape' });
+     50|   expect(screen.queryByRole('dialog')).toBeNull();
+       |                                        ^
+     51|   expect(screen.queryByTestId('feuille-second-panneau')).toBeNull();
+     52|   expect(document.activeElement).toBe(trigger);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  app/components/chat/AgentPowerControls.escape.spec.tsx > keeps a consumed child Escape local before closing on the next Escape
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st spy call:
+
+    Array [
+      "overlay.close",
+      Object {
+        "action": "overlay.close",
+        "category": "Help",
+        "combo": "escape",
+        "description": "",
+        "label": "",
+      },
+      KeyboardEvent {
+        "isTrusted": false,
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ app/components/chat/AgentPowerControls.escape.spec.tsx:70:25
+     68|   fireEvent.keyDown(target, { key: 'Escape' });
+     69|   expect(screen.queryByRole('dialog')).not.toBeNull();
+     70|   expect(runAction).not.toHaveBeenCalled();
+       |                         ^
+     71|   expect(stop).not.toHaveBeenCalled();
+     72|   target.removeEventListener('keydown', consume);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  20:11:22
+   Duration  2.89s (transform 1.27s, setup 24ms, collect 332ms, tests 162ms, environment 307ms, prepare 62ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

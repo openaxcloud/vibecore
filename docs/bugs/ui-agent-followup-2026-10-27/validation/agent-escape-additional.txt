@@ -1,0 +1,43 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-agent-followup
+
+ ✓ app/lib/hooks/useKeybindings.spec.ts (5 tests) 4ms
+stdout | app/components/chat/ChatBox.toolbar.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stderr | app/components/chat/ChatBox.toolbar.spec.tsx > <ChatBox /> toolbar > keeps the IDE composer to a single control row — selectors left, actions right
+react-i18next:: useTranslation: You will need to pass in an i18next instance by using initReactI18next { code: 'NO_I18NEXT_INSTANCE' }
+
+ ✓ app/components/chat/ChatBox.toolbar.spec.tsx (9 tests) 363ms
+
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+   Start at  20:14:19
+   Duration  4.27s (transform 2.09s, setup 68ms, collect 1.26s, tests 367ms, environment 322ms, prepare 117ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
