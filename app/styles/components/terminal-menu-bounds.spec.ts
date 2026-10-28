@@ -44,6 +44,21 @@ function bloc(scss: string, selecteurs: string): string {
 }
 
 describe('SURF-02 — menus du terminal bornés en hauteur', () => {
+  it('réserve la navigation basse et la place réellement disponible du menu mobile', () => {
+    const scss = sansCommentaires(readFileSync(FEUILLE, 'utf8'));
+    const mobile = scss.slice(scss.indexOf('@media (max-width: 640px)'));
+    const declarations = bloc(mobile.replace(/^  /gm, ''), '.bolt-terminal-more-menu');
+
+    // Source guard only; browser bounds/hit tests must verify the rendered select.
+    expect(declarations).toContain(
+      'bottom: calc(var(--vc-mobile-shell-bottom, env(safe-area-inset-bottom, 0px)) + 8px)',
+    );
+    expect(declarations).toContain('68dvh');
+    expect(declarations).toContain('var(--vc-mobile-shell-top, env(safe-area-inset-top, 0px))');
+    expect(declarations).toMatch(/max-height:[\s\S]*100dvh[\s\S]*--vc-mobile-shell-bottom/);
+    expect(declarations).toMatch(/overflow:\s*auto/);
+  });
+
   it('borne la hauteur en unité liée à l’écran ET fait défiler', () => {
     const scss = sansCommentaires(readFileSync(FEUILLE, 'utf8'));
     const declarations = bloc(scss, '.bolt-terminal-session-menu,\n.bolt-terminal-more-menu');

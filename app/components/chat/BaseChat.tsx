@@ -2976,9 +2976,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const navigate = useNavigate();
     const [clientHydrated, setClientHydrated] = useState(false);
 
+    const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
+
+    const activeProjectPanel =
+      projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
+        ? projectPanelResolution.panel
+        : '';
+
+    /* An explicit Search route must survive a shell handoff without an intermediate Agent commit. */
     const [mobilePanel, setMobilePanel] = useState<
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
-    >('chat');
+    >(() => (projectIdeMode && activeProjectPanel === 'search' ? 'search' : 'chat'));
 
     /*
      * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — keep-alive du Workbench mobile.
@@ -3367,7 +3375,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     }, [ECODE_MOBILE_TAB_META, t]);
 
-    const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
+    const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState(() =>
+      projectIdeMode && activeProjectPanel === 'search' ? 'search' : 'agent',
+    );
 
     /*
      * Panneau de service rendu par la surface mobile « deploy ». En-tête ET
@@ -4219,12 +4229,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * lieu d'afficher un panneau que personne n'a demandé.
      */
     const warnedUnknownPanelRef = useRef<string | undefined>(undefined);
-    const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
-
-    const activeProjectPanel =
-      projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
-        ? projectPanelResolution.panel
-        : '';
 
     const appliedWorkspacePanelUrlRef = useRef<{
       projectId: typeof projectId;
@@ -8863,7 +8867,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (panel === 'search') {
-          return <Search />;
+          return <Search paneId={paneId} />;
         }
 
         if (panel === 'locks') {
@@ -10551,6 +10555,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
                             })}
                             projectId={projectId}
+                            searchPaneId={projectIdeMode ? activePaneId : undefined}
                             onUserFileSelect={onUserProjectFileSelect}
                             onMobilePanelChange={(panel) => {
                               if (panel === 'editor') {

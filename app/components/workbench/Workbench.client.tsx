@@ -66,6 +66,7 @@ interface WorkspaceProps {
   onMobilePanelChange?: (panel: MobileWorkbenchPanel) => void;
   onUserFileSelect?: (filePath: string) => void;
   projectId?: string;
+  searchPaneId?: string;
 }
 
 const viewTransition = { ease: cubicEasingFn };
@@ -380,6 +381,7 @@ export const Workbench = memo(
     onMobilePanelChange,
     onUserFileSelect,
     projectId,
+    searchPaneId,
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
@@ -805,6 +807,7 @@ export const Workbench = memo(
                 <div className="relative min-h-0 flex-1 overflow-clip" data-testid="workbench-view-viewport">
                   <View initial={{ x: '0%' }} animate={{ x: activeWorkbenchView === 'code' ? '0%' : '-100%' }}>
                     <EditorPanel
+                      searchPaneId={searchPaneId}
                       editorDocument={currentDocument}
                       isStreaming={isStreaming}
                       selectedFile={selectedFile}

@@ -216,3 +216,74 @@ describe('<FileTree /> French copy', () => {
     expect(screen.queryByText('Workspace unavailable')).toBeNull();
   });
 });
+
+describe('inline file-name keyboard ownership', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it.each([{ isComposing: true }, { keyCode: 229 }])(
+    'does not create a file when Enter confirms an IME composition (%j)',
+    async (composition) => {
+      const { workbenchStore } = await import('~/lib/stores/workbench');
+      renderInEnglish(<FileTree files={files} rootFolder="/home/project" hideRoot />);
+      fireEvent.contextMenu(screen.getByText('src'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'New File' }));
+
+      const input = screen.getByPlaceholderText('Enter file name…');
+      fireEvent.change(input, { target: { value: '日本語.ts' } });
+      fireEvent.keyDown(input, { key: 'Enter', ...composition });
+      expect(workbenchStore.createFile).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe('inline file-name submission and cancellation', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('submits exactly once after composition and owns the Enter event', async () => {
+    const { workbenchStore } = await import('~/lib/stores/workbench');
+    vi.mocked(workbenchStore.createFile).mockResolvedValue(true);
+
+    const parentKey = vi.fn();
+    renderInEnglish(
+      <div onKeyDown={parentKey}>
+        <FileTree files={files} rootFolder="/home/project" hideRoot />
+      </div>,
+    );
+    fireEvent.contextMenu(screen.getByText('src'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'New File' }));
+
+    const input = screen.getByRole('textbox', { name: 'Enter file name…' });
+    fireEvent.change(input, { target: { value: '日本語.ts' } });
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    expect(workbenchStore.createFile).not.toHaveBeenCalled();
+    parentKey.mockClear();
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: false });
+    expect(workbenchStore.createFile).toHaveBeenCalledExactlyOnceWith('/home/project/src/日本語.ts', '');
+    expect(parentKey).not.toHaveBeenCalled();
+  });
+
+  it('cancels locally on Escape without submitting or closing a parent layer', async () => {
+    const { workbenchStore } = await import('~/lib/stores/workbench');
+    const parentKey = vi.fn();
+    renderInEnglish(
+      <div onKeyDown={parentKey}>
+        <FileTree files={files} rootFolder="/home/project" hideRoot />
+      </div>,
+    );
+    fireEvent.contextMenu(screen.getByText('src'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'New File' }));
+
+    const input = screen.getByRole('textbox', { name: 'Enter file name…' });
+    fireEvent.change(input, { target: { value: 'cancelled.ts' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: 'Enter file name…' })).toBeNull();
+    expect(workbenchStore.createFile).not.toHaveBeenCalled();
+    expect(parentKey).not.toHaveBeenCalled();
+  });
+});
