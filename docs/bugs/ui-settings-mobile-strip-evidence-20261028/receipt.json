@@ -236,47 +236,47 @@
     ],
     "errors": [],
     "before": {
-      "height": 58,
-      "width": 358,
-      "display": "flex",
-      "position": "sticky",
-      "grid": "none",
-      "hubWidth": 358,
+      "height": 0,
+      "width": 0,
+      "display": "",
+      "position": "",
+      "grid": "",
+      "hubWidth": 0,
       "buttons": [
         {
-          "height": 44,
-          "scroll": 73,
-          "client": 73
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 44,
-          "scroll": 81,
-          "client": 81
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 44,
-          "scroll": 39,
-          "client": 39
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 44,
-          "scroll": 67,
-          "client": 67
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 44,
-          "scroll": 81,
-          "client": 81
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 44,
-          "scroll": 82,
-          "client": 82
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 44,
-          "scroll": 107,
-          "client": 107
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         }
       ]
     },
@@ -366,27 +366,27 @@
       {
         "syntheticRuntime": true,
         "method": "GET",
-        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
-      },
-      {
-        "syntheticRuntime": true,
-        "method": "GET",
         "path": "/api/projects/synthetic-first/ide-panel/ports"
       },
       {
         "syntheticRuntime": true,
         "method": "GET",
-        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
-      },
-      {
-        "syntheticRuntime": true,
-        "method": "GET",
-        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
       },
       {
         "syntheticRuntime": true,
         "method": "GET",
         "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
       },
       {
         "syntheticRuntime": true,
@@ -400,47 +400,47 @@
     ],
     "errors": [],
     "before": {
-      "height": 0,
-      "width": 0,
-      "display": "",
-      "position": "",
-      "grid": "",
-      "hubWidth": 0,
+      "height": 88.25,
+      "width": 721.9375,
+      "display": "flex",
+      "position": "sticky",
+      "grid": "none",
+      "hubWidth": 721.9375,
       "buttons": [
         {
-          "height": 0,
-          "scroll": 0,
-          "client": 0
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
         },
         {
-          "height": 0,
-          "scroll": 0,
-          "client": 0
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
         },
         {
-          "height": 0,
-          "scroll": 0,
-          "client": 0
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
         },
         {
-          "height": 0,
-          "scroll": 0,
-          "client": 0
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
         },
         {
-          "height": 0,
-          "scroll": 0,
-          "client": 0
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
         },
         {
-          "height": 0,
-          "scroll": 0,
-          "client": 0
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
         },
         {
-          "height": 0,
-          "scroll": 0,
-          "client": 0
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
         }
       ]
     },
@@ -719,17 +719,17 @@
       {
         "syntheticRuntime": true,
         "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
         "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
       },
       {
         "syntheticRuntime": true,
         "method": "GET",
         "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
-      },
-      {
-        "syntheticRuntime": true,
-        "method": "GET",
-        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
       },
       {
         "method": "POST",
@@ -868,27 +868,27 @@
       {
         "syntheticRuntime": true,
         "method": "GET",
-        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
-      },
-      {
-        "syntheticRuntime": true,
-        "method": "GET",
         "path": "/api/projects/synthetic-first/ide-panel/ports"
       },
       {
         "syntheticRuntime": true,
         "method": "GET",
-        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
-      },
-      {
-        "syntheticRuntime": true,
-        "method": "GET",
-        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
       },
       {
         "syntheticRuntime": true,
         "method": "GET",
         "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
       },
       {
         "syntheticRuntime": true,
@@ -902,47 +902,47 @@
     ],
     "errors": [],
     "before": {
-      "height": 590.65625,
-      "width": 280,
-      "display": "grid",
-      "position": "sticky",
-      "grid": "254px",
-      "hubWidth": 1100.671875,
+      "height": 0,
+      "width": 0,
+      "display": "",
+      "position": "",
+      "grid": "",
+      "hubWidth": 0,
       "buttons": [
         {
-          "height": 52,
-          "scroll": 254,
-          "client": 254
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 52,
-          "scroll": 254,
-          "client": 254
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 52,
-          "scroll": 254,
-          "client": 254
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 52,
-          "scroll": 254,
-          "client": 254
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 52,
-          "scroll": 254,
-          "client": 254
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 52,
-          "scroll": 254,
-          "client": 254
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         },
         {
-          "height": 52,
-          "scroll": 254,
-          "client": 254
+          "height": 0,
+          "scroll": 0,
+          "client": 0
         }
       ]
     },

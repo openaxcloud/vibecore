@@ -5,3 +5,5 @@ Six recettes Chromium locales compilées, API synthétiques, aucune soumission d
 Les champs before égaux à0 correspondent à une mesure avant hydratation, pas à une preuve avant correctif. La preuve du défaut original est le test CI strict de #838 (346px, trois essais) et la contre-preuve DOM de session décrite dans la fiche bug. Les mesures after sont celles du build corrigé hydraté.
 
 Le seuil E2E existant60px à390 reste inchangé. Aucune preuve de compte, quota ou facturation backend réelle.
+
+`390-before.png` provient de la reproduction initiale du défaut346px sur le build précédent. Les six images `*-after.png` sont prises après les assertions de stabilité sur le build corrigé, sans override CSS.
