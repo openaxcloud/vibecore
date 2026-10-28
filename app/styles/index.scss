@@ -16675,8 +16675,71 @@ body :where(.lucide, svg[data-lucide]) {
   display: grid;
   min-height: 0;
   min-width: 0;
+  align-content: start;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  // Tabs and their active view are successive rows, not a sidebar and content.
+  grid-template-columns: minmax(0, 1fr);
+  container: project-deploy / inline-size;
+}
+
+.bolt-project-deploy-tool > *,
+.bolt-project-deploy-tool
+  :where(.bolt-project-domains-panel, .bolt-project-domains-layout, .bolt-project-domain-list)
+  > *,
+.bolt-project-deploy-tool
+  :where(.bolt-project-domain-add-form, .vc-managed-publish-form)
+  :where(label, input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.bolt-project-deploy-tool .bolt-project-deploy-history {
+  border-right: 0;
+}
+
+.bolt-project-deploy-tool .bolt-project-domain-card-header {
+  flex-wrap: wrap;
+}
+
+.bolt-project-deploy-tool
+  :where(.bolt-project-domain-card, .bolt-project-domain-card-header, .bolt-project-deploy-card header)
+  > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bolt-project-deploy-tool .bolt-project-dns-record code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+// A split IDE pane can be narrow even on a wide desktop viewport.
+@container project-deploy (max-width: 600px) {
+  .bolt-project-deploy-tool .bolt-project-domains-hero,
+  .bolt-project-deploy-tool .bolt-project-domain-actions,
+  .bolt-project-deploy-tool .bolt-project-deploy-card header {
+    flex-wrap: wrap;
+  }
+
+  .bolt-project-deploy-tool .bolt-project-domains-hero > * {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .bolt-project-deploy-tool .bolt-project-domain-add-card,
+  .bolt-project-deploy-tool .vc-managed-publish-form > .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-project-deploy-tool .bolt-project-domain-status-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  }
+
+  .bolt-project-deploy-tool .bolt-project-dns-records-head,
+  .bolt-project-deploy-tool .bolt-project-dns-record {
+    grid-template-columns: minmax(0, 0.5fr) minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 0.75fr);
+    overflow-wrap: anywhere;
+  }
 }
 
 .bolt-project-database-tool aside,

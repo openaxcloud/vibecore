@@ -323,6 +323,7 @@ import {
   verifyIntegrationOauthState,
 } from './integrations/oauth-state.js';
 import { bitbucketConnector, resolveBitbucketCredentials } from './integrations/providers/bitbucket.js';
+import { registerGithubVerification } from './integrations/github-verification.js';
 import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
@@ -503,10 +504,16 @@ import {
 } from './strike-system.js';
 import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
 import { decideWorkspaceSlot } from './workspace-slot.js';
-import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import {
+  createThumbnailCapturer,
+  ThumbnailCapturer,
+  THUMBNAIL_CAPTURE_REASONS,
+  type ThumbnailLogger,
+} from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
+import { RuntimeLogReplay, runtimeLogEvents } from './runtime-log-replay.js';
 import { monthlyUsagePeriodStart } from './usage-period.js';
 import { WorkspaceAdmissionClient, type WorkspaceAdmission } from './workspace-admission.js';
 import {
@@ -12723,6 +12730,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { memory: archived };
   });
 
+  registerGithubVerification(app, store);
+
   app.post(
     '/api/integrations/oauth/:provider/connect',
     {
@@ -20561,32 +20570,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
 
-    /*
-     * The workspace manager exposes logs as a point-in-time buffer, not a
-     * stream, so we keep the socket open and poll every 3s, sending only the
-     * lines we have not sent yet (tracked by offset) instead of fetching once
-     * and closing. The buffer is treated as append-only; if it shrinks (the
-     * manager rotated/truncated it) we reset and replay the current contents.
-     */
-    const send = (line: string) =>
-      client.send(JSON.stringify({ type: 'stdout', data: line, timestamp: new Date().toISOString() }));
+    const replay = new RuntimeLogReplay();
 
-    let sentCount = 0;
+    let polling = false;
+    let closed = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+    let keepAlive: ReturnType<typeof setInterval> | undefined;
+
+    client.onClose(() => {
+      closed = true;
+      clearInterval(interval);
+      clearInterval(keepAlive);
+      interval = undefined;
+      keepAlive = undefined;
+    });
 
     const poll = async () => {
-      const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
-      const lines = logs?.logs ?? [];
-
-      // Buffer shrank — treat as a rotation and replay from the top.
-      if (lines.length < sentCount) {
-        sentCount = 0;
+      if (polling || closed) {
+        return;
       }
 
-      for (let index = sentCount; index < lines.length; index += 1) {
-        send(lines[index]);
-      }
+      polling = true;
 
-      sentCount = lines.length;
+      try {
+        const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
+
+        if (closed) {
+          return;
+        }
+
+        const events = runtimeLogEvents(authorized.workspaceId, logs?.logs ?? [], new Date().toISOString());
+
+        for (const event of replay.accept(events)) {
+          client.send(JSON.stringify(event));
+        }
+      } finally {
+        polling = false;
+      }
     };
 
     try {
@@ -20595,7 +20615,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // Manager not reachable yet; the interval will retry.
     }
 
-    const interval = setInterval(() => {
+    if (closed) {
+      return;
+    }
+
+    interval = setInterval(() => {
       void poll().catch(() => {
         // Swallow transient manager errors; the next tick resyncs.
       });
@@ -20607,13 +20631,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * down (reconnect flap). A native WS ping every 15s keeps the API→browser leg
      * alive regardless of log activity; invisible to the JSON message stream.
      */
-    const keepAlive = setInterval(() => client.ping(), 15_000);
+    keepAlive = setInterval(() => client.ping(), 15_000);
     (keepAlive as unknown as { unref?: () => void }).unref?.();
-
-    client.onClose(() => {
-      clearInterval(interval);
-      clearInterval(keepAlive);
-    });
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs/snapshot', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -20636,12 +20655,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       workspaceId: authorized.workspaceId,
-      logs: (logs?.logs ?? []).slice(-1000).map((line) => ({
-        level: classifyRuntimeLogLevel(line),
-        message: line,
-        source: classifyRuntimeLogSource(line),
-        timestamp: new Date().toISOString(),
-      })),
+      logs: runtimeLogEvents(authorized.workspaceId, (logs?.logs ?? []).slice(-1000), new Date().toISOString()).map(
+        (event) => ({
+          level: classifyRuntimeLogLevel(event.data),
+          message: event.data,
+          source: classifyRuntimeLogSource(event.data),
+          timestamp: event.timestamp,
+          timestampSource: event.timestampSource,
+          receivedAt: event.receivedAt,
+          eventId: event.eventId,
+        }),
+      ),
     };
   });
   app.get('/api/runtime/workspaces/:workspaceId/files/watch', { websocket: true }, async (socket, request) => {
@@ -36900,12 +36924,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * AVANT, comme pour une vignette réelle.
      */
     if (!isObjectStorageEnabled() || !thumbnailCapturer.enabled) {
-      return reply.code(202).send({ scheduled: false, enabled: false });
+      return reply.code(202).send({ status: 'skipped', reason: THUMBNAIL_CAPTURE_REASONS.disabled, enabled: false });
     }
 
-    thumbnailCapturer.schedule(project.id, body.url);
+    const result = await thumbnailCapturer.captureResultWithinDeadline(project.id, body.url);
 
-    return reply.code(202).send({ scheduled: true, enabled: true });
+    return reply.code(result.status === 'pending' ? 202 : 200).send({ ...result, enabled: true });
   });
 
   /*

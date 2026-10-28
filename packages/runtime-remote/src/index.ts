@@ -1178,9 +1178,25 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async watchLogs(onEvent: (event: CommandEvent) => void): Promise<() => void> {
-    return this.#watchSocket(`/workspaces/${this.#requireWorkspaceId()}/logs`, undefined, (event) =>
-      onEvent(JSON.parse(event.data) as CommandEvent),
-    );
+    const seen = new Set<string>();
+
+    return this.#watchSocket(`/workspaces/${this.#requireWorkspaceId()}/logs`, undefined, (message) => {
+      const event = JSON.parse(message.data) as CommandEvent;
+
+      if (typeof event.eventId === 'string' && event.eventId) {
+        if (seen.has(event.eventId)) {
+          return;
+        }
+
+        seen.add(event.eventId);
+
+        while (seen.size > 2000) {
+          seen.delete(seen.values().next().value!);
+        }
+      }
+
+      onEvent(event);
+    });
   }
 
   /** True when the api reports the workspace agent unreachable — the pod is gone (GC'd) or never came up. */
