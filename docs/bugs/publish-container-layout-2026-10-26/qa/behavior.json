@@ -1,0 +1,3991 @@
+{
+  "final": {
+    "stats": {
+      "startTime": "2026-10-26T12:02:11.776Z",
+      "duration": 60525.689000000006,
+      "expected": 9,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "scenarios": [
+      {
+        "title": "Publish container 320px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 8080,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 320,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 320,
+                "bottom": 1240.6875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 320,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 320,
+                "bottom": 414.9375
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 320,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 320,
+                "bottom": 2277.3125
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": -305,
+                "width": 320,
+                "bottom": -273
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": -261,
+                "width": 320,
+                "bottom": 131.21875
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 143.21875,
+                "width": 320,
+                "bottom": 644.5
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 656.5,
+                "width": 320,
+                "bottom": 1694.765625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 390px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 6984,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 390,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 390,
+                "bottom": 1174.75
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 390,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 390,
+                "bottom": 397.90625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 390,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 390,
+                "bottom": 1983.109375
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": -240,
+                "width": 390,
+                "bottom": -208
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": -196,
+                "width": 390,
+                "bottom": 179.1875
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 191.1875,
+                "width": 390,
+                "bottom": 661.25
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 673.25,
+                "width": 390,
+                "bottom": 1680.296875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 600px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 6161,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1179,
+              "right": 1559,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1158,
+              "width": 600
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 600,
+            "clientWidth": 600,
+            "scrollWidth": 600,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 600,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 600,
+                "bottom": 1127.265625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1179,
+              "right": 1559,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1158,
+              "width": 600
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 600,
+            "clientWidth": 600,
+            "scrollWidth": 600,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 600,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 600,
+                "bottom": 380.875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1179,
+              "right": 1559,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1158,
+              "width": 600
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 600,
+            "clientWidth": 600,
+            "scrollWidth": 600,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 600,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 600,
+                "bottom": 1455.703125
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 69,
+                "scrollWidth": 69,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 139,
+                "scrollWidth": 139,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 208,
+                "scrollWidth": 208,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 69,
+                "scrollWidth": 69,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 139,
+                "scrollWidth": 139,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 208,
+                "scrollWidth": 208,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 69,
+                "scrollWidth": 69,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 139,
+                "scrollWidth": 139,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 208,
+                "scrollWidth": 208,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 69,
+                "scrollWidth": 69,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 139,
+                "scrollWidth": 139,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 208,
+                "scrollWidth": 208,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1179,
+              "right": 1559,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1158,
+              "width": 600
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 600,
+            "clientWidth": 600,
+            "scrollWidth": 600,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": -223,
+                "width": 600,
+                "bottom": -191
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": -179,
+                "width": 600,
+                "bottom": 179.15625
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 191.15625,
+                "width": 600,
+                "bottom": 661.21875
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 673.21875,
+                "width": 600,
+                "bottom": 1666.078125
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 820px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 6510,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1399,
+              "right": 1779,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1378,
+              "width": 820
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 820,
+            "clientWidth": 820,
+            "scrollWidth": 820,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 820,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 820,
+                "bottom": 1127.265625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1399,
+              "right": 1779,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1378,
+              "width": 820
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 820,
+            "clientWidth": 820,
+            "scrollWidth": 820,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 820,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 820,
+                "bottom": 346.875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1399,
+              "right": 1779,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1378,
+              "width": 820
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 820,
+            "clientWidth": 820,
+            "scrollWidth": 820,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 820,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 820,
+                "bottom": 1177.296875
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 224,
+                "scrollWidth": 224,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 336,
+                "scrollWidth": 336,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 224,
+                "scrollWidth": 224,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 336,
+                "scrollWidth": 336,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 224,
+                "scrollWidth": 224,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 336,
+                "scrollWidth": 336,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 224,
+                "scrollWidth": 224,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 336,
+                "scrollWidth": 336,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1399,
+              "right": 1779,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1378,
+              "width": 820
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 820,
+            "clientWidth": 820,
+            "scrollWidth": 820,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 820,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 820,
+                "bottom": 376.15625
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 388.15625,
+                "width": 820,
+                "bottom": 782
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 794,
+                "width": 820,
+                "bottom": 1769.828125
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 1120px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 7019,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1120,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1120,
+                "bottom": 1127.265625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 1120,
+                "bottom": 329.84375
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 169,
+                "width": 1120,
+                "bottom": 1067.21875
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1120,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1120,
+                "bottom": 359.125
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 371.125,
+                "width": 1120,
+                "bottom": 764.96875
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 776.96875,
+                "width": 1120,
+                "bottom": 1752.796875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 1200px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5989,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1779,
+              "right": 2159,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1758,
+              "width": 1200
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 1200,
+            "clientWidth": 1200,
+            "scrollWidth": 1200,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1200,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1200,
+                "bottom": 1127.265625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1779,
+              "right": 2159,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1758,
+              "width": 1200
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 1200,
+            "clientWidth": 1200,
+            "scrollWidth": 1200,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1200,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 1200,
+                "bottom": 329.84375
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1779,
+              "right": 2159,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1758,
+              "width": 1200
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 1200,
+            "clientWidth": 1200,
+            "scrollWidth": 1200,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1200,
+                "bottom": 157
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 169,
+                "width": 1200,
+                "bottom": 1013.984375
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 376,
+                "scrollWidth": 376,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 564,
+                "scrollWidth": 564,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 376,
+                "scrollWidth": 376,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 564,
+                "scrollWidth": 564,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 376,
+                "scrollWidth": 376,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 564,
+                "scrollWidth": 564,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 376,
+                "scrollWidth": 376,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 564,
+                "scrollWidth": 564,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1779,
+              "right": 2159,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1758,
+              "width": 1200
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 1200,
+            "clientWidth": 1200,
+            "scrollWidth": 1200,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1200,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1200,
+                "bottom": 359.125
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 371.125,
+                "width": 1200,
+                "bottom": 764.96875
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 776.96875,
+                "width": 1200,
+                "bottom": 1752.796875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 390px history=false viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 6051,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 390,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 390,
+                "bottom": 937.234375
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 390,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 390,
+                "bottom": 274.875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 390,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 390,
+                "bottom": 1894.03125
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Waiting for a ready deployment",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Waiting for a ready deployment",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 83,
+                "scrollWidth": 83,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Waiting for a ready deployment",
+                "clientWidth": 124,
+                "scrollWidth": 124,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 969,
+              "right": 1349,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 948,
+              "width": 390
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 390,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 157,
+                "width": 390,
+                "bottom": 627.0625
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 639.0625,
+                "width": 390,
+                "bottom": 1646.109375
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 1120px history=false viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 6052,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 1120,
+                "bottom": 889.75
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 1120,
+                "bottom": 274.875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 169,
+                "width": 1120,
+                "bottom": 1067.21875
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Waiting for a ready deployment",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Waiting for a ready deployment",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Waiting for a ready deployment",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1120,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 157,
+                "width": 1120,
+                "bottom": 550.84375
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 562.84375,
+                "width": 1120,
+                "bottom": 1538.671875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 1120px history=true viewport=2048",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 6339,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 26,
+              "right": 506,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 527,
+              "right": 1647,
+              "width": 1120
+            },
+            "viewport": 2048
+          },
+          "Overview-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 527,
+                "y": 113,
+                "width": 1120,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 527,
+                "y": 157,
+                "width": 1120,
+                "bottom": 1127.265625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 26,
+              "right": 506,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 527,
+              "right": 1647,
+              "width": 1120
+            },
+            "viewport": 2048
+          },
+          "Logs-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 527,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 527,
+                "y": 169,
+                "width": 1120,
+                "bottom": 329.84375
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 26,
+              "right": 506,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 527,
+              "right": 1647,
+              "width": 1120
+            },
+            "viewport": 2048
+          },
+          "Domains-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 527,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 527,
+                "y": 169,
+                "width": 1120,
+                "bottom": 1067.21875
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 26,
+              "right": 506,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 527,
+              "right": 1647,
+              "width": 1120
+            },
+            "viewport": 2048
+          },
+          "Manage-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 527,
+                "y": 113,
+                "width": 1120,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 527,
+                "y": 157,
+                "width": 1120,
+                "bottom": 359.125
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 527,
+                "y": 371.125,
+                "width": 1120,
+                "bottom": 764.96875
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 527,
+                "y": 776.96875,
+                "width": 1120,
+                "bottom": 1752.796875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      }
+    ]
+  },
+  "native": {
+    "stats": {
+      "startTime": "2026-10-26T12:03:18.057Z",
+      "duration": 23794.753,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "scenarios": [
+      {
+        "title": "Publish container 320px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 9880,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 320,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 320,
+                "bottom": 1240.765625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 320,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 320,
+                "bottom": 414.9921875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 320,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 320,
+                "bottom": 2277.9375
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 32,
+                "scrollWidth": 32,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 64,
+                "scrollWidth": 64,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 96,
+                "scrollWidth": 96,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 899,
+              "right": 1279,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 878,
+              "width": 320
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": -348,
+                "width": 320,
+                "bottom": -316
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": -304,
+                "width": 320,
+                "bottom": 88.2734375
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 100.2734375,
+                "width": 320,
+                "bottom": 601.6328125
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 613.6328125,
+                "width": 320,
+                "bottom": 1651.078125
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      },
+      {
+        "title": "Publish container 1120px history=true viewport=2560",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 13230,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Overview-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1120,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1120,
+                "bottom": 1127.328125
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Logs-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1120,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 1120,
+                "bottom": 329.875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Domains-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1120,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 1120,
+                "bottom": 1055.40625
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 344,
+                "scrollWidth": 344,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 516,
+                "scrollWidth": 516,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1699,
+              "right": 2079,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1678,
+              "width": 1120
+            },
+            "viewport": 2560
+          },
+          "Manage-geometry.json": {
+            "width": 1120,
+            "clientWidth": 1120,
+            "scrollWidth": 1120,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": -16,
+                "width": 1120,
+                "bottom": 16
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 28,
+                "width": 1120,
+                "bottom": 230.15625
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 242.15625,
+                "width": 1120,
+                "bottom": 636.046875
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 648.046875,
+                "width": 1120,
+                "bottom": 1623.0234375
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      }
+    ]
+  },
+  "exact2048-settled": {
+    "stats": {
+      "startTime": "2026-10-26T12:08:10.020Z",
+      "duration": 8565.028999999999,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "scenarios": [
+      {
+        "title": "Publish container 1120px history=true viewport=2048",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 7324,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Overview-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1089,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1089,
+                "bottom": 1127.265625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Logs-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1089,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 1089,
+                "bottom": 346.875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Domains-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1089,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 1089,
+                "bottom": 1072.609375
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Manage-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1089,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1089,
+                "bottom": 376.15625
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 388.15625,
+                "width": 1089,
+                "bottom": 782
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 794,
+                "width": 1089,
+                "bottom": 1769.828125
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      }
+    ]
+  },
+  "dark-settled": {
+    "stats": {
+      "startTime": "2026-10-26T12:08:17.929Z",
+      "duration": 8587.605,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "scenarios": [
+      {
+        "title": "Publish container 1120px history=true viewport=2048",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 7388,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Overview-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1089,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1089,
+                "bottom": 1127.265625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Logs-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 1089,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 169,
+                "width": 1089,
+                "bottom": 346.875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Domains-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1089,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 558,
+                "y": 157,
+                "width": 1089,
+                "bottom": 1072.609375
+              }
+            ],
+            "outside": [],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 332,
+                "scrollWidth": 332,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 497,
+                "scrollWidth": 497,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Manage-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 1089,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 558,
+                "y": 157,
+                "width": 1089,
+                "bottom": 376.15625
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 388.15625,
+                "width": 1089,
+                "bottom": 782
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 558,
+                "y": 794,
+                "width": 1089,
+                "bottom": 1769.828125
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      }
+    ]
+  },
+  "baseline-fit": {
+    "stats": {
+      "startTime": "2026-10-26T12:08:32.068Z",
+      "duration": 10538.789,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "scenarios": [
+      {
+        "title": "Publish container 1120px history=true viewport=2048",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 8650,
+        "measurements": {
+          "Overview-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Overview-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 113,
+                "width": 757,
+                "bottom": 145
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 1327,
+                "y": 113,
+                "width": 320,
+                "bottom": 1196.6875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Logs-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Logs-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": 125,
+                "width": 757,
+                "bottom": 157
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 1327,
+                "y": 125,
+                "width": 320,
+                "bottom": 353.96875
+              }
+            ],
+            "outside": [],
+            "dns": []
+          },
+          "Domains-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 546,
+              "right": 1635,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Domains-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1290,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 546,
+                "y": 113,
+                "width": 757,
+                "bottom": 145
+              },
+              {
+                "tag": "DIV",
+                "className": "bolt-project-domains-panel",
+                "x": 1315,
+                "y": 113,
+                "width": 320,
+                "bottom": 3712.4375
+              }
+            ],
+            "outside": [
+              {
+                "tag": "INPUT",
+                "text": "",
+                "name": "domain"
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Add domain",
+                "name": null
+              }
+            ],
+            "dns": [
+              {
+                "text": "TXT",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "_vibecore.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 24,
+                "scrollWidth": 24,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "vibecore-domain-verification=synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-synthetic-verification-token-",
+                "clientWidth": 36,
+                "scrollWidth": 36,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "clientWidth": 24,
+                "scrollWidth": 24,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 36,
+                "scrollWidth": 36,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "A / ALIAS",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "@",
+                "clientWidth": 24,
+                "scrollWidth": 24,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "Alias target",
+                "clientWidth": 36,
+                "scrollWidth": 36,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "CNAME",
+                "clientWidth": 90,
+                "scrollWidth": 90,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 24,
+                "scrollWidth": 24,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              },
+              {
+                "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.example.test",
+                "clientWidth": 36,
+                "scrollWidth": 36,
+                "whiteSpace": "normal",
+                "overflowX": "hidden"
+              }
+            ]
+          },
+          "Manage-sidebars.json": {
+            "agent": {
+              "x": 57,
+              "right": 537,
+              "width": 480
+            },
+            "library": {
+              "x": 1668,
+              "right": 2048,
+              "width": 380
+            },
+            "publish": {
+              "x": 558,
+              "right": 1647,
+              "width": 1089
+            },
+            "viewport": 2048
+          },
+          "Manage-geometry.json": {
+            "width": 1089,
+            "clientWidth": 1089,
+            "scrollWidth": 1089,
+            "children": [
+              {
+                "tag": "DIV",
+                "className": "bolt-project-tool-tabs",
+                "x": 558,
+                "y": -289,
+                "width": 757,
+                "bottom": -257
+              },
+              {
+                "tag": "SECTION",
+                "className": "bolt-project-deploy-history",
+                "x": 1327,
+                "y": -289,
+                "width": 320,
+                "bottom": 16.25
+              },
+              {
+                "tag": "DIV",
+                "className": "grid gap-4",
+                "x": 558,
+                "y": 28.25,
+                "width": 757,
+                "bottom": 1066.515625
+              },
+              {
+                "tag": "DETAILS",
+                "className": "",
+                "x": 1327,
+                "y": 28.25,
+                "width": 320,
+                "bottom": 1066.515625
+              }
+            ],
+            "outside": [],
+            "dns": []
+          }
+        }
+      }
+    ]
+  }
+}

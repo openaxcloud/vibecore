@@ -88,6 +88,7 @@ import { importRoutesEn, importRoutesFr } from './catalogs/import-routes';
 import { importSpreadsheetEn, importSpreadsheetFr } from './catalogs/import-spreadsheet';
 import { inlineFileActionDiffEn, inlineFileActionDiffFr } from './catalogs/inline-file-action-diff';
 import { inspectorPanelEn, inspectorPanelFr } from './catalogs/inspector-panel';
+import { integrationGithubEn, integrationGithubFr } from './catalogs/integration-github';
 import { integrationOauthCallbackEn, integrationOauthCallbackFr } from './catalogs/integration-oauth-callback';
 import { invitationsEn, invitationsFr } from './catalogs/invitations';
 import { keybindingsEn, keybindingsFr } from './catalogs/keybindings';
@@ -188,6 +189,7 @@ export const RESOURCES: Record<SupportedLanguage, { translation: Record<string, 
       ...en,
       ...actionRunnerEn,
       ...accountSettingsConnectedEn,
+      ...integrationGithubEn,
       ...appliedFilesToastEn,
       ...ecrituresEnAttenteEn,
       ...adminOauthProvidersEn,
@@ -345,6 +347,7 @@ export const RESOURCES: Record<SupportedLanguage, { translation: Record<string, 
       ...fr,
       ...actionRunnerFr,
       ...accountSettingsConnectedFr,
+      ...integrationGithubFr,
       ...appliedFilesToastFr,
       ...ecrituresEnAttenteFr,
       ...adminOauthProvidersFr,

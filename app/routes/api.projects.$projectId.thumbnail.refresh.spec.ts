@@ -49,7 +49,31 @@ describe('thumbnail refresh (preview-ready) proxy action', () => {
     expect(url).toBe('/projects/proj-42/thumbnail/refresh');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body)).toEqual({ url: 'https://ws-1.preview.e-code.ai/' });
-    expect(body).toEqual({ ok: true, scheduled: true, enabled: true });
+    expect(body).toEqual({ ok: true, status: 'pending', reason: 'deadline', enabled: true });
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it.each([
+    { status: 'stored' },
+    { status: 'skipped', reason: 'recent-success' },
+    { status: 'skipped', reason: 'failure-cooldown' },
+    { status: 'pending', reason: 'in-flight' },
+    { status: 'pending', reason: 'storage-unconfirmed' },
+    { status: 'failed', reason: 'capture-error' },
+  ])('preserves observed backend outcome $status/$reason', async (result) => {
+    apiRequest.mockResolvedValueOnce({ ...result, enabled: true });
+
+    const { action } = await import('./api.projects.$projectId.thumbnail.refresh');
+    expect(readData(await action(actionArgs('https://preview.test/')))).toEqual({ ok: true, enabled: true, ...result });
+  });
+
+  it('reports transport timeout as pending, never a failed or stored write', async () => {
+    apiRequest.mockRejectedValueOnce(new DOMException('timeout', 'TimeoutError'));
+
+    const { action } = await import('./api.projects.$projectId.thumbnail.refresh');
+    const result = await action(actionArgs('https://preview.test/'));
+    expect(result.init.status).toBe(202);
+    expect(readData(result)).toEqual({ ok: true, enabled: true, status: 'pending', reason: 'deadline' });
   });
 
   it('400s a missing url without calling the backend', async () => {

@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ci-setup-next
+
+ ✓ tests/guards/cache-navigateurs.spec.ts (9 tests) 111ms
+ ✓ tests/guards/browser-system-deps.spec.ts (8 tests) 194ms
+ ✓ tests/guards/ci-canari-borne.spec.ts (7 tests) 7ms
+ ✓ tests/guards/ubuntu-webkit-mirror.spec.ts (8 tests) 1687ms
+
+ Test Files  4 passed (4)
+      Tests  32 passed (32)
+   Start at  16:01:48
+   Duration  4.30s (transform 1.40s, setup 161ms, collect 265ms, tests 2.00s, environment 1ms, prepare 324ms)

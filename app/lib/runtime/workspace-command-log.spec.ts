@@ -45,3 +45,15 @@ describe('workspace command log evidence', () => {
     expect(workspaceLogLines({ type: 'exit', timestamp: '' })).toEqual(['[exit]']);
   });
 });
+
+it('never displays receipt time as occurrence time for an unknown source log', () => {
+  expect(
+    workspaceLogLines({
+      type: 'stdout',
+      data: 'old failure',
+      timestamp: '',
+      timestampSource: 'unknown',
+      receivedAt: '2026-10-27T15:02:54.740Z',
+    }),
+  ).toEqual(['[stdout] old failure']);
+});

@@ -111,6 +111,8 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.installRequired': 'installId is required',
   'apiRuntime.panel.unsupportedExtensionAction': 'unsupported extensionAction: {action}',
   'apiRuntime.panel.integrationRequired': 'Select an integration.',
+  'apiRuntime.panel.githubAccountVerificationRequired':
+    'Verify your existing GitHub account from this panel. Saving project configuration does not connect GitHub.',
   'apiRuntime.panel.integrationSyncUnavailable':
     'Integration sync is unavailable in this panel. No synchronization was started.',
   'apiRuntime.panel.scheduleEmpty': 'Enter a schedule.',
@@ -301,6 +303,8 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.installRequired': 'Sélectionnez une extension installée.',
   'apiRuntime.panel.unsupportedExtensionAction': 'L’action d’extension « {action} » n’est pas prise en charge.',
   'apiRuntime.panel.integrationRequired': 'Sélectionnez une intégration.',
+  'apiRuntime.panel.githubAccountVerificationRequired':
+    'Vérifiez votre compte GitHub existant depuis ce panneau. Enregistrer une configuration de projet ne connecte pas GitHub.',
   'apiRuntime.panel.integrationSyncUnavailable':
     'La synchronisation des intégrations est indisponible dans ce panneau. Aucune synchronisation n’a été lancée.',
   'apiRuntime.panel.scheduleEmpty': 'Saisissez une planification.',

@@ -1,0 +1,72 @@
+{
+  "base": "90d92ff12",
+  "cssSha256": "ee52ef788861c0cd893e465ff5d748ca2ba8ece5313a530270c879ae9bb0a9e9",
+  "finalBuild": {
+    "exitCode": 0,
+    "sourcesChangedDuringBuild": []
+  },
+  "qualifiedGreenScenarios": 12,
+  "counts": {
+    "standardViewport2560": 8,
+    "exactViewport2048NaturalWidth1089": 1,
+    "nativeChromiumZoom200Percent": 2,
+    "darkExactViewport2048NaturalWidth1089": 1
+  },
+  "automaticRetries": 0,
+  "firstAttemptQualification": "8 standard2560 and2 native pass at first execution on final build; exact2048 anddark qualified after harness corrections; NOT12 first-pass claims",
+  "baseline": "Targeted CSS ablation restores only original two-column deploy grid on same actual IDE DOM; not complete old-build replay",
+  "baselineFitExpectedFailure": {
+    "startTime": "2026-10-26T12:08:32.068Z",
+    "duration": 10538.789,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "harnessCorrections": [
+    "Initial inline host width lost at shell remount; moved constraint to actual workspace slot after observable ChatImpl readiness.",
+    "Domain input selector initially included hidden fields; narrowed to visible form input.",
+    "Synthetic IDE background PUT autosaves intentionally aborted; distinct from forbidden DNS/Publish mutations, none attempted.",
+    "Forcing1120 alongside480+380 andIDEchrome at viewport2048 caused page overflow; actual available central width is1089. First2048 result is superseded.",
+    "Initial natural-width snapshots occurred during resizer animation; final precondition polls real sidebar dimensions before layout measurements."
+  ],
+  "fixtures": "Real local API/PostgreSQL accounts/projects/conversation readiness; controlled GET envelopes for synthetic domain/DNS/deployment history; no provider operations",
+  "limitations": [
+    "Manage detection reports runtime/workspace unavailable and Publish disabled; no publishing functionality or provider validation claimed.",
+    "Native zoom uses Chromium settingsPrivate defaultZoom2 checked through Page.getLayoutMetrics; not CSS zoom, physical Safari or production.",
+    "Dark visual check covers one2048 arrangement, not full dark matrix.",
+    "Parent customer screenshots could not be downloaded; local synthetic captures only."
+  ],
+  "rawProofSha256": {
+    "final-results.json": "242636a4d5b61e1fc8fa2c662c7c8bdf878dc4a0987df8392fefdcf126f06dd9",
+    "native-results.json": "77138c652cc5d8991985f314b9794cba2ce6424c6eb207a21c0e5d5de81596db",
+    "exact2048-settled-results.json": "ae185d483d471f30a3d59aa7ddd41b31b7a68e295d0cc91113b62712a5498cc4",
+    "dark-settled-results.json": "3035c513f6f683086d5582f22dd160b9f29f5379ff113e75256cf637b03ffcde",
+    "baseline-fit-results.json": "1ba9d8580562361af31462d55063141985008332071b2cd920b0844295d6bcc9",
+    "final-build-manifest.json": "dee2ae7046afe88e18981505a2f89e9ca1c308655ed1d5e6814f0b1b7fa97215",
+    "prebuild-final-sources.json": "f8ee8cb4fe43b954b98fa0de60d18838d220864aa312b427e13e2df51229a67e"
+  },
+  "cleanup": {
+    "closedPorts": [
+      5199,
+      3018,
+      55448,
+      56388
+    ],
+    "stoppedOwnedPids": [
+      271716,
+      268923,
+      266869,
+      266853
+    ],
+    "containersStoppedRetained": [
+      "ide-palette-opener-pg",
+      "ide-palette-opener-redis"
+    ],
+    "foreignPidsUntouched": [
+      96853,
+      254553,
+      259812
+    ]
+  }
+}

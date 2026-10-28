@@ -94,3 +94,12 @@ describe('formatRuntimeLogLine', () => {
     expect(formatRuntimeLogLine({ level: 'info', message: 'hello' })).toBe('hello');
   });
 });
+
+it('keeps an unknown snapshot timestamp absent in the rendered log', () => {
+  expect(
+    formatRuntimeLogLine({ timestamp: '', level: 'error', message: 'old failure', source: 'console' }),
+  ).not.toContain('2026');
+  expect(formatRuntimeLogLine({ timestamp: '', level: 'error', message: 'old failure', source: 'console' })).toContain(
+    'old failure',
+  );
+});

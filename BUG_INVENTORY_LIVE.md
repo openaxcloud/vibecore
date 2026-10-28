@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-534 entrées.
+538 entrées.
 
 ## Sans section
 
@@ -683,6 +683,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-TAB-FOCUS-20261026](docs/bugs/BUG-IDE-TAB-FOCUS-20261026.md) — Sur main #797, le test `ide-panel-visibility.spec.ts:83`, cas « panel visibility 390px › tabs closes with Escape and restores focus », constate le menu fermé ma — 📤 Dispatché : 26/10/2026 — audit des panneaux IDE, branche dédiée depuis main `798fa0f251dec690f81ebd11f0c43eae76c98ba6`. · 💻 Codé : ☐ — correctif local en validation, aucun correctif de ce lot livré. · ✅ Testé live : ☐ — aucune recette authentifiée en production ni Safari matériel.
 - [BUG-IDE-TAB-SEARCH-HANDOFF-20261026](docs/bugs/BUG-IDE-TAB-SEARCH-HANDOFF-20261026.md) — Le remplacement réel de PendingComposerShell par ChatImpl conserve le menu et son focus après #799, mais perd la recherche saisie : `Webview` devient une chaîne — 📤 Dispatché : 26/10/2026 — correction locale distincte demandée après audit IDE ; #799 reste stable. · 💻 Codé : ☐ — local seulement, publication interdite avant coordination. L'état de recherche est porté par le contexte p · ✅ Testé live : ☐ — aucune production authentifiée. Reproduction rouge navigateur locale confirmée ; 13 tests focus/recherche
 - [BUG-PORTFOLIO-GENERATION-20261026](docs/bugs/BUG-PORTFOLIO-GENERATION-20261026.md) — 📤 Dispatché : ☑ 26 octobre 2026 — Lot portfolio isolé, PR #806. · 💻 Codé : ☐ Sur main. Correctif proposé dans #806 ; validation CI de la nouvelle tête requise. · ✅ Testé live : ☐ Aucune recette de génération en production ; accès au projet non disponible.
+- [BUG-PUBLISH-CONTAINER-LAYOUT-20261026](docs/bugs/BUG-PUBLISH-CONTAINER-LAYOUT-20261026.md) — Publish : contenu décalé et coupé entre les panneaux latéraux. — 📤 Dispatché : ☑ 26/10/2026 — captures utilisateur 11:41–11:43, lot Publish/Domains/Manage distinct de #808 et de la palette · 💻 Codé : ☐ — correctif local validé, revue indépendante favorable ; aucune livraison de ce lot. · ✅ Testé live : ☐ — aucune recette authentifiée de production, modification DNS ou publication cliente.
 - [BUG-IDE-PANEL-WIDTH-20261026](docs/bugs/BUG-IDE-PANEL-WIDTH-20261026.md) — 📤 Dispatché : Oui — lot Agent séparé de #807 ; Settings préparé hors fichier réservé. · 💻 Codé : Non sur main — corrections Agent validées localement, PR en préparation. · ✅ Testé live : Non — composants locaux synthétiques, aucune recette authentifiée client.
 
 ## Runtime et preview
@@ -698,6 +699,15 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-AGENT-MESSAGE-DESCENDANT-KEYBOARD-20261027](docs/bugs/BUG-AGENT-MESSAGE-DESCENDANT-KEYBOARD-20261027.md) — Entrée et Espace sur les contrôles du message sont interceptées par son menu contextuel. — 📤 Dispatché : ☑ 27/10/2026 — reproduction, correctif clavier isolé et revue indépendante autorisés. · 💻 Codé : ☐ main — correctif local `af46fc879`, intégré localement en `bea1b6a88` ; publication coordonnée par le parent · ✅ Testé live : ☐ —41tests locaux verts et quatre groupes navigateur sur composant isolé ; route intégrée, WebKit et productio
+
+## Preview et vignettes
+
+- [BUG-PREVIEW-LOG-REPLAY-TIME-20261027](docs/bugs/BUG-PREVIEW-LOG-REPLAY-TIME-20261027.md) — 📤 Dispatché : ☑ 27/10 — reproduction isolée de la route de logs sur main `0d6b2edfb`. · 💻 Codé : ☐ — raccordement API partagé à coordonner, hors correctif de capture. · ✅ Testé live : ☐ — les entrées historiques observées ne prouvent pas de nouvelles pannes.
+- [BUG-PREVIEW-THUMBNAIL-WAIT-20261027](docs/bugs/BUG-PREVIEW-THUMBNAIL-WAIT-20261027.md) — 📤 Dispatché : ☑ 27/10 — diagnostic sur main `0d6b2edfb`, après observation d'une preview rendue et d'une capture manuelle en · 💻 Codé : ☐ — correctif local validé, publication et livraison non établies. · ✅ Testé live : ☐ — aucune nouvelle capture ni modification du projet client par cette session.
+
+## Sans section
+
+- [BUG-CI-WEBKIT-APT-MIRROR-SLOW-20261027](docs/bugs/BUG-CI-WEBKIT-APT-MIRROR-SLOW-20261027.md) — La préparation APT du canari WebKit consomme son budget avant les tests. — 📤 Dispatché : ☑ 27/10/2026 — diagnostic et proposition CI séparée autorisés. · 💻 Codé : ☐ main — correctif local préparé, publication PR par le parent prévue ; pas fusionné. Sélection ciblée de l’ar · ✅ Testé live : ☐ —32 tests locaux de contrat verts, revue indépendante favorable ; gain de débit et canari réel après correct
 - [BUG-AGENT-ADVANCED-ESCAPE-20261027](docs/bugs/BUG-AGENT-ADVANCED-ESCAPE-20261027.md) — Escape ne ferme pas les paramètres avancés de l’agent depuis le sous-menu modèle. Observation authentifiée transmise par le parent le27octobre2026 à20:03–20:07U — 📤 Dispatché : ☑ 27/10/2026 — diagnostic et correctif ciblé autorisés, sans reprendre le lot groupé interrompu. · 💻 Codé : ☐ main — correctif local validé ; publication en PR distincte en préparation. · ✅ Testé live : ☐ production — défaut observé par le parent ; correction validée localement sur données synthétiques, aucun pr
 - [BUG-AGENT-INITIAL-PANEL-MEMORY-20261027](docs/bugs/BUG-AGENT-INITIAL-PANEL-MEMORY-20261027.md) — À l’ouverture du projet, Agent reste sélectionné tandis que le corps affiche Webview startup ; un clic explicite sur Agent rétablit le panneau. Observation auth — 📤 Dispatché : ☑ 27/10/2026 — diagnostic et correctif ciblé autorisés, sans reprendre le lot groupé interrompu. · 💻 Codé : ☐ main — correctif local validé ; publication en PR distincte en préparation. · ✅ Testé live : ☐ production — défaut observé par le parent ; correction validée localement sur données synthétiques, aucun pr
 - [BUG-AGENT-MODEL-SUBPANEL-HEIGHT-20261027](docs/bugs/BUG-AGENT-MODEL-SUBPANEL-HEIGHT-20261027.md) — Le sous-menu modèle desktop dépasse le bas de la fenêtre : à1440×900, top412.75px et hauteur493.34375px donnent bottom906.09375px. Reproduit avec le même rectan — 📤 Dispatché : ☑ 27/10/2026 — correction locale de la hauteur disponible, sans refonte de navigation ou styles globaux. · 💻 Codé : ☐ main — correctif local dans FeuilleDesModes ; borne calculée depuis le top et la marge existante, défilement · ✅ Testé live : ☐ production — recette locale finale réussie, dont zoom200%, accès après défilement et bornes1px ; aucune rece

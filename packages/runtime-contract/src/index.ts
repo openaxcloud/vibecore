@@ -115,7 +115,12 @@ export interface CommandEvent {
   data?: string;
   exitCode?: number;
   error?: RuntimeError;
+
+  /** Source occurrence time; empty for logs whose source time is unknown. */
   timestamp: string;
+  timestampSource?: 'source' | 'unknown';
+  receivedAt?: string;
+  eventId?: string;
 }
 
 export interface CommandResult {

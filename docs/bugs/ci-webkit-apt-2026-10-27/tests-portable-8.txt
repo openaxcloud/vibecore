@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-ci-setup-next
+
+ ✓ tests/guards/ubuntu-webkit-mirror.spec.ts (8 tests) 1436ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  16:02:10
+   Duration  3.56s (transform 1.12s, setup 22ms, collect 34ms, tests 1.44s, environment 0ms, prepare 60ms)
