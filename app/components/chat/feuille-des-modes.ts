@@ -53,7 +53,7 @@ export interface LigneDeMode {
    */
   valeur: { sorte: 'auto'; modeleResolu?: string } | { sorte: 'modele'; model: string; serviceTier?: 'fast' };
 
-  /** Vrai quand le mode n'ouvre pas de réglages — c'est le cas de Lite. */
+  /** Vrai quand les réglages avancés sont verrouillés — c'est le cas de Lite. */
   reglagesVerrouilles: boolean;
 
   /** Clé de traduction expliquant le verrou, quand il y en a un. */
@@ -63,9 +63,9 @@ export interface LigneDeMode {
 /**
  * Les modes qui n'ouvrent pas de réglages.
  *
- * Lite ne propose ni choix de modèle ni réglages avancés : mesuré sur le code
- * actuel, l'effort élevé y est refusé et Turbo aussi. Le verrou n'est donc pas
- * une décision d'affichage, c'est le reflet d'une règle produit qui existe déjà.
+ * Lite autorise le choix explicite du modèle : le serveur valide le contrat
+ * borné avant tout appel. Les réglages avancés restent verrouillés : effort
+ * élevé et Turbo ne sont pas disponibles en Lite.
  */
 const MODES_SANS_REGLAGES: AgentMode[] = ['lite'];
 
@@ -112,7 +112,7 @@ export function entreesDuMode(mode: AgentMode): EntreeDuSecondNiveau[] {
   const raison = verrouillee ? ('passer-a-power-ou-max' as const) : undefined;
 
   return [
-    { sorte: 'modele', verrouillee, raison },
+    { sorte: 'modele', verrouillee: false },
     { sorte: 'avance', verrouillee, raison },
   ];
 }

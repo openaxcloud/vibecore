@@ -89,14 +89,19 @@ describe('la feuille des modes est montée dans le composeur du téléphone', ()
     expect(screen.getByTestId('feuille-mode-lite')).toBeTruthy();
   });
 
-  it('en Lite, les deux entrées de réglage restent verrouillées', () => {
+  it('en Lite, le modèle s’ouvre et les réglages avancés restent verrouillés', () => {
     poser({ buildTier: 'lite' });
 
-    for (const sorte of ['modele', 'avance']) {
-      const entree = screen.getByTestId(`feuille-entree-${sorte}`);
-      expect(entree.getAttribute('data-verrouillee')).toBe('true');
-      expect((entree as HTMLButtonElement).disabled).toBe(true);
-    }
+    const modele = screen.getByTestId('feuille-entree-modele') as HTMLButtonElement;
+    const avance = screen.getByTestId('feuille-entree-avance') as HTMLButtonElement;
+
+    expect(modele.dataset.verrouillee).toBe('false');
+    expect(modele.disabled).toBe(false);
+    expect(avance.dataset.verrouillee).toBe('true');
+    expect(avance.disabled).toBe(true);
+    fireEvent.click(modele);
+    expect(screen.getByTestId('feuille-modele-gpt-5.6-luna-std')).toBeTruthy();
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
   it('l’écran avancé porte les interrupteurs de l’appelant, pas une copie', () => {
