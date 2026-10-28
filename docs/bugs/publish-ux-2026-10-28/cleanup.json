@@ -1,0 +1,20 @@
+{
+  "portsClosed": {
+    "5199": true,
+    "3018": true,
+    "55448": true,
+    "56388": true
+  },
+  "containers": [
+    "/ide-palette-opener-pg exited",
+    "/ide-palette-opener-redis exited"
+  ],
+  "terminatedOwnedPids": [
+    13243,
+    2876,
+    2892,
+    10326,
+    3375
+  ],
+  "note": "WEB processes required SIGKILL after TERM closed listening sockets but process remained; exact owned PIDs only."
+}
