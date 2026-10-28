@@ -1,0 +1,104 @@
+[
+  {
+    "file": "code-before.json",
+    "source": "/workspace/ui839-agent-messages-audit/code-compiled-red/receipt.json",
+    "sourceSha256": "f9e86747be8760a3e20ed9a2a974fd78088ac52871501e9195ecf8cf5cc89eae",
+    "cases": 1
+  },
+  {
+    "file": "code-light.json",
+    "source": "/workspace/ui839-agent-messages-audit/code-compiled-green/receipt.json",
+    "sourceSha256": "6293e0293a008e77cf4066bec90e688c58d884d1bbf3c5099b14c55d0e7e606a",
+    "cases": 4
+  },
+  {
+    "file": "code-dark.json",
+    "source": "/workspace/ui839-agent-messages-audit/code-compiled-dark/receipt.json",
+    "sourceSha256": "bff44b287c8597d5848e0b3a54a123cfd8b62d590e05f13a883bd27e8ad5f03f",
+    "cases": 2
+  },
+  {
+    "file": "code-e2e-helper.json",
+    "source": "/workspace/ui839-agent-messages-audit/density-header-helper-shiki/receipt.json",
+    "sourceSha256": "a7551daefe63b85e1bf64f2040adc8d1a36c967555e5a0e948d5419772165d02",
+    "cases": 2
+  },
+  {
+    "file": "activity-before.json",
+    "source": "/workspace/ui839-logs-activity-audit/activity-valid/receipt.json",
+    "sourceSha256": "1c56ca16b6d1f3b2ccb3f70e6c58455e2dd2d62686efd431f4f07c398d2f5666",
+    "cases": 3
+  },
+  {
+    "file": "activity-after.json",
+    "source": "/workspace/ui839-logs-activity-audit/compiled-final/receipt.json",
+    "sourceSha256": "67deca21645c6e674b2c85e0b75b08b7aec51c8ef6273be00bbeebbedae4dfc8",
+    "cases": 5
+  },
+  {
+    "file": "logs.json",
+    "source": "/workspace/ui839-logs-activity-audit/long/receipt.json",
+    "sourceSha256": "8784ccbb230d14b3e99182608d4b5aa82262e9871300d865bca73c34d9e97158",
+    "cases": 6
+  },
+  {
+    "file": "database-empty.json",
+    "source": "/workspace/ui839-data-panels-audit/database-empty/receipt.json",
+    "sourceSha256": "b198bb9874eb4b8b3fe4a453f46f71943410f61e97447fa23e7073e9e6ffdea4",
+    "cases": 3
+  },
+  {
+    "file": "storage-before.json",
+    "source": "/workspace/ui839-data-panels-audit/storage-error-exact/receipt.json",
+    "sourceSha256": "83a866d88c7c2e5fd12cd6efde44bdd6dc89abf6b9111e390cf884c4a35e37e1",
+    "cases": 3
+  },
+  {
+    "file": "storage-before-1280.json",
+    "source": "/workspace/ui839-data-panels-audit/storage-error-1280/receipt.json",
+    "sourceSha256": "df16d9afb8824d94fd6d1f603f5aa92e8003a2e7e7738847f8783eff62f1a973",
+    "cases": 1
+  },
+  {
+    "file": "storage-recovery-disabled.json",
+    "source": "/workspace/ui839-data-panels-audit/compiled-recovery-disabled/receipt.json",
+    "sourceSha256": "91c241cb43fb5a9dcd53e0bd0df6edaa46a497975ee26edbbd8b0750027531cd",
+    "cases": 3
+  },
+  {
+    "file": "storage-recovery-unprovisioned.json",
+    "source": "/workspace/ui839-data-panels-audit/compiled-recovery-enabled/receipt.json",
+    "sourceSha256": "eb9ca721d85eb5eb328a674b86fcfc83dc812a39da108e55624b1e119755b84c",
+    "cases": 3
+  },
+  {
+    "file": "overview-long.json",
+    "source": "/workspace/ui839-overview-monitoring-audit/overview-long/receipt.json",
+    "sourceSha256": "d8ae800e42570e5e40bdc1dc335c217b01067fd9c3ba1c3b7d10af4ebed253f7",
+    "cases": 3
+  },
+  {
+    "file": "overview-empty.json",
+    "source": "/workspace/ui839-overview-monitoring-audit/overview-empty/receipt.json",
+    "sourceSha256": "73b68cc5494ebceb8babe3db1252bc27c248b4900f852c3d542065daae03c28d",
+    "cases": 3
+  },
+  {
+    "file": "monitoring-long.json",
+    "source": "/workspace/ui839-overview-monitoring-audit/monitoring-long/receipt.json",
+    "sourceSha256": "f090bfcc811e240d79e093f74f0ea938ea1162e3f9dfb61c99378105bac60e9e",
+    "cases": 3
+  },
+  {
+    "file": "overview-recovery.json",
+    "source": "/workspace/ui839-overview-monitoring-audit/overview-recovery/receipt.json",
+    "sourceSha256": "69f5ee7a7327382cb29cb9c4bee880fe09ae7f5806d5a4ddcd5d5ca17b4d8895",
+    "cases": 3
+  },
+  {
+    "file": "monitoring-recovery.json",
+    "source": "/workspace/ui839-overview-monitoring-audit/monitoring-recovery/receipt.json",
+    "sourceSha256": "29e9c36bd2168d2cd14fbd672ba427b038e0b59078aa8aba50e7d735eeb481a1",
+    "cases": 3
+  }
+]

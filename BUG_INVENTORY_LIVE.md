@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-558 entrées.
+562 entrées.
 
 ## Sans section
 
@@ -743,6 +743,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-TERMINAL-STARTUP-MENU-20261028](docs/bugs/BUG-IDE-TERMINAL-STARTUP-MENU-20261028.md) — L’arrivée de la mémoire IDE remplace la coque de démarrage alors que le menu Terminal est utilisé : le menu disparaît et le focus revient au document. — 📤 Dispatché : ☑ 28/10/2026 — diagnostic après le verdict E2E rouge de #837 ; correctif UI distinct des sessions et commandes · 💻 Codé : ☐ main — travail local, aucune fusion ni livraison. · ✅ Testé live : ☐ production — trois recettes finales Chromium locales réussies à390/768/1280, API synthétiques ; aucune comma
 - [BUG-AGENT-TOOLS-ESCAPE-20261028](docs/bugs/BUG-AGENT-TOOLS-ESCAPE-20261028.md) — Le menu outils du compositeur Agent ouvert au pointeur reste ouvert après Escape : le raccourci global consomme l’événement lorsque le focus reste sur son décle — 📤 Dispatché : ☑ 28/10/2026 — reproduction Chromium local sur quatre formats. · 💻 Codé : ☐ main — correctif local séparé de #838 en validation, aucune fusion ni livraison. · ✅ Testé live : ☐ production — recette locale compilée synthétique uniquement.
 - [BUG-SKILLS-DESCRIPTION-OVERFLOW-20261028](docs/bugs/BUG-SKILLS-DESCRIPTION-OVERFLOW-20261028.md) — Une URL longue dans la description Built-in Skills déborde du panneau sans possibilité de lire normalement sa suite. — 📤 Dispatché : ☑ 28/10/2026 — reproduction locale Chromium à390/820/1280/1536. · 💻 Codé : ☐ main — correction locale ciblée overflow-wrap:anywhere, aucune fusion ni livraison. · ✅ Testé live : ☐ production — données synthétiques exclusivement, aucune installation ni modification de compétence réelle.
+- [BUG-ACTIVITY-NARROW-FILTERS-20261028](docs/bugs/BUG-ACTIVITY-NARROW-FILTERS-20261028.md) — La grille des filtres Activity impose640px dans un panneau desktop de588px et coupe Refresh/Period. — 📤 Dispatché : ☑ 28/10/2026 — diagnostic reproduit localement sur données synthétiques. · 💻 Codé : ☐ main — lot local distinct des têtes838/839 ; aucune fusion ni livraison. · ✅ Testé live : ☐ production — Chromium local, aucune donnée cliente ni opération réelle.
+- [BUG-AGENT-CODE-HEADER-OVERLAP-20261028](docs/bugs/BUG-AGENT-CODE-HEADER-OVERLAP-20261028.md) — Le badge de langage et le bouton copie du bloc de code recouvrent sa première ligne. — 📤 Dispatché : ☑ 28/10/2026 — diagnostic reproduit localement sur données synthétiques. · 💻 Codé : ☐ main — lot local distinct des têtes838/839 ; aucune fusion ni livraison. · ✅ Testé live : ☐ production — Chromium local, aucune donnée cliente ni opération réelle.
+- [BUG-IDE-MOBILE-COALESCED-BACK-20261028](docs/bugs/BUG-IDE-MOBILE-COALESCED-BACK-20261028.md) — Après Search → Agent → Retour rapide, le routeur revient à Search mais le panneau reste Agent : le champ existe, caché. Le changement optimiste de panneau persi — 📤 Dispatché : ☑ 28/10/2026 — diagnostic CI839, run40786536543/job123161204394, puis reproduction contrôlée locale. · 💻 Codé : ☐ main — correction locale en cours ; têtes838/839 préservées. · ✅ Testé live : ☐ production — recette Chromium synthétique, aucun projet client.
+- [BUG-OBJECT-STORAGE-STATUS-ERROR-20261028](docs/bugs/BUG-OBJECT-STORAGE-STATUS-ERROR-20261028.md) — Une erreur503 de lecture du statut Object Storage est présentée comme service non activé et ne propose aucune reprise. — 📤 Dispatché : ☑ 28/10/2026 — diagnostic reproduit localement sur données synthétiques. · 💻 Codé : ☐ main — lot local distinct des têtes838/839 ; aucune fusion ni livraison. · ✅ Testé live : ☐ production — Chromium local, aucune donnée cliente ni opération réelle.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
