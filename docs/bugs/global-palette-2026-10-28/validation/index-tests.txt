@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-palette-recovery
+
+ ✓ scripts/migrer-inventaire-bugs.spec.mjs (16 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  10:13:43
+   Duration  2.20s (transform 1.13s, setup 25ms, collect 17ms, tests 8ms, environment 0ms, prepare 63ms)
+

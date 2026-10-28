@@ -1,0 +1,224 @@
+[
+  {
+    "width": 320,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "pass": false,
+    "failure": "expect(locator).toBeFocused() failed\n\nLocator:  getByRole('button', { name: 'Search tools and files', exact: true })\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.focused\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Search tools and files', exact: true })\n    9 × locator resolved to <button type=\"button\" data-vc-auto-title=\"true\" title=\"Search tools and files\" aria-label=\"Search tools and files\" class=\"bolt-mobile-ecode-header-title\" data-testid=\"mobile-header-title-search\" data-vc-tooltip=\"Search tools and files\">…</button>\n      - unexpected value \"inactive\"\n"
+  },
+  {
+    "width": 390,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "pass": false,
+    "failure": "expect(locator).toBeFocused() failed\n\nLocator:  getByRole('button', { name: 'Search tools and files', exact: true })\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.focused\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Search tools and files', exact: true })\n    9 × locator resolved to <button type=\"button\" data-vc-auto-title=\"true\" title=\"Search tools and files\" aria-label=\"Search tools and files\" class=\"bolt-mobile-ecode-header-title\" data-testid=\"mobile-header-title-search\" data-vc-tooltip=\"Search tools and files\">…</button>\n      - unexpected value \"inactive\"\n"
+  },
+  {
+    "width": 768,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "pass": false,
+    "failure": "expect(locator).toBeFocused() failed\n\nLocator:  getByRole('button', { name: 'Search tools and files', exact: true })\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.focused\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Search tools and files', exact: true })\n    9 × locator resolved to <button type=\"button\" data-vc-auto-title=\"true\" title=\"Search tools and files\" aria-label=\"Search tools and files\" class=\"bolt-mobile-ecode-header-title\" data-testid=\"mobile-header-title-search\" data-vc-tooltip=\"Search tools and files\">…</button>\n      - unexpected value \"inactive\"\n"
+  },
+  {
+    "width": 1024,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "pass": false,
+    "failure": "expect(locator).toBeFocused() failed\n\nLocator:  getByRole('button', { name: 'Search tools and files', exact: true })\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.focused\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Search tools and files', exact: true })\n    9 × locator resolved to <button type=\"button\" data-vc-auto-title=\"true\" title=\"Search tools and files\" aria-label=\"Search tools and files\" class=\"bolt-mobile-ecode-header-title\" data-testid=\"mobile-header-title-search\" data-vc-tooltip=\"Search tools and files\">…</button>\n      - unexpected value \"inactive\"\n"
+  },
+  {
+    "width": 1280,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "pass": false,
+    "failure": "expect(locator).toBeFocused() failed\n\nLocator:  getByTestId('ide-dock-all-tools')\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.focused\" with timeout 5000ms\n  - waiting for getByTestId('ide-dock-all-tools')\n    9 × locator resolved to <button type=\"button\" data-tone=\"neutral\" data-state=\"closed\" aria-label=\"All tools\" aria-haspopup=\"dialog\" aria-keyshortcuts=\"cmd+t\" data-vc-radix-tooltip=\"true\" data-testid=\"ide-dock-all-tools\" class=\"bolt-project-ide-rail-item bolt-project-ide-rail-item-all-tools\">…</button>\n      - unexpected value \"inactive\"\n"
+  },
+  {
+    "width": 1440,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "pass": false,
+    "failure": "expect(locator).toBeFocused() failed\n\nLocator:  getByTestId('ide-dock-all-tools')\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.focused\" with timeout 5000ms\n  - waiting for getByTestId('ide-dock-all-tools')\n    9 × locator resolved to <button type=\"button\" data-tone=\"neutral\" data-state=\"closed\" aria-label=\"All tools\" aria-haspopup=\"dialog\" aria-keyshortcuts=\"cmd+t\" data-vc-radix-tooltip=\"true\" data-testid=\"ide-dock-all-tools\" class=\"bolt-project-ide-rail-item bolt-project-ide-rail-item-all-tools\">…</button>\n      - unexpected value \"inactive\"\n"
+  }
+]

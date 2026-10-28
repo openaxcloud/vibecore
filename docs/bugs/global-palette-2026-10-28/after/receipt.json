@@ -1,0 +1,320 @@
+[
+  {
+    "width": 320,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "outsideContract": "backdrop closed without stealing focus",
+    "outsideActive": {
+      "tag": "BODY",
+      "testid": null
+    },
+    "outsideFocus": true,
+    "resizeQuery": true,
+    "backStayedClosed": true,
+    "projectIsolation": true,
+    "pass": true
+  },
+  {
+    "width": 390,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "outsideContract": "backdrop closed without stealing focus",
+    "outsideActive": {
+      "tag": "BODY",
+      "testid": null
+    },
+    "outsideFocus": true,
+    "resizeQuery": true,
+    "backStayedClosed": true,
+    "projectIsolation": true,
+    "pass": true
+  },
+  {
+    "width": 768,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "outsideContract": "backdrop closed without stealing focus",
+    "outsideActive": {
+      "tag": "BODY",
+      "testid": null
+    },
+    "outsideFocus": true,
+    "resizeQuery": true,
+    "backStayedClosed": true,
+    "projectIsolation": true,
+    "pass": true
+  },
+  {
+    "width": 1024,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "outsideContract": "backdrop closed without stealing focus",
+    "outsideActive": {
+      "tag": "BODY",
+      "testid": null
+    },
+    "outsideFocus": true,
+    "resizeQuery": true,
+    "backStayedClosed": true,
+    "projectIsolation": true,
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "outsideContract": "clicked composer retains focus",
+    "outsideActive": {
+      "tag": "TEXTAREA",
+      "testid": null
+    },
+    "outsideFocus": true,
+    "resizeQuery": true,
+    "backStayedClosed": true,
+    "projectIsolation": true,
+    "pass": true
+  },
+  {
+    "width": 1440,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": true,
+    "searchValue": "Database",
+    "focus": {
+      "tag": "INPUT",
+      "testid": "project-command-palette-search"
+    },
+    "repeatedKeyboardFocus": true,
+    "outsideContract": "clicked composer retains focus",
+    "outsideActive": {
+      "tag": "TEXTAREA",
+      "testid": null
+    },
+    "outsideFocus": true,
+    "resizeQuery": true,
+    "backStayedClosed": true,
+    "projectIsolation": true,
+    "pass": true
+  }
+]

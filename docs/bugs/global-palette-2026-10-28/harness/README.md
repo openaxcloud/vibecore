@@ -1,0 +1,21 @@
+# Palette shell handoff — isolated browser evidence
+
+Baseline main58fa0702, real compiled application served locally at18499; followup compiled app18599. Chromium /usr/bin/chromium, synthetic identity/project only. No client data, credentials, provider or production backend used. Node fixture8399 owned by browser_repro (PID1861, tools session58252); application servers owned by parent and must not be stopped by this agent.
+
+The browser holds the real GET /api/projects/synthetic-first/ide-state, opens the real global palette, types Database, marks the old shell trigger, then releases neutral memory `{ideState:{version:1,state:{}}}`. It observes removal of the old trigger and records whether the original input detached. The app executes its real async shell replacement, not a synthetic React rerender.
+
+Before:1280,1440,1024 all reproduce loss of palette/query and BODY focus after old shell and old search detach. Each case zero page errors. Receipts and PNGs in before/. The assertion fails rather than accepting loss. Source hashes in source-before.json.
+
+Network isolation: server network guard only permits fixture8399; browser blocks all off-origin calls, mutations and WebSockets. Preview startup/empty files/API errors in screenshots are expected fixture limitations, not established product defects. Font requests blocked; fallback fonts used. This is not backend/runtime/product data validation, nor Safari/iPhone validation.
+
+Permanent new test tests/e2e/ide-global-palette-handoff.spec.ts reuses local API project creation/import conventions, independently creates projects for1280/1440/1024, asserts shell detached, query/focus retained, repeated keyboard opening, Escape return, Database navigation, explicit close remains closed on Back, and project isolation. Existing tests/e2e/ide-panel-visibility.spec.ts remains byte-for-byte unchanged. Permanent test has only been linted at this point; API-backed execution belongs to parent/CI and must not be represented as this fixture recipe.
+
+## Final browser results
+
+`after-contract/receipt.json`: six passes, widths320/390/768/1024/1280/1440, height900. Actual compiled final app, neutral memory fixture. Each case proves old shell+search detached while replacement search retains Database and input focus, repeated Ctrl+Shift+P resets query under the existing opening contract, Escape restores initial trigger, explicit reopening works, resize during query preserves Database (compact→1280, desktop→1024), Database opens, Back leaves palette closed, then navigation to a second project does not leak the open Logs palette. All six zero page errors. Screenshots1280 and320 inspected. `source-after.json` records hashes; parent notes comment-spacing-only BaseChat changes after local build, so CI must rebuild exact published head.
+
+Outside-click correction in the recipe: `after/` and `after-complete/` retain an incorrect initial expectation that outside dismissal should focus the opener. The product deliberately preserves the clicked outside target (`commandPaletteClosedByOutsideClickRef`). Those runs are not evidence of a product defect. `handoff-outside-assumption.cjs` preserves the original assumption. Final desktop recipe clicks the real composer textarea and asserts it retains focus; compact recipe clicks backdrop and asserts closure without stealing focus to the old opener. This contract correction changes no product code or pre-existing test. Exploratory `pointer-before` was inconclusive and is not counted as proof.
+
+Permanent E2E file: eslint succeeds; Playwright --list collects three viewport cases per configured project (nine collected, none executed here). Parent can run --project=chromium for three distinct cases; the existing strict desktop test is not substituted by this fixture proof. Existing test SHA256 remains3141b1aa223aaf47c9120dbc685cebc357c01c9b957c45ed07dfdcce114589c2 in baseline and updated tree.
+
+All browser contexts closed in finally; no own browser process left. Fixture8399 PID1861 stopped after parent request and exact command identity verification; tools session58252 exited143 and PID absent confirmed. Evidence cleanup.json; origin process-origin.txt. Borrowed app servers untouched. No zoom200%, WebKit/Safari, physical touchscreen or real backend/runtime validation in this task; no deployment claim.
