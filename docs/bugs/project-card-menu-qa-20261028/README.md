@@ -2,6 +2,8 @@
 
 Local, isolated API/Postgres fixtures only. No customer projects, real provider, DNS, production-authenticated session, or Safari hardware tested. Browser blocks nonlocal requests and mutations other than the synthetic fixture's rename. Requests to user preferences remain blocked and logged; they are excluded explicitly from assertions about project mutations.
 
+The browser recipe is archived as `browser-matrix.spec.ts.txt`. Its contents and assertions are unchanged; copy it into an isolated Playwright test directory to reproduce. The initial `.spec.ts` archive name was incorrectly discovered by the repository's unit-test glob and reproduced a Playwright/Vitest collection error. The documentary extension prevents that mistaken collection without changing the unit-test configuration or the actual component tests.
+
 ## Builds and scope
 
 Base main: 63e66383055c632865b7ebd27df19aa1a6f6f37f. Initial candidate ProjectCardMenu SHA256: 4088e37265b23c65a66de1ae3a5304d9c6aca6f92e0ffbf68296f37974e16f9d. Client/SSR build exited 0; all 3059 tracked product/package source hashes remained unchanged during compilation.
