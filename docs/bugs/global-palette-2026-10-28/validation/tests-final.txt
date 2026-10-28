@@ -1,0 +1,15 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-palette-recovery
+
+ ✓ app/components/chat/AgentPowerControls.escape.spec.tsx (6 tests) 358ms
+ ✓ app/components/chat/IdePaletteState.spec.tsx (23 tests) 164ms
+ ✓ app/lib/hooks/useKeybindings.dialog.spec.tsx (2 tests) 151ms
+ ✓ app/lib/command-palette-focus.spec.ts (5 tests) 4ms
+ ✓ app/components/chat/ide-layout-restore.spec.ts (5 tests) 3ms
+ ✓ app/components/chat/ide-layout-handoff.spec.ts (4 tests) 7ms
+
+ Test Files  6 passed (6)
+      Tests  45 passed (45)
+   Start at  10:15:40
+   Duration  9.09s (transform 2.86s, setup 224ms, collect 1.04s, tests 686ms, environment 1.58s, prepare 550ms)
+

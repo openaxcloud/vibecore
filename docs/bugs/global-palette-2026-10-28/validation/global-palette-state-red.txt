@@ -1,0 +1,99 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-palette-recovery
+
+ ❯ app/components/chat/IdePaletteState.spec.tsx (17 tests | 2 failed) 145ms
+   ✓ IDE palette lifetime > preserves opening and search on restored pane-main when the loading shell is replaced 35ms
+   ✓ IDE palette lifetime > preserves opening and search on restored pane-split when the loading shell is replaced 7ms
+   ✓ IDE palette lifetime > preserves opening and search on restored pane-floating when the loading shell is replaced 6ms
+   ✓ IDE palette lifetime > keeps an explicitly closed palette closed through subsequent replacements 8ms
+   ✓ IDE palette lifetime > does not revive a palette after changing project and returning 4ms
+   ✓ IDE palette lifetime > does not revive a palette after changing window and returning 3ms
+   ✓ IDE palette lifetime > drops the state when leaving the IDE route, including a quick return 3ms
+   ✓ IDE palette lifetime > drops a removed pane without reviving its palette if its id is reused 4ms
+   ✓ IDE palette lifetime > keeps a surviving pane open when another pane is removed or closes 6ms
+   ✓ IDE palette lifetime > preserves independent local behavior without a provider 5ms
+   × global command palette lifetime > retains open, query, selection and Spotlight through shell replacement 20ms
+     → Unable to find a label with the text of: Global query
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section>[39m
+      [36m<button>[39m
+        [0mOpen global[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mClose global[0m
+      [36m</button>[39m
+    [36m</section>[39m
+  [36m</div>[39m
+[36m</body>[39m
+   ✓ global command palette lifetime > resets global state when changing project and returning 10ms
+   ✓ global command palette lifetime > resets global state when changing window and returning 8ms
+   ✓ global command palette lifetime > drops global state after leaving the route 3ms
+   × global command palette lifetime > keeps the return-focus reference across replacement without resetting it on repeated opening 8ms
+     → expected { current: null } to be { current: <button></button> } // Object.is equality
+   ✓ global command palette lifetime > does not prune the global palette with pane retention 5ms
+   ✓ global command palette lifetime > retains local fallback behavior without a route provider 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/chat/IdePaletteState.spec.tsx > global command palette lifetime > retains open, query, selection and Spotlight through shell replacement
+TestingLibraryElementError: Unable to find a label with the text of: Global query
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section>[39m
+      [36m<button>[39m
+        [0mOpen global[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mClose global[0m
+      [36m</button>[39m
+    [36m</section>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/queries/label-text.js:111:38
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../vibecore-ui-next/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ app/components/chat/IdePaletteState.spec.tsx:179:18
+    177|     view.rerender(globalTree('chat'));
+    178|     expect(oldInput.isConnected).toBe(false);
+    179|     expect((view.getByLabelText('Global query') as HTMLInputElement).v…
+       |                  ^
+    180|     expect(view.getByLabelText('Global state').textContent).toBe('spot…
+    181|     expect(document.activeElement).toBe(view.getByLabelText('Global qu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/components/chat/IdePaletteState.spec.tsx > global command palette lifetime > keeps the return-focus reference across replacement without resetting it on repeated opening
+AssertionError: expected { current: null } to be { current: <button></button> } // Object.is equality
+
+- Expected
++ Received
+
+  {
+-   "current": <button>
+-     Stable opener
+-   </button>,
++   "current": null,
+  }
+
+ ❯ app/components/chat/IdePaletteState.spec.tsx:220:49
+    218|     const reference = state!.commandPaletteReturnFocusRef;
+    219|     view.rerender(tree('chat'));
+    220|     expect(state!.commandPaletteReturnFocusRef).toBe(reference);
+       |                                                 ^
+    221|     fireEvent.click(view.getByText('Open global'));
+    222|     expect(state!.commandPaletteReturnFocusRef.current).toBe(opener);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 15 passed (17)
+   Start at  10:07:05
+   Duration  3.64s (transform 1.55s, setup 28ms, collect 204ms, tests 145ms, environment 511ms, prepare 85ms)
+

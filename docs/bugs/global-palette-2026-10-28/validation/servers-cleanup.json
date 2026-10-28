@@ -1,0 +1,13 @@
+{
+  "ownedPids": [
+    2150,
+    5040
+  ],
+  "originsVerified": "root sessions14161/12308; exact command and launch elapsed time",
+  "ports": [
+    18499,
+    18599
+  ],
+  "sigterm": "listeners closed, processes remained sleeping",
+  "sigkill": "only these two verified residual recipe servers"
+}

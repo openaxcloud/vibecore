@@ -1283,6 +1283,7 @@ export class WorkbenchStore {
         const devExitCode = await this.#streamWorkspaceCommand(command, {
           exitMessage: workbenchText('workbenchRuntime.preview.commandExited'),
           refreshPortsOnOutput: true,
+          lifecycle: 'preview-service',
         });
 
         /*
@@ -1556,7 +1557,7 @@ export class WorkbenchStore {
 
   async #streamWorkspaceCommand(
     command: CommandRequest & { label: string },
-    options: { exitMessage: string; refreshPortsOnOutput?: boolean },
+    options: { exitMessage: string; refreshPortsOnOutput?: boolean; lifecycle?: CommandRequest['lifecycle'] },
   ) {
     let exitCode = 0;
 
@@ -1596,6 +1597,7 @@ export class WorkbenchStore {
         args: command.args,
         cwd: command.cwd,
         env: command.env,
+        ...(options.lifecycle ? { lifecycle: options.lifecycle } : {}),
       })) {
         this.appendWorkspaceLog(event);
 

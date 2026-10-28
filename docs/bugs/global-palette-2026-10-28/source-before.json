@@ -1,0 +1,10 @@
+{
+  "base": "/workspace/vibecore-ui-palette-baseline",
+  "head": "58fa0702a2824015e879665e227228f8b4d8c76a",
+  "sha256": {
+    "app/components/chat/BaseChat.tsx": "2a3265ec4b5d4221b68709c65f1da29aa87e9714cf95febb8af3a5029e019234",
+    "app/components/chat/IdePaletteState.tsx": "589990979c13064786932f80f762578f4c96772f10e717bdc06bbea8cacdfbf5",
+    "build/server/index.js": "9a48f0193b3c831bca1493434b792976854419dfd20ebc3dc4773c8c3cae81fb",
+    "tests/e2e/ide-panel-visibility.spec.ts": "3141b1aa223aaf47c9120dbc685cebc357c01c9b957c45ed07dfdcce114589c2"
+  }
+}

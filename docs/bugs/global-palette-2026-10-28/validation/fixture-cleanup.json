@@ -1,0 +1,11 @@
+{
+  "pid": 1861,
+  "verifiedArgs": "node docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs",
+  "owner": "browser_repro",
+  "toolSession": 58252,
+  "action": "SIGTERM own fixture only",
+  "appServers": "untouched; parent owns18499 and18599",
+  "browsers": "all contexts closed via finally",
+  "fixtureExitCode": 143,
+  "fixturePidAbsent": true
+}

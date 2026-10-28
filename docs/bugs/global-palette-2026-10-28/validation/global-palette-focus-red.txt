@@ -1,0 +1,82 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-palette-recovery
+
+ ❯ app/components/chat/IdePaletteState.spec.tsx (23 tests | 3 failed) 142ms
+   ✓ IDE palette lifetime > preserves opening and search on restored pane-main when the loading shell is replaced 37ms
+   ✓ IDE palette lifetime > preserves opening and search on restored pane-split when the loading shell is replaced 8ms
+   ✓ IDE palette lifetime > preserves opening and search on restored pane-floating when the loading shell is replaced 6ms
+   ✓ IDE palette lifetime > keeps an explicitly closed palette closed through subsequent replacements 5ms
+   ✓ IDE palette lifetime > does not revive a palette after changing project and returning 4ms
+   ✓ IDE palette lifetime > does not revive a palette after changing window and returning 3ms
+   ✓ IDE palette lifetime > drops the state when leaving the IDE route, including a quick return 3ms
+   ✓ IDE palette lifetime > drops a removed pane without reviving its palette if its id is reused 4ms
+   ✓ IDE palette lifetime > keeps a surviving pane open when another pane is removed or closes 5ms
+   ✓ IDE palette lifetime > preserves independent local behavior without a provider 3ms
+   ✓ global command palette lifetime > retains open, query, selection and Spotlight through shell replacement 10ms
+   ✓ global command palette lifetime > resets global state when changing project and returning 6ms
+   ✓ global command palette lifetime > resets global state when changing window and returning 5ms
+   ✓ global command palette lifetime > drops global state after leaving the route 3ms
+   ✓ global command palette lifetime > keeps the return-focus reference across replacement without resetting it on repeated opening 5ms
+   ✓ global command palette lifetime > does not prune the global palette with pane retention 5ms
+   ✓ global command palette lifetime > retains local fallback behavior without a route provider 6ms
+   ✓ command palette deferred return focus > restores the connected opener after explicit close and clears the reference 3ms
+   ✓ command palette deferred return focus > resolves a visible replacement opener when the shell removed the old DOM node 3ms
+   × command palette deferred return focus > cancels pending focus on unmount before the frame 9ms
+     → expected <button …(1)></button> to be <button …(1)></button> // Object.is equality
+   × command palette deferred return focus > cancels pending focus on scope before the frame 3ms
+     → expected <button …(1)></button> to be <button …(1)></button> // Object.is equality
+   × command palette deferred return focus > cancels old restoration if the palette reopens before the frame 3ms
+     → expected <button …(1)></button> to be <input></input> // Object.is equality
+   ✓ command palette deferred return focus > preserves outside-click focus and resets the close reason without scheduling a frame 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/components/chat/IdePaletteState.spec.tsx > command palette deferred return focus > cancels pending focus on unmount before the frame
+ FAIL  app/components/chat/IdePaletteState.spec.tsx > command palette deferred return focus > cancels pending focus on scope before the frame
+AssertionError: expected <button …(1)></button> to be <button …(1)></button> // Object.is equality
+
+- Expected
++ Received
+
+  <button
+-   data-testid="new-project-input"
++   data-testid="palette-opener"
+  />
+
+ ❯ app/components/chat/IdePaletteState.spec.tsx:377:36
+    375|     focused.focus();
+    376|     flush();
+    377|     expect(document.activeElement).toBe(focused);
+       |                                    ^
+    378|     expect(cancelAnimationFrame).toHaveBeenCalledOnce();
+    379|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  app/components/chat/IdePaletteState.spec.tsx > command palette deferred return focus > cancels old restoration if the palette reopens before the frame
+AssertionError: expected <button …(1)></button> to be <input></input> // Object.is equality
+
+- Expected
++ Received
+
+- <input />
++ <button
++   data-testid="palette-opener"
++ />
+
+ ❯ app/components/chat/IdePaletteState.spec.tsx:389:36
+    387|     input.focus();
+    388|     flush();
+    389|     expect(document.activeElement).toBe(input);
+       |                                    ^
+    390|     expect(cancelAnimationFrame).toHaveBeenCalledOnce();
+    391|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 20 passed (23)
+   Start at  10:14:06
+   Duration  2.45s (transform 1.01s, setup 20ms, collect 110ms, tests 142ms, environment 291ms, prepare 54ms)
+
