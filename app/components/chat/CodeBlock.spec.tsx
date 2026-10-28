@@ -6,7 +6,7 @@
  * varies. A stale (earlier) invocation must NOT overwrite the HTML produced by a newer one.
  */
 
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -77,5 +77,64 @@ describe('CodeBlock streaming highlight cancellation', () => {
     deferreds[0].resolve('<pre>const x = 1;</pre>');
 
     await waitFor(() => expect(container.innerHTML).toContain('const x = 1;'));
+  });
+});
+
+describe('code header preserves source and copy controls', () => {
+  const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  const writeText = vi.fn(async (_code: string) => undefined);
+
+  beforeEach(() => {
+    deferreds.length = 0;
+    writeText.mockReset().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+  });
+
+  afterEach(() => {
+    cleanup();
+
+    if (originalClipboard) {
+      Object.defineProperty(navigator, 'clipboard', originalClipboard);
+    } else {
+      Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it.each(['plaintext', 'javascript', 'syntheticlanguage'.repeat(8)])(
+    'copies the complete original code for %s without changing it to the displayed label',
+    async (language) => {
+      const code = 'const text = "<raw>& source";\n' + 'x'.repeat(240);
+      render(<CodeBlock code={code} language={language as React.ComponentProps<typeof CodeBlock>['language']} />);
+      await waitFor(() => expect(deferreds).toHaveLength(1));
+      deferreds[0].resolve('<pre><code>Highlighted source</code></pre>');
+      await screen.findByText('Highlighted source');
+      fireEvent.click(screen.getByRole('button', { name: 'Copy code' }));
+      await screen.findByRole('status');
+      expect(writeText).toHaveBeenCalledExactlyOnceWith(code);
+      expect(screen.getByRole('status').textContent).toBe('Copied');
+    },
+  );
+
+  it.each(['plaintext', 'javascript'] as const)('does not offer copying when disabled for %s', async (language) => {
+    render(<CodeBlock code="readonly source" language={language} disableCopy />);
+    await waitFor(() => expect(deferreds).toHaveLength(1));
+    deferreds[0].resolve('<pre><code>readonly source</code></pre>');
+    await screen.findByText('readonly source');
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it('keeps the original code copyable after clipboard failure', async () => {
+    writeText.mockRejectedValueOnce(new Error('synthetic clipboard failure'));
+    render(<CodeBlock code="retry source" language="plaintext" />);
+    await waitFor(() => expect(deferreds).toHaveLength(1));
+    deferreds[0].resolve('<pre><code>retry source</code></pre>');
+    await screen.findByText('retry source');
+    fireEvent.click(screen.getByRole('button', { name: 'Copy code' }));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('could not be copied'));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy code' }));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Copied'));
+    expect(writeText.mock.calls).toEqual([['retry source'], ['retry source']]);
   });
 });

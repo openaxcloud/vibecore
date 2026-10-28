@@ -81,7 +81,9 @@ async function seedConversation(request: APIRequestContext) {
          * BUG-SELECT-TOUCH-001 : la bulle ne se sélectionne plus au doigt,
          * le code s'y sélectionne toujours.
          */
-        content: `Je vais ajouter la page de contact (tour ${turn}).\n\nLa page est créée et \`pnpm build\` passe.`,
+        content:
+          `Je vais ajouter la page de contact (tour ${turn}).\n\nLa page est créée et \`pnpm build\` passe.` +
+          (turn === 3 ? '\n\n```javascript\nconst densityCode = "source intacte";\n```' : ''),
       },
     ]);
 
@@ -194,6 +196,51 @@ async function measureRows(page: Page) {
   });
 }
 
+/** The fenced block is additional: retain the inline-code selection witness above. */
+async function assertCodeHeaderDoesNotCoverSource(page: Page) {
+  const pre = page.locator('.bolt-assistant-message pre').last();
+
+  // The plain-text error fallback has another wrapper: require the actual highlighted block.
+  await expect(pre).toHaveClass(/(?:^|\s)shiki(?:\s|$)/);
+  await expect(pre.locator('code')).toContainText('const densityCode = "source intacte";');
+  await pre.scrollIntoViewIfNeeded();
+
+  const geometry = await pre.evaluate((element) => {
+    const block = element.parentElement?.parentElement;
+
+    const label = [...(block?.querySelectorAll('span[aria-hidden]') ?? [])].find(
+      (candidate) => candidate.textContent === 'javascript',
+    );
+
+    const copy = block?.querySelector('button');
+    const line = element.querySelector('code .line') ?? element.querySelector('code');
+
+    const bounds = (candidate: Element | null | undefined) => {
+      const rectangle = candidate?.getBoundingClientRect();
+
+      return rectangle
+        ? { top: rectangle.top, bottom: rectangle.bottom, width: rectangle.width, height: rectangle.height }
+        : null;
+    };
+
+    return { label: bounds(label), copy: bounds(copy), line: bounds(line) };
+  });
+
+  const diagnostic = JSON.stringify(geometry);
+
+  expect(geometry.label, `label langage absent : ${diagnostic}`).not.toBeNull();
+  expect(geometry.copy, `bouton copie absent : ${diagnostic}`).not.toBeNull();
+  expect(geometry.line, `première ligne absente : ${diagnostic}`).not.toBeNull();
+  expect(geometry.line!.width, diagnostic).toBeGreaterThan(0);
+  expect(geometry.line!.height, diagnostic).toBeGreaterThan(0);
+  expect(geometry.label!.height, diagnostic).toBeGreaterThan(0);
+  expect(geometry.copy!.height, diagnostic).toBeGreaterThan(0);
+  expect(geometry.label!.bottom, `le label recouvre le code : ${diagnostic}`).toBeLessThanOrEqual(geometry.line!.top);
+  expect(geometry.copy!.bottom, `le bouton copie recouvre le code : ${diagnostic}`).toBeLessThanOrEqual(
+    geometry.line!.top,
+  );
+}
+
 test.describe('densité des messages — pointeur fin', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -228,6 +275,7 @@ test.describe('densité des messages — pointeur fin', () => {
       menu.locator('.bolt-assistant-message-action').first(),
       'le menu s’ouvre sans ses actions',
     ).toBeVisible();
+    await assertCodeHeaderDoesNotCoverSource(page);
   });
 });
 
@@ -336,5 +384,7 @@ test.describe('densité des messages — pointeur grossier', () => {
       expect(selection.callout, `la bulle « Copier » d'iOS peut encore s'ouvrir : ${releve}`).toBe('none');
       expect(selection.calloutCode, `le code a perdu son menu système : ${releve}`).toBe('default');
     }
+
+    await assertCodeHeaderDoesNotCoverSource(page);
   });
 });
