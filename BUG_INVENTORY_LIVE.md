@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-546 entrées.
+547 entrées.
 
 ## Sans section
 
@@ -728,6 +728,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Editeur et persistance
 
 - [BUG-EDITOR-PENDING-SAVE-DRAFT-20261028](docs/bugs/BUG-EDITOR-PENDING-SAVE-DRAFT-20261028.md) — 📤 Dispatché : ☑ 28/10 — investigation du blocage E2E #828, sur main `9ec6ebf75`. · 💻 Codé : ☐ — correctif isolé Workbench, pas intégré à main. · ✅ Testé live : ☐ — aucune modification ou recette de données client.
+
+## Sans section
+
+- [BUG-PROJECT-MENU-MUTATIONS-20261028](docs/bugs/BUG-PROJECT-MENU-MUTATIONS-20261028.md) — Sur main `63e663830`, le menu accepte une nouvelle mutation pendant une requête. — 📤 Dispatché : ☑ 28/10/2026 — lot indépendant du correctif Publish #831. · 💻 Codé : ☐ — correctif local, non fusionné et non livré. · ✅ Testé live : ☐ — aucune validation authentifiée en production. Recette locale : deux scénarios
 
 ## Résidus non tabulaires — reportés mot pour mot
 

@@ -1,0 +1,364 @@
+{
+  "first-harness-run": {
+    "stats": {
+      "startTime": "2026-10-28T19:32:54.145Z",
+      "duration": 36336.78,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 8,
+      "flaky": 0
+    },
+    "specs": [
+      {
+        "title": "menu layout keyboard cancel 320",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 1870
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 390",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2028
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 768",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2042
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1024",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2260
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1440",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2268
+          }
+        ]
+      },
+      {
+        "title": "rename controlled error then real persistence 320",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 7160
+          }
+        ]
+      },
+      {
+        "title": "rename controlled error then real persistence 1440",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 7309
+          }
+        ]
+      },
+      {
+        "title": "menu native zoom 200 percent CSS320",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 3700
+          }
+        ]
+      }
+    ]
+  },
+  "aborted-archive-discovery": {
+    "stats": {
+      "startTime": "2026-10-28T19:34:52.456Z",
+      "duration": 21739.86,
+      "expected": 0,
+      "skipped": 11,
+      "unexpected": 5,
+      "flaky": 0
+    },
+    "specs": [
+      {
+        "title": "menu layout keyboard cancel 320",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 1752
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 390",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 1746
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 768",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 1807
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1024",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 1928
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1440",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2028
+          }
+        ]
+      },
+      {
+        "title": "rename controlled error then real persistence 320",
+        "outcomes": [
+          {
+            "status": "interrupted",
+            "retry": 0,
+            "durationMs": 6622
+          }
+        ]
+      },
+      {
+        "title": "rename controlled error then real persistence 1440",
+        "outcomes": []
+      },
+      {
+        "title": "menu native zoom 200 percent CSS320",
+        "outcomes": []
+      },
+      {
+        "title": "menu layout keyboard cancel 320",
+        "outcomes": []
+      },
+      {
+        "title": "menu layout keyboard cancel 390",
+        "outcomes": []
+      },
+      {
+        "title": "menu layout keyboard cancel 768",
+        "outcomes": []
+      },
+      {
+        "title": "menu layout keyboard cancel 1024",
+        "outcomes": []
+      },
+      {
+        "title": "menu layout keyboard cancel 1440",
+        "outcomes": []
+      },
+      {
+        "title": "rename controlled error then real persistence 320",
+        "outcomes": []
+      },
+      {
+        "title": "rename controlled error then real persistence 1440",
+        "outcomes": []
+      },
+      {
+        "title": "menu native zoom 200 percent CSS320",
+        "outcomes": []
+      }
+    ]
+  },
+  "corrected-eight": {
+    "stats": {
+      "startTime": "2026-10-28T19:35:37.197Z",
+      "duration": 30250.428,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 6,
+      "flaky": 0
+    },
+    "specs": [
+      {
+        "title": "menu layout keyboard cancel 320",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2704
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 390",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2640
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 768",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2776
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1024",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2760
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1440",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 2766
+          }
+        ]
+      },
+      {
+        "title": "rename controlled error then real persistence 320",
+        "outcomes": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 2304
+          }
+        ]
+      },
+      {
+        "title": "rename controlled error then real persistence 1440",
+        "outcomes": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 2550
+          }
+        ]
+      },
+      {
+        "title": "menu native zoom 200 percent CSS320",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 5724
+          }
+        ]
+      }
+    ]
+  },
+  "before-44-fix": {
+    "stats": {
+      "startTime": "2026-10-28T19:36:48.066Z",
+      "duration": 197490.226,
+      "expected": 0,
+      "skipped": 2,
+      "unexpected": 4,
+      "flaky": 0
+    },
+    "specs": [
+      {
+        "title": "menu layout keyboard cancel 320",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 3386
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 390",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 3468
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 768",
+        "outcomes": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 3633
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1024",
+        "outcomes": [
+          {
+            "status": "timedOut",
+            "retry": 0,
+            "durationMs": 120303
+          }
+        ]
+      },
+      {
+        "title": "menu layout keyboard cancel 1440",
+        "outcomes": [
+          {
+            "status": "interrupted",
+            "retry": 0,
+            "durationMs": 61434
+          }
+        ]
+      },
+      {
+        "title": "menu native zoom 200 percent CSS320",
+        "outcomes": []
+      }
+    ]
+  }
+}

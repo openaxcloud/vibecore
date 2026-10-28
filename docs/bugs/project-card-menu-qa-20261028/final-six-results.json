@@ -1,0 +1,72 @@
+{
+  "stats": {
+    "startTime": "2026-10-28T19:43:03.952Z",
+    "duration": 25784,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "specs": [
+    {
+      "title": "menu layout keyboard cancel 320",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3837
+        }
+      ]
+    },
+    {
+      "title": "menu layout keyboard cancel 390",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3512
+        }
+      ]
+    },
+    {
+      "title": "menu layout keyboard cancel 768",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3528
+        }
+      ]
+    },
+    {
+      "title": "menu layout keyboard cancel 1024",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3786
+        }
+      ]
+    },
+    {
+      "title": "menu layout keyboard cancel 1440",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3959
+        }
+      ]
+    },
+    {
+      "title": "menu native zoom 200 percent CSS320",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6237
+        }
+      ]
+    }
+  ]
+}
