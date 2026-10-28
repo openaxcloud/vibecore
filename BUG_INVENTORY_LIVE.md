@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-544 entrées.
+545 entrées.
 
 ## Sans section
 
@@ -723,6 +723,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-AGENT-EXPLICIT-MODEL-20261028](docs/bugs/BUG-AGENT-EXPLICIT-MODEL-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-LITE-MODEL-LOCK-20261028](docs/bugs/BUG-LITE-MODEL-LOCK-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
