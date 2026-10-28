@@ -1,0 +1,551 @@
+[
+  {
+    "width": 390,
+    "height": 844,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [],
+    "panelText": "Project1\nWorkspace0\nCommunity0\nBUILTIN SKILLS\n\nToggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.\n\nSynthetic long description\nhttps://example.invalid/segmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegment\nEnabled\nINSTALLED FROM GITHUB (PROJECT)\nNo project-scoped skills installed yet. Browse Community to add some.",
+    "buttons": [],
+    "geometry": {
+      "width": 358,
+      "clientWidth": 358,
+      "scrollWidth": 358,
+      "viewport": 390,
+      "pageWidth": 390,
+      "description": [
+        {
+          "bounds": {
+            "x": 27.5,
+            "y": 227.828125,
+            "width": 335,
+            "height": 161.875,
+            "top": 227.828125,
+            "right": 362.5,
+            "bottom": 389.703125,
+            "left": 27.5
+          },
+          "clientWidth": 335,
+          "scrollWidth": 335,
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 820,
+    "height": 1180,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [],
+    "panelText": "Project1\nWorkspace0\nCommunity0\nBUILTIN SKILLS\n\nToggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.\n\nSynthetic long description\nhttps://example.invalid/segmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegment\nEnabled\nINSTALLED FROM GITHUB (PROJECT)\nNo project-scoped skills installed yet. Browse Community to add some.",
+    "buttons": [
+      "Project1",
+      "Workspace0",
+      "Community0",
+      "Enabled"
+    ],
+    "geometry": {
+      "width": 770.8125,
+      "clientWidth": 771,
+      "scrollWidth": 771,
+      "viewport": 820,
+      "pageWidth": 820,
+      "description": [
+        {
+          "bounds": {
+            "x": 36.09375,
+            "y": 222.984375,
+            "width": 747.8125,
+            "height": 80.9375,
+            "top": 222.984375,
+            "right": 783.90625,
+            "bottom": 303.921875,
+            "left": 36.09375
+          },
+          "clientWidth": 748,
+          "scrollWidth": 748,
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "height": 900,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [],
+    "panelText": "Project1\nWorkspace0\nCommunity0\nBUILTIN SKILLS\n\nToggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.\n\nSynthetic long description\nhttps://example.invalid/segmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegment\nEnabled\nINSTALLED FROM GITHUB (PROJECT)\nNo project-scoped skills installed yet. Browse Community to add some.",
+    "buttons": [
+      "Project1",
+      "Workspace0",
+      "Community0",
+      "Enabled"
+    ],
+    "geometry": {
+      "width": 587.65625,
+      "clientWidth": 588,
+      "scrollWidth": 588,
+      "viewport": 1280,
+      "pageWidth": 1280,
+      "description": [
+        {
+          "bounds": {
+            "x": 420,
+            "y": 250.703125,
+            "width": 500.78125,
+            "height": 85.125,
+            "top": 250.703125,
+            "right": 920.78125,
+            "bottom": 335.828125,
+            "left": 420
+          },
+          "clientWidth": 501,
+          "scrollWidth": 501,
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 1536,
+    "height": 900,
+    "language": "en",
+    "errors": [],
+    "transport": [
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "blocked": true,
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "observations": [],
+    "panelText": "Project1\nWorkspace0\nCommunity0\nBUILTIN SKILLS\n\nToggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.\n\nSynthetic long description\nhttps://example.invalid/segmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegmentsegment\nEnabled\nINSTALLED FROM GITHUB (PROJECT)\nNo project-scoped skills installed yet. Browse Community to add some.",
+    "buttons": [
+      "Project1",
+      "Workspace0",
+      "Community0",
+      "Enabled"
+    ],
+    "geometry": {
+      "width": 815.40625,
+      "clientWidth": 815,
+      "scrollWidth": 815,
+      "viewport": 1536,
+      "pageWidth": 1536,
+      "description": [
+        {
+          "bounds": {
+            "x": 928.453125,
+            "y": 216.859375,
+            "width": 233.125,
+            "height": 170.25,
+            "top": 216.859375,
+            "right": 1161.578125,
+            "bottom": 387.109375,
+            "left": 928.453125
+          },
+          "clientWidth": 233,
+          "scrollWidth": 233,
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    "pass": true
+  }
+]

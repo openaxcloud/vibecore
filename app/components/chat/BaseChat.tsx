@@ -18360,7 +18360,12 @@ function ProjectSkillsPanel({
                   <div className="min-w-0">
                     <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
                     {skill.description ? (
-                      <span className="block text-xs text-bolt-elements-textSecondary">{skill.description}</span>
+                      <span
+                        className="block text-xs text-bolt-elements-textSecondary"
+                        style={{ overflowWrap: 'anywhere' }}
+                      >
+                        {skill.description}
+                      </span>
                     ) : null}
                   </div>
                   <button

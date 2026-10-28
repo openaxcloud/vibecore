@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-557 entrées.
+558 entrées.
 
 ## Sans section
 
@@ -742,6 +742,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-SETTINGS-MOBILE-TAB-STRIP-20261028](docs/bugs/BUG-IDE-SETTINGS-MOBILE-TAB-STRIP-20261028.md) — La classe de conteneur ajoutée aux sous-pages Settings active une règle desktop sur la navigation mobile : les sept onglets s’empilent sur 346 px au lieu d’une  — 📤 Dispatché : ☑ 28/10/2026 — régression détectée par la CI de #838, tête `20e0860d0`. · 💻 Codé : ☐ main — correctif local d’un sélecteur ; aucune fusion ni livraison. · ✅ Testé live : ☐ production — six recettes Chromium du build final réussies, données synthétiques ; aucune opération de compt
 - [BUG-IDE-TERMINAL-STARTUP-MENU-20261028](docs/bugs/BUG-IDE-TERMINAL-STARTUP-MENU-20261028.md) — L’arrivée de la mémoire IDE remplace la coque de démarrage alors que le menu Terminal est utilisé : le menu disparaît et le focus revient au document. — 📤 Dispatché : ☑ 28/10/2026 — diagnostic après le verdict E2E rouge de #837 ; correctif UI distinct des sessions et commandes · 💻 Codé : ☐ main — travail local, aucune fusion ni livraison. · ✅ Testé live : ☐ production — trois recettes finales Chromium locales réussies à390/768/1280, API synthétiques ; aucune comma
 - [BUG-AGENT-TOOLS-ESCAPE-20261028](docs/bugs/BUG-AGENT-TOOLS-ESCAPE-20261028.md) — Le menu outils du compositeur Agent ouvert au pointeur reste ouvert après Escape : le raccourci global consomme l’événement lorsque le focus reste sur son décle — 📤 Dispatché : ☑ 28/10/2026 — reproduction Chromium local sur quatre formats. · 💻 Codé : ☐ main — correctif local séparé de #838 en validation, aucune fusion ni livraison. · ✅ Testé live : ☐ production — recette locale compilée synthétique uniquement.
+- [BUG-SKILLS-DESCRIPTION-OVERFLOW-20261028](docs/bugs/BUG-SKILLS-DESCRIPTION-OVERFLOW-20261028.md) — Une URL longue dans la description Built-in Skills déborde du panneau sans possibilité de lire normalement sa suite. — 📤 Dispatché : ☑ 28/10/2026 — reproduction locale Chromium à390/820/1280/1536. · 💻 Codé : ☐ main — correction locale ciblée overflow-wrap:anywhere, aucune fusion ni livraison. · ✅ Testé live : ☐ production — données synthétiques exclusivement, aucune installation ni modification de compétence réelle.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
