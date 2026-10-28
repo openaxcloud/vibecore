@@ -1,0 +1,18 @@
+[
+  {
+    "name": "app",
+    "pid": 9814,
+    "verifiedArgs": "node --require ./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs node_modules/@react-router/serve/bin.js build/server/index.js",
+    "action": "SIGTERM own recipe process",
+    "residualAction": "SIGKILL verified own residual process after SIGTERM",
+    "finalPidAbsent": true
+  },
+  {
+    "name": "fixture",
+    "pid": 9813,
+    "verifiedArgs": "node docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs",
+    "action": "SIGTERM own recipe process",
+    "pidAbsentAfterTerm": true,
+    "finalPidAbsent": true
+  }
+]
