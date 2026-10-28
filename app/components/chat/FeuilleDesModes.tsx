@@ -271,7 +271,11 @@ export function FeuilleDesModes({
                       mode,
                       ligne.sorte === 'automatique'
                         ? {}
-                        : { modele: ligne.model, serviceTier: ligne.serviceTier, effort: choix?.effort },
+                        : {
+                            modele: ligne.model,
+                            serviceTier: ligne.serviceTier,
+                            effort: mode === 'lite' ? undefined : choix?.effort,
+                          },
                     )
                   }
                 >
@@ -308,13 +312,15 @@ export function FeuilleDesModes({
 
         {niveau.ecran === 'avance' && avance ? <div className="bolt-feuille-avance">{avance}</div> : null}
 
-        <BlocEffort
-          copy={copy}
-          catalogue={catalogue}
-          sondes={sondes}
-          choix={choix}
-          onChanger={(cran) => onChoisirModele(mode, { ...choix, effort: cran })}
-        />
+        {mode !== 'lite' ? (
+          <BlocEffort
+            copy={copy}
+            catalogue={catalogue}
+            sondes={sondes}
+            choix={choix}
+            onChanger={(cran) => onChoisirModele(mode, { ...choix, effort: cran })}
+          />
+        ) : null}
       </div>
     );
   };

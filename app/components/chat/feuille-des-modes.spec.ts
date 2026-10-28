@@ -68,8 +68,11 @@ describe('écran 1 — la liste des modes', () => {
     }
   });
 
-  it('les deux entrées à chevron suivent le verrou du mode', () => {
-    expect(entreesDuMode('lite').every((e) => e.verrouillee)).toBe(true);
+  it('Lite ouvre le modèle mais conserve le verrou des réglages avancés', () => {
+    expect(entreesDuMode('lite')).toEqual([
+      { sorte: 'modele', verrouillee: false },
+      { sorte: 'avance', verrouillee: true, raison: 'passer-a-power-ou-max' },
+    ]);
     expect(entreesDuMode('power').every((e) => e.verrouillee)).toBe(false);
     expect(entreesDuMode('lite').map((e) => e.sorte)).toEqual(['modele', 'avance']);
   });
