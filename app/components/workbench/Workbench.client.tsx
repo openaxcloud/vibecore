@@ -575,7 +575,7 @@ export const Workbench = memo(
       }
 
       setMobilePreviewRunFeedbackState('starting');
-      void workbenchStore.startPreviewServer().catch(() => {
+      void workbenchStore.startPreviewServer({ intent: 'user' }).catch(() => {
         setMobilePreviewRunFeedbackState(null);
         toast.error(copy['workbenchSurface.preview.startFailed']);
       });

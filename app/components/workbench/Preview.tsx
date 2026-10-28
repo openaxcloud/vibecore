@@ -728,7 +728,7 @@ export const Preview = memo(
   ({
     setSelectedElement,
     projectId,
-    autoStart = true,
+    autoStart: requestedAutoStart = true,
     previewDevice = 'desktop',
     onPreviewDeviceChange,
     onOpenLogsRight,
@@ -757,6 +757,8 @@ export const Preview = memo(
     const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const hasSelectedPreview = useRef(false);
+    const previewStoppedByUser = useStore(workbenchStore.previewStoppedByUser);
+    const autoStart = requestedAutoStart && !previewStoppedByUser;
     const previews = useStore(workbenchStore.previews);
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
     const workspaceStatus = useStore(workbenchStore.workspaceStatus);
@@ -810,6 +812,14 @@ export const Preview = memo(
     const [isStartingPreview, setIsStartingPreview] = useState(false);
     const [previewStatus, setPreviewStatus] = useState<string | undefined>();
     const [previewRunFailed, setPreviewRunFailed] = useState(false);
+    useEffect(() => {
+      if (previewStoppedByUser) {
+        setIsStartingPreview(false);
+        setPreviewStatus(undefined);
+        setPreviewRunFailed(false);
+      }
+    }, [previewStoppedByUser]);
+
     const [previewFrameLoaded, setPreviewFrameLoaded] = useState(false);
     const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | undefined>();
     const previewLoadIdentityRef = useRef<string | undefined>();
@@ -1023,7 +1033,7 @@ export const Preview = memo(
       setPreviewStatus(t('idePanels.preview.restartStatus'));
       toast.info(t('idePanels.preview.restartStarted'), { toastId: 'preview-build-restart' });
       void workbenchStore
-        .restartPreviewServer()
+        .restartPreviewServer({ intent: 'user' })
         .catch(() => {
           setPreviewStatus(t('idePanels.preview.restartFailed'));
           setPreviewRunFailed(true);
@@ -1446,6 +1456,10 @@ export const Preview = memo(
     const prepareStartNotice = usePreviewStartNotice(projectId);
 
     const startPreviewServer = useCallback(async () => {
+      if (workbenchStore.previewStoppedByUser.get()) {
+        return;
+      }
+
       const claimStartNotice = prepareStartNotice();
 
       setIsStartingPreview(true);
@@ -1454,6 +1468,11 @@ export const Preview = memo(
 
       try {
         const label = await workbenchStore.startPreviewServer();
+
+        if (workbenchStore.previewStoppedByUser.get()) {
+          return;
+        }
+
         const runningCommand = workbenchStore.previewServerState.get()?.command;
 
         // Une phrase de statut n'est pas une commande : voir preview-start-status.ts.
@@ -1469,6 +1488,10 @@ export const Preview = memo(
 
         window.setTimeout(() => setIsStartingPreview(false), 2500);
       } catch (error) {
+        if (workbenchStore.previewStoppedByUser.get()) {
+          return;
+        }
+
         const message = error instanceof Error ? error.message : 'Failed to start preview server';
         setPreviewStatus(t('idePanels.preview.startFailed'));
 
@@ -3087,10 +3110,14 @@ export const Preview = memo(
               </>
             ) : (
               <>
-                {previewRunFailed || workspaceError ? (
+                {previewStoppedByUser || previewRunFailed || workspaceError ? (
                   <PreviewNotRunningState
-                    detail={previewStatus ?? (workspaceError ? t('idePanels.preview.workspaceFailed') : undefined)}
-                    isRunning={isStartingPreview}
+                    detail={
+                      previewStoppedByUser
+                        ? undefined
+                        : (previewStatus ?? (workspaceError ? t('idePanels.preview.workspaceFailed') : undefined))
+                    }
+                    isRunning={!previewStoppedByUser && isStartingPreview}
                     logs={workspaceLogs.slice(-8)}
                     onRun={relancerLeDemarrage}
                     onReinstall={() => {
@@ -3099,7 +3126,7 @@ export const Preview = memo(
                       setPreviewStatus(t('idePanels.preview.reinstallStatus'));
                       toast.info(t('idePanels.preview.reinstalling'), { toastId: 'preview-reinstall-deps' });
                       void workbenchStore
-                        .reinstallDependencies()
+                        .reinstallDependencies({ intent: 'user' })
                         .catch(() => {
                           setPreviewStatus(t('idePanels.preview.reinstallFailed'));
                           setPreviewRunFailed(true);
