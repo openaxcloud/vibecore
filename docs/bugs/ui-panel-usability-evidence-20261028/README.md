@@ -33,3 +33,9 @@ Le message Shell indisponible visible sur les captures correspond au transport s
 Un contrôle mobile a aussi révélé le bas du sélecteur Profil sous la navigation (bottom 833,125 px contre navigation vers 828 px). La réserve CSS est corrigée localement et les trois gardes source passent ; la compilation finale confirme la visibilité intégrale des huit contrôles à 390 px (navigation y=828) et en paysage 844×390 (navigation y=318). Le simple hit-test de son centre ne suffisait pas.
 
 Captures synthétiques : [Shell avant](shell-390-before.png), [Shell après](shell-390-after.png), [paysage après](shell-landscape-after.png), [Memory](memory-390-local.png). Elles concernent le lot compilé sur base 9ec6ebf75, avant intégration de main 63e663830.
+
+## Intégration du hub #828/#829
+
+Main `63e66383055c632865b7ebd27df19aa1a6f6f37f` intégré dans `628f02117`. Revue indépendante : 23 fichiers UI préservés depuis le commit du lot, 10 fichiers du hub identiques à main ; seul conflit dans l’index, régénéré à 547 entrées. Sur cet assemblage, 82 tests dans 11 suites passent, dont la protection existante des sauvegardes en cours. Lint : zéro erreur, 52 avertissements préexistants. Build client/SSR et typage global intégrés passent. Smoke Shell intégré : 390/1280 passent clavier, Escape et visibilité complète des huit contrôles, sans erreur de page. Le premier smoke Search intégré échoue avant tout POST search : perte de saisie pendant initialisation, incident distinct conservé ouvert ; la recette du réseau après réouverture est consignée séparément.
+
+La dernière recette compilée avant intégration confirme les menus Shell au clavier à 390/768/1280/1920 (zéro erreur de page), et les huit contrôles complètement visibles à 390 et 844×390. Les échecs d’initialisation antérieurs restent dans le diagnostic : un essai ultérieur vert ne démontre pas leur cause ni leur résolution.
