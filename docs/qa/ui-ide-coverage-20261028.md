@@ -16,7 +16,7 @@ Le registre `app/lib/ide/panel-registry.ts` contient **31 panneaux adressables c
 | Locks | États vide390/820/1280 et peuplé synthétique390/1280 | Géométrie seulement ; aucune opération verrouiller/déverrouiller et petites cibles encore à caractériser. |
 | Settings / Compte et Préférences | FR/EN1280/1920, aller-retour390, zoom200%, deux panneaux simultanés | Six recettes compilées vertes : brouillons isolés, onglets conservés, thème accessible ; aucune sauvegarde de compte réelle. |
 
-Agent a une recette ciblée supplémentaire à390/820/1280/1536 : géométrie du menu outils et brouillon conservé ; Escape ne ferme pas ce menu après ouverture au clic, défaut reproduit et patch séparé non appliqué. Pas d’audit intégral du fil, interruptions ou exécution Agent. L'affichage de Preview dans les fixtures ne constitue pas une recette runtime ou production.
+Agent : défaut Escape du menu outils reproduit sur quatre formats puis corrigé dans un lot local séparé de #838. Neuf formats compilés320/360/390/768/820/1280/1536/1920 et paysage844×390 passent fermeture, focus, géométrie et brouillon. Deux parcours supplémentaires390/1280 conservent le brouillon pendant resize vers768 puis1280 puis format initial. API synthétiques, aucun prompt envoyé. Pas d’audit intégral du fil, interruptions ou exécution Agent. L'affichage de Preview dans les fixtures ne constitue pas une recette runtime ou production.
 
 ## Autres panneaux sans recette ciblée dans cette passe
 

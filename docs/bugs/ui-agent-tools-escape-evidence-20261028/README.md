@@ -11,3 +11,7 @@ Les captures montrent les menus ouverts ; receipt.json consigne les assertions d
 Extension compilée : 5/5 recettes supplémentaires réussies à320×640,360×740,844×390 paysage,768×1024 et1920×1080, mêmes assertions et aucune erreur JS. Total9formats. Le lancement initial du test inventaire par node --test était incompatible avec Vitest ; relancé avec le runner du dépôt.
 
 Revue indépendante : aucun défaut bloquant,16/16 tests exécutés séparément, aucun ignoré.
+
+Deux parcours de redimensionnement en cours de saisie passent : départ390 et1280, transition768→1280→format initial, brouillon conservé puis mêmes assertions des deux menus. 16 tests inventaire passent avec Vitest.
+
+Complément FR : 3/3 recettes320/768/1280 réussies, mêmes assertions sans changement de langue dans le produit. Gitleaks sur les fichiers modifiés : aucun secret détecté.
