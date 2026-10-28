@@ -292,6 +292,7 @@ import { TerminalInteractionHandoffBoundary } from '~/components/workbench/termi
 import { editorKindForLayout, useResponsiveLayout, EditorFocusHandoffBoundary } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
+import { useMobilePanelHistorySync } from '~/lib/hooks/useMobilePanelHistorySync';
 import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
 import {
   getProjectIdeMemory,
@@ -2981,6 +2982,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const useMobileIde = layout.isMobile || layout.isTablet;
+
+    const { popRevision: mobilePopRevision, ready: mobileNavigationReady } = useMobilePanelHistorySync(
+      projectIdeMode && useMobileIde,
+      projectLocation,
+      panelNavigation.state,
+    );
+
     const navigate = useNavigate();
     const [clientHydrated, setClientHydrated] = useState(false);
 
@@ -6510,7 +6518,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const appliedDeployAliasRef = useRef<string>();
 
     useEffect(() => {
-      if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
+      if (!projectIdeMode || !mobileNavigationReady || (!projectStateReady && !activeProjectPanel)) {
         return;
       }
 
@@ -6587,6 +6595,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [
       activeProjectPanel,
       appliedPanelNavigationId,
+      mobileNavigationReady,
+      mobilePopRevision,
       currentWorkspaceId,
       openWorkspacePanel,
       projectEditorWindowId,
@@ -7020,7 +7030,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [isStreaming, onStreamingChange]);
 
     useEffect(() => {
-      if (!projectIdeMode || !useMobileIde || activeProjectPanel) {
+      if (!projectIdeMode || !useMobileIde || !mobileNavigationReady || activeProjectPanel) {
         return;
       }
 
@@ -7028,7 +7038,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setActiveMobileOpenTabId('agent');
       persistMobilePanel('chat');
       ensureMobileOpenTab('agent');
-    }, [activeProjectPanel, ensureMobileOpenTab, persistMobilePanel, projectIdeMode, useMobileIde]);
+    }, [
+      activeProjectPanel,
+      ensureMobileOpenTab,
+      mobileNavigationReady,
+      mobilePopRevision,
+      persistMobilePanel,
+      projectIdeMode,
+      useMobileIde,
+    ]);
 
     /*
      * Escape stops the active stream (covers long-running shell actions too —
