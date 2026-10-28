@@ -1,0 +1,124 @@
+[
+  {
+    "title": "clipboard refused then retry en at320",
+    "status": "failed",
+    "retry": 0,
+    "behavior": [
+      {
+        "language": "en",
+        "sizes": {
+          "copy": {
+            "x": 243,
+            "y": 442.703125,
+            "width": 21,
+            "height": 44
+          },
+          "qr": {
+            "x": 271,
+            "y": 442.703125,
+            "width": 21,
+            "height": 44
+          }
+        },
+        "manualCount": 0,
+        "selection": null,
+        "status": []
+      }
+    ],
+    "errors": [
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed",
+        "",
+        "Locator: locator('.bolt-project-deploy-tool').getByRole('status').filter({ hasText: 'Could not copy the URL. Copy it manually from the field below.' })",
+        "Expected: visible",
+        "Timeout: 2000ms",
+        "Error: element(s) not found"
+      ],
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed",
+        "",
+        "Locator: locator('.bolt-project-deploy-tool').getByRole('textbox', { name: 'Copy URL', exact: true })",
+        "Expected: visible",
+        "Timeout: 1000ms",
+        "Error: element(s) not found"
+      ],
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m",
+        "",
+        "Expected: >= \u001b[32m44\u001b[39m",
+        "Received:    \u001b[31m21\u001b[39m",
+        "",
+        "  216 |  await page.screenshot({path:info.outputPath('clipboard-refused.png')});"
+      ],
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m",
+        "",
+        "Expected: >= \u001b[32m44\u001b[39m",
+        "Received:    \u001b[31m21\u001b[39m",
+        "",
+        "  216 |  await page.screenshot({path:info.outputPath('clipboard-refused.png')});"
+      ]
+    ]
+  },
+  {
+    "title": "clipboard refused then retry fr at320",
+    "status": "failed",
+    "retry": 0,
+    "behavior": [
+      {
+        "language": "fr",
+        "sizes": {
+          "copy": {
+            "x": 243,
+            "y": 442.703125,
+            "width": 21,
+            "height": 44
+          },
+          "qr": {
+            "x": 271,
+            "y": 442.703125,
+            "width": 21,
+            "height": 44
+          }
+        },
+        "manualCount": 0,
+        "selection": null,
+        "status": []
+      }
+    ],
+    "errors": [
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed",
+        "",
+        "Locator: locator('.bolt-project-deploy-tool').getByRole('status').filter({ hasText: 'Impossible de copier l\u2019URL. Copiez-la manuellement depuis le champ ci-dessous.' })",
+        "Expected: visible",
+        "Timeout: 2000ms",
+        "Error: element(s) not found"
+      ],
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed",
+        "",
+        "Locator: locator('.bolt-project-deploy-tool').getByRole('textbox', { name: 'Copier l\u2019URL', exact: true })",
+        "Expected: visible",
+        "Timeout: 1000ms",
+        "Error: element(s) not found"
+      ],
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m",
+        "",
+        "Expected: >= \u001b[32m44\u001b[39m",
+        "Received:    \u001b[31m21\u001b[39m",
+        "",
+        "  216 |  await page.screenshot({path:info.outputPath('clipboard-refused.png')});"
+      ],
+      [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m",
+        "",
+        "Expected: >= \u001b[32m44\u001b[39m",
+        "Received:    \u001b[31m21\u001b[39m",
+        "",
+        "  216 |  await page.screenshot({path:info.outputPath('clipboard-refused.png')});"
+      ]
+    ]
+  }
+]

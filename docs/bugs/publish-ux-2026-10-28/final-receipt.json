@@ -1,0 +1,150 @@
+{
+  "sourceHead": "9ec6ebf75d88573e58b84e926bfaeb308e4159ac",
+  "candidate": "uncommitted product source hashes in prebuild.json",
+  "buildExitCode": 0,
+  "sourceChangesDuringBuild": [],
+  "passed": 17,
+  "failed": 1,
+  "retries": 0,
+  "manualReruns": 0,
+  "cases": [
+    {
+      "suite": "layout",
+      "title": "Publish container 320px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 12845
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 390px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 11611
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 768px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6606
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 1024px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 16008
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 1440px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 19105
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 320px history=true viewport=320",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 14127
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 390px history=true viewport=390",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 13574
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 768px history=true viewport=768",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 9606
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 1024px history=true viewport=1024",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5156
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 1440px history=true viewport=1440",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 8865
+    },
+    {
+      "suite": "native",
+      "title": "Publish container 320px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 20497
+    },
+    {
+      "suite": "canonical",
+      "title": "top Publish, dashboard navigation and legacy bookmark open the same publish host",
+      "status": "failed",
+      "retry": 0,
+      "durationMs": 11252
+    },
+    {
+      "suite": "canonical",
+      "title": "real unavailable detection allows explicit mode override; double click sends one payload and error can be retried",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 75682
+    },
+    {
+      "suite": "canonical",
+      "title": "cancel and rollback require confirmation; Escape and Cancel send nothing",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 9596
+    },
+    {
+      "suite": "copy-baseline",
+      "title": "clipboard refused then retry en at320",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 8760
+    },
+    {
+      "suite": "copy-baseline",
+      "title": "clipboard refused then retry fr at320",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 7774
+    },
+    {
+      "suite": "copy-native",
+      "title": "clipboard refused then retry en at320",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 18115
+    },
+    {
+      "suite": "copy-native",
+      "title": "clipboard refused then retry fr at320",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 16842
+    }
+  ],
+  "hashes": {
+    "behavior.json": "f8d812eadfe9e1b90e0db3507ef47c8ba6a3488f35c676e054a01d5d5e30c8bf",
+    "canonical-transition-witness.json": "967dbe2270dc7c72dd44c5f61f001b95e47d222377515cb1e094696d6d5a3d85",
+    "native-results.json": "cdef7e2cd196405b58b309d8c496613196ce572414cd32ca2e24c6766eb5b8b7",
+    "canonical-results.json": "67436c037c2cf1a2e40ca594d7db305bc2d25cd3a794e6e90b507610ff606004",
+    "viewport-results.json": "8f123026ae884a6af16c0bd861ea8c807f6e3537382d88a3755dbbbb08b837ea",
+    "copy-native-results.json": "297786def8c303e89f554eb2758d17f46b1bce2f12fbd4b756a8b65417e70bb3",
+    "layout-results.json": "9d3b0d6012b70f0fea154e48b2e54bce92315c3c702460d030106c3c3b9fb930",
+    "copy-baseline-results.json": "25c98f64a54b5b1f0f14b188f7a580d0d32421584159fba860694d7d5f366ba8",
+    "build-manifest.json": "32587471f0c89cedd1d7a470c9433bddd540f704441fefcc379d472cfd4f689a",
+    "prebuild.json": "c4f8837e93a6ab082bc82ee3efbcf59e1b8c4d05b0e71cc36286bd1faec32c91"
+  }
+}

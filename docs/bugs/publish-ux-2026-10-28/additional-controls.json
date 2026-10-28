@@ -1,0 +1,9 @@
+{
+  "durableTest": "tests/e2e/publish-url-copy.spec.ts",
+  "sha256": "65d069c04ad08f78740f3d9f6a4c31fa3ed18e267b841a5996f864ce32b6e2d2",
+  "exactFormattedDurablePassed": 2,
+  "navigationInitial": "failed after topPublish click at5s; final snapshot contains host/button",
+  "aliasReadinessProbe": "failed before click: no automatic alias conversion",
+  "hydrationReadinessProbe": "html hydration passed; accessible Loading page status count1 remained5s; click not reached",
+  "noFurtherReruns": true
+}

@@ -1,5 +1,5 @@
 import { Check, Copy, Globe, QrCode } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCode } from 'react-qrcode-logo';
 import { getDeploymentType } from './deployment-types';
@@ -175,19 +175,48 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function DomainValue({ url }: { url: string }) {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<{ url: string; status: 'copied' | 'failed' }>();
+  const copied = feedback?.url === url && feedback.status === 'copied';
+  const copyFailed = feedback?.url === url && feedback.status === 'failed';
   const [showQr, setShowQr] = useState(false);
+  const copyAttempt = useRef(0);
+  const displayedUrl = useRef(url);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>();
+  displayedUrl.current = url;
 
-  const copy = () => {
-    void navigator.clipboard
-      ?.writeText(url)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      })
-      .catch(() => {
-        // Clipboard can reject (permissions / insecure context) — don't crash the panel.
-      });
+  useEffect(() => {
+    setFeedback(undefined);
+
+    return () => {
+      copyAttempt.current += 1;
+      clearTimeout(feedbackTimer.current);
+    };
+  }, [url]);
+
+  const copy = async () => {
+    const attempt = ++copyAttempt.current;
+    clearTimeout(feedbackTimer.current);
+    setFeedback(undefined);
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        setFeedback({ url, status: 'failed' });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+
+      if (attempt !== copyAttempt.current || displayedUrl.current !== url) {
+        return;
+      }
+
+      setFeedback({ url, status: 'copied' });
+      feedbackTimer.current = setTimeout(() => setFeedback(undefined), 1500);
+    } catch {
+      if (attempt === copyAttempt.current && displayedUrl.current === url) {
+        setFeedback({ url, status: 'failed' });
+      }
+    }
   };
 
   return (
@@ -206,7 +235,7 @@ export function DomainValue({ url }: { url: string }) {
           onClick={copy}
           title={copied ? t('idePanels.deployment.urlCopied') : t('idePanels.deployment.copyUrl')}
           aria-label={copied ? t('idePanels.deployment.urlCopied') : t('idePanels.deployment.copyUrl')}
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+          className="inline-flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center rounded text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
         >
           {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
         </button>
@@ -216,11 +245,23 @@ export function DomainValue({ url }: { url: string }) {
           aria-pressed={showQr}
           title={showQr ? t('idePanels.deployment.hideQr') : t('idePanels.deployment.showQr')}
           aria-label={showQr ? t('idePanels.deployment.hideQr') : t('idePanels.deployment.showQr')}
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+          className="inline-flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center rounded text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
         >
           <QrCode className="h-3.5 w-3.5" aria-hidden />
         </button>
       </span>
+      <span role="status" className="text-xs text-bolt-elements-textSecondary">
+        {copyFailed ? t('idePanels.deployment.copyFailed') : copied ? t('idePanels.deployment.urlCopied') : ''}
+      </span>
+      {copyFailed ? (
+        <input
+          aria-label={t('idePanels.deployment.copyUrl')}
+          readOnly
+          value={url}
+          onFocus={(event) => event.currentTarget.select()}
+          className="min-w-0 w-full rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-2 text-sm text-bolt-elements-textPrimary"
+        />
+      ) : null}
       {showQr ? (
         <span className="mt-1 inline-block w-fit rounded border border-bolt-elements-borderColor bg-white p-1">
           <QRCode value={url} size={96} quietZone={4} />

@@ -1,0 +1,11 @@
+{
+  "baseHead": "9ec6ebf75d88573e58b84e926bfaeb308e4159ac",
+  "fullManifestSha256": "c4f8837e93a6ab082bc82ee3efbcf59e1b8c4d05b0e71cc36286bd1faec32c91",
+  "fullManifestSourceCount": 3055,
+  "sources": {
+    "app/components/deploy/DeployPublishCard.tsx": "9ee87dd53eaaa5411881b75a258d44579be4a8bd016675b40263639faed0cbd8",
+    "app/components/deploy/DeploymentOverview.tsx": "8f79470896b47f933e65110c577e203c82fb30b9d687ebada248c30ab57dd14a",
+    "app/lib/i18n/catalogs/ide-panels.ts": "d3ac3db6aa3fe7886b40dcc90fde41a6c9db091e80b293211d20e1044266edef"
+  },
+  "scope": "Full manifest retained locally; changed production files shown here. Build receipt reports no source changes during compilation."
+}

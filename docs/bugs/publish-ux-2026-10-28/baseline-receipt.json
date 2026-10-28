@@ -1,0 +1,128 @@
+{
+  "head": "9ec6ebf75d88573e58b84e926bfaeb308e4159ac",
+  "buildExitCode": 0,
+  "cases": [
+    {
+      "suite": "layout",
+      "title": "Publish container 320px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 11629
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 390px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 12724
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 768px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 20181
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 1024px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 16664
+    },
+    {
+      "suite": "layout",
+      "title": "Publish container 1440px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 12763
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 320px history=true viewport=320",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 15219
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 390px history=true viewport=390",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 12233
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 768px history=true viewport=768",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 13997
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 1024px history=true viewport=1024",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 10600
+    },
+    {
+      "suite": "viewport",
+      "title": "Publish container 1440px history=true viewport=1440",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6262
+    },
+    {
+      "suite": "native",
+      "title": "Publish container 320px history=true viewport=2560",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 31772
+    },
+    {
+      "suite": "canonical",
+      "title": "top Publish, dashboard navigation and legacy bookmark open the same publish host",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 19402
+    },
+    {
+      "suite": "canonical",
+      "title": "real unavailable detection allows explicit mode override; double click sends one payload and error can be retried",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 78789
+    },
+    {
+      "suite": "canonical",
+      "title": "cancel and rollback require confirmation; Escape and Cancel send nothing",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 7119
+    }
+  ],
+  "passed": 14,
+  "failed": 0,
+  "skipped": 0,
+  "automaticRetries": 0,
+  "manualReruns": 0,
+  "stack": "retained by parent instruction for candidate",
+  "hashes": {
+    "baseline-results-summary.json": "71f4969d21f6ee57df0a99000c73c2b66194ca7f9a7a98d7abe5c293ce83db34",
+    "baseline-behavior.json": "d9caa96f0144821571747ad65ba8e5d290b66dd90d80b4e26e253d3e5c20375a",
+    "canonical-results.json": "7b83613e7d959492cd8363f7e355a6c085ad9f75f6a090faaff9488b6aa9f7bf",
+    "viewport-results.json": "6b0c74c7ff1a0c5126ba830ac27a80b53adf230e05812e16be219edbf902f944",
+    "layout-results.json": "6d93164f2d9a9e96b87ad6d9669523a777c1fa77ec3a3d0146d1556999f326b8",
+    "native-results.json": "7d574dd196143b36d5b67668d97bd95d3b320d7003486e5f94a19940ad9c53b7",
+    "build-manifest.json": "5ae55a1fad97673dbaf3c50f5d5338d7a8a618939e3ab7480c5dc9b9e9f4b2f9",
+    "canonical.config.mjs": "0f937446dc5b12d86e6ccd438e9228763d62a3a31c91fbc9d42ca3f2a4e5924a",
+    "canonical.spec.ts": "f1fa92c7436825a7f298a195b4bae0f416f3219e73636c3924946e63e0ffd325",
+    "native.config.mjs": "5d74117f4afe5832f2880008df055bc7b714c927d2c7c76f77fce917bb6bce18",
+    "native.spec.ts": "7dacfe69de88c361b7bc50bf88cb6b93658e43297d2ad7ec88e85d141a952f43",
+    "viewport.config.mjs": "783f31c986364b2233babd53d886680b030ab1f4dacefad34ca4ee71dd51a04a",
+    "viewport.spec.ts": "ca00de5fc97b79c1193304e12b1c317078bfb838ea0f3d4d40c4a597cf65b2b0",
+    "layout.config.mjs": "11e39a18dcbac92493eb798e87f8ee7678a4e32ad7850430a77db9a8222eac0a",
+    "layout.spec.ts": "4184f87e0c1be2a88fb64872bf0bfe887067cc832d5562963d9a16ec3947c94d",
+    "prebuild.json": "3ce987c0551a8b717c09a963d29ec5d3557535f776f425f19656308e3f94151d"
+  }
+}
