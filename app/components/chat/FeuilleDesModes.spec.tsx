@@ -76,17 +76,34 @@ describe('écran 1', () => {
     expect(screen.getByTestId('feuille-mode-max').textContent).toContain('claude-opus-5');
   });
 
-  it('en Lite, les deux entrées portent un cadenas et sont désactivées', () => {
-    poser({ modeActif: 'lite' });
+  it.each(['feuille', 'cote-a-cote'] as const)(
+    'en Lite, ouvre Luna Standard et conserve le verrou avancé (%s)',
+    (disposition) => {
+      const { onChoisirModele } = poser({
+        modeActif: 'lite',
+        disposition,
+        sondes: [],
+        choixParMode: { lite: { modele: 'gpt-5.6-luna', effort: 'high' } },
+      });
 
-    for (const sorte of ['modele', 'avance']) {
-      const entree = screen.getByTestId(`feuille-entree-${sorte}`) as HTMLButtonElement;
+      const modele = screen.getByTestId('feuille-entree-modele') as HTMLButtonElement;
+      const avance = screen.getByTestId('feuille-entree-avance') as HTMLButtonElement;
 
-      expect(entree.disabled, `${sorte} devrait être verrouillée`).toBe(true);
-      expect(entree.dataset.verrouillee).toBe('true');
-      expect(entree.textContent).toContain('à partir du mode Power');
-    }
-  });
+      expect(modele.disabled).toBe(false);
+      expect(avance.disabled).toBe(true);
+      expect(avance.textContent).toContain('à partir du mode Power');
+      fireEvent.click(modele);
+
+      const luna = screen.getByTestId('feuille-modele-gpt-5.6-luna-std') as HTMLButtonElement;
+      expect(luna.disabled).toBe(false);
+      fireEvent.click(luna);
+      expect(onChoisirModele).toHaveBeenCalledWith('lite', {
+        modele: 'gpt-5.6-luna',
+        serviceTier: undefined,
+        effort: undefined,
+      });
+    },
+  );
 
   it('en Max, les deux entrées s’ouvrent', () => {
     poser();
@@ -166,7 +183,7 @@ describe('le bloc Effort', () => {
   it('disparaît quand le modèle ne déclare aucun cran', () => {
     poser({ modeActif: 'lite', choixParMode: { lite: { modele: 'claude-haiku-4-5' } } });
 
-    /* En Lite les entrées sont verrouillées : on rend le bloc directement. */
+    /* Le modèle Lite peut être ouvert ; les réglages avancés restent verrouillés. */
     expect(screen.queryByTestId('feuille-effort')).toBeNull();
   });
 

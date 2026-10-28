@@ -104,6 +104,9 @@ describe('runtime listing against a newer successful save', () => {
     localStorage.clear();
     runtimeFiles.clear();
     vi.clearAllMocks();
+    runtimeAdapterMock.writeFile.mockImplementation(async (filePath, content) => {
+      runtimeFiles.set(filePath, content);
+    });
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response(JSON.stringify({ proposals: [] }))),
@@ -112,6 +115,133 @@ describe('runtime listing against a newer successful save', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('preserves the draft when an optimistic save echo precedes a rejected write', async () => {
+    const store = new WorkbenchStore();
+    runtimeFiles.set('audit.txt', 'ORIGINAL');
+    await store.loadRuntimeFiles();
+    store.setCurrentDocumentContent('DRAFT');
+
+    let rejectWrite!: (error: Error) => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(
+      () =>
+        new Promise<void>((_, reject) => {
+          rejectWrite = reject;
+        }),
+    );
+
+    const saving = store.saveFile(path);
+    const rejected = expect(saving).rejects.toThrow('WRITE_FAILED');
+    await vi.waitFor(() => expect(rejectWrite).toBeDefined());
+
+    // A repeated editor change during the optimistic filesystem echo is not a persisted receipt.
+    store.setCurrentDocumentContent('DRAFT');
+    expect.soft(store.unsavedFiles.get().has(path)).toBe(true);
+    rejectWrite(new Error('WRITE_FAILED'));
+    await rejected;
+    store.setDocuments(store.files.get());
+    store.setSelectedFile(path);
+    await Promise.resolve();
+    expect(store.currentDocument.get()?.value).toBe('DRAFT');
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    store.setCurrentDocumentContent('ORIGINAL');
+    expect(store.unsavedFiles.get().has(path)).toBe(false);
+    store.setCurrentDocumentContent('RETRY');
+    await store.saveFile(path);
+    expect(store.unsavedFiles.get().has(path)).toBe(false);
+    expect(runtimeFiles.get('audit.txt')).toBe('RETRY');
+  });
+
+  it('does not mark a newer edit clean when an older save finishes', async () => {
+    const store = new WorkbenchStore();
+    runtimeFiles.set('audit.txt', 'ORIGINAL');
+    await store.loadRuntimeFiles();
+    store.setCurrentDocumentContent('FIRST');
+
+    let finishWrite!: () => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(async (filePath, content) => {
+      await new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+      runtimeFiles.set(filePath, content);
+    });
+
+    const saving = store.saveFile(path);
+    await vi.waitFor(() => expect(finishWrite).toBeDefined());
+    store.setCurrentDocumentContent('SECOND');
+    finishWrite();
+    await saving;
+    expect.soft(store.unsavedFiles.get().has(path)).toBe(true);
+    store.setDocuments(store.files.get());
+    expect(store.currentDocument.get()?.value).toBe('SECOND');
+  });
+
+  it('keeps the draft protected while another queued save is outstanding', async () => {
+    const store = new WorkbenchStore();
+    runtimeFiles.set('audit.txt', 'ORIGINAL');
+    await store.loadRuntimeFiles();
+
+    const finish: Array<() => void> = [];
+    runtimeAdapterMock.writeFile.mockImplementation(async (filePath, content) => {
+      await new Promise<void>((resolve) => {
+        finish.push(resolve);
+      });
+      runtimeFiles.set(filePath, content);
+    });
+    store.setCurrentDocumentContent('A');
+
+    const savingA = store.saveFile(path);
+    await vi.waitFor(() => expect(finish).toHaveLength(1));
+    store.setCurrentDocumentContent('B');
+
+    const savingB = store.saveFile(path);
+    store.setCurrentDocumentContent('A');
+    finish[0]();
+    await savingA;
+    await vi.waitFor(() => expect(finish).toHaveLength(2));
+    expect.soft(store.unsavedFiles.get().has(path)).toBe(true);
+    store.setDocuments(store.files.get());
+    expect.soft(store.currentDocument.get()?.value).toBe('A');
+    finish[1]();
+    await savingB;
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    expect(store.currentDocument.get()?.value).toBe('A');
+    runtimeAdapterMock.writeFile.mockImplementation(async (filePath, content) => {
+      runtimeFiles.set(filePath, content);
+    });
+    await store.saveFile(path);
+    expect(store.unsavedFiles.get().has(path)).toBe(false);
+    expect(runtimeFiles.get('audit.txt')).toBe('A');
+  });
+
+  it('does not carry a pending receipt into another project at the same path', async () => {
+    const store = new WorkbenchStore();
+    store.configureProject('project-a');
+    runtimeFiles.set('audit.txt', 'ORIGINAL');
+    await store.loadRuntimeFiles();
+    store.setCurrentDocumentContent('PROJECT-A-DRAFT');
+
+    let finishWrite!: () => void;
+    runtimeAdapterMock.writeFile.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+    });
+
+    const saving = store.saveFile(path);
+    const settled = saving.catch(() => undefined);
+    await vi.waitFor(() => expect(finishWrite).toBeDefined());
+    store.configureProject('project-b');
+    runtimeFiles.set('audit.txt', 'PROJECT-B');
+    await store.loadRuntimeFiles();
+    store.setSelectedFile(path);
+    store.setCurrentDocumentContent('PROJECT-B');
+    expect(store.unsavedFiles.get().has(path)).toBe(false);
+    finishWrite();
+    await settled;
+    expect(store.currentDocument.get()?.value).toBe('PROJECT-B');
+    expect(store.unsavedFiles.get().has(path)).toBe(false);
   });
 
   it('keeps the remote project write destination across adapter reattachment and separates projects', () => {

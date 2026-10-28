@@ -353,6 +353,9 @@ export class WorkbenchStore {
     hotData.supabaseAlert ?? atom<SupabaseAlert | undefined>(undefined);
   deployAlert: WritableAtom<DeployAlert | undefined> = hotData.deployAlert ?? atom<DeployAlert | undefined>(undefined);
   modifiedFiles = new Set<string>();
+
+  // Scope pending receipts by project binding so a late save cannot affect another project.
+  #pendingFileSaves = new Map<string, number>();
   artifactIdList: string[] = [];
   workspaceStatus: WritableAtom<WorkspaceSession | undefined> =
     hotData.workspaceStatus ?? atom<WorkspaceSession | undefined>(undefined);
@@ -2579,7 +2582,10 @@ export class WorkbenchStore {
     }
 
     const originalContent = this.#filesStore.getFile(filePath)?.content;
-    const unsavedChanges = originalContent !== undefined && originalContent !== newContent;
+    const saveKey = `${this.#projectStorageBinding}:${filePath}`;
+
+    const unsavedChanges =
+      this.#pendingFileSaves.has(saveKey) || (originalContent !== undefined && originalContent !== newContent);
     this.#editorStore.updateFile(filePath, newContent);
 
     const previousUnsavedFiles = this.unsavedFiles.get();
@@ -2699,7 +2705,22 @@ export class WorkbenchStore {
      */
 
     const binding = this.#projectStorageBinding;
-    const effectiveContent = await this.#filesStore.saveFile(filePath, document.value, options);
+    const saveKey = `${binding}:${filePath}`;
+    this.#pendingFileSaves.set(saveKey, (this.#pendingFileSaves.get(saveKey) ?? 0) + 1);
+
+    let effectiveContent: string;
+
+    try {
+      effectiveContent = await this.#filesStore.saveFile(filePath, document.value, options);
+    } finally {
+      const remaining = (this.#pendingFileSaves.get(saveKey) ?? 1) - 1;
+
+      if (remaining > 0) {
+        this.#pendingFileSaves.set(saveKey, remaining);
+      } else {
+        this.#pendingFileSaves.delete(saveKey);
+      }
+    }
 
     if (binding !== this.#projectStorageBinding) {
       return undefined;
@@ -2713,8 +2734,13 @@ export class WorkbenchStore {
       this.#enregistrementsUtilisateur.set(filePath, ++this.#horloge);
     }
 
+    // An older save receipt cannot acknowledge edits made while its write was pending.
+    const currentDocument = this.#editorStore.documents.get()[filePath];
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
-    newUnsavedFiles.delete(filePath);
+
+    if (currentDocument?.value === document.value && !this.#pendingFileSaves.has(saveKey)) {
+      newUnsavedFiles.delete(filePath);
+    }
 
     this.unsavedFiles.set(newUnsavedFiles);
 
