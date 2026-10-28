@@ -29766,6 +29766,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * billing multiplier per mode. Deliberately contains NO provider and NO
    * model id: the client never learns model names from this surface.
    */
+  // A project budget survives reloads and cannot be bypassed by repair endpoints.
+  app.get('/projects/:projectId/agent/explicit-run', async (request) => {
+    const { projectId } = parse(projectParams, request.params);
+    await requireProject(request, store, projectId, 'workspaces:write');
+
+    return { bounded: await store.hasExplicitRunBudget(projectId) };
+  });
+
   app.post('/projects/:projectId/agent/explicit-run', async (request, reply) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:write');

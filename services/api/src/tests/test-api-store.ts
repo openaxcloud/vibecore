@@ -3188,6 +3188,10 @@ export class TestApiStore implements ApiStore {
     return next;
   }
 
+  async hasExplicitRunBudget(projectId: string): Promise<boolean> {
+    return this.systemSettings.has(`agent.explicit-run.v1:${projectId}`);
+  }
+
   async getExplicitRunProviderConfiguration() {
     const config = this.providerConfigs.get('OpenAI');
     return config ? { enabled: config.enabled, baseUrl: config.baseUrl } : undefined;

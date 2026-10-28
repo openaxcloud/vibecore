@@ -63,8 +63,10 @@ describe.skipIf(process.env.EXPLICIT_RUN_POSTGRES_PROOF !== '1')('explicit budge
     ]);
 
     const permit = fixture()();
+    expect(await second.hasExplicitRunBudget(permit.projectId)).toBe(false);
     await first.setSystemSetting({ key: `agent.explicit-run.v1:${permit.projectId}`, value: { unexpected: true } });
     expect(await second.reserveExplicitRun(permit)).toEqual({ ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' });
+    expect(await second.hasExplicitRunBudget(permit.projectId)).toBe(true);
   });
 
   it('serializes competing reservations across two real connections without overspending', async () => {
@@ -112,6 +114,7 @@ describe.skipIf(process.env.EXPLICIT_RUN_POSTGRES_PROOF !== '1')('explicit budge
     try {
       const saved = await reconnected.getExplicitRunPermit(permit.projectId, permit.runId);
       expect(saved).toEqual(permit);
+      expect(await reconnected.hasExplicitRunBudget(permit.projectId)).toBe(true);
       expect(saved?.accounting).toEqual({
         providerInputCentsPerMillion: 20,
         providerOutputCentsPerMillion: 120,
@@ -131,7 +134,12 @@ describe.skipIf(process.env.EXPLICIT_RUN_POSTGRES_PROOF !== '1')('explicit budge
         code: 'EXPLICIT_RUN_REPLAY',
       });
       expect(await reconnected.getExplicitRunPermit(permit.projectId, permit.runId)).toEqual(permit);
-      observations.push({ persistedAcrossReconnect: true, normalAccountingSeparated: true, repricingRejected: true });
+      observations.push({
+        persistedAcrossReconnect: true,
+        normalAccountingSeparated: true,
+        repricingRejected: true,
+        persistentRepairGuard: true,
+      });
     } finally {
       await reconnected.prisma.$disconnect();
     }

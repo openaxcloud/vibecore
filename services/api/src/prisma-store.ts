@@ -4202,6 +4202,16 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
+  async hasExplicitRunBudget(projectId: string): Promise<boolean> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: `agent.explicit-run.v1:${projectId}` },
+      select: { id: true },
+    });
+
+    // Even a malformed reservation is bounded: never infer unlimited execution.
+    return row !== null;
+  }
+
   async getExplicitRunProviderConfiguration() {
     return (
       (await this.prisma.providerConfig.findUnique({

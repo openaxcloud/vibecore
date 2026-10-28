@@ -212,3 +212,22 @@ it.each([
     await app.close();
   }
 });
+
+it('exposes a durable repair guard only to an authorized project writer and fails closed on read errors', async () => {
+  const { app, store, project, invoke, payload } = await setup();
+  const get = (token = 'explicit-token') => app.inject({ method: 'GET',
+    url: `/projects/${project.id}/agent/explicit-run`, headers: { authorization: `Bearer ${token}` } });
+  try {
+    expect((await get()).json()).toEqual({ bounded: false });
+    expect((await get('missing')).statusCode).toBe(401);
+    await invoke(payload());
+    expect((await get()).json()).toEqual({ bounded: true });
+    // Corruption/unknown schema cannot reopen paid side paths.
+    await store.setSystemSetting({ key: `agent.explicit-run.v1:${project.id}`, value: null });
+    expect((await get()).json()).toEqual({ bounded: true });
+    store.hasExplicitRunBudget = async () => { throw new Error('synthetic storage unavailable'); };
+    const failed = await get();
+    expect(failed.statusCode).toBe(500);
+    expect(failed.json()).not.toHaveProperty('bounded', false);
+  } finally { await app.close(); }
+});

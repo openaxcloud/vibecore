@@ -26,6 +26,7 @@ import {
 import { projectAiTranscriptMessages } from './project-ai-transcript-messages';
 import { BaseChat } from './BaseChat';
 import { lireChoix } from './choix-de-modele';
+import { canAutomaticallyReplayPrompt } from '~/lib/chat/pending-prompt-budget';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
@@ -1729,7 +1730,7 @@ export const ChatImpl = memo(
       }
 
       getProjectIdeMemory(projectId)
-        .then((memory) => {
+        .then(async (memory) => {
           if (cancelled) {
             return;
           }
@@ -1788,6 +1789,11 @@ export const ChatImpl = memo(
               logger.warn('failed to clear stale pending prompt', { projectId, error });
             });
 
+            return;
+          }
+
+          // Preserve the manual fallback, but never restart a bounded run as Auto on reload.
+          if (!(await canAutomaticallyReplayPrompt(projectId)) || cancelled) {
             return;
           }
 
@@ -2153,6 +2159,7 @@ export const ChatImpl = memo(
             message: finalMessageContent,
             model,
             provider,
+            explicitModelSelected: Boolean(lireChoix()[agentPower?.buildTier ?? 'power']),
           });
 
           if (template !== 'blank') {

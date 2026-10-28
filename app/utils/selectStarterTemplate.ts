@@ -88,7 +88,17 @@ const parseSelectedTemplate = (llmOutput: string): { template: string; title: st
   }
 };
 
-export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }) => {
+export const selectStarterTemplate = async (options: {
+  message: string;
+  model: string;
+  provider: ProviderInfo;
+  explicitModelSelected?: boolean;
+}) => {
+  // Template selection is an auxiliary LLM call outside the explicit run permit.
+  if (options.explicitModelSelected) {
+    return { template: 'blank', title: '' };
+  }
+
   const { message, model, provider } = options;
 
   const requestBody = {

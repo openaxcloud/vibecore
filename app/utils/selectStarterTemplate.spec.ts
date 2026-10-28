@@ -24,6 +24,37 @@ describe('getTemplates artifact escaping', () => {
     );
   };
 
+  it('skips the auxiliary LLM call when a model is explicitly selected', async () => {
+    const network = vi.fn();
+    vi.stubGlobal('fetch', network);
+
+    await expect(
+      selectStarterTemplate({
+        message: 'Build an app',
+        model: 'gpt-5.6-luna',
+        provider: { name: 'OpenAI', staticModels: [] },
+        explicitModelSelected: true,
+      }),
+    ).resolves.toEqual({ template: 'blank', title: '' });
+    expect(network).not.toHaveBeenCalled();
+  });
+
+  it('keeps automatic template selection when no explicit model is selected', async () => {
+    const network = vi.fn<typeof fetch>(async () =>
+      Response.json({ text: '<selection><templateName>blank</templateName></selection>' }),
+    );
+    vi.stubGlobal('fetch', network);
+
+    await selectStarterTemplate({
+      message: 'Build an app',
+      model: 'test-model',
+      provider: { name: 'Test', staticModels: [] },
+      explicitModelSelected: false,
+    });
+    expect(network).toHaveBeenCalledOnce();
+    expect(network.mock.calls[0][0]).toBe('/api/llmcall');
+  });
+
   it('escapes a hostile file path so it cannot break out of the filePath attribute', async () => {
     stubGithubTemplateFetch([
       {

@@ -3,6 +3,7 @@ import { type ActionFunctionArgs } from 'react-router';
 import { buildSelfRepairMessageContent } from './api.agent.self-repair.message';
 import { streamText, type Messages } from '~/lib/.server/llm/stream-text';
 import { requireWebSession } from '~/lib/.server/require-session';
+import { apiRequest } from '~/lib/enterprise-api.server';
 import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
@@ -65,10 +66,10 @@ export async function action({ context, request }: ActionFunctionArgs) {
   // Gate the platform's managed provider keys behind a valid session.
   await requireWebSession(request);
 
-  let body: { prompt?: unknown; model?: unknown; provider?: unknown };
+  let body: { prompt?: unknown; model?: unknown; provider?: unknown; projectId?: unknown };
 
   try {
-    body = (await request.json()) as { prompt?: unknown; model?: unknown; provider?: unknown };
+    body = (await request.json()) as { prompt?: unknown; model?: unknown; provider?: unknown; projectId?: unknown };
   } catch {
     return remainingApiErrorResponse(request, 'INVALID_JSON_BODY', 400);
   }
@@ -91,6 +92,30 @@ export async function action({ context, request }: ActionFunctionArgs) {
     return remainingApiErrorResponse(request, 'SELF_REPAIR_PROMPT_TOO_LARGE', 413, {
       values: { maximum: MAX_PROMPT_BYTES },
     });
+  }
+
+  /*
+   * A client flag is not a budget boundary. Check the persisted project envelope
+   * under the caller's session; missing context or an unreadable ledger fails closed.
+   */
+  if (typeof body.projectId !== 'string' || !body.projectId.trim()) {
+    return remainingApiErrorResponse(request, 'SELF_REPAIR_PROJECT_REQUIRED', 400, { extra: { isRetryable: false } });
+  }
+
+  try {
+    const budget = await apiRequest<{ bounded: boolean }>(
+      request,
+      `/projects/${encodeURIComponent(body.projectId)}/agent/explicit-run`,
+      { redirectOn401: false },
+    );
+
+    if (!budget || budget.bounded !== false) {
+      return remainingApiErrorResponse(request, 'EXPLICIT_RUN_AUXILIARY_DISABLED', 403, {
+        extra: { isRetryable: false },
+      });
+    }
+  } catch {
+    return remainingApiErrorResponse(request, 'SELF_REPAIR_BUDGET_UNAVAILABLE', 503, { extra: { isRetryable: false } });
   }
 
   const cookieHeader = request.headers.get('Cookie') ?? '';

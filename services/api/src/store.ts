@@ -2371,6 +2371,7 @@ export interface ApiStore {
   deleteAiMessageFeedback(input: { userId: string; messageId: string }): Promise<boolean>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
+  hasExplicitRunBudget(projectId: string): Promise<boolean>;
   getExplicitRunProviderConfiguration(): Promise<{ enabled: boolean; baseUrl?: string | null } | undefined>;
   getExplicitRunPermit(projectId: string, runId: string): Promise<ExplicitRunPermit | undefined>;
   reserveExplicitRun(permit: ExplicitRunPermit): Promise<ExplicitRunReservation>;
