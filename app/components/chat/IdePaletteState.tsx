@@ -1,4 +1,16 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, type Dispatch, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type Dispatch,
+  type MutableRefObject,
+  type ReactNode,
+} from 'react';
 
 type Palette = { paneId: string; query: string } | null;
 type Action =
@@ -26,12 +38,51 @@ function reducePalette(state: Palette, action: Action): Palette {
 const PaletteStateContext = createContext<Palette>(null);
 const PaletteDispatchContext = createContext<Dispatch<Action> | undefined>(undefined);
 
+function useGlobalPaletteState() {
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files' | 'spotlight'>('all');
+  const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
+  const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
+  const [spotlightProjectName, setSpotlightProjectName] = useState('');
+  const commandPaletteReturnFocusRef = useRef<HTMLElement | null>(null);
+
+  return useMemo(
+    () => ({
+      commandPaletteOpen,
+      setCommandPaletteOpen,
+      commandPaletteMode,
+      setCommandPaletteMode,
+      commandPaletteQuery,
+      setCommandPaletteQuery,
+      commandPaletteIndex,
+      setCommandPaletteIndex,
+      spotlightProjectName,
+      setSpotlightProjectName,
+      commandPaletteReturnFocusRef,
+    }),
+    [commandPaletteOpen, commandPaletteMode, commandPaletteQuery, commandPaletteIndex, spotlightProjectName],
+  );
+}
+
+const GlobalPaletteContext = createContext<ReturnType<typeof useGlobalPaletteState> | null>(null);
+
+/** Route-owned command palette; standalone chat callers keep their local lifetime. */
+export function useGlobalIdePalette() {
+  const shared = useContext(GlobalPaletteContext);
+  const local = useGlobalPaletteState();
+
+  return shared ?? local;
+}
+
 function ScopedPaletteProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducePalette, null);
+  const globalPalette = useGlobalPaletteState();
 
   return (
     <PaletteDispatchContext.Provider value={dispatch}>
-      <PaletteStateContext.Provider value={state}>{children}</PaletteStateContext.Provider>
+      <PaletteStateContext.Provider value={state}>
+        <GlobalPaletteContext.Provider value={globalPalette}>{children}</GlobalPaletteContext.Provider>
+      </PaletteStateContext.Provider>
     </PaletteDispatchContext.Provider>
   );
 }
@@ -78,4 +129,44 @@ export function useRetainIdePalettes(paneIds: readonly string[]) {
   useEffect(() => {
     dispatch?.({ type: 'retain', paneIds });
   }, [dispatch, paneIds]);
+}
+
+/** Restore the command opener after explicit close, without stealing an outside click. */
+export function useCommandPaletteReturnFocus(
+  open: boolean,
+  returnFocusRef: MutableRefObject<HTMLElement | null>,
+  closedByOutsideClickRef: MutableRefObject<boolean>,
+) {
+  useEffect(() => {
+    if (open) {
+      return undefined;
+    }
+
+    const previous = returnFocusRef.current;
+    returnFocusRef.current = null;
+
+    if (closedByOutsideClickRef.current) {
+      closedByOutsideClickRef.current = false;
+      return undefined;
+    }
+
+    if (!previous) {
+      return undefined;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const testId = previous.dataset.testid;
+
+      const target = previous.isConnected
+        ? previous
+        : testId
+          ? Array.from(document.querySelectorAll<HTMLElement>('[data-testid]')).find(
+              (candidate) => candidate.dataset.testid === testId && candidate.getClientRects().length > 0,
+            )
+          : undefined;
+      target?.focus();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [open, returnFocusRef, closedByOutsideClickRef]);
 }
