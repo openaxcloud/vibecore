@@ -109,3 +109,9 @@ it('preserves a pending Agent choice until the URL changes and restores Editor o
   view.rerender(<InitialSurface panel="editor" projectIdeMode compact />);
   expect(view.container.querySelector('output')?.dataset.surface).toBe('editor');
 });
+
+it.each(['terminal', 'shell'])('reserves the canonical Terminal startup surface before URL effects for %s', (panel) => {
+  expect(renderToStaticMarkup(<InitialSurface panel={panel} projectIdeMode />)).toContain(
+    'data-surface="terminal" data-tab="terminal"',
+  );
+});

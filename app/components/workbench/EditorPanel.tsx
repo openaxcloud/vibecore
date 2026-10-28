@@ -386,7 +386,7 @@ export const EditorPanel = memo(
               aria-label={t('idePanels.editor.interactiveTerminal')}
             >
               <PanelGroup direction="vertical">
-                <TerminalTabs panelDefaultSize={100} />
+                <TerminalTabs panelDefaultSize={100} paneId={paneId} handoffSlot="editor" />
               </PanelGroup>
             </div>
           </PanelBoundary>
@@ -414,7 +414,7 @@ export const EditorPanel = memo(
         </Panel>
         <PanelResizeHandle />
         <PanelBoundary title={t('idePanels.editor.shellTerminal')}>
-          <TerminalTabs />
+          <TerminalTabs paneId={paneId} handoffSlot="editor" />
         </PanelBoundary>
       </PanelGroup>
     );

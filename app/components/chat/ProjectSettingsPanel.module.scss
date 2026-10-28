@@ -40,7 +40,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .panel.panel :global(.bolt-project-settings-sidebar) {
+  :global(.bolt-responsive-ide-desktop) .panel.panel :global(.bolt-project-settings-sidebar) {
     position: static;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));

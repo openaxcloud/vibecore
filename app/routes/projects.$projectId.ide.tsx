@@ -56,6 +56,7 @@ import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { configuredToast } from '~/components/ui/use-toast';
 import { ProjectResourcesPanel } from '~/components/workbench/ProjectResourcesPanel';
 import { SearchDraftProvider } from '~/components/workbench/SearchDraftState';
+import { TerminalInteractionHandoffProvider } from '~/components/workbench/terminal/TerminalInteractionHandoff';
 import { formatProjectIdeCopy, formatProjectIdeCount, getProjectIdeCopy } from '~/lib/i18n/catalogs/project-ide';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
@@ -218,27 +219,33 @@ export default function ProjectIdeRoute() {
                     workspaceId={currentWorkspaceId}
                     windowId={searchParams.get('peWindow') || 'window-main'}
                   >
-                    <main className="h-dvh pt-9">
-                      <ClientOnly fallback={optimisticShell}>
-                        {() => (
-                          <ZoneErrorBoundary
-                            zone="editor"
-                            title={copy['projectIde.boundaryTitle']}
-                            boundaryId={`project:${projectId}:ide`}
-                          >
-                            <Suspense fallback={optimisticShell}>
-                              <ProjectIdeChat
-                                forceWorkbench
-                                projectIdeMode
-                                projectId={projectId}
-                                projectUrl={projectUrl}
-                                initialIdePanels={initialIdePanels}
-                              />
-                            </Suspense>
-                          </ZoneErrorBoundary>
-                        )}
-                      </ClientOnly>
-                    </main>
+                    <TerminalInteractionHandoffProvider
+                      projectId={projectId}
+                      workspaceId={currentWorkspaceId}
+                      windowId={searchParams.get('peWindow') || 'window-main'}
+                    >
+                      <main className="h-dvh pt-9">
+                        <ClientOnly fallback={optimisticShell}>
+                          {() => (
+                            <ZoneErrorBoundary
+                              zone="editor"
+                              title={copy['projectIde.boundaryTitle']}
+                              boundaryId={`project:${projectId}:ide`}
+                            >
+                              <Suspense fallback={optimisticShell}>
+                                <ProjectIdeChat
+                                  forceWorkbench
+                                  projectIdeMode
+                                  projectId={projectId}
+                                  projectUrl={projectUrl}
+                                  initialIdePanels={initialIdePanels}
+                                />
+                              </Suspense>
+                            </ZoneErrorBoundary>
+                          )}
+                        </ClientOnly>
+                      </main>
+                    </TerminalInteractionHandoffProvider>
                   </SearchDraftProvider>
                 </IdePaletteProvider>
               </ComposerToolsProvider>

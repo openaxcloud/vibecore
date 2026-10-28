@@ -1813,7 +1813,57 @@ createServer((request, response) => {
         );
       }, projectId);
 
-      await expect(query).toBeVisible();
+      try {
+        await expect(query).toBeVisible();
+      } catch (error) {
+        const diagnostic = await page
+          .evaluate(() => {
+            const router = (
+              window as typeof window & {
+                __reactRouterDataRouter?: {
+                  state: {
+                    location: { pathname: string; search: string; key: string };
+                    navigation: { state: string };
+                  };
+                };
+              }
+            ).__reactRouterDataRouter?.state;
+
+            return {
+              pathname: location.pathname,
+              search: location.search,
+              router: router
+                ? {
+                    pathname: router.location.pathname,
+                    search: router.location.search,
+                    key: router.location.key,
+                    navigation: router.navigation.state,
+                  }
+                : null,
+              surfaces: Array.from(document.querySelectorAll('.bolt-responsive-ide')).map((element) => ({
+                mobilePanel: element.getAttribute('data-mobile-panel'),
+              })),
+              workbenches: Array.from(document.querySelectorAll('[data-testid="mobile-workbench-keepalive"]')).map(
+                (element) => ({
+                  active: element.getAttribute('data-active'),
+                  hidden: element.getAttribute('aria-hidden'),
+                }),
+              ),
+              queryCount: document.querySelectorAll('input[data-search-draft-field="query"]').length,
+            };
+          })
+          .catch(() => ({ diagnosticUnavailable: true }));
+        const visibleQueryCount = await page
+          .locator('input[data-search-draft-field="query"]')
+          .filter({ visible: true })
+          .count()
+          .catch(() => null);
+
+        // Route and visibility metadata only: no search text, editor content or prompts.
+        console.info('Search Back visibility diagnostic', JSON.stringify({ ...diagnostic, visibleQueryCount }));
+        throw error;
+      }
+
       await expect(query).toHaveValue('alpha');
       await expect(query).not.toBeFocused();
       await page.goForward();

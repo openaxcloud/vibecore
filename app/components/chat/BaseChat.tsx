@@ -288,6 +288,7 @@ import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
+import { TerminalInteractionHandoffBoundary } from '~/components/workbench/terminal/TerminalInteractionHandoff';
 import { editorKindForLayout, useResponsiveLayout, EditorFocusHandoffBoundary } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
@@ -2990,11 +2991,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ? projectPanelResolution.panel
         : '';
 
-    /* Explicit Search and Editor routes must survive a shell handoff without an intermediate Agent commit. */
+    /* Explicit interactive routes must survive a shell handoff without an intermediate Agent commit. */
     const [mobilePanel, setMobilePanel] = useState<
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
     >(() =>
-      projectIdeMode && (activeProjectPanel === 'search' || activeProjectPanel === 'editor')
+      projectIdeMode &&
+      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
         ? activeProjectPanel
         : 'chat',
     );
@@ -3387,7 +3389,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [ECODE_MOBILE_TAB_META, t]);
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState(() =>
-      projectIdeMode && (activeProjectPanel === 'search' || activeProjectPanel === 'editor')
+      projectIdeMode &&
+      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
         ? activeProjectPanel
         : 'agent',
     );
@@ -8930,7 +8933,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (panel === 'terminal') {
-          return <ProjectInteractiveTerminalPanel projectId={projectId} />;
+          return <ProjectInteractiveTerminalPanel projectId={projectId} paneId={paneId} />;
         }
 
         /*
@@ -10569,40 +10572,47 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   data-active={!useMobileIde || mobileWorkbenchPanelActive ? 'true' : 'false'}
                   aria-hidden={!useMobileIde || mobileWorkbenchPanelActive ? undefined : true}
                 >
-                  <EditorFocusHandoffBoundary
-                    identity={
-                      projectIdeMode && useMobileIde && mobilePanel === 'editor' && currentDocument
-                        ? JSON.stringify([activePaneId, currentDocument.filePath])
-                        : undefined
-                    }
+                  <TerminalInteractionHandoffBoundary
+                    paneId={projectIdeMode && useMobileIde && mobilePanel === 'terminal' ? activePaneId : undefined}
+                    slot="editor"
                   >
-                    <ClientOnly>
-                      {() => (
-                        <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
-                          <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
-                            <LazyWorkbench
-                              chatStarted={chatStarted || useMobileIde}
-                              isStreaming={isStreaming}
-                              setSelectedElement={setSelectedElement}
-                              mobilePanel={resolveMobileWorkbenchPanel({
-                                mobilePanel,
-                                lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
-                              })}
-                              projectId={projectId}
-                              paneId={projectIdeMode ? activePaneId : undefined}
-                              onUserFileSelect={onUserProjectFileSelect}
-                              onMobilePanelChange={(panel) => {
-                                if (panel === 'editor') {
-                                  setMobileIdePanel('editor');
-                                  setProjectPanelSearchParam('editor');
-                                }
-                              }}
-                            />
-                          </Suspense>
-                        </PanelBoundary>
-                      )}
-                    </ClientOnly>
-                  </EditorFocusHandoffBoundary>
+                    <EditorFocusHandoffBoundary
+                      identity={
+                        projectIdeMode && useMobileIde && mobilePanel === 'editor' && currentDocument
+                          ? JSON.stringify([activePaneId, currentDocument.filePath])
+                          : undefined
+                      }
+                    >
+                      <ClientOnly>
+                        {() => (
+                          <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
+                            <Suspense
+                              fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}
+                            >
+                              <LazyWorkbench
+                                chatStarted={chatStarted || useMobileIde}
+                                isStreaming={isStreaming}
+                                setSelectedElement={setSelectedElement}
+                                mobilePanel={resolveMobileWorkbenchPanel({
+                                  mobilePanel,
+                                  lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
+                                })}
+                                projectId={projectId}
+                                paneId={projectIdeMode ? activePaneId : undefined}
+                                onUserFileSelect={onUserProjectFileSelect}
+                                onMobilePanelChange={(panel) => {
+                                  if (panel === 'editor') {
+                                    setMobileIdePanel('editor');
+                                    setProjectPanelSearchParam('editor');
+                                  }
+                                }}
+                              />
+                            </Suspense>
+                          </PanelBoundary>
+                        )}
+                      </ClientOnly>
+                    </EditorFocusHandoffBoundary>
+                  </TerminalInteractionHandoffBoundary>
                 </div>
               ) : null}
             </>
@@ -12560,7 +12570,7 @@ function ProjectBottomTerminal({
               <PanelBoundary title={SHELL_TERMINAL_LABEL}>
                 <Suspense fallback={<TerminalTabsFallback />}>
                   <PanelGroup direction="vertical" className="h-full">
-                    <LazyTerminalTabs panelDefaultSize={100} />
+                    <LazyTerminalTabs panelDefaultSize={100} paneId="project-bottom-terminal" handoffSlot="bottom" />
                   </PanelGroup>
                 </Suspense>
               </PanelBoundary>
@@ -12810,7 +12820,7 @@ function ProjectProblemsPanel() {
   );
 }
 
-function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) {
+function ProjectInteractiveTerminalPanel({ projectId, paneId }: { projectId?: string; paneId?: string }) {
   const { t } = useTranslation();
   const [toolsOpen, setToolsOpen] = useState(false);
 
@@ -12822,7 +12832,7 @@ function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) 
             <PanelBoundary title={SHELL_TERMINAL_LABEL}>
               <Suspense fallback={<TerminalTabsFallback />}>
                 <PanelGroup direction="vertical" className="h-full">
-                  <LazyTerminalTabs panelDefaultSize={100} />
+                  <LazyTerminalTabs panelDefaultSize={100} paneId={paneId} />
                 </PanelGroup>
               </Suspense>
             </PanelBoundary>

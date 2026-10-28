@@ -3,6 +3,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { useTranslation } from 'react-i18next';
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef, type TerminalSearchResults } from './Terminal';
+import { useTerminalInteractionHandoff } from './TerminalInteractionHandoff';
 import { TerminalManager } from './TerminalManager';
 import {
   TERMINAL_PROFILES,
@@ -93,9 +94,12 @@ function readTerminalUiState(): TerminalUiState {
 
 interface TerminalTabsProps {
   panelDefaultSize?: number;
+  paneId?: string;
+  handoffSlot?: string;
 }
 
-export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: TerminalTabsProps) => {
+export const TerminalTabs = memo((props: TerminalTabsProps) => {
+  const { panelDefaultSize = DEFAULT_TERMINAL_SIZE, paneId, handoffSlot = 'panel' } = props;
   const { t } = useTranslation();
   const showTerminal = useStore(workbenchStore.showTerminal);
   const theme = useStore(themeStore);
@@ -130,8 +134,26 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<TerminalSearchResults | null>(null);
   const [copied, setCopied] = useState(false);
-  const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [sessionMenuOpen, updateSessionMenuOpen] = useState(false);
+  const [moreMenuOpen, updateMoreMenuOpen] = useState(false);
+
+  /*
+   * A closing action and shell replacement can share one React batch. Capture
+   * the latest user intent even when this component never renders that update.
+   */
+  const menuIntent = useRef({ sessions: false, actions: false });
+
+  const setSessionMenuOpen = (value: React.SetStateAction<boolean>) => {
+    const next = typeof value === 'function' ? value(menuIntent.current.sessions) : value;
+    menuIntent.current.sessions = next;
+    updateSessionMenuOpen(next);
+  };
+  const setMoreMenuOpen = (value: React.SetStateAction<boolean>) => {
+    const next = typeof value === 'function' ? value(menuIntent.current.actions) : value;
+    menuIntent.current.actions = next;
+    updateMoreMenuOpen(next);
+  };
+
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sessionMenuRef = useRef<HTMLDivElement>(null);
@@ -140,6 +162,17 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const sessionTriggerRef = useRef<HTMLButtonElement>(null);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const menuInitialEdge = useRef<'first' | 'last'>('first');
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  const restoreInteractionFocus = useTerminalInteractionHandoff(
+    toolbarRef,
+    paneId ? JSON.stringify([paneId, handoffSlot]) : undefined,
+    () => (menuIntent.current.sessions ? 'sessions' : menuIntent.current.actions ? 'actions' : null),
+    (menu) => {
+      setSessionMenuOpen(menu === 'sessions');
+      setMoreMenuOpen(menu === 'actions');
+    },
+  );
 
   const menuControls = (container: HTMLElement) =>
     Array.from(
@@ -208,6 +241,10 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   };
 
   useEffect(() => {
+    if (restoreInteractionFocus(sessionMenuOpen ? 'sessions' : moreMenuOpen ? 'actions' : null)) {
+      return;
+    }
+
     const container = sessionMenuOpen ? sessionMenuRef.current : moreMenuOpen ? moreMenuRef.current : null;
 
     if (container) {
@@ -592,7 +629,12 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
     >
       <div className="h-full">
         <div className="bolt-terminal-tabs-shell bg-bolt-elements-terminals-background h-full flex flex-col">
-          <div className="bolt-terminal-tabs-bar" data-testid="terminal-tabs-bar" aria-label={TERMINAL_PANEL_LABEL}>
+          <div
+            ref={toolbarRef}
+            className="bolt-terminal-tabs-bar"
+            data-testid="terminal-tabs-bar"
+            aria-label={TERMINAL_PANEL_LABEL}
+          >
             <div
               className="bolt-terminal-session-switcher"
               ref={sessionMenuRef}
@@ -604,6 +646,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 type="button"
                 className="bolt-terminal-session-button"
                 ref={sessionTriggerRef}
+                data-terminal-control="sessions-trigger"
                 aria-haspopup="menu"
                 aria-expanded={sessionMenuOpen}
                 aria-label={t('terminalTabs.sessions.open', { session: activeSessionLabel })}
@@ -638,6 +681,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                           className="bolt-terminal-session-menu-item"
                           role="menuitemradio"
                           aria-checked={isActive}
+                          data-terminal-control={`session-${index}`}
                           onClick={() => {
                             setActiveTerminal(index);
                             setSessionMenuOpen(false);
@@ -650,6 +694,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                           <button
                             type="button"
                             className="bolt-terminal-session-close"
+                            data-terminal-control={`session-close-${index}`}
                             aria-label={t('terminalTabs.sessions.close', { label: terminalLabel })}
                             role="menuitem"
                             onClick={() => {
@@ -670,6 +715,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       <button
                         type="button"
                         className="bolt-terminal-session-new disabled:cursor-not-allowed disabled:opacity-50"
+                        data-terminal-control="session-new"
                         role="menuitem"
                         onClick={addTerminal}
                         disabled={atShellLimit}
@@ -688,6 +734,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
             </div>
             <div className="bolt-terminal-primary-actions" aria-label={t('terminalTabs.actions.label')}>
               <button
+                data-terminal-control="copy"
                 type="button"
                 className="bolt-terminal-icon-button"
                 aria-label={t('terminalTabs.copy.label')}
@@ -700,6 +747,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 {copied ? t('terminalTabs.copy.copied') : ''}
               </span>
               <button
+                data-terminal-control="find"
                 type="button"
                 className="bolt-terminal-icon-button"
                 aria-label={t('terminalTabs.find.label')}
@@ -709,6 +757,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 <span className="i-ph:magnifying-glass" aria-hidden />
               </button>
               <button
+                data-terminal-control="clear"
                 type="button"
                 className="bolt-terminal-icon-button"
                 aria-label={t('terminalTabs.clear.label')}
@@ -728,6 +777,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                   type="button"
                   className="bolt-terminal-more-button"
                   ref={moreTriggerRef}
+                  data-terminal-control="actions-trigger"
                   aria-haspopup="menu"
                   aria-expanded={moreMenuOpen}
                   aria-label={t('terminalTabs.more.label')}
@@ -758,6 +808,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       </div>
                     </div>
                     <button
+                      data-terminal-control="kill"
                       type="button"
                       className="bolt-terminal-menu-item"
                       role="menuitem"
@@ -770,6 +821,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       <span>{t('terminalTabs.menu.kill')}</span>
                     </button>
                     <button
+                      data-terminal-control="copy-output"
                       type="button"
                       className="bolt-terminal-menu-item"
                       role="menuitem"
@@ -779,6 +831,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       <span>{t('terminalTabs.copy.output')}</span>
                     </button>
                     <button
+                      data-terminal-control="clear-output"
                       type="button"
                       className="bolt-terminal-menu-item"
                       role="menuitem"
@@ -790,11 +843,18 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       <span className="i-ph:trash" aria-hidden />
                       <span>{t('terminalTabs.clear.label')}</span>
                     </button>
-                    <button type="button" className="bolt-terminal-menu-item" role="menuitem" onClick={openSearch}>
+                    <button
+                      data-terminal-control="find-output"
+                      type="button"
+                      className="bolt-terminal-menu-item"
+                      role="menuitem"
+                      onClick={openSearch}
+                    >
                       <span className="i-ph:magnifying-glass" aria-hidden />
                       <span>{t('terminalTabs.find.label')}</span>
                     </button>
                     <button
+                      data-terminal-control="restart"
                       type="button"
                       className="bolt-terminal-menu-item"
                       role="menuitem"
@@ -807,6 +867,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       <span>{t('terminalTabs.menu.restart')}</span>
                     </button>
                     <button
+                      data-terminal-control="split"
                       type="button"
                       className="bolt-terminal-menu-item"
                       role="menuitem"
@@ -819,6 +880,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       <span>{splitView ? t('terminalTabs.view.single') : t('terminalTabs.view.split')}</span>
                     </button>
                     <button
+                      data-terminal-control="close-menu"
                       type="button"
                       className="bolt-terminal-menu-item"
                       role="menuitem"
@@ -830,6 +892,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                     <label className="bolt-terminal-profile-select">
                       <span>{t('terminalTabs.profile.label')}</span>
                       <select
+                        data-terminal-control="profile"
                         aria-label={t('terminalTabs.profile.select')}
                         value={profile}
                         onChange={(event) => setProfile(event.target.value as TerminalProfile)}
@@ -858,6 +921,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 ) : null}
               </div>
               <button
+                data-terminal-control="close-toolbar"
                 type="button"
                 className="bolt-terminal-icon-button"
                 aria-label={t('terminalTabs.tab.close')}

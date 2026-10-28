@@ -2,11 +2,12 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import type { ReactElement } from 'react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { StrictMode, useLayoutEffect, type ReactElement } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { TerminalInteractionHandoffBoundary, TerminalInteractionHandoffProvider } from './TerminalInteractionHandoff';
 import { TerminalTabs } from './TerminalTabs';
 import { useKeybindings } from '~/lib/hooks/useKeybindings';
 import { createI18nInstance } from '~/lib/i18n/runtime';
@@ -415,5 +416,260 @@ describe('<TerminalTabs />', () => {
 
     // No raw i18n key ever reaches the DOM.
     expect(container.textContent).not.toMatch(/terminalTabs\./);
+  });
+});
+
+describe('Terminal interaction handoff during startup shell replacement', () => {
+  const i18n = createI18nInstance('en');
+
+  const tree = (version: number, project = 'a', pane = 'main', slot = 'panel', visible = true) => (
+    <I18nextProvider i18n={i18n}>
+      <TerminalInteractionHandoffProvider projectId={project} workspaceId="workspace" windowId="window">
+        <button data-testid="outside">Outside</button>
+        {visible ? <TerminalTabs key={version} paneId={pane} handoffSlot={slot} /> : null}
+      </TerminalInteractionHandoffProvider>
+    </I18nextProvider>
+  );
+  const openActions = () => {
+    const trigger = screen.getByRole('button', { name: 'More Shell actions' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+    return trigger;
+  };
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    vi.clearAllMocks();
+  });
+  afterEach(cleanup);
+
+  it.each(['Copy output', 'Shell profile'])(
+    'preserves the open menu and %s focus without executing an action',
+    (name) => {
+      const ui = render(tree(0));
+      openActions();
+
+      const control =
+        name === 'Shell profile' ? screen.getByRole('combobox', { name }) : screen.getByRole('menuitem', { name });
+      control.focus();
+      ui.rerender(tree(1));
+
+      const restored =
+        name === 'Shell profile' ? screen.getByRole('combobox', { name }) : screen.getByRole('menuitem', { name });
+      expect(document.activeElement).toBe(restored);
+      expect(control.isConnected).toBe(false);
+      expect(workbenchMocks.restartBoltTerminal).not.toHaveBeenCalled();
+      expect(terminalHarness.xterm.input).not.toHaveBeenCalled();
+      fireEvent.keyDown(restored, { key: 'Escape' });
+      expect(screen.queryByRole('menu')).toBeNull();
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More Shell actions' }));
+    },
+  );
+
+  it('transfers focus alone after Escape and never reopens the closed menu', () => {
+    const ui = render(tree(0));
+    openActions();
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Kill Shell' }), { key: 'Escape' });
+    ui.rerender(tree(1));
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More Shell actions' }));
+  });
+
+  it('does not reopen a menu closed in the same React batch as shell replacement', () => {
+    const ui = render(tree(0));
+    openActions();
+
+    const kill = screen.getByRole('menuitem', { name: 'Kill Shell' });
+    act(() => {
+      fireEvent.keyDown(kill, { key: 'Escape' });
+      ui.rerender(tree(1));
+    });
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More Shell actions' }));
+  });
+
+  it('preserves the sessions menu selection without starting a shell', () => {
+    const ui = render(tree(0));
+    const trigger = screen.getByRole('button', { name: /Open shell sessions/ });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New Shell' }));
+    ui.rerender(tree(1));
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New Shell' }));
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(1);
+  });
+
+  it.each(['project', 'pane', 'slot'])('does not transfer across a different %s', (scope) => {
+    const ui = render(tree(0));
+    openActions();
+    ui.rerender(
+      tree(
+        1,
+        scope === 'project' ? 'b' : 'a',
+        scope === 'pane' ? 'other' : 'main',
+        scope === 'slot' ? 'bottom' : 'panel',
+      ),
+    );
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('abandons transfer after focus leaves the toolbar', () => {
+    const ui = render(tree(0));
+    openActions();
+    screen.getByTestId('outside').focus();
+    ui.rerender(tree(1));
+    expect(document.activeElement).toBe(screen.getByTestId('outside'));
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('abandons menu and focus restoration when a sibling claims focus during replacement', () => {
+    const ClaimFocus = () => {
+      useLayoutEffect(() => {
+        screen.getByTestId('outside').focus();
+      }, []);
+      return null;
+    };
+    const ui = render(
+      <>
+        {tree(0)}
+        {null}
+      </>,
+    );
+    openActions();
+    ui.rerender(
+      <>
+        {tree(1)}
+        <ClaimFocus />
+      </>,
+    );
+    expect(document.activeElement).toBe(screen.getByTestId('outside'));
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('does not revive a menu after a later reopen', async () => {
+    const ui = render(tree(0));
+    openActions();
+    ui.rerender(tree(1, 'a', 'main', 'panel', false));
+    await Promise.resolve();
+    ui.rerender(tree(2));
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('does not reopen a menu on navigation or a later Back', () => {
+    const ui = render(tree(0));
+    openActions();
+    window.history.replaceState({}, '', '/other');
+    ui.rerender(tree(1));
+    expect(screen.queryByRole('menu')).toBeNull();
+    window.history.replaceState({}, '', '/');
+    ui.rerender(tree(2));
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('consumes a missing session target without reviving focus on a later menu opening', () => {
+    window.localStorage.setItem('vibecore-terminal-ui-v1', JSON.stringify({ terminalCount: 1 }));
+
+    const ui = render(tree(0));
+    const trigger = screen.getByRole('button', { name: /Open shell sessions/ });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    screen.getAllByRole('menuitemradio')[1].focus();
+    window.localStorage.setItem('vibecore-terminal-ui-v1', JSON.stringify({ terminalCount: 0 }));
+    ui.rerender(tree(1));
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(1);
+    expect(document.activeElement).toBe(document.body);
+
+    const nextTrigger = screen.getByRole('button', { name: /Open shell sessions/ });
+    nextTrigger.focus();
+    fireEvent.keyDown(nextTrigger, { key: 'Escape' });
+    fireEvent.keyDown(nextTrigger, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(screen.getByRole('menuitemradio'));
+  });
+
+  const delayedTree = (version: number, mounted: boolean, active = true) => (
+    <I18nextProvider i18n={i18n}>
+      <TerminalInteractionHandoffProvider projectId="a" workspaceId="workspace" windowId="window">
+        <button data-testid="outside">Outside</button>
+        <TerminalInteractionHandoffBoundary key={version} paneId={active ? 'main' : undefined} slot="editor">
+          {mounted ? <TerminalTabs paneId="main" handoffSlot="editor" /> : <span>Loading workbench</span>}
+        </TerminalInteractionHandoffBoundary>
+      </TerminalInteractionHandoffProvider>
+    </I18nextProvider>
+  );
+
+  it('reserves the active mobile destination across a delayed Workbench mount', async () => {
+    const ui = render(delayedTree(0, true));
+    openActions();
+    screen.getByRole('combobox', { name: 'Shell profile' }).focus();
+    ui.rerender(delayedTree(1, false));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+    ui.rerender(delayedTree(1, true));
+    expect(document.activeElement).toBe(screen.getByRole('combobox', { name: 'Shell profile' }));
+  });
+
+  it.each(['pointer', 'keyboard', 'focus', 'navigation', 'panel', 'unmount'])(
+    'abandons a lazy reservation after %s changes the user destination',
+    async (action) => {
+      const ui = render(delayedTree(0, true));
+      openActions();
+      ui.rerender(delayedTree(1, false));
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      if (action === 'pointer') {
+        fireEvent.pointerDown(document.body);
+      }
+
+      if (action === 'keyboard') {
+        fireEvent.keyDown(document.body, { key: 'Escape' });
+      }
+
+      if (action === 'focus') {
+        screen.getByTestId('outside').focus();
+      }
+
+      if (action === 'navigation') {
+        fireEvent.popState(window);
+      }
+
+      if (action === 'panel') {
+        ui.rerender(delayedTree(1, false, false));
+      }
+
+      if (action === 'unmount') {
+        ui.rerender(delayedTree(2, false));
+      }
+
+      ui.rerender(delayedTree(action === 'unmount' ? 2 : 1, true));
+      expect(screen.queryByRole('menu')).toBeNull();
+      expect(document.activeElement).not.toBe(screen.queryByRole('menuitem', { name: 'Kill Shell' }));
+    },
+  );
+
+  it('reserves a lazy destination once under StrictMode effect replay', async () => {
+    const ui = render(<StrictMode>{delayedTree(0, true)}</StrictMode>);
+    openActions();
+    ui.rerender(<StrictMode>{delayedTree(1, false)}</StrictMode>);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    ui.rerender(<StrictMode>{delayedTree(1, true)}</StrictMode>);
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Kill Shell' }));
+  });
+
+  it('handles StrictMode cleanup without duplicate restoration', () => {
+    const ui = render(<StrictMode>{tree(0)}</StrictMode>);
+    openActions();
+    ui.rerender(<StrictMode>{tree(1)}</StrictMode>);
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Kill Shell' }));
+    expect(workbenchMocks.restartBoltTerminal).not.toHaveBeenCalled();
   });
 });

@@ -123,5 +123,64 @@ for (const width of [390, 768, 1280]) {
       await expect(page).toHaveURL(new RegExp(`/projects/${id}/ide\\?panel=terminal`));
       await page.screenshot({ path: info.outputPath('terminal-keyboard-after.png') });
     });
+
+    test('open actions and profile focus survive startup memory hydration', async ({ page, baseURL }) => {
+      test.setTimeout(90_000);
+
+      const id = await createProject(page, baseURL!);
+
+      let memoryRequested = false;
+      let releaseMemory!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        releaseMemory = resolve;
+      });
+      await page.route(`**/api/projects/${id}/ide-state`, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+
+        memoryRequested = true;
+        await gate;
+        await route.fulfill({ json: { ideState: { version: 1, state: {} } } });
+      });
+
+      try {
+        await page.goto(`/projects/${id}/ide?panel=terminal`, { waitUntil: 'domcontentloaded' });
+
+        const terminal = page.locator('.bolt-terminal-tabs-shell').filter({ visible: true });
+        await expect(terminal).toHaveCount(1);
+        await expect.poll(() => memoryRequested).toBe(true);
+
+        const trigger = terminal.getByRole('button', { name: 'More Shell actions', exact: true });
+        await trigger.focus();
+        await trigger.press('ArrowUp');
+
+        const actions = terminal.getByRole('menu', { name: 'More Shell actions', exact: true });
+        const profile = actions.getByRole('combobox', { name: 'Shell profile', exact: true });
+        await expect(profile).toBeFocused();
+
+        const original = await terminal.elementHandle();
+        expect(original).not.toBeNull();
+        releaseMemory();
+        await expect.poll(() => original!.evaluate((node) => !node.isConnected), { timeout: 30_000 }).toBe(true);
+        await expect(profile).toBeFocused();
+        await profile.press('Shift+Tab');
+
+        const closeTab = actions.getByRole('menuitem', { name: 'Close tab', exact: true });
+        await expect(closeTab).toBeFocused();
+        await closeTab.press('Escape');
+        await expect(actions).toHaveCount(0);
+        await expect(trigger).toBeFocused();
+        await trigger.press('ArrowUp');
+        await expect(profile).toBeFocused();
+        await profile.press('Tab');
+        await expect(actions).toHaveCount(0);
+        await expect(terminal.getByRole('button', { name: 'Close tab', exact: true })).toBeFocused();
+      } finally {
+        releaseMemory();
+      }
+    });
   });
 }

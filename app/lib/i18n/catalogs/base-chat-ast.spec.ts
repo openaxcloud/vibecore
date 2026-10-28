@@ -208,10 +208,17 @@ describe('BaseChat strengthened-AST catalog', () => {
      *       panneau de service mobile. Aucun markup, texte, classe, callback
      *       ou comportement Terminal/navigation basse modifié dans la tranche.
      *
+     *   11. Transfert du menu Terminal pendant le démarrage du 28/10 :
+     *       comparaison exacte à 20e0860d0, un hunk ajoute une frontière sans
+     *       DOM autour de la frontière Editor existante, active uniquement pour
+     *       Terminal mobile. Les enfants, textes, classes, callbacks et dock
+     *       restent identiques ; seul le formatage Suspense est réindenté.
+     *       Le reçu est réservé au-dessus du chargement lazy, sans retard Chat.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('b55951a9b74d00fa782b4a52b9ac6650ba2399aab27f81270bf81f8ed77cf584');
+    expect(frozenHash).toBe('c2081c577b3d95357da31797ed9ca7e36ccb1aac8c16677377f89444683914ec');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
