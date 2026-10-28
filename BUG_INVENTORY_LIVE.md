@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-545 entrées.
+546 entrées.
 
 ## Sans section
 
@@ -724,6 +724,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-AGENT-EXPLICIT-MODEL-20261028](docs/bugs/BUG-AGENT-EXPLICIT-MODEL-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-LITE-MODEL-LOCK-20261028](docs/bugs/BUG-LITE-MODEL-LOCK-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Editeur et persistance
+
+- [BUG-EDITOR-PENDING-SAVE-DRAFT-20261028](docs/bugs/BUG-EDITOR-PENDING-SAVE-DRAFT-20261028.md) — 📤 Dispatché : ☑ 28/10 — investigation du blocage E2E #828, sur main `9ec6ebf75`. · 💻 Codé : ☐ — correctif isolé Workbench, pas intégré à main. · ✅ Testé live : ☐ — aucune modification ou recette de données client.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
