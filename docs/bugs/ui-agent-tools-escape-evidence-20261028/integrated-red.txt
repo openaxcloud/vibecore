@@ -1,0 +1,133 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v3.2.6 /workspace/ui838-agent-audit/integrated-red-proof
+
+Deprecation [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+stdout | ChatBox.toolbar.spec.tsx
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stderr | ChatBox.toolbar.spec.tsx > <ChatBox /> toolbar > keeps the IDE composer to a single control row — selectors left, actions right
+react-i18next:: useTranslation: You will need to pass in an i18next instance by using initReactI18next { code: 'NO_I18NEXT_INSTANCE' }
+
+ ❯ ChatBox.toolbar.spec.tsx (10 tests | 1 failed) 374ms
+   ✓ <ChatBox /> toolbar > keeps the IDE composer to a single control row — selectors left, actions right 123ms
+   ✓ <ChatBox /> toolbar > keeps the newline-hint button on the standalone composer 10ms
+   ✓ <ChatBox /> toolbar > groups secondary composer tools inside the overflow menu 48ms
+   × <ChatBox /> toolbar > closes pointer-open tools from the focused opener before global Escape runs 32ms
+     → expected <div …(4)>…(6)</div> to be null
+   ✓ <ChatBox /> toolbar > toggles Plan first from inside the Advanced popover (Replit parity) 28ms
+   ✓ <ChatBox /> toolbar > shows the Plan toggle pressed when plan-first is on, and turns it off 40ms
+   ✓ <ChatBox /> agent power controls > renders the AGM segmented mode control + Advanced popover in the IDE composer 39ms
+   ✓ <ChatBox /> agent power controls > does not render the power controls outside the IDE composer 5ms
+   ✓ <ChatBox /> agent power controls > never allows Turbo outside Power and reports High effort through the legacy wire field 31ms
+   ✓ <ChatBox /> agent power controls > honors a parent-controlled power value (Turbo in Power mode) 18ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  ChatBox.toolbar.spec.tsx > <ChatBox /> toolbar > closes pointer-open tools from the focused opener before global Escape runs
+AssertionError: expected <div …(4)>…(6)</div> to be null
+
+- Expected: 
+null
+
++ Received: 
+<div
+  aria-label="Composer tools"
+  class="bolt-chatbox-tools-menu"
+  data-testid="composer-tools-menu"
+  role="menu"
+>
+  <button
+    type="button"
+  >
+    Design palette
+  </button>
+  <button
+    type="button"
+  >
+    MCP tools
+  </button>
+  <button
+    type="button"
+  >
+    Fetch URL
+  </button>
+  <button
+    type="button"
+  >
+    Supabase
+  </button>
+  <button
+    aria-label="Enhance this prompt with AI before sending"
+    class="vc-focus-ring flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed focus:outline-none bolt-chatbox-tools-menu-item"
+    data-vc-tooltip="Enhance this prompt with AI before sending"
+    title="Enhance this prompt with AI before sending"
+    type="button"
+  >
+    <div
+      class="i-bolt:stars text-xl"
+    />
+    <span
+      class="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug"
+    >
+      Enhance prompt
+    </span>
+  </button>
+  <button
+    aria-label="Hide agent settings"
+    class="vc-focus-ring flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed focus:outline-none bolt-chatbox-tools-menu-item"
+    data-testid="composer-tools-menu-settings"
+    data-vc-tooltip="Hide agent settings"
+    title="Hide agent settings"
+    type="button"
+  >
+    <div
+      class="i-ph:caret-down text-lg"
+    />
+    <span
+      class="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug"
+    >
+      Hide agent settings
+    </span>
+  </button>
+</div>
+
+ ❯ ChatBox.toolbar.spec.tsx:220:68
+    218|     expect(runAction.mock.calls.map(([action]) => action)).toEqual(['f…
+    219|     fireEvent.keyDown(opener, { key: 'Escape' });
+    220|     expect(screen.queryByRole('menu', { name: 'Composer tools' })).toB…
+       |                                                                    ^
+    221|     expect(document.activeElement).toBe(opener);
+    222|     expect(runAction.mock.calls.map(([action]) => action)).toEqual(['f…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  22:55:32
+   Duration  3.60s (transform 1.89s, setup 21ms, collect 1.15s, tests 374ms, environment 293ms, prepare 54ms)
+
