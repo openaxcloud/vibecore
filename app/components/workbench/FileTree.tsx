@@ -703,13 +703,23 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
   }, [initialValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Enter can commit an IME candidate rather than submit the file name.
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) {
+      return;
+    }
+
     if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+
       const value = inputRef.current?.value?.trim();
 
       if (value) {
         onSubmit(value);
       }
     } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
       onCancel();
     }
   };
@@ -725,6 +735,7 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
         type="text"
         className="ml-2 flex-1 bg-transparent border-none outline-none py-0.5 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary min-w-0"
         placeholder={placeholder}
+        aria-label={placeholder}
         onKeyDown={handleKeyDown}
         onBlur={() => {
           setTimeout(() => {

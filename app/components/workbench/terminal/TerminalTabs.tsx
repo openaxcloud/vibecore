@@ -137,6 +137,87 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const sessionMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
+  const sessionTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const menuInitialEdge = useRef<'first' | 'last'>('first');
+
+  const menuControls = (container: HTMLElement) =>
+    Array.from(
+      container.querySelectorAll<HTMLElement>(
+        '[role="menu"] button:not(:disabled), [role="menu"] select:not(:disabled)',
+      ),
+    );
+
+  const handleMenuKeys = (event: React.KeyboardEvent<HTMLDivElement>, sessions: boolean) => {
+    const open = sessions ? sessionMenuOpen : moreMenuOpen;
+    const setOpen = sessions ? setSessionMenuOpen : setMoreMenuOpen;
+    const trigger = sessions ? sessionTriggerRef.current : moreTriggerRef.current;
+
+    if (event.target === trigger && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      menuInitialEdge.current = event.key === 'ArrowUp' ? 'last' : 'first';
+      (sessions ? setMoreMenuOpen : setSessionMenuOpen)(false);
+      setOpen(true);
+
+      if (open) {
+        const controls = menuControls(event.currentTarget);
+        controls[menuInitialEdge.current === 'last' ? controls.length - 1 : 0]?.focus();
+        menuInitialEdge.current = 'first';
+      }
+
+      return;
+    }
+
+    if (!open) {
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      trigger?.focus();
+
+      return;
+    }
+
+    // Leave native profile selection and Tab/Shift+Tab to the browser.
+    if (event.target instanceof HTMLSelectElement || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      return;
+    }
+
+    const controls = menuControls(event.currentTarget);
+    const current = controls.indexOf(document.activeElement as HTMLElement);
+
+    const next =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? controls.length - 1
+          : (current + (event.key === 'ArrowDown' ? 1 : -1) + controls.length) % controls.length;
+    event.preventDefault();
+    event.stopPropagation();
+    controls[next]?.focus();
+  };
+
+  const closeOnMenuBlur = (event: React.FocusEvent<HTMLDivElement>, sessions: boolean) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      (sessions ? setSessionMenuOpen : setMoreMenuOpen)(false);
+    }
+  };
+
+  useEffect(() => {
+    const container = sessionMenuOpen ? sessionMenuRef.current : moreMenuOpen ? moreMenuRef.current : null;
+
+    if (container) {
+      const controls = menuControls(container);
+      controls[menuInitialEdge.current === 'last' ? controls.length - 1 : 0]?.focus();
+    }
+
+    menuInitialEdge.current = 'first';
+  }, [sessionMenuOpen, moreMenuOpen]);
+
   const activeProfile = terminalProfiles.find((item) => item.id === profile) ?? terminalProfiles[0];
 
   /*
@@ -485,19 +566,10 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
       }
     };
 
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMoreMenuOpen(false);
-        setSessionMenuOpen(false);
-      }
-    };
-
     document.addEventListener('pointerdown', closeOnOutsidePointer);
-    document.addEventListener('keydown', closeOnEscape);
 
     return () => {
       document.removeEventListener('pointerdown', closeOnOutsidePointer);
-      document.removeEventListener('keydown', closeOnEscape);
     };
   }, [moreMenuOpen, sessionMenuOpen]);
 
@@ -521,10 +593,17 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
       <div className="h-full">
         <div className="bolt-terminal-tabs-shell bg-bolt-elements-terminals-background h-full flex flex-col">
           <div className="bolt-terminal-tabs-bar" data-testid="terminal-tabs-bar" aria-label={TERMINAL_PANEL_LABEL}>
-            <div className="bolt-terminal-session-switcher" ref={sessionMenuRef}>
+            <div
+              className="bolt-terminal-session-switcher"
+              ref={sessionMenuRef}
+              data-ide-escape-owner={sessionMenuOpen ? 'terminal-menu' : undefined}
+              onKeyDown={(event) => handleMenuKeys(event, true)}
+              onBlur={(event) => closeOnMenuBlur(event, true)}
+            >
               <button
                 type="button"
                 className="bolt-terminal-session-button"
+                ref={sessionTriggerRef}
                 aria-haspopup="menu"
                 aria-expanded={sessionMenuOpen}
                 aria-label={t('terminalTabs.sessions.open', { session: activeSessionLabel })}
@@ -538,7 +617,16 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 <span className="bolt-terminal-session-label">{activeSessionLabel}</span>
               </button>
               {sessionMenuOpen ? (
-                <div className="bolt-terminal-session-menu" role="menu" aria-label={t('terminalTabs.sessions.title')}>
+                <div
+                  className="bolt-terminal-session-menu"
+                  role="menu"
+                  aria-label={t('terminalTabs.sessions.title')}
+                  onClickCapture={(event) => {
+                    if ((event.target as HTMLElement).closest('button:not(.bolt-terminal-session-close)')) {
+                      sessionTriggerRef.current?.focus();
+                    }
+                  }}
+                >
                   {Array.from({ length: terminalCount + 1 }, (_, index) => {
                     const isActive = activeTerminal === index;
                     const terminalLabel = getSessionLabel(index);
@@ -563,7 +651,11 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                             type="button"
                             className="bolt-terminal-session-close"
                             aria-label={t('terminalTabs.sessions.close', { label: terminalLabel })}
-                            onClick={() => closeTerminal(index)}
+                            role="menuitem"
+                            onClick={() => {
+                              closeTerminal(index);
+                              sessionMenuRef.current?.querySelector<HTMLElement>('[role="menuitemradio"]')?.focus();
+                            }}
                           >
                             <span className="i-ph:x" aria-hidden />
                           </button>
@@ -625,10 +717,17 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
               >
                 <span className="i-ph:trash" aria-hidden />
               </button>
-              <div className="bolt-terminal-more" ref={moreMenuRef}>
+              <div
+                className="bolt-terminal-more"
+                ref={moreMenuRef}
+                data-ide-escape-owner={moreMenuOpen ? 'terminal-menu' : undefined}
+                onKeyDown={(event) => handleMenuKeys(event, false)}
+                onBlur={(event) => closeOnMenuBlur(event, false)}
+              >
                 <button
                   type="button"
                   className="bolt-terminal-more-button"
+                  ref={moreTriggerRef}
                   aria-haspopup="menu"
                   aria-expanded={moreMenuOpen}
                   aria-label={t('terminalTabs.more.label')}
@@ -641,7 +740,16 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                   <span className="i-ph:dots-three-vertical-bold" aria-hidden />
                 </button>
                 {moreMenuOpen ? (
-                  <div className="bolt-terminal-more-menu" role="menu" aria-label={t('terminalTabs.more.label')}>
+                  <div
+                    className="bolt-terminal-more-menu"
+                    role="menu"
+                    aria-label={t('terminalTabs.more.label')}
+                    onClickCapture={(event) => {
+                      if ((event.target as HTMLElement).closest('button')) {
+                        moreTriggerRef.current?.focus();
+                      }
+                    }}
+                  >
                     <div className="bolt-terminal-menu-heading">
                       <span className="i-ph:terminal-window" aria-hidden />
                       <div>

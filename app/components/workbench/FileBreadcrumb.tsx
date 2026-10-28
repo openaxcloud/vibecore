@@ -41,11 +41,7 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
-  const segmentRefs = useRef<(HTMLSpanElement | null)[]>([]);
-
-  const handleSegmentClick = (index: number) => {
-    setActiveIndex((prevIndex) => (prevIndex === index ? null : index));
-  };
+  const segmentRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -88,13 +84,13 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
               open={isActive}
               modal={false}
               onOpenChange={(open) => {
-                if (!open) {
-                  setActiveIndex(null);
-                }
+                setActiveIndex((current) => (open ? index : current === index ? null : current));
               }}
             >
               <DropdownMenu.Trigger asChild>
-                <span
+                <button
+                  type="button"
+                  data-ide-escape-owner={isActive ? 'file-breadcrumb' : undefined}
                   ref={(ref) => {
                     segmentRefs.current[index] = ref;
                   }}
@@ -103,17 +99,17 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                     'text-bolt-elements-textPrimary underline': isActive,
                     'pr-4': isLast,
                   })}
-                  onClick={() => handleSegmentClick(index)}
                 >
-                  {isLast && <div className="i-ph:file-duotone" />}
+                  {isLast && <span className="i-ph:file-duotone" aria-hidden />}
                   {segment}
-                </span>
+                </button>
               </DropdownMenu.Trigger>
               {index > 0 && !isLast && <span className="i-ph:caret-right inline-block mx-1" />}
               <AnimatePresence>
                 {isActive && (
                   <DropdownMenu.Portal>
                     <DropdownMenu.Content
+                      data-ide-escape-owner="file-breadcrumb"
                       className="z-file-tree-breadcrumb"
                       asChild
                       align="start"

@@ -16,7 +16,6 @@ import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
-import { debounce } from '~/utils/debounce';
 
 interface DisplayMatch {
   path: string;
@@ -89,6 +88,8 @@ export function Search() {
 
   useEffect(() => {
     return () => {
+      searchTokenRef.current++;
+
       if (minLoaderTimerRef.current !== undefined) {
         clearTimeout(minLoaderTimerRef.current);
         minLoaderTimerRef.current = undefined;
@@ -110,6 +111,8 @@ export function Search() {
 
   const handleSearch = useCallback(
     async (query: string) => {
+      const token = ++searchTokenRef.current;
+
       if (!query.trim()) {
         setSearchResults([]);
         setIsSearching(false);
@@ -128,8 +131,6 @@ export function Search() {
         clearTimeout(minLoaderTimerRef.current);
         minLoaderTimerRef.current = undefined;
       }
-
-      const token = ++searchTokenRef.current;
 
       setIsSearching(true);
       setSearchResults([]);
@@ -152,6 +153,11 @@ export function Search() {
         };
 
         const results = await runtimeAdapter.searchFiles(query, options);
+
+        if (!isLatestSearch(token, searchTokenRef.current)) {
+          return;
+        }
+
         setSearchResults(
           results.map((match) => ({
             path: match.path,
@@ -162,6 +168,10 @@ export function Search() {
           })),
         );
       } catch (error) {
+        if (!isLatestSearch(token, searchTokenRef.current)) {
+          return;
+        }
+
         console.error(error);
         setSearchError(true);
       } finally {
@@ -190,11 +200,28 @@ export function Search() {
     [caseSensitive, isRegex, runtimeAdapter],
   );
 
-  const debouncedSearch = useCallback(debounce(handleSearch, 300), [handleSearch]);
-
   useEffect(() => {
-    debouncedSearch(searchQuery);
-  }, [searchQuery, debouncedSearch, caseSensitive, isRegex]);
+    /*
+     * Invalidate old results before the debounce delay: they must not remain
+     * actionable for a different query or search option.
+     */
+    searchTokenRef.current++;
+    setSearchResults([]);
+    setExpandedFiles({});
+    setSearchError(false);
+    setConfirmReplaceAllOpen(false);
+
+    if (!searchQuery.trim()) {
+      void handleSearch('');
+      return undefined;
+    }
+
+    setIsSearching(true);
+
+    const timer = setTimeout(() => void handleSearch(searchQuery), 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, handleSearch]);
 
   /*
    * « Trouver les usages » d'un secret (RP-SEC-08) : un autre panneau a posé

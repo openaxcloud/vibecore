@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-544 entrées.
+545 entrées.
 
 ## Sans section
 
@@ -723,6 +723,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-AGENT-EXPLICIT-MODEL-20261028](docs/bugs/BUG-AGENT-EXPLICIT-MODEL-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-IDE-PANEL-INTERACTIONS-20261028](docs/bugs/BUG-IDE-PANEL-INTERACTIONS-20261028.md) — Audit ciblé sur main `9ec6ebf75` : une recherche ancienne peut remplacer les résultats ou afficher son erreur après une nouvelle requête ; les anciens résultats — 📤 Dispatché : ☑ 28/10/2026 — lot indépendant des fichiers workbench store, modèles et budget réservés au hub #828/#829. Audi · 💻 Codé : ☐ main — corrections locales en validation, aucune livraison de ce lot encore établie. · ✅ Testé live : ☐ production — aucun test authentifié production de ces corrections. Composants réels en tests isolés ; recett
 
 ## Résidus non tabulaires — reportés mot pour mot
 

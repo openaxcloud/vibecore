@@ -8,6 +8,7 @@ import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TerminalTabs } from './TerminalTabs';
+import { useKeybindings } from '~/lib/hooks/useKeybindings';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
 function renderTabs(ui: ReactElement, language: 'en' | 'fr' = 'en') {
@@ -223,6 +224,146 @@ describe('<TerminalTabs />', () => {
 
     fireEvent.click(within(menu).getByText('Kill Shell'));
     expect(terminalHarness.xterm.input).toHaveBeenCalledWith('\x03');
+  });
+
+  it.each(['sessions', 'actions'])('focuses and navigates the %s menu, restoring its trigger on Escape', (kind) => {
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
+
+    const trigger = screen.getByRole('button', {
+      name: kind === 'sessions' ? /Open shell sessions/i : 'More Shell actions',
+    });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+    const menu = screen.getByRole('menu');
+    const controls = within(menu).getAllByRole(kind === 'sessions' ? 'menuitemradio' : 'menuitem');
+    expect(document.activeElement).toBe(controls[0]);
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(controls[0]);
+    fireEvent.keyDown(document.activeElement!, { key: 'End' });
+
+    const last =
+      kind === 'sessions'
+        ? within(menu).getByRole('menuitem', { name: 'New Shell' })
+        : within(menu).getByRole('combobox');
+    expect(document.activeElement).toBe(last);
+
+    // Native select arrows/Home/End must not be captured by menu navigation.
+    if (kind === 'actions') {
+      expect(fireEvent.keyDown(last, { key: 'ArrowUp' })).toBe(true);
+      controls[controls.length - 1].focus();
+    }
+
+    fireEvent.keyDown(document.activeElement!, { key: 'Home' });
+    expect(document.activeElement).toBe(controls[0]);
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
+    expect(document.activeElement).not.toBe(controls[0]);
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('focuses on click, leaves Tab native, and closes on outside focus without stealing it', () => {
+    renderTabs(
+      <>
+        <TerminalTabs panelDefaultSize={100} />
+        <button>Outside</button>
+      </>,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'More Shell actions' });
+    fireEvent.click(trigger);
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Kill Shell' }));
+    expect(fireEvent.keyDown(document.activeElement!, { key: 'Tab' })).toBe(true);
+    fireEvent.blur(document.activeElement!, { relatedTarget: screen.getByRole('button', { name: 'Outside' }) });
+    screen.getByRole('button', { name: 'Outside' }).focus();
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement?.textContent).toBe('Outside');
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Outside' }));
+    screen.getByRole('button', { name: 'Outside' }).focus();
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement?.textContent).toBe('Outside');
+  });
+
+  it('keeps session creation, closing and disabled-limit navigation usable', () => {
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
+
+    const trigger = screen.getByRole('button', { name: /Open shell sessions/i });
+
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(trigger);
+      fireEvent.click(screen.getByRole('menuitem', { name: 'New Shell' }));
+      expect(document.activeElement).toBe(trigger);
+    }
+    fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+
+    const menu = screen.getByRole('menu');
+    expect((within(menu).getByRole('menuitem', { name: 'New Shell' }) as HTMLButtonElement).disabled).toBe(true);
+
+    const closeButtons = within(menu).getAllByRole('menuitem', { name: /Close ~\/workspace/ });
+    expect(document.activeElement).toBe(closeButtons[closeButtons.length - 1]);
+    fireEvent.click(document.activeElement!);
+    expect(workbenchMocks.detachTerminal).toHaveBeenCalled();
+    expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(3);
+    expect(document.activeElement).toBe(within(menu).getAllByRole('menuitemradio')[0]);
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(within(menu).getByRole('menuitem', { name: 'New Shell' }));
+    fireEvent.click(within(menu).getAllByRole('menuitemradio')[1]);
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('preserves restart and kill commands and keeps profile selection native', () => {
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
+
+    const trigger = screen.getByRole('button', { name: 'More Shell actions' });
+    fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+
+    const profile = screen.getByRole('combobox', { name: 'Shell profile' });
+    expect(document.activeElement).toBe(profile);
+
+    for (const key of ['ArrowDown', 'ArrowUp', 'Home', 'End']) {
+      expect(fireEvent.keyDown(profile, { key })).toBe(true);
+      expect(document.activeElement).toBe(profile);
+    }
+    fireEvent.change(profile, { target: { value: 'zsh' } });
+    expect((profile as HTMLSelectElement).value).toBe('zsh');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Restart Shell' }));
+    expect(workbenchMocks.restartBoltTerminal).toHaveBeenCalledWith(terminalHarness.xterm);
+    expect(terminalHarness.xterm.focus).toHaveBeenCalled();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Kill Shell' }));
+    expect(terminalHarness.xterm.input).toHaveBeenCalledWith('\x03');
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('owns Escape ahead of the real global keybinding capture listener', () => {
+    const globalAction = vi.fn();
+
+    function Harness() {
+      useKeybindings({
+        bindings: [{ combo: 'escape', action: 'overlay.close', label: '', description: '', category: 'Help' }],
+        getContext: () => ({}),
+        runAction: globalAction,
+      });
+      return <TerminalTabs panelDefaultSize={100} />;
+    }
+    renderTabs(<Harness />);
+
+    for (const name of ['More Shell actions', /Open shell sessions/]) {
+      const trigger = screen.getByRole('button', { name });
+      fireEvent.click(trigger);
+      fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+      expect(screen.queryByRole('menu')).toBeNull();
+      expect(document.activeElement).toBe(trigger);
+      expect(globalAction).not.toHaveBeenCalled();
+    }
+
+    // Closed menus no longer claim Escape from the global IDE binding.
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(globalAction).toHaveBeenCalledOnce();
   });
 
   it('writes a connecting notice into the terminal on spawn so cold start is not blank', () => {

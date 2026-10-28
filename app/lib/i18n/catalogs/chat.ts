@@ -2406,7 +2406,7 @@ export const chatFr = {
   'chat.copy.saveConfig_64e1de9d': 'Enregistrer la configuration',
   'chat.copy.saveKey_f5216b3a': 'Enregistrer la clé',
   'chat.copy.saveKeyboardShortcuts_65d1bc6e': 'Enregistrer les raccourcis clavier',
-  'chat.copy.saveMemory_d739576e': 'Économiser de la mémoire',
+  'chat.copy.saveMemory_d739576e': 'Enregistrer la mémoire',
   'chat.copy.saveMode_5e23f893': 'Mode sauvegarde',
   'chat.copy.savePreferences_d8ab74e1': 'Enregistrer les préférences',
   'chat.copy.saveProfile_f597c0e8': 'Enregistrer le profil',
