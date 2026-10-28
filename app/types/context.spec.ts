@@ -33,3 +33,23 @@ describe('classifyStreamError', () => {
     expect(classifyStreamError({ message: 'something weird' })).toBe('UNKNOWN');
   });
 });
+
+describe('provider credit exhaustion', () => {
+  it.each([
+    { statusCode: 400, detail: 'Your credit balance is too low to access the Anthropic API.' },
+    { statusCode: 429, detail: { code: 'insufficient_quota' } },
+    new Error('API key: Your prepayment credits are depleted.'),
+    new Error('Your prepayment credits are depleted. Please go to AI Studio'),
+    new Error('Your credit balance is too low to access the Anthropic API.'),
+    { statusCode: 429, responseBody: '{"error":{"code":"insufficient_quota"}}' },
+    { cause: { lastError: new Error('Your prepayment credits are depleted.') } },
+  ])('classifies billing exhaustion before transient errors', (error) => {
+    expect(classifyStreamError(error)).toBe('PROVIDER_CREDITS_EXHAUSTED');
+  });
+  it.each([
+    { statusCode: 429, message: 'RESOURCE_EXHAUSTED' },
+    { statusCode: 429, message: 'Rate limit exceeded' },
+  ])('keeps request rate limits distinct', (error) => {
+    expect(classifyStreamError(error)).toBe('RATE_LIMIT');
+  });
+});

@@ -1454,7 +1454,11 @@ export const ChatImpl = memo(
         const rawCode = (errorInfo as { code?: unknown }).code;
         const errorCode = typeof rawCode === 'string' ? rawCode : '';
 
-        if (errorInfo.statusCode === 401 || lowerMessage.includes('api key')) {
+        if (errorCode === 'PROVIDER_CREDITS_EXHAUSTED') {
+          errorType = 'provider_credits';
+          title = copy['chatClient.error.title.providerCredits'];
+          errorInfo.isRetryable = false;
+        } else if (errorInfo.statusCode === 401 || lowerMessage.includes('api key')) {
           errorType = 'authentication';
           title = copy['chatClient.error.title.authentication'];
         } else if (errorCode === 'QUOTA_EXCEEDED' || lowerMessage.includes('quota')) {

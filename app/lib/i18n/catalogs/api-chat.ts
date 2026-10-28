@@ -86,6 +86,8 @@ export const apiChatCatalog = {
       'Write critical-path tests, verify build/typecheck, inspect preview behavior, and fix failures.',
     roleQaTitle: 'QA',
     spendLimitReached: 'You have reached your personal AI spending limit for this billing period.',
+    streamProviderCredits:
+      'The AI provider has no available credits. Contact the platform administrator to restore provider service before retrying. Your project plan allowance is separate.',
     streamAuthFailed: 'Invalid or missing API key. Please check your API key configuration.',
     streamInvalidResponse:
       'The AI service or generated files returned invalid JSON. Check the generated file diagnostics and retry after the manifest is repaired.',
@@ -176,6 +178,8 @@ export const apiChatCatalog = {
       'Écrire les tests des parcours critiques, vérifier le build et le typage, contrôler la preview et corriger les échecs.',
     roleQaTitle: 'QA',
     spendLimitReached: 'Vous avez atteint votre plafond personnel de dépenses IA pour cette période de facturation.',
+    streamProviderCredits:
+      'Le fournisseur d’IA n’a plus de crédits disponibles. Contactez l’administrateur de la plateforme pour rétablir le service avant de réessayer. Le quota de votre forfait est distinct.',
     streamAuthFailed: 'Clé API absente ou invalide. Vérifiez la configuration de votre clé API.',
     streamInvalidResponse:
       'Le service d’IA ou les fichiers générés ont renvoyé un JSON invalide. Consultez les diagnostics des fichiers générés, corrigez le manifeste, puis réessayez.',
@@ -203,6 +207,7 @@ export type ApiChatConflict = Readonly<{
 }>;
 
 const STREAM_ERROR_COPY_KEYS: Record<StreamErrorCode, ApiChatCopyKey> = {
+  PROVIDER_CREDITS_EXHAUSTED: 'streamProviderCredits',
   AUTH_FAILED: 'streamAuthFailed',
   INVALID_RESPONSE: 'streamInvalidResponse',
   MODEL_NOT_FOUND: 'streamModelNotFound',

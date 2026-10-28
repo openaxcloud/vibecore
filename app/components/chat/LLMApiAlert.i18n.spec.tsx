@@ -69,3 +69,19 @@ describe('<LlmErrorAlert /> i18n', () => {
     expect(screen.getByRole('link', { name: 'View plan and limits' })).toBeTruthy();
   });
 });
+
+it.each(['en', 'fr'])('shows provider credits without retry or plan-upgrade advice (%s)', (language) => {
+  render(
+    <I18nextProvider i18n={createI18nInstance(language)}>
+      <LlmErrorAlert
+        alert={{ type: 'error', title: '', description: 'secret upstream detail', errorType: 'provider_credits' }}
+        clearAlert={vi.fn()}
+        alternativeModels={[{ name: 'other', label: 'Other', provider: 'Other' }]}
+      />
+    </I18nextProvider>,
+  );
+  expect(screen.getByRole('alert').textContent).toMatch(/platform administrator|administrateur de la plateforme/);
+  expect(screen.queryByRole('combobox')).toBeNull();
+  expect(screen.queryByRole('button', { name: /Try again|Réessayer/ })).toBeNull();
+  expect(screen.queryByText('secret upstream detail')).toBeNull();
+});

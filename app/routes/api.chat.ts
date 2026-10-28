@@ -2863,15 +2863,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const errorCode = classifyStreamError(error);
     const rawMessage = typeof error?.message === 'string' ? error.message : '';
 
+    const classified = buildChatStreamErrorPayload(error);
+    const creditExhausted = classified.code === 'PROVIDER_CREDITS_EXHAUSTED';
+
     const errorResponse = {
-      error: true,
-      message: localizeApiChatStreamError(language, errorCode, rawMessage || copy.unexpectedError),
-      statusCode: error.statusCode || 500,
-      isRetryable: error.isRetryable !== false, // Default to retryable unless explicitly false
+      ...classified,
+      message: localizeApiChatStreamError(
+        language,
+        errorCode,
+        creditExhausted ? classified.message : rawMessage || copy.unexpectedError,
+      ),
+      statusCode: creditExhausted ? classified.statusCode : error.statusCode || classified.statusCode,
+      isRetryable: classified.isRetryable && error.isRetryable !== false,
       provider: error.provider || 'unknown',
     };
 
-    if (error.message?.includes('API key')) {
+    if (!creditExhausted && error.message?.includes('API key')) {
       return new Response(
         JSON.stringify({
           ...errorResponse,

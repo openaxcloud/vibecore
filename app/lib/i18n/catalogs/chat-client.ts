@@ -18,6 +18,9 @@ export const chatClientEn = {
     'The project was created, but its initial prompt could not be queued. You can submit it again.',
   'chatClient.project.aiFallback':
     'AI generation failed. An empty project was created so you can keep your prompt and try again.',
+  'chatClient.error.title.providerCredits': 'AI provider credits unavailable',
+  'chatClient.error.providerCredits':
+    'The AI provider has no available credits. Contact the platform administrator to restore provider service before retrying. Your project plan allowance is separate.',
   'chatClient.error.title.request': 'Request failed',
   'chatClient.error.title.authentication': 'Authentication error',
   'chatClient.error.title.quota': 'Usage limit reached',
@@ -59,6 +62,9 @@ export const chatClientFr: ChatClientCopy = {
     'Le projet a été créé, mais son prompt initial n’a pas pu être mis en attente. Vous pouvez le renvoyer.',
   'chatClient.project.aiFallback':
     'La génération par l’IA a échoué. Un projet vide a été créé afin que vous puissiez conserver votre prompt et réessayer.',
+  'chatClient.error.title.providerCredits': 'Crédits du fournisseur d’IA indisponibles',
+  'chatClient.error.providerCredits':
+    'Le fournisseur d’IA n’a plus de crédits disponibles. Contactez l’administrateur de la plateforme pour rétablir le service avant de réessayer. Le quota de votre forfait est distinct.',
   'chatClient.error.title.request': 'Échec de la requête',
   'chatClient.error.title.authentication': 'Erreur d’authentification',
   'chatClient.error.title.quota': 'Limite d’utilisation atteinte',

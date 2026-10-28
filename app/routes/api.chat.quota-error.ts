@@ -65,13 +65,28 @@ export function buildChatStreamErrorPayload(error: unknown): SerializedChatStrea
    */
   const code = classifyStreamError(error);
   const rawMessage = error instanceof Error && error.message ? error.message : '';
-  const message = rawMessage || streamErrorCodeMessages[code];
+
+  const message =
+    code === 'PROVIDER_CREDITS_EXHAUSTED' ? streamErrorCodeMessages[code] : rawMessage || streamErrorCodeMessages[code];
 
   // Transient failures are safe to auto-retry; auth/token/model/abort are not.
   const nonRetryable =
-    code === 'AUTH_FAILED' || code === 'TOKEN_LIMIT' || code === 'MODEL_NOT_FOUND' || code === 'STREAM_ABORTED';
+    code === 'PROVIDER_CREDITS_EXHAUSTED' ||
+    code === 'AUTH_FAILED' ||
+    code === 'TOKEN_LIMIT' ||
+    code === 'MODEL_NOT_FOUND' ||
+    code === 'STREAM_ABORTED';
 
-  const statusCode = code === 'AUTH_FAILED' ? 401 : code === 'RATE_LIMIT' ? 429 : code === 'TOKEN_LIMIT' ? 413 : 500;
+  const statusCode =
+    code === 'PROVIDER_CREDITS_EXHAUSTED'
+      ? 503
+      : code === 'AUTH_FAILED'
+        ? 401
+        : code === 'RATE_LIMIT'
+          ? 429
+          : code === 'TOKEN_LIMIT'
+            ? 413
+            : 500;
 
   return {
     error: true,

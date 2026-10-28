@@ -2,6 +2,7 @@ import { generateText } from 'ai';
 
 import { isProviderUsable, type LLMProvider } from './provider-credentials';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { hasExhaustedProviderCredits, streamErrorCodeMessages } from '~/types/context';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -178,7 +179,6 @@ export function isProviderHealthy(providerName: string, now: number = Date.now()
  * bascule donc sur un 400 QUE si le corps nomme explicitement le crédit, sinon
  * une requête réellement malformée irait épuiser toute la chaîne pour rien.
  */
-const CREDIT_EXHAUSTED = /credit balance is too low|insufficient[_ ]quota|billing[_ ]hard[_ ]limit/i;
 
 /* Un quota de requêtes ou une ressource épuisée ne prouve pas un solde à zéro. */
 const RATE_LIMITED =
@@ -235,7 +235,7 @@ export function classifyProviderFailure(error: unknown): ProviderFailureKind | n
     return null;
   }
 
-  if (CREDIT_EXHAUSTED.test(message)) {
+  if (hasExhaustedProviderCredits(error)) {
     return 'credit';
   }
 
@@ -352,11 +352,15 @@ export function resolveRuntimeProvider(options: {
     };
   }
 
-  /*
-   * Toute la chaîne est indisponible : on RETOURNE quand même le fournisseur
-   * demandé. Échouer ici priverait l'utilisateur de l'erreur réelle du
-   * fournisseur, la seule qui lui dise quoi faire (recharger le crédit).
-   */
+  if (failure.kind === 'credit') {
+    throw Object.assign(new Error(streamErrorCodeMessages.PROVIDER_CREDITS_EXHAUSTED), {
+      code: 'PROVIDER_CREDITS_EXHAUSTED',
+      statusCode: 503,
+      isRetryable: false,
+    });
+  }
+
+  // Preserve the existing provider diagnostic for other failure kinds.
   logger.error(`Aucun fournisseur de repli disponible ; [${provider.name}] est conservé malgré ${failure.kind}.`);
 
   return { provider, model };
