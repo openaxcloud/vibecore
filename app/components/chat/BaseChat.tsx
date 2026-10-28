@@ -3598,6 +3598,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const quotaWarning = useStore(workbenchStore.quotaWarning);
     const billingUpgradePrompt = useStore(workbenchStore.billingUpgradePrompt);
     const previewServerState = useStore(workbenchStore.previewServerState);
+    const previewStoppedByUser = useStore(workbenchStore.previewStoppedByUser);
     const projectFilesPanelRequest = useStore(workbenchStore.projectFilesPanelRequest);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
@@ -4435,12 +4436,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const resolvedMobilePreviewRunState = resolveCompactPreviewRunState({
+      previewStoppedByUser,
       previewServerStatus,
       runtimeRunning: isRuntimeReallyRunning,
       runtimeStarting: runtimeUiState === 'starting',
     });
 
-    const mobilePreviewRunState = mobilePreviewRunFeedbackState ?? resolvedMobilePreviewRunState;
+    const mobilePreviewRunState = previewStoppedByUser
+      ? resolvedMobilePreviewRunState
+      : (mobilePreviewRunFeedbackState ?? resolvedMobilePreviewRunState);
 
     const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
     const isMobilePreviewStopping = mobilePreviewRunState === 'stopping';

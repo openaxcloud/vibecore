@@ -65,3 +65,38 @@ describe('compact preview run state', () => {
     expect(compactPreviewRunText('error', 'fr-FR')).toBe('Réessayer');
   });
 });
+
+it('does not infer a running preview from stale ports after confirmed user Stop', () => {
+  expect(
+    resolveCompactPreviewRunState({
+      previewServerStatus: 'idle',
+      runtimeRunning: true,
+      runtimeStarting: true,
+      previewStoppedByUser: true,
+    }),
+  ).toBe('idle');
+  expect(
+    resolveCompactPreviewRunState({
+      previewServerStatus: 'stopping',
+      runtimeRunning: true,
+      previewStoppedByUser: true,
+    }),
+  ).toBe('stopping');
+  expect(
+    resolveCompactPreviewRunState({ previewServerStatus: 'error', runtimeRunning: true, previewStoppedByUser: true }),
+  ).toBe('error');
+});
+
+it.each(['running', 'starting'] as const)(
+  'keeps user Stop authoritative over an old %s preview state',
+  (previewServerStatus) => {
+    expect(
+      resolveCompactPreviewRunState({
+        previewServerStatus,
+        runtimeRunning: true,
+        runtimeStarting: true,
+        previewStoppedByUser: true,
+      }),
+    ).toBe('idle');
+  },
+);

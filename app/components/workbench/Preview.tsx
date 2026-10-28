@@ -42,6 +42,7 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { demarrageBloque, msDepuisLeDernierProgres } from '~/lib/ide/demarrage-bloque';
 import { journalLisible, texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import { compactPreviewRunText } from '~/lib/runtime/preview-run-state';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
 import {
@@ -758,6 +759,10 @@ export const Preview = memo(
     const [isFullscreen, setIsFullscreen] = useState(false);
     const hasSelectedPreview = useRef(false);
     const previewStoppedByUser = useStore(workbenchStore.previewStoppedByUser);
+    const previewServerState = useStore(workbenchStore.previewServerState);
+
+    const previewFrameSuppressed = previewStoppedByUser;
+
     const autoStart = requestedAutoStart && !previewStoppedByUser;
     const previews = useStore(workbenchStore.previews);
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
@@ -772,7 +777,9 @@ export const Preview = memo(
         ? 0
         : -1;
 
-    const activePreview = normalizedActivePreviewIndex >= 0 ? previews[normalizedActivePreviewIndex] : undefined;
+    const activePreview =
+      !previewFrameSuppressed && normalizedActivePreviewIndex >= 0 ? previews[normalizedActivePreviewIndex] : undefined;
+
     const [displayPath, setDisplayPath] = useState('/');
     const [addressInput, setAddressInput] = useState('/');
     const [iframeUrl, setIframeUrl] = useState<string | undefined>();
@@ -817,6 +824,11 @@ export const Preview = memo(
         setIsStartingPreview(false);
         setPreviewStatus(undefined);
         setPreviewRunFailed(false);
+
+        if (previewReloadTimer.current !== undefined) {
+          window.clearTimeout(previewReloadTimer.current);
+          previewReloadTimer.current = undefined;
+        }
       }
     }, [previewStoppedByUser]);
 
@@ -1241,6 +1253,10 @@ export const Preview = memo(
       }
 
       const verifier = () => {
+        if (workbenchStore.previewStoppedByUser.get()) {
+          return;
+        }
+
         const frame = iframeRef.current;
 
         if (!frame) {
@@ -1324,6 +1340,10 @@ export const Preview = memo(
     }, [activePreviewIndex, previews]);
 
     const refreshPorts = useCallback(async () => {
+      if (workbenchStore.previewStoppedByUser.get()) {
+        return;
+      }
+
       setIsRefreshingPorts(true);
       setPreviewStatus(undefined);
 
@@ -1338,6 +1358,10 @@ export const Preview = memo(
 
     const reloadPreview = useCallback(
       (reason = 'manual') => {
+        if (workbenchStore.previewStoppedByUser.get()) {
+          return;
+        }
+
         const iframe = iframeRef.current;
 
         if (!iframe) {
@@ -1363,7 +1387,7 @@ export const Preview = memo(
          */
         if (beginPreviewFrameReload(iframe) === 'force-navigation') {
           window.setTimeout(() => {
-            if (iframeRef.current) {
+            if (!workbenchStore.previewStoppedByUser.get() && iframeRef.current === iframe) {
               iframeRef.current.src = target;
             }
           }, 50);
@@ -1386,6 +1410,10 @@ export const Preview = memo(
 
     useEffect(() => {
       const unsubscribe = workspaceEvents.on('file:applied', ({ filePath }) => {
+        if (workbenchStore.previewStoppedByUser.get()) {
+          return;
+        }
+
         if (previewReloadTimer.current) {
           window.clearTimeout(previewReloadTimer.current);
         }
@@ -2504,6 +2532,10 @@ export const Preview = memo(
 
     const recordPreviewLoad = useCallback(
       (url?: string) => {
+        if (workbenchStore.previewStoppedByUser.get()) {
+          return;
+        }
+
         const targetUrl = url ?? iframeRef.current?.src ?? visiblePreviewUrl;
 
         if (!targetUrl || targetUrl === 'about:blank') {
@@ -2575,6 +2607,10 @@ export const Preview = memo(
     );
 
     const handlePreviewFrameError = useCallback(() => {
+      if (workbenchStore.previewStoppedByUser.get()) {
+        return;
+      }
+
       /*
        * The browser only fires `error` for network-level frame failures
        * (DNS/connection reset) — an HTTP 5xx still fires `load`. Treat it as a
@@ -2951,7 +2987,7 @@ export const Preview = memo(
               alignItems: 'center',
             }}
           >
-            {activePreview || staticPreviewHtml ? (
+            {!previewFrameSuppressed && (activePreview || staticPreviewHtml) ? (
               <>
                 {/*
                  * Each frame mode has its own key: recycling a loaded srcdoc frame as
@@ -3114,10 +3150,17 @@ export const Preview = memo(
                   <PreviewNotRunningState
                     detail={
                       previewStoppedByUser
-                        ? undefined
+                        ? previewServerState.status === 'error'
+                          ? previewServerState.error
+                          : undefined
                         : (previewStatus ?? (workspaceError ? t('idePanels.preview.workspaceFailed') : undefined))
                     }
-                    isRunning={!previewStoppedByUser && isStartingPreview}
+                    isRunning={previewServerState.status === 'stopping' || (!previewStoppedByUser && isStartingPreview)}
+                    runLabel={
+                      previewServerState.status === 'stopping'
+                        ? compactPreviewRunText('stopping', activeLanguage)
+                        : undefined
+                    }
                     logs={workspaceLogs.slice(-8)}
                     onRun={relancerLeDemarrage}
                     onReinstall={() => {
@@ -3785,12 +3828,14 @@ export function PreviewNotRunningState({
   logs,
   onRun,
   onReinstall,
+  runLabel,
 }: {
   detail?: string;
   isRunning: boolean;
   logs: string[];
   onRun: () => void;
   onReinstall?: () => void;
+  runLabel?: string;
 }) {
   const { t } = useTranslation();
 
@@ -3811,7 +3856,9 @@ export function PreviewNotRunningState({
         </div>
         <button type="button" onClick={onRun} disabled={isRunning} className="bolt-preview-not-running-run">
           {isRunning ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : <Zap aria-hidden />}
-          <span>{isRunning ? t('idePanels.preview.startingPreview') : t('idePanels.preview.runPreview')}</span>
+          <span>
+            {runLabel ?? (isRunning ? t('idePanels.preview.startingPreview') : t('idePanels.preview.runPreview'))}
+          </span>
         </button>
         {onReinstall ? (
           <button

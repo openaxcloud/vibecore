@@ -60,6 +60,7 @@ import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
 import { CurrentWorkspaceProvider } from '~/lib/runtime/CurrentWorkspaceContext';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
+import { resolveCompactPreviewRunState, isCompactPreviewRunActive } from '~/lib/runtime/preview-run-state';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { projectIdePath, withProjectSearch } from '~/utils/project-url';
@@ -299,7 +300,16 @@ function IdeProjectTopBar({
   }, [displayProjectName]);
 
   const isReallyRunning = isWorkspaceReallyRunning(effectiveWorkspace, previews);
-  const previewRunning = isReallyRunning;
+  const previewStoppedByUser = useStore(workbenchStore.previewStoppedByUser);
+  const previewServerState = useStore(workbenchStore.previewServerState);
+
+  const previewRunState = resolveCompactPreviewRunState({
+    previewStoppedByUser,
+    previewServerStatus: previewServerState.status,
+    runtimeRunning: isReallyRunning,
+  });
+
+  const previewRunning = isCompactPreviewRunActive(previewRunState);
   const workspaceState = workspaceUiState(effectiveWorkspace, { ports: previews, loading, error });
 
   const state =
@@ -853,6 +863,8 @@ function IdeProjectTopBar({
             <button
               type="button"
               data-testid="button-run-stop"
+              disabled={previewRunState === 'stopping'}
+              data-preview-state={previewRunState}
               className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
               onClick={() => {
                 if (previewRunning) {

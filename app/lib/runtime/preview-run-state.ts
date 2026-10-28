@@ -13,10 +13,12 @@ export function resolveCompactPreviewRunState({
   previewServerStatus,
   runtimeRunning = false,
   runtimeStarting = false,
+  previewStoppedByUser = false,
 }: {
   previewServerStatus: CompactPreviewRunState;
   runtimeRunning?: boolean;
   runtimeStarting?: boolean;
+  previewStoppedByUser?: boolean;
 }): CompactPreviewRunState {
   if (previewServerStatus === 'stopping') {
     return 'stopping';
@@ -29,6 +31,10 @@ export function resolveCompactPreviewRunState({
    */
   if (previewServerStatus === 'error') {
     return 'error';
+  }
+
+  if (previewStoppedByUser) {
+    return 'idle';
   }
 
   if (runtimeRunning || previewServerStatus === 'running') {

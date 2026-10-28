@@ -404,6 +404,7 @@ export const Workbench = memo(
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
     const previewServerState = useStore(workbenchStore.previewServerState);
+    const previewStoppedByUser = useStore(workbenchStore.previewStoppedByUser);
     const { showChat } = useStore(chatStore);
     const canHideChat = showWorkbench || !showChat;
 
@@ -533,12 +534,15 @@ export const Workbench = memo(
     );
 
     const resolvedMobilePreviewRunState = resolveCompactPreviewRunState({
+      previewStoppedByUser,
       previewServerStatus: previewServerState.status,
       runtimeRunning: hasReadyPreview || isWorkspaceReallyRunning(workspaceStatus),
       runtimeStarting: workspaceUiState(workspaceStatus) === 'starting',
     });
 
-    const mobilePreviewRunState = mobilePreviewRunFeedbackState ?? resolvedMobilePreviewRunState;
+    const mobilePreviewRunState = previewStoppedByUser
+      ? resolvedMobilePreviewRunState
+      : (mobilePreviewRunFeedbackState ?? resolvedMobilePreviewRunState);
 
     const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
     const isMobilePreviewStopping = mobilePreviewRunState === 'stopping';

@@ -11,11 +11,11 @@ section: "Preview et runtime"
 
 ## 💻 Codé
 
-☐ — préparation isolée ; aucun correctif livré.
+☑ — #825 fusionnée dans main `cb1cefa892`, livrée le 28/10 à 14:13:12 UTC.
 
 ## ✅ Testé live
 
-☐ — incident observé en production, aucun correctif testé sur le projet client.
+☐ — recette partielle : le garde-fou serveur fonctionne, mais interface et sondes restent incorrectes après Stop ; voir BUG-PREVIEW-STOP-OBSERVERS-20261028.
 
 ## Preuve et mécanisme
 
@@ -90,3 +90,11 @@ Les enfants sont nettoyés même dans la contre-épreuve rouge.
 Typage officiel complet, revalidation web finale, build web/SSR, catalogues
 FR/EN et garde i18n réussis. Lint web : zéro erreur, 52 avertissements
 préexistants. Aucun résultat production du correctif n'est revendiqué.
+
+## Recette après livraison
+
+La session navigateur rapporte zéro processus et zéro port pendant plus de trois
+minutes après le Stop de 14:17:19 UTC, puis un nouveau Vite seulement après Run
+explicite à 14:21:45. Le correctif serveur est donc confirmé sur ce parcours.
+Le statut visuel et les sondes restaient erronés ; le parcours complet ne reçoit
+pas de validation live. Voir [le défaut résiduel](BUG-PREVIEW-STOP-OBSERVERS-20261028.md).

@@ -14,7 +14,7 @@ vi.mock('~/lib/stores/workbench', () => ({
     workspaceLogs: atom([]),
     workspaceError: atom(undefined),
     files: atom({}),
-    previewServerState: atom(undefined),
+    previewServerState: atom({ status: 'idle' }),
     refreshRuntimePorts: vi.fn().mockResolvedValue(undefined),
     isPreviewServerStarting: () => true,
     startPreviewServer: vi.fn().mockResolvedValue(undefined),

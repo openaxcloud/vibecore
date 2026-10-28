@@ -15,7 +15,7 @@ vi.mock('~/lib/stores/workbench', () => ({
     workspaceLogs: atom([]),
     workspaceError: atom(undefined),
     files: atom({}),
-    previewServerState: atom({ command: 'npm run dev' }),
+    previewServerState: atom({ status: 'idle', command: 'npm run dev' }),
     refreshRuntimePorts: vi.fn().mockResolvedValue(undefined),
     isPreviewServerStarting: () => false,
     startPreviewServer: vi.fn().mockResolvedValue('npm run dev'),
@@ -32,6 +32,10 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
   workbenchStore.previewStoppedByUser.set(false);
+  workbenchStore.previews.set([]);
+  workbenchStore.workspaceStatus.set(undefined);
+  workbenchStore.workspaceLoading.set(false);
+  workbenchStore.previewServerState.set({ status: 'idle', command: 'npm run dev' });
   vi.mocked(workbenchStore.startPreviewServer).mockResolvedValue('npm run dev');
   vi.stubGlobal(
     'matchMedia',
@@ -121,3 +125,77 @@ it('marks the reinstall button as explicit user intent while automatic reinstall
   fireEvent.click(view.getByRole('button', { name: 'idePanels.preview.reinstallDependencies' }));
   expect(workbenchStore.reinstallDependencies).toHaveBeenCalledWith({ intent: 'user' });
 });
+
+it('removes a retained not-ready iframe after confirmed Stop and ignores its pending reload', async () => {
+  workbenchStore.previews.set([{ port: 5173, ready: false, baseUrl: 'https://fixture.invalid' }]);
+
+  const view = render(<Preview setSelectedElement={() => undefined} />);
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  const frame = view.getByTestId('preview-iframe');
+  fireEvent.load(frame);
+  await act(async () => {
+    workbenchStore.previewStoppedByUser.set(true);
+  });
+  expect(view.queryByTestId('preview-iframe')).toBeNull();
+  expect(view.getByTestId('preview-not-running-state')).toBeTruthy();
+
+  const calls = vi.mocked(workbenchStore.refreshRuntimePorts).mock.calls.length;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10_000);
+  });
+  expect(workbenchStore.refreshRuntimePorts).toHaveBeenCalledTimes(calls);
+  expect(view.container.textContent).not.toContain('idePanels.preview.serverStartingRetry');
+});
+
+it('preserves a pending Stop and exposes a failed kill rather than claiming a confirmed idle preview', async () => {
+  workbenchStore.previewStoppedByUser.set(true);
+  workbenchStore.previews.set([{ port: 5173, ready: false, baseUrl: 'https://fixture.invalid' }]);
+  workbenchStore.previewServerState.set({ status: 'stopping' });
+
+  const view = render(<Preview setSelectedElement={() => undefined} />);
+  expect(view.queryByTestId('preview-iframe')).toBeNull();
+  expect((view.getByRole('button', { name: 'Stopping' }) as HTMLButtonElement).disabled).toBe(true);
+  await act(async () => {
+    workbenchStore.previewServerState.set({ status: 'error', error: 'Fixture kill not confirmed' });
+  });
+  expect(view.container.textContent).toContain('Fixture kill not confirmed');
+  expect((view.getByRole('button', { name: 'idePanels.preview.runPreview' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+});
+it('offers Run after reload with stored Stop even if workspace provisioning reports starting', async () => {
+  workbenchStore.previewStoppedByUser.set(true);
+  workbenchStore.workspaceLoading.set(true);
+  workbenchStore.workspaceStatus.set({ id: 'fixture', status: 'starting' } as never);
+
+  const view = render(<Preview projectId="fixture" setSelectedElement={() => undefined} />);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10_000);
+  });
+  expect(workbenchStore.startPreviewServer).not.toHaveBeenCalled();
+  expect(view.queryByTestId('preview-iframe')).toBeNull();
+  expect((view.getByRole('button', { name: 'idePanels.preview.runPreview' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+});
+
+it.each(['running', 'starting'] as const)(
+  'does not revive an iframe from a previous project %s state after stored Stop',
+  async (status) => {
+    workbenchStore.previewStoppedByUser.set(true);
+    workbenchStore.previewServerState.set({ status });
+    workbenchStore.previews.set([{ port: 5173, ready: true, baseUrl: 'https://fixture.invalid' }]);
+
+    const view = render(<Preview setSelectedElement={() => undefined} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(view.queryByTestId('preview-iframe')).toBeNull();
+    expect(view.getByTestId('preview-not-running-state')).toBeTruthy();
+    expect(workbenchStore.startPreviewServer).not.toHaveBeenCalled();
+    expect(workbenchStore.refreshRuntimePorts).not.toHaveBeenCalled();
+  },
+);
