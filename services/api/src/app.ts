@@ -46,6 +46,7 @@ import {
   StripeBillingClient,
   BUILTIN_AGENT_ROUTING_CARD,
   buildExplicitRunPermit,
+  EXPLICIT_RUN_USAGE_LEDGER_REASON,
   assertQuota,
   assertPublishEntitlement,
   isPublicationActive,
@@ -29788,7 +29789,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (![undefined, 'false'].includes(process.env.BILLING_CREDITS_ENABLED)) {
       return reply.status(403).send({
         code: 'EXPLICIT_RUN_LIVE_BILLING_UNSUPPORTED',
-        error: 'Bounded runs require disabled live credit billing.',
+        error: appPublicCopy('EXPLICIT_RUN_LIVE_BILLING_UNSUPPORTED', transactionalLocaleForRequest(request)),
       });
     }
 
@@ -29800,7 +29801,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     ) {
       return reply
         .status(403)
-        .send({ code: 'EXPLICIT_RUN_PROVIDER_UNAVAILABLE', error: 'Explicit provider unavailable.' });
+        .send({ code: 'EXPLICIT_RUN_PROVIDER_UNAVAILABLE', error: appPublicCopy('EXPLICIT_RUN_PROVIDER_UNAVAILABLE', transactionalLocaleForRequest(request)) });
     }
 
     // Unlike automatic routing, an unknown plan/card must never fall back silently.
@@ -29814,7 +29815,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       !parsed.success ||
       row?.version !== parsed.data.version
     ) {
-      return reply.status(403).send({ code: 'EXPLICIT_RUN_UNAVAILABLE', error: 'Explicit run unavailable.' });
+      return reply.status(403).send({ code: 'EXPLICIT_RUN_UNAVAILABLE', error: appPublicCopy('EXPLICIT_RUN_UNAVAILABLE', transactionalLocaleForRequest(request)) });
     }
 
     let permit;
@@ -29829,13 +29830,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } catch {
       return reply
         .status(403)
-        .send({ code: 'EXPLICIT_RUN_UNAVAILABLE', error: 'Explicit run price or plan unavailable.' });
+        .send({ code: 'EXPLICIT_RUN_UNAVAILABLE', error: appPublicCopy('EXPLICIT_RUN_PRICE_OR_PLAN_UNAVAILABLE', transactionalLocaleForRequest(request)) });
     }
 
     const reservation = await store.reserveExplicitRun(permit);
 
     if (!reservation.ok) {
-      return reply.status(409).send({ code: reservation.code, error: 'Explicit run reservation refused.' });
+      return reply.status(409).send({ code: reservation.code, error: appPublicCopy('EXPLICIT_RUN_RESERVATION_REFUSED', transactionalLocaleForRequest(request)) });
     }
 
     return permit;
@@ -30096,7 +30097,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         body.agentRouting.escalated ||
         ![undefined, 'false'].includes(process.env.BILLING_CREDITS_ENABLED))
     ) {
-      throw Object.assign(new Error('Explicit run usage does not match its reservation.'), { statusCode: 403 });
+      throw Object.assign(new Error(appPublicCopy('EXPLICIT_RUN_USAGE_MISMATCH', transactionalLocaleForRequest(request))), { statusCode: 403 });
     }
 
     const { costCents, matched } = computeAiCostCents({
@@ -30116,7 +30117,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       inputTokens: body.inputTokens,
       outputTokens: body.outputTokens,
       costCents,
-      reason: explicitPermit ? 'chat.completion.explicit-standard-estimate' : `chat.completion.${body.source}`,
+      reason: explicitPermit ? EXPLICIT_RUN_USAGE_LEDGER_REASON : `chat.completion.${body.source}`,
       source: usageSource,
     });
 

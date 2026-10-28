@@ -5,7 +5,7 @@ import {
   buildAgentOrchestrationPlan,
   createAgentOrchestrationPrompt,
 } from './agent-orchestration';
-import { createExplicitRunModel, type ExplicitRunExecution } from './bounded-explicit-run';
+import { createExplicitRunModel, rejectExplicitRun, type ExplicitRunExecution } from './bounded-explicit-run';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,
@@ -527,7 +527,7 @@ export async function streamText(props: {
   const strictProvider = props.explicitRun ? PROVIDER_LIST.find((entry) => entry.name === 'OpenAI') : undefined;
 
   if (props.explicitRun && !strictProvider) {
-    throw new Error('Explicit OpenAI provider unavailable.');
+    rejectExplicitRun('EXPLICIT_PROVIDER_UNAVAILABLE');
   }
 
   const resolved =

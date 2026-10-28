@@ -158,7 +158,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     return headers;
   };
 
+  const explicitRunFailure = (error: unknown) =>
+    error && typeof error === 'object' && 'code' in error && error.code === 'EXPLICIT_RUN_LIMIT'
+      ? { error: true, code: 'EXPLICIT_RUN_LIMIT', message: copy.explicitRunLimit, statusCode: 400, isRetryable: false }
+      : undefined;
+
   const serializeLocalizedStreamError = (error: unknown): string => {
+    const explicitFailure = explicitRunFailure(error);
+
+    if (explicitFailure) {
+      return JSON.stringify(explicitFailure);
+    }
+
     const payload = buildChatStreamErrorPayload(error);
 
     if (error instanceof ChatQuotaError) {
@@ -2951,6 +2962,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   } catch (error: any) {
     logger.error(error);
+
+    const explicitFailure = explicitRunFailure(error);
+
+    if (explicitFailure) {
+      return new Response(JSON.stringify(explicitFailure), {
+        status: explicitFailure.statusCode,
+        headers: responseHeaders({ 'Content-Type': 'application/json' }),
+      });
+    }
 
     const errorCode = classifyStreamError(error);
     const rawMessage = typeof error?.message === 'string' ? error.message : '';

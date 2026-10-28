@@ -132,11 +132,11 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-async function invoke(overrides: Record<string, unknown> = {}) {
+async function invoke(overrides: Record<string, unknown> = {}, language = 'fr') {
   const response = await action({
     request: new Request('http://synthetic.local/api/chat', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'accept-language': 'fr' },
+      headers: { 'content-type': 'application/json', 'accept-language': language },
       body: JSON.stringify({
         messages: [{ id: 'fixture-message', role: 'user', content: 'Create a small app' }],
         files: { 'src/App.tsx': { type: 'file', content: 'old content' } },
@@ -235,3 +235,41 @@ test('Auto retains its existing helper path and carries no strict permit', async
   expect(retrieveMemoryForAgentContext).toHaveBeenCalledOnce();
   expect(prepareWebReferenceForChat).toHaveBeenCalledOnce();
 });
+
+for (const language of ['en', 'fr']) {
+  for (const phase of ['startup', 'stream']) {
+    test(`strict refusal stays private and non-retryable in ${phase}/${language}`, async () => {
+      const failure = Object.assign(new Error('internal-budget-fixture'), {
+        code: 'EXPLICIT_RUN_LIMIT',
+        statusCode: 400,
+      });
+
+      if (phase === 'startup') {
+        boundary.streamStartup.mockImplementation(() => {
+          throw failure;
+        });
+      } else {
+        boundary.streamText.mockRejectedValue(failure);
+      }
+
+      const { response, body } = await invoke({}, language);
+
+      const payload =
+        phase === 'startup'
+          ? JSON.parse(body)
+          : JSON.parse(
+              JSON.parse(
+                body
+                  .split('\n')
+                  .find((line) => line.startsWith('3:'))!
+                  .slice(2),
+              ),
+            );
+      expect(response.status).toBe(phase === 'startup' ? 400 : 200);
+      expect(payload).toMatchObject({ code: 'EXPLICIT_RUN_LIMIT', statusCode: 400, isRetryable: false });
+      expect(payload.message).toContain(language === 'fr' ? 'génération explicite' : 'explicit run');
+      expect(body).not.toContain('internal-budget-fixture');
+      expect(boundary.fetch).not.toHaveBeenCalled();
+    });
+  }
+}

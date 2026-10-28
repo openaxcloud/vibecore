@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_AGENT_ROUTING_CARD } from './agent-routing.js';
-import { buildExplicitRunPermit, reserveExplicitRunBudget } from './explicit-run.js';
+import { buildExplicitRunPermit, ExplicitRunError, reserveExplicitRunBudget } from './explicit-run.js';
 
 const make = (runId = 'test-run') =>
   buildExplicitRunPermit({ runId, projectId: 'project', planKey: 'free', card: BUILTIN_AGENT_ROUTING_CARD });
@@ -52,4 +52,14 @@ describe('bounded explicit run budget', () => {
     });
     expect(reserveExplicitRunBudget(null, make())).toMatchObject({ ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' });
   });
+});
+
+it('exposes typed machine codes without presenting them as user-facing error messages', () => {
+  try {
+    buildExplicitRunPermit({ runId: 'r', projectId: 'p', planKey: 'unknown', card: BUILTIN_AGENT_ROUTING_CARD });
+    expect.fail('Expected a typed refusal');
+  } catch (error) {
+    expect(error).toBeInstanceOf(ExplicitRunError);
+    expect(error).toMatchObject({ code: 'EXPLICIT_RUN_UNAVAILABLE', message: '' });
+  }
 });

@@ -88,6 +88,7 @@ describe('explicit run reservation route', () => {
   });
   it('fails closed for unknown plans, missing cards and nonpositive active prices', async () => {
     const { app, store, org, invoke, payload } = await setup();
+    const reserve = vi.spyOn(store, 'reserveExplicitRun');
 
     try {
       await store.upsertSubscription({ organizationId: org.id, planKey: 'free', status: 'UNPAID' });
@@ -100,6 +101,7 @@ describe('explicit run reservation route', () => {
         data: { ...BUILTIN_AGENT_ROUTING_CARD, baseUserInCentsPerM: 0 },
       });
       expect((await invoke(payload())).statusCode).toBe(403);
+      expect(reserve).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }
@@ -168,6 +170,7 @@ it('records explicit usage from its persisted snapshot after the active card cha
 
 it('refuses missing, disabled or redirected provider configuration', async () => {
   const { app, store, invoke, payload } = await setup();
+  const reserve = vi.spyOn(store, 'reserveExplicitRun');
 
   try {
     store.providerConfigs.clear();
@@ -184,6 +187,27 @@ it('refuses missing, disabled or redirected provider configuration', async () =>
       baseUrl: 'https://example.invalid/v1',
     });
     expect((await invoke(payload())).statusCode).toBe(403);
+    expect(reserve).not.toHaveBeenCalled();
+  } finally {
+    await app.close();
+  }
+});
+
+it.each([
+  ['en', 'Explicit provider unavailable.'],
+  ['fr', 'Le fournisseur choisi est indisponible.'],
+])('localizes explicit provider refusal in %s without changing its machine code', async (locale, message) => {
+  const { app, store, project, payload } = await setup();
+  try {
+    store.providerConfigs.clear();
+    const result = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/agent/explicit-run`,
+      headers: { authorization: 'Bearer explicit-token', 'accept-language': locale },
+      payload: payload(),
+    });
+    expect(result.statusCode).toBe(403);
+    expect(result.json()).toMatchObject({ code: 'EXPLICIT_RUN_PROVIDER_UNAVAILABLE', error: message });
   } finally {
     await app.close();
   }

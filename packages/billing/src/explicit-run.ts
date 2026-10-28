@@ -1,6 +1,9 @@
 import { routingLine, type AgentRoutingCard } from './agent-routing.js';
 import { CATALOGUE_INTEGRE } from './catalogue-integre.js';
 
+/** Persistent ledger discriminator, not display copy or a billable amount. */
+export const EXPLICIT_RUN_USAGE_LEDGER_REASON = 'chat.completion.explicit-standard-estimate';
+
 export const EXPLICIT_RUN_PROVIDER_INPUT_CENTS = 55;
 export const EXPLICIT_RUN_PROVIDER_OUTPUT_CENTS = 198;
 
@@ -34,6 +37,19 @@ export interface ExplicitRunPermit {
   };
 }
 
+export type ExplicitRunErrorCode =
+  | 'EXPLICIT_RUN_UNAVAILABLE'
+  | 'EXPLICIT_RUN_UNKNOWN_PRICE'
+  | 'EXPLICIT_RUN_BUDGET_EXCEEDED';
+
+/** Machine-only failure: HTTP boundaries supply localized public copy. */
+export class ExplicitRunError extends Error {
+  constructor(readonly code: ExplicitRunErrorCode) {
+    super();
+    this.name = 'ExplicitRunError';
+  }
+}
+
 export function buildExplicitRunPermit(input: {
   runId: string;
   projectId: string;
@@ -48,7 +64,7 @@ export function buildExplicitRunPermit(input: {
   );
 
   if (!line?.active || !line.availablePlans.includes(input.planKey) || !line.billedToUser || !model) {
-    throw new Error('EXPLICIT_RUN_UNAVAILABLE');
+    throw new ExplicitRunError('EXPLICIT_RUN_UNAVAILABLE');
   }
 
   const platformInputCentsPerMillion = card.baseUserInCentsPerM * line.multiplier * 2;
@@ -64,7 +80,7 @@ export function buildExplicitRunPermit(input: {
     model.costInCentsPerM !== 20 ||
     model.costOutCentsPerM !== 120
   ) {
-    throw new Error('EXPLICIT_RUN_UNKNOWN_PRICE');
+    throw new ExplicitRunError('EXPLICIT_RUN_UNKNOWN_PRICE');
   }
 
   /*
@@ -82,7 +98,7 @@ export function buildExplicitRunPermit(input: {
   const reservedBudgetMicros = maxCalls * perCallBudgetMicros;
 
   if (!Number.isSafeInteger(reservedBudgetMicros) || reservedBudgetMicros <= 0 || reservedBudgetMicros > 20000000) {
-    throw new Error('EXPLICIT_RUN_BUDGET_EXCEEDED');
+    throw new ExplicitRunError('EXPLICIT_RUN_BUDGET_EXCEEDED');
   }
 
   return {

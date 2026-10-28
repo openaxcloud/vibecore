@@ -15,7 +15,7 @@ export interface ExplicitRunExecution {
 const counters = new WeakMap<ExplicitRunExecution, { calls: number }>();
 const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 
-function refuse(message: string): never {
+export function rejectExplicitRun(message: string): never {
   throw Object.assign(new Error(message), { code: 'EXPLICIT_RUN_LIMIT', isRetryable: false, statusCode: 400 });
 }
 
@@ -33,7 +33,7 @@ export function createExplicitRunExecution(permit: ExplicitRunPermit): ExplicitR
     permit.maxBillableInputTokens !== 1050000 ||
     permit.maxOutputTokens !== 8192
   ) {
-    refuse('Unsupported explicit run permit.');
+    rejectExplicitRun('Unsupported explicit run permit.');
   }
 
   const pricing = permit.pricing;
@@ -47,7 +47,7 @@ export function createExplicitRunExecution(permit: ExplicitRunPermit): ExplicitR
     ) ||
     permit.budgetLimitMicros !== 20000000
   ) {
-    refuse('Unsupported explicit run pricing.');
+    rejectExplicitRun('Unsupported explicit run pricing.');
   }
 
   const charge = (input: number, output: number) =>
@@ -65,7 +65,7 @@ export function createExplicitRunExecution(permit: ExplicitRunPermit): ExplicitR
     permit.reservedBudgetMicros < required ||
     permit.reservedBudgetMicros > permit.budgetLimitMicros
   ) {
-    refuse('Invalid explicit run reservation.');
+    rejectExplicitRun('Invalid explicit run reservation.');
   }
 
   const counter = { calls: 0 };
@@ -91,14 +91,14 @@ export function createExplicitRunFetch(execution: ExplicitRunExecution, baseFetc
   const counter = counters.get(execution);
 
   if (!counter) {
-    refuse('Invalid explicit run execution.');
+    rejectExplicitRun('Invalid explicit run execution.');
   }
 
   return async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
 
     if (url !== ENDPOINT || init?.method !== 'POST' || typeof init.body !== 'string') {
-      refuse('Unsupported explicit run endpoint or body.');
+      rejectExplicitRun('Unsupported explicit run endpoint or body.');
     }
 
     let payload: Record<string, unknown>;
@@ -106,11 +106,11 @@ export function createExplicitRunFetch(execution: ExplicitRunExecution, baseFetc
     try {
       payload = JSON.parse(init.body);
     } catch {
-      refuse('Invalid explicit run body.');
+      rejectExplicitRun('Invalid explicit run body.');
     }
 
     if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
-      refuse('Invalid explicit run body.');
+      rejectExplicitRun('Invalid explicit run body.');
     }
 
     const allowed = new Set([
@@ -130,18 +130,18 @@ export function createExplicitRunFetch(execution: ExplicitRunExecution, baseFetc
     ]);
 
     if (Object.keys(payload).some((key) => !allowed.has(key))) {
-      refuse('Unsupported explicit run parameter.');
+      rejectExplicitRun('Unsupported explicit run parameter.');
     }
 
     if (
       payload.model !== execution.permit.model ||
       (payload.service_tier !== undefined && payload.service_tier !== 'default')
     ) {
-      refuse('Unsupported explicit run model or tier.');
+      rejectExplicitRun('Unsupported explicit run model or tier.');
     }
 
     if (!Array.isArray(payload.messages) || !payload.messages.length || payload.messages.length > 64) {
-      refuse('Explicit run message limit exceeded.');
+      rejectExplicitRun('Explicit run message limit exceeded.');
     }
 
     for (const message of payload.messages) {
@@ -152,7 +152,7 @@ export function createExplicitRunFetch(execution: ExplicitRunExecution, baseFetc
         !['system', 'developer', 'user', 'assistant'].includes(message.role) ||
         typeof message.content !== 'string'
       ) {
-        refuse('Explicit runs accept text messages only.');
+        rejectExplicitRun('Explicit runs accept text messages only.');
       }
     }
 
@@ -173,11 +173,11 @@ export function createExplicitRunFetch(execution: ExplicitRunExecution, baseFetc
     const upperBound = new TextEncoder().encode(body).length + 1024 * (payload.messages.length + 1);
 
     if (upperBound > execution.permit.maxInputTokens) {
-      refuse('Explicit run input limit exceeded.');
+      rejectExplicitRun('Explicit run input limit exceeded.');
     }
 
     if (counter.calls >= execution.permit.maxCalls) {
-      refuse('Explicit run call limit exceeded.');
+      rejectExplicitRun('Explicit run call limit exceeded.');
     }
 
     counter.calls += 1;
@@ -191,7 +191,7 @@ export function createExplicitRunModel(execution: ExplicitRunExecution, serverEn
   const rawKey = serverEnv?.OPENAI_API_KEY || readRuntimeEnv('OPENAI_API_KEY');
 
   if (typeof rawKey !== 'string' || !rawKey.trim()) {
-    refuse('Managed OpenAI credential unavailable.');
+    rejectExplicitRun('Managed OpenAI credential unavailable.');
   }
 
   const openai = createOpenAI({
