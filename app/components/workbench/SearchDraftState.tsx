@@ -1,4 +1,16 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode, type SetStateAction } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  type MutableRefObject,
+  type ReactNode,
+  type SetStateAction,
+} from 'react';
 
 interface SearchDraft {
   searchQuery: string;
@@ -14,9 +26,25 @@ type UpdateDraft = <K extends keyof SearchDraft>(
   value: SetStateAction<SearchDraft[K]>,
 ) => void;
 
-const SearchDraftContext = createContext<{ drafts: Record<string, SearchDraft>; update: UpdateDraft } | null>(null);
+interface SearchFocusTransfer {
+  paneId: string;
+  field: 'query' | 'replacement';
+  source: HTMLInputElement;
+  start: number | null;
+  end: number | null;
+  direction: 'forward' | 'backward' | 'none' | null;
+}
+
+const SearchDraftContext = createContext<{
+  drafts: Record<string, SearchDraft>;
+  update: UpdateDraft;
+  focusTransfer: MutableRefObject<SearchFocusTransfer | null>;
+} | null>(null);
+
+const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 function ScopedSearchDraftProvider({ children }: { children: ReactNode }) {
+  const focusTransfer = useRef<SearchFocusTransfer | null>(null);
   const [drafts, setDrafts] = useState<Record<string, SearchDraft>>({});
 
   const update: UpdateDraft = useCallback((paneId, field, value) => {
@@ -32,7 +60,7 @@ function ScopedSearchDraftProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const context = useMemo(() => ({ drafts, update }), [drafts, update]);
+  const context = useMemo(() => ({ drafts, update, focusTransfer }), [drafts, update]);
 
   return <SearchDraftContext.Provider value={context}>{children}</SearchDraftContext.Provider>;
 }
@@ -81,4 +109,63 @@ export function useSearchDraft(paneId?: string) {
     setCaseSensitive: useCallback((value: SetStateAction<boolean>) => setField('caseSensitive', value), [setField]),
     setIsRegex: useCallback((value: SetStateAction<boolean>) => setField('isRegex', value), [setField]),
   };
+}
+
+/** A focus receipt expires at the next microtask, before a later panel visit. */
+export function useSearchFocusHandoff(paneId?: string) {
+  const transfer = useContext(SearchDraftContext)?.focusTransfer;
+  const root = useRef<HTMLDivElement>(null);
+
+  useClientLayoutEffect(() => {
+    if (!transfer || !paneId) {
+      return undefined;
+    }
+
+    const receipt = transfer.current;
+
+    if (receipt?.paneId === paneId) {
+      transfer.current = null;
+
+      const active = document.activeElement;
+      const target = root.current?.querySelector<HTMLInputElement>(`[data-search-draft-field="${receipt.field}"]`);
+
+      if (target && (active === document.body || active === receipt.source)) {
+        target.focus({ preventScroll: true });
+        target.setSelectionRange(receipt.start, receipt.end, receipt.direction ?? undefined);
+      }
+    }
+
+    return () => {
+      const source = document.activeElement;
+
+      if (!(source instanceof HTMLInputElement) || !root.current?.contains(source)) {
+        return;
+      }
+
+      const field = source.dataset.searchDraftField;
+
+      if (field !== 'query' && field !== 'replacement') {
+        return;
+      }
+
+      const pending: SearchFocusTransfer = {
+        paneId,
+        field,
+        source,
+        start: source.selectionStart,
+        end: source.selectionEnd,
+        direction: source.selectionDirection,
+      };
+      transfer.current = pending;
+
+      // Layout cleanup precedes the successor's layout setup in the same commit.
+      queueMicrotask(() => {
+        if (transfer.current === pending) {
+          transfer.current = null;
+        }
+      });
+    };
+  }, [paneId, transfer]);
+
+  return root;
 }

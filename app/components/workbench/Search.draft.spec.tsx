@@ -125,11 +125,12 @@ function fixture({
   pane = 'pane-main',
   instance = 'shell',
   mobile = false,
+  visible = true,
 } = {}) {
   return (
     <I18nextProvider i18n={i18n}>
       <SearchDraftProvider projectId={project} workspaceId={workspace} windowId={window}>
-        {mobile ? (
+        {!visible ? null : mobile ? (
           <EditorPanel key={`${instance}:${pane}`} mobilePanel="search" searchPaneId={pane || undefined} />
         ) : (
           <Search key={`${instance}:${pane}`} paneId={pane || undefined} />
@@ -245,4 +246,78 @@ it('preserves the active pane draft through desktop/mobile Search surfaces', () 
   view.rerender(fixture({ mobile: true, workspace: 'w2' }));
   expect(query().value).toBe('');
   expect(replacement().value).toBe('');
+});
+
+describe('Search focus during immediate shell replacement', () => {
+  it.each(['query', 'replacement'] as const)(
+    'transfers %s focus and backward selection only to the replacement field',
+    (field) => {
+      vi.useFakeTimers();
+
+      const view = render(fixture());
+      enterDraft();
+
+      const old = field === 'query' ? query() : replacement();
+      old.focus();
+      old.setSelectionRange(1, 3, 'backward');
+      view.rerender(fixture({ instance: 'real-chat', mobile: true }));
+
+      const current = field === 'query' ? query() : replacement();
+      expect(current).not.toBe(old);
+      expect(document.activeElement).toBe(current);
+      expect([current.selectionStart, current.selectionEnd, current.selectionDirection]).toEqual([1, 3, 'backward']);
+    },
+  );
+
+  it('does not steal focus from an outside control', () => {
+    vi.useFakeTimers();
+
+    const outside = document.createElement('button');
+    document.body.append(outside);
+
+    try {
+      const view = render(fixture());
+      query().focus();
+      outside.focus();
+      view.rerender(fixture({ instance: 'real-chat' }));
+      expect(document.activeElement).toBe(outside);
+    } finally {
+      outside.remove();
+    }
+  });
+
+  it('expires focus intent when the panel closes before a later return', async () => {
+    vi.useFakeTimers();
+
+    const view = render(fixture());
+    query().focus();
+    view.rerender(fixture({ visible: false }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    view.rerender(fixture({ instance: 'later' }));
+    expect(document.activeElement).not.toBe(query());
+  });
+
+  it.each(['project', 'workspace', 'window', 'pane'] as const)(
+    'never transfers focus across %s navigation',
+    (scope) => {
+      vi.useFakeTimers();
+
+      const view = render(fixture());
+      query().focus();
+      view.rerender(fixture({ [scope]: 'other', instance: 'new-scope' }));
+      expect(document.activeElement).not.toBe(query());
+    },
+  );
+
+  it('drops focus when the route provider unmounts', () => {
+    vi.useFakeTimers();
+
+    const view = render(fixture());
+    query().focus();
+    view.unmount();
+    render(fixture());
+    expect(document.activeElement).not.toBe(query());
+  });
 });

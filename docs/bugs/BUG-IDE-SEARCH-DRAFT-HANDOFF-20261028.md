@@ -12,11 +12,11 @@ id: BUG-IDE-SEARCH-DRAFT-HANDOFF-20261028
 
 ## 💻 Codé
 
-☐ main — correctif local revu, prêt pour build et recette ; aucune publication ni livraison établie.
+☐ main — correctif local revu, compilé et vérifié en navigateur ; CI exacte, fusion et livraison restent à obtenir.
 
 ## ✅ Testé live
 
-☐ production — tests de composants locaux uniquement pour ce correctif ; nouvelle recette navigateur et production non exécutées.
+☐ production — recette Chromium locale exécutée avec API synthétiques ; aucune recette production, Safari ou appareil physique.
 
 ## Correction
 
@@ -28,11 +28,17 @@ Le panneau desktop reçoit son paneId ; la surface mobile reçoit activePaneId p
 
 - Avant raccord Search : 2 tests rouges sur 6, perte au remontage et au retour vers un panneau.
 - Avant raccord mobile : 1 test rouge sur 7, perte en passant à EditorPanel mobile réel.
-- Après correction : 19 tests réussis, aucun ignoré, dans Search.draft, Search.lifecycle, Search.i18n et EditorPanel.i18n.
+- Après correction complète : 34 tests réussis, aucun ignoré, dans les suites Search/EditorPanel et initialisation mobile ; six gardes index passent séparément.
 - Scénarios : remontage de composant, champs/options, effacement durable, isolation projet/workspace/fenêtre/panneau, fallback historique, passage desktop/mobile/desktop et absence d'écriture ou sauvegarde au remontage.
 - Typage web, ESLint ciblé, Prettier et diff-check réussis. Runtime/API simulés dans les tests ; aucune donnée client utilisée.
-- Revue indépendante : accord limité au périmètre local ; build et recette du nouvel assemblage restent nécessaires. Les tests de composants ne certifient ni navigateur physique ni service backend.
+- Revues indépendantes favorables du scope, du transfert de focus et de l’initialisation Search. Build client/SSR final et typage web officiel passent. Le typage global officiel avait passé avant les deltas web finaux ; lint global sans erreur puis lint ciblé final vert. Les tests ne certifient ni appareil physique ni service backend.
+
+## Focus et démarrage mobile
+
+La sonde compilée a établi un défaut supplémentaire : après montage de la nouvelle coque, Search passait brièvement par Agent malgré son URL. Le reçu de focus expirait pendant cette absence de champ. La surface Search est désormais initialisée depuis la résolution canonique de son URL projet ; entrée nue Agent et autres routes restent inchangées. Le transfert de focus/sélection est limité au même scope/panneau/champ et au tour synchrone ; aucune prolongation arbitraire ni autofocus au retour ultérieur. Deux témoins focus et un témoin initialisation ont échoué avant correction.
+
+La contre-preuve différant réellement le GET ide-state passe à 390 et 1280 : ancien nœud détaché, texte et sélection 1–4 conservés, focus rétabli et resize aller-retour réussi. À 390, Agent → Retour conserve le brouillon sans voler le focus, puis Suivant réaffiche Agent. [Captures et matrice](search-draft-handoff-evidence-20261028/README.md).
 
 ## Reste à vérifier
 
-Recette Chromium mobile/tablette/desktop avec saisie pendant chargement et redimensionnement, identité du panneau lors des transitions, puis validations complètes et livraison normale. Le menu Terminal éphémère reste un incident distinct ; aucune globalisation de son état n'est incluse.
+Le nouveau test E2E permanent a été collecté mais pas exécuté localement : un scénario Chromium à 390 px, deux projets supplémentaires explicitement ignorés. CI exacte puis livraison normale restent à obtenir. Le menu Terminal éphémère reste un incident distinct ; aucune globalisation de son état n'est incluse.

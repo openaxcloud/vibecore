@@ -732,7 +732,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-IDE-PANEL-INTERACTIONS-20261028](docs/bugs/BUG-IDE-PANEL-INTERACTIONS-20261028.md) — Audit ciblé sur main `9ec6ebf75` : une recherche ancienne peut remplacer les résultats ou afficher son erreur après une nouvelle requête ; les anciens résultats — 📤 Dispatché : ☑ 28/10/2026 — lot indépendant des fichiers workbench store, modèles et budget réservés au hub #828/#829. Audi · 💻 Codé : ☐ main — corrections locales en validation, aucune livraison de ce lot encore établie. · ✅ Testé live : ☐ production — aucun test authentifié production de ces corrections. Composants réels en tests isolés ; recett
-- [BUG-IDE-SEARCH-DRAFT-HANDOFF-20261028](docs/bugs/BUG-IDE-SEARCH-DRAFT-HANDOFF-20261028.md) — Le brouillon Search disparaît au remplacement de la coquille IDE. — 📤 Dispatché : ☑ 28/10/2026 — lot Search isolé, hors modèles, budget, workbench store et menus Terminal. · 💻 Codé : ☐ main — correctif local revu, prêt pour build et recette ; aucune publication ni livraison établie. · ✅ Testé live : ☐ production — tests de composants locaux uniquement pour ce correctif ; nouvelle recette navigateur et produc
+- [BUG-IDE-SEARCH-DRAFT-HANDOFF-20261028](docs/bugs/BUG-IDE-SEARCH-DRAFT-HANDOFF-20261028.md) — Le brouillon Search disparaît au remplacement de la coquille IDE. — 📤 Dispatché : ☑ 28/10/2026 — lot Search isolé, hors modèles, budget, workbench store et menus Terminal. · 💻 Codé : ☐ main — correctif local revu, compilé et vérifié en navigateur ; CI exacte, fusion et livraison restent à obt · ✅ Testé live : ☐ production — recette Chromium locale exécutée avec API synthétiques ; aucune recette production, Safari ou a
 
 ## Résidus non tabulaires — reportés mot pour mot
 

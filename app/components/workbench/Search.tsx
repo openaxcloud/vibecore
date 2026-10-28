@@ -3,7 +3,7 @@ import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { useSearchDraft } from './SearchDraftState';
+import { useSearchDraft, useSearchFocusHandoff } from './SearchDraftState';
 import { rechercheDemandee } from './recherche-demandee';
 import {
   computeReplacement,
@@ -43,6 +43,7 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
 
 export function Search({ paneId }: { paneId?: string }) {
   const { t } = useTranslation();
+  const focusRoot = useSearchFocusHandoff(paneId);
 
   /*
    * Use the workspace-bound adapter from context, NOT the module singleton (which
@@ -439,7 +440,7 @@ export function Search({ paneId }: { paneId?: string }) {
   }, [replaceAll]);
 
   return (
-    <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
+    <div ref={focusRoot} className="flex flex-col h-full bg-bolt-elements-background-depth-2">
       {/* UNIF-06 (audit H1) : Search n'avait AUCUNE tête de panneau — il adopte
           l'en-tête commun (même icône que l'onglet/rail, mêmes paddings). */}
       <IdePanelHeader icon="i-ph:magnifying-glass" title={t('workbenchSearch.panel.title')} />
@@ -464,6 +465,7 @@ export function Search({ paneId }: { paneId?: string }) {
           {/* UNIF lot 5 : input partagé PanelInput au lieu du champ ad hoc (fond depth-3, ring). */}
           <PanelInput
             type="text"
+            data-search-draft-field="query"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('workbenchSearch.search.placeholder')}
@@ -494,6 +496,7 @@ export function Search({ paneId }: { paneId?: string }) {
         <div className="relative flex items-center gap-2">
           <PanelInput
             type="text"
+            data-search-draft-field="replacement"
             value={replaceQuery}
             onChange={(e) => setReplaceQuery(e.target.value)}
             placeholder={t('workbenchSearch.replace.placeholder')}
