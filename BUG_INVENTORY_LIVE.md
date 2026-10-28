@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-544 entrées.
+545 entrées.
 
 ## Sans section
 
@@ -723,6 +723,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-AGENT-EXPLICIT-MODEL-20261028](docs/bugs/BUG-AGENT-EXPLICIT-MODEL-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-SETTINGS-MEMORY-DRAFT-LIFETIME-20261028](docs/bugs/BUG-SETTINGS-MEMORY-DRAFT-LIFETIME-20261028.md) — Le panneau Settings perd l’onglet Memory et son brouillon lorsque la coque responsive est remplacée. Reproduction navigateur locale sur la base 9ec6ebf75 : aprè — 📤 Dispatché : ☑ 28/10/2026 — lot isolé Settings/Memory, distinct du premier lot Search/FileTree/Terminal. · 💻 Codé : ☐ main — correctif local préparé et revu ; ni fusionné ni déployé. L’onglet et les brouillons, résultats et ét · ✅ Testé live : ☐ production — aucune recette production. La recette navigateur après correctif est encore attendue ; la repro
 
 ## Résidus non tabulaires — reportés mot pour mot
 

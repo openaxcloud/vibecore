@@ -11,6 +11,7 @@ import {
   type MutableRefObject,
   type ReactNode,
 } from 'react';
+import { IdeSettingsDraftProvider } from './IdeSettingsDraftState';
 
 type Palette = { paneId: string; query: string } | null;
 type Action =
@@ -74,14 +75,16 @@ export function useGlobalIdePalette() {
   return shared ?? local;
 }
 
-function ScopedPaletteProvider({ children }: { children: ReactNode }) {
+function ScopedPaletteProvider({ projectId, children }: { projectId: string; children: ReactNode }) {
   const [state, dispatch] = useReducer(reducePalette, null);
   const globalPalette = useGlobalPaletteState();
 
   return (
     <PaletteDispatchContext.Provider value={dispatch}>
       <PaletteStateContext.Provider value={state}>
-        <GlobalPaletteContext.Provider value={globalPalette}>{children}</GlobalPaletteContext.Provider>
+        <GlobalPaletteContext.Provider value={globalPalette}>
+          <IdeSettingsDraftProvider projectId={projectId}>{children}</IdeSettingsDraftProvider>
+        </GlobalPaletteContext.Provider>
       </PaletteStateContext.Provider>
     </PaletteDispatchContext.Provider>
   );
@@ -97,7 +100,11 @@ export function IdePaletteProvider({
   windowId: string;
   children: ReactNode;
 }) {
-  return <ScopedPaletteProvider key={JSON.stringify([projectId, windowId])}>{children}</ScopedPaletteProvider>;
+  return (
+    <ScopedPaletteProvider projectId={projectId} key={JSON.stringify([projectId, windowId])}>
+      {children}
+    </ScopedPaletteProvider>
+  );
 }
 
 /** Other BaseChat callers retain local state without depending on a route provider. */
