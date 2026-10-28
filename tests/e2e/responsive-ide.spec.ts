@@ -1795,6 +1795,24 @@ createServer((request, response) => {
       );
       await page.goBack();
       await expect(page).toHaveURL((url) => url.searchParams.get('panel') === 'search');
+
+      // POP changes the address bar before React Router applies the destination.
+      await page.waitForFunction((id) => {
+        const router = (
+          window as typeof window & {
+            __reactRouterDataRouter?: {
+              state: { location: { pathname: string; search: string }; navigation: { state: string } };
+            };
+          }
+        ).__reactRouterDataRouter?.state;
+
+        return (
+          router?.navigation.state === 'idle' &&
+          router.location.pathname === `/projects/${id}/ide` &&
+          new URLSearchParams(router.location.search).get('panel') === 'search'
+        );
+      }, projectId);
+
       await expect(query).toBeVisible();
       await expect(query).toHaveValue('alpha');
       await expect(query).not.toBeFocused();
