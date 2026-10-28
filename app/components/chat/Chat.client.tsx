@@ -25,6 +25,7 @@ import {
 } from '~/lib/persistence/journal-persistance';
 import { projectAiTranscriptMessages } from './project-ai-transcript-messages';
 import { BaseChat } from './BaseChat';
+import { lireChoix } from './choix-de-modele';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
@@ -355,6 +356,8 @@ export const ChatImpl = memo(
       extendedThinking?: boolean;
       turboMode?: boolean;
     } | null>(null);
+
+    const lastRequestWasExplicitRef = useRef(false);
 
     const [planFirstEnabled, setPlanFirstEnabled] = useState(false);
 
@@ -848,6 +851,12 @@ export const ChatImpl = memo(
           noterLeTourEnCours(projectId);
         }
 
+        // Read at dispatch, so the displayed per-mode selection cannot lag a React render.
+        const tier = agentPower?.buildTier ?? 'power';
+        const explicitModelChoice = lireChoix()[tier];
+        const explicitRunId = [...requestMessages].reverse().find((message) => message.role === 'user')?.id;
+        lastRequestWasExplicitRef.current = Boolean(explicitModelChoice);
+
         return ensureJsonSafeBody(
           {
             id,
@@ -855,6 +864,8 @@ export const ChatImpl = memo(
             data: requestData,
             ...chatRequestBodyBase,
             ...(requestBody ?? {}),
+            explicitModelChoice,
+            ...(explicitModelChoice ? { explicitRunId } : {}),
 
             /*
              * LU AU MOMENT DE L'ENVOI, PAS AU RENDU. Le serveur n'écrit la demande
@@ -1512,6 +1523,7 @@ export const ChatImpl = memo(
           (errorType === 'network' || errorType === 'rate_limit') &&
           errorInfo.isRetryable !== false &&
           context === 'chat' &&
+          !lastRequestWasExplicitRef.current &&
           !coupureReseau;
 
         const now = Date.now();
@@ -1529,7 +1541,7 @@ export const ChatImpl = memo(
         setLlmErrorAlert({
           type: 'error',
           title,
-          description: '',
+          description: errorCode.startsWith('EXPLICIT_RUN_') ? errorInfo.message : '',
           provider: provider.name,
           errorType,
         });

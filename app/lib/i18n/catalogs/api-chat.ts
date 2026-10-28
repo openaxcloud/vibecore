@@ -12,6 +12,10 @@ export const API_CHAT_PROGRESS_LABELS = {
 
 export const apiChatCatalog = {
   en: {
+    explicitRunRefused:
+      'The explicit selection is unavailable or its budget is exhausted. Use Lite and Luna Standard without Plan or advanced options; no automatic fallback will run.',
+    boundedExplicitRun: 'Bounded explicit run',
+
     analysisComplete: 'Analysis Complete',
     analysingRequest: 'Analysing Request',
     agentExecutionFailed: 'This specialist agent could not complete its task.',
@@ -102,6 +106,10 @@ export const apiChatCatalog = {
     unexpectedError: 'An unexpected error occurred',
   },
   fr: {
+    explicitRunRefused:
+      'Le choix explicite est indisponible ou son budget est épuisé. Utilisez Lite et Luna Standard sans Plan ni options avancées ; aucun repli automatique ne sera effectué.',
+    boundedExplicitRun: 'Génération explicite avec budget limité',
+
     analysisComplete: 'Analyse terminée',
     analysingRequest: 'Analyse de la demande',
     agentExecutionFailed: 'Cet agent spécialisé n’a pas pu terminer sa tâche.',

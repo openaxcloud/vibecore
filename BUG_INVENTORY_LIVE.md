@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-541 entrées.
+542 entrées.
 
 ## Sans section
 
@@ -717,6 +717,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Preview et runtime
 
 - [BUG-PREVIEW-SERVICE-DEADLINE-20261028](docs/bugs/BUG-PREVIEW-SERVICE-DEADLINE-20261028.md) — 📤 Dispatché : ☑ 28/10 — diagnostic sur main `58fa0702a`, contenant #821. · 💻 Codé : ☐ — investigation et validation isolée ; aucun correctif livré à ce stade. · ✅ Testé live : ☐ — aucun lancement ni changement du projet client par cette session.
+
+## Sans section
+
+- [BUG-AGENT-EXPLICIT-MODEL-20261028](docs/bugs/BUG-AGENT-EXPLICIT-MODEL-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

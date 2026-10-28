@@ -44,6 +44,8 @@ import {
 } from '@vibecore/auth';
 import {
   StripeBillingClient,
+  BUILTIN_AGENT_ROUTING_CARD,
+  buildExplicitRunPermit,
   assertQuota,
   assertPublishEntitlement,
   isPublicationActive,
@@ -2010,6 +2012,7 @@ const aiRecordUsageSchema = z.object({
       turbo: z.boolean().default(false),
       lineKey: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
       source: z.string().min(1).default('chat'),
+      explicitRunId: z.string().min(1).max(128).optional(),
     })
     .optional(),
 });
@@ -29762,6 +29765,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * billing multiplier per mode. Deliberately contains NO provider and NO
    * model id: the client never learns model names from this surface.
    */
+  app.post('/projects/:projectId/agent/explicit-run', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+
+    const body = parse(
+      z
+        .object({
+          runId: z.string().min(1).max(128),
+          choice: z
+            .object({ modele: z.literal('gpt-5.6-luna'), serviceTier: z.literal('default').optional() })
+            .strict(),
+          mode: z.literal('lite'),
+          highEffort: z.literal(false),
+          turbo: z.literal(false),
+        })
+        .strict(),
+      request.body,
+    );
+
+    // Defaults are uncharged; unknown flag values are not accepted for bounded runs.
+    if (![undefined, 'false'].includes(process.env.BILLING_CREDITS_ENABLED)) {
+      return reply.status(403).send({
+        code: 'EXPLICIT_RUN_LIVE_BILLING_UNSUPPORTED',
+        error: 'Bounded runs require disabled live credit billing.',
+      });
+    }
+
+    const providerConfig = await store.getExplicitRunProviderConfiguration();
+
+    if (
+      providerConfig?.enabled !== true ||
+      (providerConfig.baseUrl && providerConfig.baseUrl !== 'https://api.openai.com/v1')
+    ) {
+      return reply
+        .status(403)
+        .send({ code: 'EXPLICIT_RUN_PROVIDER_UNAVAILABLE', error: 'Explicit provider unavailable.' });
+    }
+
+    // Unlike automatic routing, an unknown plan/card must never fall back silently.
+    const subscription = await store.getSubscription(project.organizationId);
+    const row = await store.getActiveAgentRoutingCard();
+    const parsed = agentRoutingCardSchema.safeParse(row?.data);
+
+    if (
+      !subscription ||
+      !['ACTIVE', 'TRIALING'].includes(subscription.status) ||
+      !parsed.success ||
+      row?.version !== parsed.data.version
+    ) {
+      return reply.status(403).send({ code: 'EXPLICIT_RUN_UNAVAILABLE', error: 'Explicit run unavailable.' });
+    }
+
+    let permit;
+
+    try {
+      permit = buildExplicitRunPermit({
+        runId: body.runId,
+        projectId,
+        planKey: subscription.planKey,
+        card: parsed.data as AgentRoutingCard,
+      });
+    } catch {
+      return reply
+        .status(403)
+        .send({ code: 'EXPLICIT_RUN_UNAVAILABLE', error: 'Explicit run price or plan unavailable.' });
+    }
+
+    const reservation = await store.reserveExplicitRun(permit);
+
+    if (!reservation.ok) {
+      return reply.status(409).send({ code: reservation.code, error: 'Explicit run reservation refused.' });
+    }
+
+    return permit;
+  });
+
   app.get('/projects/:projectId/agent/routing', async (request) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
@@ -30001,6 +30080,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, project.organizationId);
 
     const body = parse(aiRecordUsageSchema, request.body ?? {});
+    const explicitPermit = body.agentRouting?.explicitRunId
+      ? await store.getExplicitRunPermit(projectId, body.agentRouting.explicitRunId)
+      : undefined;
+
+    if (
+      body.agentRouting?.explicitRunId &&
+      (!explicitPermit ||
+        body.model !== explicitPermit.model ||
+        body.provider.toLowerCase() !== explicitPermit.provider ||
+        body.agentRouting.lineKey !== 'lite' ||
+        body.agentRouting.mode !== 'lite' ||
+        body.agentRouting.turbo ||
+        body.agentRouting.highEffort ||
+        body.agentRouting.escalated ||
+        ![undefined, 'false'].includes(process.env.BILLING_CREDITS_ENABLED))
+    ) {
+      throw Object.assign(new Error('Explicit run usage does not match its reservation.'), { statusCode: 403 });
+    }
 
     const { costCents, matched } = computeAiCostCents({
       model: body.model,
@@ -30019,7 +30116,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       inputTokens: body.inputTokens,
       outputTokens: body.outputTokens,
       costCents,
-      reason: `chat.completion.${body.source}`,
+      reason: explicitPermit ? 'chat.completion.explicit-standard-estimate' : `chat.completion.${body.source}`,
       source: usageSource,
     });
 
@@ -30043,7 +30140,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (body.agentRouting) {
       try {
-        const routingCard = await getActiveAgentRoutingCard(store);
+        const routingCard = explicitPermit
+          ? {
+              ...BUILTIN_AGENT_ROUTING_CARD,
+              version: explicitPermit.routingVersion,
+              baseUserInCentsPerM: explicitPermit.accounting.platformInputCentsPerMillion / explicitPermit.multiplier,
+              baseUserOutCentsPerM: explicitPermit.accounting.platformOutputCentsPerMillion / explicitPermit.multiplier,
+              lines: [
+                {
+                  ...BUILTIN_AGENT_ROUTING_CARD.lines.find((line) => line.key === 'lite')!,
+                  multiplier: explicitPermit.multiplier,
+                  provider: explicitPermit.provider,
+                  model: explicitPermit.model,
+                  costInCentsPerM: explicitPermit.accounting.providerInputCentsPerMillion,
+                  costOutCentsPerM: explicitPermit.accounting.providerOutputCentsPerMillion,
+                },
+              ],
+            }
+          : await getActiveAgentRoutingCard(store);
 
         // Un tour servi par le repli intégré doit être chiffré, pas sauté.
         const callBilling = computeAgentCallBilling(
@@ -30072,7 +30186,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             marginMillicents: Math.round(callBilling.marginCents * 1000),
             billedToUser: callBilling.billedToUser,
             routingCardVersion: callBilling.routingCardVersion,
-            source: body.agentRouting.source ?? 'chat',
+            source: explicitPermit ? 'explicit-standard-estimate' : body.agentRouting.source ?? 'chat',
           });
         }
       } catch (error) {

@@ -1,6 +1,9 @@
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
 
 export const chatControlsEn = {
+  'chatControls.power.explicitBudget':
+    'Explicit selection: Lite / Luna Standard only, without Plan, tools or memory. A project-wide $20 safety allowance is reserved before calling; unused reservations are retained. Live credit billing is unsupported. Provider credits are not guaranteed.',
+
   'chatControls.model.noProviders':
     'No providers are enabled. Enable at least one provider in Settings to start using chat.',
   'chatControls.provider.running': '{provider} is running',
@@ -113,6 +116,9 @@ export type ChatControlsKey = keyof typeof chatControlsEn;
 export type ChatControlsCopy = Readonly<Record<ChatControlsKey, string>>;
 
 export const chatControlsFr: ChatControlsCopy = {
+  'chatControls.power.explicitBudget':
+    'Choix explicite : Lite / Luna Standard uniquement, sans Plan, outils ni mémoire. Une enveloppe de sécurité de 20 $ par projet est réservée avant appel ; les réservations inutilisées sont conservées. Facturation par crédits active non prise en charge. Les crédits du fournisseur ne sont pas garantis.',
+
   'chatControls.model.noProviders':
     'Aucun fournisseur n’est activé. Activez-en au moins un dans les paramètres pour utiliser le chat.',
   'chatControls.provider.running': '{provider} est en cours d’exécution',

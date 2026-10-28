@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { toCreditPlanKey, CREDIT_PACK_VALIDITY_DAYS, type CreditPlanKey } from './credits.js';
 
 export * from './ai-pricing.js';
+export * from './explicit-run.js';
 export * from './credits.js';
 export * from './compute-pricing.js';
 export * from './rate-card.js';

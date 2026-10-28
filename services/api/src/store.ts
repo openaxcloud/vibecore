@@ -1,6 +1,6 @@
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import type { ExplicitRunPermit, ExplicitRunReservation, PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
@@ -2371,6 +2371,9 @@ export interface ApiStore {
   deleteAiMessageFeedback(input: { userId: string; messageId: string }): Promise<boolean>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
+  getExplicitRunProviderConfiguration(): Promise<{ enabled: boolean; baseUrl?: string | null } | undefined>;
+  getExplicitRunPermit(projectId: string, runId: string): Promise<ExplicitRunPermit | undefined>;
+  reserveExplicitRun(permit: ExplicitRunPermit): Promise<ExplicitRunReservation>;
 
   /**
    * Atomically add/remove a string id from a SystemSetting whose value is a
