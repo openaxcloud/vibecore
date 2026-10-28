@@ -57,3 +57,18 @@ it('renders the actual Memory payload preview when a draft becomes non-empty', (
     content: 'Brouillon mémoire',
   });
 });
+
+it('keeps long JSON complete inside a shrinkable settings card with a scrollable preview', () => {
+  const draft = 'Mémoire longue / long memory '.repeat(100);
+  const view = render(<Preview memoryDraft={draft} memoryTags="ui" memoryType="semantic" />);
+  expect(JSON.parse(view.container.querySelector('pre')!.textContent!).content).toBe(draft);
+
+  // Source guard only: actual card/field bounds remain a compiled-browser assertion.
+  const styles = readFileSync(join(__dirname, 'ProjectSettingsPanel.module.scss'), 'utf8');
+  expect(styles).toMatch(
+    /\.panel\.panel :global\(\.bolt-project-settings-card\)\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  );
+
+  const globalStyles = readFileSync(join(__dirname, '../../styles/index.scss'), 'utf8');
+  expect(globalStyles).toMatch(/\.bolt-project-memory-preview\s*\{[\s\S]*?pre\s*\{\s*overflow:\s*auto/);
+});

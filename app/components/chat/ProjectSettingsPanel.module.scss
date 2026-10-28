@@ -23,6 +23,8 @@
 }
 
 .panel.panel :global(.bolt-project-settings-card) {
+  grid-template-columns: minmax(0, 1fr);
+
   label,
   input,
   select,
