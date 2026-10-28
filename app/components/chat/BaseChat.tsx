@@ -175,6 +175,8 @@ import {
   useIdePalette,
   useRetainIdePalettes,
 } from './IdePaletteState';
+import { parseMemoryTags, useIdeSettingsDraft } from './IdeSettingsDraftState';
+
 import {
   deposerDisposition,
   lireDispositionTransmise,
@@ -15912,18 +15914,36 @@ function ProjectSettingsPanel({
     gitDefaultBranch: settings.gitDefaultBranch ?? 'main',
   });
 
-  const [settingsTab, setSettingsTab] = useState('project');
-  const [memoryDraft, setMemoryDraft] = useState('');
-  const [memoryType, setMemoryType] = useState('semantic');
-  const [memoryTags, setMemoryTags] = useState('');
-  const [memoryError, setMemoryError] = useState<string>();
-  const [memoryLoading, setMemoryLoading] = useState(false);
-  const [memories, setMemories] = useState<any[]>([]);
-  const [memoryEnabled, setMemoryEnabled] = useState(true);
-  const [memoryEditId, setMemoryEditId] = useState<string>();
-  const [memoryEditDraft, setMemoryEditDraft] = useState('');
-  const [memoryEditType, setMemoryEditType] = useState('semantic');
-  const [memoryEditTags, setMemoryEditTags] = useState('');
+  const {
+    settingsTab,
+    setSettingsTab,
+    memoryDraft,
+    setMemoryDraft,
+    memoryType,
+    setMemoryType,
+    memoryTags,
+    setMemoryTags,
+    memoryError,
+    memoryLoading,
+    memories,
+    memoryEnabled,
+    memoryEditId,
+    setMemoryEditId,
+    memoryEditDraft,
+    setMemoryEditDraft,
+    memoryEditType,
+    setMemoryEditType,
+    memoryEditTags,
+    setMemoryEditTags,
+    memoryNotice,
+    loadMemories,
+    saveMemory,
+    deleteMemory,
+    toggleMemoryEnabled,
+    startEditMemory,
+    saveEditedMemory,
+  } = useIdeSettingsDraft(settings.id);
+
   const [settingsNotice, setSettingsNotice] = useState('');
   const settingsNoticeRef = useRef(t('baseChatAst.settings.saved'));
   const pendingThemePreferenceRef = useRef<ProjectThemePreference | undefined>(undefined);
@@ -16206,261 +16226,6 @@ function ProjectSettingsPanel({
     { inputTokens: 0, outputTokens: 0, cost: 0 },
   );
 
-  function parseMemoryTags(value: string) {
-    return [
-      ...new Set(
-        value
-          .split(',')
-          .map((tag) => tag.trim().toLowerCase())
-          .filter(Boolean),
-      ),
-    ].slice(0, 20);
-  }
-
-  const loadMemories = useCallback(async () => {
-    if (!settings.id) {
-      return;
-    }
-
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch(`/api/agent-memory?projectId=${encodeURIComponent(settings.id)}&limit=30`, {
-        headers: { accept: 'application/json' },
-      });
-      const preferenceResponse = await fetch(
-        `/api/agent-memory/preferences?projectId=${encodeURIComponent(settings.id)}`,
-        {
-          headers: { accept: 'application/json' },
-        },
-      );
-
-      const payload = (await response.json()) as { memories?: any[]; error?: string };
-
-      const preferencePayload = (await preferenceResponse.json().catch(() => ({}))) as {
-        preference?: { enabled?: boolean };
-        error?: string;
-      };
-
-      if (!response.ok) {
-        console.warn('Agent memory request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.loadFailedHttp', { status: response.status }));
-
-        return;
-      }
-
-      if (!preferenceResponse.ok) {
-        console.warn('Agent memory preference request failed', {
-          status: preferenceResponse.status,
-          serverError: preferencePayload.error,
-        });
-        setMemoryError(
-          t('baseChatAst.memory.preferenceLoadFailedHttp', {
-            status: preferenceResponse.status,
-          }),
-        );
-
-        return;
-      }
-
-      setMemories(payload.memories ?? []);
-      setMemoryEnabled(preferencePayload.preference?.enabled !== false);
-    } catch (error) {
-      console.error('Agent memory request failed', error);
-      setMemoryError(t('baseChatAst.memory.loadFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }, [settings.id, t]);
-
-  useEffect(() => {
-    if (settingsTab === 'memory') {
-      void loadMemories();
-    }
-  }, [loadMemories, settingsTab]);
-
-  async function saveMemory(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!memoryDraft.trim()) {
-      return;
-    }
-
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch('/api/agent-memory', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({
-          scope: 'project',
-          projectId: settings.id,
-          content: memoryDraft,
-          memoryType,
-          tags: parseMemoryTags(memoryTags),
-          source: 'manual',
-          force: true,
-        }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        skipped?: string;
-      };
-
-      if (!response.ok) {
-        console.warn('Agent memory save request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.saveFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      /*
-       * The API returns 202 (ok) with a {skipped} reason (quota_exceeded /
-       * too_short) when the write was NOT persisted — don't claim "saved".
-       */
-      if (response.status === 202 || payload.skipped) {
-        console.warn('Agent memory save was skipped', { reason: payload.skipped });
-        setMemoryError(t('baseChatAst.memory.notSaved'));
-        setSettingsNotice(t('baseChatAst.memory.notSaved'));
-
-        return;
-      }
-
-      setMemoryDraft('');
-      setMemoryTags('');
-      setSettingsNotice(t('baseChatAst.memory.saved'));
-      await loadMemories();
-    } catch (error) {
-      console.error('Agent memory save request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
-  async function deleteMemory(memoryId: string) {
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch(`/api/agent-memory/${encodeURIComponent(memoryId)}`, {
-        method: 'DELETE',
-        headers: { accept: 'application/json' },
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-      if (!response.ok) {
-        console.warn('Agent memory delete request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.deleteFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      setSettingsNotice(t('baseChatAst.memory.deleted'));
-      await loadMemories();
-    } catch (error) {
-      console.error('Agent memory delete request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
-  async function toggleMemoryEnabled(enabled: boolean) {
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch('/api/agent-memory/preferences', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ projectId: settings.id, enabled }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        preference?: { enabled?: boolean };
-        error?: string;
-      };
-
-      if (!response.ok) {
-        console.warn('Agent memory preference update failed', {
-          status: response.status,
-          serverError: payload.error,
-        });
-        setMemoryError(t('baseChatAst.memory.preferenceUpdateFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      setMemoryEnabled(payload.preference?.enabled !== false);
-      setSettingsNotice(t(enabled ? 'baseChatAst.memory.enabled' : 'baseChatAst.memory.disabled'));
-    } catch (error) {
-      console.error('Agent memory preference update failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
-  function startEditMemory(memory: any) {
-    setMemoryEditId(memory.id);
-    setMemoryEditDraft(memory.content ?? memory.summary ?? '');
-    setMemoryEditType(memory.memoryType ?? 'semantic');
-    setMemoryEditTags(Array.isArray(memory.tags) ? memory.tags.join(', ') : '');
-  }
-
-  async function saveEditedMemory(memoryId: string) {
-    if (!memoryEditDraft.trim()) {
-      return;
-    }
-
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch(`/api/agent-memory/${encodeURIComponent(memoryId)}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({
-          content: memoryEditDraft,
-          memoryType: memoryEditType,
-          tags: parseMemoryTags(memoryEditTags),
-        }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-      if (!response.ok) {
-        console.warn('Agent memory update request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.updateFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      setMemoryEditId(undefined);
-      setMemoryEditDraft('');
-      setMemoryEditTags('');
-      setSettingsNotice(t('baseChatAst.memory.updated'));
-      await loadMemories();
-    } catch (error) {
-      console.error('Agent memory update request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
   return (
     <div
       className={`bolt-project-settings-hub ${settingsTab === 'usage' || settingsTab === 'memory' ? settingsPanelStyles.panel : ''}`}
@@ -16471,9 +16236,9 @@ function ProjectSettingsPanel({
           <h3>{t('chat.copy.accountSettings_e3270761')}</h3>
           <p>{t('chat.copy.projectIdentitySecurityBillingAiCredentials_63be3c90')}</p>
         </div>
-        {settingsNotice ? (
+        {(settingsTab === 'memory' ? memoryNotice : settingsNotice) ? (
           <span className="bolt-project-settings-status" role="status" aria-live="polite">
-            {settingsNotice}
+            {settingsTab === 'memory' ? memoryNotice : settingsNotice}
           </span>
         ) : null}
         <a href={`/api/projects/${settings.id}/project-action?intent=export`} target="_blank" rel="noreferrer">
