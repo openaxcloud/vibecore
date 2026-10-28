@@ -20763,8 +20763,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.get('/api/runtime/workspaces/:workspaceId/ports/watch', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
+
+    let closed = false;
+    let syncing = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+    let keepAlive: ReturnType<typeof setInterval> | undefined;
+
+    // Register before authorization: a disconnected watcher must never renew a service lease.
+    client.onClose(() => {
+      closed = true;
+      clearInterval(interval);
+      clearInterval(keepAlive);
+      interval = undefined;
+      keepAlive = undefined;
+    });
+
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    if (closed) {
+      return;
+    }
 
     /*
      * The workspace agent has no port-change stream, so keep the socket open
@@ -20812,37 +20831,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const readyState = new Map<number, boolean>();
 
     const sync = async () => {
-      const result = await pollPorts();
-      const current = new Map(result.ports.map((port) => [port.port, port]));
-
-      for (const [port, descriptor] of current) {
-        // Local-runtime fallback serves directly on the host: report ready, don't probe.
-        const ready = result.localFallback ? true : await probePortReady(authorized.workspaceId, port);
-        const wasKnown = known.has(port);
-        const wasReady = readyState.get(port) ?? false;
-
-        /*
-         * Emit on first appearance, or on EITHER readiness edge. The
-         * ready -> not-ready arm is what makes a preview that stops serving
-         * (dev server crashed, upstream started 5xx-ing) visible to the client:
-         * without it the IDE kept `ready: true` forever and reported a healthy
-         * preview over a dead app (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
-         */
-        if (!wasKnown || wasReady !== ready) {
-          emit(descriptor, 'open', ready);
-        }
-
-        readyState.set(port, ready);
+      if (closed || syncing) {
+        return;
       }
 
-      for (const [port, descriptor] of known) {
-        if (!current.has(port)) {
-          emit(descriptor, 'close', false);
-          readyState.delete(port);
-        }
-      }
+      syncing = true;
 
-      known = current;
+      try {
+        const result = await pollPorts();
+
+        if (closed) {
+          return;
+        }
+
+        const current = new Map(result.ports.map((port) => [port.port, port]));
+
+        for (const [port, descriptor] of current) {
+          // Local-runtime fallback serves directly on the host: report ready, don't probe.
+          const ready = result.localFallback ? true : await probePortReady(authorized.workspaceId, port);
+
+          if (closed) {
+            return;
+          }
+
+          const wasKnown = known.has(port);
+          const wasReady = readyState.get(port) ?? false;
+
+          /*
+           * Emit on first appearance, or on EITHER readiness edge. The
+           * ready -> not-ready arm is what makes a preview that stops serving
+           * (dev server crashed, upstream started 5xx-ing) visible to the client:
+           * without it the IDE kept `ready: true` forever and reported a healthy
+           * preview over a dead app (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
+           */
+          if (!wasKnown || wasReady !== ready) {
+            emit(descriptor, 'open', ready);
+          }
+
+          readyState.set(port, ready);
+        }
+
+        for (const [port, descriptor] of known) {
+          if (!current.has(port)) {
+            emit(descriptor, 'close', false);
+            readyState.delete(port);
+          }
+        }
+
+        known = current;
+      } finally {
+        syncing = false;
+      }
     };
 
     /*
@@ -20862,20 +20901,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // Agent not reachable yet (provisioning) or reclaimed; resync on the next tick.
     }
 
-    const interval = setInterval(() => {
+    if (closed) {
+      return;
+    }
+
+    interval = setInterval(() => {
       void sync().catch(() => {
         // Swallow transient agent errors; the next poll resyncs.
       });
     }, 5000);
 
     // Native WS ping so an idle (no port transitions) socket survives the LB idle timeout.
-    const keepAlive = setInterval(() => client.ping(), 15_000);
+    interval.unref?.();
+    keepAlive = setInterval(() => {
+      if (!closed) {
+        client.ping();
+      }
+    }, 15_000);
     (keepAlive as unknown as { unref?: () => void }).unref?.();
-
-    client.onClose(() => {
-      clearInterval(interval);
-      clearInterval(keepAlive);
-    });
   });
 
   app.get('/auth/me', async (request) => {

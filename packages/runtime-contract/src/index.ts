@@ -84,6 +84,9 @@ export interface CommandRequest {
   };
   timeoutMs?: number;
 
+  /** Preview service: renewed by authenticated port observation, still idle-bounded. */
+  lifecycle?: 'preview-service';
+
   /*
    * True for the IDE's always-on managed shell (the primary "bolt" terminal
    * where the dev server, installs and agent commands run). It is workspace

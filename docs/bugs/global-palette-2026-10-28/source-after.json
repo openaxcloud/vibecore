@@ -1,0 +1,12 @@
+{
+  "base": "/workspace/vibecore-ui-palette-recovery",
+  "head": "58fa0702a2824015e879665e227228f8b4d8c76a",
+  "note": "Working tree product delta compiled by parent; BaseChat only comment spacing changed after build, parent reports identical AST. CI rebuild required exact final commit.",
+  "sha256": {
+    "app/components/chat/BaseChat.tsx": "82b3dcd92738aa2e99af82a5f842392737ade6b6b9364660a60bfde314e166db",
+    "app/components/chat/IdePaletteState.tsx": "29297f70e28644bd6a3c76d1dfec9ea91df4d625ac481d8e720bcd3d5575b67b",
+    "build/server/index.js": "b7aaeb792d6bdd7ae7862660eeb066b0c9fdcecb104d86347e77171a53f44240",
+    "tests/e2e/ide-panel-visibility.spec.ts": "3141b1aa223aaf47c9120dbc685cebc357c01c9b957c45ed07dfdcce114589c2",
+    "tests/e2e/ide-global-palette-handoff.spec.ts": "bdc02702684438e54015dd2ed9ceb56512f602234c882ae8ef936395d396080c"
+  }
+}

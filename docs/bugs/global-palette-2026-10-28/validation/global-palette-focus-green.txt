@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-palette-recovery
+
+ ✓ app/components/chat/IdePaletteState.spec.tsx (23 tests) 134ms
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  10:14:28
+   Duration  2.42s (transform 1.01s, setup 20ms, collect 121ms, tests 134ms, environment 278ms, prepare 58ms)
+

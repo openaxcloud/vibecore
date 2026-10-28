@@ -1,0 +1,14 @@
+{
+  "base": "/workspace/vibecore-ui-palette-recovery",
+  "head": "85066501dcc73720108e806549e78e5488f23ee1",
+  "note": "Local assembled #823+#822 working tree; compiled assembly-build.log exit0 confirmed by parent. Synthetic API Chromium only.",
+  "sha256": {
+    "app/components/chat/BaseChat.tsx": "82b3dcd92738aa2e99af82a5f842392737ade6b6b9364660a60bfde314e166db",
+    "app/components/chat/IdePaletteState.tsx": "29297f70e28644bd6a3c76d1dfec9ea91df4d625ac481d8e720bcd3d5575b67b",
+    "app/lib/stores/workbench.ts": "6c22b6075b8e41f5a5febcab7fbb3488171843a941f77dd7221b8149d511e4f8",
+    "build/server/index.js": "501cd5c335c274c209d6d8142c60fc3ddd7936aba99aad717f0ee33fb3f72665",
+    "tests/e2e/ide-panel-visibility.spec.ts": "3141b1aa223aaf47c9120dbc685cebc357c01c9b957c45ed07dfdcce114589c2",
+    "tests/e2e/ide-global-palette-handoff.spec.ts": "bdc02702684438e54015dd2ed9ceb56512f602234c882ae8ef936395d396080c"
+  },
+  "harnessSha256": "c7695e83727467a4f17befdc58095d607e17f3e0f3991400d6bc17a294b02a8f"
+}

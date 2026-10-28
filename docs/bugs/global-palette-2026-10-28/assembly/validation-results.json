@@ -1,0 +1,21 @@
+{
+  "source_commit": "85066501dcc73720108e806549e78e5488f23ee1",
+  "scope": "isolated local assembly; no production verification",
+  "tests": {
+    "web": 97,
+    "runtime_remote": 79,
+    "workspace_agent": 158,
+    "api_ports_watcher": 4,
+    "inventory": 16
+  },
+  "skipped_in_these_commands": 0,
+  "typecheck_exit": 0,
+  "client_ssr_build_exit": 0,
+  "app_lint": {
+    "exit": 0,
+    "errors": 0,
+    "warnings": 52
+  },
+  "source_blobs_preserved": 43,
+  "inventory_entries": 540
+}

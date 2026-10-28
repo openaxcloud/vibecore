@@ -1,0 +1,110 @@
+[
+  {
+    "width": 1280,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": false,
+    "searchValue": null,
+    "focus": {
+      "tag": "BODY",
+      "testid": null
+    },
+    "pass": false,
+    "failure": "expect(locator).toBeVisible() failed\n\nLocator: getByTestId('project-command-palette-search')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for getByTestId('project-command-palette-search')\n"
+  },
+  {
+    "width": 1440,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": false,
+    "searchValue": null,
+    "focus": {
+      "tag": "BODY",
+      "testid": null
+    },
+    "pass": false,
+    "failure": "expect(locator).toBeVisible() failed\n\nLocator: getByTestId('project-command-palette-search')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for getByTestId('project-command-palette-search')\n"
+  },
+  {
+    "width": 1024,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/headless"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/synthetic-first/ide-state"
+      }
+    ],
+    "oldShellDetached": true,
+    "oldSearchDetached": true,
+    "searchVisible": false,
+    "searchValue": null,
+    "focus": {
+      "tag": "BODY",
+      "testid": null
+    },
+    "pass": false,
+    "failure": "expect(locator).toBeVisible() failed\n\nLocator: getByTestId('project-command-palette-search')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for getByTestId('project-command-palette-search')\n"
+  }
+]
