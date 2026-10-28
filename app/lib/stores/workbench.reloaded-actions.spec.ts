@@ -1103,7 +1103,7 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     await store.reinstallDependencies();
 
     const installCall = runtimeAdapterMock.streamCommand.mock.calls
-      .map((call) => call[0] as { command?: string; args?: string[] })
+      .map((call) => call[0] as { command?: string; args?: string[]; lifecycle?: string })
       .find((req) => req.command === 'npm' && (req.args ?? []).includes('install'));
 
     expect(installCall).toBeDefined();
@@ -1114,6 +1114,7 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
      * it is installed, otherwise `npm run dev` dies with exit 127 and a blank preview.
      */
     expect(installCall?.args).toContain('--include=dev');
+    expect(installCall?.lifecycle).toBeUndefined();
   });
 
   it('retries a transiently-failed install before launching the preview', async () => {

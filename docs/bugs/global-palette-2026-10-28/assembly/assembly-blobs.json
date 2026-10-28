@@ -1,0 +1,228 @@
+{
+  "base": "58fa0702a2824015e879665e227228f8b4d8c76a",
+  "heads": {
+    "palette": "f0e2af039cd3f3a7686cd5384fd824bd08e5f0e8",
+    "runtime": "b9ae8542ea7d9c5a21caf33912fe2dd516924ce0"
+  },
+  "overlap": [
+    "BUG_INVENTORY_LIVE.md"
+  ],
+  "checks": [
+    {
+      "source": "palette",
+      "path": "app/components/chat/BaseChat.tsx",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "app/components/chat/IdePaletteState.spec.tsx",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "app/components/chat/IdePaletteState.tsx",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/BUG-IDE-GLOBAL-PALETTE-LIFETIME-20261028.md",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/README.md",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/after/1280-settled.png",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/after/1440-database.png",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/after/320-settled.png",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/after/768-settled.png",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/after/receipt.json",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/before/1024-settled.png",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/before/1280-pending.png",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/before/1280-settled.png",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/before/receipt.json",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/harness/README.md",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/harness/handoff-outside-assumption.cjs",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/harness/handoff.cjs",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/source-after.json",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/source-before.json",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/fixture-cleanup.json",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/global-palette-focus-green.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/global-palette-focus-red.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/global-palette-state-green.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/global-palette-state-red.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/independent-review.md",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/independent-unit.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/index-tests.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/initial-outside-expectation.json",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/lint-final-fixed.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/servers-cleanup.json",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/tests-final.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "docs/bugs/global-palette-2026-10-28/validation/typecheck-final.txt",
+      "equal": true
+    },
+    {
+      "source": "palette",
+      "path": "tests/e2e/ide-global-palette-handoff.spec.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "app/lib/stores/workbench.preview-reclick.spec.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "app/lib/stores/workbench.reloaded-actions.spec.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "app/lib/stores/workbench.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "docs/bugs/BUG-PREVIEW-SERVICE-DEADLINE-20261028.md",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "packages/runtime-contract/src/index.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "packages/runtime-remote/src/index.spec.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "services/api/src/app.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "services/api/src/tests/runtime-ports-watch-lifecycle.spec.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "services/workspace-agent/src/app.ts",
+      "equal": true
+    },
+    {
+      "source": "runtime",
+      "path": "services/workspace-agent/src/preview-service-lifecycle.spec.ts",
+      "equal": true
+    }
+  ],
+  "allEqual": true
+}

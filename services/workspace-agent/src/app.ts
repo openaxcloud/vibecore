@@ -58,7 +58,7 @@ export interface ProcessRecord {
   expiresAt?: string;
   stopRequested?: boolean;
   timedOut?: boolean;
-  /** Debugger-only opt-in: paused JavaScript cannot service SIGTERM handlers. */
+  /** Escalation for managed services/debuggers that may ignore SIGTERM. */
   forceStopAfterMs?: number;
 }
 
@@ -763,9 +763,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const commandTimeoutMs = options.commandTimeoutMs ?? numericEnv(process.env.WORKSPACE_COMMAND_TIMEOUT_MS, 30_000);
 
   /*
-   * Streamed commands (dev servers etc.) legitimately run long, but must still
-   * be bounded so a never-exiting child can't pin a maxProcesses slot forever
-   * after the socket closes. Default 30 min; override via env.
+   * Ordinary streamed commands keep an absolute deadline. Preview services use
+   * the separate, finite observation lease below, never a caller-chosen timeout.
    */
   const streamTimeoutMs = numericEnv(process.env.WORKSPACE_STREAM_TIMEOUT_MS, 30 * 60_000);
   const maxProcesses = options.maxProcesses ?? numericEnv(process.env.WORKSPACE_MAX_PROCESSES, 8);
@@ -799,6 +798,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    * travail, donc l'adoption au niveau de l'agent est exacte.
    */
   const orphelins = new Map<ChildProcessWithoutNullStreams, ReturnType<typeof setTimeout>>();
+
+  /*
+   * Separate from socket adoption: opening a command socket must not cancel a
+   * preview's idle deadline. Only authenticated /ports observations renew it.
+   */
+  const previewLeases = new Map<ChildProcessWithoutNullStreams, () => void>();
 
   const tuerLeGroupe = (child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals) => {
     if (child.pid === undefined) {
@@ -866,6 +871,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    * autre.
    */
   const quelquUnRegarde = () => {
+    for (const renew of previewLeases.values()) {
+      renew();
+    }
+
     for (const child of [...orphelins.keys()]) {
       const enCours = orphelins.get(child);
 
@@ -1610,13 +1619,19 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           maxOutputBytes,
           maxProcesses,
           streamTimeoutMs,
+          previewLease:
+            payload.lifecycle === 'preview-service'
+              ? { durationMs: devServerGraceMs, renewals: previewLeases }
+              : undefined,
           rememberTerminal,
           locale,
           processes,
           socket,
           isOpen: () => !socketClosed,
           onActiveProcess: (process) => {
-            activeChildren.add(process);
+            if (payload.lifecycle !== 'preview-service') {
+              activeChildren.add(process);
+            }
           },
           onComplete: (process) => {
             activeChildren.delete(process);
@@ -1972,6 +1987,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
     terminalApp.addHook('onClose', async () => {
       terminalManager.disposeAll();
+      await Promise.all(
+        [...processes.values()]
+          .filter((record) => previewLeases.has(record.process))
+          .map((record) => stopProcess(record.id)),
+      );
     });
   });
 
@@ -2233,11 +2253,13 @@ function parseTerminalMessage(message: Buffer) {
   }
 }
 
-function parseCommandStreamMessage(message: Buffer): { command: string; args?: string[]; cwd?: string } | undefined {
+function parseCommandStreamMessage(
+  message: Buffer,
+): { command: string; args?: string[]; cwd?: string; lifecycle?: 'preview-service' } | undefined {
   try {
     const parsed = JSON.parse(message.toString()) as {
       type?: string;
-      payload?: { command?: string; args?: string[]; cwd?: string };
+      payload?: { command?: string; args?: string[]; cwd?: string; lifecycle?: unknown };
     };
 
     if (parsed.type === 'hello' && typeof parsed.payload?.command === 'string') {
@@ -2245,6 +2267,7 @@ function parseCommandStreamMessage(message: Buffer): { command: string; args?: s
         command: parsed.payload.command,
         args: parsed.payload.args ?? [],
         cwd: typeof parsed.payload.cwd === 'string' && parsed.payload.cwd.length > 0 ? parsed.payload.cwd : undefined,
+        lifecycle: parsed.payload.lifecycle === 'preview-service' ? 'preview-service' : undefined,
       };
     }
   } catch {
@@ -2637,6 +2660,7 @@ async function runCommandStream(
     maxOutputBytes: number;
     maxProcesses: number;
     streamTimeoutMs: number;
+    previewLease?: { durationMs: number; renewals: Map<ChildProcessWithoutNullStreams, () => void> };
     rememberTerminal: (record: ProcessRecord, code: number | null, signal: string | null) => void;
     locale: WorkspaceAgentLocale;
     processes: Map<string, ProcessRecord>;
@@ -2725,7 +2749,8 @@ async function runCommandStream(
     id,
     command: [command, ...spawnArgs].join(' '),
     startedAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + options.streamTimeoutMs).toISOString(),
+    expiresAt: new Date(Date.now() + (options.previewLease?.durationMs ?? options.streamTimeoutMs)).toISOString(),
+    ...(options.previewLease ? { forceStopAfterMs: 1000 } : {}),
     process: child,
     output: '',
   };
@@ -2832,12 +2857,27 @@ async function runCommandStream(
   });
 
   /*
-   * Bound the lifetime of a streamed command so it can't pin a process slot
-   * indefinitely. Mirror the HTTP runCommand path: SIGTERM, then SIGKILL after
-   * a grace period. The 'close' handler clears both timers.
+   * Commands retain an absolute deadline; preview services retain a renewable
+   * idle deadline. Once termination starts, neither observation nor reconnect
+   * may revive it or cancel escalation. Both paths signal the complete group.
    */
-  const timeoutTimer = setTimeout(() => {
+  const durationMs = options.previewLease?.durationMs ?? options.streamTimeoutMs;
+
+  let timeoutTimer: ReturnType<typeof setTimeout>;
+  let sigkillTimer: ReturnType<typeof setTimeout> | undefined;
+  let finished = false;
+
+  const expire = () => {
+    /*
+     * A preview's explicit stop already owns a bounded SIGKILL timer. Preserve
+     * that result rather than relabelling it as idle expiry during its grace.
+     */
+    if (options.previewLease && record.stopRequested) {
+      return;
+    }
+
     record.timedOut = true;
+
     if (options.isOpen()) {
       try {
         options.socket.send(
@@ -2845,9 +2885,9 @@ async function runCommandStream(
             type: 'error',
             error: {
               message: workspaceAgentMessage('commandTimedOut', options.locale, {
-                milliseconds: options.streamTimeoutMs,
+                milliseconds: durationMs,
               }),
-              code: 'COMMAND_TIMEOUT',
+              code: options.previewLease ? 'PREVIEW_SERVICE_IDLE_TIMEOUT' : 'COMMAND_TIMEOUT',
             },
             timestamp: new Date().toISOString(),
           }),
@@ -2858,17 +2898,32 @@ async function runCommandStream(
     }
 
     killTree('SIGTERM');
-  }, options.streamTimeoutMs);
-  const sigkillTimer = setTimeout(() => {
-    killTree('SIGKILL');
-  }, options.streamTimeoutMs + 5000);
-  sigkillTimer.unref();
+    sigkillTimer = setTimeout(() => killTree('SIGKILL'), 5000);
+    sigkillTimer.unref();
+  };
+  const renew = () => {
+    if (finished || record.timedOut || record.stopRequested) {
+      return;
+    }
+
+    clearTimeout(timeoutTimer);
+    record.expiresAt = new Date(Date.now() + durationMs).toISOString();
+    timeoutTimer = setTimeout(expire, durationMs);
+    timeoutTimer.unref();
+  };
+  const clearDeadline = () => {
+    finished = true;
+    clearTimeout(timeoutTimer);
+    clearTimeout(sigkillTimer);
+    options.previewLease?.renewals.delete(child);
+  };
+  renew();
+  options.previewLease?.renewals.set(child, renew);
 
   await new Promise<void>((resolvePromise) => {
     child.on('close', (code, signal) => {
       options.rememberTerminal(record, code, signal);
-      clearTimeout(timeoutTimer);
-      clearTimeout(sigkillTimer);
+      clearDeadline();
 
       if (options.isOpen()) {
         try {
@@ -2911,8 +2966,7 @@ async function runCommandStream(
      */
     child.on('error', (error) => {
       options.rememberTerminal(record, 1, null);
-      clearTimeout(timeoutTimer);
-      clearTimeout(sigkillTimer);
+      clearDeadline();
 
       if (options.isOpen()) {
         try {

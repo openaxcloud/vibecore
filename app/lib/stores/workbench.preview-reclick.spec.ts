@@ -343,7 +343,9 @@ describe('startPreviewServer — re-click / redundant start against a serving pr
     // The explicit restart DID reach the teardown+relaunch machinery.
     expect(runtimeAdapterMock.startWorkspace).toHaveBeenCalled();
     await vi.waitFor(() => {
-      expect(runtimeAdapterMock.streamCommand).toHaveBeenCalled();
+      expect(runtimeAdapterMock.streamCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ lifecycle: 'preview-service' }),
+      );
     });
   });
 });

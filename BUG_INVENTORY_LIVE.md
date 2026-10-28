@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-539 entrées.
+540 entrées.
 
 ## Sans section
 
@@ -712,6 +712,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-AGENT-INITIAL-PANEL-MEMORY-20261027](docs/bugs/BUG-AGENT-INITIAL-PANEL-MEMORY-20261027.md) — À l’ouverture du projet, Agent reste sélectionné tandis que le corps affiche Webview startup ; un clic explicite sur Agent rétablit le panneau. Observation auth — 📤 Dispatché : ☑ 27/10/2026 — diagnostic et correctif ciblé autorisés, sans reprendre le lot groupé interrompu. · 💻 Codé : ☐ main — correctif local validé ; publication en PR distincte en préparation. · ✅ Testé live : ☐ production — défaut observé par le parent ; correction validée localement sur données synthétiques, aucun pr
 - [BUG-AGENT-MODEL-SUBPANEL-HEIGHT-20261027](docs/bugs/BUG-AGENT-MODEL-SUBPANEL-HEIGHT-20261027.md) — Le sous-menu modèle desktop dépasse le bas de la fenêtre : à1440×900, top412.75px et hauteur493.34375px donnent bottom906.09375px. Reproduit avec le même rectan — 📤 Dispatché : ☑ 27/10/2026 — correction locale de la hauteur disponible, sans refonte de navigation ou styles globaux. · 💻 Codé : ☐ main — correctif local dans FeuilleDesModes ; borne calculée depuis le top et la marge existante, défilement · ✅ Testé live : ☐ production — recette locale finale réussie, dont zoom200%, accès après défilement et bornes1px ; aucune rece
 - [BUG-IDE-GLOBAL-PALETTE-LIFETIME-20261028](docs/bugs/BUG-IDE-GLOBAL-PALETTE-LIFETIME-20261028.md) — La palette globale ouverte pendant l’initialisation peut disparaître au remplacement de PendingComposerShell par le Chat chargé : ouverture, recherche et référe — 📤 Dispatché : ☑ 28/10/2026 — correction isolée de la durée de vie de la palette globale sur main58fa0702. Publication, promo · 💻 Codé : ☐ main — correctif local en validation. Aucun autre volet du lot #768 repris. · ✅ Testé live : ☐ production — aucune recette authentifiée production du correctif. Reproduction sur le vrai build local intac
+
+## Preview et runtime
+
+- [BUG-PREVIEW-SERVICE-DEADLINE-20261028](docs/bugs/BUG-PREVIEW-SERVICE-DEADLINE-20261028.md) — 📤 Dispatché : ☑ 28/10 — diagnostic sur main `58fa0702a`, contenant #821. · 💻 Codé : ☐ — investigation et validation isolée ; aucun correctif livré à ce stade. · ✅ Testé live : ☐ — aucun lancement ni changement du projet client par cette session.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
