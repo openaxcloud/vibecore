@@ -88,3 +88,11 @@ Toujours Chromium local/synthétique, pas Safari/WebKit local, appareil physique
 Deux images originales820×400 sont copiées sans édition dans `captures/` : `before-820-tooltip.png` montre l’aide courte tronquée ; `after-820-fr-last-line.png` montre la lecture complète explicite après F1 puis End, avec dernière ligne visible. Même format, mais états d’interaction différents : ce n’est pas une comparaison pixel à pixel du même état. La capture après provient du build de lecture complète précédent ; le dernier correctif timer ne change pas ce rendu visuel. Les textes sont synthétiques, aucune donnée cliente ou secret réel. Empreintes des originaux dans le manifeste.
 
 Ces preuves rendent le lot prêt pour la revue/publication coordonnée, sans prétendre qu’une publication, fusion ou livraison a déjà eu lieu.
+
+## Première validation distante et correction i18n
+
+La PR brouillon #844 a été publiée sur `0fb8dca4`. Production CI a identifié quatre nouveaux libellés visibles hors catalogue dans GlobalTooltip ; le contrôle requis PR Validation a donc échoué. Les trois nouveaux libellés sont désormais dans le catalogue FR/EN existant et la fermeture réutilise la clé commune. Aucun texte, baseline, allowlist ou seuil n’a été assoupli. Le compte exact du catalogue passe de303 à306, avec parité de clés et interpolations conservée.
+
+Le correctif passe `i18n:check`,50/50 tests ciblés et41/41 en revue indépendante (recouvrement, ne pas additionner), les phases de typage, lint/formatage ciblés et build client/SSR. La phase workspace du typage a été reprise avec le pnpm9 déjà installé après échec du wrapper d’auto-installation ; aucune installation n’a été effectuée. Ce delta ne change pas les interactions ni le rendu des recettes navigateur précédentes.
+
+La tranche E2E2 de cette première tête n’a exécuté aucun test : son PostgreSQL n’a pas pu réserver le port55432 déjà occupé, malgré la reprise intégrée de préparation. Cet échec d’infrastructure reste distinct du défaut i18n. Les contrôles de la prochaine tête devront obtenir leurs propres verdicts ; aucune fusion, promotion ou livraison n’est déduite des validations locales.

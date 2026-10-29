@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogLanguage } from './Dialog';
 import { infobulleAutoriseeAuFocus, pointeurSansSurvol } from './infobulle-tactile';
+import { getDataSettingsCopy } from '~/lib/i18n/catalogs/search-data-settings';
 
 /**
  * App-wide renderer for `data-vc-tooltip` attributes.
@@ -68,10 +69,8 @@ export function GlobalTooltip() {
   const titleId = useId();
   const language = useDialogLanguage();
 
-  const copy =
-    language === 'fr'
-      ? { read: 'Lire l’aide complète (F1)', title: 'Aide complète', close: 'Fermer', text: 'Texte de l’aide' }
-      : { read: 'Read full help (F1)', title: 'Full help', close: 'Close', text: 'Help text' };
+  const sharedCopy = getDataSettingsCopy(language).sharedDialog;
+  const copy = sharedCopy.fullHelp;
 
   const tipStateRef = useRef(tip);
   const helpRef = useRef(help);
@@ -451,7 +450,7 @@ export function GlobalTooltip() {
             {copy.title}
           </h2>
           <button type="button" className="min-h-10 rounded px-2" onClick={() => closeHelp(true)}>
-            {copy.close}
+            {sharedCopy.close}
           </button>
         </div>
         <div

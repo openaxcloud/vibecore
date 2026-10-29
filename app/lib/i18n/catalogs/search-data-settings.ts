@@ -260,6 +260,11 @@ export const searchDataSettingsEn = {
         download: 'Download',
       },
       sharedDialog: {
+        fullHelp: {
+          read: 'Read full help (F1)',
+          title: 'Full help',
+          text: 'Help text',
+        },
         close: 'Close',
         confirm: 'Confirm',
         cancel: 'Cancel',
@@ -712,6 +717,11 @@ export const searchDataSettingsFr = {
         download: 'Télécharger',
       },
       sharedDialog: {
+        fullHelp: {
+          read: 'Lire l’aide complète (F1)',
+          title: 'Aide complète',
+          text: 'Texte de l’aide',
+        },
         close: 'Fermer',
         confirm: 'Confirmer',
         cancel: 'Annuler',
