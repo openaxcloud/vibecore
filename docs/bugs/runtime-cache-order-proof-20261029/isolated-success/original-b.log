@@ -1,0 +1,38 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from original.Dockerfile
+#1 transferring dockerfile: 387B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/postgres:17-alpine
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 99B done
+#3 DONE 0.0s
+
+#4 [1/5] FROM docker.io/library/postgres:17-alpine
+#4 DONE 0.0s
+
+#5 [2/5] WORKDIR /cache-order-proof-1b5c34fd7eed4f3d837fc4cc71394a7a
+#5 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 52B done
+#6 DONE 0.0s
+
+#7 [3/5] RUN mkdir -p system && printf 'identical-system-payload\n' > system/installed && printf 'unused\n' > system/remove-me
+#7 DONE 0.6s
+
+#8 [4/5] COPY artifact.txt ./artifact.txt
+#8 DONE 0.9s
+
+#9 [5/5] RUN rm -f system/remove-me
+#9 DONE 0.5s
+
+#10 exporting to image
+#10 exporting layers
+#10 exporting layers 1.0s done
+#10 writing image sha256:e567c77a8d1d8b29841fd4e4bacc946815ca1e4594a5f35eba97bf64b38fb8f0 done
+#10 naming to docker.io/library/cache-order-proof:1b5c34fd7eed4f3d837fc4cc71394a7a-original-b done
+#10 DONE 1.0s
