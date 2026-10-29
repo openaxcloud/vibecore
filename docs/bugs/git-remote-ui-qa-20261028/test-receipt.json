@@ -1,0 +1,35 @@
+{
+  "stats": {
+    "startTime": "2026-10-28T19:59:40.622Z",
+    "duration": 11766.007000000001,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "base": "3170d2fe84005da78a23c6bdb22f13c60724ff35",
+  "productSha256": "ea7bceb1f9eee6e00f58a99bf096dc40a4d5c918c4cbb84056a5577fa7e32444",
+  "sourceChangesAfterTest": [],
+  "cases": [
+    {
+      "title": "canonical Git remote failure retry keyboard 320",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5243
+        }
+      ]
+    },
+    {
+      "title": "canonical Git remote failure retry keyboard 1440",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5407
+        }
+      ]
+    }
+  ]
+}

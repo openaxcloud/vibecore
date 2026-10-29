@@ -1,0 +1,36 @@
+{
+  "stats": {
+    "startTime": "2026-10-28T20:27:32.358Z",
+    "duration": 8122.036,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "base": "6bdaeabe168217887a220a65816ec5344cbbc6ab",
+  "currentHead": "6bdaeabe168217887a220a65816ec5344cbbc6ab",
+  "productSha256": "3ca167df0d1e62f68412b34f3e5cd1ceb854f88bf7afb8dcfe5d269cbc60a482",
+  "sourceChangesAfterTest": [],
+  "cases": [
+    {
+      "title": "canonical Git custom dialog keyboard 320",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3325
+        }
+      ]
+    },
+    {
+      "title": "canonical Git custom dialog keyboard 1440",
+      "outcomes": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3955
+        }
+      ]
+    }
+  ]
+}

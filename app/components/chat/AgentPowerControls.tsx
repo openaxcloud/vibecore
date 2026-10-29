@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
+import { ExplicitProjectBudget } from './ExplicitProjectBudget';
 import { FeuilleDesModes } from './FeuilleDesModes';
 import { appliquerChoix, ecrireChoix, lireChoix, type ChoixParMode } from './choix-de-modele';
 import type { ChoixDuMode } from './feuille-des-modes';
@@ -39,6 +40,7 @@ export interface AgentPowerControlsProps {
 
   /** Optional live cost estimate in USD cents (proof-of-work preview). */
   estimatedCents?: number;
+  projectId?: string;
   disabled?: boolean;
 
   /**
@@ -99,6 +101,7 @@ export function AgentPowerControls({
   value,
   onChange,
   estimatedCents,
+  projectId,
   disabled,
   availability,
   onUpgrade,
@@ -644,6 +647,9 @@ export function AgentPowerControls({
                     <p className="mt-2 text-xs text-bolt-elements-textSecondary" role="note">
                       {copy['chatControls.power.explicitBudget']}
                     </p>
+                  ) : null}
+                  {choixParMode[value.buildTier]?.modele && projectId ? (
+                    <ExplicitProjectBudget key={projectId} projectId={projectId} language={language} />
                   ) : null}
                   {planFirstToggle}
                   {ligneDeCout}

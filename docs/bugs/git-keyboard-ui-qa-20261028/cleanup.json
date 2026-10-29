@@ -1,0 +1,17 @@
+{
+  "portsOpen": {
+    "5199": false,
+    "3018": false,
+    "55448": false,
+    "56388": false
+  },
+  "ownProcessesSignaled": [
+    38963,
+    39040
+  ],
+  "containersStoppedRetained": [
+    "ide-palette-opener-pg",
+    "ide-palette-opener-redis"
+  ],
+  "unrelatedServicesTouched": false
+}

@@ -33,6 +33,9 @@ export const gitProviderConnectEn = {
   'gitProvider.oauthRateLimited': 'Too many connection attempts. Wait before trying again.',
   'gitProvider.repoPicker.show': 'Choose from your GitHub repositories',
   'gitProvider.repoPicker.hide': 'Hide your GitHub repositories',
+  'gitProvider.repoPicker.description':
+    'Choosing a repository sets this workspace’s Git origin. Its files are not imported.',
+  'gitProvider.repoPicker.import': 'Import a repository into a new project',
   'gitProvider.remote.dialogAria': 'Configure {provider}',
   'gitProvider.remote.title': 'Configure {provider}',
   'gitProvider.remote.description': 'This sets the workspace Git origin and stores the remote on the project.',
@@ -42,7 +45,7 @@ export const gitProviderConnectEn = {
   'gitProvider.remote.defaultBranchPlaceholder': 'main',
   'gitProvider.remote.saving': 'Saving…',
   'gitProvider.remote.save': 'Save remote',
-  'gitProvider.remote.savedToast': 'Git origin configured for {branch}',
+  'gitProvider.remote.savedToast': 'Git origin configured for {branch}. Files were not imported.',
   'gitProvider.remote.saveFailed': 'Unable to configure this Git remote.',
   'gitProvider.repositories.connectFirst': 'Connect GitHub above first to list your repositories.',
   'gitProvider.repositories.loadFailed': 'Could not load your GitHub repositories.',
@@ -54,7 +57,7 @@ export const gitProviderConnectEn = {
   'gitProvider.repositories.loading': 'Loading your repositories…',
   'gitProvider.repositories.noMatch': 'No repositories match “{query}”.',
   'gitProvider.repositories.private': 'private',
-  'gitProvider.repositories.connect': 'Connect',
+  'gitProvider.repositories.connect': 'Use as Git origin',
 } as const;
 
 export type GitProviderConnectKey = keyof typeof gitProviderConnectEn;
@@ -96,6 +99,9 @@ export const gitProviderConnectFr: GitProviderConnectCopy = {
   'gitProvider.oauthRateLimited': 'Trop de tentatives de connexion. Patientez avant de réessayer.',
   'gitProvider.repoPicker.show': 'Choisir parmi vos dépôts GitHub',
   'gitProvider.repoPicker.hide': 'Masquer vos dépôts GitHub',
+  'gitProvider.repoPicker.description':
+    'Choisir un dépôt définit l’origine Git de cet espace de travail. Ses fichiers ne sont pas importés.',
+  'gitProvider.repoPicker.import': 'Importer un dépôt dans un nouveau projet',
   'gitProvider.remote.dialogAria': 'Configurer {provider}',
   'gitProvider.remote.title': 'Configurer {provider}',
   'gitProvider.remote.description':
@@ -106,7 +112,8 @@ export const gitProviderConnectFr: GitProviderConnectCopy = {
   'gitProvider.remote.defaultBranchPlaceholder': 'main',
   'gitProvider.remote.saving': 'Enregistrement…',
   'gitProvider.remote.save': 'Enregistrer le dépôt distant',
-  'gitProvider.remote.savedToast': 'Origine Git configurée pour la branche {branch}',
+  'gitProvider.remote.savedToast':
+    'Origine Git configurée pour la branche {branch}. Les fichiers n’ont pas été importés.',
   'gitProvider.remote.saveFailed': 'Impossible de configurer ce dépôt Git distant.',
   'gitProvider.repositories.connectFirst': 'Connectez d’abord GitHub ci-dessus pour afficher la liste de vos dépôts.',
   'gitProvider.repositories.loadFailed': 'Impossible de charger vos dépôts GitHub.',
@@ -118,7 +125,7 @@ export const gitProviderConnectFr: GitProviderConnectCopy = {
   'gitProvider.repositories.loading': 'Chargement de vos dépôts…',
   'gitProvider.repositories.noMatch': 'Aucun dépôt ne correspond à « {query} ».',
   'gitProvider.repositories.private': 'privé',
-  'gitProvider.repositories.connect': 'Connecter',
+  'gitProvider.repositories.connect': 'Utiliser comme origine Git',
 };
 
 export function getGitProviderConnectCopy(language?: string | null): GitProviderConnectCopy {

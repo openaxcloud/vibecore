@@ -1,0 +1,33 @@
+{
+  "buildExit": 0,
+  "sourceChanged": false,
+  "firstHarnessRun": "8 failed; geometry sampled during animation, .data mutation blocked",
+  "accidentalArchiveDiscovery": "interrupted130; archive tests collected; retained outside testDir",
+  "correctedEight": {
+    "passed": [
+      "rename320",
+      "rename1440"
+    ],
+    "failed": 6,
+    "cause": "unrelated blocked user preferences counted as project mutations"
+  },
+  "targetedSix": {
+    "failed": [
+      "320:cancel36px",
+      "390:cancel36px",
+      "768:cancel36px"
+    ],
+    "timedOut": [
+      "1024:body1,1 clicked organization switcher"
+    ],
+    "interrupted": [
+      "1440"
+    ],
+    "notExecuted": [
+      "zoom200"
+    ],
+    "exit": 130
+  },
+  "automaticRetries": 0,
+  "productionTested": false
+}

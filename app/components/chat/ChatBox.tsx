@@ -600,6 +600,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     <ClientOnly>
       {() => (
         <AgentPowerControls
+          projectId={props.projectId}
           variant="compact"
           value={agentPower}
           onChange={handleAgentPowerChange}

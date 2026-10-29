@@ -178,6 +178,7 @@ import {
 import {
   parseMemoryTags,
   useIdeSettingsDraft,
+  useIdeLogsView,
   useIdeSettingsFormDraft,
   type SettingsFormValues,
 } from './IdeSettingsDraftState';
@@ -14897,7 +14898,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'logs') {
-    return <ProjectLogsPanel data={data} reload={reload} busy={busy} />;
+    return <ProjectLogsPanel projectId={projectId} paneId={paneId} data={data} reload={reload} busy={busy} />;
   }
 
   if (panel === 'debugger') {
@@ -23334,16 +23335,29 @@ function ProjectDebuggerPanel({
   );
 }
 
-function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => void | Promise<void>; busy: boolean }) {
+function ProjectLogsPanel({
+  projectId,
+  paneId,
+  data,
+  reload,
+  busy,
+}: {
+  projectId?: string;
+  paneId?: string;
+  data: any;
+  reload?: () => void | Promise<void>;
+  busy: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const language = resolvedBaseChatLanguage(i18n);
-  const [cleared, setCleared] = useState(false);
-  const [split, setSplit] = useState(false);
-  const [activeStream, setActiveStream] = useState<'console' | 'workflow' | 'system'>('console');
-  const [level, setLevel] = useState<'all' | 'info' | 'warn' | 'error'>('all');
-  const [query, setQuery] = useState('');
-  const [regexEnabled, setRegexEnabled] = useState(false);
-  const [liveTail, setLiveTail] = useState(true);
+  const { field } = useIdeLogsView(projectId ?? '', paneId);
+  const [cleared, setCleared] = field('cleared');
+  const [split, setSplit] = field('split');
+  const [activeStream, setActiveStream] = field('activeStream');
+  const [level, setLevel] = field('level');
+  const [query, setQuery] = field('query');
+  const [regexEnabled, setRegexEnabled] = field('regexEnabled');
+  const [liveTail, setLiveTail] = field('liveTail');
 
   const streamLabels = {
     console: t('baseChatAst.logs.stream.console'),

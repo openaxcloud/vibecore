@@ -29767,6 +29767,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * model id: the client never learns model names from this surface.
    */
   // A project budget survives reloads and cannot be bypassed by repair endpoints.
+  app.get('/projects/:projectId/agent/explicit-budget', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+
+    const { projectId } = parse(projectParams, request.params);
+    await requireProject(request, store, projectId, 'workspaces:write');
+
+    let summary;
+
+    try {
+      summary = await store.getExplicitRunBudgetSummary(projectId);
+    } catch {
+      // Storage failure must never look like an unreserved budget.
+    }
+
+    if (!summary) {
+      return reply.code(503).send({ code: 'EXPLICIT_RUN_BUDGET_UNAVAILABLE' });
+    }
+
+    return summary;
+  });
+
   app.get('/projects/:projectId/agent/explicit-run', async (request) => {
     const { projectId } = parse(projectParams, request.params);
     await requireProject(request, store, projectId, 'workspaces:write');

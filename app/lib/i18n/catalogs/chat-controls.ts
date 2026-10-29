@@ -1,8 +1,15 @@
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
 
 export const chatControlsEn = {
+  'chatControls.power.budgetRefresh': 'Refresh reservation snapshot',
+  'chatControls.power.budgetLoading': 'Reading project reservations…',
+  'chatControls.power.budgetUnavailable': 'Project reservation balance unavailable. Do not assume zero expenditure.',
+  'chatControls.power.budgetBalance': 'Explicit runs: {reserved} reserved; {remaining} remaining in this allowance.',
+  'chatControls.power.budgetHistoryUnknown':
+    'Earlier Auto/provider costs are excluded. Remaining total recipe budget is unknown; this balance does not authorize another run.',
+
   'chatControls.power.explicitBudget':
-    'Explicit selection: Lite / Luna Standard only, without Plan, tools or memory. A project-wide $20 safety allowance is reserved before calling; unused reservations are retained. Live credit billing is unsupported. Provider credits are not guaranteed.',
+    'Explicit selection: Lite / Luna Standard only, without Plan, tools or memory. A $20 project allowance covers explicit runs only; each run is reserved before calling; unused reservations are retained. Live credit billing is unsupported. Provider credits are not guaranteed.',
 
   'chatControls.model.noProviders':
     'No providers are enabled. Enable at least one provider in Settings to start using chat.',
@@ -116,8 +123,16 @@ export type ChatControlsKey = keyof typeof chatControlsEn;
 export type ChatControlsCopy = Readonly<Record<ChatControlsKey, string>>;
 
 export const chatControlsFr: ChatControlsCopy = {
+  'chatControls.power.budgetRefresh': 'Actualiser les réservations',
+  'chatControls.power.budgetLoading': 'Lecture des réservations du projet…',
+  'chatControls.power.budgetUnavailable': 'Solde des réservations indisponible. Ne pas en déduire une dépense nulle.',
+  'chatControls.power.budgetBalance':
+    'Runs explicites : {reserved} réservés ; {remaining} disponibles dans cette enveloppe.',
+  'chatControls.power.budgetHistoryUnknown':
+    'Les anciens coûts Auto/fournisseur sont exclus. Le solde total de la recette est inconnu ; ce solde ne permet pas d’autoriser un autre run.',
+
   'chatControls.power.explicitBudget':
-    'Choix explicite : Lite / Luna Standard uniquement, sans Plan, outils ni mémoire. Une enveloppe de sécurité de 20 $ par projet est réservée avant appel ; les réservations inutilisées sont conservées. Facturation par crédits active non prise en charge. Les crédits du fournisseur ne sont pas garantis.',
+    'Choix explicite : Lite / Luna Standard uniquement, sans Plan, outils ni mémoire. Une enveloppe de 20 $ par projet couvre seulement les runs explicites ; chaque run est réservé avant appel ; les réservations inutilisées sont conservées. Facturation par crédits active non prise en charge. Les crédits du fournisseur ne sont pas garantis.',
 
   'chatControls.model.noProviders':
     'Aucun fournisseur n’est activé. Activez-en au moins un dans les paramètres pour utiliser le chat.',

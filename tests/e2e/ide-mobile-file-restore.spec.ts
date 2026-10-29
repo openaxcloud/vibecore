@@ -1,6 +1,11 @@
 import { expect, type PlaywrightTestArgs } from '@playwright/test';
 import JSZip from 'jszip';
 import { test } from './diagnostics/mobile-navigation.js';
+import {
+  attachProjectArchiveEditorSnapshot,
+  startProjectArchiveEditorObservation,
+  stopProjectArchiveEditorObservation,
+} from './diagnostics/project-archive-editor.js';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
@@ -744,6 +749,7 @@ test('project A never displays project B while its archive is pending at 768', a
     const archiveResponse = page.waitForResponse(
       (response) => new URL(response.url()).pathname === archivePath && response.request().method() === 'GET',
     );
+    await startProjectArchiveEditorObservation(page);
     release();
 
     const response = await archiveResponse;
@@ -754,13 +760,22 @@ test('project A never displays project B while its archive is pending at 768', a
       body: JSON.stringify({ status: response.status() }),
     });
 
-    await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    let archiveEditorAssertionPassed = false;
+
+    try {
+      await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+      archiveEditorAssertionPassed = true;
+    } finally {
+      await attachProjectArchiveEditorSnapshot(page, info, projectId, projectB, archiveEditorAssertionPassed);
+    }
+
     await expect.poll(() => saved(projectId)).toBe('/home/project/README.md');
     await expect.poll(() => saved(projectB)).toBe('/home/project/project-b.txt');
     mobileNavigationDiagnostics.mark('project-A-content-visible');
     await page.screenshot({ path: info.outputPath('project-A-archive-loaded.png') });
   } finally {
     release();
+    await stopProjectArchiveEditorObservation(page);
     await page.unrouteAll({ behavior: 'wait' });
   }
 });

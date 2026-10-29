@@ -198,8 +198,10 @@ it.each([
   ['fr', 'Le fournisseur choisi est indisponible.'],
 ])('localizes explicit provider refusal in %s without changing its machine code', async (locale, message) => {
   const { app, store, project, payload } = await setup();
+
   try {
     store.providerConfigs.clear();
+
     const result = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/agent/explicit-run`,
@@ -215,19 +217,105 @@ it.each([
 
 it('exposes a durable repair guard only to an authorized project writer and fails closed on read errors', async () => {
   const { app, store, project, invoke, payload } = await setup();
-  const get = (token = 'explicit-token') => app.inject({ method: 'GET',
-    url: `/projects/${project.id}/agent/explicit-run`, headers: { authorization: `Bearer ${token}` } });
+
+  const get = (token = 'explicit-token') =>
+    app.inject({
+      method: 'GET',
+      url: `/projects/${project.id}/agent/explicit-run`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
   try {
     expect((await get()).json()).toEqual({ bounded: false });
     expect((await get('missing')).statusCode).toBe(401);
     await invoke(payload());
     expect((await get()).json()).toEqual({ bounded: true });
+
     // Corruption/unknown schema cannot reopen paid side paths.
     await store.setSystemSetting({ key: `agent.explicit-run.v1:${project.id}`, value: null });
     expect((await get()).json()).toEqual({ bounded: true });
-    store.hasExplicitRunBudget = async () => { throw new Error('synthetic storage unavailable'); };
+
+    store.hasExplicitRunBudget = async () => {
+      throw new Error('synthetic storage unavailable');
+    };
+
     const failed = await get();
     expect(failed.statusCode).toBe(500);
     expect(failed.json()).not.toHaveProperty('bounded', false);
-  } finally { await app.close(); }
+  } finally {
+    await app.close();
+  }
+});
+
+it('reads only the explicit reservations, authorizes access and never returns a false balance', async () => {
+  const { app, store, project, invoke, payload } = await setup();
+
+  const get = (token = 'explicit-token') =>
+    app.inject({
+      method: 'GET',
+      url: `/projects/${project.id}/agent/explicit-budget`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+  const reserve = vi.spyOn(store, 'reserveExplicitRun');
+  const provider = vi.spyOn(store, 'getExplicitRunProviderConfiguration');
+
+  try {
+    const missing = await get();
+    expect(missing.statusCode).toBe(200);
+    expect(missing.headers['cache-control']).toBe('no-store');
+    expect(missing.json()).toEqual({
+      scope: 'explicit-runs-only',
+      currency: 'USD',
+      limitMicros: 20000000,
+      reservedMicros: 0,
+      remainingMicros: 20000000,
+      runCount: 0,
+      historicalCostsIncluded: false,
+      totalRecipeRemainingMicros: null,
+    });
+    expect(reserve).not.toHaveBeenCalled();
+    expect(provider).not.toHaveBeenCalled();
+    expect((await get('missing')).statusCode).toBe(401);
+
+    const foreign = await store.createUser({ email: 'budget-foreign@example.com', passwordHash: 'unused' });
+    await store.createSession({
+      userId: foreign.id,
+      token: 'budget-foreign',
+      expiresAt: new Date(Date.now() + 3600000),
+    });
+    expect((await get('budget-foreign')).statusCode).toBe(404);
+
+    const permit = (await invoke(payload())).json();
+    reserve.mockClear();
+    provider.mockClear();
+
+    const result = await get();
+    expect(result.json()).toEqual({
+      scope: 'explicit-runs-only',
+      currency: 'USD',
+      limitMicros: 20000000,
+      reservedMicros: 15260000,
+      remainingMicros: 4740000,
+      runCount: 1,
+      historicalCostsIncluded: false,
+      totalRecipeRemainingMicros: null,
+    });
+    expect(result.body).not.toContain(permit.runId);
+    expect(result.body).not.toContain('openai');
+    expect(reserve).not.toHaveBeenCalled();
+    expect(provider).not.toHaveBeenCalled();
+    await store.setSystemSetting({ key: `agent.explicit-run.v1:${project.id}`, value: null });
+    expect((await get()).statusCode).toBe(503);
+
+    store.getExplicitRunBudgetSummary = async () => {
+      throw new Error('synthetic read failure');
+    };
+
+    const failed = await get();
+    expect(failed.statusCode).toBe(503);
+    expect(failed.json()).toEqual({ code: 'EXPLICIT_RUN_BUDGET_UNAVAILABLE' });
+  } finally {
+    await app.close();
+  }
 });

@@ -75,6 +75,46 @@ export function GitProviderConnectPanel({
   const [configuringRemote, setConfiguringRemote] = useState(false);
   const [remoteError, setRemoteError] = useState<string | null>(null);
   const [showRepoPicker, setShowRepoPicker] = useState(false);
+  const remoteOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const remoteInputRef = useRef<HTMLInputElement | null>(null);
+  const openingFocusRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    if (remoteProvider && openingFocusRef.current) {
+      if (document.activeElement === openingFocusRef.current || document.activeElement === remoteOpenerRef.current) {
+        remoteInputRef.current?.focus();
+      }
+
+      openingFocusRef.current = null;
+    }
+  }, [remoteProvider]);
+
+  const closeRemoteDrawer = () => {
+    setRemoteProvider(null);
+    openingFocusRef.current = null;
+
+    const opener = remoteOpenerRef.current;
+
+    if (opener?.isConnected && !opener.disabled) {
+      opener.focus();
+    }
+  };
+
+  const remoteScopeRef = useRef({ active: true, pending: false });
+
+  useEffect(() => {
+    const scope = { active: true, pending: false };
+    remoteScopeRef.current = scope;
+    setConfiguringRemote(false);
+    setRemoteError(null);
+    setRemoteProvider(null);
+    setShowRepoPicker(false);
+
+    return () => {
+      scope.active = false;
+    };
+  }, [projectId, workspaceId]);
+
   const handledConnectionRef = useRef<string | null>(null);
 
   const activeRemoteProvider = useMemo(
@@ -182,7 +222,9 @@ export function GitProviderConnectPanel({
   );
 
   const openRemoteDrawer = useCallback(
-    (provider: ProviderCardId) => {
+    (provider: ProviderCardId, opener: HTMLButtonElement) => {
+      remoteOpenerRef.current = opener;
+      openingFocusRef.current = document.activeElement;
       setRemoteProvider(provider);
       setRemoteError(null);
       setBranch(defaultBranch ?? 'main');
@@ -198,6 +240,13 @@ export function GitProviderConnectPanel({
 
   const submitRemote = useCallback(
     async (url: string, branchName: string) => {
+      const scope = remoteScopeRef.current;
+
+      if (busy || !scope.active || scope.pending) {
+        return;
+      }
+
+      scope.pending = true;
       setRemoteError(null);
       setConfiguringRemote(true);
 
@@ -216,6 +265,10 @@ export function GitProviderConnectPanel({
           body: formData,
         });
 
+        if (!scope.active) {
+          return;
+        }
+
         if (!response.ok) {
           setRemoteError(copy['gitProvider.remote.saveFailed']);
 
@@ -231,12 +284,18 @@ export function GitProviderConnectPanel({
         setShowRepoPicker(false);
         void onRemoteConfigured?.();
       } catch {
-        setRemoteError(copy['gitProvider.remote.saveFailed']);
+        if (scope.active) {
+          setRemoteError(copy['gitProvider.remote.saveFailed']);
+        }
       } finally {
-        setConfiguringRemote(false);
+        scope.pending = false;
+
+        if (scope.active) {
+          setConfiguringRemote(false);
+        }
       }
     },
-    [copy, onRemoteConfigured, projectId, workspaceId],
+    [busy, copy, onRemoteConfigured, projectId, workspaceId],
   );
 
   const configureRemote = useCallback(
@@ -296,9 +355,9 @@ export function GitProviderConnectPanel({
               aria-label={formatGitProviderConnectCopy(copy['gitProvider.cardAria'], {
                 action: provider.action,
               })}
-              onClick={() => {
+              onClick={(event) => {
                 if (provider.id === 'custom') {
-                  openRemoteDrawer(provider.id);
+                  openRemoteDrawer(provider.id, event.currentTarget);
                 } else {
                   void startOAuth(provider.id);
                 }
@@ -342,7 +401,16 @@ export function GitProviderConnectPanel({
        * signed-in user's encrypted OAuth token server-side via /api/github-stats;
        * selecting a repo sets it as the project origin (configure-remote).
        */}
+      <p className="break-words text-xs text-bolt-elements-textSecondary">
+        {copy['gitProvider.repoPicker.description']}
+      </p>
       <div className="flex flex-wrap items-center gap-2">
+        <a
+          href="/import-github"
+          className="inline-flex min-h-[44px] items-center rounded-md px-2 text-xs text-bolt-elements-item-contentAccent underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+        >
+          {copy['gitProvider.repoPicker.import']}
+        </a>
         <button
           type="button"
           onClick={() => setShowRepoPicker((value) => !value)}
@@ -361,6 +429,12 @@ export function GitProviderConnectPanel({
         />
       ) : null}
 
+      {remoteError && !remoteProvider ? (
+        <p className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-500" role="alert">
+          {remoteError}
+        </p>
+      ) : null}
+
       {networkError ? (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500" role="alert">
           {networkError}
@@ -371,6 +445,14 @@ export function GitProviderConnectPanel({
         <div
           className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           role="dialog"
+          data-state="open"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              closeRemoteDrawer();
+            }
+          }}
           aria-label={formatGitProviderConnectCopy(copy['gitProvider.remote.dialogAria'], {
             provider: activeRemoteProvider.label,
           })}
@@ -389,7 +471,7 @@ export function GitProviderConnectPanel({
             <button
               type="button"
               className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
-              onClick={() => setRemoteProvider(null)}
+              onClick={closeRemoteDrawer}
             >
               {copy['gitProvider.remote.close']}
             </button>
@@ -399,6 +481,7 @@ export function GitProviderConnectPanel({
               {copy['gitProvider.remote.url']}
               <input
                 className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+                ref={remoteInputRef}
                 value={remoteUrl}
                 onChange={(event) => setRemoteUrl(event.currentTarget.value)}
                 placeholder={activeRemoteProvider.remotePlaceholder}

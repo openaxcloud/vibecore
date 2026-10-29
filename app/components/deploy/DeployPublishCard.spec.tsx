@@ -33,7 +33,10 @@ const fetchers = vi.hoisted(() => ({
     load: vi.fn(),
   },
 }));
-vi.mock('react-router', () => ({ useFetcher: () => (fetchers.call++ % 2 === 0 ? fetchers.detect : fetchers.rate) }));
+vi.mock('react-router', () => ({
+  useFetcher: () => (fetchers.call++ % 2 === 0 ? fetchers.detect : fetchers.rate),
+  useRevalidator: () => ({ state: 'idle' }),
+}));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ i18n: { language: 'en' }, t: (key: string) => key }) }));
 beforeEach(() => {
   deploymentDrafts.clear();
