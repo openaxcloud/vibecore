@@ -259,8 +259,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "c23b379ae2988e1b50fbf11caeccb8e705909de3b635a7e9d13f7e19f98b054d",
-      "bytes": 8372,
+      "sha256": "0103d735d002e6cce2fa82e574c2306921836ccc6f0b09b60a3652a77fddb375",
+      "bytes": 8391,
       "transformation": "Documentation updated with CI findings and new local correction"
     },
     {
