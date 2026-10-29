@@ -22434,6 +22434,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 /* Task row: [drag] [type dropdown] [type-specific control + Save] [trash]. */
 .bolt-project-workflow-task {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -22466,7 +22467,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-workflow-task-form {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 240px;
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -22491,6 +22492,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-workflow-runs details {
+  min-width: 0;
   border: 1px solid var(--vc-ide-border);
   border-radius: 8px;
   background: var(--vc-ide-surface-2);
@@ -22532,6 +22534,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-workflow-run-steps {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 8px 0 0;
   padding: 0;
