@@ -58,7 +58,7 @@ async function openTool(page: Page, id: string) {
 for (const width of [390, 1180]) {
   test.describe(`panel visibility ${width}px`, () => {
     test.use({ viewport: { width, height: width === 390 ? 844 : 757 }, hasTouch: width === 390 });
-    for (const overlay of ['panels', 'tabs'] as const) {
+    for (const overlay of ['panels', 'tabs', 'tools'] as const) {
       test(`${overlay} closes with Escape and restores focus`, async ({ page, baseURL }, info) => {
         test.setTimeout(90_000);
         const id = await createProject(page, baseURL!);
@@ -66,14 +66,40 @@ for (const width of [390, 1180]) {
         const trigger =
           overlay === 'panels'
             ? page.getByTestId('mobile-ide-header').getByTestId('button-more')
-            : page.getByTestId('mobile-bottom-navigation').getByTestId('button-tab-switcher');
-        const sheet = page.getByTestId(overlay === 'panels' ? 'mobile-more-menu-sheet' : 'mobile-tab-switcher');
+            : page
+                .getByTestId('mobile-bottom-navigation')
+                .getByTestId(overlay === 'tabs' ? 'button-tab-switcher' : 'button-add-tab');
+        const sheet = page.getByTestId(
+          overlay === 'panels' ? 'mobile-more-menu-sheet' : overlay === 'tabs' ? 'mobile-tab-switcher' : 'tools-sheet',
+        );
         for (let cycle = 0; cycle < 2; cycle++) {
           await trigger.focus();
           await trigger.press('Enter');
           await expect(sheet).toBeVisible();
+          await expect.poll(() => sheet.evaluate((node) => node.contains(document.activeElement))).toBe(true);
+          const controls = sheet
+            .locator(
+              'button:enabled:not([tabindex="-1"]),input:enabled:not([tabindex="-1"]),a[href]:not([tabindex="-1"])',
+            )
+            .filter({ visible: true });
+          await controls.first().focus();
+          await page.keyboard.press('Shift+Tab');
+          await expect(controls.last()).toBeFocused();
+          await expect
+            .poll(() =>
+              controls.last().evaluate((node) => {
+                const bounds = node.getBoundingClientRect();
+                const target = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+                return bounds.top >= 0 && bounds.bottom <= innerHeight && Boolean(target && node.contains(target));
+              }),
+            )
+            .toBe(true);
+          await page.keyboard.press('Tab');
+          await expect(controls.first()).toBeFocused();
           const focused =
-            overlay === 'panels' ? sheet.getByTestId('mobile-more-menu-close') : page.getByTestId('input-search-tabs');
+            overlay === 'panels'
+              ? sheet.getByTestId('mobile-more-menu-close')
+              : page.getByTestId(overlay === 'tabs' ? 'input-search-tabs' : 'tools-search-input');
           await focused.focus();
           await expect(focused).toBeFocused();
           if (overlay === 'tabs') await focused.fill('Editor');
@@ -84,7 +110,15 @@ for (const width of [390, 1180]) {
         }
         // Closing via the existing visible button remains independently usable.
         await trigger.click();
-        await sheet.getByTestId(overlay === 'panels' ? 'mobile-more-menu-close' : 'button-close-switcher').click();
+        await sheet
+          .getByTestId(
+            overlay === 'panels'
+              ? 'mobile-more-menu-close'
+              : overlay === 'tabs'
+                ? 'button-close-switcher'
+                : 'tools-sheet-close',
+          )
+          .click();
         await expect(sheet).toHaveCount(0);
       });
     }
@@ -167,6 +201,32 @@ for (const width of [390, 1180]) {
     });
   });
 }
+
+test.describe('Workbench import recovery at 1180px', () => {
+  test.use({ viewport: { width: 1180, height: 757 } });
+  test('recovers one failed Workbench chunk without reloading the document', async ({ page, baseURL }) => {
+    test.setTimeout(90_000);
+    const id = await createProject(page, baseURL!);
+    const requests: string[] = [];
+    let documents = 0;
+    page.on('request', (request) => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) documents++;
+    });
+    await page.route(/\/assets\/Workbench\.client-[A-Za-z0-9_-]+\.js(?:\?.*)?$/, async (route) => {
+      requests.push(route.request().url());
+      if (requests.length === 1) return route.abort('failed');
+      return route.continue();
+    });
+    await page.goto(`/projects/${id}/ide?panel=editor`);
+    await expect(page.locator('.cm-editor,.monaco-editor').first()).toBeVisible({ timeout: 20_000 });
+    expect(requests).toHaveLength(2);
+    const initial = new URL(requests[0]);
+    const recovered = new URL(requests[1]);
+    expect(recovered.origin + recovered.pathname).toBe(initial.origin + initial.pathname);
+    expect(recovered.search).toBe('?vibecore-retry=1');
+    expect(documents).toBe(1);
+  });
+});
 
 test.describe('desktop 1280px', () => {
   test.use({ viewport: { width: 1280, height: 900 } });

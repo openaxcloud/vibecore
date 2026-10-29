@@ -1,0 +1,387 @@
+{
+  "base": "fe790924209dbbd79d11eeb73b82cb9c315fe401",
+  "files": [
+    {
+      "path": "menus/README.md",
+      "source": "/workspace/ui852-responsive-menus/README.md",
+      "sourceSha256": "3bf716469809efd5ac51fc2b8b7c7d22b4b38da839ad0c108ad9b77b8025bfb6",
+      "sha256": "ba10caaacf47c5b9d10dc5b89b399d8cb03ba82d881f11917adb1c4ab57bd73a",
+      "bytes": 3849,
+      "transformation": "Documentation updated with final results; original source hash retained when present"
+    },
+    {
+      "path": "menus/focus.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus.cjs",
+      "sourceSha256": "f27b7cb0f5342229fcbb59e550cbd4c1804cd7043cdceb31146edfd34a00e383",
+      "sha256": "f27b7cb0f5342229fcbb59e550cbd4c1804cd7043cdceb31146edfd34a00e383",
+      "bytes": 10519,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-entry.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus-entry.cjs",
+      "sourceSha256": "3e185c34f64d2a2503ee968e6828a3f22016b6cbe88a5d03e2b36b0ae5ed7b0d",
+      "sha256": "3e185c34f64d2a2503ee968e6828a3f22016b6cbe88a5d03e2b36b0ae5ed7b0d",
+      "bytes": 10122,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/resize.cjs",
+      "source": "/workspace/ui852-responsive-menus/resize.cjs",
+      "sourceSha256": "7f609764ffa76591996a86fa73b900f6b1b348e9e1da0f5b449bbb709dadf3e8",
+      "sha256": "7f609764ffa76591996a86fa73b900f6b1b348e9e1da0f5b449bbb709dadf3e8",
+      "bytes": 11370,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/resize-pointer-navigation.cjs",
+      "source": "/workspace/ui852-responsive-menus/resize-pointer-navigation.cjs",
+      "sourceSha256": "1d71b1719d308b692c4113deae50beda9c11849470e2647e0075f531ff2bbb04",
+      "sha256": "1d71b1719d308b692c4113deae50beda9c11849470e2647e0075f531ff2bbb04",
+      "bytes": 11344,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-modal-baseline/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/focus-modal-baseline/receipt.json",
+      "sourceSha256": "0d5352db0544a57b975a7fe7f10676e1197c2d9bac8a8812396a79c5f8d013b3",
+      "sha256": "74fe7d7d9b2c8cd19df67dbee7dd6ee769064bf6d5f848515b84bbab6c816ac5",
+      "bytes": 82676,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/focus-entry-baseline/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/focus-entry-baseline/receipt.json",
+      "sourceSha256": "9186ed977f7542b050d857a9bd3da222b9b5b693b53bbcb141fea9e51414e0bc",
+      "sha256": "102ecde48e0c3a10ee040d8689d47a5426213833a7ac2870be9fef4f035ce27d",
+      "bytes": 48131,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/resize-baseline/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/resize-baseline/receipt.json",
+      "sourceSha256": "c2eb457101bb676f9f190ed065309b568425aceb3c6cc535d4fb781bf69438e4",
+      "sha256": "831796df9c54f1a0d19a10ae62fc8a5b78e7cdcc0ca174f78459096164a44df7",
+      "bytes": 24017,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/resize-pointer-navigation/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/resize-pointer-navigation/receipt.json",
+      "sourceSha256": "9ab953277b29d85e43c25175f18ef96186d4ef646805d6765cb13bdf9b349f6e",
+      "sha256": "a9ccfea8ed002816f43a53a167ac4fa36704c5a74d61622e1ff448b322b3840d",
+      "bytes": 220726,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/focus-entry-baseline/panels-focus-escape.jpg",
+      "source": "/workspace/ui852-responsive-menus/focus-entry-baseline/panels-focus-escape.jpg",
+      "sourceSha256": "d361709e834eb72e0c03499b8cfe0326280f29f6d8e153b688831ce516c1c3aa",
+      "sha256": "d361709e834eb72e0c03499b8cfe0326280f29f6d8e153b688831ce516c1c3aa",
+      "bytes": 19638,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-entry-baseline/tabs-focus-escape.jpg",
+      "source": "/workspace/ui852-responsive-menus/focus-entry-baseline/tabs-focus-escape.jpg",
+      "sourceSha256": "747a96d3318c505d13d4d43a6e16670b3a96891ab235bc9d2bf14ed278e31b25",
+      "sha256": "747a96d3318c505d13d4d43a6e16670b3a96891ab235bc9d2bf14ed278e31b25",
+      "bytes": 13746,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-modal-baseline/focus-modal390-failure.png",
+      "source": "/workspace/ui852-responsive-menus/focus-modal-baseline/focus-modal390-failure.png",
+      "sourceSha256": "bc7c38e2d3c834d9d7bc44943e52ba17c2a2586a633b8384bd8b3dac78075875",
+      "sha256": "bc7c38e2d3c834d9d7bc44943e52ba17c2a2586a633b8384bd8b3dac78075875",
+      "bytes": 48993,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "navigation/README.md",
+      "source": "/workspace/ui852-navigation/README.md",
+      "sourceSha256": "1db6a4e1df9185ab5f459a28101981cfbf10218403fb242efaa44c540fac700e",
+      "sha256": "1db6a4e1df9185ab5f459a28101981cfbf10218403fb242efaa44c540fac700e",
+      "bytes": 2590,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "navigation/source.json",
+      "source": "/workspace/ui852-navigation/source.json",
+      "sourceSha256": "0a1d45920329f1aed73fbeb2e4942052025fac5503126e0eb8c92959514cddb3",
+      "sha256": "345a5889d40866f686d4ed938c18056b81dec752d162438e620f3f3a9a9e5221",
+      "bytes": 515,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "navigation/search.cjs",
+      "source": "/workspace/ui852-navigation/search.cjs",
+      "sourceSha256": "65b52ed67ddb8b8f897063a1ed30effaa45d1d4f9e133a2a646399757d1d5cc5",
+      "sha256": "65b52ed67ddb8b8f897063a1ed30effaa45d1d4f9e133a2a646399757d1d5cc5",
+      "bytes": 9564,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "navigation/interrupted.cjs",
+      "source": "/workspace/ui852-navigation/interrupted.cjs",
+      "sourceSha256": "3458cad722a9350463c3fb2e1780b24d17ab1aed68b087cf81a93e5567c9ef8c",
+      "sha256": "3458cad722a9350463c3fb2e1780b24d17ab1aed68b087cf81a93e5567c9ef8c",
+      "bytes": 10184,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "navigation/interrupted-selector-fixed.cjs",
+      "source": "/workspace/ui852-navigation/interrupted-selector-fixed.cjs",
+      "sourceSha256": "3c67e88754018072b0e3a2877702e9bc0edb1a5e926d33e6200175fc8b6f804a",
+      "sha256": "3c67e88754018072b0e3a2877702e9bc0edb1a5e926d33e6200175fc8b6f804a",
+      "bytes": 10282,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "navigation/interrupted-gate-proven.cjs",
+      "source": "/workspace/ui852-navigation/interrupted-gate-proven.cjs",
+      "sourceSha256": "ad11dd9607838867dcf20ad9764fcc136a58794197aae061aa540b6db31a447f",
+      "sha256": "ad11dd9607838867dcf20ad9764fcc136a58794197aae061aa540b6db31a447f",
+      "bytes": 10644,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "navigation/search-handoff/receipt.json",
+      "source": "/workspace/ui852-navigation/search-handoff/receipt.json",
+      "sourceSha256": "316844cbd1d8b4fb9cd0c651a8633e87302a8e1e648f1dc4ced84a6e9180d8d7",
+      "sha256": "7de70531dbc0ccf7df2aab8fc403bcfa98fe9c99896975d260e06bf4ef858bd7",
+      "bytes": 47731,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "navigation/interrupted/receipt.json",
+      "source": "/workspace/ui852-navigation/interrupted/receipt.json",
+      "sourceSha256": "f450a3a2d41ceedf795cdb1cfcb3357ead37c1cc0f04c04145cefa402ce19f26",
+      "sha256": "d35b5bf9b019532c493fb64e57e24696e5d922e742d2c36e418e2d0f62f9d6c7",
+      "bytes": 46632,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "navigation/interrupted-selector-fixed/receipt.json",
+      "source": "/workspace/ui852-navigation/interrupted-selector-fixed/receipt.json",
+      "sourceSha256": "b5e6af431647569cec498ab16026316e07f845ce8e95ce12119e5dcdc57ad7ba",
+      "sha256": "f0de3d7818178894b0981e48856cbf240f17e7453bff77905002151f565fbb1b",
+      "bytes": 33667,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "navigation/interrupted-gate-proven/receipt.json",
+      "source": "/workspace/ui852-navigation/interrupted-gate-proven/receipt.json",
+      "sourceSha256": "9002090fee604be747faff1adce0ae40c4da1f3b535730920edb50725dfc98b8",
+      "sha256": "57ff65600bee0abbc2504ab7d6525dff0168497a43cce15cf6618c2e8c31bd0d",
+      "bytes": 71579,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "navigation/interrupted-selector-fixed/390-0-failure.png",
+      "source": "/workspace/ui852-navigation/interrupted-selector-fixed/390-0-failure.png",
+      "sourceSha256": "93484d718bba177ad1245b47562e69264969d41b034d7e82c07bd74ecf37aa58",
+      "sha256": "93484d718bba177ad1245b47562e69264969d41b034d7e82c07bd74ecf37aa58",
+      "bytes": 23889,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "workbench/README.md",
+      "source": "/workspace/ui852-workbench-import/README.md",
+      "sourceSha256": "bd1c3534e931bb5a558c8421f3f52468567c0cea7e3102812ff95c02ddc596b9",
+      "sha256": "9043532b5f13f1356e32445819e481346bfaac2bdc54d7ee6f5248c3340e2462",
+      "bytes": 4982,
+      "transformation": "Documentation updated with final results; original source hash retained when present"
+    },
+    {
+      "path": "workbench/probe.cjs",
+      "source": "/workspace/ui852-workbench-import/probe.cjs",
+      "sourceSha256": "8209a772b2c7ad18339a4fb829e558b9893f7df3e2bf7e776b3b0d8bc06a7e93",
+      "sha256": "8209a772b2c7ad18339a4fb829e558b9893f7df3e2bf7e776b3b0d8bc06a7e93",
+      "bytes": 6330,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "workbench/module-cache.cjs",
+      "source": "/workspace/ui852-workbench-import/module-cache.cjs",
+      "sourceSha256": "bade64cf4cf8bcbae9b0a1f73032ab6771ad00db2a28986c4950f9b7f18fdc66",
+      "sha256": "bade64cf4cf8bcbae9b0a1f73032ab6771ad00db2a28986c4950f9b7f18fdc66",
+      "bytes": 6886,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "workbench/asset-diagnostic/receipt.json",
+      "source": "/workspace/ui852-workbench-import/asset-diagnostic/receipt.json",
+      "sourceSha256": "201b8446321e8a30404dde2bed56583a0fc67ff7f6feab36e10801a6f738b326",
+      "sha256": "1517c1a4d921accaf96f0c7613617475262b72eac594fa538d85a374fe382f4c",
+      "bytes": 12673,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "workbench/tablet-1180/receipt.json",
+      "source": "/workspace/ui852-workbench-import/tablet-1180/receipt.json",
+      "sourceSha256": "9ad376649df7a1313a4286bb8e8798004ff12a5a215f77b3d5182cf4aac5bdf1",
+      "sha256": "f395265013ed3cbd2a1b47b9ce191aeeba52d8cfd4ee1d0041e2dfa2b816bd66",
+      "bytes": 12674,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "workbench/module-cache/receipt.json",
+      "source": "/workspace/ui852-workbench-import/module-cache/receipt.json",
+      "sourceSha256": "7925ba600eccd5ffd1828cd8e1f895076c328ecc8b9819d844b5ec365d8f5488",
+      "sha256": "d1e3015282e6d18775ccb883226009cdf8ecb4aee4606819cd4b623cb6245692",
+      "bytes": 13067,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "workbench/asset-diagnostic/390-failed.png",
+      "source": "/workspace/ui852-workbench-import/asset-diagnostic/390-failed.png",
+      "sourceSha256": "41eff028fcc43b7570fa01d48365bc822516c15a793370689f4f780d514c8aa0",
+      "sha256": "41eff028fcc43b7570fa01d48365bc822516c15a793370689f4f780d514c8aa0",
+      "bytes": 26357,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "workbench/asset-diagnostic/390-recovered.png",
+      "source": "/workspace/ui852-workbench-import/asset-diagnostic/390-recovered.png",
+      "sourceSha256": "0e3c43639664918c104fd7d457a87e33a103e5161b0bcb6ad1d4421e30be93ed",
+      "sha256": "0e3c43639664918c104fd7d457a87e33a103e5161b0bcb6ad1d4421e30be93ed",
+      "bytes": 30120,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "workbench/tablet-1180/1180-failed.png",
+      "source": "/workspace/ui852-workbench-import/tablet-1180/1180-failed.png",
+      "sourceSha256": "66f5648ad26e08b195e4ff8064dfb146b528789457afc8a62b363ae6e15c134f",
+      "sha256": "66f5648ad26e08b195e4ff8064dfb146b528789457afc8a62b363ae6e15c134f",
+      "bytes": 30440,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "README.md",
+      "sha256": "0103d735d002e6cce2fa82e574c2306921836ccc6f0b09b60a3652a77fddb375",
+      "bytes": 8391,
+      "transformation": "Documentation updated with CI findings and new local correction"
+    },
+    {
+      "path": "menus/focus-matrix-visible.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus-matrix-visible.cjs",
+      "sourceSha256": "ee1882969d51676236eeed964d8ace12ecf7baaddaf97472750bd68679742fe2",
+      "sha256": "ee1882969d51676236eeed964d8ace12ecf7baaddaf97472750bd68679742fe2",
+      "bytes": 12654,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-query-handoff.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus-query-handoff.cjs",
+      "sourceSha256": "26d7c3f0b8705e745d30f6c084c763e4c2cc8e3ad01788cb49c30ca8ffc8700d",
+      "sha256": "26d7c3f0b8705e745d30f6c084c763e4c2cc8e3ad01788cb49c30ca8ffc8700d",
+      "bytes": 9910,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-fixed-visible/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/focus-fixed-visible/receipt.json",
+      "sourceSha256": "eaa2d803e73e224b42ac0ef22c838951eaea468eebb607b86720b1012c4db25f",
+      "sha256": "4912db6edb6cb57269ce7b3c8ebc5fac0127fd75a6937db728da08704ad40556",
+      "bytes": 560884,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/focus-fixed-query-handoff/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/focus-fixed-query-handoff/receipt.json",
+      "sourceSha256": "d50591a7e90b7e66b0beeb58005cf37ba76af12c8345a455f7a3a80cc284f87d",
+      "sha256": "ddf1ec7474f0fd6c132f0e8417cce1ee979032244264716d2497bd51a52094bf",
+      "bytes": 31252,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "workbench/recovery-proof.cjs",
+      "source": "/workspace/ui852-workbench-import/recovery-proof.cjs",
+      "sourceSha256": "828c3c207931ac8d3ce80c20ea4bbe77e96b880d8fba18f7677a60d51de9b48f",
+      "sha256": "828c3c207931ac8d3ce80c20ea4bbe77e96b880d8fba18f7677a60d51de9b48f",
+      "bytes": 6226,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "workbench/compiled-green/receipt.json",
+      "source": "/workspace/ui852-workbench-import/compiled-green/receipt.json",
+      "sourceSha256": "b03715323b96d7e59a2eef42d7c4c2bfede52b346d6477d1218add78c9714d4a",
+      "sha256": "c59d92356410e0f3af2916cda914fa0705c69d443fd11749e2b1b915d612e5a3",
+      "bytes": 14085,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "workbench/compiled-double-failure/receipt.json",
+      "source": "/workspace/ui852-workbench-import/compiled-double-failure/receipt.json",
+      "sourceSha256": "c162cb2ae83fe1248f4362ca2421b45a6da4c0d26835674f0d9294d0c14ae915",
+      "sha256": "a3e18b93a744a4783452592ac04eb0dab0f5aa72a521cbca0d984c4569eb012e",
+      "bytes": 11411,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "workbench/compiled-green/390-result.png",
+      "source": "/workspace/ui852-workbench-import/compiled-green/390-result.png",
+      "sourceSha256": "0e3c43639664918c104fd7d457a87e33a103e5161b0bcb6ad1d4421e30be93ed",
+      "sha256": "0e3c43639664918c104fd7d457a87e33a103e5161b0bcb6ad1d4421e30be93ed",
+      "bytes": 30120,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "workbench/compiled-double-failure/390-result.png",
+      "source": "/workspace/ui852-workbench-import/compiled-double-failure/390-result.png",
+      "sourceSha256": "e363ba7dcf60c119c1475e2a82b153ad88f84c5b3a370722957f0a27145c02d3",
+      "sha256": "e363ba7dcf60c119c1475e2a82b153ad88f84c5b3a370722957f0a27145c02d3",
+      "bytes": 26352,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-matrix-container.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus-matrix-container.cjs",
+      "sourceSha256": "9bab7bacebfd6e87bd26ab730f537263fa1c4e4bbd55aaacae4b6d3269baac0a",
+      "sha256": "9bab7bacebfd6e87bd26ab730f537263fa1c4e4bbd55aaacae4b6d3269baac0a",
+      "bytes": 12814,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-query-handoff-container.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus-query-handoff-container.cjs",
+      "sourceSha256": "14b24af3421ecf7cb40fa8276014d0e71085968dac01847fa8fb441af579e906",
+      "sha256": "14b24af3421ecf7cb40fa8276014d0e71085968dac01847fa8fb441af579e906",
+      "bytes": 9895,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/tools-pointer-seven-profiles.cjs",
+      "source": "/workspace/ui852-responsive-menus/tools-pointer-seven-profiles.cjs",
+      "sourceSha256": "d249f5bb5b8b3420b461968edd5eee4c3ec2458b2645f92866cf1d1b1eb2a30e",
+      "sha256": "d249f5bb5b8b3420b461968edd5eee4c3ec2458b2645f92866cf1d1b1eb2a30e",
+      "bytes": 12252,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/final-container-matrix/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/final-container-matrix/receipt.json",
+      "sourceSha256": "c870edbfa8934ce09eafd9f2f7207a7947cf2c35a480b2d92ed206b2997a8a5a",
+      "sha256": "33ea3f41400ebd36264ce3e270654b2f7dd80881b318e6fefe30c6db03055efb",
+      "bytes": 536312,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/final-container-handoff/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/final-container-handoff/receipt.json",
+      "sourceSha256": "4c730a2407e4db9e30c3b2d4cbd2668bcafac217d7a0a5cfe3d78a115d03f670",
+      "sha256": "2a46844ce5b90f542ccd4d29b5a3690919214890981f797a3ce722264564a154",
+      "bytes": 31392,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/final-pointer-seven/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/final-pointer-seven/receipt.json",
+      "sourceSha256": "35a5b0ef92836e2252351a2939c3f6a530034d42e71288494065720e8b334edd",
+      "sha256": "63b68a826413e52510e0998c86f641941dc14da8ecf1e9cda426fb0e2d9657ac",
+      "bytes": 124789,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    }
+  ]
+}

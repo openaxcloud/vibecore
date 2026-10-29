@@ -77,7 +77,7 @@ const RUNTIME_DEPENDENCY_VERSIONS: Record<string, string> = {
   'react-router-dom': '^6.28.2',
 };
 
-const VITE_REACT_CONFIG = `import { defineConfig } from 'vite';
+const LEGACY_VITE_REACT_CONFIG = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Behind the E-Code preview proxy the dev server is reached over TLS, so Vite's
@@ -108,6 +108,27 @@ export default defineConfig({
   },
 });
 `;
+
+const VITE_REACT_CONFIG = LEGACY_VITE_REACT_CONFIG.replace(
+  'const hmrClientPort =',
+  "const __ecodeScaffoldHmrEnv = Reflect.get(globalThis, 'process')?.env ?? {};\nconst hmrClientPort =",
+).replaceAll('process.env', '__ecodeScaffoldHmrEnv');
+
+/** Migrate only exact scaffold text, including our two existing wrapper forms. */
+function upgradeScaffoldHmrEnvironment(source: string) {
+  let upgraded = source;
+
+  upgraded = upgraded.replace(LEGACY_VITE_REACT_CONFIG.trim(), VITE_REACT_CONFIG.trim());
+
+  for (const replacement of ['const __ecodeUserConfig = ', 'const __ecodeApiUserConfig = ']) {
+    // Match the exact whitespace normalization performed by our wrapper's export transform.
+    const wrapped = (template: string) =>
+      template.trim().replace(/(^|\n)\s*export\s+default\s+/, (_match, prefix) => `${prefix}${replacement}`);
+    upgraded = upgraded.replace(wrapped(LEGACY_VITE_REACT_CONFIG), wrapped(VITE_REACT_CONFIG));
+  }
+
+  return upgraded;
+}
 
 const VITE_INDEX_HTML = `<!doctype html>
 <html lang="en">
@@ -363,7 +384,7 @@ function supplementalPreviewFiles(
      * middleware when needed — without discarding the model's settings. Only
      * re-emit when the merge actually changed it.
      */
-    let ensured = ensureViteHmrConfig(files[viteConfigPath], viteConfigPath);
+    let ensured = ensureViteHmrConfig(upgradeScaffoldHmrEnvironment(files[viteConfigPath]), viteConfigPath);
 
     if (wireApiServe || ensured.includes(API_SERVE_MARKER)) {
       ensured = ensureViteApiServeConfig(ensured);

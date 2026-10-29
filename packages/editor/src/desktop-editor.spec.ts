@@ -3,6 +3,7 @@ import { EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { createElement, StrictMode, Suspense, lazy } from 'react';
+import { flushSync } from 'react-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   DesktopCodeEditor,
@@ -979,3 +980,76 @@ it.each(['resolved', 'focus', 'pointer', 'navigation', 'scope', 'cancel', 'compo
     }
   },
 );
+
+it('hands off a focused editor created before its registration render commits to a deferred destination', async () => {
+  resizeEditor(1280);
+  pendingMonaco.release();
+  pendingTabFocus.release();
+
+  let created!: (editor: TestEditor) => void;
+
+  const appeared = new Promise<TestEditor>((resolve) => {
+    created = resolve;
+  });
+
+  const originalPush = pendingMonaco.created.push.bind(pendingMonaco.created);
+
+  const pushed = vi.spyOn(pendingMonaco.created, 'push').mockImplementation((...editors) => {
+    const length = originalPush(...editors);
+    created(editors[0]);
+
+    return length;
+  });
+
+  let release!: (module: { default: typeof EditorAdapter }) => void;
+
+  const deferredEditor = lazy(
+    () =>
+      new Promise<{ default: typeof EditorAdapter }>((resolve) => {
+        release = resolve;
+      }),
+  );
+
+  const identity = 'pane-main:/portable.txt';
+  const props = { value: 'A😀B\nSecond line', filePath: '/portable.txt', focusIdentity: identity };
+
+  const tree = (pending: boolean) =>
+    createElement(DesktopEditorFocusProvider, {
+      children: pending
+        ? createElement(EditorFocusHandoffBoundary, {
+            identity,
+            children: createElement(Suspense, {
+              fallback: createElement('span', null, 'Loading destination'),
+              children: createElement(deferredEditor, props),
+            }),
+          })
+        : createElement(EditorAdapter, props),
+    });
+
+  const mounted = render(tree(false));
+
+  try {
+    // Observe creation directly, without waiting for React to commit the later editorVersion render.
+    const desktop = await appeared;
+    pushed.mockRestore();
+    desktop.setSelections([
+      { selectionStartLineNumber: 2, selectionStartColumn: 4, positionLineNumber: 1, positionColumn: 4 },
+    ]);
+    desktop.input.focus();
+    expect(document.activeElement).toBe(desktop.input);
+    flushSync(() => {
+      resizeEditor(390);
+      mounted.rerender(tree(true));
+    });
+    expect(mounted.getByText('Loading destination')).toBeTruthy();
+    await act(async () => {
+      release({ default: EditorAdapter });
+    });
+
+    const mobile = mobileView(mounted.container);
+    expect(mobile.hasFocus).toBe(true);
+    expect([mobile.state.selection.main.anchor, mobile.state.selection.main.head]).toEqual([8, 3]);
+  } finally {
+    pushed.mockRestore();
+  }
+});

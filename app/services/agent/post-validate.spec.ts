@@ -1,6 +1,8 @@
+import { spawnSync } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GeneratedFileJsonError,
+  GeneratedFileSyntaxError,
   MissingImportError,
   resolveImport,
   validateGeneratedFiles,
@@ -130,15 +132,43 @@ describe('agent post-generation import validation', () => {
     ).rejects.toBeInstanceOf(MissingImportError);
   });
 
-  describe('fail-open on parser errors (Replit/Cursor parity)', () => {
-    /*
-     * `@babel/parser` lags TC39 + TypeScript feature flags, so a syntactically
-     * valid file can still fail to parse. Blocking the agent on a parser hiccup
-     * confused the auto-apply UX (proposal stuck in "Review AI changes" with
-     * status `failed`). The contract is now: log a warning, skip the import
-     * check for that file, and let the TS LSP + preview build surface real
-     * syntax errors as diagnostics.
-     */
+  describe('syntax rejection with explicit unsupported-plugin distinction', () => {
+    const commonJsSource = 'if (process.env.SKIP_PLUGIN) return; module.exports = { enabled: true };';
+
+    it('accepts CommonJS top-level return verified by the real Node syntax checker', async () => {
+      const checked = spawnSync(process.execPath, ['--check', '--input-type=commonjs'], {
+        input: commonJsSource,
+        encoding: 'utf8',
+      });
+      expect(checked.error).toBeUndefined();
+      expect(checked.status, checked.stderr).toBe(0);
+      await expect(validateGeneratedFiles([{ path: 'plugin.cjs', content: commonJsSource }])).resolves.toBeUndefined();
+    });
+
+    it('continues rejecting top-level return in an explicit ES module', async () => {
+      const checked = spawnSync(process.execPath, ['--check', '--input-type=module'], {
+        input: commonJsSource,
+        encoding: 'utf8',
+      });
+      expect(checked.error).toBeUndefined();
+      expect(checked.status).not.toBe(0);
+      await expect(validateGeneratedFiles([{ path: 'plugin.mjs', content: commonJsSource }])).rejects.toBeInstanceOf(
+        GeneratedFileSyntaxError,
+      );
+    });
+
+    it('rejects malformed CommonJS syntax', async () => {
+      await expect(
+        validateGeneratedFiles([{ path: 'plugin.cjs', content: 'module.exports = { enabled: ;' }]),
+      ).rejects.toBeInstanceOf(GeneratedFileSyntaxError);
+    });
+
+    it('rejects ES module exports in a CommonJS file', async () => {
+      const validation = validateGeneratedFiles([{ path: 'plugin.cjs', content: 'export const enabled = true;' }]);
+      await expect(validation).rejects.toBeInstanceOf(GeneratedFileSyntaxError);
+      await expect(validation).rejects.toMatchObject({ filePath: 'plugin.cjs', line: 1, column: 0 });
+    });
+
     let warnSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
@@ -149,36 +179,63 @@ describe('agent post-generation import validation', () => {
       warnSpy.mockRestore();
     });
 
-    it('does not reject when a generated file fails to parse', async () => {
+    it('rejects an unterminated generated source with its path and parser location', async () => {
       await expect(
         validateGeneratedFiles([
           {
-            path: 'src/components/AboutSection.tsx',
+            path: '/home/project/src/components/AboutSection.tsx',
             content: "export function AboutSection() {\n  return 'unterminated;\n}\n",
           },
         ]),
-      ).resolves.toBeUndefined();
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Skipping import check for src/components/AboutSection.tsx'),
-      );
+      ).rejects.toMatchObject({
+        name: 'GeneratedFileSyntaxError',
+        filePath: 'src/components/AboutSection.tsx',
+        line: 2,
+        column: 9,
+      });
+      expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    it('still validates resolvable imports in the rest of the batch', async () => {
-      /*
-       * Unparseable file shouldn't poison the batch — sibling files keep
-       * their import validation. A missing import elsewhere must still fail.
-       */
+    it('rejects the malformed nested member expression in JSX', async () => {
       await expect(
         validateGeneratedFiles([
           {
-            path: 'src/broken.tsx',
-            content: "export function Broken() { return 'unterminated;\n}\n",
+            path: 'src/App.tsx',
+            content: 'export default function App() { return <div>{errors.message && {errors.message}}</div>; }',
           },
+        ]),
+      ).rejects.toBeInstanceOf(GeneratedFileSyntaxError);
+    });
+
+    it('does not mislabel a syntactically valid object child as a syntax error', async () => {
+      // React can reject this at render time; AST validation cannot establish runtime safety.
+      await expect(
+        validateGeneratedFiles([
           {
-            path: 'src/main.tsx',
-            content: "import App from './App';\nconsole.log(App);\n",
+            path: 'src/App.tsx',
+            content: 'export default function App() { return <div>{error && {error}}</div>; }',
           },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('keeps unsupported decorators distinct from a confirmed grammar error', async () => {
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: 'src/decorated.ts',
+            content: '@sealed class Example {}',
+          },
+        ]),
+      ).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Unsupported parser plugin'));
+    });
+
+    it('still checks sibling imports when a file uses an unsupported plugin', async () => {
+      await expect(
+        validateGeneratedFiles([
+          { path: 'src/decorated.ts', content: '@sealed class Example {}' },
+          { path: 'src/main.tsx', content: "import App from './App'; console.log(App);" },
         ]),
       ).rejects.toBeInstanceOf(MissingImportError);
     });

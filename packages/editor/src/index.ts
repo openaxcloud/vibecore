@@ -1111,13 +1111,22 @@ export function DesktopCodeEditor({
     focusScopeRef.current = { state: focusState, identity: focusIdentity };
   }, [focusState, focusIdentity]);
 
-  useLayoutEffect(() => {
+  const focusRegistrationRef = useRef<{
+    editor: MonacoTypes.editor.IStandaloneCodeEditor;
+    dispose: () => void;
+  } | null>(null);
+
+  const registerCurrentEditorFocus = useCallback(() => {
+    focusRegistrationRef.current?.dispose();
+
     const editor = editorRef.current;
     const container = containerRef.current;
 
-    if (editor && container && focusIdentity) {
-      return registerDesktopEditorFocus(focusState, {
-        identity: focusIdentity,
+    const scope = focusScopeRef.current;
+
+    if (editor && container && scope?.identity) {
+      const unregister = registerDesktopEditorFocus(scope.state, {
+        identity: scope.identity,
         hasTextFocus: () => editor.hasTextFocus() && container.contains(document.activeElement),
         snapshot: () => {
           const model = editor.getModel();
@@ -1145,8 +1154,26 @@ export function DesktopCodeEditor({
             : null;
         },
       });
+      const registration = {
+        editor,
+        dispose: () => {
+          unregister();
+
+          // A late cleanup must not clear a newer editor or identity registration.
+          if (focusRegistrationRef.current === registration) {
+            focusRegistrationRef.current = null;
+          }
+        },
+      };
+      focusRegistrationRef.current = registration;
+
+      return registration.dispose;
     }
-  }, [editorVersion, focusState, focusIdentity]);
+
+    return undefined;
+  }, []);
+
+  useLayoutEffect(registerCurrentEditorFocus, [registerCurrentEditorFocus, focusState, focusIdentity]);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -1319,6 +1346,10 @@ export function DesktopCodeEditor({
 
         (globalThis as any).__vibecoreStartupMark?.('monaco-create-ready');
         editorRef.current = editor;
+
+        // Creation is observable before the editorVersion render commits; focus ownership cannot wait for it.
+        registerCurrentEditorFocus();
+
         const composition = trackDesktopEditorComposition(focusState);
         const compositionStart = editor.onDidCompositionStart(composition.start);
         const compositionEnd = editor.onDidCompositionEnd(composition.end);
@@ -1426,6 +1457,10 @@ export function DesktopCodeEditor({
         }
 
         editor.onDidDispose(() => {
+          if (focusRegistrationRef.current?.editor === editor) {
+            focusRegistrationRef.current.dispose();
+          }
+
           compositionStart.dispose();
           compositionEnd.dispose();
           composition.dispose();
@@ -1458,7 +1493,7 @@ export function DesktopCodeEditor({
       retainedModelsRef.current.clear();
       ownedWorkspaceModelsRef.current.clear();
     };
-  }, [acquireModel, copy]);
+  }, [acquireModel, copy, registerCurrentEditorFocus]);
 
   useEffect(() => {
     const editor = editorRef.current;
