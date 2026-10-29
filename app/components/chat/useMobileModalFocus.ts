@@ -26,7 +26,8 @@ export function useMobileModalFocus(active: boolean) {
 
     // Layout handoff has already restored any pending control. Never replace it.
     if (!dialog.contains(document.activeElement)) {
-      (controls()[0] ?? dialog).focus({ preventScroll: true });
+      // Do not open the virtual keyboard by implicitly focusing a search input.
+      dialog.focus({ preventScroll: true });
     }
 
     const onKeyDown = (event: KeyboardEvent) => {

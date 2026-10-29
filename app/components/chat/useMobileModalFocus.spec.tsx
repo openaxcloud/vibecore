@@ -47,7 +47,7 @@ function Modal({ active = true, handoff = false, child = false }) {
 
 it('enters the modal and cycles both directions without visiting hidden or disabled controls', () => {
   const view = render(<Modal />);
-  expect(document.activeElement).toBe(view.getByText('First'));
+  expect(document.activeElement).toBe(view.getByRole('dialog', { name: 'Mobile' }));
   fireEvent.keyDown(document.activeElement!, { key: 'Tab', shiftKey: true });
   expect(document.activeElement).toBe(view.getByText('Last'));
   fireEvent.keyDown(document.activeElement!, { key: 'Tab' });
@@ -143,7 +143,7 @@ it('composes with the real shell handoff and leaves Escape restoration to its ow
 
   const view = render(tree('before'));
   fireEvent.click(view.getByText('Open tabs'));
-  expect(document.activeElement).toBe(view.getByText('First tab'));
+  expect(document.activeElement).toBe(view.getByRole('dialog'));
 
   const old = view.getByLabelText('Tab query');
   fireEvent.change(old, { target: { value: 'Webview' } });
@@ -155,4 +155,32 @@ it('composes with the real shell handoff and leaves Escape restoration to its ow
   fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
   expect(view.queryByRole('dialog')).toBeNull();
   expect(document.activeElement).toBe(view.getByText('Open tabs'));
+});
+
+function SearchFirstModal() {
+  const [open, setOpen] = useState(false);
+  const ref = useMobileModalFocus(open);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Open tools</button>
+      {open && (
+        <section role="dialog" aria-label="Tools" tabIndex={-1} ref={ref}>
+          <input aria-label="Tools search" />
+          <button>Close tools</button>
+        </section>
+      )}
+    </>
+  );
+}
+
+it('pointer opening focuses the dialog, leaving the first search field for explicit Tab navigation', () => {
+  const view = render(<SearchFirstModal />);
+  const opener = view.getByText('Open tools');
+  opener.focus();
+  fireEvent.click(opener, { detail: 1 });
+  expect(document.activeElement).toBe(view.getByRole('dialog', { name: 'Tools' }));
+  expect(document.activeElement).not.toBe(view.getByLabelText('Tools search'));
+  fireEvent.keyDown(document.activeElement!, { key: 'Tab' });
+  expect(document.activeElement).toBe(view.getByLabelText('Tools search'));
 });

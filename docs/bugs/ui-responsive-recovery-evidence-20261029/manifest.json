@@ -259,9 +259,9 @@
     },
     {
       "path": "README.md",
-      "sha256": "997b6cc725461a517e0853aefcac691553e123dcabd01e4317069711bee31f82",
-      "bytes": 5780,
-      "transformation": "Documentation updated with final results; original source hash retained when present"
+      "sha256": "c23b379ae2988e1b50fbf11caeccb8e705909de3b635a7e9d13f7e19f98b054d",
+      "bytes": 8372,
+      "transformation": "Documentation updated with CI findings and new local correction"
     },
     {
       "path": "menus/focus-matrix-visible.cjs",
@@ -334,6 +334,54 @@
       "sha256": "e363ba7dcf60c119c1475e2a82b153ad88f84c5b3a370722957f0a27145c02d3",
       "bytes": 26352,
       "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-matrix-container.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus-matrix-container.cjs",
+      "sourceSha256": "9bab7bacebfd6e87bd26ab730f537263fa1c4e4bbd55aaacae4b6d3269baac0a",
+      "sha256": "9bab7bacebfd6e87bd26ab730f537263fa1c4e4bbd55aaacae4b6d3269baac0a",
+      "bytes": 12814,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/focus-query-handoff-container.cjs",
+      "source": "/workspace/ui852-responsive-menus/focus-query-handoff-container.cjs",
+      "sourceSha256": "14b24af3421ecf7cb40fa8276014d0e71085968dac01847fa8fb441af579e906",
+      "sha256": "14b24af3421ecf7cb40fa8276014d0e71085968dac01847fa8fb441af579e906",
+      "bytes": 9895,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/tools-pointer-seven-profiles.cjs",
+      "source": "/workspace/ui852-responsive-menus/tools-pointer-seven-profiles.cjs",
+      "sourceSha256": "d249f5bb5b8b3420b461968edd5eee4c3ec2458b2645f92866cf1d1b1eb2a30e",
+      "sha256": "d249f5bb5b8b3420b461968edd5eee4c3ec2458b2645f92866cf1d1b1eb2a30e",
+      "bytes": 12252,
+      "transformation": "byte-identical"
+    },
+    {
+      "path": "menus/final-container-matrix/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/final-container-matrix/receipt.json",
+      "sourceSha256": "c870edbfa8934ce09eafd9f2f7207a7947cf2c35a480b2d92ed206b2997a8a5a",
+      "sha256": "33ea3f41400ebd36264ce3e270654b2f7dd80881b318e6fefe30c6db03055efb",
+      "bytes": 536312,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/final-container-handoff/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/final-container-handoff/receipt.json",
+      "sourceSha256": "4c730a2407e4db9e30c3b2d4cbd2668bcafac217d7a0a5cfe3d78a115d03f670",
+      "sha256": "2a46844ce5b90f542ccd4d29b5a3690919214890981f797a3ce722264564a154",
+      "bytes": 31392,
+      "transformation": "JSON whitespace only; semantic values unchanged"
+    },
+    {
+      "path": "menus/final-pointer-seven/receipt.json",
+      "source": "/workspace/ui852-responsive-menus/final-pointer-seven/receipt.json",
+      "sourceSha256": "35a5b0ef92836e2252351a2939c3f6a530034d42e71288494065720e8b334edd",
+      "sha256": "63b68a826413e52510e0998c86f641941dc14da8ecf1e9cda426fb0e2d9657ac",
+      "bytes": 124789,
+      "transformation": "JSON whitespace only; semantic values unchanged"
     }
   ]
 }
