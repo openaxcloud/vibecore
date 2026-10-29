@@ -64,3 +64,17 @@ Parent's final vertical build on21999 tested without CSS injection or retries. R
 - English CSS640×450: tooltip right632,bottom335.6953125, passes.
 
 DPR2/CSSzoom1/visualViewport.scale1 verified throughout. Earlier red evidence retained. These results validate the reproduced native zoom failures with synthetic local fixtures; oversized tooltip content taller than the viewport remains the documented limitation. No Safari/device/production claim, no secret values, no source edits/restart during recipes.
+
+## Paint-order correction: prior geometry passes did not prove visibility
+
+Root visually inspected the French final capture and found the first tooltip lines hidden behind the fixed header. Runtime read-only observation (`tooltip-layer-before/receipt.json`) confirms header11002, tooltip10000; ancestors do not create a competing z-index. Earlier4/4 result is **placement and interaction coverage only**, not unobstructed visibility.
+
+Minimal subsequent source delta: GlobalTooltip class z-[11003], above actual header11002 and below message menu12041, Secrets menu12045 and modal12059. Pointer-events-none and absence of tabindex unchanged. New test reads actual CSS layer declarations: real red10000<=11002, then35/35 total green. Lint/diff-check pass. Compiled paint/capture validation awaits parent build; no final visibility claim yet.
+
+## Final compiled paint validation — 4/4 plus visual inspection
+
+Exactly one run on parent's `ui843-layer-final` server, no CSS injection/retry: `tooltip-native-vertical-layer-final/receipt.json` (French), `tooltip-native-layer-final/receipt.json` (three English formats). All four pass native zoom metrics, strict four tooltip edges, full text/unique tooltip, no pseudo, Escape/scroll/focus and keyboard menu checks; zero JS errors. Runtime computed tooltip11003 > header11002.
+
+All four screenshots were opened and visually inspected. In `tooltip-native-vertical-layer-final/820-tooltip.png`, the previously occluded first line “Actions pour” is now entirely visible in front of the fixed header, and the last line remains inside the bottom gutter. English390/820/1280 screenshots likewise show complete tooltip content without header occlusion. This supplements geometry and z-order checks with actual rendered evidence.
+
+Layer guard additionally requires every parsed layer (tooltip/header/menus/modal) to be finite and positive before comparison, avoiding a false pass if a selector disappears. Final targeted21/21 passed (`layer-guard-final.log`); lint/diff-check green. No product code changes during compiled recipes. All test browsers closed, server intact. Existing oversized-content/Safari/production limitations remain.
