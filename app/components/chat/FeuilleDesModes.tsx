@@ -136,6 +136,13 @@ export function FeuilleDesModes({
   const premierEcran = () => {
     const actif = libelleDuMode(modeActif);
     const entrees = entreesDuMode(modeActif);
+    const { valeur } = ligneDeMode(modeActif, modeActif, choixParMode[modeActif], catalogueDe(modeActif), sondes);
+
+    const resumeDuModele =
+      valeur.sorte === 'auto'
+        ? copy['chatControls.sheet.primaryModelHint']
+        : valeur.model + (valeur.serviceTier === 'fast' ? copy['chatControls.sheet.fastSuffix'] : '');
+
     const resolution = resolutionDuChoix(catalogueDe(modeActif), sondes, choixParMode[modeActif]);
 
     return (
@@ -197,7 +204,7 @@ export function FeuilleDesModes({
               {entree.verrouillee
                 ? copy['chatControls.sheet.lockedFromPower']
                 : entree.sorte === 'modele'
-                  ? copy['chatControls.sheet.primaryModelHint']
+                  ? resumeDuModele
                   : copy['chatControls.sheet.advancedHint']}
             </span>
             <span
