@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { StrictMode, useState } from 'react';
@@ -373,4 +375,42 @@ describe('GlobalTooltip measured vertical position', () => {
       }
     },
   );
+});
+
+describe('GlobalTooltip paint layer', () => {
+  it('paints above the fixed IDE header but below menus and modals without intercepting input', () => {
+    render(
+      <>
+        <button data-vc-tooltip="Help">Actions</button>
+        <GlobalTooltip />
+      </>,
+    );
+    fireEvent.focusIn(screen.getByRole('button', { name: 'Actions' }));
+
+    const tooltip = screen.getByRole('tooltip');
+    const layer = Number(tooltip.className.match(/z-\[(\d+)\]/)?.[1]);
+    const css = readFileSync('app/styles/index.scss', 'utf8');
+
+    expect(Number.isFinite(layer)).toBe(true);
+    expect(layer).toBeGreaterThan(0);
+
+    const layerFor = (selector: string) => {
+      const value = Math.max(
+        ...css
+          .split(selector)
+          .slice(1)
+          .map((block) => Number(block.split('}')[0].match(/z-index:\s*(\d+)/)?.[1] ?? 0)),
+      );
+      expect(Number.isFinite(value), `Missing finite layer for ${selector}`).toBe(true);
+      expect(value, `Missing positive layer for ${selector}`).toBeGreaterThan(0);
+
+      return value;
+    };
+    expect(layer).toBeGreaterThan(layerFor('.bolt-mobile-ecode-header {'));
+    expect(layer).toBeLessThan(layerFor('.bolt-message-context-menu {'));
+    expect(layer).toBeLessThan(layerFor('.bolt-secrets-menu {'));
+    expect(layer).toBeLessThan(layerFor('.bolt-secrets-editor-veil {'));
+    expect(tooltip.className).toContain('pointer-events-none');
+    expect(tooltip.hasAttribute('tabindex')).toBe(false);
+  });
 });

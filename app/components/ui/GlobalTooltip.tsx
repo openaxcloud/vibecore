@@ -291,7 +291,7 @@ export function GlobalTooltip() {
     <div
       ref={tipRef}
       role="tooltip"
-      className="pointer-events-none fixed z-[10000] max-w-[280px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-1 text-xs leading-snug text-bolt-elements-textPrimary shadow-lg"
+      className="pointer-events-none fixed z-[11003] max-w-[280px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-1 text-xs leading-snug text-bolt-elements-textPrimary shadow-lg"
       style={{ left: tip.left, top: tip.top, maxWidth: 'min(280px, calc(100vw - 16px))', overflowWrap: 'anywhere' }}
     >
       {tip.text}
