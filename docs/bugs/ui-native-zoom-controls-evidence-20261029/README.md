@@ -45,3 +45,7 @@ Sources sauvegardées dans le commit local `c789d06bd`, basé sur825 ; aucun pus
 Validation finale rapportée par le parent : build client/SSR et typage web réussis,98tests ciblés réussis, revue indépendante22tests réussis avec recouvrement (ne pas additionner), lint réussi. Aucun seuil ni assertion affaibli.
 
 Limite restante explicite : une infobulle plus haute que le viewport n’est pas résolue par ce lot. Les4cas verts n’en constituent pas une certification. Chromium local synthétique uniquement ; pas de backend réel, authentification production, Safari/appareil physique ou WebKit local. Le canari WebKit de CI #843 reste une preuve distincte19réussis/3ignorés, sans recette zoom locale.31/31 signifie toujours recettes partielles. README840 reste une fragilité conditionnelle du locator de ligne entière, pas une causeCI prouvée ;834 reste distinct et ouvert. Aucun hôte d’artefact refusé retenté.
+
+## Ascendance après correction des tests de #843
+
+Le complément local a été remis sur `ef764de21d4d2185b67b5005e53155cb028ebf7f` après publication du correctif de garde de soumission dans #843. Le commit de sources zoom est désormais `5bca3e301` (équivalent de `c789d06bd`). Le commit de tests déjà présent a été éliminé comme doublon ; la comparaison des arbres complets avant/après rebase ne montre aucune différence. Aucune modification du produit ni nouvelle validation visuelle n’est déduite de ce changement d’ascendance. Ce complément reste local et distinct de la tête #843.
