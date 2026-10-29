@@ -3044,6 +3044,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
     const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);
     const [mobileAgentMenuOpen, setMobileAgentMenuOpen] = useState(false);
+    const mobilePanelsFocusRef = useMobileModalFocus(useMobileIde && clientHydrated && mobileMoreMenuOpen);
+    const mobileTabsFocusRef = useMobileModalFocus(useMobileIde && clientHydrated && mobileTabSwitcherOpen);
+    const mobileToolsFocusRef = useMobileModalFocus(useMobileIde && clientHydrated && mobileToolsSheetOpen);
 
     const mobileOverlayStorageKey = useMemo(
       () => (projectIdeMode && projectId ? `vibecore:mobile-overlay:${projectId}` : undefined),
@@ -10239,9 +10242,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [activeMobileOpenTabId, mobileBottomTabs]);
 
     const showMobileChrome = useMobileIde && clientHydrated;
-    const mobilePanelsFocusRef = useMobileModalFocus(showMobileChrome && mobileMoreMenuOpen);
-    const mobileTabsFocusRef = useMobileModalFocus(showMobileChrome && mobileTabSwitcherOpen);
-    const mobileToolsFocusRef = useMobileModalFocus(showMobileChrome && mobileToolsSheetOpen);
 
     const keybindingSections = useMemo(
       () =>

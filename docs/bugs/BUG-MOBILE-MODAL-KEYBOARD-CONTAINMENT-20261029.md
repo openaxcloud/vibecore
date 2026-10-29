@@ -25,3 +25,9 @@ Validation globale parent :59 tests (43 UI+16 inventaire), typage officiel compl
 Incident distinct ouvert : Entrée peut arriver sur BODY pendant le montage d’une coque dont le nouveau chrome mobile n’existe pas encore. Aucune activation différée n’est rejouée par ce correctif. Les témoins de redimensionnement passent 4/4 avec 16 navigations au pointeur ; Search/navigation interrompue passent 4/4 à 390/768. Cela ne clôt pas les anciens incidents intermittents ni #834.
 
 Preuves : [archive et manifeste](ui-responsive-recovery-evidence-20261029/README.md). Pas de Safari physique, backend réel ou certification des 31 panneaux.
+
+## Garde CI et revue de la tranche protégée
+
+La première tête publiée `78f28ed924` a révélé une garde AST non actualisée : 11261 tests réussis, 4 ignorés et une empreinte en échec. Comparaison indépendante à main `fe790924` après placement des hooks auprès des états : la tranche protégée contient exactement trois ajouts de deux lignes, `ref` et `tabIndex=-1`, sur les trois sections. Aucun texte, classe, enfant, callback Escape, Terminal ou dock ne change. Le cas 12 de la garde documente ce delta ; son assertion stricte est conservée et l'empreinte actualisée selon sa procédure. Les 56 tests ciblés incluant cette garde passent ensuite, sans reprise.
+
+La même CI a rencontré séparément un port PostgreSQL 55432 occupé avant tout test de la tranche E2E 3. Ce défaut de préparation ne constitue pas une validation ni un échec produit. Le canari WebKit de cette première tête compte 19 succès et 3 tests ignorés ; il ne valide pas une version suivante ou Safari physique.
