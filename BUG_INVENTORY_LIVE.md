@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-587 entrées.
+588 entrées.
 
 ## Sans section
 
@@ -793,6 +793,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-PRIMARY-MODEL-SUMMARY-20261029](docs/bugs/BUG-PRIMARY-MODEL-SUMMARY-20261029.md) — 📤 Dispatché : ☑ 29/10 — désaccord observé après rechargement, investigation isolée. · 💻 Codé : ☐ — branche séparée, non fusionnée. · ✅ Testé live : ☐ — aucune recette production du correctif.
 - [BUG-GENERATION-FINAL-FILE-20261029](docs/bugs/BUG-GENERATION-FINAL-FILE-20261029.md) — 📤 Dispatché : ☑ 29/10 — génération interrompue et source invalide observées ; reproduction isolée sans appel fournisseur. · 💻 Codé : ☐ — correctif sur branche séparée, non fusionné. · ✅ Testé live : ☐ — aucune recette production du correctif ; aucun fichier client modifié.
+- [BUG-EDITOR-FOCUS-REGISTRATION-20261029](docs/bugs/BUG-EDITOR-FOCUS-REGISTRATION-20261029.md) — 📤 Dispatché : ☑ 29/10 — blocage CI de #854 ; reproduction déterministe de la fenêtre d'inscription. · 💻 Codé : ☐ — correctif sur branche séparée, non fusionné. · ✅ Testé live : ☐ — aucune recette production du correctif.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
