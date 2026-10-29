@@ -1,9 +1,11 @@
 # Couverture de cette passe UI IDE — 28 octobre 2026
 
-Le registre `app/lib/ide/panel-registry.ts` contient **31 panneaux adressables canoniques**, alias exclus. Cette passe a exercé de façon ciblée **17 panneaux sur 31**, plus cinq sous-pages Settings exercées partiellement sur sept (Projet, Compte, Préférences, Usage, Memory). Aucun de ces nombres ne signifie une certification complète de panneau ou de plateforme. Les validations antérieures et celles des autres sessions ne sont pas reprises comme nos propres résultats.
+Le registre `app/lib/ide/panel-registry.ts` contient **31 panneaux adressables canoniques**, alias exclus. Cette passe a exercé de façon ciblée **19 panneaux sur 31**, plus cinq sous-pages Settings exercées partiellement sur sept (Projet, Compte, Préférences, Usage, Memory). Aucun de ces nombres ne signifie une certification complète de panneau ou de plateforme. Les validations antérieures et celles des autres sessions ne sont pas reprises comme nos propres résultats.
 
 | Surface | Recette réellement effectuée | État / limite |
 | --- | --- | --- |
+| Snapshots | 390/820/1280, loading/vide, texte long, détails clavier et503→Retry | Neuf recettes synthétiques ; aucune création/restauration réelle. |
+| Collaborators | 390/820/1280, loading/vide/503→Retry, commentaire URL long | Six recettes vide/reprise ; débordement reproduit trois formats, correctif local validé sur build compilé390/820/1280 sans injectionCSS, non publié. Deux pertes initiales de brouillon restent inexpliquées, remplacement de coque non prouvé. Aucune invitation/permission réelle. |
 | Files | 390/820/1280 × FR/EN, noms longs, menu clavier et resize ; IME en composants | #833 protège IME. Menu local : 13 contextes et 143 cibles clavier/hit-test verts, plus zoom navigateur 200 % ; lot assemblé en brouillon dans #838. |
 | Editor | Texte modifié conservé sur six transitions ; curseur sélectionné mesuré sur trois transitions CodeMirror/Monaco | Focus et sélection perdus avant correction ; trois transferts corrigés et vérifiés localement, y compris chargement LazyWorkbench à froid et absence de flash Agent ; CRLF non pris en charge ; aucun backend réel validé. |
 | Terminal | Menus clavier 390/768/1280/1920, portrait/paysage844×390, visibilité intégrale des huit contrôles | #837 : échec Terminal1280 sur trois tentatives. Remplacement de coque et perte du menu/focus ensuite reproduits localement à390/768/1280 ; transfert éphémère corrigé et trois recettes finales compilées vertes, sans retard du chat. Pas de Shell réel, clavier virtuel ou recette Safari de ce lot. |
@@ -27,7 +29,7 @@ Agent : défaut Escape du menu outils reproduit sur quatre formats puis corrigé
 
 ## Autres panneaux sans recette ciblée dans cette passe
 
-`preview`, `studio`, `extensions`, `integrations`, `workflows`, `debugger`, `deployments`, `security`, `env`, `secrets`, `git`, `collaborators`, `domains`, `snapshots` (14 panneaux).
+`preview`, `studio`, `extensions`, `integrations`, `workflows`, `debugger`, `deployments`, `security`, `env`, `secrets`, `git`, `domains` (12 panneaux).
 
 Publish/Domains, messages Agent et historique sont suivis dans d'autres sessions (#831, #830 et #832) ; leur seule existence ne vaut pas preuve de livraison ou de couverture complète. Les fichiers modèles/budget/workbench store du hub #828/#829 sont préservés.
 
@@ -44,3 +46,5 @@ Les sous-pages IA et Sécurité ont été lues statiquement seulement dans ce co
 Le header des blocs de code Agent recouvrait la première ligne. Six recettes compilées passent après correction (clair390/820/1280/1536, sombre390/1280), avec erreur de copie puis reprise, texte exact, clavier et scroll horizontal. Le helper géométrique exact ajouté aux deux scénarios E2E existants passe localement à390/1440 ; la suite complète attend l’API de seed isolée en CI. Le contraste mesuré concerne seulement le retour de copie, pas tout le thème syntaxique.
 
 Les nouveaux reçus sont dans [le dossier de preuves](../bugs/ui-agent-data-panels-evidence-20261028/README.md). Les nouveaux correctifs ne sont pas fusionnés ni livrés. Aucun résultat de cette section ne certifie Safari, appareil physique, zoom200%, clavier virtuel, safe areas matérielles ou backend réel. Search après Retour et retourB→A#834 restent ouverts dans cette matrice jusqu’à leurs preuves spécifiques ; ils ne sont pas déclarés corrigés par ces recettes.
+
+Complément du29octobre : retour interprojetB→A#834 non reproduit dans six parcours locaux768 (troisCPU×4surRetour). Deux timeoutsCPU×4au démarrage se produisent avantRetour, aucune conclusion produit. Agent : quatreimages respectant contrat ne débordent pas dans six recettesFR/EN390/820/1280 ; Maj+F10 ne déclenche pas le menu utilisateur malgré focus Tab. Ce défaut est réservé au propriétaire messages/historique ; aucune correction dans ce lot.
