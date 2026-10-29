@@ -1,0 +1,44 @@
+{
+  "original-a.log": {
+    "FROM docker.io/library/postgres:17-alpine": "DONE 0.0s",
+    "WORKDIR /cache-order-proof": "DONE 0.8s",
+    "RUN mkdir -p system && printf 'identical-system-payload\\n' > system/installed && printf 'unused\\n' > system/remove-me": "DONE 0.3s",
+    "COPY artifact.txt ./artifact.txt": "DONE 0.2s",
+    "RUN rm -f system/remove-me": "DONE 0.4s"
+  },
+  "original-b.log": {
+    "FROM docker.io/library/postgres:17-alpine": "DONE 0.0s",
+    "WORKDIR /cache-order-proof": "CACHED",
+    "RUN mkdir -p system && printf 'identical-system-payload\\n' > system/installed && printf 'unused\\n' > system/remove-me": "DONE 0.7s",
+    "COPY artifact.txt ./artifact.txt": "DONE 0.3s",
+    "RUN rm -f system/remove-me": "DONE 0.4s"
+  },
+  "original-c.log": {
+    "FROM docker.io/library/postgres:17-alpine": "DONE 0.0s",
+    "WORKDIR /cache-order-proof": "CACHED",
+    "RUN mkdir -p system && printf 'identical-system-payload\\n' > system/installed && printf 'unused\\n' > system/remove-me": "CACHED",
+    "COPY artifact.txt ./artifact.txt": "DONE 0.5s",
+    "RUN rm -f system/remove-me": "DONE 0.4s"
+  },
+  "reordered-a.log": {
+    "FROM docker.io/library/postgres:17-alpine": "DONE 0.0s",
+    "WORKDIR /cache-order-proof": "CACHED",
+    "RUN mkdir -p system && printf 'identical-system-payload\\n' > system/installed && printf 'unused\\n' > system/remove-me": "DONE 0.2s",
+    "RUN rm -f system/remove-me": "DONE 0.3s",
+    "COPY artifact.txt ./artifact.txt": "DONE 0.2s"
+  },
+  "reordered-b.log": {
+    "FROM docker.io/library/postgres:17-alpine": "DONE 0.0s",
+    "RUN mkdir -p system && printf 'identical-system-payload\\n' > system/installed && printf 'unused\\n' > system/remove-me": "CACHED",
+    "RUN rm -f system/remove-me": "CACHED",
+    "WORKDIR /cache-order-proof": "CACHED",
+    "COPY artifact.txt ./artifact.txt": "CACHED"
+  },
+  "reordered-c.log": {
+    "FROM docker.io/library/postgres:17-alpine": "DONE 0.0s",
+    "RUN mkdir -p system && printf 'identical-system-payload\\n' > system/installed && printf 'unused\\n' > system/remove-me": "CACHED",
+    "WORKDIR /cache-order-proof": "CACHED",
+    "RUN rm -f system/remove-me": "CACHED",
+    "COPY artifact.txt ./artifact.txt": "DONE 0.6s"
+  }
+}

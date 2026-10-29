@@ -1,0 +1,253 @@
+{
+  "baseImage": "sha256:ab20e934b27ba3ff927c1b4c9ff8cf6c32f315f743efe68dd3441182a87fb085",
+  "allPairedConfigsEqual": true,
+  "allPairedFixtureContentsEqual": true,
+  "runs": [
+    {
+      "mode": "original",
+      "case": "a",
+      "tag": "cache-order-proof:original-a",
+      "elapsedSeconds": 2.883,
+      "config": {
+        "ArgsEscaped": true,
+        "Cmd": [
+          "sh",
+          "-c",
+          "exec $START_CMD"
+        ],
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "GOSU_VERSION=1.19",
+          "LANG=en_US.utf8",
+          "PG_MAJOR=17",
+          "PG_VERSION=17.11",
+          "PG_SHA256=dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979",
+          "DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+          "PGDATA=/var/lib/postgresql/data",
+          "START_CMD=printf first"
+        ],
+        "ExposedPorts": {
+          "5432/tcp": {}
+        },
+        "Labels": null,
+        "OnBuild": null,
+        "StopSignal": "SIGINT",
+        "User": "",
+        "Volumes": {
+          "/var/lib/postgresql/data": {}
+        },
+        "WorkingDir": "/cache-order-proof"
+      },
+      "contentChecksums": "23a6567030e31442991c8c64a4295040d57fabbc8610a8dbb12613e3b301a372  /cache-order-proof/system/installed\n8a4e7c30c9d88e86c25918409b96c905e9966494ad6d48b9c17037fafe944120  /cache-order-proof/artifact.txt\n",
+      "imageId": "sha256:a7932ce78a42d63ded610dfb407ae852f8f32986863d6b8ac672d77bbf3f5741"
+    },
+    {
+      "mode": "original",
+      "case": "b",
+      "tag": "cache-order-proof:original-b",
+      "elapsedSeconds": 3.051,
+      "config": {
+        "ArgsEscaped": true,
+        "Cmd": [
+          "sh",
+          "-c",
+          "exec $START_CMD"
+        ],
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "GOSU_VERSION=1.19",
+          "LANG=en_US.utf8",
+          "PG_MAJOR=17",
+          "PG_VERSION=17.11",
+          "PG_SHA256=dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979",
+          "DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+          "PGDATA=/var/lib/postgresql/data",
+          "START_CMD=printf second"
+        ],
+        "ExposedPorts": {
+          "5432/tcp": {}
+        },
+        "Labels": null,
+        "OnBuild": null,
+        "StopSignal": "SIGINT",
+        "User": "",
+        "Volumes": {
+          "/var/lib/postgresql/data": {}
+        },
+        "WorkingDir": "/cache-order-proof"
+      },
+      "contentChecksums": "23a6567030e31442991c8c64a4295040d57fabbc8610a8dbb12613e3b301a372  /cache-order-proof/system/installed\n8a4e7c30c9d88e86c25918409b96c905e9966494ad6d48b9c17037fafe944120  /cache-order-proof/artifact.txt\n",
+      "imageId": "sha256:d966e9b313f4c81b750a1cdab08fdda209a204174c915236f61eb9dbd0646684"
+    },
+    {
+      "mode": "original",
+      "case": "c",
+      "tag": "cache-order-proof:original-c",
+      "elapsedSeconds": 3.436,
+      "config": {
+        "ArgsEscaped": true,
+        "Cmd": [
+          "sh",
+          "-c",
+          "exec $START_CMD"
+        ],
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "GOSU_VERSION=1.19",
+          "LANG=en_US.utf8",
+          "PG_MAJOR=17",
+          "PG_VERSION=17.11",
+          "PG_SHA256=dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979",
+          "DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+          "PGDATA=/var/lib/postgresql/data",
+          "START_CMD=printf second"
+        ],
+        "ExposedPorts": {
+          "5432/tcp": {}
+        },
+        "Labels": null,
+        "OnBuild": null,
+        "StopSignal": "SIGINT",
+        "User": "",
+        "Volumes": {
+          "/var/lib/postgresql/data": {}
+        },
+        "WorkingDir": "/cache-order-proof"
+      },
+      "contentChecksums": "23a6567030e31442991c8c64a4295040d57fabbc8610a8dbb12613e3b301a372  /cache-order-proof/system/installed\nd89dda6e51d19bf632a53f8cba19c67d473d517d469854ddeb58f26751e9fe7e  /cache-order-proof/artifact.txt\n",
+      "imageId": "sha256:3f5c9f71c236cffa4e09fcbccf72f54cc497dce849c5670265415cb22ad95c42"
+    },
+    {
+      "mode": "reordered",
+      "case": "a",
+      "tag": "cache-order-proof:reordered-a",
+      "elapsedSeconds": 2.263,
+      "config": {
+        "ArgsEscaped": true,
+        "Cmd": [
+          "sh",
+          "-c",
+          "exec $START_CMD"
+        ],
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "GOSU_VERSION=1.19",
+          "LANG=en_US.utf8",
+          "PG_MAJOR=17",
+          "PG_VERSION=17.11",
+          "PG_SHA256=dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979",
+          "DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+          "PGDATA=/var/lib/postgresql/data",
+          "START_CMD=printf first"
+        ],
+        "ExposedPorts": {
+          "5432/tcp": {}
+        },
+        "Labels": null,
+        "OnBuild": null,
+        "StopSignal": "SIGINT",
+        "User": "",
+        "Volumes": {
+          "/var/lib/postgresql/data": {}
+        },
+        "WorkingDir": "/cache-order-proof"
+      },
+      "contentChecksums": "23a6567030e31442991c8c64a4295040d57fabbc8610a8dbb12613e3b301a372  /cache-order-proof/system/installed\n8a4e7c30c9d88e86c25918409b96c905e9966494ad6d48b9c17037fafe944120  /cache-order-proof/artifact.txt\n",
+      "imageId": "sha256:461536f4863cfbe357107c873ac894ebd79e9ae4aa9e00a37449c0cb8d1ff862"
+    },
+    {
+      "mode": "reordered",
+      "case": "b",
+      "tag": "cache-order-proof:reordered-b",
+      "elapsedSeconds": 1.244,
+      "config": {
+        "ArgsEscaped": true,
+        "Cmd": [
+          "sh",
+          "-c",
+          "exec $START_CMD"
+        ],
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "GOSU_VERSION=1.19",
+          "LANG=en_US.utf8",
+          "PG_MAJOR=17",
+          "PG_VERSION=17.11",
+          "PG_SHA256=dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979",
+          "DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+          "PGDATA=/var/lib/postgresql/data",
+          "START_CMD=printf second"
+        ],
+        "ExposedPorts": {
+          "5432/tcp": {}
+        },
+        "Labels": null,
+        "OnBuild": null,
+        "StopSignal": "SIGINT",
+        "User": "",
+        "Volumes": {
+          "/var/lib/postgresql/data": {}
+        },
+        "WorkingDir": "/cache-order-proof"
+      },
+      "contentChecksums": "23a6567030e31442991c8c64a4295040d57fabbc8610a8dbb12613e3b301a372  /cache-order-proof/system/installed\n8a4e7c30c9d88e86c25918409b96c905e9966494ad6d48b9c17037fafe944120  /cache-order-proof/artifact.txt\n",
+      "imageId": "sha256:ef0c1621d3fc30ec59176c55fc6ed10125d52738a65c0a0c2a1cbdb42806b161"
+    },
+    {
+      "mode": "reordered",
+      "case": "c",
+      "tag": "cache-order-proof:reordered-c",
+      "elapsedSeconds": 2.418,
+      "config": {
+        "ArgsEscaped": true,
+        "Cmd": [
+          "sh",
+          "-c",
+          "exec $START_CMD"
+        ],
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "GOSU_VERSION=1.19",
+          "LANG=en_US.utf8",
+          "PG_MAJOR=17",
+          "PG_VERSION=17.11",
+          "PG_SHA256=dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979",
+          "DOCKER_PG_LLVM_DEPS=llvm21-dev \t\tclang21",
+          "PGDATA=/var/lib/postgresql/data",
+          "START_CMD=printf second"
+        ],
+        "ExposedPorts": {
+          "5432/tcp": {}
+        },
+        "Labels": null,
+        "OnBuild": null,
+        "StopSignal": "SIGINT",
+        "User": "",
+        "Volumes": {
+          "/var/lib/postgresql/data": {}
+        },
+        "WorkingDir": "/cache-order-proof"
+      },
+      "contentChecksums": "23a6567030e31442991c8c64a4295040d57fabbc8610a8dbb12613e3b301a372  /cache-order-proof/system/installed\nd89dda6e51d19bf632a53f8cba19c67d473d517d469854ddeb58f26751e9fe7e  /cache-order-proof/artifact.txt\n",
+      "imageId": "sha256:e52608e9071f63aa8827e0b5544ff60a78f4442ab1f747d91f416402b55c8a73"
+    }
+  ]
+}

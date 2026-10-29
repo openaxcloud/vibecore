@@ -78,8 +78,6 @@ ENV HOST=0.0.0.0
 # call them by name. pnpm deploy lands them in /runtime/node_modules/.bin
 # but only pnpm/npm script invocations get that on PATH by default.
 ENV PATH=/runtime/node_modules/.bin:${PATH}
-ARG START_CMD
-ENV START_CMD=${START_CMD}
 # Keep the 1.35 client minor; v1.35.10 is built with Go 1.26.10, fixing
 # the stdlib version reported by CVE-2026-56857 without a scanner exclusion.
 ARG KUBECTL_VERSION=v1.35.10
@@ -115,8 +113,6 @@ RUN apt-get update \
   && chmod 0755 /usr/local/bin/kubectl \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /runtime /runtime
-
 # CVE-2026-59873 — `tar` CRITIQUE (bombe gzip) dans le node-tar EMBARQUÉ PAR npm.
 #
 # Mesuré le 2026-09-03 dans l'image réellement servie :
@@ -135,6 +131,11 @@ COPY --from=build /runtime /runtime
 # s'exécute pas.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
+# Keep system maintenance independent of application artifacts and launch command.
+COPY --from=build /runtime /runtime
+ARG START_CMD
+ENV START_CMD=${START_CMD}
 
 USER node
 EXPOSE 3000
