@@ -1,4 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useDialogLanguage } from './Dialog';
 import { infobulleAutoriseeAuFocus, pointeurSansSurvol } from './infobulle-tactile';
 
 /**
@@ -55,11 +57,56 @@ interface TooltipState {
   text: string;
   left: number;
   top: number;
+  anchor: HTMLElement;
+  oversized?: boolean;
+  path?: string;
 }
 
 export function GlobalTooltip() {
   const [tip, setTip] = useState<TooltipState | null>(null);
+  const [help, setHelp] = useState<TooltipState | null>(null);
+  const titleId = useId();
+  const language = useDialogLanguage();
+
+  const copy =
+    language === 'fr'
+      ? { read: 'Lire l’aide complète (F1)', title: 'Aide complète', close: 'Fermer', text: 'Texte de l’aide' }
+      : { read: 'Read full help (F1)', title: 'Full help', close: 'Close', text: 'Help text' };
+
+  const tipStateRef = useRef(tip);
+  const helpRef = useRef(help);
+  tipStateRef.current = tip;
+  helpRef.current = help;
+
+  const readingRef = useRef<HTMLDivElement>(null);
+  const skipFocusRef = useRef<HTMLElement | null>(null);
+
+  const closeHelp = (restore: boolean) => {
+    const current = helpRef.current;
+    setHelp(null);
+
+    if (restore && current?.anchor.isConnected && current.path === window.location.pathname) {
+      skipFocusRef.current = current.anchor;
+      current.anchor.focus({ preventScroll: true });
+    }
+  };
+
   const showTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const openHelp = (current: TooltipState) => {
+    if (!current.anchor.isConnected) {
+      return;
+    }
+
+    if (showTimer.current !== undefined) {
+      clearTimeout(showTimer.current);
+      showTimer.current = undefined;
+    }
+
+    setHelp({ ...current, path: window.location.pathname });
+    setTip(null);
+  };
+
   const tipRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
@@ -70,14 +117,44 @@ export function GlobalTooltip() {
     const height = tipRef.current.getBoundingClientRect().height;
     const top = Math.max(8, Math.min(tip.top, window.innerHeight - height - 8));
 
-    /*
-     * Only commit an actual correction: the second measurement is already stable.
-     * Help taller than the viewport stays complete, anchored at its upper gutter.
-     */
-    if (top !== tip.top) {
-      setTip({ ...tip, top });
+    const oversized =
+      tip.oversized || tipRef.current.scrollHeight > tipRef.current.clientHeight || height > window.innerHeight - 16;
+
+    // Once detected, measure the compact action instead of oscillating between surfaces.
+    if (top !== tip.top || Boolean(oversized) !== Boolean(tip.oversized)) {
+      setTip({ ...tip, top, oversized });
     }
   }, [tip]);
+
+  useEffect(() => {
+    if (!help) {
+      return undefined;
+    }
+
+    readingRef.current?.focus();
+
+    const dismissStaleHelp = () => {
+      setHelp(null);
+    };
+    const observer = new MutationObserver(() => {
+      if (!help.anchor.isConnected || help.path !== window.location.pathname) {
+        dismissStaleHelp();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    const checkRoute = () => {
+      if (help.path !== window.location.pathname) {
+        dismissStaleHelp();
+      }
+    };
+    window.addEventListener('popstate', checkRoute);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('popstate', checkRoute);
+    };
+  }, [help]);
 
   // Element whose native `title` we stripped (to avoid a duplicate browser tooltip).
   const suppressedEl = useRef<HTMLElement | null>(null);
@@ -134,7 +211,7 @@ export function GlobalTooltip() {
       const left = Math.min(Math.max(8, rect.left + rect.width / 2 - estWidth / 2), window.innerWidth - estWidth - 8);
       const top = Math.min(rect.bottom + 8, window.innerHeight - 36);
 
-      return { text, left, top };
+      return { text, left, top, anchor: el };
     };
 
     const resolveTarget = (node: EventTarget | null): HTMLElement | null => {
@@ -149,7 +226,63 @@ export function GlobalTooltip() {
 
     let dernierToucher: number | null = null;
 
+    const isHelpTarget = (target: EventTarget | null) =>
+      target instanceof Node &&
+      ((tipStateRef.current?.oversized && tipRef.current?.contains(target)) ||
+        (target instanceof Element && Boolean(target.closest('[data-vc-full-help]'))));
+    const hideOutsideHelp = (event: Event) => {
+      if (!isHelpTarget(event.target)) {
+        hide();
+      }
+    };
+    const handleFocusOut = (event: FocusEvent) => {
+      if (helpRef.current && isHelpTarget(event.target) && !isHelpTarget(event.relatedTarget)) {
+        closeHelp(false);
+      }
+
+      if (!isHelpTarget(event.relatedTarget)) {
+        hide();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const current = tipStateRef.current;
+
+      if (
+        event.key === 'F1' &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        current?.oversized &&
+        document.activeElement === current.anchor
+      ) {
+        event.preventDefault();
+        openHelp(current);
+
+        return;
+      }
+
+      if (helpRef.current) {
+        if (event.key === 'Escape') {
+          closeHelp(true);
+        }
+
+        return;
+      }
+
+      if (event.key === 'Escape' || !isHelpTarget(event.target)) {
+        hide();
+      }
+    };
     const handlePointerDown = (event: PointerEvent) => {
+      if (helpRef.current && !isHelpTarget(event.target)) {
+        closeHelp(false);
+      }
+
+      if (isHelpTarget(event.target)) {
+        return;
+      }
+
       if (pointeurSansSurvol(event.pointerType)) {
         dernierToucher = Date.now();
       }
@@ -158,6 +291,10 @@ export function GlobalTooltip() {
     };
 
     const handlePointerOver = (event: PointerEvent) => {
+      if (helpRef.current) {
+        return;
+      }
+
       // Le survol n'existe pas au doigt : ni au toucher, ni au stylet.
       if (pointeurSansSurvol(event.pointerType)) {
         return;
@@ -212,7 +349,7 @@ export function GlobalTooltip() {
       // Ignore moves that stay within the same tooltip-bearing element.
       const to = resolveTarget(event.relatedTarget);
 
-      if (to === from) {
+      if (tipStateRef.current?.oversized || to === from || isHelpTarget(event.relatedTarget)) {
         return;
       }
 
@@ -220,6 +357,15 @@ export function GlobalTooltip() {
     };
 
     const handleFocusIn = (event: FocusEvent) => {
+      if (event.target === skipFocusRef.current) {
+        skipFocusRef.current = null;
+        return;
+      }
+
+      if (helpRef.current || isHelpTarget(event.target)) {
+        return;
+      }
+
       const sansSurvol = typeof window.matchMedia === 'function' ? window.matchMedia('(hover: none)').matches : false;
 
       if (
@@ -251,11 +397,11 @@ export function GlobalTooltip() {
     document.addEventListener('pointerdown', handlePointerDown, true);
 
     // A mouse click can focus its trigger after pointerdown and reopen help.
-    document.addEventListener('click', hide, true);
+    document.addEventListener('click', hideOutsideHelp, true);
     document.addEventListener('pointerover', handlePointerOver, true);
     document.addEventListener('pointerout', handlePointerOut, true);
     document.addEventListener('focusin', handleFocusIn, true);
-    document.addEventListener('focusout', hide, true);
+    document.addEventListener('focusout', handleFocusOut, true);
 
     // Any scroll/resize invalidates the anchored position — just dismiss.
     window.addEventListener('scroll', hide, true);
@@ -265,26 +411,80 @@ export function GlobalTooltip() {
      * IDE shortcuts can stop propagation during window capture. Dismiss help
      * on that same target without consuming the key or changing its action.
      */
-    window.addEventListener('keydown', hide, true);
+    window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
       releaseRenderer();
       clearShowTimer();
       restoreNativeTitle();
       document.removeEventListener('pointerdown', handlePointerDown, true);
-      document.removeEventListener('click', hide, true);
+      document.removeEventListener('click', hideOutsideHelp, true);
       document.removeEventListener('pointerover', handlePointerOver, true);
       document.removeEventListener('pointerout', handlePointerOut, true);
       document.removeEventListener('focusin', handleFocusIn, true);
-      document.removeEventListener('focusout', hide, true);
+      document.removeEventListener('focusout', handleFocusOut, true);
       window.removeEventListener('scroll', hide, true);
       window.removeEventListener('resize', hide, true);
-      window.removeEventListener('keydown', hide, true);
+      window.removeEventListener('keydown', handleKeyDown, true);
     };
   }, []);
 
+  if (help) {
+    return createPortal(
+      <div
+        role="dialog"
+        data-state="open"
+        aria-modal={false}
+        data-vc-full-help
+        aria-labelledby={titleId}
+        className="fixed z-[11003] flex flex-col rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-2 text-bolt-elements-textPrimary shadow-lg"
+        style={{
+          margin: 0,
+          left: 8,
+          top: 8,
+          width: 'min(520px, calc(100vw - 16px))',
+          maxHeight: 'calc(100dvh - 16px)',
+        }}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-2">
+          <h2 id={titleId} className="font-semibold">
+            {copy.title}
+          </h2>
+          <button type="button" className="min-h-10 rounded px-2" onClick={() => closeHelp(true)}>
+            {copy.close}
+          </button>
+        </div>
+        <div
+          ref={readingRef}
+          role="region"
+          aria-label={copy.text}
+          tabIndex={0}
+          className="min-h-0 overflow-auto whitespace-pre-wrap"
+          style={{ overflowWrap: 'anywhere' }}
+        >
+          {help.text}
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
   if (!tip) {
     return null;
+  }
+
+  if (tip.oversized) {
+    return (
+      <div
+        ref={tipRef}
+        className="fixed z-[11003] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-2 text-bolt-elements-textPrimary shadow-lg"
+        style={{ left: tip.left, top: tip.top, maxWidth: 'calc(100vw - 16px)', overflowWrap: 'anywhere' }}
+      >
+        <button type="button" className="min-h-10 text-left" aria-haspopup="dialog" onClick={() => openHelp(tip)}>
+          {copy.read}
+        </button>
+      </div>
+    );
   }
 
   return (
