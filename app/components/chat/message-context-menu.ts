@@ -158,7 +158,7 @@ export function placerLaBarre(
   const enDessous = point.y + marge;
   const plancher = bornes.haut + marge;
   const plafond = bornes.bas - taille.hauteur - marge;
-  const y = auDessus >= plancher ? auDessus : Math.max(plancher, Math.min(enDessous, plafond));
+  const y = Math.max(plancher, Math.min(auDessus >= plancher ? auDessus : enDessous, plafond));
 
   return { x: Math.round(x), y: Math.round(y) };
 }

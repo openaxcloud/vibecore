@@ -1,0 +1,26 @@
+[
+  {
+    "width": 390,
+    "longPress": true,
+    "closedOnScroll": true,
+    "explicitActionTap": true,
+    "box": {
+      "x": 176,
+      "y": 46,
+      "width": 54,
+      "height": 54
+    }
+  },
+  {
+    "width": 768,
+    "longPress": true,
+    "closedOnScroll": true,
+    "explicitActionTap": true,
+    "box": {
+      "x": 365,
+      "y": 46,
+      "width": 54,
+      "height": 54
+    }
+  }
+]

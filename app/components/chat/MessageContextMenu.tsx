@@ -59,7 +59,7 @@ export interface MenuContextuelDeMessage {
  * pas un. C'est le piège qui a déjà coûté une révélation d'actions au toucher
  * dans ce produit.
  */
-export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuelDeMessage {
+export function useMenuContextuelDeMessage(identifiant?: string, enabled = true): MenuContextuelDeMessage {
   /*
    * BUG-MESSAGE-MENU-IOS-001 — l'état « ouvert » vit dans un magasin partagé,
    * clé par message : un seul menu à la fois dans tout le fil. Sans
@@ -68,7 +68,7 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
   const identifiantInterne = useId();
   const id = identifiant ?? identifiantInterne;
   const ouvertPour = useStore(menuDeMessageOuvert);
-  const ouvert = ouvertPour === id;
+  const ouvert = enabled && ouvertPour === id;
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const appui = useRef<AppuiEnCours | null>(null);
   const minuterie = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -83,10 +83,23 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
     appui.current = null;
   }, []);
 
-  useEffect(() => annuler, [annuler]);
+  useEffect(
+    () => () => {
+      annuler();
+
+      if (menuDeMessageOuvert.get() === id) {
+        menuDeMessageOuvert.set(null);
+      }
+    },
+    [annuler, id, enabled],
+  );
 
   const ouvrirEn = useCallback(
     (x: number, y: number) => {
+      if (!enabled) {
+        return;
+      }
+
       /*
        * La taille réelle du menu n'est connue qu'après le rendu ; on place sur une
        * estimation, puis la feuille de style borne le reste (`max-height`,
@@ -109,7 +122,7 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
       );
       menuDeMessageOuvert.set(id);
     },
-    [id],
+    [id, enabled],
   );
 
   /*
@@ -130,10 +143,11 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
 
   const onPointerDown = useCallback(
     (evenement: ReactPointerEvent<HTMLElement>) => {
-      if (!fautIlArmerLAppuiLong(evenement)) {
+      if (!enabled || !fautIlArmerLAppuiLong(evenement)) {
         return;
       }
 
+      annuler();
       appui.current = { x: evenement.clientX, y: evenement.clientY, pointerId: evenement.pointerId };
 
       const { clientX, clientY } = evenement;
@@ -147,7 +161,7 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
         annuler();
       }, DELAI_APPUI_LONG_MS);
     },
-    [annuler, ouvrirDepuisLaLigne],
+    [annuler, ouvrirDepuisLaLigne, enabled],
   );
 
   const onPointerMove = useCallback(
@@ -161,10 +175,14 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
 
   const onContextMenu = useCallback(
     (evenement: { preventDefault: () => void; clientX: number; clientY: number }) => {
+      if (!enabled) {
+        return;
+      }
+
       evenement.preventDefault();
       ouvrirEn(evenement.clientX, evenement.clientY);
     },
-    [ouvrirEn],
+    [ouvrirEn, enabled],
   );
 
   /*
@@ -189,7 +207,7 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
     const element = ancre.current;
     const ligne = element?.closest('.bolt-chat-message-row');
 
-    if (!ligne) {
+    if (!enabled || !ligne) {
       return undefined;
     }
 
@@ -228,6 +246,17 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
       ouvrirEn(souris.clientX, souris.clientY);
     };
 
+    /*
+     * A long press can put an action under the finger. Suppress only the
+     * compatibility click from that release, not a subsequent tap on an action.
+     */
+    const surFinTouch = (event: Event) => {
+      if (menuDeMessageOuvert.get() === id && !(event.target as Element).closest?.('[role=menu]')) {
+        event.preventDefault();
+      }
+    };
+
+    ligne.addEventListener('touchend', surFinTouch, { passive: false });
     ligne.addEventListener('pointerdown', surPointerDown);
     ligne.addEventListener('pointermove', surPointerMove);
     ligne.addEventListener('pointerup', annuler);
@@ -235,13 +264,14 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
     ligne.addEventListener('contextmenu', surContextMenu);
 
     return () => {
+      ligne.removeEventListener('touchend', surFinTouch);
       ligne.removeEventListener('pointerdown', surPointerDown);
       ligne.removeEventListener('pointermove', surPointerMove);
       ligne.removeEventListener('pointerup', annuler);
       ligne.removeEventListener('pointercancel', annuler);
       ligne.removeEventListener('contextmenu', surContextMenu);
     };
-  }, [annuler, ouvrirDepuisLaLigne, ouvrirEn]);
+  }, [annuler, ouvrirDepuisLaLigne, ouvrirEn, enabled, id]);
 
   /*
    * OUVERTURE AU CLAVIER.
@@ -255,11 +285,11 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
    */
   const onKeyDown = useCallback(
     (evenement: ReactKeyboardEvent<HTMLElement>) => {
-      if (evenement.defaultPrevented) {
+      if (!enabled || evenement.defaultPrevented || (evenement.target as Element).closest?.('[role=menu]')) {
         return;
       }
 
-      const menuSysteme = evenement.key === 'F10' && evenement.shiftKey;
+      const menuSysteme = (evenement.key === 'F10' && evenement.shiftKey) || evenement.key === 'ContextMenu';
       const activation = evenement.key === 'Enter' || evenement.key === ' ';
 
       /*
@@ -280,8 +310,27 @@ export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuel
       evenement.preventDefault();
       ouvrirEn(boite.left + boite.width / 2, boite.top + boite.height / 2);
     },
-    [ouvrirEn],
+    [ouvrirEn, enabled],
   );
+
+  // The tab stop belongs to the parent row; its events do not descend into the bubble.
+  useEffect(() => {
+    const row = ancre.current?.closest('.bolt-chat-message-row');
+
+    if (!enabled || !row) {
+      return undefined;
+    }
+
+    const keydown = (event: Event) => {
+      // Descendant events belong to React, which must observe their preventDefault first.
+      if (event.target === row) {
+        onKeyDown(event as unknown as ReactKeyboardEvent<HTMLElement>);
+      }
+    };
+    row.addEventListener('keydown', keydown);
+
+    return () => row.removeEventListener('keydown', keydown);
+  }, [onKeyDown, enabled]);
 
   return {
     ancre,
@@ -450,7 +499,15 @@ export function MenuContextuel({
       window.removeEventListener('keydown', surEchappement, true);
       window.removeEventListener('scroll', surDefilement, true);
       document.removeEventListener('pointerdown', surAppuiDehors, true);
-      focusAvant.current?.focus?.();
+
+      const previous = focusAvant.current;
+
+      if (
+        previous?.isConnected &&
+        (document.activeElement === document.body || panneau.current?.contains(document.activeElement))
+      ) {
+        previous.focus({ preventScroll: true });
+      }
     };
   }, [fermer, ouvert]);
 
@@ -478,6 +535,43 @@ export function MenuContextuel({
         role="menu"
         aria-label={etiquette}
         tabIndex={-1}
+        onKeyDown={(event) => {
+          if (event.key === 'Tab') {
+            fermer();
+            return;
+          }
+
+          if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+            return;
+          }
+
+          const actions = Array.from(
+            event.currentTarget.querySelectorAll<HTMLElement>(
+              'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+            ),
+          );
+
+          if (!actions.length) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          const current = actions.indexOf(document.activeElement as HTMLElement);
+
+          const next =
+            event.key === 'Home'
+              ? 0
+              : event.key === 'End'
+                ? actions.length - 1
+                : event.key === 'ArrowDown'
+                  ? (current + 1) % actions.length
+                  : current <= 0
+                    ? actions.length - 1
+                    : current - 1;
+          actions[next].focus({ preventScroll: true });
+        }}
         style={{ left: `${(positionReelle ?? position).x}px`, top: `${(positionReelle ?? position).y}px` }}
       >
         {children}
