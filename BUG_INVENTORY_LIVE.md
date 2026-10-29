@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-582 entrées.
+583 entrées.
 
 ## Sans section
 
@@ -785,6 +785,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-GIT-REMOTE-FEEDBACK-20261028](docs/bugs/BUG-GIT-REMOTE-FEEDBACK-20261028.md) — Sur la base locale `3170d2fe8`, une sélection de dépôt suivie d'un échec HTTP — 📤 Dispatché : ☑ 28/10/2026 — lot Git local distinct des PR #831 et #834. · 💻 Codé : ☐ — correctif local, non publié, non fusionné et non livré. · ✅ Testé live : ☐ — aucune connexion fournisseur ni recette authentifiée en production.
 - [BUG-GIT-ORIGIN-IMPORT-CLARITY-20261029](docs/bugs/BUG-GIT-ORIGIN-IMPORT-CLARITY-20261029.md) — Sur le lot assemblé `5ac435a35`, le sélecteur affiche « Connecter » et le toast — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-GIT-REMOTE-DIALOG-ESCAPE-CAPTURE-20261029](docs/bugs/BUG-GIT-REMOTE-DIALOG-ESCAPE-CAPTURE-20261029.md) — Le dialogue Git distant fermait avec Escape depuis son champ URL, mais pas — 📤 Dispatché : ☑ 29/10/2026 — reproduction pendant la revue de l'assemblage Publish/Projets/Git. · 💻 Codé : ☐ main — correction locale : le dialogue ouvert expose `data-state="open"`, · ✅ Testé live : ☐ production — composant réel et hook de raccourcis réel sous jsdom uniquement.
+- [BUG-IDE-LOGS-STREAM-HANDOFF-20261029](docs/bugs/BUG-IDE-LOGS-STREAM-HANDOFF-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

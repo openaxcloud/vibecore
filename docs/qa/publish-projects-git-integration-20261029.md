@@ -65,3 +65,34 @@ et du diagnostic. Recettes sur API/PostgreSQL/Redis locaux et données synthéti
 pas d'OAuth/import/push/pull fournisseur réel, DNS, publication cliente ou recette
 production. Cette PR brouillon prépare une livraison coordonnée après CI exacte ;
 aucune fusion concurrente avec #847, aucune clôture des PR sources avant livraison.
+
+## Regroupement Logs après le verdict initial
+
+La tête initiale distante c5f51e047 termine entièrement verte :30contrôles réussis,
+2ignorés attendus,9workflows réussis au premier passage. E2E526réussis/26ignorés,
+aucunéchec/reprise ; le diagnostic B→A passe13,8s. Ce reçu reste distinct du suivant.
+
+Après ce verdict seulement, les deux commits de #848 (e3a8feb9a puis039416ec9)
+sont intégrés. Revue indépendante : union exacte98fichiers,583fiches, seul conflit
+sur l'index généré. Tous les blobs produit/tests/preuves sont identiques aux deux
+sources, hors index régénéré. Le panneau Logs conserve uniquement ses contrôles,
+par projet/fenêtre/panneau, jamais les contenus ni des credentials.
+
+Validation combinée :249tests/40fichiers réussis, typage web, lint des4fichiers
+entrants et diff-check verts. Build CI-default client/SSR réussi, hashes3091fichiers
+app/packages stables. Cinq scénarios durables passent directement40,3s, sans reprise
+ni ignoré : Logs1440/1024 sur API/PostgreSQL locaux (événement réel d'import ZIP,
+remplacement initial, Clear/Reload et erreur/reprise), B→A instrumenté et copie EN/FR.
+Les réponses réussies Logs ne sont pas simulées ; une panne contrôlée exerce Retry.
+Cela ne prouve pas des logs de fournisseur distant ou une recette production.
+
+La nouvelle tête assemblée doit recevoir sa propre CI complète : les deux sources
+vertes ne la remplacent pas. Les restrictions et limites des paragraphes précédents,
+notamment le rouge historique834 et les deux rouges Publish en mode remote, restent.
+
+Sur ce même build combiné, les deux parcours Git320/1440 passent directement14,4s,
+sans reprise/ignoré, avec réponses Git contrôlées. Pour Logs, chaque largeur vérifie
+5lignes System→Clear0→Reload5 et zéroDELETE ; runtimeLogCount=0, donc aucun log de
+runtime fournisseur n'est revendiqué. Tous les services locaux sont arrêtés et les
+quatre ports de recette fermés. Reçus locaux distincts :
+/workspace/combined-848-849-qa-20261029/README.md.
