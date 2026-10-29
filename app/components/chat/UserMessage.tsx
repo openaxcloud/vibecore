@@ -7,6 +7,7 @@ import type {
   StepStartUIPart,
 } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
+import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from './Markdown';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
@@ -33,7 +34,7 @@ interface UserMessageProps {
  * that Chat.client handles by truncating to this message and prefilling the
  * composer with `text`, so the user edits it and resends through the normal path.
  */
-function EditMessageButton({ messageId, text }: { messageId: string; text: string }) {
+function EditMessageButton({ messageId, text, onEdit }: { messageId: string; text: string; onEdit: () => void }) {
   const { i18n } = useTranslation();
   const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
 
@@ -55,6 +56,7 @@ function EditMessageButton({ messageId, text }: { messageId: string; text: strin
         }
 
         window.dispatchEvent(new CustomEvent('vibecore:edit-message', { detail: { messageId, text } }));
+        onEdit();
       }}
     >
       <span className="i-ph:pencil-simple text-sm" aria-hidden />
@@ -80,16 +82,20 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
    * rendu, et un hook appelé dans une seule d'entre elles casserait l'ordre des
    * hooks au premier message contenant une image.
    */
-  const menuContextuel = useMenuContextuelDeMessage(messageId ? `user:${messageId}` : undefined);
+  const textContent = stripMetadata(
+    Array.isArray(content) ? content.find((item) => item.type === 'text')?.text || '' : content,
+  );
+
+  const editable = Boolean(canEdit && messageId && textContent);
+  const menuContextuel = useMenuContextuelDeMessage(messageId ? `user:${messageId}` : undefined, editable);
 
   if (Array.isArray(content)) {
-    const textItem = content.find((item) => item.type === 'text');
-    const textContent = stripMetadata(textItem?.text || '');
-
     return (
       <div
         className="bolt-user-message overflow-hidden flex flex-col gap-3 items-center "
-        data-menu-contextuel="true"
+        ref={menuContextuel.ancre as RefObject<HTMLDivElement>}
+        onKeyDown={menuContextuel.onKeyDown}
+        data-menu-contextuel={editable ? 'true' : undefined}
         {...menuContextuel.gestes}
       >
         <div className="flex flex-row items-start justify-center overflow-hidden shrink-0 self-start">
@@ -127,27 +133,27 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
               style={{ maxHeight: '512px', objectFit: 'contain' }}
             />
           ))}
-          {canEdit && messageId && textContent ? (
-            <MenuContextuel
-              ouvert={menuContextuel.ouvert}
-              position={menuContextuel.position}
-              fermer={menuContextuel.fermer}
-              etiquette={copy['chatResiduals.user.editAria']}
-            >
-              <EditMessageButton messageId={messageId} text={textContent} />
-            </MenuContextuel>
-          ) : null}
         </div>
+        {canEdit && messageId && textContent ? (
+          <MenuContextuel
+            ouvert={menuContextuel.ouvert}
+            position={menuContextuel.position}
+            fermer={menuContextuel.fermer}
+            etiquette={copy['chatResiduals.user.editAria']}
+          >
+            <EditMessageButton messageId={messageId} text={textContent} onEdit={menuContextuel.fermer} />
+          </MenuContextuel>
+        ) : null}
       </div>
     );
   }
 
-  const textContent = stripMetadata(content);
-
   return (
     <div
       className="group bolt-user-message flex flex-col items-end"
-      data-menu-contextuel="true"
+      ref={menuContextuel.ancre as RefObject<HTMLDivElement>}
+      onKeyDown={menuContextuel.onKeyDown}
+      data-menu-contextuel={editable ? 'true' : undefined}
       {...menuContextuel.gestes}
     >
       <div className="bolt-user-message-bubble flex w-auto flex-col rounded-lg bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] px-3 py-2 backdrop-blur-sm [margin-inline-start:auto]">
@@ -196,7 +202,7 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
           fermer={menuContextuel.fermer}
           etiquette={copy['chatResiduals.user.editAria']}
         >
-          <EditMessageButton messageId={messageId} text={textContent} />
+          <EditMessageButton messageId={messageId} text={textContent} onEdit={menuContextuel.fermer} />
         </MenuContextuel>
       ) : null}
     </div>

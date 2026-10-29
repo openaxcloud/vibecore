@@ -159,6 +159,8 @@ export function useChatHistory() {
   const essaiDemande = useStore(nouvelEssaiMemoireProjet);
 
   useEffect(() => {
+    let active = true;
+
     if (!db && !projectId) {
       setReady(true);
 
@@ -168,12 +170,18 @@ export function useChatHistory() {
         toast.error(message);
       }
 
-      return;
+      return () => {
+        active = false;
+      };
     }
 
     if (projectId) {
       getProjectIdeMemory(projectId)
         .then(async (memory) => {
+          if (!active) {
+            return;
+          }
+
           const projectChatId = memory.chat?.id ?? `project:${projectId}`;
 
           const storedMessages = memory.chat?.messages?.length
@@ -188,6 +196,10 @@ export function useChatHistory() {
             : db
               ? await getMessages(db, projectChatId).catch(() => undefined as unknown as ChatHistoryItem | undefined)
               : undefined;
+
+          if (!active) {
+            return;
+          }
 
           const messages = storedMessages?.messages ?? [];
 
@@ -208,9 +220,17 @@ export function useChatHistory() {
           void completerFilSiVide(
             messages,
             projectId,
-            setInitialMessages,
+            (messages) => {
+              if (active) {
+                setInitialMessages(messages);
+              }
+            },
             undefined,
-            (conversationId) => adopterLaConversationServeur(projectId, conversationId),
+            (conversationId) => {
+              if (active) {
+                adopterLaConversationServeur(projectId, conversationId);
+              }
+            },
             () => chatMetadata.get()?.aiConversationId,
           );
           setUrlId(storedMessages?.urlId);
@@ -238,9 +258,15 @@ export function useChatHistory() {
             );
           }
 
-          setReady(true);
+          if (active) {
+            setReady(true);
+          }
         })
         .catch((error) => {
+          if (!active) {
+            return;
+          }
+
           const message = safeError('chatHistory.error.loadProjectMemory', error);
           logSafeChatHistoryError(message);
           toast.error(message, {
@@ -258,6 +284,10 @@ export function useChatHistory() {
         getSnapshot(db!, mixedId), // Fetch snapshot from DB
       ])
         .then(async ([storedMessages, snapshot]) => {
+          if (!active) {
+            return;
+          }
+
           if (storedMessages && storedMessages.messages.length > 0) {
             /*
              * const snapshotStr = localStorage.getItem(`snapshot:${mixedId}`); // Remove localStorage usage
@@ -316,6 +346,10 @@ export function useChatHistory() {
                 .filter((x): x is { content: string; path: string } => !!x); // Type assertion
 
               const projectCommands = await detectProjectCommands(files);
+
+              if (!active) {
+                return;
+              }
 
               // Call the modified function to get only the command actions string
               const commandActionsString = createCommandActionsString(projectCommands);
@@ -388,6 +422,10 @@ ${value.content}
           setReady(true);
         })
         .catch((error) => {
+          if (!active) {
+            return;
+          }
+
           const message = safeError('chatHistory.error.loadChat', error);
           logSafeChatHistoryError(message);
           toast.error(message);
@@ -400,6 +438,11 @@ ${value.content}
       warnLocalChatPersistence(copy['chatHistory.warning.localOnly']);
       setReady(true);
     }
+
+    // Old reads may still settle after navigation, retry or unmount.
+    return () => {
+      active = false;
+    };
   }, [essaiDemande, mixedId, projectId, db, navigate, searchParams, copy, safeError]);
 
   const takeSnapshot = useCallback(
