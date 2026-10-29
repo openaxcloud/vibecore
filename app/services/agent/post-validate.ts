@@ -31,6 +31,21 @@ export class GeneratedFileJsonError extends Error {
   }
 }
 
+/** A confirmed grammar error, distinct from an unavailable Babel syntax plugin. */
+export class GeneratedFileSyntaxError extends Error {
+  readonly filePath: string;
+  readonly line?: number;
+  readonly column?: number;
+
+  constructor(filePath: string, diagnostic: { message: string; loc?: { line: number; column: number } }) {
+    super(`Invalid source syntax in ${filePath}: ${diagnostic.message}`);
+    this.name = 'GeneratedFileSyntaxError';
+    this.filePath = filePath;
+    this.line = diagnostic.loc?.line;
+    this.column = diagnostic.loc?.column;
+  }
+}
+
 const SOURCE_FILE_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
 
 const JSON_FILE_EXTENSIONS = new Set(['.json']);
@@ -298,19 +313,31 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
       plugins: pluginsForExtension(normalizedPath),
     });
   } catch (error) {
-    /*
-     * Replit / Cursor parity: never block an agent apply on a parser hiccup.
-     * `@babel/parser` lags TC39 + TS feature flags (stage-3 proposals, new
-     * decorators, `using`, …), so a perfectly valid file can fail here. We
-     * still want to flag missing imports — but only when we can actually
-     * parse the file. If we can't, the TypeScript LSP and the preview build
-     * surface real syntax errors as diagnostics, which the agent reads on
-     * the next iteration. Logging keeps the signal for debugging.
-     */
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`[agent post-validate] Skipping import check for ${normalizedPath}: ${message}`);
+    const diagnostic = error as {
+      code?: string;
+      reasonCode?: string;
+      missingPlugin?: unknown;
+      message: string;
+      loc?: { line: number; column: number };
+    };
 
-    return;
+    // Missing parser support is not proof that authored source has invalid grammar.
+    if (
+      diagnostic?.code === 'BABEL_PARSER_SYNTAX_ERROR' &&
+      ['MissingPlugin', 'MissingOneOfPlugins'].includes(diagnostic.reasonCode ?? '') &&
+      Array.isArray(diagnostic.missingPlugin) &&
+      diagnostic.missingPlugin.length > 0
+    ) {
+      console.warn(`[agent post-validate] Unsupported parser plugin for ${normalizedPath}: ${diagnostic.message}`);
+      return;
+    }
+
+    if (diagnostic?.code === 'BABEL_PARSER_SYNTAX_ERROR') {
+      throw new GeneratedFileSyntaxError(normalizedPath, diagnostic);
+    }
+
+    // An unexpected validator failure must not authorize an unvalidated write either.
+    throw error;
   }
 
   for (const node of ast.program.body) {
