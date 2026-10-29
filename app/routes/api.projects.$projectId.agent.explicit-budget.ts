@@ -3,7 +3,7 @@ import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.serv
 import { json } from '~/lib/json-response';
 
 const headers = { 'Cache-Control': 'no-store' };
-const unavailable = (status: number) => json({ error: 'BUDGET_UNAVAILABLE' }, { status, headers });
+const unavailable = (status: number) => json({ code: 'BUDGET_UNAVAILABLE' }, { status, headers });
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (request.method !== 'GET') {

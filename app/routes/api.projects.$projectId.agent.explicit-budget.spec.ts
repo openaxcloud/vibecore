@@ -42,11 +42,11 @@ it.each([
 
   const response = await invoke();
   expect(response.status).toBe(503);
-  expect(await response.json()).toEqual({ error: 'BUDGET_UNAVAILABLE' });
+  expect(await response.json()).toEqual({ code: 'BUDGET_UNAVAILABLE' });
 });
 it('does not leak errors or accept mutations', async () => {
   vi.mocked(apiRequest).mockRejectedValue(new Error('private'));
-  expect(await (await invoke()).json()).toEqual({ error: 'BUDGET_UNAVAILABLE' });
+  expect(await (await invoke()).json()).toEqual({ code: 'BUDGET_UNAVAILABLE' });
   vi.mocked(apiRequest).mockClear();
   expect(action().status).toBe(405);
   expect(apiRequest).not.toHaveBeenCalled();

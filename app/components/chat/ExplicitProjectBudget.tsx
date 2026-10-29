@@ -25,13 +25,13 @@ export function ExplicitProjectBudget({ projectId, language }: { projectId: stri
         });
 
         if (!response.ok) {
-          throw new Error('budget unavailable');
+          throw new Error();
         }
 
         const parsed = explicitBudgetSummarySchema.safeParse(await response.json());
 
         if (!parsed.success) {
-          throw new Error('budget invalid');
+          throw new Error();
         }
 
         if (!controller.signal.aborted) {
