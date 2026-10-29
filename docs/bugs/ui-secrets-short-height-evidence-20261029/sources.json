@@ -143,5 +143,15 @@
     "file": "captures/820-fr-200-focus-after.jpg",
     "source": "/workspace/ui845-short-height-red/compiled-capture-help/820-fr-200-focus-after.jpg",
     "sourceSha256": "6b25c4360e19302878dfb0fbcce9936b9bba27ecde7e501977d28a43606536f9"
+  },
+  {
+    "file": "help-scroll/probe-final.cjs",
+    "source": "/workspace/ui845-help-scroll/probe-final.cjs",
+    "sourceSha256": "6e7d7e3365efb8550b723174abe854ef8b2f83be82c9193ca262a0bd2fa28be4"
+  },
+  {
+    "file": "secrets/boundary-keyboard-settled.cjs",
+    "source": "/workspace/ui845-short-height-red/boundary-keyboard-settled.cjs",
+    "sourceSha256": "8c3501e76055c449c3ee918e470bb481bc3414efa905cc100ea6711e6a25e0c8"
   }
 ]
