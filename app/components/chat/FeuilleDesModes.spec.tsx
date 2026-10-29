@@ -41,7 +41,7 @@ function poser(options: Partial<React.ComponentProps<typeof FeuilleDesModes>> = 
   const onChoisirMode = vi.fn();
   const onChoisirModele = vi.fn();
 
-  render(
+  const view = render(
     <FeuilleDesModes
       copy={copy}
       modes={['lite', 'power', 'max']}
@@ -56,7 +56,7 @@ function poser(options: Partial<React.ComponentProps<typeof FeuilleDesModes>> = 
     />,
   );
 
-  return { onChoisirMode, onChoisirModele };
+  return { ...view, onChoisirMode, onChoisirModele };
 }
 
 describe('écran 1', () => {
@@ -104,6 +104,30 @@ describe('écran 1', () => {
       });
     },
   );
+
+  it.each(['en', 'fr'])('résume le choix explicite du mode actif (%s)', (language) => {
+    const localized = getChatControlsCopy(language);
+    poser({ copy: localized, modeActif: 'lite', choixParMode: { lite: { modele: 'gpt-5.6-luna' } } });
+
+    const entry = screen.getByTestId('feuille-entree-modele');
+    expect(entry.textContent).toContain('gpt-5.6-luna');
+    expect(entry.textContent).not.toContain(localized['chatControls.sheet.primaryModelHint']);
+    fireEvent.click(entry);
+    expect(screen.getByTestId('feuille-modele-gpt-5.6-luna-std').getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByTestId('feuille-modele-auto').getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('garde Auto pour un choix automatique et distingue la variante rapide', () => {
+    const view = poser({ modeActif: 'max' });
+    expect(screen.getByTestId('feuille-entree-modele').textContent).toContain(
+      copy['chatControls.sheet.primaryModelHint'],
+    );
+    view.unmount();
+    poser({ modeActif: 'max', choixParMode: { max: { modele: 'gpt-5.6-sol', serviceTier: 'fast' } } });
+    expect(screen.getByTestId('feuille-entree-modele').textContent).toContain(
+      'gpt-5.6-sol' + copy['chatControls.sheet.fastSuffix'],
+    );
+  });
 
   it('en Max, les deux entrées s’ouvrent', () => {
     poser();
