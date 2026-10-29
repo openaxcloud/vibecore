@@ -109,6 +109,7 @@ function workbenchText(key: WorkbenchRuntimeKey, values: Readonly<Record<string,
 
 export interface ArtifactState {
   id: string;
+  messageId?: string;
   title: string;
   type?: string;
   closed: boolean;
@@ -3670,6 +3671,29 @@ export class WorkbenchStore {
     Object.values(this.artifacts.get()).forEach((artifact) => artifact.runner.abortStreamingFileActions());
   }
 
+  /** Preserve final writes already queued by the parser; never clean up a newer turn/project. */
+  finishStreamingFileActions(messageId: string) {
+    const runtime = this.#runtime;
+    const binding = this.#projectStorageBinding;
+    const projectId = this.#projectId;
+
+    const runners = Object.values(this.artifacts.get())
+      .filter((artifact) => {
+        const owner = artifact.messageId;
+
+        return owner === messageId || (owner && decoderLane(owner)?.messageId === messageId);
+      })
+      .map((artifact) => artifact.runner);
+
+    this.addToExecutionQueue(async () => {
+      if (this.#runtime !== runtime || this.#projectStorageBinding !== binding || this.#projectId !== projectId) {
+        return;
+      }
+
+      runners.forEach((runner) => runner.abortStreamingFileActions());
+    });
+  }
+
   /**
    * Autorise la réécriture des fichiers INTERROMPUS de ce message, pour le
    * rattrapage à la reprise : la réponse complète revient du serveur, le
@@ -3730,6 +3754,7 @@ export class WorkbenchStore {
 
     this.artifacts.setKey(id, {
       id,
+      messageId,
       title,
       closed: false,
       type,

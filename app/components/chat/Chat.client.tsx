@@ -15,6 +15,7 @@ import {
   isStreamStalled,
   RESPONSE_COMPLETE_GRACE_MS,
 } from '~/lib/chat/composer-send-guard';
+import { processStreamSnapshot } from '~/lib/chat/finalize-stream-message';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
 import {
@@ -240,10 +241,29 @@ const processSampledMessages = createSampler(
     isLoading: boolean;
     parseMessages: (messages: Message[], isLoading: boolean) => void;
     persistMessageHistory: (messages: Message[]) => Promise<void>;
+    isCurrent: () => boolean;
   }) => {
     const { messages, initialMessages, isLoading, parseMessages, persistMessageHistory } = options;
+
+    if (!options.isCurrent()) {
+      return;
+    }
+
     workbenchStore.setReloadedMessages(initialMessages.map((message) => message.id));
-    parseMessages(messages, isLoading);
+
+    const processed = processStreamSnapshot({
+      messages,
+      initialMessages,
+      isLoading,
+      isCurrent: options.isCurrent,
+      isAborted: () => chatStore.get().aborted,
+      parseMessages,
+      finishFileActions: (messageId) => workbenchStore.finishStreamingFileActions(messageId),
+    });
+
+    if (!processed) {
+      return;
+    }
 
     if (messages.length > 0 && messages !== initialMessages) {
       void persistMessageHistory(messages);
@@ -984,17 +1004,9 @@ export const ChatImpl = memo(
         setFakeLoading(false);
 
         /*
-         * If the model finished cleanly mid-artifact (truncated output, hit a
-         * stop sequence early), the closing </boltAction> never arrives and the
-         * streamed file action is left spinning forever. Finalize only those
-         * dangling file actions — running shell commands are left alone. Guarded:
-         * a failure here cannot abort the rest of onFinish or wedge the release.
+         * The sampled transcript effect consumes final bytes before queuing file cleanup.
+         * Do not abort here: React may not have parsed the final SDK snapshot yet.
          */
-        try {
-          workbenchStore.abortStreamingFileActions();
-        } catch (cleanupError) {
-          console.error('[chat-onFinish] abortStreamingFileActions threw (ignored):', cleanupError);
-        }
         window.setTimeout(() => {
           const snapshot = latestMessagesRef.current;
 
@@ -1375,14 +1387,21 @@ export const ChatImpl = memo(
     }, [initialMessages, messages.length, projectIdeMode, setMessages]);
 
     useEffect(() => {
+      let current = true;
+
       processSampledMessages({
         messages,
         initialMessages,
         isLoading,
         parseMessages,
         persistMessageHistory,
+        isCurrent: () => current,
       });
-    }, [initialMessages, isLoading, messages, parseMessages, persistMessageHistory]);
+
+      return () => {
+        current = false;
+      };
+    }, [initialMessages, isLoading, messages, parseMessages, persistMessageHistory, projectId]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
