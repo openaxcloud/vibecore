@@ -290,6 +290,60 @@ for (const moveOutside of [false, true]) {
   });
 }
 
+test('Files row keeps native keyboard activation across startup shell replacement', async ({ page, baseURL }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  const projectId = await createProject(page, baseURL!);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await page.route('**/*', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (!['127.0.0.1', 'localhost'].includes(url.hostname) || !['GET', 'HEAD', 'OPTIONS'].includes(request.method())) {
+      await route.abort();
+      return;
+    }
+
+    if (url.pathname.endsWith('/ide-state')) {
+      await gate;
+    }
+
+    await route.continue();
+  });
+
+  try {
+    await page.goto(`/projects/${projectId}/ide?panel=files`, { waitUntil: 'domcontentloaded' });
+
+    const file = page
+      .locator('.bolt-file-tree-node')
+      .filter({ visible: true })
+      .filter({ has: page.locator('.bolt-file-tree-name').filter({ hasText: /^README\.md$/ }) });
+
+    await expect(file).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('.bolt-user-message-bubble').filter({ hasText: readyMarker })).toHaveCount(0);
+    await file.focus();
+    await expect(file).toBeFocused();
+
+    const previousRow = await file.elementHandle();
+    expect(previousRow).not.toBeNull();
+    release();
+    await expect(page.locator('.bolt-user-message-bubble').filter({ hasText: readyMarker }).first()).toBeVisible();
+    await expect.poll(() => previousRow!.evaluate((node) => node.isConnected)).toBe(false);
+
+    // Native keyboard activation must survive without focusing the replacement ourselves.
+    await expect(file).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/panel=editor/);
+  } finally {
+    release();
+  }
+});
+
 test('Files editor preserves its selection through desktop, mobile and desktop', async ({ page, baseURL }, info) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -314,7 +368,7 @@ test('Files editor preserves its selection through desktop, mobile and desktop',
   const file = page
     .locator('.bolt-file-tree-node')
     .filter({ visible: true })
-    .filter({ hasText: /^README\.md$/ });
+    .filter({ has: page.locator('.bolt-file-tree-name').filter({ hasText: /^README\.md$/ }) });
 
   try {
     await expect(file).toBeVisible({ timeout: 30_000 });
