@@ -31,6 +31,7 @@ import { renderLogger } from '~/utils/logger';
 import { isMobile } from '~/utils/mobile';
 
 interface EditorPanelProps {
+  paneId?: string;
   files?: FileMap;
   unsavedFiles?: Set<string>;
   editorDocument?: EditorDocument;
@@ -60,6 +61,7 @@ export const EditorPanel = memo(
     onFileSave,
     onFileReset,
     mobilePanel,
+    paneId,
   }: EditorPanelProps) => {
     renderLogger.trace('EditorPanel');
 
@@ -196,7 +198,7 @@ export const EditorPanel = memo(
         </Tabs.Content>
 
         <Tabs.Content value="search" className="flex-grow overflow-auto focus-visible:outline-none">
-          <Search />
+          <Search paneId={paneId} />
         </Tabs.Content>
 
         <Tabs.Content value="locks" className="flex-grow overflow-auto focus-visible:outline-none">
@@ -309,6 +311,7 @@ export const EditorPanel = memo(
               className="h-full w-full"
               value={editorDocument.value}
               filePath={editorDocument.filePath}
+              focusIdentity={paneId ? JSON.stringify([paneId, editorDocument.filePath]) : undefined}
               readOnly={editorReadOnly}
               theme={theme === 'dark' ? 'dark' : 'light'}
               autoFocus={!isMobile() && !useMobilePanelLayout}
@@ -357,7 +360,7 @@ export const EditorPanel = memo(
         return (
           <PanelBoundary title={t('idePanels.editor.search')}>
             <div className="h-full overflow-auto" data-testid="mobile-search-panel">
-              <Search />
+              <Search paneId={paneId} />
             </div>
           </PanelBoundary>
         );
@@ -383,7 +386,7 @@ export const EditorPanel = memo(
               aria-label={t('idePanels.editor.interactiveTerminal')}
             >
               <PanelGroup direction="vertical">
-                <TerminalTabs panelDefaultSize={100} />
+                <TerminalTabs panelDefaultSize={100} paneId={paneId} handoffSlot="editor" />
               </PanelGroup>
             </div>
           </PanelBoundary>
@@ -411,7 +414,7 @@ export const EditorPanel = memo(
         </Panel>
         <PanelResizeHandle />
         <PanelBoundary title={t('idePanels.editor.shellTerminal')}>
-          <TerminalTabs />
+          <TerminalTabs paneId={paneId} handoffSlot="editor" />
         </PanelBoundary>
       </PanelGroup>
     );

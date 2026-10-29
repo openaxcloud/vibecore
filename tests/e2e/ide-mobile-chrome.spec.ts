@@ -2502,6 +2502,94 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await filtre.fill('slack');
     await expect(ligne).toBeVisible();
 
+    // Même largeur raccourcie : le clavier simulé cache le socle, mais la clé reste accessible.
+    const viewportInitial = page.viewportSize()!;
+    const cle = ligne.locator('.bolt-secrets-chip--key');
+
+    try {
+      await page.setViewportSize({ width: 390, height: 200 });
+      await filtre.focus();
+      await page.keyboard.press('Tab');
+      await expect(cle).toBeFocused();
+      await expect(page.locator('html')).toHaveAttribute('data-vc-clavier', 'ouvert');
+      await expect(page.locator('.bolt-mobile-replit-nav-inner')).toBeHidden();
+      await expect
+        .poll(
+          () =>
+            cle.evaluate((element) => {
+              const scroller = element.closest('.bolt-project-service-panel')?.querySelector(':scope > .min-h-0');
+
+              if (!scroller) {
+                return false;
+              }
+
+              const cible = element.getBoundingClientRect();
+              const zone = scroller.getBoundingClientRect();
+              const touche = document.elementFromPoint(cible.x + cible.width / 2, cible.y + cible.height / 2);
+
+              return (
+                cible.width > 0 &&
+                cible.height > 0 &&
+                cible.left >= zone.left &&
+                cible.right <= zone.right &&
+                cible.top >= zone.top &&
+                cible.bottom <= zone.bottom &&
+                zone.left >= 0 &&
+                zone.right <= innerWidth &&
+                zone.top >= 0 &&
+                zone.bottom <= innerHeight &&
+                (touche === element || element.contains(touche))
+              );
+            }),
+          { timeout: 5000 },
+        )
+        .toBe(true);
+      await cle.click({ trial: true });
+
+      // Nouvelle page à faible hauteur au repos : socle visible, sans forcer l’état du clavier.
+      await page.reload({ waitUntil: 'load' });
+      await expect(ligne).toBeVisible();
+      await filtre.fill('slack');
+      await filtre.focus();
+      await page.keyboard.press('Tab');
+      await expect(cle).toBeFocused();
+      await expect(page.locator('html')).not.toHaveAttribute('data-vc-clavier', 'ouvert');
+      await expect(page.locator('.bolt-mobile-replit-nav-inner')).toBeVisible();
+      await expect
+        .poll(
+          () =>
+            cle.evaluate((element) => {
+              const scroller = element.closest('.bolt-project-service-panel')?.querySelector(':scope > .min-h-0');
+              const navigation = document.querySelector('.bolt-mobile-replit-nav-inner');
+
+              if (!scroller || !navigation) {
+                return false;
+              }
+
+              const cible = element.getBoundingClientRect();
+              const zone = scroller.getBoundingClientRect();
+              const socle = navigation.getBoundingClientRect();
+              const touche = document.elementFromPoint(cible.x + cible.width / 2, cible.y + cible.height / 2);
+
+              return (
+                cible.width > 0 &&
+                cible.height > 0 &&
+                cible.left >= zone.left &&
+                cible.right <= zone.right &&
+                cible.top >= zone.top &&
+                cible.bottom <= zone.bottom &&
+                zone.bottom <= socle.top &&
+                (touche === element || element.contains(touche))
+              );
+            }),
+          { timeout: 5000 },
+        )
+        .toBe(true);
+      await cle.click({ trial: true });
+    } finally {
+      await page.setViewportSize(viewportInitial);
+    }
+
     // RP-SEC-08 — le menu ⋮ : Modifier / Trouver les usages / Supprimer, flottant, dans l'écran.
     await page.getByTestId('secret-menu-SLACK_API_KEY').tap();
 

@@ -65,7 +65,6 @@ vi.mock('~/components/ui/Dialog', () => ({
 }));
 vi.mock('react-toastify', () => ({ toast: toastMocks }));
 vi.mock('~/utils/constants', () => ({ WORK_DIR: '/workspace' }));
-vi.mock('~/utils/debounce', () => ({ debounce: <Args extends unknown[]>(fn: (...args: Args) => unknown) => fn }));
 
 import { Search } from './Search';
 import { createI18nInstance } from '~/lib/i18n/runtime';
@@ -80,10 +79,8 @@ function renderSearch(language: 'en' | 'fr' = 'fr') {
 
 async function settleSearch() {
   await act(async () => {
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(700);
   });
-  act(() => vi.advanceTimersByTime(350));
 }
 
 afterEach(() => {

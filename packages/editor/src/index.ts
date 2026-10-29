@@ -5,7 +5,7 @@ import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { searchKeymap } from '@codemirror/search';
-import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state';
+import { Compartment, EditorState, EditorSelection, Prec, type Extension } from '@codemirror/state';
 import {
   Decoration,
   type DecorationSet,
@@ -24,6 +24,8 @@ import { createElement, useCallback, useEffect, useLayoutEffect, useRef, useStat
 import { formatEditorCopy, getEditorCopy, type EditorCopy } from './editor-copy.js';
 import {
   claimDesktopEditorFocus,
+  portableSelectionForDocument,
+  useEditorEngineFocusHandoff,
   registerDesktopEditorFocus,
   trackDesktopEditorComposition,
   useDesktopEditorFocus,
@@ -31,6 +33,7 @@ import {
 
 export {
   DesktopEditorFocusProvider,
+  EditorFocusHandoffBoundary,
   useDesktopEditorFocusHandoff,
   useDesktopEditorComposing,
 } from './desktop-editor-focus.js';
@@ -1120,7 +1123,26 @@ export function DesktopCodeEditor({
           const model = editor.getModel();
           const viewState = editor.saveViewState();
 
-          return model && viewState ? { viewState, modelUri: model.uri.toString(), contents: model.getValue() } : null;
+          return model && viewState
+            ? {
+                viewState,
+                modelUri: model.uri.toString(),
+                contents: model.getValue(),
+                portable: filePathRef.current
+                  ? {
+                      filePath: filePathRef.current,
+                      ranges: (editor.getSelections() ?? []).map((range) => ({
+                        anchor: model.getOffsetAt({
+                          lineNumber: range.selectionStartLineNumber,
+                          column: range.selectionStartColumn,
+                        }),
+                        head: model.getOffsetAt({ lineNumber: range.positionLineNumber, column: range.positionColumn }),
+                      })),
+                      mainIndex: 0,
+                    }
+                  : undefined,
+              }
+            : null;
         },
       });
     }
@@ -1367,18 +1389,39 @@ export function DesktopCodeEditor({
 
         const restoreFocus = restoreFocusRef.current;
         restoreFocusRef.current = null;
+
         const snapshot = restoreFocus?.();
+        const portable = portableSelectionForDocument(snapshot, filePathRef.current, currentModel.getValue());
+
         const canRestore =
-          snapshot &&
+          snapshot?.viewState &&
           snapshot.modelUri === currentModel.uri.toString() &&
           snapshot.contents === valueRef.current &&
           snapshot.contents === currentModel.getValue();
 
-        if (canRestore) {
+        if (canRestore && snapshot.viewState) {
           editor.restoreViewState(snapshot.viewState);
+        } else if (portable && snapshot?.contents === valueRef.current) {
+          const ordered = [
+            portable.ranges[portable.mainIndex],
+            ...portable.ranges.filter((_, index) => index !== portable.mainIndex),
+          ];
+          editor.setSelections(
+            ordered.map(({ anchor, head }) => {
+              const start = currentModel.getPositionAt(anchor);
+              const end = currentModel.getPositionAt(head);
+
+              return {
+                selectionStartLineNumber: start.lineNumber,
+                selectionStartColumn: start.column,
+                positionLineNumber: end.lineNumber,
+                positionColumn: end.column,
+              };
+            }),
+          );
         }
 
-        if (autoFocus || canRestore) {
+        if (autoFocus || canRestore || (portable && snapshot?.contents === valueRef.current)) {
           editor.focus();
         }
 
@@ -1829,6 +1872,7 @@ function codeMirrorExtensions(
 
   return [
     lineNumbers(),
+    EditorState.allowMultipleSelections.of(true),
     history(),
     drawSelection(),
     dropCursor(),
@@ -1938,6 +1982,22 @@ function codeMirrorExtensions(
 }
 
 export function MobileCodeEditor(props: EditorAdapterProps) {
+  const focusState = useDesktopEditorFocus();
+  const restoreFocusRef = useRef<ReturnType<typeof claimDesktopEditorFocus>>(null);
+  const focusScopeRef = useRef<{ state: typeof focusState; identity?: string } | null>(null);
+  useLayoutEffect(() => {
+    const sameScope =
+      focusScopeRef.current?.state === focusState && focusScopeRef.current?.identity === props.focusIdentity;
+
+    const claimed = claimDesktopEditorFocus(focusState, props.focusIdentity);
+
+    if (!sameScope || claimed) {
+      restoreFocusRef.current = claimed;
+    }
+
+    focusScopeRef.current = { state: focusState, identity: props.focusIdentity };
+  }, [focusState, props.focusIdentity]);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const editableCompartmentRef = useRef(new Compartment());
@@ -1986,11 +2046,52 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
 
     viewRef.current = view;
 
-    if (propsRef.current.autoFocus) {
+    const composition = trackDesktopEditorComposition(focusState);
+    view.contentDOM.addEventListener('compositionstart', composition.start);
+    view.contentDOM.addEventListener('compositionend', composition.end);
+
+    const unregister = registerDesktopEditorFocus(focusState, {
+      get identity() {
+        return propsRef.current.focusIdentity ?? '';
+      },
+      hasTextFocus: () => view.hasFocus && view.dom.contains(document.activeElement),
+      snapshot: () =>
+        propsRef.current.filePath
+          ? {
+              contents: view.state.doc.toString(),
+              portable: {
+                filePath: propsRef.current.filePath,
+                ranges: view.state.selection.ranges.map(({ anchor, head }) => ({ anchor, head })),
+                mainIndex: view.state.selection.mainIndex,
+              },
+            }
+          : null,
+    });
+
+    const restore = restoreFocusRef.current;
+    restoreFocusRef.current = null;
+
+    const snapshot = restore?.();
+    const portable = portableSelectionForDocument(snapshot, propsRef.current.filePath, view.state.doc.toString());
+
+    if (portable) {
+      view.dispatch({
+        selection: EditorSelection.create(
+          portable.ranges.map(({ anchor, head }) => EditorSelection.range(anchor, head)),
+          portable.mainIndex,
+        ),
+      });
+    }
+
+    if (propsRef.current.autoFocus || portable) {
       view.focus();
     }
 
     return () => {
+      unregister();
+      composition.dispose();
+      view.contentDOM.removeEventListener('compositionstart', composition.start);
+      view.contentDOM.removeEventListener('compositionend', composition.end);
       view.destroy();
       viewRef.current = null;
     };
@@ -2102,10 +2203,15 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
   return createElement('div', { ref: containerRef, className: props.className, 'data-editor-kind': 'codemirror' });
 }
 
+function editorEngineSurface({ adapter, ...props }: EditorAdapterProps & { adapter: EditorKind }) {
+  useEditorEngineFocusHandoff(props.focusIdentity);
+  return adapter === 'monaco' ? createElement(DesktopCodeEditor, props) : createElement(MobileCodeEditor, props);
+}
+
 export function EditorAdapter(props: EditorAdapterProps) {
   const adapter = useEditorAdapter();
 
-  return adapter === 'monaco' ? createElement(DesktopCodeEditor, props) : createElement(MobileCodeEditor, props);
+  return createElement(editorEngineSurface, { key: adapter, adapter, ...props });
 }
 
 export interface TouchSymbolToolbarProps {

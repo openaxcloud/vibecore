@@ -1,0 +1,102 @@
+[
+  {
+    "lang": "fr",
+    "panel": "ports",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "Ports ouverts par l'espace de travail en cours d'exécution. Ouvrez l'aperçu d'un port, choisissez le port principal ou définissez sa visibilité.:3000prêtpubliquehttp://127.0.0.1:3000Ouvrir l'aperçuDéfinir le primaireRendre public",
+      "html": "<div class=\"bolt-project-managed-panel bolt-project-ports-panel\"><section class=\"grid gap-3\"><p class=\"text-xs text-bolt-elements-textSecondary\">Ports ouverts par l'espace de travail en cours d'exécution. Ouvrez l'aperçu d'un port, choisissez le port principal ou définissez sa visibilité.</p><div class=\"grid gap-2\"><div class=\"flex flex-wrap items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs\"><div class=\"min-w-0\"><strong class=\"text-bolt-elements-textPrimary\">:3000</strong><span class=\"ml-2 text-[var(--status-success-text)]\">prêt</span><span class=\"ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary\">publique</span><div class=\"mt-0.5 truncate font-mono text-bolt-elements-textSecondary\">http://127.0.0.1:3000</div></div><div class=\"flex shrink-0 flex-wrap items-center gap-2\"><a href=\"http://127.0.0.1:3000\" target=\"_blank\" rel=\"noreferrer\" class=\"underline\">Ouvrir l'aperçu</a><form><input type=\"hidden\" name=\"intent\" value=\"set-primary\"><input type=\"hidden\" name=\"port\" value=\"3000\"><button type=\"submit\">Définir le primaire</button></form><form><input type=\"hidden\" name=\"intent\" value=\"set-visibility\"><input type=\"hidden\" name=\"port\" value=\"3000\"><input type=\"hidden\" name=\"visibility\" value=\"public\"><button type=\"submit\">Rendre public</button></form></div></div></div></section></div>"
+    }
+  },
+  {
+    "lang": "fr",
+    "panel": "packages",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Gestionnaire de paquets\"><button type=\"button\" class=\"selected\">npm</button><button type=\"button\">pnpm</button><button type=\"button\">yarn</button><button type=\"button\">bun</button></div>"
+    },
+    "after": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Gestionnaire de paquets\"><button type=\"button\">npm</button><button type=\"button\" class=\"selected\">pnpm</button><button type=\"button\">yarn</button><button type=\"button\">bun</button></div>"
+    }
+  },
+  {
+    "lang": "en",
+    "panel": "ports",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "Ports opened by the running workspace. Open a port's preview, choose the primary port, or set its visibility.:3000readypublichttp://127.0.0.1:3000Open previewSet primaryMake private",
+      "html": "<div class=\"bolt-project-managed-panel bolt-project-ports-panel\"><section class=\"grid gap-3\"><p class=\"text-xs text-bolt-elements-textSecondary\">Ports opened by the running workspace. Open a port's preview, choose the primary port, or set its visibility.</p><div class=\"grid gap-2\"><div class=\"flex flex-wrap items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs\"><div class=\"min-w-0\"><strong class=\"text-bolt-elements-textPrimary\">:3000</strong><span class=\"ml-2 text-[var(--status-success-text)]\">ready</span><span class=\"ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary\">public</span><div class=\"mt-0.5 truncate font-mono text-bolt-elements-textSecondary\">http://127.0.0.1:3000</div></div><div class=\"flex shrink-0 flex-wrap items-center gap-2\"><a href=\"http://127.0.0.1:3000\" target=\"_blank\" rel=\"noreferrer\" class=\"underline\">Open preview</a><form><input type=\"hidden\" name=\"intent\" value=\"set-primary\"><input type=\"hidden\" name=\"port\" value=\"3000\"><button type=\"submit\">Set primary</button></form><form><input type=\"hidden\" name=\"intent\" value=\"set-visibility\"><input type=\"hidden\" name=\"port\" value=\"3000\"><input type=\"hidden\" name=\"visibility\" value=\"private\"><button type=\"submit\">Make private</button></form></div></div></div></section></div>"
+    }
+  },
+  {
+    "lang": "en",
+    "panel": "packages",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Package manager\"><button type=\"button\" class=\"selected\">npm</button><button type=\"button\">pnpm</button><button type=\"button\">yarn</button><button type=\"button\">bun</button></div>"
+    },
+    "after": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Package manager\"><button type=\"button\">npm</button><button type=\"button\" class=\"selected\">pnpm</button><button type=\"button\">yarn</button><button type=\"button\">bun</button></div>"
+    }
+  }
+]

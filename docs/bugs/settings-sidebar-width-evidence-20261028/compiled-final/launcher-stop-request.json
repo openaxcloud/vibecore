@@ -1,0 +1,9 @@
+{
+  "pid": 77235,
+  "startTicks": "4915340",
+  "argv": [
+    "python",
+    "/workspace/ui-settings-compiled-followup/stack.py"
+  ],
+  "signal": "SIGTERM"
+}

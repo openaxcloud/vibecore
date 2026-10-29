@@ -1,0 +1,560 @@
+[
+  {
+    "width": 390,
+    "language": "fr",
+    "pass": true,
+    "errors": [],
+    "nativeFocus": {
+      "active": true,
+      "tabIndex": 0,
+      "tag": "DIV",
+      "id": "chat-message-synthetic-user",
+      "role": null
+    },
+    "keyboardMenuVisible": false,
+    "focusAfterEscape": {
+      "id": "chat-message-synthetic-user",
+      "tag": "DIV"
+    },
+    "tableScroll": {
+      "left": 2477,
+      "client": 370,
+      "scroll": 2847,
+      "lastCell": {
+        "x": 297.984375,
+        "y": 605.40625,
+        "width": 81.640625,
+        "height": 32.875,
+        "top": 605.40625,
+        "right": 379.625,
+        "bottom": 638.28125,
+        "left": 297.984375
+      }
+    },
+    "imagesGeometry": {
+      "client": 347,
+      "scroll": 347,
+      "overflowX": "visible",
+      "moved": 0,
+      "ancestors": [
+        {
+          "client": 368,
+          "scroll": 368,
+          "overflowX": "hidden"
+        },
+        {
+          "client": 370,
+          "scroll": 370,
+          "overflowX": "visible"
+        }
+      ],
+      "images": [
+        {
+          "x": 22.5,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 78.5,
+          "bottom": 116.5,
+          "left": 22.5
+        },
+        {
+          "x": 91,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 147,
+          "bottom": 116.5,
+          "left": 91
+        },
+        {
+          "x": 159.5,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 215.5,
+          "bottom": 116.5,
+          "left": 159.5
+        },
+        {
+          "x": 228,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 284,
+          "bottom": 116.5,
+          "left": 228
+        }
+      ]
+    }
+  },
+  {
+    "width": 390,
+    "language": "en",
+    "pass": true,
+    "errors": [],
+    "nativeFocus": {
+      "active": true,
+      "tabIndex": 0,
+      "tag": "DIV",
+      "id": "chat-message-synthetic-user",
+      "role": null
+    },
+    "keyboardMenuVisible": false,
+    "focusAfterEscape": {
+      "id": "chat-message-synthetic-user",
+      "tag": "DIV"
+    },
+    "tableScroll": {
+      "left": 2477,
+      "client": 370,
+      "scroll": 2847,
+      "lastCell": {
+        "x": 297.984375,
+        "y": 605.40625,
+        "width": 81.640625,
+        "height": 32.875,
+        "top": 605.40625,
+        "right": 379.625,
+        "bottom": 638.28125,
+        "left": 297.984375
+      }
+    },
+    "imagesGeometry": {
+      "client": 347,
+      "scroll": 347,
+      "overflowX": "visible",
+      "moved": 0,
+      "ancestors": [
+        {
+          "client": 368,
+          "scroll": 368,
+          "overflowX": "hidden"
+        },
+        {
+          "client": 370,
+          "scroll": 370,
+          "overflowX": "visible"
+        }
+      ],
+      "images": [
+        {
+          "x": 22.5,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 78.5,
+          "bottom": 116.5,
+          "left": 22.5
+        },
+        {
+          "x": 91,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 147,
+          "bottom": 116.5,
+          "left": 91
+        },
+        {
+          "x": 159.5,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 215.5,
+          "bottom": 116.5,
+          "left": 159.5
+        },
+        {
+          "x": 228,
+          "y": 60.5,
+          "width": 56,
+          "height": 56,
+          "top": 60.5,
+          "right": 284,
+          "bottom": 116.5,
+          "left": 228
+        }
+      ]
+    }
+  },
+  {
+    "width": 820,
+    "language": "fr",
+    "pass": true,
+    "errors": [],
+    "nativeFocus": {
+      "active": true,
+      "tabIndex": 0,
+      "tag": "DIV",
+      "id": "chat-message-synthetic-user",
+      "role": null
+    },
+    "keyboardMenuVisible": false,
+    "focusAfterEscape": {
+      "id": "chat-message-synthetic-user",
+      "tag": "DIV"
+    },
+    "tableScroll": {
+      "left": 2047,
+      "client": 800,
+      "scroll": 2847,
+      "lastCell": {
+        "x": 727.984375,
+        "y": 595.03125,
+        "width": 81.640625,
+        "height": 32.875,
+        "top": 595.03125,
+        "right": 809.625,
+        "bottom": 627.90625,
+        "left": 727.984375
+      }
+    },
+    "imagesGeometry": {
+      "client": 657,
+      "scroll": 657,
+      "overflowX": "visible",
+      "moved": 0,
+      "ancestors": [
+        {
+          "client": 678,
+          "scroll": 678,
+          "overflowX": "hidden"
+        },
+        {
+          "client": 800,
+          "scroll": 800,
+          "overflowX": "visible"
+        }
+      ],
+      "images": [
+        {
+          "x": 142.5,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 198.5,
+          "bottom": 122.5,
+          "left": 142.5
+        },
+        {
+          "x": 211,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 267,
+          "bottom": 122.5,
+          "left": 211
+        },
+        {
+          "x": 279.5,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 335.5,
+          "bottom": 122.5,
+          "left": 279.5
+        },
+        {
+          "x": 348,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 404,
+          "bottom": 122.5,
+          "left": 348
+        }
+      ]
+    }
+  },
+  {
+    "width": 820,
+    "language": "en",
+    "pass": true,
+    "errors": [],
+    "nativeFocus": {
+      "active": true,
+      "tabIndex": 0,
+      "tag": "DIV",
+      "id": "chat-message-synthetic-user",
+      "role": null
+    },
+    "keyboardMenuVisible": false,
+    "focusAfterEscape": {
+      "id": "chat-message-synthetic-user",
+      "tag": "DIV"
+    },
+    "tableScroll": {
+      "left": 2047,
+      "client": 800,
+      "scroll": 2847,
+      "lastCell": {
+        "x": 727.984375,
+        "y": 595.03125,
+        "width": 81.640625,
+        "height": 32.875,
+        "top": 595.03125,
+        "right": 809.625,
+        "bottom": 627.90625,
+        "left": 727.984375
+      }
+    },
+    "imagesGeometry": {
+      "client": 657,
+      "scroll": 657,
+      "overflowX": "visible",
+      "moved": 0,
+      "ancestors": [
+        {
+          "client": 678,
+          "scroll": 678,
+          "overflowX": "hidden"
+        },
+        {
+          "client": 800,
+          "scroll": 800,
+          "overflowX": "visible"
+        }
+      ],
+      "images": [
+        {
+          "x": 142.5,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 198.5,
+          "bottom": 122.5,
+          "left": 142.5
+        },
+        {
+          "x": 211,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 267,
+          "bottom": 122.5,
+          "left": 211
+        },
+        {
+          "x": 279.5,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 335.5,
+          "bottom": 122.5,
+          "left": 279.5
+        },
+        {
+          "x": 348,
+          "y": 66.5,
+          "width": 56,
+          "height": 56,
+          "top": 66.5,
+          "right": 404,
+          "bottom": 122.5,
+          "left": 348
+        }
+      ]
+    }
+  },
+  {
+    "width": 1280,
+    "language": "fr",
+    "pass": true,
+    "errors": [],
+    "nativeFocus": {
+      "active": true,
+      "tabIndex": 0,
+      "tag": "DIV",
+      "id": "chat-message-synthetic-user",
+      "role": null
+    },
+    "keyboardMenuVisible": false,
+    "focusAfterEscape": {
+      "id": "chat-message-synthetic-user",
+      "tag": "DIV"
+    },
+    "tableScroll": {
+      "left": 2149,
+      "client": 303,
+      "scroll": 2452,
+      "lastCell": {
+        "x": 295.171875,
+        "y": 613.59375,
+        "width": 73.84375,
+        "height": 30.03125,
+        "top": 613.59375,
+        "right": 369.015625,
+        "bottom": 643.625,
+        "left": 295.171875
+      }
+    },
+    "imagesGeometry": {
+      "client": 283,
+      "scroll": 283,
+      "overflowX": "visible",
+      "moved": 0,
+      "ancestors": [
+        {
+          "client": 301,
+          "scroll": 301,
+          "overflowX": "hidden"
+        },
+        {
+          "client": 303,
+          "scroll": 303,
+          "overflowX": "visible"
+        }
+      ],
+      "images": [
+        {
+          "x": 78,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 126,
+          "bottom": 157,
+          "left": 78
+        },
+        {
+          "x": 137,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 185,
+          "bottom": 157,
+          "left": 137
+        },
+        {
+          "x": 196,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 244,
+          "bottom": 157,
+          "left": 196
+        },
+        {
+          "x": 255,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 303,
+          "bottom": 157,
+          "left": 255
+        }
+      ]
+    }
+  },
+  {
+    "width": 1280,
+    "language": "en",
+    "pass": true,
+    "errors": [],
+    "nativeFocus": {
+      "active": true,
+      "tabIndex": 0,
+      "tag": "DIV",
+      "id": "chat-message-synthetic-user",
+      "role": null
+    },
+    "keyboardMenuVisible": false,
+    "focusAfterEscape": {
+      "id": "chat-message-synthetic-user",
+      "tag": "DIV"
+    },
+    "tableScroll": {
+      "left": 2149,
+      "client": 303,
+      "scroll": 2452,
+      "lastCell": {
+        "x": 295.171875,
+        "y": 613.59375,
+        "width": 73.84375,
+        "height": 30.03125,
+        "top": 613.59375,
+        "right": 369.015625,
+        "bottom": 643.625,
+        "left": 295.171875
+      }
+    },
+    "imagesGeometry": {
+      "client": 283,
+      "scroll": 283,
+      "overflowX": "visible",
+      "moved": 0,
+      "ancestors": [
+        {
+          "client": 301,
+          "scroll": 301,
+          "overflowX": "hidden"
+        },
+        {
+          "client": 303,
+          "scroll": 303,
+          "overflowX": "visible"
+        }
+      ],
+      "images": [
+        {
+          "x": 78,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 126,
+          "bottom": 157,
+          "left": 78
+        },
+        {
+          "x": 137,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 185,
+          "bottom": 157,
+          "left": 137
+        },
+        {
+          "x": 196,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 244,
+          "bottom": 157,
+          "left": 196
+        },
+        {
+          "x": 255,
+          "y": 109,
+          "width": 48,
+          "height": 48,
+          "top": 109,
+          "right": 303,
+          "bottom": 157,
+          "left": 255
+        }
+      ]
+    }
+  }
+]

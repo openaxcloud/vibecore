@@ -16,6 +16,7 @@ import {
   AR_RETENTION_WORKFLOW,
   STAGING_WORKFLOW,
   checkGateWiring,
+  preflightMutations,
   parseChartServiceKeys,
   parseNeeds,
   parseRolloutWaitList,
@@ -43,8 +44,8 @@ describe('deploy gate wiring', () => {
   it('catches a deploy job that no longer waits for the gate', () => {
     const files = realFiles();
     files.deployWorkflow = files.deployWorkflow.replace(
-      'needs: [resolve-target, release-gate, preflight-gates]',
-      'needs: [resolve-target, preflight-gates]',
+      'needs: [resolve-target, release-gate]',
+      'needs: [resolve-target]',
     );
     expect(checkGateWiring(files).join('\n')).toMatch(/must declare 'needs: release-gate'/);
   });
@@ -238,5 +239,23 @@ describe('workflow parsing helpers', () => {
     const text = ['# id-token: write is deliberately not granted', 'permissions:', '  contents: read'].join('\n');
     expect(stripComments(text)).not.toMatch(/id-token/);
     expect(stripComments('          echo "# not a comment"')).toMatch(/echo/);
+  });
+});
+
+
+describe('consolidated preflight remains fail closed', () => {
+  for (const [label, mutated] of preflightMutations(realFiles().deployWorkflow)) {
+    it(`rejects ${label}`, () => {
+      const files = realFiles();
+      expect(mutated).not.toBe(files.deployWorkflow);
+      expect(checkGateWiring({ ...files, deployWorkflow: mutated }).length).toBeGreaterThan(0);
+    });
+  }
+
+  it('keeps a single runner and checkout, with explicit build dependencies', () => {
+    const { jobs } = parseWorkflowRegions(realFiles().deployWorkflow);
+    expect(jobs.has('preflight-gates')).toBe(false);
+    expect(parseNeeds(jobs.get('build-and-deploy'))).toEqual(['resolve-target', 'release-gate']);
+    expect(jobs.get('release-gate').match(/uses: actions\/checkout@/g)).toHaveLength(1);
   });
 });

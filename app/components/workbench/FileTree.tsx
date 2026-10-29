@@ -676,10 +676,10 @@ function ContextMenuItem({ onSelect, children }: { onSelect?: () => void; childr
   return (
     <ContextMenu.Item
       onSelect={onSelect}
-      className="flex items-center gap-2 px-2 py-1.5 outline-0 text-sm text-bolt-elements-textPrimary cursor-pointer ws-nowrap text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive rounded-md"
+      className="flex items-center gap-2 px-2 py-1.5 outline-0 text-sm text-bolt-elements-textPrimary cursor-pointer whitespace-normal text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive rounded-md"
     >
       <span className="size-4 shrink-0"></span>
-      <span>{children}</span>
+      <span className="min-w-0 break-words">{children}</span>
     </ContextMenu.Item>
   );
 }
@@ -703,13 +703,23 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
   }, [initialValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Enter can commit an IME candidate rather than submit the file name.
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) {
+      return;
+    }
+
     if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+
       const value = inputRef.current?.value?.trim();
 
       if (value) {
         onSubmit(value);
       }
     } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
       onCancel();
     }
   };
@@ -725,6 +735,7 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
         type="text"
         className="ml-2 flex-1 bg-transparent border-none outline-none py-0.5 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary min-w-0"
         placeholder={placeholder}
+        aria-label={placeholder}
         onKeyDown={handleKeyDown}
         onBlur={() => {
           setTimeout(() => {
@@ -753,6 +764,33 @@ function FileContextMenu({
   const [isRenaming, setIsRenaming] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const contextTriggerRef = useRef<HTMLDivElement>(null);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [contextBottomPadding, setContextBottomPadding] = useState(8);
+
+  const measureContextBoundary = useCallback(() => {
+    const nav = contextTriggerRef.current
+      ?.closest('.bolt-responsive-ide')
+      ?.querySelector<HTMLElement>('.bolt-mobile-replit-nav');
+
+    const bounds = nav?.getBoundingClientRect();
+    setContextBottomPadding(
+      bounds && bounds.width > 0 && bounds.height > 0 && bounds.top < window.innerHeight
+        ? Math.max(8, window.innerHeight - bounds.top + 8)
+        : 8,
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!contextMenuOpen) {
+      return undefined;
+    }
+
+    measureContextBoundary();
+    window.addEventListener('resize', measureContextBoundary);
+
+    return () => window.removeEventListener('resize', measureContextBoundary);
+  }, [contextMenuOpen, measureContextBoundary]);
 
   // G5: dropped-upload overwrite collisions confirm via dialog, not window.confirm.
   const [pendingOverwriteDrop, setPendingOverwriteDrop] = useState<{ files: File[]; message: string } | null>(null);
@@ -1253,7 +1291,15 @@ function FileContextMenu({
 
   return (
     <>
-      <ContextMenu.Root>
+      <ContextMenu.Root
+        onOpenChange={(open) => {
+          if (open) {
+            measureContextBoundary();
+          }
+
+          setContextMenuOpen(open);
+        }}
+      >
         <ContextMenu.Trigger>
           {/*
            * Radix ContextMenu already opens on a ~700ms touch long-press, but iOS
@@ -1262,6 +1308,7 @@ function FileContextMenu({
            * Suppressing the callout lets the long-press menu open dependably.
            */}
           <div
+            ref={contextTriggerRef}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -1276,8 +1323,16 @@ function FileContextMenu({
         </ContextMenu.Trigger>
         <ContextMenu.Portal>
           <ContextMenu.Content
-            style={{ zIndex: 998 }}
-            className="border border-bolt-elements-borderColor rounded-md z-context-menu bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-2 data-[state=open]:animate-in animate-duration-100 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-98 w-56"
+            data-ide-escape-owner="file-context-menu"
+            collisionPadding={{ top: 8, right: 8, bottom: contextBottomPadding, left: 8 }}
+            style={{
+              zIndex: 998,
+              width: 'min(20rem, calc(100vw - 16px))',
+              maxWidth: 'var(--radix-context-menu-content-available-width)',
+              maxHeight: 'var(--radix-context-menu-content-available-height)',
+              overflowY: 'auto',
+            }}
+            className="border border-bolt-elements-borderColor rounded-md z-context-menu bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-2 data-[state=open]:animate-in animate-duration-100 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-98"
           >
             <ContextMenu.Group className="p-1 border-b-px border-solid border-bolt-elements-borderColor">
               <ContextMenuItem onSelect={() => setIsCreatingFile(true)}>

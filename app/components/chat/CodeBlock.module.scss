@@ -1,4 +1,23 @@
+.Header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+.CopyStatus {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  color: var(--bolt-elements-textSecondary);
+}
+
 .CopyButtonContainer {
+  grid-column: 2;
+  grid-row: 1;
   .CopyButton {
     border: 1px solid var(--bolt-elements-borderColor);
     background: var(--bolt-elements-bg-depth-2);

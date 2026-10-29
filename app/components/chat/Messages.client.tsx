@@ -60,6 +60,14 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
 
+    const lastVisibleMessageIndex = messages.reduce(
+      (last, message, index) =>
+        (message.role === 'assistant' || message.role === 'user') && !message.annotations?.includes('hidden')
+          ? index
+          : last,
+      -1,
+    );
+
     /*
      * Ligne dont les actions sont dépliées au toucher. Une seule à la fois :
      * deux barres ouvertes sur un fil long, c'est le bruit qu'on cherchait
@@ -106,7 +114,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               const { role, content, id: messageId, annotations, parts } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
-              const isLast = index === messages.length - 1;
+              const isLast = index === lastVisibleMessageIndex;
               const isHidden = annotations?.includes('hidden') || role === 'system';
               const rowKey = messageId ?? `${role}-${index}`;
 
@@ -181,6 +189,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                         parts={parts}
                         addToolResult={props.addToolResult}
                         masquerLesPuces={Boolean(props.projectIdeMode)}
+                        isStreaming={isStreaming && isLast}
                       />
                     )}
                     {!isUserMessage && props.projectIdeMode && messageId && !(isStreaming && isLast)

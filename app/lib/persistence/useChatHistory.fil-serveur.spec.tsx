@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
   Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: {} });
 
   return {
+    searchParams: new URLSearchParams(),
     loaderData: {} as { id?: string; projectId?: string },
     completerFilSiVide: vi.fn(),
     getProjectIdeMemory: vi.fn(),
@@ -41,7 +42,7 @@ vi.mock('react-router', async (importOriginal) => {
     ...actual,
     useLoaderData: () => mocks.loaderData,
     useNavigate: () => mocks.noop,
-    useSearchParams: () => [new URLSearchParams(), vi.fn()],
+    useSearchParams: () => [mocks.searchParams, mocks.noop],
   };
 });
 

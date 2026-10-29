@@ -1,0 +1,9 @@
+{
+  "app/components/chat/BaseChat.tsx": "a50986047063015ec582ceb73427ded61b8f78243738e44a68256bcdaa2b10ff",
+  "app/components/workbench/terminal/TerminalInteractionHandoff.tsx": "17f1c547af36809ab3894812c664dcdf57d40d468587c614c5ba2aaf2ce85897",
+  "app/components/workbench/terminal/TerminalTabs.tsx": "c877204d4cc1151bc7e1e527510f0cf5577c9c896dfebbee19d9092324a797da",
+  "app/components/workbench/EditorPanel.tsx": "1cfd330b6ae95d80816c4ec15573b3cdacbeb5f6d1ca846e10b13ae8b707fe64",
+  "app/components/chat/ProjectSettingsPanel.module.scss": "bab78db30df2ceef975d20092193a69a746c630129d9ba22ae638902a0f5c1a5",
+  "app/routes/projects.$projectId.ide.tsx": "6ec3d1f3c9980456d8cfce4a48e81668be9fd93854b48ba90876c2433ac7dce3",
+  "build/server/index.js": "f5fad729aba3322dfc3ddd7d706da478fb4964c6ed30cffa6b38741f97f2a156"
+}

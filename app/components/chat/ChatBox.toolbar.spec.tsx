@@ -7,6 +7,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ChatBox } from './ChatBox';
+import { useKeybindings } from '~/lib/hooks/useKeybindings';
 
 vi.mock('remix-utils/client-only', () => ({
   ClientOnly: ({ children }: { children: () => React.ReactNode }) => <>{children()}</>,
@@ -186,6 +187,43 @@ describe('<ChatBox /> toolbar', () => {
      */
     expect(within(menu).queryByText('Dictate')).toBeNull();
     expect(screen.getByRole('button', { name: 'Dictate a message' })).toBeTruthy();
+  });
+
+  it('closes pointer-open tools from the focused opener before global Escape runs', () => {
+    const runAction = vi.fn();
+
+    function Harness() {
+      useKeybindings({
+        bindings: [
+          { combo: 'escape', action: 'overlay.close', label: '', description: '', category: 'Help' },
+          { combo: 'cmd+s', action: 'file.save', label: '', description: '', category: 'File' },
+        ],
+        getContext: () => ({}),
+        runAction,
+      });
+
+      return <ChatBox {...baseProps} />;
+    }
+
+    render(<Harness />);
+
+    const opener = screen.getByRole('button', { name: 'More composer & tools' });
+    opener.focus();
+    fireEvent.click(opener, { detail: 1 });
+
+    expect(screen.getByRole('menu', { name: 'Composer tools' })).toBeTruthy();
+    expect(document.activeElement).toBe(opener);
+
+    fireEvent.keyDown(opener, { key: 's', ctrlKey: true });
+    expect(runAction.mock.calls.map(([action]) => action)).toEqual(['file.save']);
+    fireEvent.keyDown(opener, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: 'Composer tools' })).toBeNull();
+    expect(document.activeElement).toBe(opener);
+    expect(runAction.mock.calls.map(([action]) => action)).toEqual(['file.save']);
+
+    fireEvent.keyDown(opener, { key: 'Escape' });
+    expect(runAction.mock.calls.map(([action]) => action)).toEqual(['file.save', 'overlay.close']);
+    expect(baseProps.handleSendMessage).not.toHaveBeenCalled();
   });
 
   it('toggles Plan first from inside the Advanced popover (Replit parity)', () => {

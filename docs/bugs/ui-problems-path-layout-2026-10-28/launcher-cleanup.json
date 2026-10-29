@@ -1,0 +1,36 @@
+{
+  "execSession": 21958,
+  "launcherBefore": {
+    "pid": 71422,
+    "argv": [
+      "python3",
+      "/workspace/ui-problems-compiled/stack.py"
+    ],
+    "state": "S",
+    "ppid": 71421,
+    "startTicks": "4799395"
+  },
+  "signal": "SIGTERM",
+  "observedAfter": [
+    {
+      "pid": 71422,
+      "state": "absent",
+      "ppid": null
+    },
+    {
+      "pid": 71425,
+      "state": "Z",
+      "ppid": "1"
+    },
+    {
+      "pid": 71426,
+      "state": "Z",
+      "ppid": "1"
+    }
+  ],
+  "limitation": "stack.py polls /proc rather than Popen.wait(); zombies retained launcher. Launcher now stopped, PID1 may retain reparented zombies.",
+  "ports": {
+    "19999": 111,
+    "8599": 111
+  }
+}

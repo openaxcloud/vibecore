@@ -1,0 +1,21 @@
+{
+  "build": "4537 exit0 (parent reported)",
+  "sourceHead": "fdde8a34074e883c4a43305d1e702ea82492037a with local assembled changes",
+  "files": [
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "b2e3a72a7796f4723b8e987635a45ff3fc4670b91f48af32b7ce1008bc557529"
+    },
+    {
+      "path": "app/components/chat/ports-packages-accessibility.spec.tsx",
+      "sha256": "5bad0ed25b4744fba704fa7ec13164ac46302cff63701759bb151a7a796b8f25"
+    },
+    {
+      "path": "build/server/index.js",
+      "sha256": "072043204e097c027309d7dedba39e99b958b82b8bca36cfd45d2cd240dae213"
+    }
+  ],
+  "serverOrigin": "/workspace/ui-files-editor-audit/assembled-server/app-after-origin.json",
+  "browserClosed": true,
+  "sharedServerStopped": false
+}

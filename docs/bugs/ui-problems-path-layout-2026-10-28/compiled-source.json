@@ -1,0 +1,18 @@
+{
+  "build": "66352 exit0",
+  "base": "e71e328ed60d126aa840f62cb1d4318c05441808",
+  "files": [
+    {
+      "path": "app/styles/index.scss",
+      "sha256": "5f628108de36f505a8d620da1af46668a2178c32bebc032237ebda77d52d2075"
+    },
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "d05f90b57a2a85bf0d320f8705691a36ae304e54b775b908a6c216097bd26ba1"
+    },
+    {
+      "path": "build/server/index.js",
+      "sha256": "27acc5e7dacc3e703bbc5e7efda59ec4beeebb856d3e2cfceeb5ba3453817d35"
+    }
+  ]
+}

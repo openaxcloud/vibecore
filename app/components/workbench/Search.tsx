@@ -3,6 +3,7 @@ import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useSearchDraft, useSearchFocusHandoff } from './SearchDraftState';
 import { rechercheDemandee } from './recherche-demandee';
 import {
   computeReplacement,
@@ -16,7 +17,6 @@ import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
-import { debounce } from '~/utils/debounce';
 
 interface DisplayMatch {
   path: string;
@@ -41,19 +41,28 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
   );
 }
 
-export function Search() {
+export function Search({ paneId }: { paneId?: string }) {
   const { t } = useTranslation();
+  const focusRoot = useSearchFocusHandoff(paneId);
 
   /*
    * Use the workspace-bound adapter from context, NOT the module singleton (which
    * has no workspaceId and fails in remote-kubernetes mode → broken file search).
    */
   const runtimeAdapter = useRuntimeAdapter();
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    searchQuery,
+    setSearchQuery,
+    replaceQuery,
+    setReplaceQuery,
+    caseSensitive,
+    setCaseSensitive,
+    isRegex,
+    setIsRegex,
+  } = useSearchDraft(paneId);
+
   const demande = useStore(rechercheDemandee);
-  const [replaceQuery, setReplaceQuery] = useState('');
-  const [caseSensitive, setCaseSensitive] = useState(false);
-  const [isRegex, setIsRegex] = useState(false);
   const [searchResults, setSearchResults] = useState<DisplayMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isReplacing, setIsReplacing] = useState(false);
@@ -89,6 +98,8 @@ export function Search() {
 
   useEffect(() => {
     return () => {
+      searchTokenRef.current++;
+
       if (minLoaderTimerRef.current !== undefined) {
         clearTimeout(minLoaderTimerRef.current);
         minLoaderTimerRef.current = undefined;
@@ -110,6 +121,8 @@ export function Search() {
 
   const handleSearch = useCallback(
     async (query: string) => {
+      const token = ++searchTokenRef.current;
+
       if (!query.trim()) {
         setSearchResults([]);
         setIsSearching(false);
@@ -128,8 +141,6 @@ export function Search() {
         clearTimeout(minLoaderTimerRef.current);
         minLoaderTimerRef.current = undefined;
       }
-
-      const token = ++searchTokenRef.current;
 
       setIsSearching(true);
       setSearchResults([]);
@@ -152,6 +163,11 @@ export function Search() {
         };
 
         const results = await runtimeAdapter.searchFiles(query, options);
+
+        if (!isLatestSearch(token, searchTokenRef.current)) {
+          return;
+        }
+
         setSearchResults(
           results.map((match) => ({
             path: match.path,
@@ -162,6 +178,10 @@ export function Search() {
           })),
         );
       } catch (error) {
+        if (!isLatestSearch(token, searchTokenRef.current)) {
+          return;
+        }
+
         console.error(error);
         setSearchError(true);
       } finally {
@@ -190,11 +210,28 @@ export function Search() {
     [caseSensitive, isRegex, runtimeAdapter],
   );
 
-  const debouncedSearch = useCallback(debounce(handleSearch, 300), [handleSearch]);
-
   useEffect(() => {
-    debouncedSearch(searchQuery);
-  }, [searchQuery, debouncedSearch, caseSensitive, isRegex]);
+    /*
+     * Invalidate old results before the debounce delay: they must not remain
+     * actionable for a different query or search option.
+     */
+    searchTokenRef.current++;
+    setSearchResults([]);
+    setExpandedFiles({});
+    setSearchError(false);
+    setConfirmReplaceAllOpen(false);
+
+    if (!searchQuery.trim()) {
+      void handleSearch('');
+      return undefined;
+    }
+
+    setIsSearching(true);
+
+    const timer = setTimeout(() => void handleSearch(searchQuery), 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, handleSearch]);
 
   /*
    * « Trouver les usages » d'un secret (RP-SEC-08) : un autre panneau a posé
@@ -403,7 +440,7 @@ export function Search() {
   }, [replaceAll]);
 
   return (
-    <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
+    <div ref={focusRoot} className="flex flex-col h-full bg-bolt-elements-background-depth-2">
       {/* UNIF-06 (audit H1) : Search n'avait AUCUNE tête de panneau — il adopte
           l'en-tête commun (même icône que l'onglet/rail, mêmes paddings). */}
       <IdePanelHeader icon="i-ph:magnifying-glass" title={t('workbenchSearch.panel.title')} />
@@ -428,6 +465,7 @@ export function Search() {
           {/* UNIF lot 5 : input partagé PanelInput au lieu du champ ad hoc (fond depth-3, ring). */}
           <PanelInput
             type="text"
+            data-search-draft-field="query"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('workbenchSearch.search.placeholder')}
@@ -458,6 +496,7 @@ export function Search() {
         <div className="relative flex items-center gap-2">
           <PanelInput
             type="text"
+            data-search-draft-field="replacement"
             value={replaceQuery}
             onChange={(e) => setReplaceQuery(e.target.value)}
             placeholder={t('workbenchSearch.replace.placeholder')}

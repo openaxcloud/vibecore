@@ -453,7 +453,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
   const toolsMenuControl = (
     <>
-      <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
+      <div
+        ref={toolsMenuRef}
+        className="bolt-chatbox-tools-menu-anchor"
+        data-ide-escape-owner={isToolsMenuOpen ? 'composer-tools' : undefined}
+      >
         <IconButton
           title={copy['chatBox.tools.more']}
           tooltip={copy['chatBox.tools.more']}

@@ -4256,6 +4256,7 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   position: relative;
 }
 
+:where(html:not([data-vc-tooltip-renderer='true']))
 :where(.bolt-responsive-ide, .bolt-project-ide-shell)
   :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
     [data-vc-radix-tooltip='true']
@@ -4279,8 +4280,10 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   line-height: 1.35;
   pointer-events: none;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
+:where(html:not([data-vc-tooltip-renderer='true']))
 :where(.bolt-responsive-ide, .bolt-project-ide-shell)
   :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
     [data-vc-radix-tooltip='true']
@@ -10036,6 +10039,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-secrets-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -10537,7 +10541,11 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-menu {
   position: fixed;
   z-index: 12045;
-  min-width: 220px;
+  min-width: min(220px, calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   padding: 6px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 14px;
@@ -10548,7 +10556,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-menu-item {
   display: flex;
   width: 100%;
-  height: 40px;
+  min-height: 40px;
+  height: auto;
   align-items: center;
   gap: 12px;
   padding: 0 12px;
@@ -15081,6 +15090,12 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 12px;
 }
 
+.bolt-project-agent-studio {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+
 .bolt-project-monitoring-timeline,
 .bolt-project-monitoring-sparkline {
   display: grid;
@@ -15260,7 +15275,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-activity-filters {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 }
 
 .bolt-project-activity-filters label {
@@ -16835,6 +16850,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-security-tool {
   grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
 }
 
 .bolt-project-security-summary {
@@ -17239,6 +17255,10 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-muted);
   font-size: 12px;
   line-height: 1.5;
+}
+
+.bolt-project-collaboration-comment p {
+  overflow-wrap: anywhere;
 }
 
 .bolt-project-collaboration-live {
@@ -18364,6 +18384,11 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-problem-open {
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
   align-items: center;
   gap: 4px;
   border: 0;
@@ -22425,6 +22450,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 /* Task row: [drag] [type dropdown] [type-specific control + Save] [trash]. */
 .bolt-project-workflow-task {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -22457,7 +22483,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-workflow-task-form {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 240px;
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -22482,6 +22508,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-workflow-runs details {
+  min-width: 0;
   border: 1px solid var(--vc-ide-border);
   border-radius: 8px;
   background: var(--vc-ide-surface-2);
@@ -22523,6 +22550,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-workflow-run-steps {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 8px 0 0;
   padding: 0;
@@ -33023,3 +33051,48 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   color: var(--vc-ide-text-primary);
   font-weight: 600;
 }
+
+.bolt-project-debugger-panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bolt-project-debugger-panel :is(.grid, .grid > *, section, aside, form) {
+  min-width: 0;
+}
+
+.bolt-project-debugger-layout {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+.bolt-project-debugger-inspection {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+.bolt-project-debugger-panel select {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Secrets short-height scrollport: focus must stop above the fixed dock.
+ * Do not reserve its height twice through scrollport padding. When the virtual
+ * keyboard is open the dock is hidden and the existing viewport sizing wins.
+ */
+@media (max-height: 450px) {
+  html:not([data-vc-clavier='ouvert'])
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-service-panel[data-panel='secrets'] {
+    height: calc(100% - var(--mobile-nav-height) - env(safe-area-inset-bottom, 0px));
+  }
+
+  html:not([data-vc-clavier='ouvert'])
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-service-panel[data-panel='secrets']
+    > .min-h-0 {
+    padding-block: 4px !important;
+    scroll-padding-block: 4px;
+  }
+}
+/* End Secrets short-height scrollport */

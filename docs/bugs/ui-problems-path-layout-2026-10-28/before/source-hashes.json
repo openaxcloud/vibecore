@@ -1,0 +1,18 @@
+[
+  {
+    "path": "build/server/index.js",
+    "sha256": "5a41f216cffa2d6beabd2a84cba730d99e8c0910f776211a8052095e37fc51d6"
+  },
+  {
+    "path": "app/styles/index.scss",
+    "sha256": "ee52ef788861c0cd893e465ff5d748ca2ba8ece5313a530270c879ae9bb0a9e9"
+  },
+  {
+    "path": "app/components/chat/BaseChat.tsx",
+    "sha256": "d05f90b57a2a85bf0d320f8705691a36ae304e54b775b908a6c216097bd26ba1"
+  },
+  {
+    "path": "app/components/workbench/LockManager.tsx",
+    "sha256": "86159b15192d6986a4118e7f5615e15de52016ddbad9930cdd20840a9da838c7"
+  }
+]

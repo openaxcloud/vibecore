@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ui-local-escape
+
+ ✓ app/components/chat/ports-packages-accessibility.spec.tsx (8 tests) 83ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  21:07:42
+   Duration  3.23s (transform 1.20s, setup 20ms, collect 745ms, tests 83ms, environment 278ms, prepare 50ms)
+

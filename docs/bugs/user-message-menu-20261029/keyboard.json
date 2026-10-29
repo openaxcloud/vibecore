@@ -1,0 +1,146 @@
+[
+  {
+    "width": 1440,
+    "long": false,
+    "array": false,
+    "box": {
+      "x": 728,
+      "y": 58,
+      "width": 246,
+      "height": 58
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "long": false,
+    "array": true,
+    "box": {
+      "x": 728,
+      "y": 71,
+      "width": 246,
+      "height": 58
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "long": true,
+    "array": false,
+    "box": {
+      "x": 728,
+      "y": 830,
+      "width": 246,
+      "height": 58
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "long": true,
+    "array": true,
+    "box": {
+      "x": 728,
+      "y": 830,
+      "width": 246,
+      "height": 58
+    },
+    "errors": []
+  },
+  {
+    "width": 768,
+    "long": false,
+    "array": false,
+    "box": {
+      "x": 365,
+      "y": 77,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  },
+  {
+    "width": 768,
+    "long": false,
+    "array": true,
+    "box": {
+      "x": 365,
+      "y": 93,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  },
+  {
+    "width": 768,
+    "long": true,
+    "array": false,
+    "box": {
+      "x": 365,
+      "y": 508,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  },
+  {
+    "width": 768,
+    "long": true,
+    "array": true,
+    "box": {
+      "x": 365,
+      "y": 508,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  },
+  {
+    "width": 390,
+    "long": false,
+    "array": false,
+    "box": {
+      "x": 176,
+      "y": 77,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  },
+  {
+    "width": 390,
+    "long": false,
+    "array": true,
+    "box": {
+      "x": 176,
+      "y": 93,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  },
+  {
+    "width": 390,
+    "long": true,
+    "array": false,
+    "box": {
+      "x": 176,
+      "y": 508,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  },
+  {
+    "width": 390,
+    "long": true,
+    "array": true,
+    "box": {
+      "x": 176,
+      "y": 508,
+      "width": 54,
+      "height": 54
+    },
+    "errors": []
+  }
+]

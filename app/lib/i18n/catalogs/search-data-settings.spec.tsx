@@ -112,7 +112,7 @@ describe('search and data-settings EN/FR catalog', () => {
     const english = flattenStrings(searchDataSettingsEn);
     const french = flattenStrings(searchDataSettingsFr);
 
-    expect(english.size).toBe(303);
+    expect(english.size).toBe(306);
     expect([...french.keys()].sort()).toEqual([...english.keys()].sort());
 
     for (const [key, englishValue] of english) {

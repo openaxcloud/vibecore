@@ -1,0 +1,5773 @@
+[
+  {
+    "width": 390,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "before": {
+      "marks": [
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "archive-decode-start",
+        "archive-decode-ready",
+        "documents-set",
+        "selection-set",
+        "documents-set",
+        "documents-set",
+        "layout-restore-requested",
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "documents-set",
+        "archive-json-ready",
+        "archive-decode-start",
+        "session-indicator-resolved",
+        "archive-decode-ready",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set"
+      ],
+      "active": "Managed shellbashzshsh"
+    },
+    "oldDetached": true,
+    "after": {
+      "marks": [
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "archive-decode-start",
+        "archive-decode-ready",
+        "documents-set",
+        "selection-set",
+        "documents-set",
+        "documents-set",
+        "layout-restore-requested",
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "documents-set",
+        "archive-json-ready",
+        "archive-decode-start",
+        "session-indicator-resolved",
+        "archive-decode-ready",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "layout-memory-ready",
+        "layout-memory-ready",
+        "layout-restored",
+        "documents-set",
+        "documents-set",
+        "layout-restore-requested",
+        "layout-memory-ready",
+        "selection-set",
+        "layout-restored",
+        "session-indicator-resolved",
+        "documents-set",
+        "documents-set",
+        "documents-set"
+      ],
+      "active": "Managed shellbashzshsh",
+      "menus": 1
+    },
+    "menuBounds": {
+      "x": 8,
+      "y": 348.1875,
+      "width": 374,
+      "height": 471.8125
+    },
+    "pass": true,
+    "searchEvents": [
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 1,
+          "value": "",
+          "connected": true,
+          "reactProps": false,
+          "chain": [],
+          "at": 1985.405000001192
+        },
+        "active": "TEXTAREA",
+        "label": "Terminal input"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 1,
+          "value": "",
+          "connected": true,
+          "reactProps": false,
+          "chain": [],
+          "at": 2017.4799999967217
+        },
+        "active": "BODY",
+        "label": "Terminal input"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 2,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 2030.3299999982119
+        },
+        "active": "BUTTON",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 2,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 2151.4899999946356
+        },
+        "active": "BODY",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 3,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 2152.4349999949336
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 3,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 2447.679999999702
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 4,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 2564.920000001788
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 4,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3159.35000000149
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 5,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3159.780000001192
+        },
+        "active": "BUTTON",
+        "label": null
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 5,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3172.4249999970198
+        },
+        "active": "BODY",
+        "label": null
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 6,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3173.1749999970198
+        },
+        "active": "BUTTON",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 6,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3218.795000001788
+        },
+        "active": "BODY",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 7,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3220.125
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 7,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3245.564999997616
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 8,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3261.3099999949336
+        },
+        "active": "BUTTON",
+        "label": "Close tab"
+      }
+    ],
+    "finalMarks": [
+      {
+        "m": "archive-fetch-start",
+        "at": 590.9699999988079
+      },
+      {
+        "m": "archive-headers-ready",
+        "at": 681.4899999946356
+      },
+      {
+        "m": "archive-json-ready",
+        "at": 684.3399999961257
+      },
+      {
+        "m": "ide-route-evaluated",
+        "at": 871.8099999949336
+      },
+      {
+        "m": "entry-module-evaluated",
+        "at": 874.054999999702
+      },
+      {
+        "m": "catalogues-ready",
+        "at": 897.0199999958277
+      },
+      {
+        "m": "hydrate-requested",
+        "at": 897.0399999991059
+      },
+      {
+        "m": "chat-module-resolved",
+        "at": 924.2999999970198
+      },
+      {
+        "m": "session-indicator-requested",
+        "at": 1010.1999999955297
+      },
+      {
+        "m": "documents-set",
+        "at": 1048.070000000298
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 1049.1000000014901
+      },
+      {
+        "m": "selection-set",
+        "at": 1054.4549999982119
+      },
+      {
+        "m": "documents-set",
+        "at": 1070.905000001192
+      },
+      {
+        "m": "archive-decode-start",
+        "at": 1076.2049999982119
+      },
+      {
+        "m": "archive-decode-ready",
+        "at": 1169.5
+      },
+      {
+        "m": "documents-set",
+        "at": 1170.695000000298
+      },
+      {
+        "m": "selection-set",
+        "at": 1170.789999999106
+      },
+      {
+        "m": "documents-set",
+        "at": 1178.3099999949336
+      },
+      {
+        "m": "documents-set",
+        "at": 1238.5049999952316
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 1238.9799999967217
+      },
+      {
+        "m": "archive-fetch-start",
+        "at": 1244.6849999949336
+      },
+      {
+        "m": "archive-headers-ready",
+        "at": 1283.4899999946356
+      },
+      {
+        "m": "documents-set",
+        "at": 1453.875
+      },
+      {
+        "m": "archive-json-ready",
+        "at": 1837.2250000014901
+      },
+      {
+        "m": "archive-decode-start",
+        "at": 1837.2299999967217
+      },
+      {
+        "m": "session-indicator-resolved",
+        "at": 1851.780000001192
+      },
+      {
+        "m": "archive-decode-ready",
+        "at": 1967.5649999976158
+      },
+      {
+        "m": "documents-set",
+        "at": 1968.234999999404
+      },
+      {
+        "m": "documents-set",
+        "at": 1976.570000000298
+      },
+      {
+        "m": "documents-set",
+        "at": 1976.6749999970198
+      },
+      {
+        "m": "documents-set",
+        "at": 2115.579999998212
+      },
+      {
+        "m": "documents-set",
+        "at": 2115.6599999964237
+      },
+      {
+        "m": "documents-set",
+        "at": 2122.234999999404
+      },
+      {
+        "m": "documents-set",
+        "at": 2281.14999999851
+      },
+      {
+        "m": "documents-set",
+        "at": 2281.1849999949336
+      },
+      {
+        "m": "documents-set",
+        "at": 2285.064999997616
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2296.280000001192
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2296.509999997914
+      },
+      {
+        "m": "layout-restored",
+        "at": 2296.875
+      },
+      {
+        "m": "documents-set",
+        "at": 2511.244999997318
+      },
+      {
+        "m": "documents-set",
+        "at": 2539.5749999955297
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 2540.0899999961257
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2567.195000000298
+      },
+      {
+        "m": "selection-set",
+        "at": 2567.780000001192
+      },
+      {
+        "m": "layout-restored",
+        "at": 2568.4899999946356
+      },
+      {
+        "m": "session-indicator-resolved",
+        "at": 2845.984999999404
+      },
+      {
+        "m": "documents-set",
+        "at": 2856.929999999702
+      },
+      {
+        "m": "documents-set",
+        "at": 2857.015000000596
+      },
+      {
+        "m": "documents-set",
+        "at": 2859.945000000298
+      },
+      {
+        "m": "session-indicator-resolved",
+        "at": 2898.3549999967217
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "before": {
+      "marks": [
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "archive-decode-start",
+        "archive-decode-ready",
+        "documents-set",
+        "selection-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "layout-restore-requested",
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "session-indicator-resolved",
+        "archive-json-ready",
+        "archive-decode-start",
+        "archive-decode-ready",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set"
+      ],
+      "active": "Managed shellbashzshsh"
+    },
+    "oldDetached": true,
+    "after": {
+      "marks": [
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "archive-decode-start",
+        "archive-decode-ready",
+        "documents-set",
+        "selection-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "layout-restore-requested",
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "session-indicator-resolved",
+        "archive-json-ready",
+        "archive-decode-start",
+        "archive-decode-ready",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "layout-memory-ready",
+        "layout-memory-ready",
+        "layout-restored",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "layout-restore-requested",
+        "layout-memory-ready",
+        "selection-set",
+        "layout-restored"
+      ],
+      "active": "Managed shellbashzshsh",
+      "menus": 1
+    },
+    "menuBounds": {
+      "x": 427,
+      "y": 85.5,
+      "width": 300,
+      "height": 420
+    },
+    "pass": true,
+    "searchEvents": [
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 1,
+          "value": "",
+          "connected": true,
+          "reactProps": false,
+          "chain": [],
+          "at": 1821.594999998808
+        },
+        "active": "TEXTAREA",
+        "label": "Terminal input"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 1,
+          "value": "",
+          "connected": true,
+          "reactProps": false,
+          "chain": [],
+          "at": 1839.7999999970198
+        },
+        "active": "BODY",
+        "label": "Terminal input"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 2,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 1853.2849999964237
+        },
+        "active": "BUTTON",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 2,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 1967.9399999976158
+        },
+        "active": "BODY",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 3,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 1968.914999999106
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 3,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 2272.4099999964237
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 4,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 2393.4499999955297
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 4,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3033.515000000596
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 5,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3033.9099999964237
+        },
+        "active": "BUTTON",
+        "label": null
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 5,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3046.39999999851
+        },
+        "active": "BODY",
+        "label": null
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 6,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3047.25
+        },
+        "active": "BUTTON",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 6,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3097.570000000298
+        },
+        "active": "BODY",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 7,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3099
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 7,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3149.4099999964237
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 8,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "gle",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "Ppe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "A3",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            }
+          ],
+          "at": 3163.314999997616
+        },
+        "active": "BUTTON",
+        "label": "Close tab"
+      }
+    ],
+    "finalMarks": [
+      {
+        "m": "archive-fetch-start",
+        "at": 419.7800000011921
+      },
+      {
+        "m": "archive-headers-ready",
+        "at": 513.5450000017881
+      },
+      {
+        "m": "archive-json-ready",
+        "at": 516.0599999949336
+      },
+      {
+        "m": "ide-route-evaluated",
+        "at": 690.375
+      },
+      {
+        "m": "entry-module-evaluated",
+        "at": 695.4399999976158
+      },
+      {
+        "m": "catalogues-ready",
+        "at": 717.945000000298
+      },
+      {
+        "m": "hydrate-requested",
+        "at": 717.9649999961257
+      },
+      {
+        "m": "chat-module-resolved",
+        "at": 733.4499999955297
+      },
+      {
+        "m": "session-indicator-requested",
+        "at": 826.2299999967217
+      },
+      {
+        "m": "documents-set",
+        "at": 862.1449999958277
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 862.9499999955297
+      },
+      {
+        "m": "selection-set",
+        "at": 867.8949999958277
+      },
+      {
+        "m": "documents-set",
+        "at": 884.5349999964237
+      },
+      {
+        "m": "archive-decode-start",
+        "at": 890.7950000017881
+      },
+      {
+        "m": "archive-decode-ready",
+        "at": 996.9050000011921
+      },
+      {
+        "m": "documents-set",
+        "at": 998.1299999952316
+      },
+      {
+        "m": "selection-set",
+        "at": 998.2399999946356
+      },
+      {
+        "m": "documents-set",
+        "at": 1003.6999999955297
+      },
+      {
+        "m": "documents-set",
+        "at": 1244.7049999982119
+      },
+      {
+        "m": "documents-set",
+        "at": 1282.9899999946356
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 1283.4799999967217
+      },
+      {
+        "m": "archive-fetch-start",
+        "at": 1300.1349999979138
+      },
+      {
+        "m": "archive-headers-ready",
+        "at": 1364.0049999952316
+      },
+      {
+        "m": "session-indicator-resolved",
+        "at": 1708.929999999702
+      },
+      {
+        "m": "archive-json-ready",
+        "at": 1711.3549999967217
+      },
+      {
+        "m": "archive-decode-start",
+        "at": 1711.359999999404
+      },
+      {
+        "m": "archive-decode-ready",
+        "at": 1890.8299999982119
+      },
+      {
+        "m": "documents-set",
+        "at": 1891.4499999955297
+      },
+      {
+        "m": "documents-set",
+        "at": 1899.679999999702
+      },
+      {
+        "m": "documents-set",
+        "at": 1899.734999999404
+      },
+      {
+        "m": "documents-set",
+        "at": 2004.3649999946356
+      },
+      {
+        "m": "documents-set",
+        "at": 2004.414999999106
+      },
+      {
+        "m": "documents-set",
+        "at": 2008.039999999106
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2103
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2103.545000001788
+      },
+      {
+        "m": "layout-restored",
+        "at": 2103.920000001788
+      },
+      {
+        "m": "documents-set",
+        "at": 2136.045000001788
+      },
+      {
+        "m": "documents-set",
+        "at": 2136.094999998808
+      },
+      {
+        "m": "documents-set",
+        "at": 2141.39999999851
+      },
+      {
+        "m": "documents-set",
+        "at": 2337.9249999970198
+      },
+      {
+        "m": "documents-set",
+        "at": 2367.414999999106
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 2367.8549999967217
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2395.929999999702
+      },
+      {
+        "m": "selection-set",
+        "at": 2396.454999998212
+      },
+      {
+        "m": "layout-restored",
+        "at": 2397.1849999949336
+      },
+      {
+        "m": "session-indicator-resolved",
+        "at": 2686.7699999958277
+      },
+      {
+        "m": "documents-set",
+        "at": 2694.704999998212
+      },
+      {
+        "m": "documents-set",
+        "at": 2694.744999997318
+      },
+      {
+        "m": "documents-set",
+        "at": 2701.8549999967217
+      },
+      {
+        "m": "session-indicator-resolved",
+        "at": 2956.039999999106
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "errors": [],
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      }
+    ],
+    "before": {
+      "marks": [
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "monaco-import-requested",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "archive-decode-start",
+        "monaco-import-resolved",
+        "archive-decode-ready",
+        "documents-set",
+        "selection-set",
+        "documents-set",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "archive-decode-start",
+        "session-indicator-resolved",
+        "archive-decode-ready",
+        "documents-set",
+        "documents-set"
+      ],
+      "active": "Managed shellbashzshsh"
+    },
+    "oldDetached": true,
+    "after": {
+      "marks": [
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "monaco-import-requested",
+        "ide-route-evaluated",
+        "entry-module-evaluated",
+        "catalogues-ready",
+        "hydrate-requested",
+        "chat-module-resolved",
+        "session-indicator-requested",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "selection-set",
+        "documents-set",
+        "archive-decode-start",
+        "monaco-import-resolved",
+        "archive-decode-ready",
+        "documents-set",
+        "selection-set",
+        "documents-set",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "archive-fetch-start",
+        "archive-headers-ready",
+        "archive-json-ready",
+        "archive-decode-start",
+        "session-indicator-resolved",
+        "archive-decode-ready",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "documents-set",
+        "layout-memory-ready",
+        "layout-memory-ready",
+        "layout-restored",
+        "monaco-import-requested",
+        "documents-set",
+        "layout-restore-requested",
+        "layout-memory-ready",
+        "selection-set",
+        "layout-restored"
+      ],
+      "active": "Managed shellbashzshsh",
+      "menus": 1
+    },
+    "menuBounds": {
+      "x": 669.65625,
+      "y": 113.5,
+      "width": 300,
+      "height": 420
+    },
+    "pass": true,
+    "searchEvents": [
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 1,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 2399.869999997318
+        },
+        "active": "BUTTON",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 1,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 2459.7849999964237
+        },
+        "active": "BODY",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 2,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            }
+          ],
+          "at": 2461.27499999851
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 2,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "zpe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            }
+          ],
+          "at": 2822.405000001192
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 3,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            }
+          ],
+          "at": 3020.070000000298
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 3,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            }
+          ],
+          "at": 3855.5
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 4,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3855.984999999404
+        },
+        "active": "BUTTON",
+        "label": null
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 4,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3939.02499999851
+        },
+        "active": "BODY",
+        "label": null
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 5,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 3940.655000001192
+        },
+        "active": "BUTTON",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 5,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            }
+          ],
+          "at": 4015.570000000298
+        },
+        "active": "BODY",
+        "label": "More Shell actions"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 6,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            }
+          ],
+          "at": 4016.89999999851
+        },
+        "active": "SELECT",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusout",
+        "snapshot": {
+          "id": 6,
+          "value": "managed",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            }
+          ],
+          "at": 4066.939999997616
+        },
+        "active": "BODY",
+        "label": "Shell profile"
+      },
+      {
+        "phase": "focusin",
+        "snapshot": {
+          "id": 7,
+          "value": "",
+          "connected": true,
+          "reactProps": true,
+          "chain": [
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "paneId": "pane-main"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "Pde",
+              "key": null,
+              "props": {
+                "paneId": "pane-main",
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "te",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "div",
+              "key": "pane-main",
+              "props": {}
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "G",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "w",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "ee",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "no",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first"
+              }
+            },
+            {
+              "component": "other",
+              "key": "0",
+              "props": {}
+            },
+            {
+              "component": "ble",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            },
+            {
+              "component": "$pe",
+              "key": null,
+              "props": {
+                "projectId": "synthetic-first",
+                "windowId": "window-main"
+              }
+            },
+            {
+              "component": "zse",
+              "key": "[\"synthetic-first\",null,\"window-main\"]",
+              "props": {}
+            }
+          ],
+          "at": 4081.9799999967217
+        },
+        "active": "BUTTON",
+        "label": "Close tab"
+      }
+    ],
+    "finalMarks": [
+      {
+        "m": "archive-fetch-start",
+        "at": 452.9949999973178
+      },
+      {
+        "m": "archive-headers-ready",
+        "at": 546.234999999404
+      },
+      {
+        "m": "archive-json-ready",
+        "at": 548.609999999404
+      },
+      {
+        "m": "monaco-import-requested",
+        "at": 739.7399999946356
+      },
+      {
+        "m": "ide-route-evaluated",
+        "at": 742.054999999702
+      },
+      {
+        "m": "entry-module-evaluated",
+        "at": 746.3249999955297
+      },
+      {
+        "m": "catalogues-ready",
+        "at": 779.765000000596
+      },
+      {
+        "m": "hydrate-requested",
+        "at": 779.7899999991059
+      },
+      {
+        "m": "chat-module-resolved",
+        "at": 799.6699999943376
+      },
+      {
+        "m": "session-indicator-requested",
+        "at": 1048.609999999404
+      },
+      {
+        "m": "monaco-import-requested",
+        "at": 1077.039999999106
+      },
+      {
+        "m": "documents-set",
+        "at": 1079.0449999943376
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 1079.9799999967217
+      },
+      {
+        "m": "selection-set",
+        "at": 1085.070000000298
+      },
+      {
+        "m": "documents-set",
+        "at": 1135.9749999940395
+      },
+      {
+        "m": "archive-decode-start",
+        "at": 1154.734999999404
+      },
+      {
+        "m": "monaco-import-resolved",
+        "at": 1351.6749999970198
+      },
+      {
+        "m": "archive-decode-ready",
+        "at": 1376.9349999949336
+      },
+      {
+        "m": "documents-set",
+        "at": 1377.8849999979138
+      },
+      {
+        "m": "selection-set",
+        "at": 1377.9749999940395
+      },
+      {
+        "m": "documents-set",
+        "at": 1396.6999999955297
+      },
+      {
+        "m": "monaco-import-requested",
+        "at": 1691.3299999982119
+      },
+      {
+        "m": "documents-set",
+        "at": 1691.8649999946356
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 1692.1999999955297
+      },
+      {
+        "m": "archive-fetch-start",
+        "at": 1723.9399999976158
+      },
+      {
+        "m": "archive-headers-ready",
+        "at": 1812.929999999702
+      },
+      {
+        "m": "archive-json-ready",
+        "at": 2394.5199999958277
+      },
+      {
+        "m": "archive-decode-start",
+        "at": 2394.52499999851
+      },
+      {
+        "m": "session-indicator-resolved",
+        "at": 2488.719999998808
+      },
+      {
+        "m": "archive-decode-ready",
+        "at": 2526.8099999949336
+      },
+      {
+        "m": "documents-set",
+        "at": 2527.329999998212
+      },
+      {
+        "m": "documents-set",
+        "at": 2535.77499999851
+      },
+      {
+        "m": "documents-set",
+        "at": 2617.335000000894
+      },
+      {
+        "m": "documents-set",
+        "at": 2634.405000001192
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2650.009999997914
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 2650.259999997914
+      },
+      {
+        "m": "layout-restored",
+        "at": 2651.655000001192
+      },
+      {
+        "m": "monaco-import-requested",
+        "at": 2973.8799999952316
+      },
+      {
+        "m": "documents-set",
+        "at": 2975.14999999851
+      },
+      {
+        "m": "layout-restore-requested",
+        "at": 2975.6149999946356
+      },
+      {
+        "m": "layout-memory-ready",
+        "at": 3025.4199999943376
+      },
+      {
+        "m": "selection-set",
+        "at": 3025.710000000894
+      },
+      {
+        "m": "layout-restored",
+        "at": 3026.7999999970198
+      },
+      {
+        "m": "documents-set",
+        "at": 3434.835000000894
+      },
+      {
+        "m": "documents-set",
+        "at": 3447.2849999964237
+      },
+      {
+        "m": "documents-set",
+        "at": 3704.7249999940395
+      },
+      {
+        "m": "documents-set",
+        "at": 3713.1849999949336
+      }
+    ]
+  }
+]

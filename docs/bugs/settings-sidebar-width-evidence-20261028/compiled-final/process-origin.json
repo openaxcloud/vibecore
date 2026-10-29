@@ -1,0 +1,28 @@
+[
+  {
+    "role": "fixture",
+    "pid": 77238,
+    "startTicks": "4915342",
+    "state": "R",
+    "argv": [],
+    "cwd": "/workspace/vibecore-ui-problems-layout",
+    "owner": "ui_remaining",
+    "startedAt": 1793224279.301843
+  },
+  {
+    "role": "app",
+    "pid": 77239,
+    "startTicks": "4915343",
+    "state": "R",
+    "argv": [
+      "node",
+      "--require",
+      "./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs",
+      "node_modules/@react-router/serve/bin.js",
+      "build/server/index.js"
+    ],
+    "cwd": "/workspace/vibecore-ui-problems-layout",
+    "owner": "ui_remaining",
+    "startedAt": 1793224279.3023372
+  }
+]

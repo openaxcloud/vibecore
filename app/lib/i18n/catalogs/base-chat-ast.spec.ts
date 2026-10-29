@@ -191,10 +191,34 @@ describe('BaseChat strengthened-AST catalog', () => {
      *      en référence partagée onUserProjectFileSelect. Aucun markup, texte,
      *      classe ni interaction du menu bas modifié.
      *
+     *   8. Brouillon Search responsive, demande UI IDE du 28/10 : comparaison
+     *      exacte à main 63e663830, une seule ligne ajoutée transmet searchPaneId
+     *      au Workbench mobile. Aucun markup, texte, classe ou comportement
+     *      Terminal/menu bas modifié ; le scope réel du panneau évite la perte
+     *      du brouillon lors du remplacement de coque.
+     *
+     *   9. Transfert Editor responsive du 28/10 : comparaison exacte à #836
+     *      cea27731c, un seul hunk enveloppe ClientOnly dans une frontière de
+     *      focus sans DOM et généralise searchPaneId en paneId. Les enfants,
+     *      classes, textes, callbacks, Terminal et navigation basse restent
+     *      identiques. La frontière réserve le reçu pendant le chargement lazy.
+     *
+     *   10. Brouillons Compte/Préférences du 28/10 : comparaison exacte à
+     *       l'assemblage 6ee052210, une seule ligne transmet activePaneId au
+     *       panneau de service mobile. Aucun markup, texte, classe, callback
+     *       ou comportement Terminal/navigation basse modifié dans la tranche.
+     *
+     *   11. Transfert du menu Terminal pendant le démarrage du 28/10 :
+     *       comparaison exacte à 20e0860d0, un hunk ajoute une frontière sans
+     *       DOM autour de la frontière Editor existante, active uniquement pour
+     *       Terminal mobile. Les enfants, textes, classes, callbacks et dock
+     *       restent identiques ; seul le formatage Suspense est réindenté.
+     *       Le reçu est réservé au-dessus du chargement lazy, sans retard Chat.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('b7ba1b1557bd004ccd71a90315096ebfe701ca9ac1fe7662ad215b56f476e27b');
+    expect(frozenHash).toBe('c2081c577b3d95357da31797ed9ca7e36ccb1aac8c16677377f89444683914ec');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

@@ -176,6 +176,13 @@ import {
   useRetainIdePalettes,
 } from './IdePaletteState';
 import {
+  parseMemoryTags,
+  useIdeSettingsDraft,
+  useIdeSettingsFormDraft,
+  type SettingsFormValues,
+} from './IdeSettingsDraftState';
+
+import {
   deposerDisposition,
   lireDispositionTransmise,
   porteeDisposition,
@@ -281,9 +288,11 @@ import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
-import { editorKindForLayout, useResponsiveLayout } from '@vibecore/editor';
+import { TerminalInteractionHandoffBoundary } from '~/components/workbench/terminal/TerminalInteractionHandoff';
+import { editorKindForLayout, useResponsiveLayout, EditorFocusHandoffBoundary } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
+import { useMobilePanelHistorySync } from '~/lib/hooks/useMobilePanelHistorySync';
 import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
 import {
   getProjectIdeMemory,
@@ -2973,12 +2982,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const useMobileIde = layout.isMobile || layout.isTablet;
+
+    const { popRevision: mobilePopRevision, ready: mobileNavigationReady } = useMobilePanelHistorySync(
+      projectIdeMode && useMobileIde,
+      projectLocation,
+      panelNavigation.state,
+    );
+
     const navigate = useNavigate();
     const [clientHydrated, setClientHydrated] = useState(false);
 
+    const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
+
+    const activeProjectPanel =
+      projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
+        ? projectPanelResolution.panel
+        : '';
+
+    /* Explicit interactive routes must survive a shell handoff without an intermediate Agent commit. */
     const [mobilePanel, setMobilePanel] = useState<
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
-    >('chat');
+    >(() =>
+      projectIdeMode &&
+      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
+        ? activeProjectPanel
+        : 'chat',
+    );
 
     /*
      * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — keep-alive du Workbench mobile.
@@ -3367,7 +3396,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     }, [ECODE_MOBILE_TAB_META, t]);
 
-    const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
+    const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState(() =>
+      projectIdeMode &&
+      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
+        ? activeProjectPanel
+        : 'agent',
+    );
+
+    const [previousEditorDestination, setPreviousEditorDestination] = useState(activeProjectPanel);
+
+    // Prepare Editor before CSS can enter the compact layout, without overriding an in-flight tab choice.
+    if (previousEditorDestination !== activeProjectPanel) {
+      setPreviousEditorDestination(activeProjectPanel);
+
+      if (projectIdeMode && activeProjectPanel === 'editor') {
+        setMobilePanel('editor');
+        setActiveMobileOpenTabId('editor');
+      }
+    }
 
     /*
      * Panneau de service rendu par la surface mobile « deploy ». En-tête ET
@@ -4219,12 +4265,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * lieu d'afficher un panneau que personne n'a demandé.
      */
     const warnedUnknownPanelRef = useRef<string | undefined>(undefined);
-    const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
-
-    const activeProjectPanel =
-      projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
-        ? projectPanelResolution.panel
-        : '';
 
     const appliedWorkspacePanelUrlRef = useRef<{
       projectId: typeof projectId;
@@ -6478,7 +6518,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const appliedDeployAliasRef = useRef<string>();
 
     useEffect(() => {
-      if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
+      if (!projectIdeMode || !mobileNavigationReady || (!projectStateReady && !activeProjectPanel)) {
         return;
       }
 
@@ -6555,6 +6595,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [
       activeProjectPanel,
       appliedPanelNavigationId,
+      mobileNavigationReady,
+      mobilePopRevision,
       currentWorkspaceId,
       openWorkspacePanel,
       projectEditorWindowId,
@@ -6988,7 +7030,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [isStreaming, onStreamingChange]);
 
     useEffect(() => {
-      if (!projectIdeMode || !useMobileIde || activeProjectPanel) {
+      if (!projectIdeMode || !useMobileIde || !mobileNavigationReady || activeProjectPanel) {
         return;
       }
 
@@ -6996,7 +7038,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setActiveMobileOpenTabId('agent');
       persistMobilePanel('chat');
       ensureMobileOpenTab('agent');
-    }, [activeProjectPanel, ensureMobileOpenTab, persistMobilePanel, projectIdeMode, useMobileIde]);
+    }, [
+      activeProjectPanel,
+      ensureMobileOpenTab,
+      mobileNavigationReady,
+      mobilePopRevision,
+      persistMobilePanel,
+      projectIdeMode,
+      useMobileIde,
+    ]);
 
     /*
      * Escape stops the active stream (covers long-running shell actions too —
@@ -8863,7 +8913,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (panel === 'search') {
-          return <Search />;
+          return <Search paneId={paneId} />;
         }
 
         if (panel === 'locks') {
@@ -8901,7 +8951,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (panel === 'terminal') {
-          return <ProjectInteractiveTerminalPanel projectId={projectId} />;
+          return <ProjectInteractiveTerminalPanel projectId={projectId} paneId={paneId} />;
         }
 
         /*
@@ -8917,6 +8967,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return (
           <ProjectIdeServicePanel
             key={`${projectId ?? 'project'}:${panel}`}
+            paneId={paneId}
             projectId={projectId}
             panel={panel}
             initialPayload={initialIdePanels?.[panel]}
@@ -10510,6 +10561,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
                     <ProjectIdeServicePanel
                       key={`${projectId ?? 'project'}:mobile:${activeMobileServicePanel}`}
+                      paneId={activePaneId}
                       projectId={projectId}
                       panel={activeMobileServicePanel}
                       displayTitle={mobileServiceHeaderTab?.name}
@@ -10538,31 +10590,47 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   data-active={!useMobileIde || mobileWorkbenchPanelActive ? 'true' : 'false'}
                   aria-hidden={!useMobileIde || mobileWorkbenchPanelActive ? undefined : true}
                 >
-                  <ClientOnly>
-                    {() => (
-                      <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
-                        <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
-                          <LazyWorkbench
-                            chatStarted={chatStarted || useMobileIde}
-                            isStreaming={isStreaming}
-                            setSelectedElement={setSelectedElement}
-                            mobilePanel={resolveMobileWorkbenchPanel({
-                              mobilePanel,
-                              lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
-                            })}
-                            projectId={projectId}
-                            onUserFileSelect={onUserProjectFileSelect}
-                            onMobilePanelChange={(panel) => {
-                              if (panel === 'editor') {
-                                setMobileIdePanel('editor');
-                                setProjectPanelSearchParam('editor');
-                              }
-                            }}
-                          />
-                        </Suspense>
-                      </PanelBoundary>
-                    )}
-                  </ClientOnly>
+                  <TerminalInteractionHandoffBoundary
+                    paneId={projectIdeMode && useMobileIde && mobilePanel === 'terminal' ? activePaneId : undefined}
+                    slot="editor"
+                  >
+                    <EditorFocusHandoffBoundary
+                      identity={
+                        projectIdeMode && useMobileIde && mobilePanel === 'editor' && currentDocument
+                          ? JSON.stringify([activePaneId, currentDocument.filePath])
+                          : undefined
+                      }
+                    >
+                      <ClientOnly>
+                        {() => (
+                          <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
+                            <Suspense
+                              fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}
+                            >
+                              <LazyWorkbench
+                                chatStarted={chatStarted || useMobileIde}
+                                isStreaming={isStreaming}
+                                setSelectedElement={setSelectedElement}
+                                mobilePanel={resolveMobileWorkbenchPanel({
+                                  mobilePanel,
+                                  lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
+                                })}
+                                projectId={projectId}
+                                paneId={projectIdeMode ? activePaneId : undefined}
+                                onUserFileSelect={onUserProjectFileSelect}
+                                onMobilePanelChange={(panel) => {
+                                  if (panel === 'editor') {
+                                    setMobileIdePanel('editor');
+                                    setProjectPanelSearchParam('editor');
+                                  }
+                                }}
+                              />
+                            </Suspense>
+                          </PanelBoundary>
+                        )}
+                      </ClientOnly>
+                    </EditorFocusHandoffBoundary>
+                  </TerminalInteractionHandoffBoundary>
                 </div>
               ) : null}
             </>
@@ -11709,6 +11777,7 @@ function LegacyDomainsServicePanel({ projectId }: { projectId?: string }) {
 }
 
 function ProjectIdeApiServicePanel({
+  paneId,
   projectId,
   panel,
   displayTitle,
@@ -11716,6 +11785,7 @@ function ProjectIdeApiServicePanel({
   initialPayload,
   requestedWorkspaceId,
 }: {
+  paneId?: string;
   projectId?: string;
   panel: string;
   displayTitle?: string;
@@ -12296,6 +12366,7 @@ function ProjectIdeApiServicePanel({
             })}
           >
             <ProjectIdePanelContent
+              paneId={paneId}
               panel={panel}
               data={data}
               project={project}
@@ -12517,7 +12588,7 @@ function ProjectBottomTerminal({
               <PanelBoundary title={SHELL_TERMINAL_LABEL}>
                 <Suspense fallback={<TerminalTabsFallback />}>
                   <PanelGroup direction="vertical" className="h-full">
-                    <LazyTerminalTabs panelDefaultSize={100} />
+                    <LazyTerminalTabs panelDefaultSize={100} paneId="project-bottom-terminal" handoffSlot="bottom" />
                   </PanelGroup>
                 </Suspense>
               </PanelBoundary>
@@ -12767,7 +12838,7 @@ function ProjectProblemsPanel() {
   );
 }
 
-function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) {
+function ProjectInteractiveTerminalPanel({ projectId, paneId }: { projectId?: string; paneId?: string }) {
   const { t } = useTranslation();
   const [toolsOpen, setToolsOpen] = useState(false);
 
@@ -12779,7 +12850,7 @@ function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) 
             <PanelBoundary title={SHELL_TERMINAL_LABEL}>
               <Suspense fallback={<TerminalTabsFallback />}>
                 <PanelGroup direction="vertical" className="h-full">
-                  <LazyTerminalTabs panelDefaultSize={100} />
+                  <LazyTerminalTabs panelDefaultSize={100} paneId={paneId} />
                 </PanelGroup>
               </Suspense>
             </PanelBoundary>
@@ -14667,7 +14738,84 @@ function ProjectWelcomeState({
   );
 }
 
+type CollaborationDraftField =
+  | 'collaboration.invitee'
+  | 'collaboration.inviteRole'
+  | 'collaboration.comment'
+  | 'collaboration.filePath'
+  | 'collaboration.line';
+
+/** Keep the complete unsent form in memory, never changing server permissions. */
+function CollaborationDraftForm({
+  projectId,
+  paneId,
+  formKind,
+  onSubmit,
+  children,
+}: {
+  projectId?: string;
+  paneId?: string;
+  formKind: 'invite' | 'comment';
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  children: (
+    bind: (field: CollaborationDraftField) => {
+      value: string;
+      onChange: React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement>;
+    },
+  ) => React.ReactNode;
+}) {
+  const initial: Partial<Record<CollaborationDraftField, string>> =
+    formKind === 'invite'
+      ? { 'collaboration.invitee': '', 'collaboration.inviteRole': 'member' }
+      : { 'collaboration.comment': '', 'collaboration.filePath': '', 'collaboration.line': '' };
+
+  const draft = useIdeSettingsFormDraft(projectId ?? '', paneId, initial);
+  const pending = useRef(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    if (pending.current) {
+      event.preventDefault();
+
+      return;
+    }
+
+    pending.current = true;
+
+    const form = event.currentTarget;
+    const consume = draft.captureSubmission(Object.keys(initial) as CollaborationDraftField[]);
+
+    /*
+     * The shared submit handler resets this exact form only after success.
+     * A native listener still observes that acknowledgement if the responsive
+     * surface has detached the original form while its request was pending.
+     */
+    const acknowledge = (reset: Event) => {
+      // All visible fields are controlled; native reset must not overwrite newer selections.
+      reset.preventDefault();
+      consume();
+    };
+    form.addEventListener('reset', acknowledge, { once: true });
+
+    try {
+      await onSubmit(event);
+    } finally {
+      form.removeEventListener('reset', acknowledge);
+      pending.current = false;
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="bolt-project-collaboration-form">
+      {children((field) => ({
+        value: draft.values[field] ?? '',
+        onChange: (event) => draft.setField(field, event.currentTarget.value),
+      }))}
+    </form>
+  );
+}
+
 function ProjectIdePanelContent({
+  paneId,
   panel,
   data,
   project,
@@ -14677,6 +14825,7 @@ function ProjectIdePanelContent({
   reload,
   lastLoadedAt,
 }: {
+  paneId?: string;
   panel: string;
   data: any;
   project: any;
@@ -14739,6 +14888,7 @@ function ProjectIdePanelContent({
         data={data}
         project={project}
         projectId={projectId}
+        paneId={paneId}
         onSubmit={onSubmit}
         busy={busy}
         reload={reload}
@@ -14876,13 +15026,14 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'env') {
-    return <ProjectEnvPanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectEnvPanel projectId={projectId} paneId={paneId} data={data} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'secrets') {
     return (
       <ProjectSecretsPanel
         projectId={projectId}
+        paneId={paneId}
         data={data}
         onSubmit={onSubmit}
         busy={busy}
@@ -15006,54 +15157,62 @@ function ProjectIdePanelContent({
               <PanelEmptyState icon="i-ph:users" title={t('chat.copy.noProjectCollaborators_3bcac170')} />
             )}
           </div>
-          <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
-            <label className="bolt-project-collaboration-field">
-              <span>{t('chat.copy.collaborator_794b34c1')}</span>
-              <PanelInput
-                name="userId"
-                placeholder={t('chat.copy.emailOrUsername_5af65060')}
-                autoComplete="username email"
-                required
-                pattern="(^[^@\s]+@[^@\s]+\.[^@\s]+$)|(^[a-zA-Z0-9][a-zA-Z0-9._-]{1,62}$)"
-                title={t('chat.copy.enterAValidEmailAddressOr_b9c2422c')}
-                aria-describedby="collaborator-identity-help"
-              />
-              <small id="collaborator-identity-help">{t('chat.copy.inviteByEmailOrUsernameThe_83671d35')}</small>
-            </label>
-            <label className="bolt-project-collaboration-field">
-              <span>{t('chat.copy.role_c3f104d1')}</span>
-              <select
-                name="roleKey"
-                defaultValue="member"
-                title={t('chat.copy.viewerCanInspectTheProjectMember_a3f28012')}
-                aria-describedby="collaborator-role-help"
-              >
-                {['viewer', 'member', 'admin', 'owner'].map((role) => (
-                  <option key={role} value={role}>
-                    {collaborationRoleLabel(t, role)}
-                  </option>
-                ))}
-              </select>
-              <small id="collaborator-role-help">{t('chat.copy.viewerReadOnlyAccessMemberEdit_85ee87ee')}</small>
-            </label>
-            <div className="bolt-project-collaboration-role-guide" aria-label={t('chat.copy.rolePermissions_4b9cd8f7')}>
-              {(['viewer', 'member', 'admin'] as const).map((role) =>
-                (() => {
-                  const description = collaborationRoleDescription(t, role);
+          <CollaborationDraftForm projectId={projectId} paneId={paneId} formKind="invite" onSubmit={onSubmit}>
+            {(bind) => (
+              <>
+                <label className="bolt-project-collaboration-field">
+                  <span>{t('chat.copy.collaborator_794b34c1')}</span>
+                  <PanelInput
+                    name="userId"
+                    {...bind('collaboration.invitee')}
+                    placeholder={t('chat.copy.emailOrUsername_5af65060')}
+                    autoComplete="username email"
+                    required
+                    pattern="(^[^@\s]+@[^@\s]+\.[^@\s]+$)|(^[a-zA-Z0-9][a-zA-Z0-9._-]{1,62}$)"
+                    title={t('chat.copy.enterAValidEmailAddressOr_b9c2422c')}
+                    aria-describedby="collaborator-identity-help"
+                  />
+                  <small id="collaborator-identity-help">{t('chat.copy.inviteByEmailOrUsernameThe_83671d35')}</small>
+                </label>
+                <label className="bolt-project-collaboration-field">
+                  <span>{t('chat.copy.role_c3f104d1')}</span>
+                  <select
+                    name="roleKey"
+                    {...bind('collaboration.inviteRole')}
+                    title={t('chat.copy.viewerCanInspectTheProjectMember_a3f28012')}
+                    aria-describedby="collaborator-role-help"
+                  >
+                    {['viewer', 'member', 'admin', 'owner'].map((role) => (
+                      <option key={role} value={role}>
+                        {collaborationRoleLabel(t, role)}
+                      </option>
+                    ))}
+                  </select>
+                  <small id="collaborator-role-help">{t('chat.copy.viewerReadOnlyAccessMemberEdit_85ee87ee')}</small>
+                </label>
+                <div
+                  className="bolt-project-collaboration-role-guide"
+                  aria-label={t('chat.copy.rolePermissions_4b9cd8f7')}
+                >
+                  {(['viewer', 'member', 'admin'] as const).map((role) =>
+                    (() => {
+                      const description = collaborationRoleDescription(t, role);
 
-                  return (
-                    <span key={role} title={description}>
-                      <strong>{collaborationRoleLabel(t, role)}</strong>
-                      {description}
-                    </span>
-                  );
-                })(),
-              )}
-            </div>
-            <div>
-              <PanelButton disabled={busy}>{t('chat.copy.inviteToProject_d1cc986a')}</PanelButton>
-            </div>
-          </form>
+                      return (
+                        <span key={role} title={description}>
+                          <strong>{collaborationRoleLabel(t, role)}</strong>
+                          {description}
+                        </span>
+                      );
+                    })(),
+                  )}
+                </div>
+                <div>
+                  <PanelButton disabled={busy}>{t('chat.copy.inviteToProject_d1cc986a')}</PanelButton>
+                </div>
+              </>
+            )}
+          </CollaborationDraftForm>
         </section>
 
         <section className="bolt-project-collaboration-card">
@@ -15085,13 +15244,26 @@ function ProjectIdePanelContent({
               <PanelEmptyState icon="i-ph:chat-circle" title={t('chat.copy.noCommentsYet_207b24fc')} />
             )}
           </div>
-          <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
-            <input type="hidden" name="intent" value="comment" />
-            <PanelInput name="filePath" placeholder={t('chat.copy.srcAppTsx_835da56f')} />
-            <PanelInput name="line" placeholder={t('chat.copy.line_ea967600')} />
-            <PanelInput name="body" placeholder={t('chat.copy.comment_153d7a58')} required />
-            <PanelButton disabled={busy}>{t('chat.copy.addComment_7d3764e4')}</PanelButton>
-          </form>
+          <CollaborationDraftForm projectId={projectId} paneId={paneId} formKind="comment" onSubmit={onSubmit}>
+            {(bind) => (
+              <>
+                <input type="hidden" name="intent" value="comment" />
+                <PanelInput
+                  name="filePath"
+                  {...bind('collaboration.filePath')}
+                  placeholder={t('chat.copy.srcAppTsx_835da56f')}
+                />
+                <PanelInput name="line" {...bind('collaboration.line')} placeholder={t('chat.copy.line_ea967600')} />
+                <PanelInput
+                  name="body"
+                  {...bind('collaboration.comment')}
+                  placeholder={t('chat.copy.comment_153d7a58')}
+                  required
+                />
+                <PanelButton disabled={busy}>{t('chat.copy.addComment_7d3764e4')}</PanelButton>
+              </>
+            )}
+          </CollaborationDraftForm>
         </section>
 
         <section className="bolt-project-collaboration-card">
@@ -15194,7 +15366,7 @@ function ProjectIdePanelContent({
   if (panel === 'settings') {
     const settings = data.project ?? project;
 
-    return <ProjectSettingsPanel settings={settings} data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectSettingsPanel paneId={paneId} settings={settings} data={data} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'activity') {
@@ -15861,11 +16033,13 @@ function classifyProjectActivity(action: string) {
 }
 
 function ProjectSettingsPanel({
+  paneId,
   settings,
   data,
   onSubmit,
   busy,
 }: {
+  paneId?: string;
   settings: any;
   data: any;
   onSubmit: any;
@@ -15881,18 +16055,36 @@ function ProjectSettingsPanel({
     gitDefaultBranch: settings.gitDefaultBranch ?? 'main',
   });
 
-  const [settingsTab, setSettingsTab] = useState('project');
-  const [memoryDraft, setMemoryDraft] = useState('');
-  const [memoryType, setMemoryType] = useState('semantic');
-  const [memoryTags, setMemoryTags] = useState('');
-  const [memoryError, setMemoryError] = useState<string>();
-  const [memoryLoading, setMemoryLoading] = useState(false);
-  const [memories, setMemories] = useState<any[]>([]);
-  const [memoryEnabled, setMemoryEnabled] = useState(true);
-  const [memoryEditId, setMemoryEditId] = useState<string>();
-  const [memoryEditDraft, setMemoryEditDraft] = useState('');
-  const [memoryEditType, setMemoryEditType] = useState('semantic');
-  const [memoryEditTags, setMemoryEditTags] = useState('');
+  const {
+    settingsTab,
+    setSettingsTab,
+    memoryDraft,
+    setMemoryDraft,
+    memoryType,
+    setMemoryType,
+    memoryTags,
+    setMemoryTags,
+    memoryError,
+    memoryLoading,
+    memories,
+    memoryEnabled,
+    memoryEditId,
+    setMemoryEditId,
+    memoryEditDraft,
+    setMemoryEditDraft,
+    memoryEditType,
+    setMemoryEditType,
+    memoryEditTags,
+    setMemoryEditTags,
+    memoryNotice,
+    loadMemories,
+    saveMemory,
+    deleteMemory,
+    toggleMemoryEnabled,
+    startEditMemory,
+    saveEditedMemory,
+  } = useIdeSettingsDraft(settings.id);
+
   const [settingsNotice, setSettingsNotice] = useState('');
   const settingsNoticeRef = useRef(t('baseChatAst.settings.saved'));
   const pendingThemePreferenceRef = useRef<ProjectThemePreference | undefined>(undefined);
@@ -16043,6 +16235,22 @@ function ProjectSettingsPanel({
     ),
   })).filter((section) => section.bindings.length > 0);
 
+  const formValues: SettingsFormValues = {
+    'profile.name': accountUser.name ?? '',
+    'profile.email': accountUser.email ?? '',
+    'preferences.theme': preferences.theme ?? 'system',
+    'preferences.keyboardMode': String(Boolean(preferences.keyboardMode)),
+    'preferences.creditAlertThreshold': String(preferences.creditAlertThreshold ?? 80),
+  };
+
+  for (const section of keyboardSections) {
+    for (const binding of section.bindings) {
+      formValues[`keybinding:${binding.action}`] = binding.combo;
+    }
+  }
+
+  const formDraft = useIdeSettingsFormDraft(settings.id, paneId, formValues);
+
   const keyboardConflicts = detectKeybindingConflicts(
     applyKeybindingOverrides(localizedProjectKeybindings, keybindingOverrides),
   );
@@ -16175,274 +16383,16 @@ function ProjectSettingsPanel({
     { inputTokens: 0, outputTokens: 0, cost: 0 },
   );
 
-  function parseMemoryTags(value: string) {
-    return [
-      ...new Set(
-        value
-          .split(',')
-          .map((tag) => tag.trim().toLowerCase())
-          .filter(Boolean),
-      ),
-    ].slice(0, 20);
-  }
-
-  const loadMemories = useCallback(async () => {
-    if (!settings.id) {
-      return;
-    }
-
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch(`/api/agent-memory?projectId=${encodeURIComponent(settings.id)}&limit=30`, {
-        headers: { accept: 'application/json' },
-      });
-      const preferenceResponse = await fetch(
-        `/api/agent-memory/preferences?projectId=${encodeURIComponent(settings.id)}`,
-        {
-          headers: { accept: 'application/json' },
-        },
-      );
-
-      const payload = (await response.json()) as { memories?: any[]; error?: string };
-
-      const preferencePayload = (await preferenceResponse.json().catch(() => ({}))) as {
-        preference?: { enabled?: boolean };
-        error?: string;
-      };
-
-      if (!response.ok) {
-        console.warn('Agent memory request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.loadFailedHttp', { status: response.status }));
-
-        return;
-      }
-
-      if (!preferenceResponse.ok) {
-        console.warn('Agent memory preference request failed', {
-          status: preferenceResponse.status,
-          serverError: preferencePayload.error,
-        });
-        setMemoryError(
-          t('baseChatAst.memory.preferenceLoadFailedHttp', {
-            status: preferenceResponse.status,
-          }),
-        );
-
-        return;
-      }
-
-      setMemories(payload.memories ?? []);
-      setMemoryEnabled(preferencePayload.preference?.enabled !== false);
-    } catch (error) {
-      console.error('Agent memory request failed', error);
-      setMemoryError(t('baseChatAst.memory.loadFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }, [settings.id, t]);
-
-  useEffect(() => {
-    if (settingsTab === 'memory') {
-      void loadMemories();
-    }
-  }, [loadMemories, settingsTab]);
-
-  async function saveMemory(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!memoryDraft.trim()) {
-      return;
-    }
-
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch('/api/agent-memory', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({
-          scope: 'project',
-          projectId: settings.id,
-          content: memoryDraft,
-          memoryType,
-          tags: parseMemoryTags(memoryTags),
-          source: 'manual',
-          force: true,
-        }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        skipped?: string;
-      };
-
-      if (!response.ok) {
-        console.warn('Agent memory save request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.saveFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      /*
-       * The API returns 202 (ok) with a {skipped} reason (quota_exceeded /
-       * too_short) when the write was NOT persisted — don't claim "saved".
-       */
-      if (response.status === 202 || payload.skipped) {
-        console.warn('Agent memory save was skipped', { reason: payload.skipped });
-        setMemoryError(t('baseChatAst.memory.notSaved'));
-        setSettingsNotice(t('baseChatAst.memory.notSaved'));
-
-        return;
-      }
-
-      setMemoryDraft('');
-      setMemoryTags('');
-      setSettingsNotice(t('baseChatAst.memory.saved'));
-      await loadMemories();
-    } catch (error) {
-      console.error('Agent memory save request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
-  async function deleteMemory(memoryId: string) {
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch(`/api/agent-memory/${encodeURIComponent(memoryId)}`, {
-        method: 'DELETE',
-        headers: { accept: 'application/json' },
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-      if (!response.ok) {
-        console.warn('Agent memory delete request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.deleteFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      setSettingsNotice(t('baseChatAst.memory.deleted'));
-      await loadMemories();
-    } catch (error) {
-      console.error('Agent memory delete request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
-  async function toggleMemoryEnabled(enabled: boolean) {
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch('/api/agent-memory/preferences', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ projectId: settings.id, enabled }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        preference?: { enabled?: boolean };
-        error?: string;
-      };
-
-      if (!response.ok) {
-        console.warn('Agent memory preference update failed', {
-          status: response.status,
-          serverError: payload.error,
-        });
-        setMemoryError(t('baseChatAst.memory.preferenceUpdateFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      setMemoryEnabled(payload.preference?.enabled !== false);
-      setSettingsNotice(t(enabled ? 'baseChatAst.memory.enabled' : 'baseChatAst.memory.disabled'));
-    } catch (error) {
-      console.error('Agent memory preference update failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
-  function startEditMemory(memory: any) {
-    setMemoryEditId(memory.id);
-    setMemoryEditDraft(memory.content ?? memory.summary ?? '');
-    setMemoryEditType(memory.memoryType ?? 'semantic');
-    setMemoryEditTags(Array.isArray(memory.tags) ? memory.tags.join(', ') : '');
-  }
-
-  async function saveEditedMemory(memoryId: string) {
-    if (!memoryEditDraft.trim()) {
-      return;
-    }
-
-    setMemoryLoading(true);
-    setMemoryError(undefined);
-
-    try {
-      const response = await fetch(`/api/agent-memory/${encodeURIComponent(memoryId)}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({
-          content: memoryEditDraft,
-          memoryType: memoryEditType,
-          tags: parseMemoryTags(memoryEditTags),
-        }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-      if (!response.ok) {
-        console.warn('Agent memory update request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.updateFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
-      }
-
-      setMemoryEditId(undefined);
-      setMemoryEditDraft('');
-      setMemoryEditTags('');
-      setSettingsNotice(t('baseChatAst.memory.updated'));
-      await loadMemories();
-    } catch (error) {
-      console.error('Agent memory update request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-    } finally {
-      setMemoryLoading(false);
-    }
-  }
-
   return (
-    <div
-      className={`bolt-project-settings-hub ${settingsTab === 'usage' || settingsTab === 'memory' ? settingsPanelStyles.panel : ''}`}
-      data-testid="settings-hub-panel"
-    >
+    <div className={`bolt-project-settings-hub ${settingsPanelStyles.panel}`} data-testid="settings-hub-panel">
       <header>
         <div>
           <h3>{t('chat.copy.accountSettings_e3270761')}</h3>
           <p>{t('chat.copy.projectIdentitySecurityBillingAiCredentials_63be3c90')}</p>
         </div>
-        {settingsNotice ? (
+        {(settingsTab === 'memory' ? memoryNotice : settingsNotice) ? (
           <span className="bolt-project-settings-status" role="status" aria-live="polite">
-            {settingsNotice}
+            {settingsTab === 'memory' ? memoryNotice : settingsNotice}
           </span>
         ) : null}
         <a href={`/api/projects/${settings.id}/project-action?intent=export`} target="_blank" rel="noreferrer">
@@ -16556,7 +16506,8 @@ function ProjectSettingsPanel({
                   {t('chat.copy.displayName_c7874aaa')}
                   <PanelInput
                     name="name"
-                    defaultValue={accountUser.name ?? ''}
+                    value={formDraft.values['profile.name'] ?? ''}
+                    onChange={(event) => formDraft.setField('profile.name', event.currentTarget.value)}
                     required
                     aria-label={t('chat.copy.displayName_c7874aaa')}
                   />
@@ -16566,7 +16517,8 @@ function ProjectSettingsPanel({
                   <PanelInput
                     name="email"
                     type="email"
-                    defaultValue={accountUser.email ?? ''}
+                    value={formDraft.values['profile.email'] ?? ''}
+                    onChange={(event) => formDraft.setField('profile.email', event.currentTarget.value)}
                     required
                     aria-label={t('chat.copy.emailAddress_c94d3175')}
                   />
@@ -17247,7 +17199,11 @@ function ProjectSettingsPanel({
                 </div>
                 <label>
                   {t('chat.copy.theme_a797e309')}
-                  <select name="theme" defaultValue={preferences.theme}>
+                  <select
+                    name="theme"
+                    value={formDraft.values['preferences.theme'] ?? ''}
+                    onChange={(event) => formDraft.setField('preferences.theme', event.currentTarget.value)}
+                  >
                     <option value="dark">{t('chat.copy.dark_ae1ef014')}</option>
                     <option value="light">{t('chat.copy.light_a36ef8ab')}</option>
                     <option value="system">{t('chat.copy.system_bc0792d8')}</option>
@@ -17267,7 +17223,11 @@ function ProjectSettingsPanel({
                 </label>
                 <label>
                   {t('chat.copy.keyboardMode_648b32a7')}
-                  <select name="keyboardMode" defaultValue={String(Boolean(preferences.keyboardMode))}>
+                  <select
+                    name="keyboardMode"
+                    value={formDraft.values['preferences.keyboardMode'] ?? ''}
+                    onChange={(event) => formDraft.setField('preferences.keyboardMode', event.currentTarget.value)}
+                  >
                     <option value="false">{t('chat.copy.standardBrowserShortcuts_ac1cbde1')}</option>
                     <option value="true">{t('chat.copy.hardwareKeyboardIdeShortcuts_80e616e2')}</option>
                   </select>
@@ -17279,7 +17239,10 @@ function ProjectSettingsPanel({
                     type="number"
                     min="10"
                     max="100"
-                    defaultValue={preferences.creditAlertThreshold ?? 80}
+                    value={formDraft.values['preferences.creditAlertThreshold'] ?? ''}
+                    onChange={(event) =>
+                      formDraft.setField('preferences.creditAlertThreshold', event.currentTarget.value)
+                    }
                   />
                 </label>
                 <PanelButton disabled={busy}>{t('chat.copy.savePreferences_d8ab74e1')}</PanelButton>
@@ -17323,7 +17286,10 @@ function ProjectSettingsPanel({
                             </span>
                             <input
                               name={`keybinding:${binding.action}`}
-                              defaultValue={binding.combo}
+                              value={formDraft.values[`keybinding:${binding.action}`] ?? binding.combo}
+                              onChange={(event) =>
+                                formDraft.setField(`keybinding:${binding.action}`, event.currentTarget.value)
+                              }
                               spellCheck={false}
                               autoCapitalize="none"
                               aria-label={t('chat.copy.value0Shortcut_3842fc24', { value0: binding.label })}
@@ -17438,6 +17404,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const language = resolvedBaseChatLanguage(i18n);
   const [prefix, setPrefix] = useState('');
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [statusProbeFailed, setStatusProbeFailed] = useState(false);
 
   // Per-project bucket provisioning (Replit App Storage first-run). null = unknown.
   const [provisioned, setProvisioned] = useState<boolean | null>(null);
@@ -17479,9 +17446,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         body: form,
       });
 
-      return (await response.json().catch(() => ({}))) as any;
+      const result = (await response.json().catch(() => ({}))) as any;
+
+      if (fields.intent === 'status' && !response.ok) {
+        console.warn('Object storage status request failed', { status: response.status, serverError: result.error });
+        throw new Error(t('baseChatAst.storage.unreachable'));
+      }
+
+      return result;
     },
-    [projectId],
+    [projectId, t],
   );
 
   const refresh = useCallback(
@@ -17530,6 +17504,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       return;
     }
 
+    setStatusProbeFailed(false);
+    setEnabled(null);
+    setProvisioned(null);
+    setStatus(null);
+
     /*
      * `enabled === null` renders "Checking object storage…", so ANY unresolved
      * probe left that spinner on screen forever with no error — which is what
@@ -17541,11 +17520,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     try {
       const result = await postIntent({ intent: 'status' });
 
-      if (!result || result.error) {
+      if (
+        !result ||
+        result.error ||
+        typeof result.enabled !== 'boolean' ||
+        (result.enabled && typeof result.provisioned !== 'boolean')
+      ) {
         console.warn('Object storage status request failed', { serverError: result?.error });
         setEnabled(false);
-        setProvisioned(false);
-        setStatus(t('baseChatAst.storage.unreachable'));
+        setProvisioned(null);
+        setStatusProbeFailed(true);
 
         return;
       }
@@ -17555,8 +17539,8 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     } catch (error) {
       console.error('Object storage status request failed', error);
       setEnabled(false);
-      setProvisioned(false);
-      setStatus(t('baseChatAst.storage.unreachable'));
+      setProvisioned(null);
+      setStatusProbeFailed(true);
     }
   }, [postIntent, projectId, t]);
 
@@ -17576,6 +17560,8 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     if (enabled !== null) {
       return undefined;
     }
+
+    setCheckSeconds(0);
 
     const started = Date.now();
     const timer = setInterval(() => setCheckSeconds(Math.round((Date.now() - started) / 1000)), 1000);
@@ -17797,6 +17783,25 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const visibleObjects = normalizedFilter
     ? objects.filter((object) => object.key.replace(prefix, '').toLowerCase().includes(normalizedFilter))
     : objects;
+
+  if (statusProbeFailed) {
+    return (
+      <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
+        <div className="grid justify-items-center gap-3" role="alert">
+          <PanelEmptyState icon="i-ph:warning-circle" title={t('baseChatAst.storage.unreachable')} />
+          <PanelButton
+            type="button"
+            variant="outline"
+            onClick={() => void loadStatus()}
+            disabled={busy}
+            className="w-fit"
+          >
+            {t('chat.copy.retry_9f5cd8a2')}
+          </PanelButton>
+        </div>
+      </div>
+    );
+  }
 
   if (enabled === null) {
     /*
@@ -18511,7 +18516,12 @@ function ProjectSkillsPanel({
                   <div className="min-w-0">
                     <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
                     {skill.description ? (
-                      <span className="block text-xs text-bolt-elements-textSecondary">{skill.description}</span>
+                      <span
+                        className="block text-xs text-bolt-elements-textSecondary"
+                        style={{ overflowWrap: 'anywhere' }}
+                      >
+                        {skill.description}
+                      </span>
                     ) : null}
                   </div>
                   <button
@@ -19156,6 +19166,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                 key={manager}
                 type="button"
                 className={manager === packageManager ? 'selected' : undefined}
+                aria-pressed={manager === packageManager}
                 onClick={() => setPackageManager(manager)}
               >
                 {manager}
@@ -19339,7 +19350,7 @@ function ProjectPortsPanel({
             {ports.map((entry) => {
               const portNumber = entry.port;
               const isPrimary = primaryPort != null && Number(primaryPort) === Number(portNumber);
-              const vis = visibility[String(portNumber)] ?? t('chat.copy.public_61c9b2b1');
+              const vis = visibility[String(portNumber)] ?? 'public';
 
               return (
                 <div
@@ -19357,7 +19368,7 @@ function ProjectPortsPanel({
                       {entry.ready ? t('chat.copy.ready_75c05337') : t('chat.copy.starting_9493af05')}
                     </span>
                     <span className="ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary">
-                      {vis}
+                      {visibility[String(portNumber)] ?? t('chat.copy.public_61c9b2b1')}
                     </span>
                     {entry.url ? (
                       <div className="mt-0.5 truncate font-mono text-bolt-elements-textSecondary">{entry.url}</div>
@@ -19854,7 +19865,10 @@ function ProjectAgentStudioPanel({
   ] as const;
 
   return (
-    <div className="bolt-project-monitoring-panel" aria-label={t('chat.copy.agentStudioSupervisor_fc1ab50e')}>
+    <div
+      className="bolt-project-monitoring-panel bolt-project-agent-studio"
+      aria-label={t('chat.copy.agentStudioSupervisor_fc1ab50e')}
+    >
       <div className="bolt-project-panel-toolbar">
         <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refresh_56e3badc')}
@@ -21824,11 +21838,25 @@ function maskEnvValue(t: TFunction, value: string): string {
   return '•'.repeat(Math.min(Math.max(value.length, 4), 12));
 }
 
-function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
+function ProjectEnvPanel({
+  projectId,
+  paneId,
+  data,
+  onSubmit,
+  busy,
+}: {
+  projectId?: string;
+  paneId?: string;
+  data: any;
+  onSubmit: any;
+  busy: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const language = resolvedBaseChatLanguage(i18n);
   const envVars: Array<{ key: string; value?: string; scope?: string; updatedAt?: string }> = data.envVars ?? [];
-  const [query, setQuery] = useState('');
+  const { values: filterValues, setField } = useIdeSettingsFormDraft(projectId ?? '', paneId, { 'env.filter': '' });
+  const query = filterValues['env.filter'] ?? '';
+  const setQuery = (value: string) => setField('env.filter', value);
   const [activeScope, setActiveScope] = useState<EnvVarScope>('production');
   const [showDiff, setShowDiff] = useState(false);
   const [revealDiff, setRevealDiff] = useState(false);
@@ -22298,6 +22326,7 @@ function ProjectSecurityPanel({
   data,
   project,
   projectId,
+  paneId,
   onSubmit,
   busy,
   reload,
@@ -22305,6 +22334,7 @@ function ProjectSecurityPanel({
   data: any;
   project: any;
   projectId?: string;
+  paneId?: string;
   onSubmit: any;
   busy: boolean;
   reload?: () => void | Promise<void>;
@@ -22316,6 +22346,11 @@ function ProjectSecurityPanel({
   const { session: scanSession, snapshot: scanState } = useSecurityScanSession(projectId, reload);
   const state = data.securityState ?? {};
   const settings = state.settings ?? {};
+
+  const formDraft = useIdeSettingsFormDraft(projectId ?? '', paneId, {
+    'security.profile': settings.scannerProfile ?? 'workspace-runtime',
+  });
+
   const scans = state.scans ?? [];
   const vulnerabilities = state.vulnerabilities ?? [];
   const activeVulnerabilities = vulnerabilities.filter((item: any) => !item.hidden);
@@ -22512,7 +22547,11 @@ function ProjectSecurityPanel({
               <input name="intent" value="settings" type="hidden" />
               <label>
                 <span>{t('chat.copy.scannerProfile_60cef8cf')}</span>
-                <select name="scannerProfile" defaultValue={settings.scannerProfile ?? 'workspace-runtime'}>
+                <select
+                  name="scannerProfile"
+                  value={formDraft.values['security.profile']}
+                  onChange={(event) => formDraft.setField('security.profile', event.currentTarget.value)}
+                >
                   <option value="workspace-runtime">{t('chat.copy.fullWorkspaceRuntime_45bcb64f')}</option>
                   <option value="sca">{t('chat.copy.scaOnly_2a97c363')}</option>
                   <option value="secrets">{t('chat.copy.secretsOnly_0b9d03ca')}</option>
@@ -22972,7 +23011,7 @@ function ProjectDebuggerPanel({
   }, [hasLiveDebugger, reload, busy]);
 
   return (
-    <div className="grid gap-4">
+    <div className="bolt-project-debugger-panel grid gap-4">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
           [t('baseChatAst.debugger.launchConfigs'), launchConfigs.length],
@@ -22995,7 +23034,7 @@ function ProjectDebuggerPanel({
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="bolt-project-debugger-layout grid gap-4">
         <section className="grid gap-4">
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -23098,7 +23137,7 @@ function ProjectDebuggerPanel({
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="bolt-project-debugger-inspection grid gap-4">
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
               <PanelSectionTitle>{t('chat.copy.breakpoints_21a8752f')}</PanelSectionTitle>
               <div className="mt-3 grid gap-2">
@@ -23127,7 +23166,7 @@ function ProjectDebuggerPanel({
                             </div>
                           ) : null}
                         </div>
-                        <form onSubmit={onSubmit}>
+                        <form className="shrink-0" onSubmit={onSubmit}>
                           <input name="intent" value="delete-breakpoint" type="hidden" />
                           <input name="breakpointId" value={breakpoint.id} type="hidden" />
                           <PanelButton disabled={busy} variant="outline">

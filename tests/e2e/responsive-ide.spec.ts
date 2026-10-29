@@ -1730,6 +1730,152 @@ createServer((request, response) => {
     }
   });
 
+  test('Search preserves focus through a delayed mobile shell handoff and Back', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'single isolated 390px regression');
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const { projectId } = await createTestProjectFixture(page, 'Search startup focus project');
+
+    let memoryRequested = false;
+    let releaseMemory!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      releaseMemory = resolve;
+    });
+    await page.route(`**/api/projects/${projectId}/ide-state`, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+
+      memoryRequested = true;
+      await gate;
+      await route.fulfill({ json: { ideState: { version: 1, state: {} } } });
+    });
+
+    try {
+      await page.goto(`/projects/${projectId}/ide?panel=search`, { waitUntil: 'domcontentloaded' });
+
+      const query = page.locator('input[data-search-draft-field="query"]').filter({ visible: true }).first();
+      await expect(query).toBeVisible();
+      await expect.poll(() => memoryRequested).toBe(true);
+      await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'search');
+      await query.fill('alpha');
+      await expect(query).toHaveValue('alpha');
+      await query.evaluate((input: HTMLInputElement) => {
+        input.focus();
+        input.setSelectionRange(1, 4, 'backward');
+      });
+
+      const original = await query.elementHandle();
+      expect(original).not.toBeNull();
+      releaseMemory();
+      await expect.poll(() => original!.evaluate((input) => !input.isConnected), { timeout: 30_000 }).toBe(true);
+      await expect(query).toBeFocused();
+      await expect(query).toHaveValue('alpha');
+      await expect
+        .poll(() =>
+          query.evaluate((input: HTMLInputElement) => [
+            input.selectionStart,
+            input.selectionEnd,
+            input.selectionDirection,
+          ]),
+        )
+        .toEqual([1, 4, 'backward']);
+      await mobileBottomNavigation(page).getByTestId('tab-agent').click();
+      await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+
+      /*
+       * The compact surface changes before the router commits its loader/history entry.
+       * Back must start from Agent's committed URL, not the still-pending Search entry.
+       */
+      await expect(page).toHaveURL(
+        (url) => url.pathname === `/projects/${projectId}/ide` && !url.searchParams.has('panel'),
+      );
+      await page.goBack();
+      await expect(page).toHaveURL((url) => url.searchParams.get('panel') === 'search');
+
+      // POP changes the address bar before React Router applies the destination.
+      await page.waitForFunction((id) => {
+        const router = (
+          window as typeof window & {
+            __reactRouterDataRouter?: {
+              state: { location: { pathname: string; search: string }; navigation: { state: string } };
+            };
+          }
+        ).__reactRouterDataRouter?.state;
+
+        return (
+          router?.navigation.state === 'idle' &&
+          router.location.pathname === `/projects/${id}/ide` &&
+          new URLSearchParams(router.location.search).get('panel') === 'search'
+        );
+      }, projectId);
+
+      try {
+        await expect(query).toBeVisible();
+      } catch (error) {
+        const diagnostic = await page
+          .evaluate(() => {
+            const router = (
+              window as typeof window & {
+                __reactRouterDataRouter?: {
+                  state: {
+                    location: { pathname: string; search: string; key: string };
+                    navigation: { state: string };
+                  };
+                };
+              }
+            ).__reactRouterDataRouter?.state;
+
+            return {
+              pathname: location.pathname,
+              search: location.search,
+              router: router
+                ? {
+                    pathname: router.location.pathname,
+                    search: router.location.search,
+                    key: router.location.key,
+                    navigation: router.navigation.state,
+                  }
+                : null,
+              surfaces: Array.from(document.querySelectorAll('.bolt-responsive-ide')).map((element) => ({
+                mobilePanel: element.getAttribute('data-mobile-panel'),
+              })),
+              workbenches: Array.from(document.querySelectorAll('[data-testid="mobile-workbench-keepalive"]')).map(
+                (element) => ({
+                  active: element.getAttribute('data-active'),
+                  hidden: element.getAttribute('aria-hidden'),
+                }),
+              ),
+              queryCount: document.querySelectorAll('input[data-search-draft-field="query"]').length,
+            };
+          })
+          .catch(() => ({ diagnosticUnavailable: true }));
+        const visibleQueryCount = await page
+          .locator('input[data-search-draft-field="query"]')
+          .filter({ visible: true })
+          .count()
+          .catch(() => null);
+
+        // Route and visibility metadata only: no search text, editor content or prompts.
+        console.info('Search Back visibility diagnostic', JSON.stringify({ ...diagnostic, visibleQueryCount }));
+        throw error;
+      }
+
+      await expect(query).toHaveValue('alpha');
+      await expect(query).not.toBeFocused();
+      await page.goForward();
+      await expect(page).toHaveURL(
+        (url) => url.pathname === `/projects/${projectId}/ide` && !url.searchParams.has('panel'),
+      );
+      await expect(page.getByTestId('ide-agent-panel')).toBeVisible();
+    } finally {
+      releaseMemory();
+    }
+  });
+
   test('mobile can deep-link to real IDE service panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
     test.setTimeout(120_000);

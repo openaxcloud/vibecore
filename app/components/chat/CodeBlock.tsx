@@ -120,54 +120,49 @@ export const CodeBlock = memo(
 
     return (
       <div className={classNames('relative group text-left', className)}>
-        {languageLabel && (
-          <span
-            className="absolute top-[10px] left-[12px] z-10 select-none rounded text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary opacity-70 group-hover:opacity-100"
-            aria-hidden
-          >
-            {languageLabel}
-          </span>
+        {(languageLabel || !disableCopy) && (
+          <div className={styles.Header}>
+            {languageLabel && (
+              <span
+                className="min-w-0 select-none rounded text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary opacity-70 group-hover:opacity-100"
+                style={{ overflowWrap: 'anywhere' }}
+                aria-hidden
+              >
+                {languageLabel}
+              </span>
+            )}
+            {!disableCopy && (
+              <div
+                className={classNames(
+                  styles.CopyButtonContainer,
+                  'flex items-center justify-center rounded-md bg-transparent text-lg',
+                  coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100',
+                  { 'opacity-100': copyStatus !== 'idle' },
+                )}
+              >
+                <button
+                  className={classNames(
+                    styles.CopyButton,
+                    'flex min-h-11 min-w-11 items-center justify-center rounded-md p-[6px] transition-theme before:!hidden',
+                  )}
+                  type="button"
+                  aria-label={
+                    copyStatus === 'copied' ? copy['chatResiduals.code.copied'] : copy['chatResiduals.code.copy']
+                  }
+                  title={copyStatus === 'copied' ? copy['chatResiduals.code.copied'] : copy['chatResiduals.code.copy']}
+                  onClick={() => void copyToClipboard()}
+                >
+                  <div className="i-ph:clipboard-text-duotone" aria-hidden></div>
+                </button>
+              </div>
+            )}
+            {copyStatus !== 'idle' ? (
+              <span className={styles.CopyStatus} role="status">
+                {copyStatus === 'copied' ? copy['chatResiduals.code.copied'] : copy['chatResiduals.code.copyFailed']}
+              </span>
+            ) : null}
+          </div>
         )}
-        <div
-          className={classNames(
-            styles.CopyButtonContainer,
-            'absolute right-[10px] top-[10px] z-10 flex items-center justify-center rounded-md bg-transparent text-lg',
-
-            /*
-             * Le repli par POINT DE RUPTURE (`sm:`) couvrait le telephone mais
-             * pas la TABLETTE tactile : a 768 ou 1024 px, `sm:` s'applique et il
-             * n'y a pourtant pas plus de survol qu'a 390. On decide donc sur le
-             * POINTEUR, pas sur la largeur.
-             */
-            coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100',
-            {
-              'rounded-l-0 opacity-100': copyStatus !== 'idle',
-            },
-          )}
-        >
-          {copyStatus !== 'idle' ? (
-            <span
-              className="absolute right-full mr-1 flex min-h-8 max-w-[min(240px,calc(100vw-80px))] items-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1 text-xs text-bolt-elements-textPrimary shadow-lg"
-              role="status"
-            >
-              {copyStatus === 'copied' ? copy['chatResiduals.code.copied'] : copy['chatResiduals.code.copyFailed']}
-            </span>
-          ) : null}
-          {!disableCopy && (
-            <button
-              className={classNames(
-                styles.CopyButton,
-                'flex min-h-11 min-w-11 items-center justify-center rounded-md p-[6px] transition-theme before:!hidden',
-              )}
-              type="button"
-              aria-label={copyStatus === 'copied' ? copy['chatResiduals.code.copied'] : copy['chatResiduals.code.copy']}
-              title={copy['chatResiduals.code.copy']}
-              onClick={() => void copyToClipboard()}
-            >
-              <div className="i-ph:clipboard-text-duotone" aria-hidden></div>
-            </button>
-          )}
-        </div>
         {highlightFailed ? (
           <div>
             <p className="px-3 pt-3 text-xs text-bolt-elements-textSecondary" role="status">

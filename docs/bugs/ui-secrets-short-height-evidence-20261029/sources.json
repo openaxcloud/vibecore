@@ -1,0 +1,192 @@
+[
+  {
+    "file": "secrets/compiled-acceptance.cjs",
+    "source": "/workspace/ui845-short-height-red/compiled-acceptance.cjs",
+    "sourceSha256": "cf303fcf9bc9889ce4c06f30c58bed6ac2beecd2318301bdbec5daf3c46641d4"
+  },
+  {
+    "file": "secrets/counter-bounded.cjs",
+    "source": "/workspace/ui845-short-height-red/counter-bounded.cjs",
+    "sourceSha256": "d3a636632fcf53d126832c76bc4b4c23a33648672d855039c6a5e2392abde2f9"
+  },
+  {
+    "file": "secrets/diagnose.cjs",
+    "source": "/workspace/ui845-short-height-red/diagnose.cjs",
+    "sourceSha256": "824d3a52d0b792c6567a767c01bb821a1c942026132a3b60a74d328eac529521"
+  },
+  {
+    "file": "secrets/diagnose-wheel.cjs",
+    "source": "/workspace/ui845-short-height-red/diagnose-wheel.cjs",
+    "sourceSha256": "39335f115c84fb4f0a24c3fa2b477f00ee8abe04a60988266682b2509ef3fc49"
+  },
+  {
+    "file": "secrets/counter-height.cjs",
+    "source": "/workspace/ui845-short-height-red/counter-height.cjs",
+    "sourceSha256": "0a78c8ed05a091ec899b96a70e53adabc861ae683bec34a6547dc8641b7bebe9"
+  },
+  {
+    "file": "secrets/counter-height/receipt.json",
+    "source": "/workspace/ui845-short-height-red/counter-height/receipt.json",
+    "sourceSha256": "ad96620ed87133e81c21d85a3d6d2169b6745fdd17e81e99fb5d0a95da7dc2a0"
+  },
+  {
+    "file": "secrets/counter-bounded/receipt.json",
+    "source": "/workspace/ui845-short-height-red/counter-bounded/receipt.json",
+    "sourceSha256": "9f4a6cb3d2dcb1a36d61d63a3e21e99a4c06ff7cc8734b216a5d3056f9045292"
+  },
+  {
+    "file": "secrets/baseline-wheel/receipt.json",
+    "source": "/workspace/ui845-short-height-red/baseline-wheel/receipt.json",
+    "sourceSha256": "94474786cf74f7a0a807ed67cbd15e1d58a5ba5d3422c9b9392dde2062fdb6d1"
+  },
+  {
+    "file": "secrets/baseline/receipt.json",
+    "source": "/workspace/ui845-short-height-red/baseline/receipt.json",
+    "sourceSha256": "fd77aa58a659165e5c06e24f22bd20899dd4113a2a2e556ed45917bb01ec3bf5"
+  },
+  {
+    "file": "search/README.md",
+    "source": "/workspace/ui845-search-selection/README.md",
+    "sourceSha256": "a1e0f17eb798309b2d5d388c54289e34249cad37132424bd5fa7ca5ac7df8c44"
+  },
+  {
+    "file": "search/probe-identity.cjs",
+    "source": "/workspace/ui845-search-selection/probe-identity.cjs",
+    "sourceSha256": "4ff3ad53a75416c2ac3a12ea3f6f24dd558e8a3048fdac9f4e2c7327fbde355b"
+  },
+  {
+    "file": "search/probe.cjs",
+    "source": "/workspace/ui845-search-selection/probe.cjs",
+    "sourceSha256": "f5365039bc800f1452107e7d19aec4d0572f441ab5823d8d4719a9934668dc3f"
+  },
+  {
+    "file": "search/identity/receipt.json",
+    "source": "/workspace/ui845-search-selection/identity/receipt.json",
+    "sourceSha256": "43b1b2548c63261e696af1a855b16fb2ad254951b6236a6af1f3d4468f3041b7"
+  },
+  {
+    "file": "search/baseline/receipt.json",
+    "source": "/workspace/ui845-search-selection/baseline/receipt.json",
+    "sourceSha256": "d0c9428c432bf377dc814e10282ee661c6b735c66320fdbb8ed6ff7234a8b4c7"
+  },
+  {
+    "file": "secrets/compiled-acceptance/receipt.json",
+    "source": "/workspace/ui845-short-height-red/compiled-acceptance/receipt.json",
+    "sourceSha256": "8a19abe9c2c3e3fb6f1539ba58f44e633cf17c7a2fe330dfbc5100f3116b1f07"
+  },
+  {
+    "file": "secrets/compiled-acceptance-harness-fixed/receipt.json",
+    "source": "/workspace/ui845-short-height-red/compiled-acceptance-harness-fixed/receipt.json",
+    "sourceSha256": "ac69e07ed15fa754bd4d65cd5d780a8aeefcd64a7dd4214d5023430ef7392f2f"
+  },
+  {
+    "file": "secrets/README.md",
+    "source": "/workspace/ui845-short-height-red/README.md",
+    "sourceSha256": "ecefaab8172f04b607d0b4eb4bb83081c551fb50129dc7a80effb05a91b53c0f"
+  },
+  {
+    "file": "secrets/compiled-boundary-keyboard-draft/receipt.json",
+    "source": "/workspace/ui845-short-height-red/compiled-boundary-keyboard-draft/receipt.json",
+    "sourceSha256": "01106cb03c5247a3128d5428008a0752270f130280b72a6a0b8280c03169356a"
+  },
+  {
+    "file": "secrets/compiled-boundary-keyboard-settled/receipt.json",
+    "source": "/workspace/ui845-short-height-red/compiled-boundary-keyboard-settled/receipt.json",
+    "sourceSha256": "65b559d1eaed0dfa615a4ca6aab14f82aa63434d2fe666475b44ffc607cd6b82"
+  },
+  {
+    "file": "secrets/compiled-capture-help/receipt.json",
+    "source": "/workspace/ui845-short-height-red/compiled-capture-help/receipt.json",
+    "sourceSha256": "b08ba3a1780dc90f2d25077df05190c3c12c8def8865f8e2a21e7ef9afaaa502"
+  },
+  {
+    "file": "independent/receipt.json",
+    "source": "/workspace/ui845-independent/receipt.json",
+    "sourceSha256": "e429c208b7628638f2dfa4c69ca0741e729e02728e9d259a68eb24d95e02ea7f"
+  },
+  {
+    "file": "independent/receipt-initial-frame-init-error.json",
+    "source": "/workspace/ui845-independent/receipt-initial-frame-init-error.json",
+    "sourceSha256": "0a36d090cbaaa4d43ec050822f87bdb5db7b889dc0fbe9b4ecb34e46234e9e6a"
+  },
+  {
+    "file": "independent/check.cjs",
+    "source": "/workspace/ui845-independent/check.cjs",
+    "sourceSha256": "88424547f8a9a74dd1d095195667f8f4f39c01895ff75675a9475edd4ce7994f"
+  },
+  {
+    "file": "help-scroll/before/receipt.json",
+    "source": "/workspace/ui845-help-scroll/before/receipt.json",
+    "sourceSha256": "d3321244faaaed7ce041d57981672afa7750ab8392505bfe568a761128fa3844"
+  },
+  {
+    "file": "help-scroll/probe.cjs",
+    "source": "/workspace/ui845-help-scroll/probe.cjs",
+    "sourceSha256": "488e07a6d76a90a279e81e0bcc3b1320147ea47f7e3e3dbea0035f3219822af3"
+  },
+  {
+    "file": "help-scroll/README.md",
+    "source": "/workspace/ui845-help-scroll/README.md",
+    "sourceSha256": "9b65bd31abce7cedba308a117cfc4df8ec4bb24f64787b4e072fe8ec5c02dac4"
+  },
+  {
+    "file": "help-scroll/final/receipt.json",
+    "source": "/workspace/ui845-help-scroll/final/receipt.json",
+    "sourceSha256": "f59a99a9e7424ab079218477c869e5d58dd78995bd6b7b24a6dbe1bf8a144473"
+  },
+  {
+    "file": "captures/820-fr-200-help-last-line.png",
+    "source": "/workspace/ui845-help-scroll/final/820-fr-200-last-line.png",
+    "sourceSha256": "b6636c8c615979138e8eca35de591d7deb51e42904507386b8e1150457fadf03"
+  },
+  {
+    "file": "captures/820-fr-200-focus-after.jpg",
+    "source": "/workspace/ui845-short-height-red/compiled-capture-help/820-fr-200-focus-after.jpg",
+    "sourceSha256": "6b25c4360e19302878dfb0fbcce9936b9bba27ecde7e501977d28a43606536f9"
+  },
+  {
+    "file": "help-scroll/probe-final.cjs",
+    "source": "/workspace/ui845-help-scroll/probe-final.cjs",
+    "sourceSha256": "6e7d7e3365efb8550b723174abe854ef8b2f83be82c9193ca262a0bd2fa28be4"
+  },
+  {
+    "file": "secrets/boundary-keyboard-settled.cjs",
+    "source": "/workspace/ui845-short-height-red/boundary-keyboard-settled.cjs",
+    "sourceSha256": "8c3501e76055c449c3ee918e470bb481bc3414efa905cc100ea6711e6a25e0c8"
+  },
+  {
+    "file": "ci-resize-diagnostic/README.md",
+    "source": "/workspace/ui845-ci-resize-diagnostic/README.md",
+    "sourceSha256": "7f08e81879702e75134b85087df11c8eb4434a58f6aeba9fd1dc236954f1b74c"
+  },
+  {
+    "file": "ci-resize-diagnostic/exact.cjs",
+    "source": "/workspace/ui845-ci-resize-diagnostic/exact.cjs",
+    "sourceSha256": "cff0ab3a0a70df35dbf3dfadf9515b0f8b95588b8afff6b2aadae9a647c42d06"
+  },
+  {
+    "file": "ci-resize-diagnostic/exact-sequence/receipt.json",
+    "source": "/workspace/ui845-ci-resize-diagnostic/exact-sequence/receipt.json",
+    "sourceSha256": "62140ea805fdb41038d5c65131cd6b524b7f3c935ff7df9ee0b0d4b96501e508"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states.cjs",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states.cjs",
+    "sourceSha256": "2977f889a6f5e92fcccad5c724fb941770a8690960e65686a8f79b8fd6dbd1b6"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states/receipt.json",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states/receipt.json",
+    "sourceSha256": "ce83e41682929dac53dbdc03b921ee1a85082665437cd00a43ad786d701e12c3"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states-ci-profile.cjs",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states-ci-profile.cjs",
+    "sourceSha256": "375faffc5d2d171aaad6233d9fde81f74a76e0f313fa2e52ff1f635110b3953c"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states-ci-profile/receipt.json",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states-ci-profile/receipt.json",
+    "sourceSha256": "2f0e3f5ef72a2749950494faa0d92357781d2ac9066317526714c4986e2a1c10"
+  }
+]

@@ -1,0 +1,48 @@
+{
+  "children": [
+    {
+      "role": "app",
+      "before": {
+        "pid": 77239,
+        "startTicks": "4915343",
+        "state": "S",
+        "argv": [
+          "node",
+          "--require",
+          "./docs/bugs/ui-agent-evidence-2026-10-27/harness/network-guard.cjs",
+          "node_modules/@react-router/serve/bin.js",
+          "build/server/index.js"
+        ]
+      },
+      "signals": [
+        "SIGTERM",
+        "SIGKILL"
+      ],
+      "exitCode": -9,
+      "afterWait": null
+    },
+    {
+      "role": "fixture",
+      "before": {
+        "pid": 77238,
+        "startTicks": "4915342",
+        "state": "S",
+        "argv": [
+          "node",
+          "docs/bugs/ui-agent-evidence-2026-10-27/harness/fixture.cjs"
+        ]
+      },
+      "signals": [
+        "SIGTERM"
+      ],
+      "exitCode": -15,
+      "afterWait": null
+    }
+  ],
+  "ports": {
+    "20999": 111,
+    "8699": 111
+  },
+  "waitCalled": true,
+  "launcherAbsent": true
+}

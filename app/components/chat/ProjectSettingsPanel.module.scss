@@ -2,7 +2,8 @@
   container-name: project-settings;
 }
 
-.panel.panel .responsiveGrid {
+.panel.panel .responsiveGrid,
+.panel.panel :global(.bolt-project-settings-grid) {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
 }
 
@@ -23,6 +24,8 @@
 }
 
 .panel.panel :global(.bolt-project-settings-card) {
+  grid-template-columns: minmax(0, 1fr);
+
   label,
   input,
   select,
@@ -37,7 +40,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .panel.panel :global(.bolt-project-settings-sidebar) {
+  :global(.bolt-responsive-ide-desktop) .panel.panel :global(.bolt-project-settings-sidebar) {
     position: static;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));

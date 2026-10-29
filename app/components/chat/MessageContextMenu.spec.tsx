@@ -305,7 +305,7 @@ describe('BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défil
       'useMenuContextuelDeMessage(messageId ? `assistant:${messageId}` : undefined)',
     );
     expect(lire('./UserMessage.tsx')).toContain(
-      'useMenuContextuelDeMessage(messageId ? `user:${messageId}` : undefined)',
+      'useMenuContextuelDeMessage(messageId ? `user:${messageId}` : undefined, editable)',
     );
 
     const feuille = lire('../../styles/index.scss');
@@ -377,7 +377,11 @@ describe('clavier du message et contrôles descendants', () => {
   });
 
   it.each(['Enter', ' ', 'F10'])('respecte %j déjà consommé par l’enfant', (key) => {
-    render(<BulleClavier consume />);
+    render(
+      <div className="bolt-chat-message-row" tabIndex={0}>
+        <BulleClavier consume />
+      </div>,
+    );
     expect(fireEvent.keyDown(screen.getByTestId('champ-enfant'), { key, shiftKey: key === 'F10' })).toBe(false);
     expect(screen.queryByRole('menu')).toBeNull();
   });

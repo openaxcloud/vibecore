@@ -1,0 +1,996 @@
+[
+  {
+    "width": 320,
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/stop"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "height": 0,
+      "width": 0,
+      "display": "",
+      "position": "",
+      "grid": "",
+      "hubWidth": 0,
+      "buttons": [
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        }
+      ]
+    },
+    "after": {
+      "height": 58,
+      "width": 288,
+      "display": "flex",
+      "position": "sticky",
+      "grid": "none",
+      "hubWidth": 288,
+      "buttons": [
+        {
+          "height": 44,
+          "scroll": 73,
+          "client": 73
+        },
+        {
+          "height": 44,
+          "scroll": 81,
+          "client": 81
+        },
+        {
+          "height": 44,
+          "scroll": 39,
+          "client": 39
+        },
+        {
+          "height": 44,
+          "scroll": 67,
+          "client": 67
+        },
+        {
+          "height": 44,
+          "scroll": 81,
+          "client": 81
+        },
+        {
+          "height": 44,
+          "scroll": 82,
+          "client": 82
+        },
+        {
+          "height": 44,
+          "scroll": 107,
+          "client": 107
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 390,
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/stop"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "height": 0,
+      "width": 0,
+      "display": "",
+      "position": "",
+      "grid": "",
+      "hubWidth": 0,
+      "buttons": [
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        }
+      ]
+    },
+    "after": {
+      "height": 58,
+      "width": 358,
+      "display": "flex",
+      "position": "sticky",
+      "grid": "none",
+      "hubWidth": 358,
+      "buttons": [
+        {
+          "height": 44,
+          "scroll": 73,
+          "client": 73
+        },
+        {
+          "height": 44,
+          "scroll": 81,
+          "client": 81
+        },
+        {
+          "height": 44,
+          "scroll": 39,
+          "client": 39
+        },
+        {
+          "height": 44,
+          "scroll": 67,
+          "client": 67
+        },
+        {
+          "height": 44,
+          "scroll": 81,
+          "client": 81
+        },
+        {
+          "height": 44,
+          "scroll": 82,
+          "client": 82
+        },
+        {
+          "height": 44,
+          "scroll": 107,
+          "client": 107
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 768,
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/stop"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "height": 88.25,
+      "width": 721.9375,
+      "display": "flex",
+      "position": "sticky",
+      "grid": "none",
+      "hubWidth": 721.9375,
+      "buttons": [
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        }
+      ]
+    },
+    "after": {
+      "height": 88.25,
+      "width": 721.9375,
+      "display": "flex",
+      "position": "sticky",
+      "grid": "none",
+      "hubWidth": 721.9375,
+      "buttons": [
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 820,
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/stop"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "height": 88.25,
+      "width": 770.8125,
+      "display": "flex",
+      "position": "sticky",
+      "grid": "none",
+      "hubWidth": 770.8125,
+      "buttons": [
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        }
+      ]
+    },
+    "after": {
+      "height": 88.25,
+      "width": 770.8125,
+      "display": "flex",
+      "position": "sticky",
+      "grid": "none",
+      "hubWidth": 770.8125,
+      "buttons": [
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        },
+        {
+          "height": 70.25,
+          "scroll": 156,
+          "client": 156
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/stop"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "height": 474.4375,
+      "width": 587.65625,
+      "display": "grid",
+      "position": "static",
+      "grid": "272.828px 272.828px",
+      "hubWidth": 587.65625,
+      "buttons": [
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 110,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        }
+      ]
+    },
+    "after": {
+      "height": 474.4375,
+      "width": 587.65625,
+      "display": "grid",
+      "position": "static",
+      "grid": "272.828px 272.828px",
+      "hubWidth": 587.65625,
+      "buttons": [
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 110,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        },
+        {
+          "height": 52,
+          "scroll": 273,
+          "client": 273
+        }
+      ]
+    },
+    "pass": true
+  },
+  {
+    "width": 1920,
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime-token"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "POST",
+        "path": "/api/runtime/workspaces"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/files-revision"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/projects/synthetic-first/ide-panel/ports"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/processes"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/files/read"
+      },
+      {
+        "syntheticRuntime": true,
+        "method": "GET",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/ports"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/workspaces/ws-synthetic-ui/stop"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "height": 0,
+      "width": 0,
+      "display": "",
+      "position": "",
+      "grid": "",
+      "hubWidth": 0,
+      "buttons": [
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        },
+        {
+          "height": 0,
+          "scroll": 0,
+          "client": 0
+        }
+      ]
+    },
+    "after": {
+      "height": 590.65625,
+      "width": 280,
+      "display": "grid",
+      "position": "sticky",
+      "grid": "254px",
+      "hubWidth": 1100.671875,
+      "buttons": [
+        {
+          "height": 52,
+          "scroll": 254,
+          "client": 254
+        },
+        {
+          "height": 52,
+          "scroll": 254,
+          "client": 254
+        },
+        {
+          "height": 52,
+          "scroll": 254,
+          "client": 254
+        },
+        {
+          "height": 52,
+          "scroll": 254,
+          "client": 254
+        },
+        {
+          "height": 52,
+          "scroll": 254,
+          "client": 254
+        },
+        {
+          "height": 52,
+          "scroll": 254,
+          "client": 254
+        },
+        {
+          "height": 52,
+          "scroll": 254,
+          "client": 254
+        }
+      ]
+    },
+    "pass": true
+  }
+]

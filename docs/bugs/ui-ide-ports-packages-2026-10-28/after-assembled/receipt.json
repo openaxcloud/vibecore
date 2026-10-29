@@ -1,0 +1,200 @@
+[
+  {
+    "lang": "fr",
+    "panel": "ports",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "Ports ouverts par l'espace de travail en cours d'exécution. Ouvrez l'aperçu d'un port, choisissez le port principal ou définissez sa visibilité.:3000prêtpubliquehttp://127.0.0.1:3000Ouvrir l'aperçuDéfinir le primaireRendre privé",
+      "html": "<div class=\"bolt-project-managed-panel bolt-project-ports-panel\"><section class=\"grid gap-3\"><p class=\"text-xs text-bolt-elements-textSecondary\">Ports ouverts par l'espace de travail en cours d'exécution. Ouvrez l'aperçu d'un port, choisissez le port principal ou définissez sa visibilité.</p><div class=\"grid gap-2\"><div class=\"flex flex-wrap items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs\"><div class=\"min-w-0\"><strong class=\"text-bolt-elements-textPrimary\">:3000</strong><span class=\"ml-2 text-[var(--status-success-text)]\">prêt</span><span class=\"ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary\">publique</span><div class=\"mt-0.5 truncate font-mono text-bolt-elements-textSecondary\">http://127.0.0.1:3000</div></div><div class=\"flex shrink-0 flex-wrap items-center gap-2\"><a href=\"http://127.0.0.1:3000\" target=\"_blank\" rel=\"noreferrer\" class=\"underline\">Ouvrir l'aperçu</a><form><input type=\"hidden\" name=\"intent\" value=\"set-primary\"><input type=\"hidden\" name=\"port\" value=\"3000\"><button type=\"submit\">Définir le primaire</button></form><form><input type=\"hidden\" name=\"intent\" value=\"set-visibility\"><input type=\"hidden\" name=\"port\" value=\"3000\"><input type=\"hidden\" name=\"visibility\" value=\"private\"><button type=\"submit\">Rendre privé</button></form></div></div></div></section></div>"
+    },
+    "visibility": "private",
+    "geometry": {
+      "rect": {
+        "x": 410,
+        "y": 125,
+        "width": 587.65625,
+        "height": 86.9375,
+        "top": 125,
+        "right": 997.65625,
+        "bottom": 211.9375,
+        "left": 410
+      },
+      "clientWidth": 588,
+      "scrollWidth": 588,
+      "viewport": 1280
+    }
+  },
+  {
+    "lang": "fr",
+    "panel": "packages",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Gestionnaire de paquets\"><button type=\"button\" class=\"selected\" aria-pressed=\"true\">npm</button><button type=\"button\" aria-pressed=\"false\">pnpm</button><button type=\"button\" aria-pressed=\"false\">yarn</button><button type=\"button\" aria-pressed=\"false\">bun</button></div>"
+    },
+    "after": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Gestionnaire de paquets\"><button type=\"button\" aria-pressed=\"false\">npm</button><button type=\"button\" aria-pressed=\"true\" class=\"selected\">pnpm</button><button type=\"button\" aria-pressed=\"false\">yarn</button><button type=\"button\" aria-pressed=\"false\">bun</button></div>"
+    },
+    "pressed": [
+      {
+        "text": "npm",
+        "pressed": "false"
+      },
+      {
+        "text": "pnpm",
+        "pressed": "true"
+      },
+      {
+        "text": "yarn",
+        "pressed": "false"
+      },
+      {
+        "text": "bun",
+        "pressed": "false"
+      }
+    ],
+    "geometry": {
+      "rect": {
+        "x": 423,
+        "y": 733.09375,
+        "width": 561.65625,
+        "height": 32,
+        "top": 733.09375,
+        "right": 984.65625,
+        "bottom": 765.09375,
+        "left": 423
+      },
+      "clientWidth": 562,
+      "scrollWidth": 562,
+      "viewport": 1280
+    }
+  },
+  {
+    "lang": "en",
+    "panel": "ports",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "Ports opened by the running workspace. Open a port's preview, choose the primary port, or set its visibility.:3000readypublichttp://127.0.0.1:3000Open previewSet primaryMake private",
+      "html": "<div class=\"bolt-project-managed-panel bolt-project-ports-panel\"><section class=\"grid gap-3\"><p class=\"text-xs text-bolt-elements-textSecondary\">Ports opened by the running workspace. Open a port's preview, choose the primary port, or set its visibility.</p><div class=\"grid gap-2\"><div class=\"flex flex-wrap items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs\"><div class=\"min-w-0\"><strong class=\"text-bolt-elements-textPrimary\">:3000</strong><span class=\"ml-2 text-[var(--status-success-text)]\">ready</span><span class=\"ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary\">public</span><div class=\"mt-0.5 truncate font-mono text-bolt-elements-textSecondary\">http://127.0.0.1:3000</div></div><div class=\"flex shrink-0 flex-wrap items-center gap-2\"><a href=\"http://127.0.0.1:3000\" target=\"_blank\" rel=\"noreferrer\" class=\"underline\">Open preview</a><form><input type=\"hidden\" name=\"intent\" value=\"set-primary\"><input type=\"hidden\" name=\"port\" value=\"3000\"><button type=\"submit\">Set primary</button></form><form><input type=\"hidden\" name=\"intent\" value=\"set-visibility\"><input type=\"hidden\" name=\"port\" value=\"3000\"><input type=\"hidden\" name=\"visibility\" value=\"private\"><button type=\"submit\">Make private</button></form></div></div></div></section></div>"
+    },
+    "visibility": "private",
+    "geometry": {
+      "rect": {
+        "x": 410,
+        "y": 125,
+        "width": 587.65625,
+        "height": 72.75,
+        "top": 125,
+        "right": 997.65625,
+        "bottom": 197.75,
+        "left": 410
+      },
+      "clientWidth": 588,
+      "scrollWidth": 588,
+      "viewport": 1280
+    }
+  },
+  {
+    "lang": "en",
+    "panel": "packages",
+    "blocked": [
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "GET",
+        "path": "/css2"
+      },
+      {
+        "method": "POST",
+        "path": "/api/runtime/runtime/boot"
+      }
+    ],
+    "errors": [],
+    "before": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Package manager\"><button type=\"button\" class=\"selected\" aria-pressed=\"true\">npm</button><button type=\"button\" aria-pressed=\"false\">pnpm</button><button type=\"button\" aria-pressed=\"false\">yarn</button><button type=\"button\" aria-pressed=\"false\">bun</button></div>"
+    },
+    "after": {
+      "text": "npmpnpmyarnbun",
+      "html": "<div class=\"bolt-project-package-manager-options\" role=\"group\" aria-label=\"Package manager\"><button type=\"button\" aria-pressed=\"false\">npm</button><button type=\"button\" aria-pressed=\"true\" class=\"selected\">pnpm</button><button type=\"button\" aria-pressed=\"false\">yarn</button><button type=\"button\" aria-pressed=\"false\">bun</button></div>"
+    },
+    "pressed": [
+      {
+        "text": "npm",
+        "pressed": "false"
+      },
+      {
+        "text": "pnpm",
+        "pressed": "true"
+      },
+      {
+        "text": "yarn",
+        "pressed": "false"
+      },
+      {
+        "text": "bun",
+        "pressed": "false"
+      }
+    ],
+    "geometry": {
+      "rect": {
+        "x": 423,
+        "y": 682,
+        "width": 561.65625,
+        "height": 32,
+        "top": 682,
+        "right": 984.65625,
+        "bottom": 714,
+        "left": 423
+      },
+      "clientWidth": 562,
+      "scrollWidth": 562,
+      "viewport": 1280
+    }
+  }
+]

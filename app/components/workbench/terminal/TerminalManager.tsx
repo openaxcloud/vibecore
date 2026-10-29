@@ -20,11 +20,26 @@ export const TerminalManager = memo(({ terminal, isActive }: TerminalManagerProp
    * shell twice.
    */
 
-  // Auto-focus terminal when it becomes active
+  // Offer focus on activation only while the user has not chosen another control.
   useEffect(() => {
     if (isActive && terminal) {
+      const hasFocusedControl = () =>
+        document.activeElement !== null &&
+        document.activeElement !== document.body &&
+        document.activeElement !== document.documentElement;
+
+      if (hasFocusedControl()) {
+        return undefined;
+      }
+
       // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
+        cancelAutofocus();
+
+        if (hasFocusedControl()) {
+          return;
+        }
+
         try {
           terminal.focus();
         } catch {
@@ -32,7 +47,19 @@ export const TerminalManager = memo(({ terminal, isActive }: TerminalManagerProp
         }
       }, 100);
 
-      return () => clearTimeout(timer);
+      // Remember user intent even if that control disappears before the timer fires.
+      function cancelAutofocus() {
+        clearTimeout(timer);
+        document.removeEventListener('focusin', cancelAutofocus, true);
+        document.removeEventListener('pointerdown', cancelAutofocus, true);
+        document.removeEventListener('keydown', cancelAutofocus, true);
+      }
+
+      document.addEventListener('focusin', cancelAutofocus, true);
+      document.addEventListener('pointerdown', cancelAutofocus, true);
+      document.addEventListener('keydown', cancelAutofocus, true);
+
+      return cancelAutofocus;
     }
 
     return undefined;

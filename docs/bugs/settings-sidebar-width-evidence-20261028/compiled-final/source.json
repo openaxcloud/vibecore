@@ -1,0 +1,9 @@
+{
+  "head": "6ee0522105e64825625d0b0eeba18164f069be7c",
+  "build": "52670 exit0; type42945 exit0",
+  "files": {
+    "build/server/index.js": "87b6211f951874a385b4dccfe298819dc4b2d6408b8dad69ba909798c9357d12",
+    "app/components/chat/ProjectSettingsPanel.module.scss": "bdb66c39a2cb41b3618bf0940fade87b3ecf5d870235bfb6ae7bcda65c7ffca6",
+    "app/components/chat/BaseChat.tsx": "81b2b28f57e56203d05134ea0d98422386dd3cb3f9c166db0b29057d79c1411c"
+  }
+}

@@ -3,6 +3,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { donneesDuFormulaire } from './donnees-du-formulaire';
 
@@ -107,33 +108,40 @@ describe('les appelants appliquent la règle', () => {
   });
 
   /*
-   * Cette règle valait pour UN submit, et la garde s'y accrochait par le NOM de
-   * son paramètre (`submit(event: React.FormEvent…`). Renommer ce paramètre —
-   * ce qu'a exigé BUG-PUBLISH-ONSUBMIT-FORMDATA-001, où le gestionnaire accepte
-   * désormais aussi un `FormData` — a suffi à faire GLISSER l'expression sur un
-   * AUTRE submit du même fichier. Elle a alors mesuré autre chose que ce qu'elle
-   * annonçait, et l'a dit en rouge pour une raison sans rapport.
-   *
-   * Elle vise donc maintenant TOUS les `async function submit(` du fichier :
-   * la mécanique du bouton porteur d'intention est la même partout, la garde
-   * aussi (règle 7).
+   * Inspect lexical ownership: draft forms delegate the original event; service
+   * handlers construct its data and must retain the submitter's intent.
    */
-  it('TOUS les submit de panneau appliquent la même règle', () => {
+  it('TOUS les submit construisent les données avec leur envoyeur ou délèguent sans les reconstruire', () => {
     const source = lire('app/components/chat/BaseChat.tsx');
+    const tree = ts.createSourceFile('BaseChat.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const constructors: string[] = [];
+    const wrappers: string[] = [];
 
-    /*
-     * Le corps ENTIER, pas jusqu'au premier `try {` : le panneau Terminal
-     * construit ses données À L'INTÉRIEUR du `try`, et s'arrêter là revenait à
-     * l'accuser de ne pas les construire du tout.
-     */
-    const corps = [...source.matchAll(/^ {2}async function submit\([\s\S]*?\n {2}\}$/gmu)].map((m) => m[0]);
+    function visit(node: ts.Node, owner?: string) {
+      if (ts.isFunctionDeclaration(node)) {
+        if (node.name?.text === 'submit' && node.modifiers?.some((item) => item.kind === ts.SyntaxKind.AsyncKeyword)) {
+          const body = node.getText(tree);
 
-    // Contrôle positif (règle 14) : un « rien à redire » sur zéro corps ne vaut rien.
-    expect(corps.length, 'les submit de panneau ont disparu').toBeGreaterThanOrEqual(2);
+          (owner === 'CollaborationDraftForm' ? wrappers : constructors).push(body);
+        }
 
-    for (const [rang, texte] of corps.entries()) {
-      expect(texte, `submit #${rang} : les données doivent porter l’envoyeur`).toContain('donneesDuFormulaire(');
-      expect(texte, `submit #${rang} : l’intention repartirait vide`).not.toContain('new FormData(form)');
+        owner = node.name?.text;
+      }
+
+      ts.forEachChild(node, (child) => visit(child, owner));
     }
+
+    visit(tree);
+    expect(constructors.length, 'les vrais constructeurs de données ont disparu').toBeGreaterThanOrEqual(2);
+    expect(wrappers, 'un seul wrapper transparent est attendu').toHaveLength(1);
+
+    for (const [rank, body] of constructors.entries()) {
+      expect(body, `submit #${rank} : les données doivent porter l’envoyeur`).toContain('donneesDuFormulaire(');
+      expect(body, `submit #${rank} : l’intention repartirait vide`).not.toContain('new FormData(form)');
+    }
+
+    expect(wrappers[0]).toContain('await onSubmit(event)');
+    expect(wrappers[0]).not.toMatch(/new\s+FormData\s*\(/u);
+    expect(wrappers[0]).not.toContain('donneesDuFormulaire(');
   });
 });
