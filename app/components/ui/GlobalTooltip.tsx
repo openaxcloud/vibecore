@@ -18,6 +18,38 @@ import { infobulleAutoriseeAuFocus, pointeurSansSurvol } from './infobulle-tacti
  */
 const SHOW_DELAY_MS = 400;
 const ATTR = 'data-vc-tooltip';
+const RENDERER_ATTR = 'data-vc-tooltip-renderer';
+const rendererOwners = new WeakMap<Document, { count: number; previous: string | null }>();
+
+/** Keep the CSS fallback available before hydration and after the last renderer leaves. */
+function claimRenderer(document: Document) {
+  const root = document.documentElement;
+  const ownership = rendererOwners.get(document) ?? { count: 0, previous: root.getAttribute(RENDERER_ATTR) };
+  ownership.count += 1;
+  rendererOwners.set(document, ownership);
+  root.setAttribute(RENDERER_ATTR, 'true');
+
+  return () => {
+    ownership.count -= 1;
+
+    if (ownership.count > 0) {
+      return;
+    }
+
+    rendererOwners.delete(document);
+
+    // Do not overwrite a marker changed by another owner while mounted.
+    if (root.getAttribute(RENDERER_ATTR) !== 'true') {
+      return;
+    }
+
+    if (ownership.previous === null) {
+      root.removeAttribute(RENDERER_ATTR);
+    } else {
+      root.setAttribute(RENDERER_ATTR, ownership.previous);
+    }
+  };
+}
 
 interface TooltipState {
   text: string;
@@ -34,6 +66,8 @@ export function GlobalTooltip() {
   const suppressedEl = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
+    const releaseRenderer = claimRenderer(document);
+
     const clearShowTimer = () => {
       if (showTimer.current) {
         clearTimeout(showTimer.current);
@@ -209,9 +243,15 @@ export function GlobalTooltip() {
     // Any scroll/resize invalidates the anchored position — just dismiss.
     window.addEventListener('scroll', hide, true);
     window.addEventListener('resize', hide, true);
-    document.addEventListener('keydown', hide, true);
+
+    /*
+     * IDE shortcuts can stop propagation during window capture. Dismiss help
+     * on that same target without consuming the key or changing its action.
+     */
+    window.addEventListener('keydown', hide, true);
 
     return () => {
+      releaseRenderer();
       clearShowTimer();
       restoreNativeTitle();
       document.removeEventListener('pointerdown', handlePointerDown, true);
@@ -222,7 +262,7 @@ export function GlobalTooltip() {
       document.removeEventListener('focusout', hide, true);
       window.removeEventListener('scroll', hide, true);
       window.removeEventListener('resize', hide, true);
-      document.removeEventListener('keydown', hide, true);
+      window.removeEventListener('keydown', hide, true);
     };
   }, []);
 

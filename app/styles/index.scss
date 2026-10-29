@@ -4256,6 +4256,7 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   position: relative;
 }
 
+:where(html:not([data-vc-tooltip-renderer='true']))
 :where(.bolt-responsive-ide, .bolt-project-ide-shell)
   :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
     [data-vc-radix-tooltip='true']
@@ -4279,8 +4280,10 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   line-height: 1.35;
   pointer-events: none;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
+:where(html:not([data-vc-tooltip-renderer='true']))
 :where(.bolt-responsive-ide, .bolt-project-ide-shell)
   :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
     [data-vc-radix-tooltip='true']
@@ -15081,6 +15084,12 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 12px;
 }
 
+.bolt-project-agent-studio {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+
 .bolt-project-monitoring-timeline,
 .bolt-project-monitoring-sparkline {
   display: grid;
@@ -16835,6 +16844,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-security-tool {
   grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
 }
 
 .bolt-project-security-summary {
@@ -33034,4 +33044,26 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   background: var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-primary);
   font-weight: 600;
+}
+
+.bolt-project-debugger-panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bolt-project-debugger-panel :is(.grid, .grid > *, section, aside, form) {
+  min-width: 0;
+}
+
+.bolt-project-debugger-layout {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+.bolt-project-debugger-inspection {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+.bolt-project-debugger-panel select {
+  min-width: 0;
+  width: 100%;
 }

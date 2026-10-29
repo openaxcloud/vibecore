@@ -14738,6 +14738,82 @@ function ProjectWelcomeState({
   );
 }
 
+type CollaborationDraftField =
+  | 'collaboration.invitee'
+  | 'collaboration.inviteRole'
+  | 'collaboration.comment'
+  | 'collaboration.filePath'
+  | 'collaboration.line';
+
+/** Keep the complete unsent form in memory, never changing server permissions. */
+function CollaborationDraftForm({
+  projectId,
+  paneId,
+  formKind,
+  onSubmit,
+  children,
+}: {
+  projectId?: string;
+  paneId?: string;
+  formKind: 'invite' | 'comment';
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  children: (
+    bind: (field: CollaborationDraftField) => {
+      value: string;
+      onChange: React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement>;
+    },
+  ) => React.ReactNode;
+}) {
+  const initial: Partial<Record<CollaborationDraftField, string>> =
+    formKind === 'invite'
+      ? { 'collaboration.invitee': '', 'collaboration.inviteRole': 'member' }
+      : { 'collaboration.comment': '', 'collaboration.filePath': '', 'collaboration.line': '' };
+
+  const draft = useIdeSettingsFormDraft(projectId ?? '', paneId, initial);
+  const pending = useRef(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    if (pending.current) {
+      event.preventDefault();
+
+      return;
+    }
+
+    pending.current = true;
+
+    const form = event.currentTarget;
+    const consume = draft.captureSubmission(Object.keys(initial) as CollaborationDraftField[]);
+
+    /*
+     * The shared submit handler resets this exact form only after success.
+     * A native listener still observes that acknowledgement if the responsive
+     * surface has detached the original form while its request was pending.
+     */
+    const acknowledge = (reset: Event) => {
+      // All visible fields are controlled; native reset must not overwrite newer selections.
+      reset.preventDefault();
+      consume();
+    };
+    form.addEventListener('reset', acknowledge, { once: true });
+
+    try {
+      await onSubmit(event);
+    } finally {
+      form.removeEventListener('reset', acknowledge);
+      pending.current = false;
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="bolt-project-collaboration-form">
+      {children((field) => ({
+        value: draft.values[field] ?? '',
+        onChange: (event) => draft.setField(field, event.currentTarget.value),
+      }))}
+    </form>
+  );
+}
+
 function ProjectIdePanelContent({
   paneId,
   panel,
@@ -14812,6 +14888,7 @@ function ProjectIdePanelContent({
         data={data}
         project={project}
         projectId={projectId}
+        paneId={paneId}
         onSubmit={onSubmit}
         busy={busy}
         reload={reload}
@@ -14949,13 +15026,14 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'env') {
-    return <ProjectEnvPanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectEnvPanel projectId={projectId} paneId={paneId} data={data} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'secrets') {
     return (
       <ProjectSecretsPanel
         projectId={projectId}
+        paneId={paneId}
         data={data}
         onSubmit={onSubmit}
         busy={busy}
@@ -15079,54 +15157,62 @@ function ProjectIdePanelContent({
               <PanelEmptyState icon="i-ph:users" title={t('chat.copy.noProjectCollaborators_3bcac170')} />
             )}
           </div>
-          <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
-            <label className="bolt-project-collaboration-field">
-              <span>{t('chat.copy.collaborator_794b34c1')}</span>
-              <PanelInput
-                name="userId"
-                placeholder={t('chat.copy.emailOrUsername_5af65060')}
-                autoComplete="username email"
-                required
-                pattern="(^[^@\s]+@[^@\s]+\.[^@\s]+$)|(^[a-zA-Z0-9][a-zA-Z0-9._-]{1,62}$)"
-                title={t('chat.copy.enterAValidEmailAddressOr_b9c2422c')}
-                aria-describedby="collaborator-identity-help"
-              />
-              <small id="collaborator-identity-help">{t('chat.copy.inviteByEmailOrUsernameThe_83671d35')}</small>
-            </label>
-            <label className="bolt-project-collaboration-field">
-              <span>{t('chat.copy.role_c3f104d1')}</span>
-              <select
-                name="roleKey"
-                defaultValue="member"
-                title={t('chat.copy.viewerCanInspectTheProjectMember_a3f28012')}
-                aria-describedby="collaborator-role-help"
-              >
-                {['viewer', 'member', 'admin', 'owner'].map((role) => (
-                  <option key={role} value={role}>
-                    {collaborationRoleLabel(t, role)}
-                  </option>
-                ))}
-              </select>
-              <small id="collaborator-role-help">{t('chat.copy.viewerReadOnlyAccessMemberEdit_85ee87ee')}</small>
-            </label>
-            <div className="bolt-project-collaboration-role-guide" aria-label={t('chat.copy.rolePermissions_4b9cd8f7')}>
-              {(['viewer', 'member', 'admin'] as const).map((role) =>
-                (() => {
-                  const description = collaborationRoleDescription(t, role);
+          <CollaborationDraftForm projectId={projectId} paneId={paneId} formKind="invite" onSubmit={onSubmit}>
+            {(bind) => (
+              <>
+                <label className="bolt-project-collaboration-field">
+                  <span>{t('chat.copy.collaborator_794b34c1')}</span>
+                  <PanelInput
+                    name="userId"
+                    {...bind('collaboration.invitee')}
+                    placeholder={t('chat.copy.emailOrUsername_5af65060')}
+                    autoComplete="username email"
+                    required
+                    pattern="(^[^@\s]+@[^@\s]+\.[^@\s]+$)|(^[a-zA-Z0-9][a-zA-Z0-9._-]{1,62}$)"
+                    title={t('chat.copy.enterAValidEmailAddressOr_b9c2422c')}
+                    aria-describedby="collaborator-identity-help"
+                  />
+                  <small id="collaborator-identity-help">{t('chat.copy.inviteByEmailOrUsernameThe_83671d35')}</small>
+                </label>
+                <label className="bolt-project-collaboration-field">
+                  <span>{t('chat.copy.role_c3f104d1')}</span>
+                  <select
+                    name="roleKey"
+                    {...bind('collaboration.inviteRole')}
+                    title={t('chat.copy.viewerCanInspectTheProjectMember_a3f28012')}
+                    aria-describedby="collaborator-role-help"
+                  >
+                    {['viewer', 'member', 'admin', 'owner'].map((role) => (
+                      <option key={role} value={role}>
+                        {collaborationRoleLabel(t, role)}
+                      </option>
+                    ))}
+                  </select>
+                  <small id="collaborator-role-help">{t('chat.copy.viewerReadOnlyAccessMemberEdit_85ee87ee')}</small>
+                </label>
+                <div
+                  className="bolt-project-collaboration-role-guide"
+                  aria-label={t('chat.copy.rolePermissions_4b9cd8f7')}
+                >
+                  {(['viewer', 'member', 'admin'] as const).map((role) =>
+                    (() => {
+                      const description = collaborationRoleDescription(t, role);
 
-                  return (
-                    <span key={role} title={description}>
-                      <strong>{collaborationRoleLabel(t, role)}</strong>
-                      {description}
-                    </span>
-                  );
-                })(),
-              )}
-            </div>
-            <div>
-              <PanelButton disabled={busy}>{t('chat.copy.inviteToProject_d1cc986a')}</PanelButton>
-            </div>
-          </form>
+                      return (
+                        <span key={role} title={description}>
+                          <strong>{collaborationRoleLabel(t, role)}</strong>
+                          {description}
+                        </span>
+                      );
+                    })(),
+                  )}
+                </div>
+                <div>
+                  <PanelButton disabled={busy}>{t('chat.copy.inviteToProject_d1cc986a')}</PanelButton>
+                </div>
+              </>
+            )}
+          </CollaborationDraftForm>
         </section>
 
         <section className="bolt-project-collaboration-card">
@@ -15158,13 +15244,26 @@ function ProjectIdePanelContent({
               <PanelEmptyState icon="i-ph:chat-circle" title={t('chat.copy.noCommentsYet_207b24fc')} />
             )}
           </div>
-          <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
-            <input type="hidden" name="intent" value="comment" />
-            <PanelInput name="filePath" placeholder={t('chat.copy.srcAppTsx_835da56f')} />
-            <PanelInput name="line" placeholder={t('chat.copy.line_ea967600')} />
-            <PanelInput name="body" placeholder={t('chat.copy.comment_153d7a58')} required />
-            <PanelButton disabled={busy}>{t('chat.copy.addComment_7d3764e4')}</PanelButton>
-          </form>
+          <CollaborationDraftForm projectId={projectId} paneId={paneId} formKind="comment" onSubmit={onSubmit}>
+            {(bind) => (
+              <>
+                <input type="hidden" name="intent" value="comment" />
+                <PanelInput
+                  name="filePath"
+                  {...bind('collaboration.filePath')}
+                  placeholder={t('chat.copy.srcAppTsx_835da56f')}
+                />
+                <PanelInput name="line" {...bind('collaboration.line')} placeholder={t('chat.copy.line_ea967600')} />
+                <PanelInput
+                  name="body"
+                  {...bind('collaboration.comment')}
+                  placeholder={t('chat.copy.comment_153d7a58')}
+                  required
+                />
+                <PanelButton disabled={busy}>{t('chat.copy.addComment_7d3764e4')}</PanelButton>
+              </>
+            )}
+          </CollaborationDraftForm>
         </section>
 
         <section className="bolt-project-collaboration-card">
@@ -19766,7 +19865,10 @@ function ProjectAgentStudioPanel({
   ] as const;
 
   return (
-    <div className="bolt-project-monitoring-panel" aria-label={t('chat.copy.agentStudioSupervisor_fc1ab50e')}>
+    <div
+      className="bolt-project-monitoring-panel bolt-project-agent-studio"
+      aria-label={t('chat.copy.agentStudioSupervisor_fc1ab50e')}
+    >
       <div className="bolt-project-panel-toolbar">
         <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refresh_56e3badc')}
@@ -21736,11 +21838,25 @@ function maskEnvValue(t: TFunction, value: string): string {
   return '•'.repeat(Math.min(Math.max(value.length, 4), 12));
 }
 
-function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
+function ProjectEnvPanel({
+  projectId,
+  paneId,
+  data,
+  onSubmit,
+  busy,
+}: {
+  projectId?: string;
+  paneId?: string;
+  data: any;
+  onSubmit: any;
+  busy: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const language = resolvedBaseChatLanguage(i18n);
   const envVars: Array<{ key: string; value?: string; scope?: string; updatedAt?: string }> = data.envVars ?? [];
-  const [query, setQuery] = useState('');
+  const { values: filterValues, setField } = useIdeSettingsFormDraft(projectId ?? '', paneId, { 'env.filter': '' });
+  const query = filterValues['env.filter'] ?? '';
+  const setQuery = (value: string) => setField('env.filter', value);
   const [activeScope, setActiveScope] = useState<EnvVarScope>('production');
   const [showDiff, setShowDiff] = useState(false);
   const [revealDiff, setRevealDiff] = useState(false);
@@ -22210,6 +22326,7 @@ function ProjectSecurityPanel({
   data,
   project,
   projectId,
+  paneId,
   onSubmit,
   busy,
   reload,
@@ -22217,6 +22334,7 @@ function ProjectSecurityPanel({
   data: any;
   project: any;
   projectId?: string;
+  paneId?: string;
   onSubmit: any;
   busy: boolean;
   reload?: () => void | Promise<void>;
@@ -22228,6 +22346,11 @@ function ProjectSecurityPanel({
   const { session: scanSession, snapshot: scanState } = useSecurityScanSession(projectId, reload);
   const state = data.securityState ?? {};
   const settings = state.settings ?? {};
+
+  const formDraft = useIdeSettingsFormDraft(projectId ?? '', paneId, {
+    'security.profile': settings.scannerProfile ?? 'workspace-runtime',
+  });
+
   const scans = state.scans ?? [];
   const vulnerabilities = state.vulnerabilities ?? [];
   const activeVulnerabilities = vulnerabilities.filter((item: any) => !item.hidden);
@@ -22424,7 +22547,11 @@ function ProjectSecurityPanel({
               <input name="intent" value="settings" type="hidden" />
               <label>
                 <span>{t('chat.copy.scannerProfile_60cef8cf')}</span>
-                <select name="scannerProfile" defaultValue={settings.scannerProfile ?? 'workspace-runtime'}>
+                <select
+                  name="scannerProfile"
+                  value={formDraft.values['security.profile']}
+                  onChange={(event) => formDraft.setField('security.profile', event.currentTarget.value)}
+                >
                   <option value="workspace-runtime">{t('chat.copy.fullWorkspaceRuntime_45bcb64f')}</option>
                   <option value="sca">{t('chat.copy.scaOnly_2a97c363')}</option>
                   <option value="secrets">{t('chat.copy.secretsOnly_0b9d03ca')}</option>
@@ -22884,7 +23011,7 @@ function ProjectDebuggerPanel({
   }, [hasLiveDebugger, reload, busy]);
 
   return (
-    <div className="grid gap-4">
+    <div className="bolt-project-debugger-panel grid gap-4">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
           [t('baseChatAst.debugger.launchConfigs'), launchConfigs.length],
@@ -22907,7 +23034,7 @@ function ProjectDebuggerPanel({
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="bolt-project-debugger-layout grid gap-4">
         <section className="grid gap-4">
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -23010,7 +23137,7 @@ function ProjectDebuggerPanel({
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="bolt-project-debugger-inspection grid gap-4">
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
               <PanelSectionTitle>{t('chat.copy.breakpoints_21a8752f')}</PanelSectionTitle>
               <div className="mt-3 grid gap-2">
@@ -23039,7 +23166,7 @@ function ProjectDebuggerPanel({
                             </div>
                           ) : null}
                         </div>
-                        <form onSubmit={onSubmit}>
+                        <form className="shrink-0" onSubmit={onSubmit}>
                           <input name="intent" value="delete-breakpoint" type="hidden" />
                           <input name="breakpointId" value={breakpoint.id} type="hidden" />
                           <PanelButton disabled={busy} variant="outline">

@@ -25,6 +25,14 @@ export function parseMemoryTags(value: string) {
 }
 
 type SettingsFormField =
+  | 'env.filter'
+  | 'secrets.filter'
+  | 'collaboration.invitee'
+  | 'collaboration.inviteRole'
+  | 'collaboration.comment'
+  | 'collaboration.filePath'
+  | 'collaboration.line'
+  | 'security.profile'
   | 'profile.name'
   | 'profile.email'
   | 'preferences.theme'
@@ -407,7 +415,7 @@ export function useIdeSettingsDraft(projectId: string) {
   return shared ?? local;
 }
 
-/** Only the explicit non-sensitive fields above may outlive a Settings surface. */
+/** Only the explicit non-sensitive fields above may outlive a panel surface. */
 export function useIdeSettingsFormDraft(
   projectId: string,
   paneId: string | undefined,
@@ -420,6 +428,9 @@ export function useIdeSettingsFormDraft(
   const scope = JSON.stringify([projectId, paneId ?? 'local']);
   const serialized = JSON.stringify(serverValues);
   const current = drafts[scope] ?? {};
+  const latestDraft = useRef(current);
+  latestDraft.current = current;
+
   const values: SettingsFormValues = { ...serverValues };
 
   for (const field of Object.keys(serverValues) as SettingsFormField[]) {
@@ -463,11 +474,43 @@ export function useIdeSettingsFormDraft(
   }, [scope, serialized, setDrafts]);
 
   const setField = (field: SettingsFormField, value: string) => {
+    const entry = { value, baseline: serverValues[field] ?? '' };
+
+    // A submit in the same React batch must capture this edit, not the previous render.
+    latestDraft.current = { ...latestDraft.current, [field]: entry };
     setDrafts((all) => ({
       ...all,
-      [scope]: { ...all[scope], [field]: { value, baseline: serverValues[field] ?? '' } },
+      [scope]: { ...all[scope], [field]: entry },
     }));
   };
 
-  return { values, setField };
+  const captureSubmission = (field: SettingsFormField | readonly SettingsFormField[]) => {
+    const fields = typeof field === 'string' ? [field] : field;
+    const submitted = new Map(fields.map((name) => [name, latestDraft.current[name]]));
+
+    return () => {
+      setDrafts((all) => {
+        const existing = all[scope];
+
+        if (!existing || fields.some((name) => existing[name] !== submitted.get(name))) {
+          return all;
+        }
+
+        const next = { ...existing };
+
+        let changed = false;
+
+        for (const name of fields) {
+          if (name in next) {
+            delete next[name];
+            changed = true;
+          }
+        }
+
+        return changed ? { ...all, [scope]: next } : all;
+      });
+    };
+  };
+
+  return { values, setField, captureSubmission };
 }

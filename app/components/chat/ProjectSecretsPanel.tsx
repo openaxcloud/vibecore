@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useIdeSettingsFormDraft } from './IdeSettingsDraftState';
 import { cibleFeuilleMobile } from './feuille-mobile';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import {
@@ -48,6 +49,7 @@ interface SecretDuProjet {
 
 interface ProjectSecretsPanelProps {
   projectId?: string;
+  paneId?: string;
   data: { secrets?: SecretDuProjet[] } | null | undefined;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   busy: boolean;
@@ -57,13 +59,23 @@ interface ProjectSecretsPanelProps {
 
 type Editeur = 'env' | 'json' | null;
 
-export function ProjectSecretsPanel({ projectId, data, onSubmit, busy, reload, language }: ProjectSecretsPanelProps) {
+export function ProjectSecretsPanel({
+  projectId,
+  paneId,
+  data,
+  onSubmit,
+  busy,
+  reload,
+  language,
+}: ProjectSecretsPanelProps) {
   const { t } = useTranslation();
   const copy = getSecretsPanelCopy(language);
   const secrets = useMemo(() => data?.secrets ?? [], [data]);
   const cles = useMemo(() => secrets.map((secret) => secret.key), [secrets]);
 
-  const [filtre, setFiltre] = useState('');
+  const { values: filterValues, setField } = useIdeSettingsFormDraft(projectId ?? '', paneId, { 'secrets.filter': '' });
+  const filtre = filterValues['secrets.filter'] ?? '';
+  const setFiltre = (value: string) => setField('secrets.filter', value);
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
 
@@ -628,7 +640,18 @@ function MenuFlottant({
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
+
+        const focusActuel = document.activeElement;
+
+        const restaurerFocus = Boolean(
+          focusActuel && (menuRef.current?.contains(focusActuel) || ancre?.contains(focusActuel)),
+        );
+
         onFermer();
+
+        if (restaurerFocus && ancre?.isConnected) {
+          ancre.focus({ preventScroll: true });
+        }
       }
     };
 
