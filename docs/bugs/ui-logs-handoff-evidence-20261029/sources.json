@@ -1,0 +1,82 @@
+[
+  {
+    "file": "logs/gated-handoff/receipt.json",
+    "source": "/workspace/ui847-logs-diagnostic/gated-handoff/receipt.json",
+    "sourceSha256": "208275157c789c459a6aae055ddc10d7a298544796c7b20afb76d73a2a229c4f"
+  },
+  {
+    "file": "logs/clear-delay-error-recovery/receipt.json",
+    "source": "/workspace/ui847-logs-diagnostic/clear-delay-error-recovery/receipt.json",
+    "sourceSha256": "47d7f4b5106b4df50ad4c3698e2545a96388eafde9659eaf1cd3625ca4da09e0"
+  },
+  {
+    "file": "logs/probe.cjs",
+    "source": "/workspace/ui847-logs-diagnostic/probe.cjs",
+    "sourceSha256": "3a01a8c954148d2444edac96ed83db9a8cdaf67add68999288ed79f0e7cf4111"
+  },
+  {
+    "file": "logs/probe-recovery.cjs",
+    "source": "/workspace/ui847-logs-diagnostic/probe-recovery.cjs",
+    "sourceSha256": "2251b3063f910a9833d604ea21879b7d2a35874f00b53860bae8db9ae42f1413"
+  },
+  {
+    "file": "menus/README.md",
+    "source": "/workspace/ui847-menus/README.md",
+    "sourceSha256": "1fa76c4ed072d1b5822ad7e4945f0cbdd3a9983b54779d741e62bba608320303"
+  },
+  {
+    "file": "menus/bounded/receipt.json",
+    "source": "/workspace/ui847-menus/bounded/receipt.json",
+    "sourceSha256": "4e303c83b528552081545df52a494c2d9fd5f6c35e54e650bb2ea0a23c640da0"
+  },
+  {
+    "file": "menus/direct-enter/receipt.json",
+    "source": "/workspace/ui847-menus/direct-enter/receipt.json",
+    "sourceSha256": "a9124d7bed2643ce46091ca7c243edb9a3263cb6731097702da849d3545e07d2"
+  },
+  {
+    "file": "menus/probe.cjs",
+    "source": "/workspace/ui847-menus/probe.cjs",
+    "sourceSha256": "7cad5782d88e9e9f33833bb77ba94f6cbed228de12885e07f63ac5c643116e37"
+  },
+  {
+    "file": "menus/direct-enter.cjs",
+    "source": "/workspace/ui847-menus/direct-enter.cjs",
+    "sourceSha256": "3e6f7cc6cec398bed18e2342e01638f775bc3dcafe254da78b79303eae665dca"
+  },
+  {
+    "file": "states/README.md",
+    "source": "/workspace/ui847-logs-states/README.md",
+    "sourceSha256": "35d49ea90f931db0863c5ddb962e1758a93480817572eb0b468e16f43339de2f"
+  },
+  {
+    "file": "states/probe.cjs",
+    "source": "/workspace/ui847-logs-states/probe.cjs",
+    "sourceSha256": "f341c0c344bc924d2a1374d6478473763243d34a81022b38e81b3ed8c74451c0"
+  },
+  {
+    "file": "states/mobile-initial/receipt.json",
+    "source": "/workspace/ui847-logs-states/mobile-initial/receipt.json",
+    "sourceSha256": "96adc5498015ea67f079546849f66a10bbd939c54698fa7a8698002a3dbcccdf"
+  },
+  {
+    "file": "logs/README.md",
+    "source": "/workspace/ui847-logs-diagnostic/README.md",
+    "sourceSha256": "0272e2f5dbe00fb7baa62a4b7fddaf8f40ee586595f503028bed882d72536c5d"
+  },
+  {
+    "file": "logs/probe-final.cjs",
+    "source": "/workspace/ui847-logs-diagnostic/probe-final.cjs",
+    "sourceSha256": "a30274cb349dd9686f8b330fb4faa00fdbe90c29e8b2f2c2fd552c25f7022d60"
+  },
+  {
+    "file": "logs/final-1440/receipt.json",
+    "source": "/workspace/ui847-logs-diagnostic/final-1440/receipt.json",
+    "sourceSha256": "5dcd0dac03a7d89f73b1421a13e7f7a82210b982312b81feff18d014dd43e744"
+  },
+  {
+    "file": "logs/final-1024/receipt.json",
+    "source": "/workspace/ui847-logs-diagnostic/final-1024/receipt.json",
+    "sourceSha256": "ed360ebcf4b897c2fc74fe747beec5aa7bf1f7daf66c9109ad6f635ed6deec24"
+  }
+]

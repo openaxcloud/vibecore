@@ -43,10 +43,32 @@ export type SettingsFormValues = Partial<Record<SettingsFormField, string>>;
 type SettingsFormDraft = Partial<Record<SettingsFormField, { value: string; baseline: string }>>;
 type SettingsFormDrafts = Record<string, SettingsFormDraft>;
 
+type LogsViewState = {
+  cleared: boolean;
+  split: boolean;
+  activeStream: 'console' | 'workflow' | 'system';
+  level: 'all' | 'info' | 'warn' | 'error';
+  query: string;
+  regexEnabled: boolean;
+  liveTail: boolean;
+};
+
+const initialLogsView: LogsViewState = {
+  cleared: false,
+  split: false,
+  activeStream: 'console',
+  level: 'all',
+  query: '',
+  regexEnabled: false,
+  liveTail: true,
+};
+type LogsViews = Record<string, LogsViewState>;
+
 /** Ephemeral route state only. No credentials or persistent browser storage. */
 function useSettingsState(projectId: string) {
   const { t } = useTranslation();
   const [settingsTab, setSettingsTab] = useState('project');
+  const [logsViews, setLogsViews] = useState<LogsViews>({});
   const [formDrafts, setFormDrafts] = useState<SettingsFormDrafts>({});
   const [memoryDraft, setMemoryDraft] = useState('');
   const [memoryType, setMemoryType] = useState('semantic');
@@ -368,6 +390,8 @@ function useSettingsState(projectId: string) {
   return {
     formDrafts,
     setFormDrafts,
+    logsViews,
+    setLogsViews,
     settingsTab,
     setSettingsTab,
     memoryDraft,
@@ -513,4 +537,29 @@ export function useIdeSettingsFormDraft(
   };
 
   return { values, setField, captureSubmission };
+}
+
+/** Controls only: never caches log payloads or persists them outside this route instance. */
+export function useIdeLogsView(projectId: string, paneId?: string) {
+  const shared = useContext(SettingsContext);
+  const [local, setLocal] = useState<LogsViews>({});
+  const views = shared && paneId ? shared.logsViews : local;
+  const setViews = shared && paneId ? shared.setLogsViews : setLocal;
+  const scope = JSON.stringify([projectId, paneId ?? 'local']);
+  const value = views[scope] ?? initialLogsView;
+
+  const field = <K extends keyof LogsViewState>(key: K) =>
+    [
+      value[key],
+      (next: React.SetStateAction<LogsViewState[K]>) => {
+        setViews((all) => {
+          const current = all[scope] ?? initialLogsView;
+          const updated = typeof next === 'function' ? next(current[key]) : next;
+
+          return { ...all, [scope]: { ...current, [key]: updated } };
+        });
+      },
+    ] as const;
+
+  return { field };
 }

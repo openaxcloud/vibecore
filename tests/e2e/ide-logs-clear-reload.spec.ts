@@ -96,16 +96,47 @@ for (const width of [1440, 1024]) {
         new URL(response.url()).pathname === `/api/projects/${projectId}/ide-panel/logs` &&
         response.request().method() === 'GET';
 
-      const initialResponse = page.waitForResponse(isLogsResponse);
-      await page.goto(`/projects/${projectId}/ide?panel=logs`);
-      await recordLogsResponse(await initialResponse, info, 'initial');
+      /*
+       * Hold the real memory response until the user selects a stream in the
+       * startup shell. No successful API payload is replaced by this test.
+       */
+      const memoryUrl = `**/api/projects/${projectId}/ide-state`;
+
+      let releaseMemory!: () => void;
+
+      const memoryGate = new Promise<void>((resolve) => {
+        releaseMemory = resolve;
+      });
+      await page.route(memoryUrl, async (route) => {
+        if (route.request().method() === 'GET') {
+          await memoryGate;
+        }
+
+        await route.continue();
+      });
 
       const logs = page.locator('.bolt-project-console-tool');
-      await expect(logs).toBeVisible();
-
       const system = logs.locator('.bolt-project-console-streams button').nth(2);
-      await system.click();
-      await expect(system).toHaveAttribute('aria-pressed', 'true');
+
+      try {
+        const initialResponse = page.waitForResponse(isLogsResponse);
+        await page.goto(`/projects/${projectId}/ide?panel=logs`);
+        await recordLogsResponse(await initialResponse, info, 'initial');
+        await expect(logs).toBeVisible();
+
+        const startupPanel = await logs.elementHandle();
+        expect(startupPanel).not.toBeNull();
+        await system.click();
+        await expect(system).toHaveAttribute('aria-pressed', 'true');
+        releaseMemory();
+        await expect.poll(() => startupPanel!.evaluate((node) => !node.isConnected)).toBe(true);
+        await expect(logs).toBeVisible();
+        await expect(system).toHaveAttribute('aria-pressed', 'true');
+        await startupPanel!.dispose();
+      } finally {
+        releaseMemory();
+        await page.unroute(memoryUrl);
+      }
 
       const lines = logs.locator('.bolt-project-log-line');
       await expect(lines.first()).toBeVisible();
@@ -146,9 +177,12 @@ for (const width of [1440, 1024]) {
         await page.screenshot({ path: info.outputPath('after-reload.png') });
       }
 
-      // Only the failure is injected: every successful payload comes from the
-      // local API and PostgreSQL fixture, never a fulfilled/mocked response.
+      /*
+       * Only the failure is injected: every successful payload comes from the
+       * local API and PostgreSQL fixture, never a fulfilled/mocked response.
+       */
       const logsUrl = `**/api/projects/${projectId}/ide-panel/logs`;
+
       let failedRequests = 0;
       await page.route(logsUrl, async (route) => {
         failedRequests++;
@@ -170,7 +204,7 @@ for (const width of [1440, 1024]) {
       await error.getByRole('button', { name: /retry/i }).click();
       await recordLogsResponse(await recoveredResponse, info, 'error-retry');
       await expect(error).toHaveCount(0);
-      await system.click();
+      await expect(system).toHaveAttribute('aria-pressed', 'true');
       await expect(lines.first()).toBeVisible();
       await page.screenshot({ path: info.outputPath('after-error-retry.png') });
       expect(deletes, 'Clear/Reload/Retry must not delete server logs').toEqual([]);
