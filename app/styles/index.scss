@@ -17241,6 +17241,10 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1.5;
 }
 
+.bolt-project-collaboration-comment p {
+  overflow-wrap: anywhere;
+}
+
 .bolt-project-collaboration-live {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 65%);
   border-radius: 999px;
