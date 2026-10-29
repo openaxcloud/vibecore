@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-575 entrées.
+576 entrées.
 
 ## Sans section
 
@@ -778,6 +778,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-WORKFLOW-NARROW-TASKS-LOGS-20261029](docs/bugs/BUG-WORKFLOW-NARROW-TASKS-LOGS-20261029.md) — Les tâches Workflows débordent sur mobile/tablette ; un historique long force la largeur du panneau desktop. Reproduit sur390/820/1280 avec données synthétiques — 📤 Dispatché : ☑ Diagnostic local29octobre, quatre déclarations CSS ciblées proposées. · 💻 Codé : ☐ main — correctif local séparé de840 : tâches flex repliables, largeur minimale des tracks/historiques conten · ✅ Testé live : ☐ production — contrepreuveCSS stricte3/3verte, égalité intégrale du log/commande et défilement horizontal eff
+- [BUG-RELEASE-GO-STDLIB-20261029](docs/bugs/BUG-RELEASE-GO-STDLIB-20261029.md) — Le gate « Vulnerability gate + SBOM exact digests » du déploiement 40751950616 a refusé la livraison de `63e66383055c632865b7ebd27df19aa1a6f6f37f`. Helm, rollou — 📤 Dispatché : ☑ 29/10/2026 — diagnostic sécurité et correction des dépendances embarquées ; aucune exclusion de scanner ni b · 💻 Codé : ☐ main — correctif en préparation dans l'assemblage #847 + #846, non fusionné et non livré. · ✅ Testé live : ☐ production — les images finales corrigées doivent encore être construites et scannées par leur empreinte exa
 
 ## Résidus non tabulaires — reportés mot pour mot
 

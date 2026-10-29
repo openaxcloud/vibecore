@@ -91,6 +91,11 @@ RUN NODE_OPTIONS=--max-old-space-size=6144 pnpm run build
 FROM build AS prod-deps
 RUN pnpm prune --prod --ignore-scripts
 
+# Native TypeScript is an optional tooling peer of Prisma/Valibot, not a web
+# runtime requirement. Remove its compiler and platform payloads only after
+# rejecting required consumers; keep the positive server boot check below.
+RUN node scripts/retirer-compilateur-natif-web.mjs /app --supprimer
+
 # `pnpm prune --prod` ne suffit PAS dans un espace de travail : `node_modules/.pnpm`
 # est le magasin PARTAGÉ des 36 projets, et élaguer les liens du projet racine n'y
 # ramasse rien. Mesuré le 2026-10-07 dans l'image servie, marche des liens réparée :

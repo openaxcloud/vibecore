@@ -80,7 +80,9 @@ ENV HOST=0.0.0.0
 ENV PATH=/runtime/node_modules/.bin:${PATH}
 ARG START_CMD
 ENV START_CMD=${START_CMD}
-ARG KUBECTL_VERSION=v1.35.3
+# Keep the 1.35 client minor; v1.35.10 is built with Go 1.26.10, fixing
+# the stdlib version reported by CVE-2026-56857 without a scanner exclusion.
+ARG KUBECTL_VERSION=v1.35.10
 
 # ⚠️ `apt-get upgrade` AVANT l'installation, et ce n'est pas du zèle.
 #

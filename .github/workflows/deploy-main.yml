@@ -37,7 +37,7 @@
 # and Production E2E had never run on any of them, because e2e.yml did not
 # trigger on push to main at all.
 #
-# The structure below closes that. Read it as four layers:
+# The structure below closes that. Read it as three layers:
 #
 #   resolve-target   binds the whole run to ONE full 40-hex commit. There is no
 #                    free-form tag input any more: a dispatch names a commit, and
@@ -47,7 +47,8 @@
 #                    granted per-job, and only to build-and-deploy — so a refusal
 #                    is structurally before WIF, not merely before it in reading
 #                    order.
-#   preflight-gates  repo-local policy (secret scan, signing wiring).
+#                    Then runs repo-local policy (secret scan, signing wiring)
+#                    on the same runner and the same pinned checkout.
 #   build-and-deploy builds, resolves every image to an immutable DIGEST, scans
 #                    and signature-verifies THAT digest, records a manifest
 #                    (service -> source sha -> build id -> digest -> signature ->
@@ -265,7 +266,8 @@ jobs:
     runs-on: ubuntu-latest
     # Long enough to outlast a full CI+E2E cycle for the commit that was just
     # pushed; the gate itself refuses within seconds once a check goes red.
-    timeout-minutes: 100
+    # Preserve the former 100-minute gate + 15-minute preflight budgets.
+    timeout-minutes: 115
     permissions:
       contents: read
       actions: read # read other workflows' runs for this commit
@@ -273,6 +275,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
           ref: ${{ needs.resolve-target.outputs.target_sha }}
 
       - name: Assert checkout is exactly the target commit
@@ -328,47 +331,18 @@ jobs:
           path: gate-verdict.json
           if-no-files-found: warn
 
-  # B6 — gates that must pass BEFORE anything is built or rolled out.
-  #
-  # security.yaml already runs gitleaks on push/PR, but that is a *separate*
-  # workflow: a red run there does not stop this one, so a secret could still
-  # ride into production. This job puts the same check on the deploy path
-  # itself, where failing it actually prevents the rollout.
-  preflight-gates:
-    name: Preflight gates (secrets + pipeline policy, blocking)
-    needs: [resolve-target, release-gate]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.resolve-target.outputs.target_sha }}
-
-      - name: Assert checkout is exactly the target commit
-        env:
-          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+      - name: Preflight policies (blocking, 15-minute total budget)
+        timeout-minutes: 15
         run: |
-          set -euo pipefail
-          HEAD_SHA="$(git rev-parse HEAD)"
-          if [ "${HEAD_SHA}" != "${TARGET_SHA}" ]; then
-            echo "::error::checkout HEAD ${HEAD_SHA} != target ${TARGET_SHA}"
-            exit 1
-          fi
-          echo "scanning ${HEAD_SHA}"
-
-      - name: Install gitleaks
-        run: |
+          echo "::group::Install gitleaks"
           set -euo pipefail
           GITLEAKS_VERSION=8.21.2
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | tar -xz -C /tmp gitleaks
           sudo install /tmp/gitleaks /usr/local/bin/gitleaks
           gitleaks version
-
-      - name: Secret scan (blocking)
-        run: |
+          echo "::endgroup::"
+          echo "::group::Secret scan (blocking)"
           set -euo pipefail
           gitleaks detect \
             --no-git \
@@ -377,43 +351,23 @@ jobs:
             --redact \
             --no-banner \
             --exit-code 1
-
-      # Policy gate: the image-signing steps are what make the Kyverno admission
-      # policy satisfiable. If someone deletes or renames them, builds keep
-      # succeeding and the failure only surfaces later as pods refused at
-      # admission — during a rollout, at the worst possible moment. Assert here
-      # instead, where the error is obvious and cheap.
-      # The validator parses the step structure rather than grepping it. A
-      # line-range grep here is actively dangerous: an awk range like
-      # /id: sign-image/,/^  - id: [^s]/ never closes when the following step
-      # also starts with "s" (scan-images), so it swallows that step's
-      # `allowFailure: true` and the gate fails on a perfectly good tree.
-      # The validator is HERMETIC — pure Python 3 stdlib, no PyYAML — so the gate
-      # never depends on a dependency that happens to be preinstalled on the
-      # runner. --self-test first proves the parser itself before it is trusted.
-      - name: Pipeline policy — image signing must still be wired
-        run: |
+          echo "::endgroup::"
+          echo "::group::Pipeline policy — image signing must still be wired"
           set -euo pipefail
           python3 scripts/validate-image-signing-wired.py --self-test
           python3 scripts/validate-image-signing-wired.py
           node --test scripts/capture-rollout-diagnostics.checks.bundle.mjs
-
-      # Same idea, applied to the gate itself: prove that THIS workflow still runs
-      # the deploy behind the release gate, still withholds WIF from the gate job,
-      # still pins the rollout by digest, and still requires all four pipelines.
-      # A gate that can be quietly unwired is a gate with an expiry date.
-      - name: Pipeline policy — the exact-SHA release gate must still be wired
-        run: |
+          echo "::endgroup::"
+          echo "::group::Pipeline policy — the exact-SHA release gate must still be wired"
           set -euo pipefail
           node scripts/release-gate/validate-deploy-gate-wired.mjs --self-test
           node scripts/release-gate/validate-deploy-gate-wired.mjs
+          echo "::endgroup::"
 
   build-and-deploy:
     name: Build tiers sequentially, then helm upgrade by digest
-    # Both gates, explicitly. `preflight-gates` already needs `release-gate`, but
-    # naming it here too means a future edit to preflight's `needs:` cannot quietly
-    # detach the deploy from the gate.
-    needs: [resolve-target, release-gate, preflight-gates]
+    # The exact-SHA check and all preflight policies must succeed before build.
+    needs: [resolve-target, release-gate]
     runs-on: ubuntu-latest
     # 130 et non 90. Ce job fait DEUX `helm upgrade --atomic` (le rollout, puis la
     # phase 2 d'armement) et éventuellement un `helm rollback`, chacun budgété à

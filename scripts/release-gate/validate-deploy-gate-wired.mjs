@@ -191,6 +191,79 @@ export function grantsIdToken(region, indent) {
   return m ? /id-token:\s*write/.test(m[1]) : false;
 }
 
+/** Commands that must remain blocking, on the same checkout, after the SHA verdict. */
+export const PREFLIGHT_COMMANDS = [
+  'GITLEAKS_VERSION=8.21.2',
+  'gitleaks detect',
+  'python3 scripts/validate-image-signing-wired.py --self-test',
+  'python3 scripts/validate-image-signing-wired.py',
+  'node --test scripts/capture-rollout-diagnostics.checks.bundle.mjs',
+  'node scripts/release-gate/validate-deploy-gate-wired.mjs --self-test',
+  'node scripts/release-gate/validate-deploy-gate-wired.mjs',
+];
+
+export function checkConsolidatedPreflight(gateJob) {
+  const problems = [];
+  const steps = gateJob.split(/^      - /m).slice(1);
+  const verdict = steps.findIndex((step) => /verify-required-checks\.mjs \\/.test(step));
+  if (verdict < 0 || /^        (?:if|continue-on-error):/m.test(steps[verdict] ?? '') ||
+      !(steps[verdict] ?? '').includes('set -euo pipefail')) {
+    problems.push('exact-SHA verdict must be unconditional and blocking before preflight');
+  }
+  const preflight = steps.findIndex((step) => step.startsWith('name: Preflight policies (blocking, 15-minute total budget)'));
+  if (preflight < 0 || !/^        timeout-minutes: 15\s*$/m.test(steps[preflight] ?? '')) {
+    problems.push('all preflight controls must share one step with a 15-minute total timeout');
+  }
+  let previous = verdict;
+  let previousCommandOffset = -1;
+  for (const command of PREFLIGHT_COMMANDS) {
+    const index = steps.findIndex((step) => step.split('\n').some((line) =>
+      line.trim() === command || line.trim() === `${command} \\`));
+    const commandOffset = gateJob.split('\n').findIndex((line) =>
+      line.trim() === command || line.trim() === `${command} \\`);
+    if (index !== preflight || index <= verdict || index < previous || commandOffset <= previousCommandOffset || verdict < 0) {
+      problems.push(`preflight command must run after the exact-SHA verdict in order: ${command}`);
+    }
+    if (index >= 0) {
+      const step = steps[index];
+      if (/^        (?:if|continue-on-error):/m.test(step) || !step.includes('set -euo pipefail') ||
+          /\|\|\s*(?:true|:)|set \+e/.test(step)) {
+        problems.push(`preflight command must be unconditional and blocking: ${command}`);
+      }
+      if (/GITHUB_TOKEN|GH_TOKEN|secrets\./.test(step)) {
+        problems.push(`preflight must not receive the check token: ${command}`);
+      }
+    }
+    previous = index;
+    previousCommandOffset = commandOffset;
+  }
+  if ((gateJob.match(/uses: actions\/checkout@/g) ?? []).length !== 1) {
+    problems.push('release-gate must reuse exactly one pinned checkout');
+  }
+  if (!/^    timeout-minutes: 115\s*$/m.test(gateJob)) {
+    problems.push('release-gate must preserve the 100 + 15 minute budget');
+  }
+  const checkout = steps.find((step) => step.includes('uses: actions/checkout@')) ?? '';
+  if (!/^          persist-credentials: false\s*$/m.test(checkout)) {
+    problems.push('release-gate checkout must not persist its token for preflight');
+  }
+  const header = gateJob.split(/^    steps:/m)[0];
+  if (/^    (?:if|continue-on-error|env):/m.test(header) || /google-github-actions\/auth|gcloud auth/.test(gateJob)) {
+    problems.push('release-gate must stay blocking without job credentials or cloud authentication');
+  }
+  const permissions = /^    permissions:\s*\n((?:      .*\n)+)/m.exec(`${header}\n`)?.[1]?.replace(/ #.*$/gm, '').trim();
+  if (permissions !== 'contents: read\n      actions: read') {
+    problems.push('release-gate permissions must remain contents: read and actions: read only');
+  }
+  const scan = steps.find((step) => step.includes('gitleaks detect')) ?? '';
+  for (const flag of ['--no-git', '--source .', '--config .gitleaks.toml', '--redact', '--no-banner', '--exit-code 1']) {
+    if (!scan.split('\n').some((line) => line.trim() === flag || line.trim() === `${flag} \\`)) {
+      problems.push(`secret scan must preserve ${flag}`);
+    }
+  }
+  return problems;
+}
+
 /**
  * @param {{deployWorkflow: string, breakGlassWorkflow: string, policy: object}} files
  * @returns {string[]} problems (empty = wired correctly)
@@ -205,7 +278,7 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
   stagingWorkflow = stagingWorkflow ? stripComments(stagingWorkflow) : stagingWorkflow;
 
   // --- the jobs must exist at all ---
-  for (const job of ['resolve-target', 'release-gate', 'preflight-gates', 'build-and-deploy']) {
+  for (const job of ['resolve-target', 'release-gate', 'build-and-deploy']) {
     if (!jobs.has(job)) {
       problems.push(`${DEPLOY_WORKFLOW}: job '${job}' is missing`);
     }
@@ -216,7 +289,7 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
 
   // --- the deploy must run BEHIND the gate, not beside it ---
   const deployNeeds = parseNeeds(jobs.get('build-and-deploy'));
-  for (const required of ['resolve-target', 'release-gate', 'preflight-gates']) {
+  for (const required of ['resolve-target', 'release-gate']) {
     if (!deployNeeds.includes(required)) {
       problems.push(`${DEPLOY_WORKFLOW}: build-and-deploy must declare 'needs: ${required}' (has [${deployNeeds}])`);
     }
@@ -243,6 +316,7 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
 
   // --- the gate must actually be invoked, and self-tested first ---
   const gateJob = jobs.get('release-gate');
+  problems.push(...checkConsolidatedPreflight(gateJob));
   if (!/verify-required-checks\.mjs\s+--self-test/.test(gateJob)) {
     problems.push(`${DEPLOY_WORKFLOW}: release-gate must self-test the engine before trusting it`);
   }
@@ -265,7 +339,7 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
       `${DEPLOY_WORKFLOW}: resolve-target must assert the dispatched sha is an ancestor of origin/main`,
     );
   }
-  for (const job of ['release-gate', 'preflight-gates', 'build-and-deploy']) {
+  for (const job of ['release-gate', 'build-and-deploy']) {
     if (!/HEAD_SHA.*!=.*TARGET_SHA|"\$\{HEAD_SHA\}" != "\$\{TARGET_SHA\}"/.test(jobs.get(job))) {
       problems.push(`${DEPLOY_WORKFLOW}: job '${job}' must assert its checkout HEAD equals the target SHA`);
     }
@@ -467,6 +541,34 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
 
 // ---------------------------------------------------------------------------
 
+export function preflightMutations(text) {
+  const changes = PREFLIGHT_COMMANDS.map((command) => [
+    `missing ${command}`,
+    text.replace(new RegExp(`^          ${command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?: \\\\)?$`, 'm'), ''),
+  ]);
+  changes.push(
+    ['persisted checkout token', text.replace('          persist-credentials: false\n', '')],
+    ['missing collective preflight timeout', text.replace('        timeout-minutes: 15\n', '')],
+    ['extended collective preflight timeout', text.replace('        timeout-minutes: 15\n', '        timeout-minutes: 115\n')],
+    ['split preflight budget', text.replace('          echo "::group::Secret scan (blocking)"', '      - name: detached scan\n        timeout-minutes: 15\n        run: |\n          echo "::group::Secret scan (blocking)"')],
+    ['policy before its self-test', text.replace('python3 scripts/validate-image-signing-wired.py --self-test\n          python3 scripts/validate-image-signing-wired.py', 'python3 scripts/validate-image-signing-wired.py\n          python3 scripts/validate-image-signing-wired.py --self-test')],
+    ['build detached from target', text.replace('needs: [resolve-target, release-gate]', 'needs: [release-gate]')],
+    ['conditional SHA verdict', text.replace('      - name: Verify required checks are green for this exact commit', '      - name: Verify required checks are green for this exact commit\n        if: false')],
+    ['ignored SHA verdict failure', text.replace('      - name: Verify required checks are green for this exact commit', '      - name: Verify required checks are green for this exact commit\n        continue-on-error: true')],
+    ['second checkout before policies', text.replace('      - name: Preflight policies (blocking, 15-minute total budget)', '      - uses: actions/checkout@changed\n      - name: Preflight policies (blocking, 15-minute total budget)')],
+    ['token passed to scan', text.replace('      - name: Preflight policies (blocking, 15-minute total budget)', '      - name: Preflight policies (blocking, 15-minute total budget)\n        env:\n          GITHUB_TOKEN: token')],
+    ['cloud auth in gate', text.replace('      - name: Preflight policies (blocking, 15-minute total budget)', '      - uses: google-github-actions/auth@changed\n      - name: Preflight policies (blocking, 15-minute total budget)')],
+    ['non-blocking scan', text.replace('      - name: Preflight policies (blocking, 15-minute total budget)', '      - name: Preflight policies (blocking, 15-minute total budget)\n        continue-on-error: true')],
+    ['conditional scan', text.replace('      - name: Preflight policies (blocking, 15-minute total budget)', '      - name: Preflight policies (blocking, 15-minute total budget)\n        if: false')],
+    ['wrong scan exit code', text.replace('--exit-code 1', '--exit-code 0')],
+    ['token inherited by policies', text.replace('    timeout-minutes: 115', '    env:\n      GITHUB_TOKEN: token\n    timeout-minutes: 115')],
+    ['shortened gate budget', text.replace('timeout-minutes: 115', 'timeout-minutes: 100')],
+    ['gate WIF permission', text.replace('      actions: read # read other workflows', '      id-token: write\n      actions: read # read other workflows')],
+    ['preflight before verdict', text.replace('      - name: Self-test the gate engine before trusting it', '      - name: premature scan\n        run: |\n          set -euo pipefail\n          gitleaks detect\n\n      - name: Self-test the gate engine before trusting it')],
+  );
+  return changes;
+}
+
 function selfTest() {
   const deployWorkflow = fs.readFileSync(DEPLOY_WORKFLOW, 'utf8');
   const breakGlassWorkflow = fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8');
@@ -481,8 +583,8 @@ function selfTest() {
   const mutations = [
     ['deploy job no longer needs the gate', () => ({
         deployWorkflow: deployWorkflow.replace(
-          'needs: [resolve-target, release-gate, preflight-gates]',
-          'needs: [resolve-target, preflight-gates]',
+          'needs: [resolve-target, release-gate]',
+          'needs: [resolve-target]',
         ),
       breakGlassWorkflow,
       policy,
@@ -596,6 +698,11 @@ function selfTest() {
       }),
     ],
   ];
+
+  for (const [label, mutated] of preflightMutations(deployWorkflow)) {
+    mutations.push([label, () => ({ deployWorkflow: mutated, breakGlassWorkflow, policy,
+      chartValues, signingBuildConfig, stagingWorkflow, arRetentionWorkflow })]);
+  }
 
   let failures = 0;
   for (const [label, mutate] of mutations) {
