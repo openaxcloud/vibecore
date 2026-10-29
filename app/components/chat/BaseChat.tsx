@@ -17688,8 +17688,8 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   if (statusProbeFailed) {
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
-        <div className="bolt-project-empty-panel grid gap-3 text-sm" role="alert">
-          <span>{t('baseChatAst.storage.unreachable')}</span>
+        <div className="grid justify-items-center gap-3" role="alert">
+          <PanelEmptyState icon="i-ph:warning-circle" title={t('baseChatAst.storage.unreachable')} />
           <PanelButton
             type="button"
             variant="outline"

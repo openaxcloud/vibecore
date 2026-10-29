@@ -25,3 +25,7 @@ Correction locale appliquée : erreur distincte de la désactivation confirmée,
 Pas de certification globale, appareil physique ou backend réel. Les erreurs de sonde et timeouts initiaux restent documentés dans les reçus ; aucun seuil ni contrôle de CI n’est réduit.
 
 Reçus détaillés et limites : [dossier de preuves](ui-agent-data-panels-evidence-20261028/README.md).
+
+## Ajustement après CI du29octobre
+
+La garde stricte panel-empty-states.spec.ts a détecté11classes legacy pour10attendues sur f96ddd270. Le rendu d’erreur utilise désormais PanelEmptyState canonique, sans modifier le test, rolealert, traduction ou bouton Retry désactivable.15tests ciblés passent ; buildclient/SSR, typageweb, lint et revue indépendants passent. Six nouvelles recettes compilées390/820/1280 (disabled etenablednonprovisioned) passent sans activation réelle. Reçus canonical-disabled.json etcanonical-unprovisioned.json. Le verdictCI de la nouvelle tête reste à obtenir.
