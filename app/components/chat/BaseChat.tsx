@@ -23,6 +23,7 @@
 import { latestTurnModelOutput } from '~/lib/model-output-evidence';
 import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
 import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
+import { useMobileModalFocus } from './useMobileModalFocus';
 import { useSecurityScanSession } from './SecurityScanSession';
 import { IntegrationGithubVerification } from './IntegrationGithubVerification';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
@@ -268,8 +269,12 @@ import {
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { useProjectCollaboration } from '~/lib/collaboration/useProjectCollaboration';
 
+import { loadWorkbenchWithRecovery } from '~/components/workbench/load-workbench';
+
 const LazyWorkbench = lazy(() =>
-  import('~/components/workbench/Workbench.client').then((module) => ({ default: module.Workbench })),
+  loadWorkbenchWithRecovery(() => import('~/components/workbench/Workbench.client')).then((module) => ({
+    default: module.Workbench,
+  })),
 );
 const LazyTerminalTabs = lazy(() =>
   import('~/components/workbench/terminal/TerminalTabs').then((module) => ({ default: module.TerminalTabs })),
@@ -10234,6 +10239,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [activeMobileOpenTabId, mobileBottomTabs]);
 
     const showMobileChrome = useMobileIde && clientHydrated;
+    const mobilePanelsFocusRef = useMobileModalFocus(showMobileChrome && mobileMoreMenuOpen);
+    const mobileTabsFocusRef = useMobileModalFocus(showMobileChrome && mobileTabSwitcherOpen);
+    const mobileToolsFocusRef = useMobileModalFocus(showMobileChrome && mobileToolsSheetOpen);
 
     const keybindingSections = useMemo(
       () =>
@@ -10856,6 +10864,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               aria-modal="true"
               aria-label={t('chat.copy.moreIdePanels_d3cb95e1')}
               data-testid="mobile-more-menu-sheet"
+              ref={mobilePanelsFocusRef}
+              tabIndex={-1}
               onKeyDownCapture={handleMobileOverlayEscapeKey}
             >
               <div className="bolt-mobile-more-menu-handle" aria-hidden />
@@ -10902,6 +10912,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             aria-modal="true"
             aria-label={t('chat.copy.tabSwitcher_36e22491')}
             data-testid="mobile-tab-switcher"
+            ref={mobileTabsFocusRef}
+            tabIndex={-1}
             onKeyDownCapture={handleMobileOverlayEscapeKey}
             onClick={(event) => {
               /*
@@ -11040,6 +11052,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               aria-modal="true"
               aria-label={t('chat.copy.searchForToolsAndFiles_6730018d')}
               data-testid="tools-sheet"
+              ref={mobileToolsFocusRef}
+              tabIndex={-1}
               onKeyDownCapture={handleMobileOverlayEscapeKey}
             >
               <div className="bolt-mobile-more-handle" aria-hidden />
