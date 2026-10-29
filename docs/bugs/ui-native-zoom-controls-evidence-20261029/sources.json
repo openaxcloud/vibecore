@@ -1,0 +1,187 @@
+[
+  {
+    "file": "method/native-receipt.json",
+    "source": "/workspace/ui843-nativezoom/native-receipt.json",
+    "sourceSha256": "bcffe636fced10df0faefa922ad3e5a2a4370e039ac166182059cf849ded8d41"
+  },
+  {
+    "file": "method/native.cjs",
+    "source": "/workspace/ui843-nativezoom/native.cjs",
+    "sourceSha256": "d2ab4bc9bfa353dbcc909ddbf23268440acc1389185c9da098eaab4ba6e95906"
+  },
+  {
+    "file": "method/studio-security-probe.cjs",
+    "source": "/workspace/ui843-nativezoom/studio-security-probe.cjs",
+    "sourceSha256": "9df1892bafdbc833e5775de27507cc3ea075eeada528f956c9e9d30d65b97a9a"
+  },
+  {
+    "file": "studio-security/README.md",
+    "source": "/workspace/ui843-nativezoom/studio-security/README.md",
+    "sourceSha256": "550f3e12ddec0fb10834e24406d3cb2f885c1523f9afb357fcbcea9796c6f23b"
+  },
+  {
+    "file": "studio-security/security-draft/receipt.json",
+    "source": "/workspace/ui843-nativezoom/studio-security/security-draft/receipt.json",
+    "sourceSha256": "2f3537c757ee801f847de110d735578c61b5ae16036cb2e6807343e44ab08feb"
+  },
+  {
+    "file": "studio-security/security-long/receipt.json",
+    "source": "/workspace/ui843-nativezoom/studio-security/security-long/receipt.json",
+    "sourceSha256": "afaf90ec8fc5c86556209039bb4acf9fc371a5d81e0afebc850aa933ac640df5"
+  },
+  {
+    "file": "studio-security/studio-long/receipt.json",
+    "source": "/workspace/ui843-nativezoom/studio-security/studio-long/receipt.json",
+    "sourceSha256": "603de57e03da8ae55d475da801b8fdc644f24aaf4bda04cb2203024310fe4194"
+  },
+  {
+    "file": "collaborators/receipt.json",
+    "source": "/workspace/ui843-native-collab/receipt.json",
+    "sourceSha256": "5638bd544c7111bc0a093d57a9853797e52bc9aff657ed41309aa789cfb9a4b8"
+  },
+  {
+    "file": "collaborators/probe.cjs",
+    "source": "/workspace/ui843-native-collab/probe.cjs",
+    "sourceSha256": "6e877a341b6900eee04d3ca748fdb35773f78f857ef1ef5daa8ba17d8aa90fc7"
+  },
+  {
+    "file": "debugger/native-debugger.cjs",
+    "source": "/workspace/ui843-native-debugger/native-debugger.cjs",
+    "sourceSha256": "6cd9e772745423fd599763c9a2da515fc46f3bbdfd0302b585586005f12397d4"
+  },
+  {
+    "file": "debugger/README.md",
+    "source": "/workspace/ui843-native-debugger/README.md",
+    "sourceSha256": "a0e594a4c6ecd7a302e19bbb138710722eb2b840d50d8f5f385a3a9245449b92"
+  },
+  {
+    "file": "debugger/native/receipt.json",
+    "source": "/workspace/ui843-native-debugger/native/receipt.json",
+    "sourceSha256": "d5ac7281d431a1e361eb69e2a3f73eb9ae9694d2809472b587f8155c1eed3656"
+  },
+  {
+    "file": "env-secrets/README.md",
+    "source": "/workspace/ui843-native-env-secrets/README.md",
+    "sourceSha256": "11ea27cf2222e9185709ea220d57ce254db3e25153612e3c47fc46fdf8822e9e"
+  },
+  {
+    "file": "env-secrets/probe.cjs",
+    "source": "/workspace/ui843-native-env-secrets/probe.cjs",
+    "sourceSha256": "e5f501c9b5eb54428e0ed22bd4374ff87c8af6265928dbf310748f42b12f152b"
+  },
+  {
+    "file": "env-secrets/native-env-filter-desktop-height/receipt.json",
+    "source": "/workspace/ui843-native-env-secrets/native-env-filter-desktop-height/receipt.json",
+    "sourceSha256": "dbcc610ae4c441a8f956b6a6cd29fe2a6f5d76d25542f0d34af75aecd8eca5e9"
+  },
+  {
+    "file": "env-secrets/native-secrets-filter-desktop-height/receipt.json",
+    "source": "/workspace/ui843-native-env-secrets/native-secrets-filter-desktop-height/receipt.json",
+    "sourceSha256": "a4a6c47047507d174b0398aa0ccd427c4bd2d8baacd093aac19f254cfb891cd1"
+  },
+  {
+    "file": "env-secrets/native-env-filter/receipt.json",
+    "source": "/workspace/ui843-native-env-secrets/native-env-filter/receipt.json",
+    "sourceSha256": "86506f5722846dd2b31f47f86332aa422f774bee377a876d100d33b08dbe7eba"
+  },
+  {
+    "file": "tooltip/tooltip-zoom-method.json",
+    "source": "/workspace/ui843-zoom/tooltip-zoom-method.json",
+    "sourceSha256": "93b06139a5f039ec7473e2eba7cc385a418d283ba2a01cb5d8b48edfd74a2c86"
+  },
+  {
+    "file": "tooltip/tooltip-native/receipt.json",
+    "source": "/workspace/ui843-zoom/tooltip-native/receipt.json",
+    "sourceSha256": "8c8543d4315c276cf5dc40ce694ead97576d5e019180b1da71bd94815899de81"
+  },
+  {
+    "file": "tooltip/tooltip-secrets/receipt.json",
+    "source": "/workspace/ui843-zoom/tooltip-secrets/receipt.json",
+    "sourceSha256": "66c606c16d0c3a9414801d94307e7bd06667fbfa50efe141a214d7a788ba4533"
+  },
+  {
+    "file": "tooltip/tooltip-native.cjs",
+    "source": "/workspace/ui843-zoom/tooltip-native.cjs",
+    "sourceSha256": "6adbc3476fa7c83640092670456e1ee6afb2fe76a0bb672a71ebe9d1752365f6"
+  },
+  {
+    "file": "tooltip/tooltip-secrets.cjs",
+    "source": "/workspace/ui843-zoom/tooltip-secrets.cjs",
+    "sourceSha256": "740aa6c878e232db535f80bebc10031537d3674e0a018bd8d2a68745f1c8a3c5"
+  },
+  {
+    "file": "css-method-studio-security/README.md",
+    "source": "/workspace/ui843-zoom-studio-security/README.md",
+    "sourceSha256": "1e4c47bc8807f57df656665399b498784a4d06bba7079358ebca66bd197798d2"
+  },
+  {
+    "file": "css-method-studio-security/probe.cjs",
+    "source": "/workspace/ui843-zoom-studio-security/probe.cjs",
+    "sourceSha256": "9788ce404d4b9906ac1e6d790d41bbe9bacefb7ded6a77c82bfc4b3de383c650"
+  },
+  {
+    "file": "css-method-studio-security/security-draft/receipt.json",
+    "source": "/workspace/ui843-zoom-studio-security/security-draft/receipt.json",
+    "sourceSha256": "2bd98a63909c88024135f533caa8890a62c5b08a8eb50db27d574e5aad6f0179"
+  },
+  {
+    "file": "css-method-studio-security/security-long/receipt.json",
+    "source": "/workspace/ui843-zoom-studio-security/security-long/receipt.json",
+    "sourceSha256": "d07a99dac58b090f265015761bad599135351903a4a5f4601cae8d84016bbb8f"
+  },
+  {
+    "file": "css-method-studio-security/studio-long/receipt.json",
+    "source": "/workspace/ui843-zoom-studio-security/studio-long/receipt.json",
+    "sourceSha256": "ebf461307dcbd5f1a4721f0eec5b19485f2f10de043c09682bd6ee23e2af205d"
+  },
+  {
+    "file": "readme-834/README.md",
+    "source": "/workspace/ui841-readme-diagnostic/README.md",
+    "sourceSha256": "6ca97285eeb61b61399883bcab1c1d0aa6d06872c68decfbdaa82bdb58592fff"
+  },
+  {
+    "file": "readme-badge/README.md",
+    "source": "/workspace/ui834-file-badge-diagnostic/README.md",
+    "sourceSha256": "4c8472631f181f861693ce533cbf4c7425e185ff136af568f8f91fef64236ea1"
+  },
+  {
+    "file": "readme-badge/receipt-two-locators.json",
+    "source": "/workspace/ui834-file-badge-diagnostic/receipt-two-locators.json",
+    "sourceSha256": "52608834e32e67f09ced08598483e0e2670256cac4aedf5a22fa387e2993ae5f"
+  },
+  {
+    "file": "env-secrets/final-native-secrets-filter/receipt.json",
+    "source": "/workspace/ui843-native-env-secrets/final-native-secrets-filter/receipt.json",
+    "sourceSha256": "44178aa3497c387ecc8728b196a36a6bafdeab8a4a79fd43c4cc3796d8406784"
+  },
+  {
+    "file": "tooltip/tooltip-native-corrected/receipt.json",
+    "source": "/workspace/ui843-zoom/tooltip-native-corrected/receipt.json",
+    "sourceSha256": "6eef13120844024940c84644e36a7f2421b6697ddeea138774c1c56061b16787"
+  },
+  {
+    "file": "tooltip/tooltip-native-vertical-corrected/receipt.json",
+    "source": "/workspace/ui843-zoom/tooltip-native-vertical-corrected/receipt.json",
+    "sourceSha256": "5509cfe818b85ec867a14f495f086e4be7478e347e616a34456b4d8ab815bc63"
+  },
+  {
+    "file": "tooltip/tooltip-native-vertical/receipt.json",
+    "source": "/workspace/ui843-zoom/tooltip-native-vertical/receipt.json",
+    "sourceSha256": "321f953e27590c986506b35ef1483d9f0bebd4d5ea8733c09186e384306ce7ce"
+  },
+  {
+    "file": "tooltip/tooltip-native-vertical-final/receipt.json",
+    "source": "/workspace/ui843-zoom/tooltip-native-vertical-final/receipt.json",
+    "sourceSha256": "b9529753712126b87f4552ed26ab8b94840f985bcb76526e92c6e6106891cb00"
+  },
+  {
+    "file": "tooltip/tooltip-native-final/receipt.json",
+    "source": "/workspace/ui843-zoom/tooltip-native-final/receipt.json",
+    "sourceSha256": "953d78e353a93f0e1699b882e1bb1ea27ecdaa631141dde2a1ab46d9505db7ea"
+  },
+  {
+    "file": "tooltip/TOOLTIP-README.md",
+    "source": "/workspace/ui843-zoom/TOOLTIP-README.md",
+    "sourceSha256": "54a7f76393c7bbb96b4dba1ab246c4afbcf7c3f9bcffbbdcc2c92513138857c8"
+  }
+]

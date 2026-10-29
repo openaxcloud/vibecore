@@ -1,0 +1,1 @@
+[{"width":820,"height":600,"language":"fr","errors":[],"transport":[{"blocked":true,"method":"GET","path":"/css2"}],"observations":[],"pass":false,"failure":"expect(received).toBeGreaterThan(expected)\n\nExpected: > 0\nReceived:   0\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate","buttons":[]}]

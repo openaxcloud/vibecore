@@ -70,3 +70,17 @@ Premiers essais1280 avantGET et erreurs de préparation (Diff scopes/Exit diff, 
 Validation finale ciblée complémentaire : Secrets focus3/3 sur le dernier build ; Tooltip26/26tests avec clavier global et revue indépendante14/14 ; revue Debugger favorable. Toujours aucune validation production/authentifiée ou backend/runtime réel. Git branche longue reste réservé et ouvert, de même que834/README. Aucun état de fusion/livraison n’est déduit des recettes locales.
 
 Sauvegarde des sources validées : commit local `424fc10eb`, parent `47b1`. Aucun push de ce nouveau lot. Les serveurs de recette du parent ont été arrêtés après vérification de leur identité PID ; sortie des enfants et fermeture des ports confirmées. Cela ne constitue pas un déploiement.
+
+## Complément zoom natif200% — non publié
+
+Branche locale `fix/ide-native-zoom-controls-20261029`, distincte de #843 en CI. [Méthode et reçus](../bugs/ui-native-zoom-controls-evidence-20261029/README.md) : réglage Chromium natif réellement mesuré,390/820/1280physiques→195/410/640CSS, DPR2, CSSzoom1. Studio/Security9/9, Collaborators3/3 et Debugger3/3 passent leurs parcours ciblés sans mutation réelle. Env/Secrets5/6 : filtre conservé mais en-tête Secrets débordant à195CSS. Tooltip/menu Secrets2/3 : largeur280/220px dépasse195CSS ; défaut natif confirmé, correctif compilé encore attendu.
+
+Les échecs CSSzoom antérieurs ne sont pas déclarés bugs produit ; méthode inadéquate pour la même situation de media queries. La première précondition Env2560×900physiques restait compacte et n’exerçait pas le détachement attendu ; les reçus demeurent distincts du parcours corrigé2560×1800. Aucune assertion réduite, aucun résultat vert par simple reprise revendiqué.
+
+31/31 demeure un inventaire de recettes locales partielles. WebKit local absent, Safari/appareil physique et production/backend réels non validés. Les notes README/#834 restent des diagnostics historiques sans cause prouvée ; hôte d’artefact historiquement refusé non retenté, aucun téléchargement ni contournement. Aucun état de main ou déploiement déduit de cette passe.
+
+Mise à jour zoom : Secretsheader natif3/3 et Tooltip horizontal3/3 passent sur le build corrigé. Tooltip vertical français410×300CSS reste rouge (hauteur258, bottom452>292), correctif de hauteur en cours et verdict final attendu. Canari WebKit CI #843 job123211133065 :19réussis/3ignorés, sans reprise signalée ; ce n’est pas une recette de zoom local.31/31 reste ciblé/partiel.
+
+Diagnostic README précisé : badge frère compatible avec le locator de nom834, mais incompatible avec la regex du texte entier de ligne840 dans un DOM synthétique. Fragilité840 conditionnelle prouvée, présence du badge au moment de l’échec CI non prouvée ; aucune cause commune établie et aucune assertion changée. Voir [les deux locators](../bugs/ui-native-zoom-controls-evidence-20261029/readme-badge/README.md). Aucun artefact refusé retenté.
+
+Verdict final zoom local : commit source `c789d06bd` basé825, Tooltip4/4 compilés (FRvertical +3formats, tous bords/marges8px) et Secretsheader3/3 natifs verts. Build client/SSR, typage web,98tests ciblés, lint et revue indépendante22tests verts (recouvrements, non additionnables). Les rouges initiaux restent archivés. Limite non résolue : tooltip plus haut que le viewport. Aucun push/main/déploiement ni validation production revendiqué ;31/31 reste ciblé/partiel, WebKitCI distinct du zoomlocal, README840 conditionnel et834 ouvert.
