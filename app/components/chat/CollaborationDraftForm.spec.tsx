@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdePaletteProvider } from './IdePaletteState';
 import { useIdeSettingsFormDraft } from './IdeSettingsDraftState';
 import { PanelInput } from '~/components/project-ide/PanelPrimitives';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
@@ -30,12 +31,24 @@ const compiled = ts.transpileModule(`${declaration.getText(tree)}\nreturn Collab
 
 let renderedSubmit: ((event: React.FormEvent<HTMLFormElement>) => Promise<void>) | undefined;
 
+let submittedEvent: React.FormEvent<HTMLFormElement> | undefined;
+
 const bindings = {
   React: {
     ...React,
     createElement: (type: any, props: any, ...children: any[]) => {
       if (type === 'form') {
         renderedSubmit = props.onSubmit;
+
+        const originalSubmit = props.onSubmit;
+
+        props = {
+          ...props,
+          onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
+            submittedEvent = event;
+            return originalSubmit(event);
+          },
+        };
       }
 
       return React.createElement(type, props, ...children);
@@ -79,6 +92,7 @@ beforeEach(() => {
   requests = [];
   submit.mockClear();
   renderedSubmit = undefined;
+  submittedEvent = undefined;
 });
 afterEach(() => {
   cleanup();
@@ -148,6 +162,55 @@ async function finish(request: PendingRequest, success: boolean) {
 }
 
 describe('CollaborationDraftForm', () => {
+  it.each(['invite', 'invite-viewer'])(
+    'forwards the original event and submitter intent %s to the real data helper',
+    async (intent) => {
+      let received: React.FormEvent<HTMLFormElement> | undefined;
+      let receivedForm: HTMLFormElement | undefined;
+      let receivedNative: Event | undefined;
+      let data: FormData | undefined;
+
+      const handler = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        received = event;
+        receivedForm = event.currentTarget;
+        receivedNative = event.nativeEvent;
+        data = donneesDuFormulaire(event);
+      };
+      const view = render(
+        <IdePaletteProvider projectId="p1" windowId="main">
+          <DraftForm projectId="p1" paneId="collaborators" formKind="invite" onSubmit={handler}>
+            {(bind) => (
+              <>
+                <PanelInput aria-label="Invitee" name="userId" {...bind('collaboration.invitee')} />
+                <button name="intent" value="invite">
+                  Invite
+                </button>
+                <button name="intent" value="invite-viewer">
+                  Invite viewer
+                </button>
+              </>
+            )}
+          </DraftForm>
+        </IdePaletteProvider>,
+      );
+      fireEvent.change(view.getByLabelText('Invitee'), { target: { value: 'draft@example.test' } });
+
+      const button = view.container.querySelector<HTMLButtonElement>(`button[value="${intent}"]`)!;
+      const form = button.form!;
+      const native = new SubmitEvent('submit', { bubbles: true, cancelable: true, submitter: button });
+      await act(async () => {
+        form.dispatchEvent(native);
+      });
+      expect(received).toBe(submittedEvent);
+      expect(receivedForm).toBe(form);
+      expect(receivedNative).toBe(native);
+      expect((receivedNative as SubmitEvent).submitter).toBe(button);
+      expect(data?.get('intent')).toBe(intent);
+      expect(data?.get('userId')).toBe('draft@example.test');
+    },
+  );
+
   it('preserves the complete unsent form through remounts, isolated by project and pane', () => {
     const view = render(fields('desktop', 'p1', true));
     fireEvent.change(view.getByLabelText(invite), { target: { value: 'draft@example.test' } });

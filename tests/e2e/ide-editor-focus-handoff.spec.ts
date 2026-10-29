@@ -3,6 +3,90 @@ import JSZip from 'jszip';
 
 const readyMarker = 'Synthetic editor handoff shell is ready';
 
+/** Bounded, read-only failure telemetry. Never emit paths, labels, source, or credentials. */
+function collectReadmeVisibilityDiagnostics(projectId: string) {
+  const visible = (element: Element) => {
+    const box = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+
+    return box.width > 0 && box.height > 0 && style.visibility !== 'hidden' && style.visibility !== 'collapse';
+  };
+  const normalized = (element: Element) =>
+    (element.textContent ?? '')
+      .replace(/[\u200b\u00ad]/g, '')
+      .trim()
+      .replace(/\s+/g, ' ');
+
+  const nodes = [...document.querySelectorAll('.bolt-file-tree-node')];
+
+  const names = [...document.querySelectorAll('.bolt-file-tree-name')].filter(
+    (element) => normalized(element) === 'README.md',
+  );
+
+  const readmeRows = nodes.filter((node) => names.some((name) => node.contains(name)));
+  const exactRows = nodes.filter((node) => normalized(node) === 'README.md');
+
+  const count = (elements: Element[]) => ({
+    total: Math.min(elements.length, 1000),
+    visible: Math.min(elements.filter(visible).length, 1000),
+  });
+
+  const countSelector = (selector: string) => count([...document.querySelectorAll(selector)]);
+
+  const allowed = (value: string | null | undefined, choices: string[]) =>
+    value && choices.includes(value) ? value : 'other';
+  const routeKind = (path: string | undefined) =>
+    /^\/projects\/[^/]+\/ide$/.test(path ?? '')
+      ? 'ide'
+      : path === '/dashboard'
+        ? 'dashboard'
+        : path === '/login'
+          ? 'login'
+          : 'other';
+  const router = (
+    window as typeof window & {
+      __reactRouterDataRouter?: { state: { location?: { pathname?: string }; navigation?: { state?: string } } };
+    }
+  ).__reactRouterDataRouter?.state;
+
+  return {
+    treeNodes: count(nodes),
+    readmeNames: count(names),
+    readmeRows: count(readmeRows),
+    exactReadmeRows: count(exactRows),
+    rowsWithAdditionalText: Math.min(readmeRows.filter((node) => normalized(node) !== 'README.md').length, 1000),
+    gitBadgeCandidates: Math.min(
+      readmeRows.reduce((sum, node) => sum + node.querySelectorAll('span[aria-label][title] > span.sr-only').length, 0),
+      1000,
+    ),
+    codeMirror: countSelector('.cm-content'),
+    monaco: countSelector('.monaco-editor'),
+    routeKind: routeKind(location.pathname),
+    projectApplied: router?.location?.pathname === `/projects/${projectId}/ide`,
+    routerRouteKind: routeKind(router?.location?.pathname),
+    navigation: allowed(router?.navigation?.state, ['idle', 'loading', 'submitting']),
+    panel: allowed(new URLSearchParams(location.search).get('panel'), [
+      'files',
+      'editor',
+      'agent',
+      'search',
+      'terminal',
+      'preview',
+    ]),
+    mobileSurface: allowed(document.querySelector('.bolt-responsive-ide')?.getAttribute('data-mobile-panel'), [
+      'files',
+      'editor',
+      'chat',
+      'search',
+      'terminal',
+      'preview',
+    ]),
+    activeWorkbench: Boolean(document.querySelector('[data-testid="mobile-workbench-keepalive"][data-active="true"]')),
+    busy: countSelector('[aria-busy="true"]'),
+    progress: countSelector('[role="progressbar"]'),
+  };
+}
+
 async function createProject(page: Page, baseURL: string) {
   const api = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -231,7 +315,24 @@ test('Files editor preserves its selection through desktop, mobile and desktop',
     .locator('.bolt-file-tree-node')
     .filter({ visible: true })
     .filter({ hasText: /^README\.md$/ });
-  await expect(file).toBeVisible({ timeout: 30_000 });
+
+  try {
+    await expect(file).toBeVisible({ timeout: 30_000 });
+  } catch (originalError) {
+    try {
+      console.warn(
+        'README row visibility diagnostic',
+        JSON.stringify(await page.evaluate(collectReadmeVisibilityDiagnostics, projectId)),
+      );
+    } catch {
+      try {
+        console.warn('README row visibility diagnostic', JSON.stringify({ diagnosticUnavailable: true }));
+      } catch {
+        // Telemetry must never replace the original assertion failure.
+      }
+    }
+    throw originalError;
+  }
   await file.focus();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/panel=editor/);
