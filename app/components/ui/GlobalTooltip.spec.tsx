@@ -539,6 +539,7 @@ describe('Oversized help explicit reading surface', () => {
 
       const anchor = screen.getByRole('button', { name: 'Anchor' });
       act(() => anchor.focus());
+      fireEvent.scroll(window);
       fireEvent.keyDown(anchor, { key: 'F1' });
       fireEvent.keyDown(screen.getByRole('region'), { key: 's', ctrlKey: true });
       expect(runAction).toHaveBeenCalledOnce();
@@ -719,6 +720,138 @@ describe('Oversized help explicit reading surface', () => {
       expect(document.activeElement).not.toBe(anchorB);
     } finally {
       window.history.replaceState({}, '', originalPath);
+      clipping.mockRestore();
+    }
+  });
+  it('opens measured oversized help with F1 after focus autoscroll dismisses its offer', () => {
+    const clipping = clipTooltip();
+
+    try {
+      render(
+        <>
+          <button data-vc-tooltip={fullText}>Anchor</button>
+          <GlobalTooltip />
+        </>,
+      );
+
+      const anchor = screen.getByRole('button', { name: 'Anchor' });
+      act(() => anchor.focus());
+      expect(screen.getByRole('button', { name: 'Read full help (F1)' })).toBeTruthy();
+      fireEvent.scroll(window);
+      expect(screen.queryByRole('button', { name: 'Read full help (F1)' })).toBeNull();
+      expect(document.activeElement).toBe(anchor);
+      expect(fireEvent.keyDown(anchor, { key: 'F1' })).toBe(false);
+      expect(screen.getByRole('region').textContent).toBe(fullText);
+    } finally {
+      clipping.mockRestore();
+    }
+  });
+
+  it.each(['focusout', 'route', 'text', 'hidden', 'radix', 'Escape', 'activation'] as const)(
+    'does not reuse dismissed help after %s invalidates its focus receipt',
+    (reason) => {
+      const clipping = clipTooltip();
+      const originalPath = window.location.pathname;
+
+      try {
+        render(
+          <>
+            <button data-vc-tooltip={fullText}>Anchor</button>
+            <button>Outside</button>
+            <GlobalTooltip />
+          </>,
+        );
+
+        const anchor = screen.getByRole('button', { name: 'Anchor' });
+        act(() => anchor.focus());
+        fireEvent.scroll(window);
+
+        if (reason === 'focusout') {
+          act(() => screen.getByRole('button', { name: 'Outside' }).focus());
+        }
+
+        if (reason === 'route') {
+          window.history.pushState({}, '', '/projects/synthetic-different/ide');
+        }
+
+        if (reason === 'text') {
+          anchor.setAttribute('data-vc-tooltip', 'Changed text');
+        }
+
+        if (reason === 'hidden') {
+          anchor.setAttribute('data-vc-tooltip-hidden', 'true');
+        }
+
+        if (reason === 'radix') {
+          anchor.setAttribute('data-vc-radix-tooltip', 'true');
+        }
+
+        if (reason === 'Escape') {
+          fireEvent.keyDown(anchor, { key: 'Escape' });
+        }
+
+        if (reason === 'activation') {
+          fireEvent.pointerDown(anchor, { pointerType: 'mouse' });
+        }
+
+        expect(fireEvent.keyDown(anchor, { key: 'F1' })).toBe(true);
+        expect(screen.queryByRole('dialog')).toBeNull();
+      } finally {
+        window.history.replaceState({}, '', originalPath);
+        clipping.mockRestore();
+      }
+    },
+  );
+  it('does not reopen dismissed help after its actually focused DOM anchor is removed', () => {
+    const clipping = clipTooltip();
+    const anchor = document.createElement('button');
+    anchor.textContent = 'Standalone anchor';
+    anchor.setAttribute('data-vc-tooltip', fullText);
+    document.body.append(anchor);
+
+    try {
+      render(<GlobalTooltip />);
+      act(() => anchor.focus());
+      expect(screen.getByRole('button', { name: 'Read full help (F1)' })).toBeTruthy();
+      fireEvent.scroll(window);
+      anchor.remove();
+      expect(anchor.isConnected).toBe(false);
+      expect(fireEvent.keyDown(window, { key: 'F1' })).toBe(true);
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(document.activeElement).not.toBe(anchor);
+    } finally {
+      anchor.remove();
+      clipping.mockRestore();
+    }
+  });
+  it('uses the focused anchor receipt rather than another control’s later hover tooltip', () => {
+    vi.useFakeTimers();
+
+    const clipping = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.getAttribute('role') === 'tooltip' && this.textContent === fullText ? 500 : 0;
+    });
+
+    try {
+      render(
+        <>
+          <button data-vc-tooltip={fullText}>Anchor A</button>
+          <button data-vc-tooltip="Short B help">Anchor B</button>
+          <GlobalTooltip />
+        </>,
+      );
+
+      const anchor = screen.getByRole('button', { name: 'Anchor A' });
+      act(() => anchor.focus());
+      fireEvent.scroll(window);
+      fireEvent.pointerOver(screen.getByRole('button', { name: 'Anchor B' }), { pointerType: 'mouse' });
+      act(() => vi.advanceTimersByTime(500));
+      expect(screen.getByRole('tooltip').textContent).toBe('Short B help');
+      expect(document.activeElement).toBe(anchor);
+      fireEvent.keyDown(anchor, { key: 'F1' });
+      expect(screen.getByRole('region').textContent).toBe(fullText);
+    } finally {
       clipping.mockRestore();
     }
   });

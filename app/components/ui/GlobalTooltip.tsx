@@ -74,6 +74,7 @@ export function GlobalTooltip() {
 
   const tipStateRef = useRef(tip);
   const helpRef = useRef(help);
+  const focusedHelpReceipt = useRef<TooltipState | null>(null);
   tipStateRef.current = tip;
   helpRef.current = help;
 
@@ -102,6 +103,7 @@ export function GlobalTooltip() {
       showTimer.current = undefined;
     }
 
+    focusedHelpReceipt.current = null;
     setHelp({ ...current, path: window.location.pathname });
     setTip(null);
   };
@@ -118,6 +120,10 @@ export function GlobalTooltip() {
 
     const oversized =
       tip.oversized || tipRef.current.scrollHeight > tipRef.current.clientHeight || height > window.innerHeight - 16;
+
+    if (oversized && document.activeElement === tip.anchor) {
+      focusedHelpReceipt.current = { ...tip, oversized: true };
+    }
 
     // Once detected, measure the compact action instead of oscillating between surfaces.
     if (top !== tip.top || Boolean(oversized) !== Boolean(tip.oversized)) {
@@ -210,7 +216,7 @@ export function GlobalTooltip() {
       const left = Math.min(Math.max(8, rect.left + rect.width / 2 - estWidth / 2), window.innerWidth - estWidth - 8);
       const top = Math.min(rect.bottom + 8, window.innerHeight - 36);
 
-      return { text, left, top, anchor: el };
+      return { text, left, top, anchor: el, path: window.location.pathname };
     };
 
     const resolveTarget = (node: EventTarget | null): HTMLElement | null => {
@@ -235,6 +241,10 @@ export function GlobalTooltip() {
       }
     };
     const handleFocusOut = (event: FocusEvent) => {
+      if (event.target === focusedHelpReceipt.current?.anchor) {
+        focusedHelpReceipt.current = null;
+      }
+
       if (helpRef.current && isHelpTarget(event.target) && !isHelpTarget(event.relatedTarget)) {
         closeHelp(false);
       }
@@ -243,8 +253,22 @@ export function GlobalTooltip() {
         hide();
       }
     };
+    const validFocusedHelp = (current: TooltipState | null): current is TooltipState =>
+      Boolean(
+        current?.oversized &&
+          document.activeElement === current.anchor &&
+          current.anchor.isConnected &&
+          current.path === window.location.pathname &&
+          current.anchor.getAttribute(ATTR)?.trim() === current.text &&
+          current.anchor.getAttribute('data-vc-tooltip-hidden') !== 'true' &&
+          current.anchor.getAttribute('data-vc-radix-tooltip') !== 'true',
+      );
     const handleKeyDown = (event: KeyboardEvent) => {
-      const current = tipStateRef.current;
+      if (!validFocusedHelp(focusedHelpReceipt.current)) {
+        focusedHelpReceipt.current = null;
+      }
+
+      const current = validFocusedHelp(tipStateRef.current) ? tipStateRef.current : focusedHelpReceipt.current;
 
       if (
         event.key === 'F1' &&
@@ -252,13 +276,16 @@ export function GlobalTooltip() {
         !event.ctrlKey &&
         !event.metaKey &&
         !event.shiftKey &&
-        current?.oversized &&
-        document.activeElement === current.anchor
+        validFocusedHelp(current)
       ) {
         event.preventDefault();
         openHelp(current);
 
         return;
+      }
+
+      if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+        focusedHelpReceipt.current = null;
       }
 
       if (helpRef.current) {
@@ -274,6 +301,8 @@ export function GlobalTooltip() {
       }
     };
     const handlePointerDown = (event: PointerEvent) => {
+      focusedHelpReceipt.current = null;
+
       if (helpRef.current && !isHelpTarget(event.target)) {
         closeHelp(false);
       }

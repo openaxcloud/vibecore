@@ -33073,3 +33073,26 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   min-width: 0;
   width: 100%;
 }
+
+/* Secrets short-height scrollport: focus must stop above the fixed dock.
+ * Do not reserve its height twice through scrollport padding. When the virtual
+ * keyboard is open the dock is hidden and the existing viewport sizing wins.
+ */
+@media (max-height: 450px) {
+  html:not([data-vc-clavier='ouvert'])
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-service-panel[data-panel='secrets'] {
+    height: calc(100% - var(--mobile-nav-height) - env(safe-area-inset-bottom, 0px));
+  }
+
+  html:not([data-vc-clavier='ouvert'])
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-service-panel[data-panel='secrets']
+    > .min-h-0 {
+    padding-block: 4px !important;
+    scroll-padding-block: 4px;
+  }
+}
+/* End Secrets short-height scrollport */

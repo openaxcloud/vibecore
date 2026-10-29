@@ -2502,6 +2502,50 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await filtre.fill('slack');
     await expect(ligne).toBeVisible();
 
+    // En faible hauteur, Tab doit placer la clé au-dessus de la navigation fixe.
+    const viewportInitial = page.viewportSize()!;
+    const cle = ligne.locator('.bolt-secrets-chip--key');
+
+    try {
+      await page.setViewportSize({ width: 390, height: 200 });
+      await filtre.focus();
+      await page.keyboard.press('Tab');
+      await expect(cle).toBeFocused();
+      await expect
+        .poll(
+          () =>
+            cle.evaluate((element) => {
+              const scroller = element.closest('.bolt-project-service-panel')?.querySelector(':scope > .min-h-0');
+              const navigation = document.querySelector('.bolt-mobile-replit-nav-inner');
+
+              if (!scroller || !navigation) {
+                return false;
+              }
+
+              const cible = element.getBoundingClientRect();
+              const zone = scroller.getBoundingClientRect();
+              const socle = navigation.getBoundingClientRect();
+              const touche = document.elementFromPoint(cible.x + cible.width / 2, cible.y + cible.height / 2);
+
+              return (
+                cible.width > 0 &&
+                cible.height > 0 &&
+                cible.left >= zone.left &&
+                cible.right <= zone.right &&
+                cible.top >= zone.top &&
+                cible.bottom <= zone.bottom &&
+                zone.bottom <= socle.top &&
+                (touche === element || element.contains(touche))
+              );
+            }),
+          { timeout: 5000 },
+        )
+        .toBe(true);
+      await cle.click({ trial: true });
+    } finally {
+      await page.setViewportSize(viewportInitial);
+    }
+
     // RP-SEC-08 — le menu ⋮ : Modifier / Trouver les usages / Supprimer, flottant, dans l'écran.
     await page.getByTestId('secret-menu-SLACK_API_KEY').tap();
 
