@@ -1,0 +1,442 @@
+[
+  {
+    "file": "env-secrets/README.md",
+    "source": "/workspace/ui841-env-secrets/README.md",
+    "sourceSha256": "d00e2b22a5ac2beca546fcaacaba9b8c671b62e05ee0ff3791afa8d4b244bc4b"
+  },
+  {
+    "file": "env-secrets/compiled-env-filter/receipt.json",
+    "source": "/workspace/ui841-env-secrets/compiled-env-filter/receipt.json",
+    "sourceSha256": "442a0d17e95c574f5c16dbed2d23871ad1e2759fc56c529e2151b1ed9572cc1e"
+  },
+  {
+    "file": "env-secrets/compiled-secrets-filter/receipt.json",
+    "source": "/workspace/ui841-env-secrets/compiled-secrets-filter/receipt.json",
+    "sourceSha256": "0183d2f5e4d856c04960afd647755597907c131fa4eea4426ff7d07310ed04d9"
+  },
+  {
+    "file": "env-secrets/compiled-secrets-focus/receipt.json",
+    "source": "/workspace/ui841-env-secrets/compiled-secrets-focus/receipt.json",
+    "sourceSha256": "c25d883588c9874a95ad47b76cc343ad34f76882ccdb5d48eafc923a3e668b4e"
+  },
+  {
+    "file": "env-secrets/env-draft/receipt.json",
+    "source": "/workspace/ui841-env-secrets/env-draft/receipt.json",
+    "sourceSha256": "19774b554dc91e2718920151766793333b7d24070db3aa3f70c2a5d592671880"
+  },
+  {
+    "file": "env-secrets/env-empty/receipt.json",
+    "source": "/workspace/ui841-env-secrets/env-empty/receipt.json",
+    "sourceSha256": "0da91b3dd5faad0a8d50e2a3d84952fd3bda7f2a45959cf49aba3aa9b71a3a8e"
+  },
+  {
+    "file": "env-secrets/env-long/receipt.json",
+    "source": "/workspace/ui841-env-secrets/env-long/receipt.json",
+    "sourceSha256": "3ec0e38963e1ac8065b0392fd0fcda41958031d5db83108acbe51dd8eb0bd1a4"
+  },
+  {
+    "file": "env-secrets/env-long-1280-isolated/receipt.json",
+    "source": "/workspace/ui841-env-secrets/env-long-1280-isolated/receipt.json",
+    "sourceSha256": "2f243227ea2ff8279cafd5b5208a8899b943b93d508cea5a89793f481b69a07d"
+  },
+  {
+    "file": "env-secrets/env-long-stable/receipt.json",
+    "source": "/workspace/ui841-env-secrets/env-long-stable/receipt.json",
+    "sourceSha256": "acc56ac6fbdb79e572346b26a176d520635d2c748056f64245ba4211ca42933f"
+  },
+  {
+    "file": "env-secrets/env-recovery/receipt.json",
+    "source": "/workspace/ui841-env-secrets/env-recovery/receipt.json",
+    "sourceSha256": "121310d2cf9faca68bc0d0ea2c6202ede324c51cc632ff920f8c86d9fc6c251b"
+  },
+  {
+    "file": "env-secrets/env-recovery-1280-isolated/receipt.json",
+    "source": "/workspace/ui841-env-secrets/env-recovery-1280-isolated/receipt.json",
+    "sourceSha256": "8ed4e6f23862059bad71fccd116e6556e00e18052a472f51da29f57552a46449"
+  },
+  {
+    "file": "env-secrets/final-secrets-focus/receipt.json",
+    "source": "/workspace/ui841-env-secrets/final-secrets-focus/receipt.json",
+    "sourceSha256": "52cee74cf651cc09879c64160d4fa9d170709ac71a412292d195abb0175739ec"
+  },
+  {
+    "file": "env-secrets/secrets-draft/receipt.json",
+    "source": "/workspace/ui841-env-secrets/secrets-draft/receipt.json",
+    "sourceSha256": "28088fe5dc011d8d0da2c754160baf504b3ed942ed246dd5a908f0a7e3db6e64"
+  },
+  {
+    "file": "env-secrets/secrets-empty/receipt.json",
+    "source": "/workspace/ui841-env-secrets/secrets-empty/receipt.json",
+    "sourceSha256": "3648f06352f53ec6a94064ba6f35101b7f257cb72b95700d5a671d8ac52fdbd6"
+  },
+  {
+    "file": "env-secrets/secrets-focus-counterproof/receipt.json",
+    "source": "/workspace/ui841-env-secrets/secrets-focus-counterproof/receipt.json",
+    "sourceSha256": "248a0ddd00337ff20c83309920993847439379701435dc342f918bd3f1a7a90d"
+  },
+  {
+    "file": "env-secrets/secrets-long/receipt.json",
+    "source": "/workspace/ui841-env-secrets/secrets-long/receipt.json",
+    "sourceSha256": "fe8f953570d5b1549537022623244ec91f62041b57dd393f01d122ca26ee98aa"
+  },
+  {
+    "file": "env-secrets/secrets-long-geometry/receipt.json",
+    "source": "/workspace/ui841-env-secrets/secrets-long-geometry/receipt.json",
+    "sourceSha256": "b87226ff035e0af0abdcd84829274f41372be2e4d5cdfb9588b5d87f6f37acb6"
+  },
+  {
+    "file": "env-secrets/secrets-recovery/receipt.json",
+    "source": "/workspace/ui841-env-secrets/secrets-recovery/receipt.json",
+    "sourceSha256": "0460dd0df8f27e40a9add3fae806c021b4dbb3017588e30564ab7bf06c2a3fef"
+  },
+  {
+    "file": "env-secrets/secrets-recovery-1280-isolated/receipt.json",
+    "source": "/workspace/ui841-env-secrets/secrets-recovery-1280-isolated/receipt.json",
+    "sourceSha256": "eebfe4fa0ad85d7218222ad693cf8a027dc6c0b550706d336f70628df620fc1f"
+  },
+  {
+    "file": "studio-security/README.md",
+    "source": "/workspace/ui841-studio-security/README.md",
+    "sourceSha256": "c8791391353146f42f80948fef0fd5c6ca6307004e226c964193f540fbb868fe"
+  },
+  {
+    "file": "studio-security/compiled-security/receipt.json",
+    "source": "/workspace/ui841-studio-security/compiled-security/receipt.json",
+    "sourceSha256": "c84f72239c5600578e25d574644ef2eed304a4940f760da1f991303ec29bf5ca"
+  },
+  {
+    "file": "studio-security/compiled-security-draft/receipt.json",
+    "source": "/workspace/ui841-studio-security/compiled-security-draft/receipt.json",
+    "sourceSha256": "1d36de44bd0f0f89c11f999dba34c11c25061d13192dd8615c0a60d2f6c0f1cb"
+  },
+  {
+    "file": "studio-security/compiled-security-draft-820-remount/receipt.json",
+    "source": "/workspace/ui841-studio-security/compiled-security-draft-820-remount/receipt.json",
+    "sourceSha256": "f7560553e5beeeec40129cf7336318afb31fece154da35878e99511d9abfd355"
+  },
+  {
+    "file": "studio-security/compiled-studio/receipt.json",
+    "source": "/workspace/ui841-studio-security/compiled-studio/receipt.json",
+    "sourceSha256": "c622c0a6d2a86cbbdb9b44657dd5fc3ba3efca8dda7a78cd73cad2148d09b7af"
+  },
+  {
+    "file": "studio-security/security-draft/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-draft/receipt.json",
+    "sourceSha256": "50f128d38f73355dee70efe86c3bfcad4f56a62f0ae69c945ef2d3baf9a7b6d3"
+  },
+  {
+    "file": "studio-security/security-draft-repeat/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-draft-repeat/receipt.json",
+    "sourceSha256": "b4bae67f24d69561c0e874106d009c48c65f14cf27a342ca5ded776661a1175f"
+  },
+  {
+    "file": "studio-security/security-empty/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-empty/receipt.json",
+    "sourceSha256": "41ea4f81172174688b338fc9cebd37245e12ecd75f2f0d0e9cb2ec010aad05ef"
+  },
+  {
+    "file": "studio-security/security-empty-corrected/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-empty-corrected/receipt.json",
+    "sourceSha256": "a5b07c6fc6386d27f4f595b26daa62934cfdaf36a1544b3cfaa33136ff44e2f1"
+  },
+  {
+    "file": "studio-security/security-long/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-long/receipt.json",
+    "sourceSha256": "c6aad2dc87d04861d498e28b6d8a5f669863b1b02bf3bfe104ab5cecda20dcf1"
+  },
+  {
+    "file": "studio-security/security-long-corrected/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-long-corrected/receipt.json",
+    "sourceSha256": "90f528fdcb8a167c70bf03994692ba7b93bb88f5d1c307a1b75675ab86461892"
+  },
+  {
+    "file": "studio-security/security-minimal-counterproof/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-minimal-counterproof/receipt.json",
+    "sourceSha256": "0630602495a0ad73b55c2f8291ef91668aa6bf55e6716eb433664ebcff1153ab"
+  },
+  {
+    "file": "studio-security/security-preserved-counterproof/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-preserved-counterproof/receipt.json",
+    "sourceSha256": "a4e232d3603a930640e1b02503f6e7529c3cd1435892331c1d83a993ed5d5617"
+  },
+  {
+    "file": "studio-security/security-recovery/receipt.json",
+    "source": "/workspace/ui841-studio-security/security-recovery/receipt.json",
+    "sourceSha256": "807652c071cc720f223af5e9ceb63128dfe8ea3ce80833bde3476be40b04e27f"
+  },
+  {
+    "file": "studio-security/studio-counterproof/receipt.json",
+    "source": "/workspace/ui841-studio-security/studio-counterproof/receipt.json",
+    "sourceSha256": "a0508f5744b89810a1fd6b73eb963104e3d5a42f13a63df1f0f48b31dfec9509"
+  },
+  {
+    "file": "studio-security/studio-empty/receipt.json",
+    "source": "/workspace/ui841-studio-security/studio-empty/receipt.json",
+    "sourceSha256": "a55c0ace3f6adc7915fa1539d1222718e6ed119c4debb305d93ec7f2b7310483"
+  },
+  {
+    "file": "studio-security/studio-long/receipt.json",
+    "source": "/workspace/ui841-studio-security/studio-long/receipt.json",
+    "sourceSha256": "6eaf7110d07ac90a6ab5f51b32a7640b25047605b0607045d51b47b17a9a7119"
+  },
+  {
+    "file": "studio-security/studio-minimal-counterproof/receipt.json",
+    "source": "/workspace/ui841-studio-security/studio-minimal-counterproof/receipt.json",
+    "sourceSha256": "e3ade6283515f58c8dd1f0e10e4465fbc5eec7feb74953959ed0bd7e8e49dcb3"
+  },
+  {
+    "file": "studio-security/studio-minimal-counterproof-390/receipt.json",
+    "source": "/workspace/ui841-studio-security/studio-minimal-counterproof-390/receipt.json",
+    "sourceSha256": "086d5952141d8a22cd5ba15d39e32776096dd46446d1758326665f1a9bf0a31f"
+  },
+  {
+    "file": "studio-security/studio-recovery/receipt.json",
+    "source": "/workspace/ui841-studio-security/studio-recovery/receipt.json",
+    "sourceSha256": "15f3fa4cdf04700b67c1ed691314d169ba13d9c2ff8f0492fdad5f00fac4ea3e"
+  },
+  {
+    "file": "studio-security/studio-track-counterproof/receipt.json",
+    "source": "/workspace/ui841-studio-security/studio-track-counterproof/receipt.json",
+    "sourceSha256": "df6f79c13bb62c08b66c0d42e4770d59cb3125ffe5af302c7bfa37d2af14112c"
+  },
+  {
+    "file": "preview-debugger/README.md",
+    "source": "/workspace/ui841-preview-debugger/README.md",
+    "sourceSha256": "7c2ecb6f0d7128991c30324d1aa18162329f16ea14d188226fae45de8f83fb7e"
+  },
+  {
+    "file": "preview-debugger/compiled-debugger/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/compiled-debugger/receipt.json",
+    "sourceSha256": "24944909c4b8ed490bb80a77ced728cff4e25950db0d398a2f5249d9b717f0b1"
+  },
+  {
+    "file": "preview-debugger/debugger-before-capture/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-before-capture/receipt.json",
+    "sourceSha256": "90a73b9e09e7855c1f1367afb8e1ed32329643e0086de16666d66ee8b53eef4f"
+  },
+  {
+    "file": "preview-debugger/debugger-counterproof/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-counterproof/receipt.json",
+    "sourceSha256": "ebcb0f97b6056f54a636f7d03cdff09ba33a4df14331ff22b0468376a473dd81"
+  },
+  {
+    "file": "preview-debugger/debugger-counterproof-capture/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-counterproof-capture/receipt.json",
+    "sourceSha256": "f7aa33818850f64538322da7f3e7c3ba3ba8a9b66ceb3560876973ee92befc93"
+  },
+  {
+    "file": "preview-debugger/debugger-counterproof-grid/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-counterproof-grid/receipt.json",
+    "sourceSha256": "c50b728674b4d5d5da7e5a94819d1e7913e28321cb5872aa9e2bb8c81e356344"
+  },
+  {
+    "file": "preview-debugger/debugger-empty/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-empty/receipt.json",
+    "sourceSha256": "2021d253f5b062856f0f8e2d3b0aba97d8ddb96ff5ff35829cfd75dbcc5d55ae"
+  },
+  {
+    "file": "preview-debugger/debugger-empty-body/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-empty-body/receipt.json",
+    "sourceSha256": "0ffb0ba4c61c61070ed2834f03252c7035ddf07490f543a19249799e4047365f"
+  },
+  {
+    "file": "preview-debugger/debugger-empty-final/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-empty-final/receipt.json",
+    "sourceSha256": "ffa752af6e17992539c3578a39bad758b2a259e4b0eb6c74aaeabc2ce970e728"
+  },
+  {
+    "file": "preview-debugger/debugger-long/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-long/receipt.json",
+    "sourceSha256": "24c70743786b63a286262320f9da1f264c0b28d8936ed75b42df31725cebc2ae"
+  },
+  {
+    "file": "preview-debugger/debugger-long-body/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-long-body/receipt.json",
+    "sourceSha256": "91ebc100a9ccee2ca6447224e9e14bd665f099302c351d7f52adcc8fc6e29230"
+  },
+  {
+    "file": "preview-debugger/debugger-recovery/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-recovery/receipt.json",
+    "sourceSha256": "c90c2008624e889007feb6b9a4bcabd19d549d58ff8a9bc11b638655a432b1c4"
+  },
+  {
+    "file": "preview-debugger/debugger-recovery-final/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/debugger-recovery-final/receipt.json",
+    "sourceSha256": "d464a3d39bf24330ea95af64e35c96c36620fd2ddde8bcf2b74ca72f04aaa275"
+  },
+  {
+    "file": "preview-debugger/preview-passive/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/preview-passive/receipt.json",
+    "sourceSha256": "26b761f5151705cfe65cbba727315b30fa6a31b2de8ad586d5a6677a4a9f4b16"
+  },
+  {
+    "file": "preview-debugger/preview-startup-readonly/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/preview-startup-readonly/receipt.json",
+    "sourceSha256": "ba4fe688ddcf6e3a79fc97a6e8c2aaa24b2280ba1db4eafa2f9a9af2882f6f6d"
+  },
+  {
+    "file": "preview-debugger/remove-compiled/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/remove-compiled/receipt.json",
+    "sourceSha256": "ed89a4283787bc8737f022730e9324db4d879b3e6d2d7cbf9465d5c817a49dbb"
+  },
+  {
+    "file": "preview-debugger/remove-red/receipt.json",
+    "source": "/workspace/ui841-preview-debugger/remove-red/receipt.json",
+    "sourceSha256": "9795a97ac6bace256881f521bffffe24178c1b74be1027ba2ff58d7caa6c3882"
+  },
+  {
+    "file": "reserved-readonly/README.md",
+    "source": "/workspace/ui841-reserved-readonly/README.md",
+    "sourceSha256": "b737378f772ad5786bc6fb616977501a93c20165761dbaba90fac93735457b0b"
+  },
+  {
+    "file": "reserved-readonly/deployments-empty/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/deployments-empty/receipt.json",
+    "sourceSha256": "bd338d1fad605c6aa7e716431ad46a90f3f6aa2634a7e663e4691bc994e6aca9"
+  },
+  {
+    "file": "reserved-readonly/deployments-empty-1280-serial/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/deployments-empty-1280-serial/receipt.json",
+    "sourceSha256": "a977a9d30a3cd0873c66252b5c2a1cbf7168ffb1f2e6781178abe74cf479dffd"
+  },
+  {
+    "file": "reserved-readonly/deployments-long/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/deployments-long/receipt.json",
+    "sourceSha256": "ada22d881e563abcbd14da03d69adadac6c767d6a2619b510b3d99071e63e559"
+  },
+  {
+    "file": "reserved-readonly/deployments-recovery/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/deployments-recovery/receipt.json",
+    "sourceSha256": "e779fd17297441e81493ebe97e739a32bed7063414fc181d661456ee8d44bae8"
+  },
+  {
+    "file": "reserved-readonly/domains-empty/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/domains-empty/receipt.json",
+    "sourceSha256": "63b4f6bdeb5b8036d214bd52191a43126208d7a171a853ecb845503e31be084b"
+  },
+  {
+    "file": "reserved-readonly/domains-empty-1280-serial/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/domains-empty-1280-serial/receipt.json",
+    "sourceSha256": "703aef0341a5cf9651af517ae1b9ae3b6cd9edf0b6c81627b946afc5513dca92"
+  },
+  {
+    "file": "reserved-readonly/domains-long/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/domains-long/receipt.json",
+    "sourceSha256": "1b7dc04a213f59c7131861bb54c9d20680380aead9594bfaaa417cb56d96c909"
+  },
+  {
+    "file": "reserved-readonly/domains-recovery/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/domains-recovery/receipt.json",
+    "sourceSha256": "a7a3a3821b9e2ef876539fe17c14120c4faa4b814d48275a8e83c95ef130b34d"
+  },
+  {
+    "file": "reserved-readonly/domains-recovery-correct-label/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/domains-recovery-correct-label/receipt.json",
+    "sourceSha256": "586f53ae9716a8f84244e3bacbf2faee556693c203a3dc9e53ea6497e31fea03"
+  },
+  {
+    "file": "reserved-readonly/git-empty/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-empty/receipt.json",
+    "sourceSha256": "23b385f188d128fb0eaabe37008d38d610191f7f345fa7c094b45a80840c454b"
+  },
+  {
+    "file": "reserved-readonly/git-long/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-long/receipt.json",
+    "sourceSha256": "e5bbfc0c53581c6eeaa567da1d057050fea33eff129e51e17fa7dddb956213b3"
+  },
+  {
+    "file": "reserved-readonly/git-long-1280-counterproof/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-long-1280-counterproof/receipt.json",
+    "sourceSha256": "f7c44a52c6b695cee9dec7031dd6bafb0a6708e35bc1c3346437bc4640720ac6"
+  },
+  {
+    "file": "reserved-readonly/git-long-1280-diagnostic/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-long-1280-diagnostic/receipt.json",
+    "sourceSha256": "683c0304b54d545303e7639a52ce30df9a744cd9e85ecc37ccb5db84f79869f8"
+  },
+  {
+    "file": "reserved-readonly/git-recovery/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-recovery/receipt.json",
+    "sourceSha256": "917a98e3e98d607428e107bd825a7f67dde483edd8d9a529af3e5f9e99381e86"
+  },
+  {
+    "file": "reserved-readonly/git-recovery-click/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-recovery-click/receipt.json",
+    "sourceSha256": "c1196401e22921ccbf0c68ee498bae26d9e57e6ddd9b3dda437b7276083f3876"
+  },
+  {
+    "file": "reserved-readonly/git-recovery-correct-label/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-recovery-correct-label/receipt.json",
+    "sourceSha256": "65cdbbf5ca71ae67c63dd8a52b46622598f4e6d44fa51ee2c06ef70dc4f6a10f"
+  },
+  {
+    "file": "reserved-readonly/git-recovery-diagnostic/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-recovery-diagnostic/receipt.json",
+    "sourceSha256": "2bf86a075dec920498dd823280874c20d8d0db3eb7524c93c4a6295f10dc50c9"
+  },
+  {
+    "file": "reserved-readonly/git-recovery-responses/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/git-recovery-responses/receipt.json",
+    "sourceSha256": "b2f18dfc6342318715cd0a3d4a9757c7eafbbeda5514b6d8bf5defd8d91aad20"
+  },
+  {
+    "file": "reserved-readonly/integrations-empty/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/integrations-empty/receipt.json",
+    "sourceSha256": "79fa6847b8374d5314862447a89f3395f1768d3f9190eb7abc119be38379215a"
+  },
+  {
+    "file": "reserved-readonly/integrations-empty-1280-serial/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/integrations-empty-1280-serial/receipt.json",
+    "sourceSha256": "cc80772d459930b9871e9a712d7e49bf70bb914226f4940dd2d732dd2a326c16"
+  },
+  {
+    "file": "reserved-readonly/integrations-recovery/receipt.json",
+    "source": "/workspace/ui841-reserved-readonly/integrations-recovery/receipt.json",
+    "sourceSha256": "4a12442b9ad06c9f6aa3379dbf7080f3cb9f8e30a280a3a68d7ddfcfa2fcb582"
+  },
+  {
+    "file": "collab-draft/README.md",
+    "source": "/workspace/ui841-collab-draft/README.md",
+    "sourceSha256": "0db59f54cd5e549713c997b504c482ff9088545bdde4337d68b03dd4c5259788"
+  },
+  {
+    "file": "collab-draft/committed-resize/receipt.json",
+    "source": "/workspace/ui841-collab-draft/committed-resize/receipt.json",
+    "sourceSha256": "542877121acc5512e1e8f556219a95204395f8d5385efe7cb3947231612d0bbd"
+  },
+  {
+    "file": "collab-draft/compiled-full-form/receipt.json",
+    "source": "/workspace/ui841-collab-draft/compiled-full-form/receipt.json",
+    "sourceSha256": "cf94bee0db9ef350ce9bd5e1e4a7c5af8f9a3bf9e959a3cc0ad41c779b325211"
+  },
+  {
+    "file": "tooltip/README.md",
+    "source": "/workspace/ui841-tooltip/README.md",
+    "sourceSha256": "107c3f9e855b8a7db96220e22355dc7cf660aa551759710287cdf207556d1a69"
+  },
+  {
+    "file": "tooltip/before/receipt.json",
+    "source": "/workspace/ui841-tooltip/before/receipt.json",
+    "sourceSha256": "74c4f579bf9fbb037460ab3de833a2c51cf0e550610d237458a2b7419ce151ff"
+  },
+  {
+    "file": "tooltip/compiled/receipt.json",
+    "source": "/workspace/ui841-tooltip/compiled/receipt.json",
+    "sourceSha256": "e3556f010d0890e00950cbb2860cba4a7e00c2f1f338c1ccf95329beaee8bb0f"
+  },
+  {
+    "file": "tooltip/compiled-final/receipt.json",
+    "source": "/workspace/ui841-tooltip/compiled-final/receipt.json",
+    "sourceSha256": "b0b4018bba2fc720bd626f2cbba8d656a9b6adf54a0da3ef19858ccb7c9fc4e9"
+  },
+  {
+    "file": "tooltip/compiled-instrumented/receipt.json",
+    "source": "/workspace/ui841-tooltip/compiled-instrumented/receipt.json",
+    "sourceSha256": "b4e30e995f11f7ae2360329f021d1172dd25be4478857b0308c15bc401fd3938"
+  },
+  {
+    "file": "tooltip/counterproof/receipt.json",
+    "source": "/workspace/ui841-tooltip/counterproof/receipt.json",
+    "sourceSha256": "c1d3e3949d9d37efb9764ea504c7f5eebbddc68baeb97d9cf6da08e0229ce1f5"
+  }
+]

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-565 entrées.
+571 entrées.
 
 ## Sans section
 
@@ -750,6 +750,12 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-COLLABORATOR-COMMENT-OVERFLOW-20261029](docs/bugs/BUG-COLLABORATOR-COMMENT-OVERFLOW-20261029.md) — Un commentaire Collaborators avec URL longue force une largeur de2903–3382px dans un panneau de358–771px. — 📤 Dispatché : ☑ Diagnostic local29octobre, trois formats390/820/1280, données synthétiques. · 💻 Codé : ☐ main — règle locale overflow-wrap:anywhere sur les paragraphes de commentaires, aucun contenu tronqué. Tête8 · ✅ Testé live : ☐ production — contrepreuveCSS3/3verte puis recette compilée390/820/1280 sans injectionCSS3/3verte. Build clie
 - [BUG-USER-MESSAGE-KEYBOARD-MENU-20261029](docs/bugs/BUG-USER-MESSAGE-KEYBOARD-MENU-20261029.md) — Après focus obtenu nativement par Tab sur un message utilisateur, Maj+F10 ne déclenche pas son menu. Six recettes FR/EN390/820/1280 reproduisent le défaut sur b — 📤 Dispatché : ☑ Preuves et proposition préparées pour coordination avec le propriétaire messages/historique830/832. · 💻 Codé : ☐ Aucune correction appliquée : périmètre réservé UserMessage/MessageContextMenu. Proposition : raccorder l'an · ✅ Testé live : ☐ Production non testée ; Chromium local et API/runtime synthétiques. Aucun prompt ni appel IA.
 - [BUG-WORKFLOW-NARROW-TASKS-LOGS-20261029](docs/bugs/BUG-WORKFLOW-NARROW-TASKS-LOGS-20261029.md) — Les tâches Workflows débordent sur mobile/tablette ; un historique long force la largeur du panneau desktop. Reproduit sur390/820/1280 avec données synthétiques — 📤 Dispatché : ☑ Diagnostic local29octobre, quatre déclarations CSS ciblées proposées. · 💻 Codé : ☐ main — correctif local séparé de840 : tâches flex repliables, largeur minimale des tracks/historiques conten · ✅ Testé live : ☐ production — contrepreuveCSS stricte3/3verte, égalité intégrale du log/commande et défilement horizontal eff
+- [BUG-DEBUGGER-NARROW-LAYOUT-20261029](docs/bugs/BUG-DEBUGGER-NARROW-LAYOUT-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-GIT-LONG-BRANCH-GRID-20261029](docs/bugs/BUG-GIT-LONG-BRANCH-GRID-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-IDE-SERVICE-PANEL-DRAFTS-20261029](docs/bugs/BUG-IDE-SERVICE-PANEL-DRAFTS-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-IDE-TOOLTIP-DOUBLE-RENDER-20261029](docs/bugs/BUG-IDE-TOOLTIP-DOUBLE-RENDER-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-SECRETS-MENU-ESCAPE-FOCUS-20261029](docs/bugs/BUG-SECRETS-MENU-ESCAPE-FOCUS-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-STUDIO-SECURITY-LONG-CONTENT-20261029](docs/bugs/BUG-STUDIO-SECURITY-LONG-CONTENT-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
