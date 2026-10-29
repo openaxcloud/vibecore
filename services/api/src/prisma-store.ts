@@ -3,6 +3,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import {
   reserveExplicitRunBudget,
+  summarizeExplicitRunBudget,
   type ExplicitRunPermit,
   type ExplicitRunReservation,
   type PlanKey,
@@ -4200,6 +4201,14 @@ export class PrismaApiStore implements ApiStore {
 
       return next;
     });
+  }
+
+  async getExplicitRunBudgetSummary(projectId: string) {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: `agent.explicit-run.v1:${projectId}` },
+      select: { value: true },
+    });
+    return summarizeExplicitRunBudget(row ? row.value : undefined, projectId);
   }
 
   async hasExplicitRunBudget(projectId: string): Promise<boolean> {

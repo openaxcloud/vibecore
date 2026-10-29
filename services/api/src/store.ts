@@ -1,6 +1,12 @@
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { ExplicitRunPermit, ExplicitRunReservation, PlanKey, QuotaKey } from '@vibecore/billing';
+import type {
+  ExplicitRunBudgetSummary,
+  ExplicitRunPermit,
+  ExplicitRunReservation,
+  PlanKey,
+  QuotaKey,
+} from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
@@ -2081,9 +2087,7 @@ export interface ApiStore {
     id: string,
     patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
   ): Promise<DatabaseInstanceRecord | undefined>;
-  reconcileDatabaseProvisioning(
-    input: DatabaseProvisioningReconciliation,
-  ): Promise<DatabaseInstanceRecord | undefined>;
+  reconcileDatabaseProvisioning(input: DatabaseProvisioningReconciliation): Promise<DatabaseInstanceRecord | undefined>;
   createDatabaseSnapshot(input: {
     databaseInstanceId: string;
     kind: 'auto' | 'manual';
@@ -2371,6 +2375,7 @@ export interface ApiStore {
   deleteAiMessageFeedback(input: { userId: string; messageId: string }): Promise<boolean>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
+  getExplicitRunBudgetSummary(projectId: string): Promise<ExplicitRunBudgetSummary | undefined>;
   hasExplicitRunBudget(projectId: string): Promise<boolean>;
   getExplicitRunProviderConfiguration(): Promise<{ enabled: boolean; baseUrl?: string | null } | undefined>;
   getExplicitRunPermit(projectId: string, runId: string): Promise<ExplicitRunPermit | undefined>;

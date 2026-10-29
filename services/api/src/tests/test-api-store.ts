@@ -2,6 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import {
   reserveExplicitRunBudget,
+  summarizeExplicitRunBudget,
   type ExplicitRunPermit,
   type ExplicitRunReservation,
   type PlanKey,
@@ -3186,6 +3187,11 @@ export class TestApiStore implements ApiStore {
     this.systemSettings.set(key, { key, value: next, updatedAt: now() });
 
     return next;
+  }
+
+  async getExplicitRunBudgetSummary(projectId: string) {
+    const row = this.systemSettings.get(`agent.explicit-run.v1:${projectId}`);
+    return summarizeExplicitRunBudget(row ? row.value : undefined, projectId);
   }
 
   async hasExplicitRunBudget(projectId: string): Promise<boolean> {

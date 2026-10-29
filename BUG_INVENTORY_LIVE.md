@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-583 entrées.
+584 entrées.
 
 ## Sans section
 
@@ -723,8 +723,6 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-AGENT-EXPLICIT-MODEL-20261028](docs/bugs/BUG-AGENT-EXPLICIT-MODEL-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
-- [BUG-PUBLISH-REVALIDATION-20261028](docs/bugs/BUG-PUBLISH-REVALIDATION-20261028.md) — Sur main `9ec6ebf75`, le formulaire conserve son ancienne détection pendant — 📤 Dispatché : ☑ 28/10/2026 — audit Publish indépendant des PR #828/#829. · 💻 Codé : ☐ — correctif local ; non fusionné, non livré. · ✅ Testé live : ☐ — pas de publication fournisseur ni de recette authentifiée en production.
-- [BUG-PUBLISH-URL-COPY-FEEDBACK-20261028](docs/bugs/BUG-PUBLISH-URL-COPY-FEEDBACK-20261028.md) — Sur main `9ec6ebf75`, un refus du presse-papiers ou une API indisponible ne donne — 📤 Dispatché : ☑ 28/10/2026 — audit Publish/Domaines et actions accessibles. · 💻 Codé : ☐ — correctif local ; non fusionné, non livré. · ✅ Testé live : ☐ — aucune recette authentifiée de production ou Safari matériel. Tests composant
 - [BUG-LITE-MODEL-LOCK-20261028](docs/bugs/BUG-LITE-MODEL-LOCK-20261028.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Editeur et persistance
@@ -781,11 +779,14 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-WORKFLOW-NARROW-TASKS-LOGS-20261029](docs/bugs/BUG-WORKFLOW-NARROW-TASKS-LOGS-20261029.md) — Les tâches Workflows débordent sur mobile/tablette ; un historique long force la largeur du panneau desktop. Reproduit sur390/820/1280 avec données synthétiques — 📤 Dispatché : ☑ Diagnostic local29octobre, quatre déclarations CSS ciblées proposées. · 💻 Codé : ☐ main — correctif local séparé de840 : tâches flex repliables, largeur minimale des tracks/historiques conten · ✅ Testé live : ☐ production — contrepreuveCSS stricte3/3verte, égalité intégrale du log/commande et défilement horizontal eff
 - [BUG-RELEASE-GO-STDLIB-20261029](docs/bugs/BUG-RELEASE-GO-STDLIB-20261029.md) — Le gate « Vulnerability gate + SBOM exact digests » du déploiement 40751950616 a refusé la livraison de `63e66383055c632865b7ebd27df19aa1a6f6f37f`. Helm, rollou — 📤 Dispatché : ☑ 29/10/2026 — diagnostic sécurité et correction des dépendances embarquées ; aucune exclusion de scanner ni b · 💻 Codé : ☐ main — correctif en préparation dans l'assemblage #847 + #846, non fusionné et non livré. · ✅ Testé live : ☐ production — les images finales corrigées doivent encore être construites et scannées par leur empreinte exa
-- [BUG-PROJECT-MENU-MUTATIONS-20261028](docs/bugs/BUG-PROJECT-MENU-MUTATIONS-20261028.md) — Sur main `63e663830`, le menu accepte une nouvelle mutation pendant une requête. — 📤 Dispatché : ☑ 28/10/2026 — lot indépendant du correctif Publish #831. · 💻 Codé : ☐ — correctif local, non fusionné et non livré. · ✅ Testé live : ☐ — aucune validation authentifiée en production. Recette locale : deux scénarios
-- [BUG-GIT-REMOTE-FEEDBACK-20261028](docs/bugs/BUG-GIT-REMOTE-FEEDBACK-20261028.md) — Sur la base locale `3170d2fe8`, une sélection de dépôt suivie d'un échec HTTP — 📤 Dispatché : ☑ 28/10/2026 — lot Git local distinct des PR #831 et #834. · 💻 Codé : ☐ — correctif local, non publié, non fusionné et non livré. · ✅ Testé live : ☐ — aucune connexion fournisseur ni recette authentifiée en production.
+- [BUG-EXPLICIT-BUDGET-VISIBILITY-20261029](docs/bugs/BUG-EXPLICIT-BUDGET-VISIBILITY-20261029.md) — La recette Aster ne peut pas vérifier le solde de réservation dans le sélecteur de modèle. Le GET `agent/explicit-run` ne renvoie que `bounded`. Le plafond expl — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-GIT-ORIGIN-IMPORT-CLARITY-20261029](docs/bugs/BUG-GIT-ORIGIN-IMPORT-CLARITY-20261029.md) — Sur le lot assemblé `5ac435a35`, le sélecteur affiche « Connecter » et le toast — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-GIT-REMOTE-DIALOG-ESCAPE-CAPTURE-20261029](docs/bugs/BUG-GIT-REMOTE-DIALOG-ESCAPE-CAPTURE-20261029.md) — Le dialogue Git distant fermait avec Escape depuis son champ URL, mais pas — 📤 Dispatché : ☑ 29/10/2026 — reproduction pendant la revue de l'assemblage Publish/Projets/Git. · 💻 Codé : ☐ main — correction locale : le dialogue ouvert expose `data-state="open"`, · ✅ Testé live : ☐ production — composant réel et hook de raccourcis réel sous jsdom uniquement.
+- [BUG-GIT-REMOTE-FEEDBACK-20261028](docs/bugs/BUG-GIT-REMOTE-FEEDBACK-20261028.md) — Sur la base locale `3170d2fe8`, une sélection de dépôt suivie d'un échec HTTP — 📤 Dispatché : ☑ 28/10/2026 — lot Git local distinct des PR #831 et #834. · 💻 Codé : ☐ — correctif local, non publié, non fusionné et non livré. · ✅ Testé live : ☐ — aucune connexion fournisseur ni recette authentifiée en production.
 - [BUG-IDE-LOGS-STREAM-HANDOFF-20261029](docs/bugs/BUG-IDE-LOGS-STREAM-HANDOFF-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-PROJECT-MENU-MUTATIONS-20261028](docs/bugs/BUG-PROJECT-MENU-MUTATIONS-20261028.md) — Sur main `63e663830`, le menu accepte une nouvelle mutation pendant une requête. — 📤 Dispatché : ☑ 28/10/2026 — lot indépendant du correctif Publish #831. · 💻 Codé : ☐ — correctif local, non fusionné et non livré. · ✅ Testé live : ☐ — aucune validation authentifiée en production. Recette locale : deux scénarios
+- [BUG-PUBLISH-REVALIDATION-20261028](docs/bugs/BUG-PUBLISH-REVALIDATION-20261028.md) — Sur main `9ec6ebf75`, le formulaire conserve son ancienne détection pendant — 📤 Dispatché : ☑ 28/10/2026 — audit Publish indépendant des PR #828/#829. · 💻 Codé : ☐ — correctif local ; non fusionné, non livré. · ✅ Testé live : ☐ — pas de publication fournisseur ni de recette authentifiée en production.
+- [BUG-PUBLISH-URL-COPY-FEEDBACK-20261028](docs/bugs/BUG-PUBLISH-URL-COPY-FEEDBACK-20261028.md) — Sur main `9ec6ebf75`, un refus du presse-papiers ou une API indisponible ne donne — 📤 Dispatché : ☑ 28/10/2026 — audit Publish/Domaines et actions accessibles. · 💻 Codé : ☐ — correctif local ; non fusionné, non livré. · ✅ Testé live : ☐ — aucune recette authentifiée de production ou Safari matériel. Tests composant
 
 ## Résidus non tabulaires — reportés mot pour mot
 

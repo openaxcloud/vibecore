@@ -179,3 +179,115 @@ export function reserveExplicitRunBudget(existing: unknown, permit: ExplicitRunP
     state: { version: 1, reservedMicros, runIds: [...state.runIds, permit.runId], permits: [...state.permits, permit] },
   };
 }
+
+/** Reservations only: this is neither historical spend nor the total recipe budget. */
+export interface ExplicitRunBudgetSummary {
+  scope: 'explicit-runs-only';
+  currency: 'USD';
+  limitMicros: 20000000;
+  reservedMicros: number;
+  remainingMicros: number;
+  runCount: number;
+  historicalCostsIncluded: false;
+  totalRecipeRemainingMicros: null;
+}
+
+/** Reject inconsistent persisted ledgers instead of presenting a fictitious balance. */
+export function summarizeExplicitRunBudget(existing: unknown, projectId: string): ExplicitRunBudgetSummary | undefined {
+  const state = existing === undefined ? { version: 1, reservedMicros: 0, runIds: [], permits: [] } : existing;
+
+  if (!state || typeof state !== 'object') {
+    return undefined;
+  }
+
+  const ledger = state as ExplicitRunBudgetState;
+
+  if (
+    ledger.version !== 1 ||
+    !Number.isSafeInteger(ledger.reservedMicros) ||
+    ledger.reservedMicros < 0 ||
+    ledger.reservedMicros > 20000000 ||
+    !Array.isArray(ledger.runIds) ||
+    !Array.isArray(ledger.permits) ||
+    ledger.runIds.length !== ledger.permits.length ||
+    ledger.runIds.some((id) => typeof id !== 'string' || !id.trim()) ||
+    new Set(ledger.runIds).size !== ledger.runIds.length
+  ) {
+    return undefined;
+  }
+
+  const seen = new Set<string>();
+
+  let sum = 0;
+
+  for (const permit of ledger.permits) {
+    if (
+      !permit ||
+      typeof permit !== 'object' ||
+      permit.kind !== 'bounded-explicit-v1' ||
+      permit.projectId !== projectId ||
+      typeof permit.runId !== 'string' ||
+      !ledger.runIds.includes(permit.runId) ||
+      seen.has(permit.runId) ||
+      permit.provider !== 'openai' ||
+      permit.model !== 'gpt-5.6-luna' ||
+      permit.serviceTier !== 'default' ||
+      permit.lineKey !== 'lite' ||
+      !Number.isSafeInteger(permit.routingVersion) ||
+      permit.routingVersion <= 0 ||
+      !Number.isFinite(permit.multiplier) ||
+      permit.multiplier <= 0 ||
+      !Number.isSafeInteger(permit.maxCalls) ||
+      permit.maxCalls < 1 ||
+      permit.maxCalls > 8 ||
+      permit.maxInputTokens !== 64000 ||
+      permit.maxBillableInputTokens !== 1050000 ||
+      permit.maxOutputTokens !== 8192 ||
+      permit.budgetLimitMicros !== 20000000 ||
+      !Number.isSafeInteger(permit.reservedBudgetMicros) ||
+      permit.reservedBudgetMicros <= 0 ||
+      permit.reservedBudgetMicros > 20000000 ||
+      permit.accounting?.providerInputCentsPerMillion !== 20 ||
+      permit.accounting?.providerOutputCentsPerMillion !== 120 ||
+      permit.pricing?.providerInputCentsPerMillion !== EXPLICIT_RUN_PROVIDER_INPUT_CENTS ||
+      permit.pricing?.providerOutputCentsPerMillion !== EXPLICIT_RUN_PROVIDER_OUTPUT_CENTS ||
+      ![
+        permit.accounting?.platformInputCentsPerMillion,
+        permit.accounting?.platformOutputCentsPerMillion,
+        permit.pricing?.platformInputCentsPerMillion,
+        permit.pricing?.platformOutputCentsPerMillion,
+      ].every((value) => typeof value === 'number' && Number.isFinite(value) && value > 0)
+    ) {
+      return undefined;
+    }
+
+    const perCallMicros = (inputPrice: number, outputPrice: number) =>
+      Math.ceil((permit.maxBillableInputTokens * inputPrice + permit.maxOutputTokens * outputPrice) / 1000000) * 10000;
+    const expectedReservation =
+      permit.maxCalls *
+      (perCallMicros(permit.pricing.providerInputCentsPerMillion, permit.pricing.providerOutputCentsPerMillion) +
+        perCallMicros(permit.pricing.platformInputCentsPerMillion, permit.pricing.platformOutputCentsPerMillion));
+
+    if (expectedReservation !== permit.reservedBudgetMicros) {
+      return undefined;
+    }
+
+    seen.add(permit.runId);
+    sum += permit.reservedBudgetMicros;
+  }
+
+  if (!Number.isSafeInteger(sum) || sum !== ledger.reservedMicros) {
+    return undefined;
+  }
+
+  return {
+    scope: 'explicit-runs-only',
+    currency: 'USD',
+    limitMicros: 20000000,
+    reservedMicros: sum,
+    remainingMicros: 20000000 - sum,
+    runCount: seen.size,
+    historicalCostsIncluded: false,
+    totalRecipeRemainingMicros: null,
+  };
+}
