@@ -1,0 +1,36 @@
+{
+  "width": 320,
+  "requests": [
+    {
+      "intent": "configure-remote",
+      "remoteUrl": "https://example.test/synthetic/fixture.git",
+      "branch": "main"
+    },
+    {
+      "intent": "configure-remote",
+      "remoteUrl": "https://example.test/synthetic/fixture.git",
+      "branch": "main"
+    }
+  ],
+  "blocked": [
+    "external fonts.googleapis.com",
+    "external fonts.googleapis.com",
+    "external stackblitz.com",
+    "PUT /api/projects/<fixture>/ide-state"
+  ],
+  "gitGets": 7,
+  "repositoryButton": {
+    "x": 69,
+    "y": 944.109375,
+    "width": 182,
+    "height": 54.984375
+  },
+  "errorBox": {
+    "x": 56.5,
+    "y": 537.09375,
+    "width": 207,
+    "height": 48.375
+  },
+  "providerMutationExecuted": false,
+  "oauthExecuted": false
+}

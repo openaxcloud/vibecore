@@ -2,7 +2,7 @@ import { Ban, CheckCircle2, Loader2, Rocket } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useFetcher } from 'react-router';
+import { useFetcher, useRevalidator } from 'react-router';
 import { Button } from '~/components/ui/Button';
 import {
   formatProjectUserAreaCurrency,
@@ -105,6 +105,7 @@ export function DeployPublishCard({
     rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`);
   }, [projectId]);
 
+  const revalidator = useRevalidator();
   const rateCard = rateCardFetcher.data?.rateCard ?? null;
 
   const detected = detectFetcher.data?.detected;
@@ -125,14 +126,20 @@ export function DeployPublishCard({
     }
   }, [busy]);
 
-  const canPublish = (effectiveMode === 'server' || effectiveMode === 'static') && !busy && !building && !pending;
+  // Fetchers retain previous data while revalidating; only an explicit override may bypass detection.
+  const canPublish =
+    (effectiveMode === 'server' || effectiveMode === 'static') &&
+    (override !== 'auto' || (!detecting && revalidator.state === 'idle')) &&
+    !busy &&
+    !building &&
+    !pending;
 
   return (
     <div className="grid gap-4">
       {/* Detected-mode banner — transparency, no opaque magic. */}
       <div className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
         <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">{copy.publish.title}</h2>
-        {detecting ? (
+        {detecting || (override === 'auto' && revalidator.state !== 'idle') ? (
           <p className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> {copy.publish.detecting}
           </p>
