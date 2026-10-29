@@ -153,5 +153,40 @@
     "file": "secrets/boundary-keyboard-settled.cjs",
     "source": "/workspace/ui845-short-height-red/boundary-keyboard-settled.cjs",
     "sourceSha256": "8c3501e76055c449c3ee918e470bb481bc3414efa905cc100ea6711e6a25e0c8"
+  },
+  {
+    "file": "ci-resize-diagnostic/README.md",
+    "source": "/workspace/ui845-ci-resize-diagnostic/README.md",
+    "sourceSha256": "7f08e81879702e75134b85087df11c8eb4434a58f6aeba9fd1dc236954f1b74c"
+  },
+  {
+    "file": "ci-resize-diagnostic/exact.cjs",
+    "source": "/workspace/ui845-ci-resize-diagnostic/exact.cjs",
+    "sourceSha256": "cff0ab3a0a70df35dbf3dfadf9515b0f8b95588b8afff6b2aadae9a647c42d06"
+  },
+  {
+    "file": "ci-resize-diagnostic/exact-sequence/receipt.json",
+    "source": "/workspace/ui845-ci-resize-diagnostic/exact-sequence/receipt.json",
+    "sourceSha256": "62140ea805fdb41038d5c65131cd6b524b7f3c935ff7df9ee0b0d4b96501e508"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states.cjs",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states.cjs",
+    "sourceSha256": "2977f889a6f5e92fcccad5c724fb941770a8690960e65686a8f79b8fd6dbd1b6"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states/receipt.json",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states/receipt.json",
+    "sourceSha256": "ce83e41682929dac53dbdc03b921ee1a85082665437cd00a43ad786d701e12c3"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states-ci-profile.cjs",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states-ci-profile.cjs",
+    "sourceSha256": "375faffc5d2d171aaad6233d9fde81f74a76e0f313fa2e52ff1f635110b3953c"
+  },
+  {
+    "file": "ci-resize-diagnostic/two-states-ci-profile/receipt.json",
+    "source": "/workspace/ui845-ci-resize-diagnostic/two-states-ci-profile/receipt.json",
+    "sourceSha256": "2f0e3f5ef72a2749950494faa0d92357781d2ac9066317526714c4986e2a1c10"
   }
 ]

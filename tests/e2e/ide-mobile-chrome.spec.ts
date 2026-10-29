@@ -2502,7 +2502,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await filtre.fill('slack');
     await expect(ligne).toBeVisible();
 
-    // En faible hauteur, Tab doit placer la clé au-dessus de la navigation fixe.
+    // Même largeur raccourcie : le clavier simulé cache le socle, mais la clé reste accessible.
     const viewportInitial = page.viewportSize()!;
     const cle = ligne.locator('.bolt-secrets-chip--key');
 
@@ -2511,6 +2511,50 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       await filtre.focus();
       await page.keyboard.press('Tab');
       await expect(cle).toBeFocused();
+      await expect(page.locator('html')).toHaveAttribute('data-vc-clavier', 'ouvert');
+      await expect(page.locator('.bolt-mobile-replit-nav-inner')).toBeHidden();
+      await expect
+        .poll(
+          () =>
+            cle.evaluate((element) => {
+              const scroller = element.closest('.bolt-project-service-panel')?.querySelector(':scope > .min-h-0');
+
+              if (!scroller) {
+                return false;
+              }
+
+              const cible = element.getBoundingClientRect();
+              const zone = scroller.getBoundingClientRect();
+              const touche = document.elementFromPoint(cible.x + cible.width / 2, cible.y + cible.height / 2);
+
+              return (
+                cible.width > 0 &&
+                cible.height > 0 &&
+                cible.left >= zone.left &&
+                cible.right <= zone.right &&
+                cible.top >= zone.top &&
+                cible.bottom <= zone.bottom &&
+                zone.left >= 0 &&
+                zone.right <= innerWidth &&
+                zone.top >= 0 &&
+                zone.bottom <= innerHeight &&
+                (touche === element || element.contains(touche))
+              );
+            }),
+          { timeout: 5000 },
+        )
+        .toBe(true);
+      await cle.click({ trial: true });
+
+      // Nouvelle page à faible hauteur au repos : socle visible, sans forcer l’état du clavier.
+      await page.reload({ waitUntil: 'load' });
+      await expect(ligne).toBeVisible();
+      await filtre.fill('slack');
+      await filtre.focus();
+      await page.keyboard.press('Tab');
+      await expect(cle).toBeFocused();
+      await expect(page.locator('html')).not.toHaveAttribute('data-vc-clavier', 'ouvert');
+      await expect(page.locator('.bolt-mobile-replit-nav-inner')).toBeVisible();
       await expect
         .poll(
           () =>
