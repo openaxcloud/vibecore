@@ -1,0 +1,152 @@
+[
+  {
+    "file": "tab-switcher/README.md",
+    "source": "/workspace/ui843-tab-switcher-diagnostic/README.md",
+    "sourceSha256": "141e887e4104616c6073627dfde23ade81a40e806e71743a6ba1d0ef86854612"
+  },
+  {
+    "file": "tab-switcher/probe.cjs",
+    "source": "/workspace/ui843-tab-switcher-diagnostic/probe.cjs",
+    "sourceSha256": "1108414a3a22f2d5f10142f2247c10982e279a6947612f25bbdafadbe9858ebc"
+  },
+  {
+    "file": "tab-switcher/baseline/receipt.json",
+    "source": "/workspace/ui843-tab-switcher-diagnostic/baseline/receipt.json",
+    "sourceSha256": "ce3442a2cbcd6879b819737be3b185ae709cc316e755f998431bf0c5c26b2686"
+  },
+  {
+    "file": "tab-switcher/cpu4-open/receipt.json",
+    "source": "/workspace/ui843-tab-switcher-diagnostic/cpu4-open/receipt.json",
+    "sourceSha256": "d3fea6712f90f18b0519bfd807a20151005a8fd1d8073429dd7fe68e6f077a6c"
+  },
+  {
+    "file": "tall-help/ordinary-regression.cjs",
+    "source": "/workspace/ui844-tall-help/ordinary-regression.cjs",
+    "sourceSha256": "2c98d39742d2c8c6bae3ce266ee0773575a9bb57f785e0b3568d0eb3655c9cf4"
+  },
+  {
+    "file": "tall-help/overflow-diagnosis.cjs",
+    "source": "/workspace/ui844-tall-help/overflow-diagnosis.cjs",
+    "sourceSha256": "e33a75e9e74f98b0e2386649e8e29e21ba27315dff0696362668cbcc5a72c881"
+  },
+  {
+    "file": "tall-help/probe-compiled-pointer.cjs",
+    "source": "/workspace/ui844-tall-help/probe-compiled-pointer.cjs",
+    "sourceSha256": "6b2d23f41321c55f9841ae496683ad6913e3f1f28cf72b74de31d67c5819f173"
+  },
+  {
+    "file": "tall-help/probe-before.cjs",
+    "source": "/workspace/ui844-tall-help/probe-before.cjs",
+    "sourceSha256": "e8ff5363230162e7e20dcff99f553fa5d661cda0145e5b838e42affabc9d6a2c"
+  },
+  {
+    "file": "tall-help/probe-compiled.cjs",
+    "source": "/workspace/ui844-tall-help/probe-compiled.cjs",
+    "sourceSha256": "680abe7905239a898d9d370dabc8baf8bc610bc2cd8b734f0be614c048cff068"
+  },
+  {
+    "file": "tall-help/compiled/receipt.json",
+    "source": "/workspace/ui844-tall-help/compiled/receipt.json",
+    "sourceSha256": "b208223dee8c28447675baee5d09634001ed8b4086a7a5aaccb986fd24605d6c"
+  },
+  {
+    "file": "tall-help/before/receipt.json",
+    "source": "/workspace/ui844-tall-help/before/receipt.json",
+    "sourceSha256": "313d40a7012ca4374028085923e09901e71c55d2b4ef0e9d8d58605bc99b169c"
+  },
+  {
+    "file": "tall-help/ordinary-regression/receipt.json",
+    "source": "/workspace/ui844-tall-help/ordinary-regression/receipt.json",
+    "sourceSha256": "b8e0176aa855a3618f9d3e95ed6b0d3de01533d60771c8dabbed91007057da6a"
+  },
+  {
+    "file": "tall-help/overflow-diagnosis/receipt.json",
+    "source": "/workspace/ui844-tall-help/overflow-diagnosis/receipt.json",
+    "sourceSha256": "87ee7c4e9a563074d6bb5ca34193073347e9cfe386a06fd63b9636ce1b5525d4"
+  },
+  {
+    "file": "tall-help/compiled-pointer/receipt.json",
+    "source": "/workspace/ui844-tall-help/compiled-pointer/receipt.json",
+    "sourceSha256": "98927eae9c78c37c89fb94dc3e2cdcede44b35273c2f9879c6670553382763a7"
+  },
+  {
+    "file": "independent/stable-fixture.cjs",
+    "source": "/workspace/ui844-tall-help-independent/stable-fixture.cjs",
+    "sourceSha256": "6aaefa09969cb4d4b67bb2af0e73007cf71eabbe60ccc45fbb568c6569098b55"
+  },
+  {
+    "file": "independent/timer-receipt.json",
+    "source": "/workspace/ui844-tall-help-independent/timer-receipt.json",
+    "sourceSha256": "5d08e245da4cd0167204cc2fa60e12120e77b4e77b10ecf8bf44dfd68ec35342"
+  },
+  {
+    "file": "independent/README.md",
+    "source": "/workspace/ui844-tall-help-independent/README.md",
+    "sourceSha256": "d17b06311af31e2728cc3ffaae0a16b2cf85f214dca04505c3c03d86a419019f"
+  },
+  {
+    "file": "independent/probe.cjs",
+    "source": "/workspace/ui844-tall-help-independent/probe.cjs",
+    "sourceSha256": "efdb56ffb975587ce6bffdddca0476eb2d2de3f9e8ba0da10b2885aceaf3e968"
+  },
+  {
+    "file": "independent/timer-route-receipt.json",
+    "source": "/workspace/ui844-tall-help-independent/timer-route-receipt.json",
+    "sourceSha256": "2bce6b5eb29deaccb440bf512ce1c3391d3c635dbf945c44bf0ae2cd07423766"
+  },
+  {
+    "file": "independent/timer-probe.cjs",
+    "source": "/workspace/ui844-tall-help-independent/timer-probe.cjs",
+    "sourceSha256": "d9b7041023e482b6d3221a43a589058dc682a3ebfc277cc8d63b58bdacedd178"
+  },
+  {
+    "file": "independent/real-secret-anchor.cjs",
+    "source": "/workspace/ui844-tall-help-independent/real-secret-anchor.cjs",
+    "sourceSha256": "d75ece2237167f1b124b7ac2e996ae8f18fd2d0f941e306d3ff0e8441322bac5"
+  },
+  {
+    "file": "independent/timer-route-probe.cjs",
+    "source": "/workspace/ui844-tall-help-independent/timer-route-probe.cjs",
+    "sourceSha256": "3bfde2a70cfd5375cc7613417fadd77d8f7e1dc47fd98f96350ea69de7415989"
+  },
+  {
+    "file": "independent/compiled-independent/receipt.json",
+    "source": "/workspace/ui844-tall-help-independent/compiled-independent/receipt.json",
+    "sourceSha256": "79cff005d0e97b1e059ac037f5081c6c2d57d6a30629b4ab0b1d2a7dbaa812c4"
+  },
+  {
+    "file": "independent/compiled-stable-fixture/receipt.json",
+    "source": "/workspace/ui844-tall-help-independent/compiled-stable-fixture/receipt.json",
+    "sourceSha256": "4296960e37d23a213f3797baf0ceee34156933fe9b15b8d62131f5a0b66bb92a"
+  },
+  {
+    "file": "independent/compiled-real-secret-anchor/receipt.json",
+    "source": "/workspace/ui844-tall-help-independent/compiled-real-secret-anchor/receipt.json",
+    "sourceSha256": "3c3fe13c6ae15b93272dfce82d77259ad1fc5d033a5ae3ec0ffe9f19c0884116"
+  },
+  {
+    "file": "independent/timer-route-fixed-receipt.json",
+    "source": "/workspace/ui844-tall-help-independent/timer-route-fixed-receipt.json",
+    "sourceSha256": "5d08e245da4cd0167204cc2fa60e12120e77b4e77b10ecf8bf44dfd68ec35342"
+  },
+  {
+    "file": "tall-help/final-timer-build/receipt.json",
+    "source": "/workspace/ui844-tall-help/final-timer-build/receipt.json",
+    "sourceSha256": "b4dfad0c300db436281f464a74c4d65b1d2c89bd89b630ec035d05bd6ebe38b0"
+  },
+  {
+    "file": "tall-help/README.md",
+    "source": "/workspace/ui844-tall-help/README.md",
+    "sourceSha256": "dea1c1e6c5063664a7f711df92d384fb0f3d6d52d87a9c229f1c9f35c7879f0d"
+  },
+  {
+    "file": "captures/before-820-tooltip.png",
+    "source": "/workspace/ui844-tall-help/before/820-tooltip.png",
+    "sourceSha256": "2d941411d0bd1a9876fcc393aba23ab7dd71ea648e91fdd5e130a09ce3f266b1"
+  },
+  {
+    "file": "captures/after-820-fr-last-line.png",
+    "source": "/workspace/ui844-tall-help/compiled/820-fr-last-line.png",
+    "sourceSha256": "7b6c743c06aefc04f477f8d0ad14fcb4329a9791b53913f133381b522bf12a59"
+  }
+]
