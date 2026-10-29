@@ -271,3 +271,106 @@ describe('GlobalTooltip with the IDE keyboard handler', () => {
     expect(runAction.mock.calls[0][0]).toBe('file.save');
   });
 });
+
+describe('GlobalTooltip native zoom viewport', () => {
+  it.each([195, 410, 640])('keeps long help inside a %ipx CSS viewport', (width) => {
+    const original = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+
+    try {
+      const text = 'SYNTHETIC_LONG_KEY_'.repeat(20);
+      render(
+        <>
+          <button data-vc-tooltip={text}>Actions</button>
+          <GlobalTooltip />
+        </>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Actions' });
+      vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+        left: width - 40,
+        right: width - 16,
+        top: 120,
+        bottom: 144,
+        width: 24,
+        height: 24,
+        x: width - 40,
+        y: 120,
+        toJSON: () => ({}),
+      });
+      fireEvent.focusIn(button);
+
+      const tip = screen.getByRole('tooltip');
+      expect(tip.textContent).toBe(text);
+      expect(Number.parseFloat(tip.style.left)).toBeGreaterThanOrEqual(8);
+      expect(Number.parseFloat(tip.style.left) + Math.min(280, width - 16)).toBeLessThanOrEqual(width - 8);
+      expect(tip.style.maxWidth).toBe('min(280px, calc(100vw - 16px))');
+      expect(tip.style.overflowWrap).toBe('anywhere');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: original });
+    }
+  });
+});
+
+describe('GlobalTooltip measured vertical position', () => {
+  it.each([
+    { viewport: 300, height: 258.875, anchorBottom: 186, expectedTop: 33.125 },
+    { viewport: 422, height: 212.0234375, anchorBottom: 227.234375, expectedTop: 201.9765625 },
+    { viewport: 300, height: 400, anchorBottom: 186, expectedTop: 8 },
+  ])(
+    'positions measured help with an 8px gutter ($viewport/$height)',
+    ({ viewport, height, anchorBottom, expectedTop }) => {
+      const original = window.innerHeight;
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: viewport });
+
+      const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const measuredHeight = this.getAttribute('role') === 'tooltip' ? height : 32;
+        const top = this.getAttribute('role') === 'tooltip' ? Number.parseFloat(this.style.top) : anchorBottom - 32;
+
+        return {
+          x: 8,
+          y: top,
+          left: 8,
+          right: 288,
+          width: 280,
+          height: measuredHeight,
+          top,
+          bottom: top + measuredHeight,
+          toJSON: () => ({}),
+        };
+      });
+
+      try {
+        const text = 'CLE_FRANCAISE_SYNTHETIQUE_'.repeat(20);
+
+        const view = render(
+          <>
+            <button data-vc-tooltip={text}>Actions</button>
+            <GlobalTooltip />
+          </>,
+        );
+        fireEvent.focusIn(screen.getByRole('button', { name: 'Actions' }));
+
+        const tip = screen.getByRole('tooltip');
+        expect(Number.parseFloat(tip.style.top)).toBe(expectedTop);
+        expect(tip.textContent).toBe(text);
+        expect(tip.hasAttribute('tabindex')).toBe(false);
+        expect(rectSpy.mock.calls.length).toBeLessThanOrEqual(3);
+        view.rerender(
+          <>
+            <button data-vc-tooltip={text}>Actions</button>
+            <GlobalTooltip />
+          </>,
+        );
+        expect(Number.parseFloat(tip.style.top)).toBe(expectedTop);
+        fireEvent.keyDown(window, { key: 'Escape' });
+        expect(screen.queryByRole('tooltip')).toBeNull();
+      } finally {
+        rectSpy.mockRestore();
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: original });
+      }
+    },
+  );
+});

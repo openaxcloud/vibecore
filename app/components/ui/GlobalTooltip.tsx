@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { infobulleAutoriseeAuFocus, pointeurSansSurvol } from './infobulle-tactile';
 
 /**
@@ -62,6 +62,23 @@ export function GlobalTooltip() {
   const showTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const tipRef = useRef<HTMLDivElement | null>(null);
 
+  useLayoutEffect(() => {
+    if (!tip || !tipRef.current) {
+      return;
+    }
+
+    const height = tipRef.current.getBoundingClientRect().height;
+    const top = Math.max(8, Math.min(tip.top, window.innerHeight - height - 8));
+
+    /*
+     * Only commit an actual correction: the second measurement is already stable.
+     * Help taller than the viewport stays complete, anchored at its upper gutter.
+     */
+    if (top !== tip.top) {
+      setTip({ ...tip, top });
+    }
+  }, [tip]);
+
   // Element whose native `title` we stripped (to avoid a duplicate browser tooltip).
   const suppressedEl = useRef<HTMLElement | null>(null);
 
@@ -113,7 +130,7 @@ export function GlobalTooltip() {
        * viewport. Width is estimated from text length pre-measure; the rendered
        * node is clamped by max-width CSS so the estimate only needs to be rough.
        */
-      const estWidth = Math.min(280, Math.max(40, text.length * 6.5));
+      const estWidth = Math.min(280, Math.max(0, window.innerWidth - 16), Math.max(40, text.length * 6.5));
       const left = Math.min(Math.max(8, rect.left + rect.width / 2 - estWidth / 2), window.innerWidth - estWidth - 8);
       const top = Math.min(rect.bottom + 8, window.innerHeight - 36);
 
@@ -275,7 +292,7 @@ export function GlobalTooltip() {
       ref={tipRef}
       role="tooltip"
       className="pointer-events-none fixed z-[10000] max-w-[280px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-1 text-xs leading-snug text-bolt-elements-textPrimary shadow-lg"
-      style={{ left: tip.left, top: tip.top }}
+      style={{ left: tip.left, top: tip.top, maxWidth: 'min(280px, calc(100vw - 16px))', overflowWrap: 'anywhere' }}
     >
       {tip.text}
     </div>
