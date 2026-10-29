@@ -38,7 +38,7 @@ const PIN_MARKER = 'port: 5173';
  * VITE_HMR_CLIENT_PORT is unset (local dev) only host:true is applied, keeping the
  * user's own port + default HMR. Mirrors preview-manifest's scaffold config.
  */
-const OVERRIDE_BLOCK = `const ${MARKER} = {
+const LEGACY_OVERRIDE_BLOCK = `const ${MARKER} = {
   server: {
     host: true,
     ...(process.env.VITE_HMR_CLIENT_PORT
@@ -55,6 +55,10 @@ const OVERRIDE_BLOCK = `const ${MARKER} = {
   },
 };
 `;
+
+// Reflect reads the Node runtime global without requiring ambient @types/node in the user's project.
+const OVERRIDE_BLOCK = `const __ecodeHmrEnv = Reflect.get(globalThis, 'process')?.env ?? {};
+${LEGACY_OVERRIDE_BLOCK.replaceAll('process.env', '__ecodeHmrEnv')}`;
 
 const CONFIG_IMPORT = `import { defineConfig as __ecodeDefineConfig } from 'vite';`;
 
@@ -168,9 +172,16 @@ export function ensureViteHmrConfig(source: string, configPath = 'vite.config.js
      * existing env-gated override block so it aligns without a full, fragile
      * re-wrap. When the pin is already there it's current → no-op (idempotent).
      */
-    let upgraded = source.includes(PIN_MARKER)
-      ? source
-      : source.replace(
+    // Replace only exact blocks previously emitted here, never user-authored process.env expressions.
+    const legacyUnpinned = LEGACY_OVERRIDE_BLOCK.replace('          port: 5173,\n          strictPort: true,\n', '');
+
+    const migrated = source
+      .replace(LEGACY_OVERRIDE_BLOCK.trim(), OVERRIDE_BLOCK.trim())
+      .replace(legacyUnpinned.trim(), OVERRIDE_BLOCK.trim());
+
+    let upgraded = migrated.includes(PIN_MARKER)
+      ? migrated
+      : migrated.replace(
           /(process\.env\.VITE_HMR_CLIENT_PORT\s*\?\s*\{)/,
           '$1\n          port: 5173,\n          strictPort: true,',
         );
