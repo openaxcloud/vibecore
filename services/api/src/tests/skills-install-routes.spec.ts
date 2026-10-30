@@ -307,39 +307,22 @@ describe('installable skills routes (F#27)', () => {
     expect(res.json().code).toBe('SKILL_REPO_PRIVATE');
   });
 
-  it('falls back to the catalog summary when a curated repo is unreachable', async () => {
-    const { app, token, project } = await setup();
-    stubFetch({}); // 404 everywhere → private_or_missing, but repo is curated
-
+  it.each([
+    ['en', 404],
+    ['fr', 503],
+  ] as const)('does not install a catalog summary when the manifest fails (%s)', async (language, upstreamStatus) => {
+    const { app, store, token, project } = await setup();
+    stubFetch({ 'SKILL.md': upstreamStatus, 'AGENTS.md': upstreamStatus, 'README.md': upstreamStatus });
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/skills/install`,
-      headers: auth(token),
+      headers: { ...auth(token), 'accept-language': language },
       payload: { ownerRepo: 'anthropics/skills' },
     });
-    expect(res.statusCode).toBe(201);
-    expect(res.json().source).toBeNull();
-    expect(res.json().note).toBe(
-      'No SKILL.md, AGENTS.md, or README.md was found in the repository; the catalog summary was used instead.',
-    );
-    expect(res.json().skill.instructions.length).toBeGreaterThan(0);
-  });
-
-  it('localizes the curated catalog fallback note in French', async () => {
-    const { app, token, project } = await setup();
-    stubFetch({});
-
-    const res = await app.inject({
-      method: 'POST',
-      url: `/projects/${project.id}/skills/install`,
-      headers: { ...auth(token), 'accept-language': 'fr-FR,fr;q=0.9,en;q=0.7' },
-      payload: { ownerRepo: 'anthropics/skills' },
-    });
-
-    expect(res.statusCode).toBe(201);
-    expect(res.json().note).toBe(
-      'Aucun fichier SKILL.md, AGENTS.md ou README.md n’a été trouvé dans le dépôt ; le résumé du catalogue a été utilisé à la place.',
-    );
+    expect(res.statusCode).toBe(upstreamStatus === 404 ? 404 : 502);
+    expect(res.json().code).toBe(upstreamStatus === 404 ? 'SKILL_REPO_PRIVATE' : 'SKILL_REPO_UNREACHABLE');
+    expect(res.json().skill).toBeUndefined();
+    expect(await store.listInstalledSkills('project', project.id)).toEqual([]);
   });
 
   it('409s a workspace-scoped install when no workspace exists', async () => {

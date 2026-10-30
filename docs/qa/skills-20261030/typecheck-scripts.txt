@@ -1,0 +1,8 @@
+[typecheck] web app
+[typecheck] web app passed in 41.5s
+[typecheck] node scripts
+scripts/qa/database-restore-api-fixture.ts(8,37): error TS2307: Cannot find module '@vibecore/database' or its corresponding type declarations.
+scripts/qa/database-restore-physical.ts(12,27): error TS2307: Cannot find module '@vibecore/auth' or its corresponding type declarations.
+scripts/qa/database-restore-physical.ts(13,59): error TS2307: Cannot find module '@vibecore/database' or its corresponding type declarations.
+scripts/qa/database-restore-physical.ts(14,42): error TS2307: Cannot find module '@vibecore/security' or its corresponding type declarations.
+[typecheck] node scripts failed with exit code 2

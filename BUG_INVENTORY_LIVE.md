@@ -813,3 +813,5 @@ Ils sont conservés ici tels quels : une migration ne perd pas de contenu en sil
 > de la periode fautive. Mesure a l appui : 77 % de messages assistant vides le
 > 01/09, 9 % le 04/09, **0 % le 05/09** — le defaut est eteint, pas masque.
 > Ne pas reposer la question.
+
+- [BUG-SKILLS-REAL-PATH-20261030](docs/qa/skills-20261030/README.md) — Erreurs de chargement masquées en listes vides ; skill projet désactivé réinjecté via workspace ; résumé du catalogue substitué aux instructions indisponibles ; toggle contournant l'approbation de quarantaine. 📤 Dispatché : ☑ audit isolé 30/10/2026 · 💻 Codé : ☐ main, PR draft uniquement · ✅ Testé live : ☐ production ; preuves locales séparées dans le rapport.

@@ -1452,23 +1452,20 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
     /*
      * Skills panel (F#27): builtin catalog toggles PLUS the installable
      * GitHub-repo catalog and the project- and workspace-scoped installed skills.
-     * Each source fails open so one 5xx never blanks the whole panel. The
-     * workspace-scoped installed list 409s (SKILL_NO_WORKSPACE) until the project
-     * has a workspace — degrade that to an empty list.
+     * Fail visibly on unavailable sources: an empty list must mean no skills,
+     * not a swallowed authentication or backend failure. Query workspace skills
+     * only when the catalog confirms a workspace exists.
      */
     try {
-      const [skillsResp, catalogResp, installedProjectResp, installedWorkspaceResp, auditResp] = await Promise.all([
-        apiRequest(request, `/projects/${projectId}/skills`).catch(() => ({ skills: [] })),
-        apiRequest(request, `/projects/${projectId}/skills/catalog`).catch(() => ({
-          entries: [],
-          hasWorkspace: false,
-        })),
-        apiRequest(request, `/projects/${projectId}/skills/installed?scope=project`).catch(() => ({ skills: [] })),
-        apiRequest(request, `/projects/${projectId}/skills/installed?scope=workspace`).catch(() => ({ skills: [] })),
-
-        // RPL-SK-001.3 — the audit journal for the project scope (fails open to []).
-        apiRequest(request, `/projects/${projectId}/skills/audit?scope=project`).catch(() => ({ events: [] })),
+      const [skillsResp, catalogResp, installedProjectResp, auditResp] = await Promise.all([
+        apiRequest(request, `/projects/${projectId}/skills`),
+        apiRequest<{ entries: unknown[]; hasWorkspace: boolean }>(request, `/projects/${projectId}/skills/catalog`),
+        apiRequest(request, `/projects/${projectId}/skills/installed?scope=project`),
+        apiRequest(request, `/projects/${projectId}/skills/audit?scope=project`),
       ]);
+      const installedWorkspaceResp = catalogResp.hasWorkspace
+        ? await apiRequest(request, `/projects/${projectId}/skills/installed?scope=workspace`)
+        : { skills: [] };
 
       return json(
         panelEnvelope(panel, project.project, {
