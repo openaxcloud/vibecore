@@ -739,6 +739,83 @@ describe('runtime evidence UI with synthetic receipts', () => {
   });
 });
 
+describe('stream terminal evidence', () => {
+  afterEach(cleanup);
+
+  it('does not borrow terminal evidence from another message or show it while streaming', () => {
+    const terminal = {
+      type: 'streamTerminal',
+      status: 'complete',
+      finishReason: 'stop',
+      reason: 'finished',
+      segments: 1,
+      fileActions: 1,
+      openActions: 0,
+      openArtifacts: 0,
+      messageId: 'old',
+    };
+    const view = (messageId: string, isStreaming: boolean) => (
+      <I18nextProvider i18n={createI18nInstance('en')}>
+        <AssistantMessage
+          content="Synthetic"
+          messageId={messageId}
+          isStreaming={isStreaming}
+          addToolResult={() => undefined}
+          annotations={[terminal]}
+        />
+      </I18nextProvider>
+    );
+
+    const { rerender } = render(view('new', false));
+    expect(screen.queryByTestId('agent-stream-terminal')).toBeNull();
+    rerender(view('old', true));
+    expect(screen.queryByTestId('agent-stream-terminal')).toBeNull();
+    rerender(view('old', false));
+    expect(screen.getByTestId('agent-stream-terminal').textContent).toContain('Response stream completed');
+  });
+
+  it.each(['complete', 'incomplete', 'error'] as const)(
+    'renders %s without claiming application validation',
+    (status) => {
+      render(
+        <I18nextProvider i18n={createI18nInstance('en')}>
+          <AssistantMessage
+            content="Synthetic"
+            messageId="terminal-message"
+            isStreaming={false}
+            addToolResult={() => undefined}
+            annotations={[
+              { type: 'modelOutput', provider: 'Synthetic', model: 'fixture', evidence: 'text-delta' },
+              {
+                type: 'streamTerminal',
+                status,
+                finishReason: status === 'complete' ? 'stop' : status === 'error' ? 'error' : 'length',
+                reason: status === 'complete' ? 'finished' : status === 'error' ? 'provider-error' : 'output-limit',
+                segments: 1,
+                fileActions: 1,
+                openActions: 0,
+                openArtifacts: 0,
+                messageId: 'terminal-message',
+              },
+            ]}
+          />
+        </I18nextProvider>,
+      );
+
+      const evidence = screen.getByTestId('agent-stream-terminal').textContent;
+      expect(evidence).toContain(
+        status === 'complete'
+          ? 'Response stream completed'
+          : status === 'error'
+            ? 'Response stream failed'
+            : 'Response stream incomplete',
+      );
+      expect(evidence).toContain('Application validation is separate');
+      expect(screen.getByTestId('agent-model-output').textContent).not.toContain('completion is not confirmed');
+    },
+  );
+});
+
 describe('message-scoped agent evidence', () => {
   afterEach(cleanup);
 

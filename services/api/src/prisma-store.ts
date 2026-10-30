@@ -23,7 +23,17 @@ import {
 } from './login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
 import { slugify } from './slugify.js';
-import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES, projectSnapshotManifest } from './store.js';
+import {
+  creditPackConflict,
+  creditPackPurchaseKeys,
+  validateCreditPackReceipt,
+  type StripeCreditPackPurchase,
+  type StripeCreditPackReceipt,
+  API_KEY_SCOPES,
+  DEFAULT_ENV_VAR_SCOPE,
+  ENV_VAR_SCOPES,
+  projectSnapshotManifest,
+} from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
@@ -5664,6 +5674,144 @@ export class PrismaApiStore implements ApiStore {
   }
 
   // --- Replit-parity: credit packs -------------------------------------------
+
+  async grantStripeCreditPack(input: StripeCreditPackPurchase): Promise<{ packId: string; created: boolean; expiresAt: string }> {
+    const keys = creditPackPurchaseKeys(input);
+
+    const locks = [
+      ...keys,
+      ...(!input.paymentIntentId ? [`billing.credit-pack.v1:org:${input.organizationId}`] : []),
+    ].sort();
+
+    return this.prisma.$transaction(async (tx) => {
+      for (const key of locks) {
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', key);
+      }
+
+      const rows = await tx.systemSetting.findMany({ where: { key: { in: keys } } });
+
+      if (rows.length) {
+        if (rows.length !== keys.length) {
+          creditPackConflict();
+        }
+
+        const receipts = rows.map((row) => validateCreditPackReceipt(row.value, input));
+
+        if (receipts.some((receipt) => receipt.packId !== receipts[0].packId)) {
+          creditPackConflict();
+        }
+
+        const granted = await tx.creditPack.findUnique({ where: { id: receipts[0].packId } });
+
+        const marker = await tx.systemSetting.findUnique({
+          where: { key: `billing.credit-pack.v1:pack:${receipts[0].packId}` },
+        });
+
+        if (
+          !marker ||
+          validateCreditPackReceipt(marker.value, input).packId !== receipts[0].packId ||
+          !granted ||
+          granted.organizationId !== input.organizationId ||
+          granted.purchasedCents !== input.purchasedCents ||
+          granted.stripePaymentIntentId !== input.paymentIntentId
+        ) {
+          creditPackConflict();
+        }
+
+        return { packId: receipts[0].packId, created: false, expiresAt: granted.expiresAt.toISOString() };
+      }
+
+      const legacy = await tx.creditPack.findMany({
+        where: input.paymentIntentId
+          ? { stripePaymentIntentId: input.paymentIntentId }
+          : { organizationId: input.organizationId, stripePaymentIntentId: null },
+      });
+
+      let previous;
+
+      if (input.paymentIntentId) {
+        if (legacy.length > 1) {
+          creditPackConflict();
+        }
+
+        previous = legacy[0];
+
+        if (
+          previous &&
+          (previous.organizationId !== input.organizationId ||
+            previous.purchasedCents !== input.purchasedCents ||
+            previous.expiresAt.getTime() !== input.expiresAt.getTime())
+        ) {
+          creditPackConflict();
+        }
+      } else {
+        // No payment intent can identify legacy grants. Only already-receipted rows are unambiguous.
+        for (const pack of legacy) {
+          const marker = await tx.systemSetting.findUnique({
+            where: { key: `billing.credit-pack.v1:pack:${pack.id}` },
+          });
+
+          const receipt = marker?.value as unknown as StripeCreditPackReceipt | undefined;
+
+          if (
+            !receipt ||
+            receipt.packId !== pack.id ||
+            receipt.paymentIntentId !== null ||
+            receipt.organizationId !== input.organizationId ||
+            receipt.purchasedCents !== pack.purchasedCents ||
+            typeof receipt.sessionId !== 'string' ||
+            !/^cs_[A-Za-z0-9_]{1,250}$/.test(receipt.sessionId)
+          ) {
+            creditPackConflict();
+          }
+
+          const session = await tx.systemSetting.findUnique({
+            where: { key: `billing.credit-pack.v1:session:${receipt.sessionId}` },
+          });
+
+          if (
+            !session ||
+            validateCreditPackReceipt(session.value, {
+              ...input,
+              sessionId: receipt.sessionId,
+              sku: receipt.sku,
+              purchasedCents: pack.purchasedCents,
+            }).packId !== pack.id ||
+            receipt.version !== 1
+          ) {
+            creditPackConflict();
+          }
+        }
+      }
+
+      const pack =
+        previous ??
+        (await tx.creditPack.create({
+          data: {
+            organizationId: input.organizationId,
+            purchasedCents: input.purchasedCents,
+            remainingCents: input.purchasedCents,
+            expiresAt: input.expiresAt,
+            stripePaymentIntentId: input.paymentIntentId,
+          },
+        }));
+      const receipt: StripeCreditPackReceipt = {
+        version: 1,
+        organizationId: input.organizationId,
+        sessionId: input.sessionId,
+        paymentIntentId: input.paymentIntentId,
+        sku: input.sku,
+        purchasedCents: input.purchasedCents,
+        packId: pack.id,
+      };
+
+      for (const key of [...keys, `billing.credit-pack.v1:pack:${pack.id}`]) {
+        await tx.systemSetting.create({ data: { key, value: receipt as unknown as Prisma.InputJsonValue } });
+      }
+
+      return { packId: pack.id, created: !previous, expiresAt: pack.expiresAt.toISOString() };
+    });
+  }
 
   async createCreditPack(input: {
     organizationId: string;

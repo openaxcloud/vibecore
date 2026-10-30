@@ -31225,6 +31225,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       organizationId = await store.findOrganizationIdBySubscriptionExternalId(String(object.subscription));
     }
 
+    /*
+     * Credit-pack receipts must be consulted before generic event deduplication:
+     * a prior process may have stopped after recording the event but before granting.
+     */
+    if (
+      event.type === 'checkout.session.completed' &&
+      object.mode === 'payment' &&
+      typeof object.metadata?.creditPackSku === 'string'
+    ) {
+      if (!organizationId || !(await store.getOrganization(organizationId))) {
+        return { code: 200, body: { received: true, orphaned: true } };
+      }
+
+      const pack = findCreditPack(object.metadata.creditPackSku);
+      const paid = object.payment_status === 'paid' || object.payment_status === 'no_payment_required';
+
+      if (!pack || !paid) {
+        return { code: 200, body: { received: true, creditPack: true } };
+      }
+
+      const purchasedAtMs = Number.isFinite(Number(event.created)) ? Number(event.created) * 1000 : Date.now();
+      const expiresAt = new Date(purchasedAtMs + pack.validityDays * 24 * 60 * 60 * 1000);
+      const grant = await store.grantStripeCreditPack({
+        organizationId,
+        sessionId: typeof object.id === 'string' ? object.id : '',
+        paymentIntentId:
+          typeof object.payment_intent === 'string'
+            ? object.payment_intent
+            : object.payment_status === 'no_payment_required' && object.payment_intent == null
+              ? null
+              : '',
+        sku: pack.id,
+        purchasedCents: pack.creditCents,
+        expiresAt,
+      });
+
+      // Keep the event history, but never use it as the pack's commit marker.
+      await store.recordStripeEvent({ id: event.id, organizationId, type: event.type, payload: event });
+
+      // Audit failure remains retryable, but committed credit is never granted twice.
+      await audit(request, store, {
+        organizationId,
+        action: grant.created ? 'billing.creditpack.granted' : 'billing.creditpack.confirmed',
+        resourceType: 'creditPack',
+        resourceId: grant.packId,
+        metadata: { creditCents: pack.creditCents, expiresAt: grant.expiresAt, created: grant.created },
+      });
+
+      return { code: 200, body: { received: true, creditPack: true } };
+    }
+
     const persisted = await store.recordStripeEvent({ id: event.id, organizationId, type: event.type, payload: event });
 
     if (!persisted.created) {
@@ -31274,55 +31325,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await store.upsertBillingCustomer({ organizationId, provider: 'stripe', externalId: String(object.customer) });
       }
 
-      /*
-       * Credit-pack purchase (Replit parity). A one-time-payment Checkout
-       * Session (`createCreditPackCheckoutSession`) completes as a
-       * `checkout.session.completed` event with `mode: 'payment'` and a
-       * `creditPackSku` in metadata. This MUST be intercepted before the
-       * subscription block below — a payment-mode session has no subscription,
-       * so falling through would upsert a bogus subscription keyed on the
-       * checkout-session id and corrupt the org's plan. Idempotency is provided
-       * by the already-committed webhook-dedup row (a Stripe retry of the same
-       * event id is dropped), so the pack is granted at most once.
-       */
-      if (
-        organizationId &&
-        event.type === 'checkout.session.completed' &&
-        object.mode === 'payment' &&
-        typeof object.metadata?.creditPackSku === 'string'
-      ) {
-        const pack = findCreditPack(object.metadata.creditPackSku);
-
-        const paid = object.payment_status === 'paid' || object.payment_status === 'no_payment_required';
-
-        if (pack && paid) {
-          const purchasedAtMs = Number.isFinite(Number(event.created)) ? Number(event.created) * 1000 : Date.now();
-          const expiresAt = new Date(purchasedAtMs + pack.validityDays * 24 * 60 * 60 * 1000);
-          await store.createCreditPack({
-            organizationId,
-
-            // Spendable credit value (e.g. $300 for the $290 pack); the gap is the discount.
-            purchasedCents: pack.creditCents,
-            expiresAt,
-            stripePaymentIntentId: typeof object.payment_intent === 'string' ? object.payment_intent : undefined,
-          });
-          await audit(request, store, {
-            organizationId,
-            action: 'billing.creditpack.granted',
-            resourceType: 'creditPack',
-            resourceId: pack.id,
-            metadata: { creditCents: pack.creditCents, expiresAt: expiresAt.toISOString() },
-          });
-        } else {
-          request.log.warn(
-            { organizationId, creditPackSku: object.metadata.creditPackSku, paymentStatus: object.payment_status },
-            'credit-pack checkout completed but not granted (unknown SKU or unpaid)',
-          );
-        }
-
-        // Pack handled — do NOT fall through to the subscription upsert.
-        return { code: 200, body: { received: true, creditPack: true } };
-      }
 
       if (
         organizationId &&
