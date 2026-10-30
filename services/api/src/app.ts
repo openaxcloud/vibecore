@@ -2766,6 +2766,7 @@ type DatabaseConnectionCandidate = {
   value: string;
   kind: DatabaseKind;
   maskedUrl: string;
+  ambiguous?: boolean;
   environment: 'development' | 'preview' | 'staging' | 'production' | 'shared';
 };
 
@@ -3457,12 +3458,23 @@ async function listDatabaseConnections(store: ApiStore, projectId: string): Prom
       return { key: secret.key, value, updatedAt: secret.updatedAt };
     }),
   );
-  const candidates = [
-    ...envVars.map((item) => ({ key: item.key, value: item.value, source: 'env' as const, updatedAt: item.updatedAt })),
-    ...secretValues.map((item) => ({ ...item, source: 'secret' as const })),
-  ];
+  // Match workspace runtime precedence: secrets are appended after plain env
+  // in packages/k8s-client. Never expose two different targets under one key.
+  const candidates = new Map<string, { key: string; value: string; source: 'env' | 'secret'; ambiguous?: boolean }>();
+  for (const item of envVars) {
+    const previous = candidates.get(item.key);
+    candidates.set(item.key, {
+      key: item.key,
+      value: item.value,
+      source: 'env',
+      ambiguous: previous?.ambiguous || (previous !== undefined && previous.value !== item.value),
+    });
+  }
+  for (const item of secretValues) {
+    candidates.set(item.key, { key: item.key, value: item.value, source: 'secret' });
+  }
 
-  return candidates.flatMap((item) => {
+  return [...candidates.values()].flatMap((item) => {
     const kind = detectDatabaseKind(item.key, item.value);
 
     if (!kind) {
@@ -3475,7 +3487,8 @@ async function listDatabaseConnections(store: ApiStore, projectId: string): Prom
         value: item.value,
         source: item.source,
         kind,
-        maskedUrl: maskConnectionUrl(item.value),
+        maskedUrl: item.ambiguous ? '' : maskConnectionUrl(item.value),
+        ambiguous: item.ambiguous || undefined,
         environment: inferSecretEnvironment(item.key),
       },
     ];
@@ -3520,6 +3533,13 @@ async function requireDatabaseConnection(store: ApiStore, projectId: string, key
     });
   }
 
+  if (connection.ambiguous) {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_CONNECTION_AMBIGUOUS')), {
+      statusCode: 409,
+      code: 'DATABASE_CONNECTION_AMBIGUOUS',
+    });
+  }
+
   return connection;
 }
 
@@ -3560,7 +3580,7 @@ async function inspectPostgresSchema(connectionString: string) {
        * peuvent plus diverger.
        */
       client.query(
-        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
+        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable, exists (select 1 from information_schema.table_constraints pk join information_schema.key_column_usage k on k.constraint_catalog = pk.constraint_catalog and k.constraint_schema = pk.constraint_schema and k.constraint_name = pk.constraint_name and k.table_schema = pk.table_schema and k.table_name = pk.table_name where pk.constraint_type = 'PRIMARY KEY' and k.table_schema = c.table_schema and k.table_name = c.table_name and k.column_name = c.column_name) as is_primary_key from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
       ),
       client
         .query(
@@ -3602,7 +3622,7 @@ async function inspectMysqlSchema(connectionString: string) {
       'select table_schema, table_name, table_type from information_schema.tables where table_schema = database() order by table_name limit 200',
     );
     const [columns] = await connection.query(
-      'select table_schema, table_name, column_name, data_type, character_maximum_length, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
+      "select table_schema, table_name, column_name, data_type, character_maximum_length, is_nullable, column_key = 'PRI' as is_primary_key from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000",
     );
 
     return { tables: serializeDbRows(tables), columns: serializeDbRows(columns) };
@@ -3681,14 +3701,18 @@ async function runDatabaseQuery(
       await client.query('BEGIN');
 
       try {
-        const result = await client.query(query);
+        const response = await client.query(query);
+        // node-postgres returns one result per statement for a SQL batch.
+        // The grid displays the final statement, including its real affected count.
+        const result = Array.isArray(response) ? response.at(-1) : response;
 
         await client.query('COMMIT');
 
         return {
-          columns: (result.fields ?? []).map((field) => field.name),
-          rows: serializeDbRows(result.rows ?? []),
-          rowCount: result.rowCount,
+          columns: (result?.fields ?? []).map((field: { name: string }) => field.name),
+          rows: serializeDbRows(result?.rows ?? []),
+          rowCount: result?.rowCount ?? 0,
+          command: result?.command,
         };
       } catch (error) {
         await client.query('ROLLBACK').catch(() => undefined);
@@ -25862,13 +25886,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       connections: connections.map(({ value: _value, ...connection }) => ({
         ...connection,
-        status: statutConnexion(connection.key, instancePourStatut),
+        status: connection.ambiguous ? 'unavailable' : statutConnexion(connection.key, instancePourStatut),
         capabilities:
           connection.kind === 'mongodb'
             ? ['schema', 'find', 'readonly-json']
             : connection.kind === 'redis'
               ? ['schema', 'readonly-commands']
-              : ['schema', 'readonly-sql', 'query'],
+              : ['schema', 'sql', 'query'],
       })),
       databases,
       environments: ['development', 'preview', 'staging', 'production', 'shared'],
@@ -25918,12 +25942,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
-      action: 'database.query.readonly',
+      action: 'database.query.execute',
       metadata: { key: connection.key, kind: connection.kind, rowCount: result.rowCount },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
-      action: 'database.query.readonly',
+      action: 'database.query.execute',
       resourceType: 'projectDatabase',
       resourceId: project.id,
       metadata: { key: connection.key, kind: connection.kind, rowCount: result.rowCount },
