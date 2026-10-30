@@ -1,0 +1,4 @@
+Product source: a9f8b02b737e775b68a34d29e33124e5662ec63c
+Build: pnpm run build exit 0; /workspace/ui-more-main-build.log
+Browser: /usr/bin/chromium; real compiled components/CSS; isolated synthetic API/runtime fixture.
+No paid AI, production projects or credentials. Forbidden job 124062762133 not accessed.
