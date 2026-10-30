@@ -1,6 +1,14 @@
 import { resolveMarketingLanguage } from './marketing';
 
 export const assistantMessageEn = {
+  'assistantMessage.activity.sourceIncomplete': 'The received technical content is incomplete. Review the changes.',
+  'assistantMessage.activity.files': 'File and command details',
+  'assistantMessage.activity.incomplete': 'This source is incomplete. No successful write is confirmed here.',
+  'assistantMessage.activity.source': 'Source proposed by the assistant. This is not a write or test confirmation.',
+  'assistantMessage.activity.details': 'Technical details',
+  'assistantMessage.activity.attention': 'Some work remains incomplete or unconfirmed. See the details.',
+  'assistantMessage.activity.fallback': 'The requested model was unavailable; another model answered.',
+  'assistantMessage.activity.unknown': 'The end of this response is not confirmed.',
   'assistantMessage.agent': 'Agent',
   'assistantMessage.context.show': 'Show agent message context',
   'assistantMessage.context.label': 'Context',
@@ -54,10 +62,10 @@ export const assistantMessageEn = {
     '{{count}} file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.',
   'assistantMessage.lanes.writePending': 'Generation is still running; confirmations may arrive later.',
   'assistantMessage.modelOutput.observed': 'Text observed from the configured call {{provider}} / {{model}}.',
-  'assistantMessage.streamTerminal.complete': 'Response stream completed.',
+  'assistantMessage.streamTerminal.complete': 'Response received.',
   'assistantMessage.streamTerminal.incomplete':
-    'Response stream incomplete. Review the files before requesting a continuation.',
-  'assistantMessage.streamTerminal.error': 'Response stream failed. Review the partial files before trying again.',
+    'The response is incomplete. Review the changes before asking the assistant to continue.',
+  'assistantMessage.streamTerminal.error': 'The response stopped because of an error. Partial files may need review.',
   'assistantMessage.streamTerminal.validation':
     'Application validation is separate; this status does not confirm writes, build or tests.',
   'assistantMessage.modelOutput':
@@ -146,6 +154,17 @@ export type AssistantMessageKey = keyof typeof assistantMessageEn;
 export type AssistantMessageCopy = Readonly<Record<AssistantMessageKey, string>>;
 
 export const assistantMessageFr: AssistantMessageCopy = {
+  'assistantMessage.activity.sourceIncomplete': 'Le contenu technique reçu est incomplet. Vérifiez les changements.',
+  'assistantMessage.activity.files': 'Détails des fichiers et commandes',
+  'assistantMessage.activity.incomplete':
+    'Cette source est incomplète. Aucun enregistrement réussi n’est confirmé ici.',
+  'assistantMessage.activity.source':
+    'Source proposée par l’assistant. Cela ne confirme ni un enregistrement ni des tests.',
+  'assistantMessage.activity.details': 'Détails techniques',
+  'assistantMessage.activity.attention':
+    'Une partie du travail reste incomplète ou non confirmée. Consultez les détails.',
+  'assistantMessage.activity.fallback': 'Le modèle demandé était indisponible ; un autre modèle a répondu.',
+  'assistantMessage.activity.unknown': 'La fin de cette réponse n’est pas confirmée.',
   'assistantMessage.agent': 'Agent',
   'assistantMessage.context.show': 'Afficher le contexte du message de l’agent',
   'assistantMessage.context.label': 'Contexte',
@@ -200,11 +219,11 @@ export const assistantMessageFr: AssistantMessageCopy = {
     '{{count}} fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.',
   'assistantMessage.lanes.writePending': 'Génération encore active ; des confirmations peuvent arriver ensuite.',
   'assistantMessage.modelOutput.observed': 'Texte observé pour l’appel configuré {{provider}} / {{model}}.',
-  'assistantMessage.streamTerminal.complete': 'Flux de réponse terminé.',
+  'assistantMessage.streamTerminal.complete': 'Réponse reçue.',
   'assistantMessage.streamTerminal.incomplete':
-    'Flux de réponse incomplet. Vérifiez les fichiers avant de demander une continuation.',
+    'La réponse est incomplète. Vérifiez les changements avant de demander la suite.',
   'assistantMessage.streamTerminal.error':
-    'Échec du flux de réponse. Vérifiez les fichiers partiels avant de réessayer.',
+    'La réponse s’est arrêtée sur une erreur. Des fichiers partiels peuvent rester à vérifier.',
   'assistantMessage.streamTerminal.validation':
     'La validation de l’application reste distincte ; cet état ne confirme ni les écritures, ni la compilation, ni les tests.',
   'assistantMessage.modelOutput':

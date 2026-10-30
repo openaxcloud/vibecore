@@ -27,6 +27,7 @@ import {
 } from '~/lib/persistence/journal-persistance';
 import { projectAiTranscriptMessages } from './project-ai-transcript-messages';
 import { BaseChat } from './BaseChat';
+import { corpsDuMessage } from './corps-du-message';
 import { lireChoix } from './choix-de-modele';
 import { canAutomaticallyReplayPrompt } from '~/lib/chat/pending-prompt-budget';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -2501,14 +2502,16 @@ export const ChatImpl = memo(
         importChat={importChat}
         exportChat={exportChat}
         transcriptError={transcriptError}
-        messages={messages.map((message, i) => {
+        messages={messages.map((message) => {
           if (message.role === 'user') {
             return message;
           }
 
           return {
             ...message,
-            content: parsedMessages[i] || message.content,
+            content: parsedMessages[message.id] ?? message.content,
+            contentIsParsed: parsedMessages[message.id] !== undefined,
+            originalSource: corpsDuMessage(message.content, message.parts),
           };
         })}
         enhancePrompt={() => {

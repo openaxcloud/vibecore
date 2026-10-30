@@ -26,7 +26,7 @@ interface MessagesProps {
   id?: string;
   className?: string;
   isStreaming?: boolean;
-  messages?: Message[];
+  messages?: Array<Message & { contentIsParsed?: boolean; originalSource?: string }>;
   append?: (message: Message) => void;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
@@ -177,6 +177,8 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                     ) : (
                       <AssistantMessage
                         content={content}
+                        contentIsParsed={message.contentIsParsed}
+                        originalSource={message.originalSource}
                         annotations={message.annotations}
                         messageId={messageId}
                         onRewind={handleRewind}
