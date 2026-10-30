@@ -3534,7 +3534,7 @@ async function requireDatabaseConnection(store: ApiStore, projectId: string, key
   }
 
   if (connection.ambiguous) {
-    throw Object.assign(new Error('This database key has different values across environments. Use a distinct key for each database.'), {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_CONNECTION_AMBIGUOUS')), {
       statusCode: 409,
       code: 'DATABASE_CONNECTION_AMBIGUOUS',
     });

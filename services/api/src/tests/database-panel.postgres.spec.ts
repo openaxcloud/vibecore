@@ -257,9 +257,10 @@ run('Database panel — real isolated PostgreSQL', () => {
     const schemaResponse = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/databases/schema?key=SCOPED_DATABASE_URL`,
-      headers: { authorization: `Bearer ${ownerToken}` },
+      headers: { authorization: `Bearer ${ownerToken}`, 'accept-language': 'fr' },
     });
     expect(schemaResponse.statusCode).toBe(409);
+    expect(schemaResponse.json().error).toBe('Cette clé désigne des bases différentes selon l’environnement. Utilisez une clé distincte pour chaque base.');
     // Equal values in two scopes are safe and collapse to a single connection.
     await store.upsertProjectEnvVar({ projectId, key: 'SCOPED_DATABASE_URL', value: url!, scope: 'production' });
     expect((await query('SELECT 1', ownerToken, projectId, 'SCOPED_DATABASE_URL')).statusCode).toBe(200);
