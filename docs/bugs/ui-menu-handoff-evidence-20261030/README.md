@@ -34,3 +34,9 @@ Aucune certification 31/31, Safari physique, clavier virtuel réel ou safeareas 
 ## Intégrité et captures
 
 Scripts, notes sources et captures sélectionnées sont copiés octet pour octet ; JSON compactés uniquement, toutes les valeurs préservées. Le manifeste donne SHA source/copie et transformation. Le rapport commun prime pour l’état actuel sur les notes sources historiques. Aucun profil Chromium, cache, environnement brut ou cookie réel archivé. Les identifiants synthétiques présents dans les scripts ne constituent pas des accès réels. Le manifeste est recalculé après la dernière édition de ce rapport.
+
+## Correction du conditionnement CI
+
+Sur la tête `a608cabd`, Vitest découvrait trois contre-épreuves historiques archivées avec l’extension `.spec.tsx` : leurs imports absolus locaux échouaient sur le runner. Le job 123919326719 compte 11 312 tests réussis, 4 ignorés et 3 suites non chargées. Ces scripts sont conservés octet pour octet sous `.spec.tsx.txt`, avec leurs chemins sources historiques dans le manifeste. Pour reproduire les expériences originales, copier les archives hors du dépôt sous leur nom source et adapter les chemins au banc isolé ; le témoin ancien est intentionnellement rouge.
+
+Aucune configuration de découverte ni assertion n’est assouplie. Les tests permanents `MobileOverlayFocus.hydration.spec.tsx`, `IdePaletteState.spec.tsx` et les trois nouveaux cas E2E restent exécutables et inchangés.

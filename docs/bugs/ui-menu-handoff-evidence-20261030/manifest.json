@@ -10,7 +10,7 @@
       "transformation": "byte-identical"
     },
     {
-      "path": "mobile/readiness.spec.tsx",
+      "path": "mobile/readiness.spec.tsx.txt",
       "source": "/workspace/ui856-menu-diagnostic/readiness.spec.tsx",
       "sourceSha256": "86558967e4ad28418dba664e8bfea6105560e24baa36f69c00e9c13c6b82041b",
       "sha256": "86558967e4ad28418dba664e8bfea6105560e24baa36f69c00e9c13c6b82041b",
@@ -18,7 +18,7 @@
       "transformation": "byte-identical"
     },
     {
-      "path": "mobile/old-readiness-product.spec.tsx",
+      "path": "mobile/old-readiness-product.spec.tsx.txt",
       "source": "/workspace/ui856-menu-diagnostic/old-readiness-product.spec.tsx",
       "sourceSha256": "78d5d3ccce623177c9c93a43c9bcf868f44049025ec067b54b0c39290a3a6c85",
       "sha256": "78d5d3ccce623177c9c93a43c9bcf868f44049025ec067b54b0c39290a3a6c85",
@@ -154,7 +154,7 @@
       "transformation": "byte-identical"
     },
     {
-      "path": "palette/close-remount.spec.tsx",
+      "path": "palette/close-remount.spec.tsx.txt",
       "source": "/workspace/ui856-palette-diagnostic/close-remount.spec.tsx",
       "sourceSha256": "0c515a66cd44478ff78cb552434850bcad91be31b3d68ad2ddbccd1861ef6344",
       "sha256": "0c515a66cd44478ff78cb552434850bcad91be31b3d68ad2ddbccd1861ef6344",
@@ -331,8 +331,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "5f2c2868d5696f278b5e92bdec87923755739c1caff42733d91e610feebcf2ce",
-      "bytes": 5371,
+      "sha256": "7d73d81849dae807cb09e0a7fdbb876c6be9c70b3ebba7509039972cbc384a10",
+      "bytes": 6215,
       "transformation": "New consolidated report or structured verdicts; source log hashes embedded in verdicts"
     },
     {
