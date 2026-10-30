@@ -120,6 +120,28 @@ describe('actual generated HMR config compilation', () => {
     expect(ensureViteHmrConfig(emitted)).toBe(emitted);
   });
 
+  it('reads the runtime HMR environment without shadowing or rewriting the user process binding', async () => {
+    const original = `const process = { env: { VITE_HMR_CLIENT_PORT: '1111', USER_SETTING: 'kept' } };
+export default { base: '/user/', define: { USER_SETTING: JSON.stringify(process.env.USER_SETTING) } };`;
+
+    const directory = project(original);
+    const filename = path.join(directory, 'vite.config.ts');
+    const emitted = readFileSync(filename, 'utf8');
+    expect(emitted).toContain(original.replace('export default ', 'const __ecodeUserConfig = '));
+    expect(compile(directory)).toEqual({ status: 0, output: '' });
+    vi.stubEnv('VITE_HMR_CLIENT_PORT', '443');
+    vi.stubEnv('VITE_HMR_PROTOCOL', 'wss');
+    vi.stubEnv('VITE_HMR_HOST', 'fixture.preview.test');
+
+    const loaded = await loadConfigFromFile(configEnv, filename, directory);
+    expect(loaded?.config.define?.USER_SETTING).toBe('"kept"');
+    expect(loaded?.config.server).toMatchObject({
+      port: 5173,
+      strictPort: true,
+      hmr: { clientPort: 443, protocol: 'wss', host: 'fixture.preview.test' },
+    });
+  });
+
   it.each(['js', 'mjs'])('loads emitted configuration as JavaScript (%s)', async (extension) => {
     const directory = project("export default { base: '/javascript/' };");
     const filename = path.join(directory, `vite.config.${extension}`);

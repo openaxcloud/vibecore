@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-586 entrées.
+591 entrées.
 
 ## Sans section
 
@@ -792,6 +792,14 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Agent et messages
 
 - [BUG-PRIMARY-MODEL-SUMMARY-20261029](docs/bugs/BUG-PRIMARY-MODEL-SUMMARY-20261029.md) — 📤 Dispatché : ☑ 29/10 — désaccord observé après rechargement, investigation isolée. · 💻 Codé : ☐ — branche séparée, non fusionnée. · ✅ Testé live : ☐ — aucune recette production du correctif.
+- [BUG-EDITOR-FOCUS-REGISTRATION-20261029](docs/bugs/BUG-EDITOR-FOCUS-REGISTRATION-20261029.md) — 📤 Dispatché : ☑ 29/10 — blocage CI de #854 ; reproduction déterministe de la fenêtre d'inscription. · 💻 Codé : ☐ — correctif sur branche séparée, non fusionné. · ✅ Testé live : ☐ — aucune recette production du correctif.
+- [BUG-GENERATION-FINAL-FILE-20261029](docs/bugs/BUG-GENERATION-FINAL-FILE-20261029.md) — 📤 Dispatché : ☑ 29/10 — génération interrompue et source invalide observées ; reproduction isolée sans appel fournisseur. · 💻 Codé : ☐ — correctif sur branche séparée, non fusionné. · ✅ Testé live : ☐ — aucune recette production du correctif ; aucun fichier client modifié.
+- [BUG-HMR-IMPLICIT-NODE-TYPES-20261029](docs/bugs/BUG-HMR-IMPLICIT-NODE-TYPES-20261029.md) — 📤 Dispatché : ☑ 29/10 — cinq TS2580 dans une recette ; reproduction isolée avec TypeScript et Vite réels. · 💻 Codé : ☐ — correctif sur branche séparée, non fusionné. · ✅ Testé live : ☐ — aucun projet client modifié ni recette production du correctif.
+
+## Sans section
+
+- [BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029](docs/bugs/BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029](docs/bugs/BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

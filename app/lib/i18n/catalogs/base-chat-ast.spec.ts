@@ -215,10 +215,18 @@ describe('BaseChat strengthened-AST catalog', () => {
      *       restent identiques ; seul le formatage Suspense est réindenté.
      *       Le reçu est réservé au-dessus du chargement lazy, sans retard Chat.
      *
+     *   12. Confinement clavier des modales du 29/10 : tranche comparée
+     *       exactement à main fe790924. Trois hunks de deux lignes ajoutent
+     *       uniquement ref et tabIndex=-1 aux sections Panels, Tabs et Tools.
+     *       Aucun texte, classe, enfant, callback Escape, Terminal ou dock
+     *       modifié. Les hooks restent hors de cette tranche ; les tests
+     *       useMobileModalFocus/MobileOverlayFocus et les recettes compilées
+     *       vérifient entrée, parcours, défilement et restauration du focus.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('c2081c577b3d95357da31797ed9ca7e36ccb1aac8c16677377f89444683914ec');
+    expect(frozenHash).toBe('5a55c8de7b1766eaa27655a705388fedbc465e5d109d2c8891562db24adbd075');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
