@@ -17,7 +17,14 @@ import {
   type LoginThrottleConfig,
 } from '../login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
-import { DEFAULT_ENV_VAR_SCOPE, projectSnapshotManifest } from '../store.js';
+import {
+  creditPackConflict,
+  creditPackPurchaseKeys,
+  validateCreditPackReceipt,
+  type StripeCreditPackPurchase,
+  DEFAULT_ENV_VAR_SCOPE,
+  projectSnapshotManifest,
+} from '../store.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -4241,6 +4248,134 @@ export class TestApiStore implements ApiStore {
     wallet.updatedAt = now();
 
     return wallet;
+  }
+
+  async grantStripeCreditPack(input: StripeCreditPackPurchase): Promise<{ packId: string; created: boolean; expiresAt: string }> {
+    const keys = creditPackPurchaseKeys(input);
+    const rows = keys.map((key) => this.systemSettings.get(key)).filter(Boolean);
+
+    if (rows.length) {
+      if (rows.length !== keys.length) {
+        creditPackConflict();
+      }
+
+      const receipts = rows.map((row) => validateCreditPackReceipt(row!.value, input));
+
+      if (receipts.some((receipt) => receipt.packId !== receipts[0].packId)) {
+        creditPackConflict();
+      }
+
+      const granted = this.creditPacks.get(receipts[0].packId);
+      const marker = this.systemSettings.get(`billing.credit-pack.v1:pack:${receipts[0].packId}`);
+
+      if (
+        !marker ||
+        validateCreditPackReceipt(marker.value, input).packId !== receipts[0].packId ||
+        !granted ||
+        granted.organizationId !== input.organizationId ||
+        granted.purchasedCents !== input.purchasedCents ||
+        (granted.stripePaymentIntentId ?? null) !== input.paymentIntentId
+      ) {
+        creditPackConflict();
+      }
+
+      return { packId: receipts[0].packId, created: false, expiresAt: granted.expiresAt };
+    }
+
+    const legacy = [...this.creditPacks.values()].filter((pack) =>
+      input.paymentIntentId
+        ? pack.stripePaymentIntentId === input.paymentIntentId
+        : pack.organizationId === input.organizationId && !pack.stripePaymentIntentId,
+    );
+
+    let previous;
+
+    if (input.paymentIntentId) {
+      if (legacy.length > 1) {
+        creditPackConflict();
+      }
+
+      previous = legacy[0];
+
+      if (
+        previous &&
+        (previous.organizationId !== input.organizationId ||
+          previous.purchasedCents !== input.purchasedCents ||
+          previous.expiresAt !== input.expiresAt.toISOString())
+      ) {
+        creditPackConflict();
+      }
+    } else {
+      for (const pack of legacy) {
+        const marker = this.systemSettings.get(`billing.credit-pack.v1:pack:${pack.id}`);
+
+        const receipt = marker?.value as
+          | {
+              version?: number;
+              sessionId?: string;
+              paymentIntentId?: string | null;
+              organizationId?: string;
+              purchasedCents?: number;
+              sku?: string;
+              packId?: string;
+            }
+          | undefined;
+
+        if (
+          !receipt ||
+          receipt.version !== 1 ||
+          receipt.packId !== pack.id ||
+          receipt.paymentIntentId !== null ||
+          receipt.organizationId !== input.organizationId ||
+          receipt.purchasedCents !== pack.purchasedCents ||
+          typeof receipt.sessionId !== 'string' ||
+          !/^cs_[A-Za-z0-9_]{1,250}$/.test(receipt.sessionId) ||
+          typeof receipt.sku !== 'string'
+        ) {
+          creditPackConflict();
+        }
+
+        const session = this.systemSettings.get(`billing.credit-pack.v1:session:${receipt.sessionId}`);
+
+        if (
+          !session ||
+          validateCreditPackReceipt(session.value, {
+            ...input,
+            sessionId: receipt.sessionId,
+            sku: receipt.sku,
+            purchasedCents: pack.purchasedCents,
+          }).packId !== pack.id
+        ) {
+          creditPackConflict();
+        }
+      }
+    }
+
+    const pack: CreditPackRecord = previous ?? {
+      id: id('pack'),
+      organizationId: input.organizationId,
+      purchasedCents: input.purchasedCents,
+      remainingCents: input.purchasedCents,
+      expiresAt: input.expiresAt.toISOString(),
+      stripePaymentIntentId: input.paymentIntentId ?? undefined,
+      createdAt: now(),
+    };
+    const receipt = {
+      version: 1,
+      organizationId: input.organizationId,
+      sessionId: input.sessionId,
+      paymentIntentId: input.paymentIntentId,
+      sku: input.sku,
+      purchasedCents: input.purchasedCents,
+      packId: pack.id,
+    };
+    this.creditPacks.set(pack.id, pack);
+
+    for (const key of [...keys, `billing.credit-pack.v1:pack:${pack.id}`]) {
+      this.systemSettings.set(key, { key, value: receipt, updatedAt: now() });
+    }
+
+    return { packId: pack.id, created: !previous, expiresAt: pack.expiresAt };
   }
 
   async createCreditPack(input: {

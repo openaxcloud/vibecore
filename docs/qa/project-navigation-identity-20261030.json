@@ -1,0 +1,280 @@
+{
+  "exact-main": {
+    "stats": {
+      "startTime": "2026-10-30T05:53:10.242Z",
+      "duration": 18319.046000000002,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "project A never displays project B while its archive is pending at 768",
+        "status": "passed",
+        "retry": 0,
+        "duration": 13898
+      }
+    ]
+  },
+  "rapid": {
+    "stats": {
+      "startTime": "2026-10-30T05:53:35.205Z",
+      "duration": 25463.676,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "rapid A B A discards delayed B archive at 390",
+        "status": "passed",
+        "retry": 0,
+        "duration": 9564,
+        "rapid-project-identity": {
+          "width": 390,
+          "intercepted": 1,
+          "bPendingEditorCounts": {
+            "cm": 0,
+            "monaco": 0
+          },
+          "aSelected": true,
+          "bDidNotAdoptA": true
+        }
+      },
+      {
+        "title": "rapid A B A discards delayed B archive at 768",
+        "status": "passed",
+        "retry": 0,
+        "duration": 9249,
+        "rapid-project-identity": {
+          "width": 768,
+          "intercepted": 1,
+          "bPendingEditorCounts": {
+            "cm": 0,
+            "monaco": 0
+          },
+          "aSelected": true,
+          "bDidNotAdoptA": true
+        }
+      },
+      {
+        "title": "rapid A B A discards delayed B archive at 1440",
+        "status": "passed",
+        "retry": 0,
+        "duration": 5662,
+        "rapid-project-identity": {
+          "width": 1440,
+          "intercepted": 1,
+          "bPendingEditorCounts": {
+            "cm": 0,
+            "monaco": 0
+          },
+          "aSelected": true,
+          "bDidNotAdoptA": true
+        }
+      }
+    ]
+  },
+  "settings-main": {
+    "stats": {
+      "startTime": "2026-10-30T05:54:06.604Z",
+      "duration": 13263.006,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "Git Settings ignores delayed remote save after close 320",
+        "status": "failed",
+        "retry": 0,
+        "duration": 4866
+      },
+      {
+        "title": "Git Settings ignores delayed remote save after close 1440",
+        "status": "failed",
+        "retry": 0,
+        "duration": 6172
+      }
+    ]
+  },
+  "settings-stale-server": {
+    "stats": {
+      "startTime": "2026-10-30T05:56:45.211Z",
+      "duration": 13589.180999999999,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "Git Settings ignores delayed remote save after close 320",
+        "status": "failed",
+        "retry": 0,
+        "duration": 5938
+      },
+      {
+        "title": "Git Settings ignores delayed remote save after close 1440",
+        "status": "failed",
+        "retry": 0,
+        "duration": 5951
+      }
+    ]
+  },
+  "settings-candidate-observed": {
+    "stats": {
+      "startTime": "2026-10-30T05:57:29.558Z",
+      "duration": 8435.628999999999,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "Git Settings ignores delayed remote save after close 320",
+        "status": "passed",
+        "retry": 0,
+        "duration": 3418,
+        "blocked-mutation-categories": {
+          "blocked": 0,
+          "blockedKinds": {}
+        },
+        "git-settings-close-identity": {
+          "width": 320,
+          "posts": [
+            {
+              "intent": "configure-remote",
+              "remoteUrl": "https://example.test/synthetic/late.git",
+              "branch": "main"
+            }
+          ],
+          "blocked": 0,
+          "gitReads": 6,
+          "beforeReleaseReads": 6,
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      },
+      {
+        "title": "Git Settings ignores delayed remote save after close 1440",
+        "status": "passed",
+        "retry": 0,
+        "duration": 4277,
+        "blocked-mutation-categories": {
+          "blocked": 1,
+          "blockedKinds": {
+            "PUT /api/projects/FIXTURE/ide-state": 1
+          }
+        },
+        "git-settings-close-identity": {
+          "width": 1440,
+          "posts": [
+            {
+              "intent": "configure-remote",
+              "remoteUrl": "https://example.test/synthetic/late.git",
+              "branch": "main"
+            }
+          ],
+          "blocked": 1,
+          "gitReads": 6,
+          "beforeReleaseReads": 6,
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      }
+    ]
+  },
+  "settings": {
+    "stats": {
+      "startTime": "2026-10-30T05:58:21.427Z",
+      "duration": 7880.177,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "Git Settings ignores delayed remote save after close 320",
+        "status": "passed",
+        "retry": 0,
+        "duration": 3278,
+        "blocked-mutation-categories": {
+          "blocked": 0,
+          "blockedKinds": {}
+        },
+        "git-settings-close-identity": {
+          "width": 320,
+          "posts": [
+            {
+              "intent": "configure-remote",
+              "remoteUrl": "https://example.test/synthetic/late.git",
+              "branch": "main"
+            }
+          ],
+          "blocked": 0,
+          "gitReads": 6,
+          "beforeReleaseReads": 6,
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      },
+      {
+        "title": "Git Settings ignores delayed remote save after close 1440",
+        "status": "passed",
+        "retry": 0,
+        "duration": 3679,
+        "blocked-mutation-categories": {
+          "blocked": 0,
+          "blockedKinds": {}
+        },
+        "git-settings-close-identity": {
+          "width": 1440,
+          "posts": [
+            {
+              "intent": "configure-remote",
+              "remoteUrl": "https://example.test/synthetic/late.git",
+              "branch": "main"
+            }
+          ],
+          "blocked": 0,
+          "gitReads": 6,
+          "beforeReleaseReads": 6,
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      }
+    ]
+  },
+  "exact": {
+    "stats": {
+      "startTime": "2026-10-30T05:57:46.234Z",
+      "duration": 15925.734999999999,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "project A never displays project B while its archive is pending at 768",
+        "status": "passed",
+        "retry": 0,
+        "duration": 13951
+      }
+    ]
+  },
+  "source": {
+    "base": "bd5e0f5ea87767849d266b031b13fe4ae2e0967a",
+    "productBlob": "9fb4a8c118315333377dfbd484f478a84f9798ef",
+    "serverSha256": "9cde10848c7d63441507a7c038d9d8585a7b0d6158ec7cfa3885aa2a8aaa0e25",
+    "buildMainExit": 0,
+    "buildCandidateExit": 0,
+    "browser": "Chromium154.0.8037.57"
+  }
+}

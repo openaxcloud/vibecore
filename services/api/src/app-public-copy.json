@@ -2806,5 +2806,9 @@
   "EXPLICIT_RUN_USAGE_MISMATCH": {
     "en": "Explicit run usage does not match its reservation.",
     "fr": "L’utilisation déclarée pour cette exécution ne correspond pas à sa réservation."
+  },
+  "CREDIT_PACK_PURCHASE_CONFLICT": {
+    "en": "This payment needs manual verification before credits can be confirmed. Contact support; do not purchase again.",
+    "fr": "Ce paiement nécessite une vérification manuelle avant confirmation des crédits. Contactez l’assistance ; ne refaites pas l’achat."
   }
 }

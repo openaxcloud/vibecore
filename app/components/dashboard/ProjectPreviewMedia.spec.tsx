@@ -171,6 +171,55 @@ describe('project card media', () => {
     }
   });
 
+  it('ignores detached images and retries after A → B → A navigation', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const i18n = createI18nInstance('en');
+
+      const wrap = (card: ProjectCard) => (
+        <I18nextProvider i18n={i18n}>
+          <ProjectPreviewMedia project={card} />
+        </I18nextProvider>
+      );
+
+      const { container, rerender, unmount } = render(wrap(project));
+      const originalA = container.querySelector('img')!;
+      fireEvent.error(originalA);
+
+      const b = {
+        ...project,
+        id: 'project-b',
+        name: 'Project B',
+        previewImageUrl: '/api/projects/project-b/thumbnail',
+      };
+      rerender(wrap(b));
+
+      const imageB = container.querySelector('img')!;
+      fireEvent.error(imageB);
+      rerender(wrap(project));
+
+      const returnedA = container.querySelector('img')!;
+      expect(returnedA).not.toBe(originalA);
+      expect(returnedA.getAttribute('src')).toBe(project.previewImageUrl);
+      fireEvent.error(returnedA);
+      fireEvent.load(originalA);
+      fireEvent.load(imageB);
+      expect(screen.getByText('No preview yet')).toBeTruthy();
+      await act(async () => vi.advanceTimersByTime(5_000));
+
+      const retryA = container.querySelector('img')!;
+      expect(retryA.getAttribute('src')).toBe(`${project.previewImageUrl}?thumbnailRetry=1`);
+      expect(retryA.getAttribute('alt')).toBe('Latest preview of Client portal');
+      fireEvent.load(retryA);
+      expect(screen.queryByText('No preview yet')).toBeNull();
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('preserves existing query and fragment on the internal thumbnail retry', async () => {
     vi.useFakeTimers();
 

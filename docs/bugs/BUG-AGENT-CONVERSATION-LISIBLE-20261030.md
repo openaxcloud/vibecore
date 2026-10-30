@@ -98,6 +98,8 @@ connue : régression rouge puis 14 tests ciblés verts, couleur calculée vérif
 sur trois largeurs (événement contrôlé, distinct du test Vite réel).
 
 La preuve production rapportée le 30/10 montre toujours l’ancien code invalide et
-le libellé « Preview rendered ». #859 n’étant pas encore intégré/livré, ce constat
-ne contredit pas ses tests locaux. Il ne démontre pas non plus que tous les
+le libellé « Preview rendered ». Au moment de ce constat, #859 n’était pas encore
+intégré/livré ; ce constat ne contredit donc pas ses tests locaux. La dépendance
+a ensuite été intégrée dans main par #862 ; sa présence dans main n’est pas une
+preuve de livraison ni de réparation du projet utilisateur. Il ne démontre pas non plus que tous les
 événements réseau du cas réel correspondent à la reproduction isolée.
