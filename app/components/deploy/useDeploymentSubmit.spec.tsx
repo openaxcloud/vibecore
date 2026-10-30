@@ -20,7 +20,7 @@ function Harness({ onSubmit, scope = 'a' }: { onSubmit: (form: FormData) => void
       {confirmation}
       <form onSubmit={submit}>
         <input type="hidden" name="intent" value="rollback" />
-        <input type="hidden" name="deploymentId" value="ready-target" />
+        <input type="hidden" name="deploymentId" value={`ready-target-${scope}`} />
         <button type="submit">Restore release</button>
       </form>
     </>
@@ -42,7 +42,7 @@ describe('shared deployment confirmation', () => {
       fireEvent.click(confirm);
     });
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect((onSubmit.mock.calls[0][0] as FormData).get('deploymentId')).toBe('ready-target');
+    expect((onSubmit.mock.calls[0][0] as FormData).get('deploymentId')).toBe('ready-target-a');
   });
   it('drops a pending confirmation when the project/workspace changes', () => {
     const oldSubmit = vi.fn();
@@ -65,4 +65,22 @@ describe('shared deployment confirmation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Restore release' }));
     expect(screen.getByRole('dialog')).toBeTruthy();
   });
+});
+
+it('does not restore an old rollback confirmation after A to B to A', async () => {
+  const onSubmit = vi.fn();
+  const view = render(<Harness onSubmit={onSubmit} scope="a" />);
+  fireEvent.click(screen.getByRole('button', { name: 'Restore release' }));
+  view.rerender(<Harness onSubmit={onSubmit} scope="b" />);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Restore release' }));
+  view.rerender(<Harness onSubmit={onSubmit} scope="a" />);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(onSubmit).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Restore release' }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /roll.?back|restore/i }));
+  });
+  expect(onSubmit).toHaveBeenCalledTimes(1);
+  expect((onSubmit.mock.calls[0][0] as FormData).get('deploymentId')).toBe('ready-target-a');
 });

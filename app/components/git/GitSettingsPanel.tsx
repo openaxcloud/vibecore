@@ -538,6 +538,22 @@ export function GitSettingsPanel({
   const [branch, setBranch] = useState(defaultBranch ?? 'main');
   const [savingRemote, setSavingRemote] = useState(false);
   const [removingRemote, setRemovingRemote] = useState(false);
+  const remoteScopeRef = useRef({ active: true, pending: false });
+  const remoteDefaultsRef = useRef({ gitRepositoryUrl, defaultBranch });
+  remoteDefaultsRef.current = { gitRepositoryUrl, defaultBranch };
+
+  useEffect(() => {
+    const scope = { active: true, pending: false };
+    remoteScopeRef.current = scope;
+    setSavingRemote(false);
+    setRemovingRemote(false);
+    setRemoteUrl(remoteDefaultsRef.current.gitRepositoryUrl ?? '');
+    setBranch(remoteDefaultsRef.current.defaultBranch ?? 'main');
+
+    return () => {
+      scope.active = false;
+    };
+  }, [projectId, workspaceId]);
 
   const authorStorageKey = useMemo(() => `vibecore:git:commit-author:${projectId}`, [projectId]);
   const [authorName, setAuthorName] = useState('');
@@ -773,6 +789,14 @@ export function GitSettingsPanel({
   const saveRemote = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+
+      const scope = remoteScopeRef.current;
+
+      if (busy || !scope.active || scope.pending) {
+        return;
+      }
+
+      scope.pending = true;
       setSavingRemote(true);
 
       try {
@@ -797,18 +821,35 @@ export function GitSettingsPanel({
           );
         }
 
+        if (!scope.active) {
+          return;
+        }
+
         toast.success(copy['gitSettings.toast.remoteSaved']);
         void onRemoteConfigured?.();
       } catch (error) {
-        toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.remoteSaveUnavailable']));
+        if (scope.active) {
+          toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.remoteSaveUnavailable']));
+        }
       } finally {
-        setSavingRemote(false);
+        scope.pending = false;
+
+        if (scope.active) {
+          setSavingRemote(false);
+        }
       }
     },
-    [branch, copy, language, onRemoteConfigured, projectId, remoteUrl, text, workspaceId],
+    [branch, busy, copy, language, onRemoteConfigured, projectId, remoteUrl, text, workspaceId],
   );
 
   const disconnectRemote = useCallback(async () => {
+    const scope = remoteScopeRef.current;
+
+    if (busy || !scope.active || scope.pending) {
+      return;
+    }
+
+    scope.pending = true;
     setRemovingRemote(true);
 
     try {
@@ -831,15 +872,25 @@ export function GitSettingsPanel({
         );
       }
 
+      if (!scope.active) {
+        return;
+      }
+
       setRemoteUrl('');
       toast.success(copy['gitSettings.toast.remoteRemoved']);
       void onRemoteConfigured?.();
     } catch (error) {
-      toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.remoteRemoveUnavailable']));
+      if (scope.active) {
+        toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.remoteRemoveUnavailable']));
+      }
     } finally {
-      setRemovingRemote(false);
+      scope.pending = false;
+
+      if (scope.active) {
+        setRemovingRemote(false);
+      }
     }
-  }, [copy, language, onRemoteConfigured, projectId, text, workspaceId]);
+  }, [busy, copy, language, onRemoteConfigured, projectId, text, workspaceId]);
 
   const saveAuthor = useCallback(() => {
     setActiveAuthor(authorName.trim(), authorEmail.trim());
@@ -900,7 +951,7 @@ export function GitSettingsPanel({
           />
           <button
             type="submit"
-            disabled={savingRemote || busy}
+            disabled={savingRemote || removingRemote || busy}
             className="inline-flex h-9 items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
           >
             {savingRemote
@@ -915,7 +966,7 @@ export function GitSettingsPanel({
             type="button"
             data-testid="git-remote-remove"
             onClick={() => void disconnectRemote()}
-            disabled={removingRemote || busy}
+            disabled={removingRemote || savingRemote || busy}
             className="justify-self-start text-xs font-medium text-red-500 hover:underline disabled:opacity-60"
           >
             {removingRemote ? copy['gitSettings.remote.removing'] : copy['gitSettings.remote.remove']}
