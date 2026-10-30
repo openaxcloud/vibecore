@@ -150,10 +150,11 @@ export function useCommandPaletteReturnFocus(
     }
 
     const previous = returnFocusRef.current;
-    returnFocusRef.current = null;
 
     if (closedByOutsideClickRef.current) {
+      returnFocusRef.current = null;
       closedByOutsideClickRef.current = false;
+
       return undefined;
     }
 
@@ -161,19 +162,42 @@ export function useCommandPaletteReturnFocus(
       return undefined;
     }
 
+    let cancelled = false;
+
     const frame = requestAnimationFrame(() => {
+      if (cancelled || returnFocusRef.current !== previous) {
+        return;
+      }
+
+      /*
+       * Consume only when this owner actually attempts restoration. A loading
+       * shell may unmount before this frame; its same-route successor must be
+       * able to resume the shared receipt. A new project has a different ref.
+       */
+      returnFocusRef.current = null;
+
+      const focused = document.activeElement;
+
+      if (focused && focused !== document.body && focused !== document.documentElement && focused !== previous) {
+        return;
+      }
+
       const testId = previous.dataset.testid;
 
-      const target = previous.isConnected
-        ? previous
-        : testId
-          ? Array.from(document.querySelectorAll<HTMLElement>('[data-testid]')).find(
+      const replacements =
+        !previous.isConnected && testId
+          ? Array.from(document.querySelectorAll<HTMLElement>('[data-testid]')).filter(
               (candidate) => candidate.dataset.testid === testId && candidate.getClientRects().length > 0,
             )
-          : undefined;
+          : [];
+
+      const target = previous.isConnected ? previous : replacements.length === 1 ? replacements[0] : undefined;
       target?.focus();
     });
 
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
   }, [open, returnFocusRef, closedByOutsideClickRef]);
 }

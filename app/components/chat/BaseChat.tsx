@@ -24,6 +24,7 @@ import { latestTurnModelOutput } from '~/lib/model-output-evidence';
 import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
 import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
 import { useMobileModalFocus } from './useMobileModalFocus';
+import { useHydrated } from 'remix-utils/use-hydrated';
 import { useSecurityScanSession } from './SecurityScanSession';
 import { IntegrationGithubVerification } from './IntegrationGithubVerification';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
@@ -2996,7 +2997,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const navigate = useNavigate();
-    const [clientHydrated, setClientHydrated] = useState(false);
+    const clientHydrated = useHydrated();
 
     const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
 
@@ -3108,10 +3109,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         activeElement.blur();
       }
     }, [rememberOpener]);
-
-    useEffect(() => {
-      setClientHydrated(true);
-    }, []);
 
     useEffect(() => {
       if (!useMobileIde || typeof window === 'undefined') {
