@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-591 entrées.
+593 entrées.
 
 ## Sans section
 
@@ -800,6 +800,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029](docs/bugs/BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029](docs/bugs/BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-GIT-REMOTE-STALE-COMPLETION-20261030](docs/bugs/BUG-GIT-REMOTE-STALE-COMPLETION-20261030.md) — 📤 Dispatché : ☑ Audit navigation A→B→A du 30 octobre 2026, base `bd5e0f5ea`. · 💻 Codé : ☐ main — correction locale en validation ; pas encore fusionnée. · ✅ Testé live : ☐ production — composants locaux avec réponses synthétiques et recette navigateur locale seulement.
+- [BUG-GIT-REMOTE-PENDING-DRAFT-20261030](docs/bugs/BUG-GIT-REMOTE-PENDING-DRAFT-20261030.md) — 📤 Dispatché : ☑ Audit du 30 octobre 2026, lot local séparé de #858, base locale `9e69bcee7`. · 💻 Codé : ☐ main — correctif local en validation, non publié ni fusionné. · ✅ Testé live : ☐ production — preuve locale sur composants réels avec réponses synthétiques.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
