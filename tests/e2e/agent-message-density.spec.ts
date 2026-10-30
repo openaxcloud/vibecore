@@ -198,7 +198,22 @@ async function measureRows(page: Page) {
 
 /** The fenced block is additional: retain the inline-code selection witness above. */
 async function assertCodeHeaderDoesNotCoverSource(page: Page) {
-  const pre = page.locator('.bolt-assistant-message pre').last();
+  /*
+   * Build mode deliberately folds source into technical details. Measure the
+   * highlighted code contract through the real Assistant mode control instead.
+   */
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.bolt-message-context-menu')).not.toBeVisible();
+
+  const mode = page.locator('.bolt-chatbox-mode-trigger').first();
+
+  await mode.click();
+  await page.locator('.bolt-chatbox-mode-menu button').filter({ hasText: 'Assistant' }).first().click();
+  await expect(mode).toContainText('Assistant');
+
+  const pre = page.locator('.bolt-assistant-message pre').filter({ hasText: 'const densityCode = "source intacte";' });
+
+  await expect(pre).toHaveCount(1);
 
   // The plain-text error fallback has another wrapper: require the actual highlighted block.
   await expect(pre).toHaveClass(/(?:^|\s)shiki(?:\s|$)/);

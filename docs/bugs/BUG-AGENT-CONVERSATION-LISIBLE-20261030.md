@@ -152,3 +152,17 @@ Validation du complément d'historique : 1 614 tests assemblés sur 190 suites,
 contrôle i18n et revues indépendantes favorables (38 tests pour le remontage,
 52 pour le signal de source incomplète). Ces résultats complètent les validations
 initiales ; la CI doit encore confirmer la nouvelle tête publiée.
+
+## Contre-épreuve E2E après publication
+
+Sur `c3412ff36`, le canari WebKit rend un job consultatif « success » mais ses
+journaux montrent deux échecs réels du test de densité, répétés sur les retries.
+Le helper choisit le dernier `<pre>` : il reçoit désormais la source technique
+repliée du mode Agent, volontairement non colorée, au lieu du bloc Shiki mesuré.
+Les deux échecs sont reproduits localement sur Chromium avec la vraie application.
+Le scénario sélectionne désormais volontairement le mode Assistant avant la
+mesure de l'en-tête du code. Le témoin est ciblé par son contenu, puis sa classe
+Shiki est toujours exigée ; géométrie, seuils, menus et sélection inline restent
+inchangés. Ce changement de contrat du test est explicite, pas un retry aveugle.
+WebKit n'est pas installé dans l'environnement local : son verdict distant sur
+la nouvelle tête reste obligatoire, sans se fier au seul statut consultatif du job.
