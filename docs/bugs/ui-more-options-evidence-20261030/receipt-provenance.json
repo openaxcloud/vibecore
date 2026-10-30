@@ -1,0 +1,145 @@
+[
+  {
+    "source": "quiet-cpu4/receipt.json",
+    "sourceSha256": "e3f07d41602c2e88ba5344f70d8bf34b947ed9e8c5b0e51da7c72d04d7550d5d",
+    "export": "quiet-cpu4.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 1
+  },
+  {
+    "source": "spontaneous-cpu1/receipt.json",
+    "sourceSha256": "8f0d4bfdbd0ba87be8a130d479e8031c0638e3eb35c2ceae0cf6f8c08411123c",
+    "export": "spontaneous-cpu1.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "spontaneous-cpu4/receipt.json",
+    "sourceSha256": "5e3d224e250e8a08a81ab93d7af90c565fcd9bce08df75d7249669bbf190af09",
+    "export": "spontaneous-cpu4.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "normal-cpu4/receipt.json",
+    "sourceSha256": "c14e77c3c3d11a822369a18f8964edea7160035c8150af7e68430d18eb25bd45",
+    "export": "normal-cpu4.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "native-cpu4/receipt.json",
+    "sourceSha256": "bd948cb5c1fa709874e9931c1b1ca3beea4f0e544916dd730d4ac3a8e2711cc7",
+    "export": "native-cpu4.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "tap-cpu4/receipt.json",
+    "sourceSha256": "b9beb0ee118242ad4d3a958bc80481ef3c066ed411b8e9aed9addcbcefdb9321",
+    "export": "tap-cpu4.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "forced-events-cpu4/receipt.json",
+    "sourceSha256": "111d4f811321101fe318134babd834ce8d7c342693d6e5596d9e9da3fadc5596",
+    "export": "forced-events-cpu4.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "forced-se-repeat-1/receipt.json",
+    "sourceSha256": "097e7ded6d0bcdad1452e2e600ccbe50436ce9d463e34554096efdae73bf67aa",
+    "export": "forced-se-repeat-1.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 1,
+    "passed": 1
+  },
+  {
+    "source": "forced-se-repeat-2/receipt.json",
+    "sourceSha256": "5b2d7992e9ce756004328182e6d205f0c3f6320e05d50e297540315ca6bbba5b",
+    "export": "forced-se-repeat-2.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 1,
+    "passed": 1
+  },
+  {
+    "source": "forced-se-repeat-3/receipt.json",
+    "sourceSha256": "4de9c1a36d5c66a1b4534116d346cce3f081f536846c27884e6fbebfc29bbcdd",
+    "export": "forced-se-repeat-3.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 1,
+    "passed": 1
+  },
+  {
+    "source": "press-verified-cpu4/receipt.json",
+    "sourceSha256": "33f5b2529cc0fe2f6db7a6c6ae30e85074cd25d4d5efde0efd8a5296be02f497",
+    "export": "press-verified-cpu4.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "normal-cpu4-2/receipt.json",
+    "sourceSha256": "5527ca36a6757a8c488b4e3c157e19359b7c1a2f61609eb7def681814b084327",
+    "export": "normal-cpu4-2.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  },
+  {
+    "source": "normal-cpu4-3/receipt.json",
+    "sourceSha256": "151a2948f05335ceac843958092a87ef6362ae89e5e1e0e4d83ac18345fcdb3f",
+    "export": "normal-cpu4-3.json",
+    "omitted": [
+      "transport",
+      "intermediate ledger snapshots"
+    ],
+    "rows": 4,
+    "passed": 4
+  }
+]
