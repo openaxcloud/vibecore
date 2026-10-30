@@ -1,0 +1,45 @@
+{
+  "realPostgresWrite": true,
+  "otherRowUnchanged": true,
+  "otherSchemaUnchanged": true,
+  "reopenedRead": true,
+  "pageErrors": [],
+  "viewports": [
+    {
+      "name": "desktop",
+      "viewportWidth": 1440,
+      "height": 1000,
+      "left": 410,
+      "right": 1145.265625,
+      "width": 735.265625,
+      "viewport": 1440,
+      "sqlWidth": 506.265625,
+      "pageOverflow": false,
+      "dataRowVisible": true
+    },
+    {
+      "name": "tablet",
+      "viewportWidth": 768,
+      "height": 1024,
+      "left": 23.03125,
+      "right": 744.96875,
+      "width": 721.9375,
+      "viewport": 768,
+      "sqlWidth": 721.9375,
+      "pageOverflow": false,
+      "dataRowVisible": true
+    },
+    {
+      "name": "mobile",
+      "viewportWidth": 390,
+      "height": 844,
+      "left": 16,
+      "right": 374,
+      "width": 358,
+      "viewport": 390,
+      "sqlWidth": 358,
+      "pageOverflow": false,
+      "dataRowVisible": true
+    }
+  ]
+}
