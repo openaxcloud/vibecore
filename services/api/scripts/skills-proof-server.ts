@@ -1,13 +1,13 @@
 // Synthetic local UI fixture; run only against the dedicated Skills proof database.
+import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { PrismaApiStore } from '../src/prisma-store';
 import { buildApiApp } from '../src/app';
-if (
-  process.env.DATABASE_URL !== 'postgresql://proof:proof@127.0.0.1:55439/skills_proof' ||
-  process.env.NODE_ENV !== 'test'
-)
-  throw new Error('Dedicated local Skills database required');
+assert.ok(
+  process.env.DATABASE_URL === 'postgresql://proof:proof@127.0.0.1:55439/skills_proof' &&
+    process.env.NODE_ENV === 'test',
+);
 const store = new PrismaApiStore();
 const suffix = randomUUID();
 const user = await store.createUser({ email: `${suffix}@example.test`, name: 'Skills QA', passwordHash: 'no-login' });
