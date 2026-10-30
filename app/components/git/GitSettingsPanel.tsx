@@ -538,12 +538,12 @@ export function GitSettingsPanel({
   const [branch, setBranch] = useState(defaultBranch ?? 'main');
   const [savingRemote, setSavingRemote] = useState(false);
   const [removingRemote, setRemovingRemote] = useState(false);
-  const remoteScopeRef = useRef({ active: true, pending: false });
+  const remoteScopeRef = useRef({ active: true, pending: false, remoteRevision: 0, remoteDirty: false });
   const remoteDefaultsRef = useRef({ gitRepositoryUrl, defaultBranch });
   remoteDefaultsRef.current = { gitRepositoryUrl, defaultBranch };
 
   useEffect(() => {
-    const scope = { active: true, pending: false };
+    const scope = { active: true, pending: false, remoteRevision: 0, remoteDirty: false };
     remoteScopeRef.current = scope;
     setSavingRemote(false);
     setRemovingRemote(false);
@@ -561,7 +561,10 @@ export function GitSettingsPanel({
   const [authorProfiles, setAuthorProfiles] = useState<AuthorProfile[]>([]);
 
   useEffect(() => {
-    setRemoteUrl(gitRepositoryUrl ?? '');
+    // A metadata refresh acknowledges the submitted URL, not text typed afterwards.
+    if (!remoteScopeRef.current.remoteDirty) {
+      setRemoteUrl(gitRepositoryUrl ?? '');
+    }
   }, [gitRepositoryUrl]);
 
   useEffect(() => {
@@ -797,6 +800,8 @@ export function GitSettingsPanel({
       }
 
       scope.pending = true;
+
+      const submittedRevision = scope.remoteRevision;
       setSavingRemote(true);
 
       try {
@@ -825,6 +830,10 @@ export function GitSettingsPanel({
           return;
         }
 
+        if (scope.remoteRevision === submittedRevision) {
+          scope.remoteDirty = false;
+        }
+
         toast.success(copy['gitSettings.toast.remoteSaved']);
         void onRemoteConfigured?.();
       } catch (error) {
@@ -850,6 +859,8 @@ export function GitSettingsPanel({
     }
 
     scope.pending = true;
+
+    const submittedRevision = scope.remoteRevision;
     setRemovingRemote(true);
 
     try {
@@ -876,7 +887,11 @@ export function GitSettingsPanel({
         return;
       }
 
-      setRemoteUrl('');
+      if (scope.remoteRevision === submittedRevision) {
+        scope.remoteDirty = false;
+        setRemoteUrl('');
+      }
+
       toast.success(copy['gitSettings.toast.remoteRemoved']);
       void onRemoteConfigured?.();
     } catch (error) {
@@ -936,7 +951,11 @@ export function GitSettingsPanel({
           <input
             className={inputClass}
             value={remoteUrl}
-            onChange={(event) => setRemoteUrl(event.currentTarget.value)}
+            onChange={(event) => {
+              remoteScopeRef.current.remoteRevision += 1;
+              remoteScopeRef.current.remoteDirty = true;
+              setRemoteUrl(event.currentTarget.value);
+            }}
             placeholder="https://github.com/org/repo.git"
             aria-label={copy['gitSettings.remote.urlLabel']}
             required
