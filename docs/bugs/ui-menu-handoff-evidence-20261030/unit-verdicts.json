@@ -1,0 +1,47 @@
+{
+  "overlappingSuitesDoNotAdd": true,
+  "verdicts": [
+    {
+      "source": "/workspace/ui856-menu-diagnostic/test.log",
+      "sourceSha256": "ab34623b965d6b319437161dda66258779540ea517e759a8cc3c933e24ff7654",
+      "reportedCounts": {
+        "passed": 4
+      },
+      "rawLogIncluded": false
+    },
+    {
+      "source": "/workspace/ui856-menu-diagnostic/product-red.log",
+      "sourceSha256": "de76771b29200e11dafe2a2461858636a8925b49378888832a196609d7214b87",
+      "reportedCounts": {
+        "failed": 1,
+        "skipped": 3
+      },
+      "rawLogIncluded": false
+    },
+    {
+      "source": "/workspace/ui856-menu-diagnostic/product-tests.log",
+      "sourceSha256": "b95f18bffe0c92a463c96d910ab6bfbab25f5d976b2884ed73960f1e22033e2e",
+      "reportedCounts": {
+        "passed": 23
+      },
+      "rawLogIncluded": false
+    },
+    {
+      "source": "/workspace/ui856-palette-diagnostic/fix-red.log",
+      "sourceSha256": "17a3bf9d1e873e1494445e758a0ddf2fa031dac49ab6f322a79aaea23179af7d",
+      "reportedCounts": {
+        "failed": 4,
+        "passed": 25
+      },
+      "rawLogIncluded": false
+    },
+    {
+      "source": "/workspace/ui856-palette-diagnostic/fix-green.log",
+      "sourceSha256": "6e39f6faf5614e565cdd158cc5fbf7ee260f17bfca7df4f6f3793e8920aa04b8",
+      "reportedCounts": {
+        "passed": 29
+      },
+      "rawLogIncluded": false
+    }
+  ]
+}
