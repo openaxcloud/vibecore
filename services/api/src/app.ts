@@ -464,6 +464,7 @@ import { auditSkill, localizeAuditFindings, type SkillContent } from './skill-au
 import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
+import { fetchSkillResourceSnapshots } from './skill-resources.js';
 import { findRepoEntry, normalizeOwnerRepo, skillRepoCatalogForLocale } from './skills-repo-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
@@ -24854,6 +24855,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (fetched.ok) {
       instructions = fetched.instructions;
+    } else if (fetched.reason === 'too_large' || fetched.reason === 'invalid_content') {
+      return reply.code(422).send({
+        error: appPublicEnglish('SKILL_RESOURCES_UNAVAILABLE'),
+        code: 'SKILL_RESOURCES_UNAVAILABLE',
+        reason: fetched.reason,
+      });
     } else if (fetched.reason === 'private_or_missing') {
       return reply.code(404).send({
         error: appPublicEnglish('SKILL_PUBLIC_MANIFEST_NOT_FOUND', { value1: ownerRepo }),
@@ -24887,7 +24894,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ? parsedManifest.manifest
       : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
 
-    const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
+    const snapshots = await fetchSkillResourceSnapshots(ownerRepo, instructions);
+
+    if (!snapshots.ok) {
+      return reply.code(422).send({
+        error: appPublicEnglish('SKILL_RESOURCES_UNAVAILABLE'),
+        code: 'SKILL_RESOURCES_UNAVAILABLE',
+        reason: snapshots.reason,
+      });
+    }
+
+    auditManifest.resources = snapshots.resources.map(({ path, kind, bytes }) => ({ path, kind, bytes }));
+    const auditContent: SkillContent = { manifest: auditManifest, resourceContents: snapshots.resourceContents };
 
     const audit = auditSkill(auditContent);
     const auditedAt = new Date().toISOString();
@@ -24930,7 +24948,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       auditFindings: audit.findings,
       auditedAt,
       manifestName: parsedManifest.ok ? parsedManifest.manifest.name : null,
-      resources: auditManifest.resources,
+      resources: snapshots.resources,
     });
 
     if (!created) {

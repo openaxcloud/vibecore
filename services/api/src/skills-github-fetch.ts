@@ -20,15 +20,27 @@ const GITHUB_RAW_HOST = 'raw.githubusercontent.com';
 
 /** Cap the persisted instructions so a huge README can't bloat the system prompt. */
 export const MAX_INSTRUCTIONS_CHARS = 50_000;
+export const MAX_INSTRUCTIONS_BYTES = 200 * 1024;
+
+/** Internal protocol codes, localized by the route before reaching the UI. */
+export enum SkillInstructionContentFailure {
+  TooLarge = 'too_large',
+  InvalidContent = 'invalid_content',
+}
 
 const FETCH_TIMEOUT_MS = 6_000;
 
 export type SkillFetchResult =
   | { ok: true; instructions: string; source: string }
+
   /** Every candidate file 404'd — repo is private, missing, or has no instructions. */
   | { ok: false; reason: 'private_or_missing' }
+
   /** Network error, timeout, or a non-404 error status. */
-  | { ok: false; reason: 'unreachable' };
+  | { ok: false; reason: 'unreachable' }
+
+  /** A successful file response was unsafe/incomplete; never hide it with a fallback. */
+  | { ok: false; reason: SkillInstructionContentFailure };
 
 /**
  * Strict allowlist: only https to raw.githubusercontent.com. Exported for tests
@@ -55,6 +67,96 @@ export function isAllowedGithubRawUrl(rawUrl: string): boolean {
 /** Build the raw URL for one instruction file of a validated `owner/repo`. */
 export function buildRawUrl(ownerRepo: string, file: string): string {
   return `https://${GITHUB_RAW_HOST}/${ownerRepo}/HEAD/${file}`;
+}
+
+/** Read complete bounded UTF-8 instructions; never slice away required resource references. */
+async function readInstructions(
+  response: Response,
+): Promise<{ ok: true; content: string } | { ok: false; reason: SkillInstructionContentFailure }> {
+  const declaredBytes = Number(response.headers?.get('content-length'));
+
+  if (declaredBytes > MAX_INSTRUCTIONS_BYTES) {
+    await response.body?.cancel();
+    return { ok: false, reason: SkillInstructionContentFailure.TooLarge };
+  }
+
+  let content: string;
+
+  if (response.body) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+    const fragments: string[] = [];
+
+    let bytes = 0;
+    let chars = 0;
+
+    try {
+      for (;;) {
+        const chunk = await reader.read();
+
+        if (chunk.done) {
+          break;
+        }
+
+        bytes += chunk.value.byteLength;
+
+        if (bytes > MAX_INSTRUCTIONS_BYTES) {
+          await reader.cancel();
+          return { ok: false, reason: SkillInstructionContentFailure.TooLarge };
+        }
+
+        let text: string;
+
+        try {
+          text = decoder.decode(chunk.value, { stream: true });
+        } catch {
+          await reader.cancel();
+          return { ok: false, reason: SkillInstructionContentFailure.InvalidContent };
+        }
+
+        chars += text.length;
+
+        if (chars > MAX_INSTRUCTIONS_CHARS) {
+          await reader.cancel();
+          return { ok: false, reason: SkillInstructionContentFailure.TooLarge };
+        }
+
+        fragments.push(text);
+      }
+
+      try {
+        fragments.push(decoder.decode());
+      } catch {
+        return { ok: false, reason: SkillInstructionContentFailure.InvalidContent };
+      }
+
+      content = fragments.join('');
+    } catch {
+      /*
+       * A failed stream after HTTP 200 is incomplete content, not permission to
+       * install a different candidate which may omit its required references.
+       */
+      return { ok: false, reason: SkillInstructionContentFailure.InvalidContent };
+    } finally {
+      reader.releaseLock();
+    }
+  } else {
+    /*
+     * A real Response without a stream has no body. Keep the text-only fetch
+     * adapter contract used by route tests, validating its complete string too.
+     */
+    content = await response.text();
+  }
+
+  if (content.length > MAX_INSTRUCTIONS_CHARS || Buffer.byteLength(content, 'utf8') > MAX_INSTRUCTIONS_BYTES) {
+    return { ok: false, reason: SkillInstructionContentFailure.TooLarge };
+  }
+
+  if (/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(content)) {
+    return { ok: false, reason: SkillInstructionContentFailure.InvalidContent };
+  }
+
+  return { ok: true, content };
 }
 
 /**
@@ -102,7 +204,19 @@ export async function fetchSkillRepoInstructions(
         continue;
       }
 
-      const body = (await response.text()).slice(0, MAX_INSTRUCTIONS_CHARS).trim();
+      // An unsolicited partial response cannot certify a complete manifest.
+      if (response.status !== 200 || response.headers?.has('content-range')) {
+        await response.body?.cancel();
+        return { ok: false, reason: SkillInstructionContentFailure.InvalidContent };
+      }
+
+      const read = await readInstructions(response);
+
+      if (!read.ok) {
+        return read;
+      }
+
+      const body = read.content.trim();
 
       if (body.length > 0) {
         return { ok: true, instructions: body, source: file };

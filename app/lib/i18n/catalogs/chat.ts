@@ -1,4 +1,13 @@
 export const chatEn = {
+  'chat.skills.resourceInstallFailed':
+    'This skill could not be installed: a required reference file is missing, unsupported, or exceeds the size limit. No skill was installed.',
+  'chat.skills.resourcesTitle': 'Reference files',
+  'chat.skills.resourceAvailable': 'Saved copy available · {bytes} B',
+  'chat.skills.resourceMissing': 'Contents unavailable for this installation.',
+  'chat.skills.resourceReadOnly': 'Read-only saved text. Opening it does not run any code.',
+  'chat.skills.resourceContentLabel': 'Contents of {path}',
+  'chat.skills.resourceHash': 'SHA-256: {hash}',
+
   'chat.debugger.startNode': 'Start Node debugging',
   'chat.debugger.nodeHelp':
     'For step debugging, enter a Node.js .js, .mjs or .cjs program and leave Command empty. Other commands run without step debugging.',
@@ -1580,6 +1589,15 @@ export const chatEn = {
 } as const;
 
 export const chatFr = {
+  'chat.skills.resourceInstallFailed':
+    'Cette compétence n’a pas pu être installée : un fichier de référence requis est absent, non pris en charge ou dépasse la taille autorisée. Aucune compétence n’a été installée.',
+  'chat.skills.resourcesTitle': 'Fichiers de référence',
+  'chat.skills.resourceAvailable': 'Copie sauvegardée disponible · {bytes} o',
+  'chat.skills.resourceMissing': 'Contenu indisponible pour cette installation.',
+  'chat.skills.resourceReadOnly': 'Texte sauvegardé en lecture seule. Son ouverture ne lance aucun code.',
+  'chat.skills.resourceContentLabel': 'Contenu de {path}',
+  'chat.skills.resourceHash': 'SHA-256 : {hash}',
+
   'chat.debugger.startNode': 'Démarrer le débogage Node',
   'chat.debugger.nodeHelp':
     'Pour le débogage pas-à-pas, indiquez un programme Node.js .js, .mjs ou .cjs et laissez Commande vide. Les autres commandes s’exécutent sans pas-à-pas.',

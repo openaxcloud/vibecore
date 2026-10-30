@@ -1939,6 +1939,10 @@
     "en": "'{value1}' {value2} and cannot be enabled. Uninstall and re-install it to reconsider.",
     "fr": "« {value1} » {value2} et ne peut pas être activé. Désinstallez-le, puis réinstallez-le pour lancer une nouvelle évaluation."
   },
+  "SKILL_RESOURCES_UNAVAILABLE": {
+    "en": "This skill could not be installed: a required reference file is missing, unsupported, or exceeds the size limit. No skill was installed.",
+    "fr": "Cette compétence n’a pas pu être installée : un fichier de référence requis est manquant, non pris en charge ou trop volumineux. Aucune compétence n’a été installée."
+  },
   "SKILL_APPROVAL_REQUIRED": {
     "en": "This skill is quarantined. Review its audit findings and use Approve to enable it.",
     "fr": "Ce skill est en quarantaine. Consultez les résultats de son audit puis utilisez Approuver pour l’activer."

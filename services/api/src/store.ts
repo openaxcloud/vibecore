@@ -1112,6 +1112,9 @@ export interface SkillResourceRecord {
   path: string;
   kind: 'reference' | 'script' | 'asset' | 'other';
   bytes: number;
+  /** Audited immutable UTF-8 snapshot; absent for legacy metadata-only records. */
+  content?: string;
+  contentHash?: string;
 }
 
 export type SkillAuditVerdict = 'approved' | 'quarantined' | 'rejected';

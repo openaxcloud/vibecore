@@ -4040,6 +4040,7 @@ export const ACTIONABLE_PANEL_CODES = new Set([
   'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
   'PROVIDER_NOT_CONFIGURED',
   'ENTERPRISE_DEPLOYMENT_REQUIRED',
+  'SKILL_RESOURCES_UNAVAILABLE',
 ]);
 
 export function actionablePanelFailure(upstream: unknown) {

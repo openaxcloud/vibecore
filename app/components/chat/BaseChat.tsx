@@ -21,6 +21,7 @@
  * silencieusement.
  */
 import { latestTurnModelOutput } from '~/lib/model-output-evidence';
+import { SkillResources, type SkillResourceSnapshot } from './SkillResources';
 import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
 import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
 import { useMobileModalFocus } from './useMobileModalFocus';
@@ -18310,7 +18311,7 @@ interface InstalledSkill {
   auditFindings?: SkillAuditFinding[];
   auditedAt?: string | null;
   manifestName?: string | null;
-  resources?: Array<{ path: string; kind: string; bytes: number }>;
+  resources?: SkillResourceSnapshot[];
   revokedAt?: string | null;
   revokeReason?: string | null;
 }
@@ -18384,11 +18385,15 @@ function ProjectSkillsPanel({
         }
 
         const response = await fetch(`/api/projects/${projectId}/ide-panel/skills`, { method: 'POST', body: form });
-        const result = (await response.json().catch(() => ({}))) as { error?: string; note?: string };
+        const result = (await response.json().catch(() => ({}))) as { error?: string; note?: string; code?: string };
 
         if (!response.ok) {
           console.warn('Skills update request failed', { status: response.status, serverError: result.error });
-          setError(t('baseChatAst.skills.updateFailedHttp', { status: response.status }));
+          setError(
+            result.code === 'SKILL_RESOURCES_UNAVAILABLE'
+              ? t('chat.skills.resourceInstallFailed')
+              : t('baseChatAst.skills.updateFailedHttp', { status: response.status }),
+          );
 
           return false;
         }
@@ -19025,12 +19030,7 @@ function InstalledSkillsList({
                     ) : null}
                   </dl>
 
-                  {skill.resources && skill.resources.length ? (
-                    <div className="mt-1.5 text-[11px] text-bolt-elements-textTertiary">
-                      <span className="font-medium">{t('chat.copy.bundledResourcesLoadedOnDemand_afd948a9')}</span>{' '}
-                      {skill.resources.map((resource) => resource.path).join(', ')}
-                    </div>
-                  ) : null}
+                  {skill.resources?.length ? <SkillResources resources={skill.resources} /> : null}
 
                   {/* Audit findings (RPL-SK-001.3). */}
                   {skill.auditFindings && skill.auditFindings.length ? (

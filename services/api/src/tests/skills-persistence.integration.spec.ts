@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createHash, randomUUID } from 'node:crypto';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApiApp } from '../app.js';
 import { PrismaApiStore } from '../prisma-store.js';
 
@@ -69,6 +69,15 @@ describe.skipIf(process.env.SKILLS_DATABASE_PROOF !== '1')('Skills real HTTP + P
         instructions: 'For synthetic proof requests, explain the result clearly.',
         enabled: true,
         auditVerdict: 'approved',
+        resources: [
+          {
+            path: 'references/proof.txt',
+            kind: 'reference',
+            bytes: 15,
+            content: 'REFERENCE_PROOF',
+            contentHash: createHash('sha256').update('REFERENCE_PROOF').digest('hex'),
+          },
+        ],
       });
     }
     app = await buildApiApp({ store, loggerStream: { write() {} } });
@@ -93,6 +102,7 @@ describe.skipIf(process.env.SKILLS_DATABASE_PROOF !== '1')('Skills real HTTP + P
     origin = await app.listen({ host: '127.0.0.1', port: 0 });
     expect((await request('')).body.skills.find((s: any) => s.id === 'code-review')!.enabled).toBe(false);
     expect((await request('/installed?scope=project')).body.skills[0].enabled).toBe(false);
+    expect((await store.listInstalledSkills('project', projectId))[0].resources[0].content).toBe('REFERENCE_PROOF');
     expect((await request('/installed?scope=workspace')).body.skills[0].enabled).toBe(true);
     expect(await store.listInstalledSkills('project', otherProjectId)).toEqual([]);
     expect(await store.listProjectSkillOverrides(otherProjectId)).toEqual([]);
@@ -119,5 +129,36 @@ describe.skipIf(process.env.SKILLS_DATABASE_PROOF !== '1')('Skills real HTTP + P
     expect((await request('/installed', 'DELETE', { ownerRepo: repo })).status).toBe(200);
     expect((await request('/installed?scope=project')).body.skills).toEqual([]);
     expect((await request('/installed?scope=workspace')).body.skills).toHaveLength(1);
+  });
+
+  it('installs and persists audited reference snapshots through real HTTP with only the public fetch boundary simulated', async () => {
+    const nativeFetch = globalThis.fetch;
+    const boundary = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+      if (url.hostname === '127.0.0.1') return nativeFetch(input, init);
+      if (url.href === 'https://raw.githubusercontent.com/ecode-proof/snapshot-install/HEAD/SKILL.md') {
+        return new Response('# Synthetic snapshot guidance\nRead [guide](references/guide.txt) before applying it.');
+      }
+      if (url.href === 'https://raw.githubusercontent.com/ecode-proof/snapshot-install/HEAD/references/guide.txt') {
+        return new Response('SAVED_REFERENCE_FROM_INSTALL');
+      }
+      throw new Error('Unexpected external request in isolated proof');
+    });
+    try {
+      const response = await request('/install', 'POST', { ownerRepo: 'ecode-proof/snapshot-install' });
+      expect(response.status).toBe(201);
+      const saved = (await store.listInstalledSkills('project', projectId)).find(
+        (skill) => skill.ownerRepo === 'ecode-proof/snapshot-install',
+      )!;
+      expect(saved.resources[0]).toMatchObject({
+        path: 'references/guide.txt',
+        content: 'SAVED_REFERENCE_FROM_INSTALL',
+        contentHash: createHash('sha256').update('SAVED_REFERENCE_FROM_INSTALL').digest('hex'),
+      });
+      expect(saved.contentHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(saved.auditVerdict).toBe('approved');
+    } finally {
+      boundary.mockRestore();
+    }
   });
 });

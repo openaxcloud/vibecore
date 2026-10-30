@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { MockLanguageModelV1, simulateReadableStream } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { retrieveSkillsForAgentContext } from './project-skills';
@@ -69,6 +70,15 @@ describe('Skills reach the prepared model request without invoking a provider', 
                 name: 'UI',
                 description: 'Interface guidance.',
                 instructions: 'SYNTHETIC_INSTALLED_INSTRUCTIONS',
+                resources: [
+                  {
+                    path: 'references/proof.txt',
+                    kind: 'reference',
+                    bytes: Buffer.byteLength('SYNTHETIC_REFERENCE_CONTENT'),
+                    content: 'SYNTHETIC_REFERENCE_CONTENT',
+                    contentHash: createHash('sha256').update('SYNTHETIC_REFERENCE_CONTENT').digest('hex'),
+                  },
+                ],
                 enabled,
                 scope: 'project',
               },
@@ -137,6 +147,8 @@ describe('Skills reach the prepared model request without invoking a provider', 
         .join('\n');
       expect(enabledSystem).toContain('SYNTHETIC_BUILTIN_GUIDANCE');
       expect(enabledSystem).toContain('SYNTHETIC_INSTALLED_INSTRUCTIONS');
+      expect(enabledSystem).toContain('SYNTHETIC_REFERENCE_CONTENT');
+      expect(first?.disclosureTrace.some((entry) => entry.level === 3)).toBe(true);
       expect(enabledSystem).not.toContain('SYNTHETIC_WORKSPACE_FALLBACK');
 
       enabled = false;
@@ -149,6 +161,7 @@ describe('Skills reach the prepared model request without invoking a provider', 
         .join('\n');
       expect(disabledSystem).not.toContain('SYNTHETIC_BUILTIN_GUIDANCE');
       expect(disabledSystem).not.toContain('SYNTHETIC_INSTALLED_INSTRUCTIONS');
+      expect(disabledSystem).not.toContain('SYNTHETIC_REFERENCE_CONTENT');
       expect(disabledSystem).not.toContain('SYNTHETIC_WORKSPACE_FALLBACK');
       expect(boundary.fetch).not.toHaveBeenCalled();
     },
