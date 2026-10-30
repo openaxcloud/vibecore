@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-591 entrées.
+592 entrées.
 
 ## Sans section
 
@@ -788,6 +788,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-PUBLISH-REVALIDATION-20261028](docs/bugs/BUG-PUBLISH-REVALIDATION-20261028.md) — Sur main `9ec6ebf75`, le formulaire conserve son ancienne détection pendant — 📤 Dispatché : ☑ 28/10/2026 — audit Publish indépendant des PR #828/#829. · 💻 Codé : ☐ — correctif local ; non fusionné, non livré. · ✅ Testé live : ☐ — pas de publication fournisseur ni de recette authentifiée en production.
 - [BUG-PUBLISH-URL-COPY-FEEDBACK-20261028](docs/bugs/BUG-PUBLISH-URL-COPY-FEEDBACK-20261028.md) — Sur main `9ec6ebf75`, un refus du presse-papiers ou une API indisponible ne donne — 📤 Dispatché : ☑ 28/10/2026 — audit Publish/Domaines et actions accessibles. · 💻 Codé : ☐ — correctif local ; non fusionné, non livré. · ✅ Testé live : ☐ — aucune recette authentifiée de production ou Safari matériel. Tests composant
 - [BUG-RUNTIME-CACHE-ORDER-20261029](docs/bugs/BUG-RUNTIME-CACHE-ORDER-20261029.md) — Dans `infra/docker/node-service.Dockerfile`, `ARG/ENV START_CMD` précédaient — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Facturation
+
+- [BUG-CREDIT-PACK-WEBHOOK-RETRY-20261029](docs/bugs/BUG-CREDIT-PACK-WEBHOOK-RETRY-20261029.md) — 📤 Dispatché : ☑ 29/10 — contre-épreuve isolée sur le code de main fe790924. · 💻 Codé : ☐ — non fusionnée ni livrée. Correction locale validée et relue le 29/10 ; voir les preuves ci-dessous. · ✅ Testé live : ☐ — aucun paiement Stripe ou webhook fournisseur réel exécuté.
 
 ## Agent et messages
 

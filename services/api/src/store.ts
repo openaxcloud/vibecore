@@ -8,6 +8,7 @@ import type {
   QuotaKey,
 } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { appPublicEnglish } from './app-public-copy.js';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
 export interface UserRecord {
@@ -1291,6 +1292,75 @@ export interface ContactRequestRecord {
   message: string;
   pagePath?: string;
   createdAt: string;
+}
+
+export interface StripeCreditPackPurchase {
+  organizationId: string;
+  sessionId: string;
+  paymentIntentId: string | null;
+  sku: string;
+  purchasedCents: number;
+  expiresAt: Date;
+}
+
+export interface StripeCreditPackReceipt {
+  version: 1;
+  organizationId: string;
+  sessionId: string;
+  paymentIntentId: string | null;
+  sku: string;
+  purchasedCents: number;
+  packId: string;
+}
+
+export function creditPackConflict(): never {
+  throw Object.assign(new Error(appPublicEnglish('CREDIT_PACK_PURCHASE_CONFLICT')), {
+    code: 'CREDIT_PACK_PURCHASE_CONFLICT',
+    statusCode: 409,
+  });
+}
+
+export function creditPackPurchaseKeys(input: StripeCreditPackPurchase): string[] {
+  if (
+    !/^cs_[A-Za-z0-9_]{1,250}$/.test(input.sessionId) ||
+    (input.paymentIntentId !== null && !/^pi_[A-Za-z0-9_]{1,250}$/.test(input.paymentIntentId)) ||
+    typeof input.organizationId !== 'string' ||
+    !input.organizationId ||
+    typeof input.sku !== 'string' ||
+    !input.sku ||
+    !Number.isSafeInteger(input.purchasedCents) ||
+    input.purchasedCents <= 0 ||
+    !Number.isFinite(input.expiresAt.getTime())
+  ) {
+    creditPackConflict();
+  }
+
+  return [
+    `billing.credit-pack.v1:session:${input.sessionId}`,
+    ...(input.paymentIntentId ? [`billing.credit-pack.v1:payment:${input.paymentIntentId}`] : []),
+  ].sort();
+}
+
+export function validateCreditPackReceipt(value: unknown, input: StripeCreditPackPurchase): StripeCreditPackReceipt {
+  const receipt = value as StripeCreditPackReceipt | null;
+
+  if (
+    !receipt ||
+    receipt.version !== 1 ||
+    typeof receipt.sku !== 'string' ||
+    !receipt.sku ||
+    typeof receipt.packId !== 'string' ||
+    !receipt.packId ||
+    receipt.organizationId !== input.organizationId ||
+    receipt.sessionId !== input.sessionId ||
+    receipt.paymentIntentId !== input.paymentIntentId ||
+    receipt.sku !== input.sku ||
+    receipt.purchasedCents !== input.purchasedCents
+  ) {
+    creditPackConflict();
+  }
+
+  return receipt;
 }
 
 export interface ApiStore {
@@ -2688,6 +2758,7 @@ export interface ApiStore {
   markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void>;
 
   // --- Replit-parity: credit packs (6-mo expiry, earliest-first) ---------------
+  grantStripeCreditPack(input: StripeCreditPackPurchase): Promise<{ packId: string; created: boolean; expiresAt: string }>;
   createCreditPack(input: {
     organizationId: string;
     purchasedCents: number;
