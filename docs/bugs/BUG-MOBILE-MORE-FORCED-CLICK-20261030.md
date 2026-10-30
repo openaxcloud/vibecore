@@ -54,3 +54,24 @@ La capture montre l'écran synthétique après échec et la navigation visible ;
 - Le job interdit `124062762133` n'a pas été consulté ; son refus a été respecté. Aucune attribution de cause précise à ce job ni à tous les échecs de #866.
 - Les répétitions `normal-cpu4-2` et `normal-cpu4-3` ajoutent 8/8 réussites aux 4/4 initiales, soit 12/12. Le lint et le typage ciblé E2E sont verts après exécution locale. La CI reste à vérifier sur la tête publiée ; ces recettes locales ne la remplacent pas.
 - Maintenir toutes les assertions existantes ; vérifier la tête exacte après publication et suivre la validation normale. Cette fiche n'atteste ni fusion ni déploiement.
+
+## Diagnostic CI de la première tête publiée
+
+Sur `5c3f3694e92a4bb133f175a8ebf6bfe258a948b0`, le job Quality Gates
+`124109882259` a reçu HTTP 502 de l'API GitHub `check-runs` à 14:21:48 UTC.
+Ce n'est ni un timeout ni un résultat produit. Aucune relance aveugle.
+
+La CI `41069594773`, job `124109881813`, a ensuite échoué sur
+`desktop-editor.spec.ts:366` : `/other.ts` absent après l'observation de la
+création de l'éditeur (11 405 tests réussis, un échec, quatre ignorés).
+Le mock publie l'éditeur pendant `editor.create`, avant `setEditorVersion` ;
+l'indexation workspace intervient dans l'effet du rendu suivant. La correction
+attend explicitement ce modèle avec `waitFor`, sans changer son délai ni les
+assertions de propriété, identité et destruction. Aucun lifecycle produit modifié.
+Le nom local `Deferred` est également normalisé en `deferredEditor` pour le lint.
+
+La suite entière passe localement avant et après (45/45) : l'intermittence CI
+n'est pas reproduite localement. L'essai isolé `-t` échoue plus tôt car il omet
+la libération du mock TabFocus effectuée dans le premier test ; cet essai n'est
+pas retenu comme reproduction de l'échec CI. Revue indépendante du séquencement
+et lint ciblé effectués. La nouvelle tête nécessite sa propre CI complète.
