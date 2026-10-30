@@ -308,6 +308,13 @@ const messageParser = new EnhancedStreamingMessageParser({
  */
 const messagesARejouer = new Map<string, string>();
 
+/*
+ * The parser cursor survives hook mounts. Its display projection must have the same lifetime.
+ * Keep one source/projection pair per coordinator message, sharing immutable string references.
+ * Never reset execution just to restore a view. Existing parser resets invalidate this cache.
+ */
+const parsedMessageSnapshots = new Map<string, { source: string; projection: string }>();
+
 /**
  * Rejouer un message depuis le début, pour le rattrapage à la reprise.
  *
@@ -363,6 +370,7 @@ export function useMessageParser() {
     if (import.meta.env.DEV && !isLoading) {
       reset = true;
       messageParser.reset();
+      parsedMessageSnapshots.clear();
     }
 
     for (const message of messages) {
@@ -374,6 +382,10 @@ export function useMessageParser() {
 
       if (message.role === 'assistant') {
         let newParsedContent = '';
+
+        const source = extractTextContent(message);
+
+        let parseFailed = false;
 
         /* Avant de parser : la barrière doit précéder la première action du tour. */
         if (message.role === 'assistant' && consigneSansFichier(message)) {
@@ -391,11 +403,20 @@ export function useMessageParser() {
         if (messagesARejouer.get(message.id) === extractTextContent(message)) {
           messagesARejouer.delete(message.id);
           messageParser.resetMessage(message.id);
+          parsedMessageSnapshots.delete(message.id);
           replaceContent = true;
         }
 
         try {
-          newParsedContent = messageParser.parse(message.id, extractTextContent(message));
+          const cached = parsedMessageSnapshots.get(message.id);
+
+          if (cached?.source === source && !replaceContent) {
+            // Remounts and unchanged snapshots need the view, not another execution pass.
+            newParsedContent = cached.projection;
+            replaceContent = true;
+          } else {
+            newParsedContent = messageParser.parse(message.id, source);
+          }
 
           /*
            * When the enhanced parser rewrites detected code blocks into artifacts
@@ -413,6 +434,7 @@ export function useMessageParser() {
            * message in the batch. Reset just this message's parser state and
            * continue rather than freezing the whole file/preview pipeline.
            */
+          parseFailed = true;
           logger.error('Failed to parse assistant message; skipping', error);
 
           /*
@@ -422,6 +444,7 @@ export function useMessageParser() {
            * code was using the global reset).
            */
           messageParser.resetMessage(message.id);
+          parsedMessageSnapshots.delete(message.id);
         }
 
         /*
@@ -486,13 +509,15 @@ export function useMessageParser() {
           }
         }
 
-        setParsedMessages((previous) =>
-          withParsedMessage(
-            previous,
-            message.id,
-            !replaceContent ? (previous[message.id] || '') + newParsedContent : newParsedContent,
-          ),
-        );
+        const projection = replaceContent
+          ? newParsedContent
+          : (parsedMessageSnapshots.get(message.id)?.projection ?? '') + newParsedContent;
+
+        if (!parseFailed) {
+          parsedMessageSnapshots.set(message.id, { source, projection });
+        }
+
+        setParsedMessages((previous) => withParsedMessage(previous, message.id, projection));
       }
     }
   }, []);

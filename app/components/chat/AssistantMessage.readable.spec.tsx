@@ -62,6 +62,7 @@ vi.mock('./Artifact', () => ({
   openArtifactInWorkbench: vi.fn(),
 }));
 import { AssistantMessage, type AssistantMessageProps } from './AssistantMessage';
+import { Messages } from './Messages.client';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
 const rawFile =
@@ -229,5 +230,64 @@ describe('assistant readable conversation with real Markdown (synthetic Aster fi
     } finally {
       window.removeEventListener('vibecore:plan-approved', listener);
     }
+  });
+});
+
+describe('original technical source survives the display projection', () => {
+  const projected =
+    'Prose conservée. <div class="__boltArtifact__" data-message-id="history" data-artifact-id="history-0"></div>';
+  it('warns through the real Messages relay without rendering raw source twice', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <I18nextProvider i18n={createI18nInstance('fr')}>
+          <Messages
+            messages={[
+              {
+                id: 'history',
+                role: 'assistant',
+                content: projected,
+                contentIsParsed: true,
+                originalSource: 'Prose conservée. ' + rawFile,
+              },
+            ]}
+            chatMode="build"
+            addToolResult={() => undefined}
+          />
+        </I18nextProvider>
+      </MemoryRouter>,
+    );
+
+    const note = screen.getByTestId('agent-attention');
+    expect(note.textContent).toBe('Le contenu technique reçu est incomplet. Vérifiez les changements.');
+    expect(note.closest('details')).toBeNull();
+    expect(container.textContent?.match(/Prose conservée/g)).toHaveLength(1);
+    expect(container.textContent).not.toContain('import React');
+    expect(container.textContent).not.toContain('fournisseur');
+  });
+  it.each(['complete', 'streaming', 'no-files'] as const)('does not infer a failure for %s', (kind) => {
+    render(
+      view({
+        content: projected,
+        contentIsParsed: true,
+        originalSource: kind === 'complete' ? completeFile : kind === 'no-files' ? '```tsx\nconst example=1;' : rawFile,
+        isStreaming: kind === 'streaming',
+        chatMode: 'build',
+        annotations: kind === 'no-files' ? [{ type: 'consigneSansFichier' }] : undefined,
+      }),
+    );
+    expect(screen.queryByTestId('agent-attention')).toBeNull();
+  });
+  it('does not duplicate the existing explicit terminal error', () => {
+    render(
+      view({
+        content: projected,
+        contentIsParsed: true,
+        originalSource: rawFile,
+        chatMode: 'build',
+        annotations: [terminalError],
+      }),
+    );
+    expect(screen.queryByTestId('agent-attention')).toBeNull();
+    expect(screen.getAllByTestId('agent-stream-terminal')).toHaveLength(1);
   });
 });

@@ -58,6 +58,9 @@ export interface AssistantMessageProps {
 
   /** An empty parser projection is intentional, not a missing SDK body. */
   contentIsParsed?: boolean;
+
+  /** Display-only original text; never sent to execution from this component. */
+  originalSource?: string;
   annotations?: JSONValue[];
   messageId?: string;
   onRewind?: (messageId: string) => void;
@@ -111,6 +114,7 @@ export const AssistantMessage = memo(
   ({
     content,
     contentIsParsed = false,
+    originalSource,
     annotations,
     messageId,
     onRewind,
@@ -379,6 +383,13 @@ export const AssistantMessage = memo(
 
     const technicalActivities = presentation.filter((part) => part.kind === 'activity');
 
+    const sourcePresentation =
+      originalSource === undefined || originalSource === corpsDuMessage
+        ? presentation
+        : assistantPresentation(originalSource, { collapseFencedCode: chatMode === 'build' && !noFiles });
+
+    const sourceIncomplete = sourcePresentation.some((part) => part.kind === 'activity' && part.incomplete);
+
     const connectorAnnotations = filteredAnnotations.filter(
       (annotation) =>
         annotation.type === 'connector' &&
@@ -397,6 +408,7 @@ export const AssistantMessage = memo(
      */
     const aQuelqueChoseAMontrer =
       corpsDuMessage.trim().length > 0 ||
+      (!isStreaming && sourceIncomplete) ||
       (toolInvocations?.length ?? 0) > 0 ||
       connectorAnnotations.length > 0 ||
       reasoningTexts.length > 0 ||
@@ -548,7 +560,7 @@ export const AssistantMessage = memo(
     );
     const needsAttention =
       (!streamTerminal || streamTerminal.status === 'complete' || isStreaming) &&
-      ((!isStreaming && technicalActivities.some((part) => part.incomplete)) ||
+      ((!isStreaming && sourceIncomplete) ||
         ecartsIncomplets.length > 0 ||
         agentExecution?.results.some((result) => result.status === 'failed' || result.status === 'partial') ||
         agentLaneStreams?.some((lane) => lane.status === 'failed' || lane.status === 'partial'));
@@ -1240,7 +1252,13 @@ export const AssistantMessage = memo(
         ) : null}
         {needsAttention ? (
           <p className="my-2 text-sm" role="status" data-testid="agent-attention">
-            {copy['assistantMessage.activity.attention']}
+            {
+              copy[
+                !isStreaming && sourceIncomplete
+                  ? 'assistantMessage.activity.sourceIncomplete'
+                  : 'assistantMessage.activity.attention'
+              ]
+            }
           </p>
         ) : null}
         {basculeTexte ? (

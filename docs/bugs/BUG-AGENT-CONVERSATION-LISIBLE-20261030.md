@@ -103,3 +103,52 @@ intégré/livré ; ce constat ne contredit donc pas ses tests locaux. La dépend
 a ensuite été intégrée dans main par #862 ; sa présence dans main n’est pas une
 preuve de livraison ni de réparation du projet utilisateur. Il ne démontre pas non plus que tous les
 événements réseau du cas réel correspondent à la reproduction isolée.
+
+## Revue du parcours complet et remontage
+
+La revue élargie reproduit un défaut distinct avec `DEV=false` : le parseur
+conserve sa position après démontage du chat, mais la projection React repart
+vide. Revenir sur un message déjà parsé peut donc effacer son affichage. La
+projection partage désormais la durée de vie du parseur, sans reset ni nouvelle
+exécution. Les resets existants et le rejeu explicitement demandé invalident
+uniquement les entrées concernées. Sept tests de régression couvrent notamment
+les remontages pendant/après le flux, les identités de messages, la réécriture
+des fences, les erreurs et les resets ; aucune action n'est rejouée au remontage.
+Comme le curseur du parseur existant, ce cache vit dans le module : une paire
+source/projection par message, sans historique de versions. Le coût mémoire
+additionnel reste une limite pour les sessions très longues ; l'éviction seule
+de la projection ferait réapparaître le défaut de remontage.
+
+La recette locale du vrai build client/SSR utilise les routes API et un stockage
+de test en mémoire, avec un transport de génération synthétique isolé. Aux
+largeurs 390/768/1440, elle vérifie 28 messages historiques après rechargement,
+leur identité DOM pendant un flux long, le respect du défilement manuel, Stop
+avec annulation du transport, puis reprise explicitement demandée. Aucun nouvel
+appel automatique n'est observé pendant les 2,5 secondes suivant Stop ; les
+32 messages finaux sont uniques. Le retour IDE → dashboard → IDE conserve
+également l'historique sans rechargement du document. Ce scénario ne prouve ni
+une écriture de fichiers par un fournisseur ni une reprise du runtime distant.
+
+Une première préparation locale a tenté de charger les métadonnées OpenRouter
+sans génération ; les passes suivantes bloquent les sorties réseau du serveur
+et utilisent un catalogue de modèles de test. Aucun appel IA payant n'est exécuté.
+Cette recette locale ne démontre pas une parité avec d'autres produits ni la
+réussite du parcours de génération en production.
+
+La recette enrichie du build corrigé couvre également huit messages sur les trois
+formats : artefact de 260 lignes, artefact tronqué, prose avant/après, citation
+utilisateur JSX littérale et exemple de code de 45 lignes. Les cartes commencent
+repliées, leurs actions s'ouvrent au toucher ou avec Entrée, et le code reste
+consultable en mode discussion. Le retour SPA garde les huit identités sans
+nouveau document ; aucun débordement, erreur de page ni mutation runtime n'est
+observé. Ce scénario a aussi révélé un manque : après projection d'un ancien
+artefact tronqué sans annotations terminales, la carte seule ne signale plus
+l'incomplétude de la source. La source d'origine est désormais relayée pour constater cette incomplétude
+hors streaming : un avertissement visible accompagne la carte, sans inventer un
+arrêt utilisateur ni une cause fournisseur. Ce relais est réservé à la présentation,
+pas à l'exécution ; l'export JSON explicite du fil peut aussi conserver ce champ.
+
+Validation du complément d'historique : 1 614 tests assemblés sur 190 suites,
+contrôle i18n et revues indépendantes favorables (38 tests pour le remontage,
+52 pour le signal de source incomplète). Ces résultats complètent les validations
+initiales ; la CI doit encore confirmer la nouvelle tête publiée.

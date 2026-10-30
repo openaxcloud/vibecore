@@ -1,6 +1,7 @@
 import { resolveMarketingLanguage } from './marketing';
 
 export const assistantMessageEn = {
+  'assistantMessage.activity.sourceIncomplete': 'The received technical content is incomplete. Review the changes.',
   'assistantMessage.activity.files': 'File and command details',
   'assistantMessage.activity.incomplete': 'This source is incomplete. No successful write is confirmed here.',
   'assistantMessage.activity.source': 'Source proposed by the assistant. This is not a write or test confirmation.',
@@ -153,6 +154,7 @@ export type AssistantMessageKey = keyof typeof assistantMessageEn;
 export type AssistantMessageCopy = Readonly<Record<AssistantMessageKey, string>>;
 
 export const assistantMessageFr: AssistantMessageCopy = {
+  'assistantMessage.activity.sourceIncomplete': 'Le contenu technique reçu est incomplet. Vérifiez les changements.',
   'assistantMessage.activity.files': 'Détails des fichiers et commandes',
   'assistantMessage.activity.incomplete':
     'Cette source est incomplète. Aucun enregistrement réussi n’est confirmé ici.',
