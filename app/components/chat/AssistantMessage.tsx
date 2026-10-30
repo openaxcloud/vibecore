@@ -43,6 +43,7 @@ import { latestModelOutput } from '~/lib/model-output-evidence';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
 import { cheminsEcritsParLesLanes, confirmationsEcritureVersion } from '~/lib/runtime/agent-lane-writes';
+import { latestStreamTerminal } from '~/lib/runtime/stream-terminal';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
@@ -136,6 +137,7 @@ export const AssistantMessage = memo(
 
     const confirmedPaths = messageId ? cheminsEcritsParLesLanes(messageId) : undefined;
     const observedModel = latestModelOutput(annotations, messageId);
+    const streamTerminal = latestStreamTerminal(annotations, messageId);
 
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
@@ -1122,10 +1124,21 @@ export const AssistantMessage = memo(
         )}
         {observedModel ? (
           <p className="my-2 break-words text-xs text-bolt-elements-textSecondary" data-testid="agent-model-output">
-            {text(copy['assistantMessage.modelOutput'], {
-              model: observedModel.model,
-              provider: observedModel.provider,
-            })}
+            {text(
+              copy[
+                streamTerminal || isStreaming ? 'assistantMessage.modelOutput.observed' : 'assistantMessage.modelOutput'
+              ],
+              {
+                model: observedModel.model,
+                provider: observedModel.provider,
+              },
+            )}
+          </p>
+        ) : null}
+        {streamTerminal && !isStreaming ? (
+          <p className="my-2 break-words text-xs text-bolt-elements-textSecondary" data-testid="agent-stream-terminal">
+            {copy[`assistantMessage.streamTerminal.${streamTerminal.status}`]}{' '}
+            {copy['assistantMessage.streamTerminal.validation']}
           </p>
         ) : null}
         {basculeTexte ? (

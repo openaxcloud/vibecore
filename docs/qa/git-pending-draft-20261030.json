@@ -1,0 +1,146 @@
+{
+  "before": {
+    "stats": {
+      "startTime": "2026-10-30T06:22:59.628Z",
+      "duration": 43113.912,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 4,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "Git Settings preserves typing during save at 320",
+        "status": "failed",
+        "duration": 10142,
+        "retry": 0
+      },
+      {
+        "title": "Git Settings preserves typing during remove at 320",
+        "status": "failed",
+        "duration": 9118,
+        "retry": 0
+      },
+      {
+        "title": "Git Settings preserves typing during save at 1440",
+        "status": "failed",
+        "duration": 9323,
+        "retry": 0
+      },
+      {
+        "title": "Git Settings preserves typing during remove at 1440",
+        "status": "failed",
+        "duration": 10204,
+        "retry": 0
+      }
+    ]
+  },
+  "after": {
+    "stats": {
+      "startTime": "2026-10-30T06:24:52.823Z",
+      "duration": 16767.870000000003,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "Git Settings preserves typing during save at 320",
+        "status": "passed",
+        "duration": 4126,
+        "retry": 0,
+        "proof": {
+          "width": 320,
+          "operation": "save",
+          "posts": [
+            {
+              "intent": "configure-remote",
+              "remoteUrl": "https://example.test/synthetic/submitted.git",
+              "branch": "submitted-branch"
+            }
+          ],
+          "gitReads": 7,
+          "beforeReleaseReads": 6,
+          "storedRemote": "https://example.test/synthetic/submitted.git",
+          "storedBranch": "submitted-branch",
+          "blocked": 0,
+          "blockedKinds": {},
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      },
+      {
+        "title": "Git Settings preserves typing during remove at 320",
+        "status": "passed",
+        "duration": 2975,
+        "retry": 0,
+        "proof": {
+          "width": 320,
+          "operation": "remove",
+          "posts": [
+            {
+              "intent": "remove-remote"
+            }
+          ],
+          "gitReads": 7,
+          "beforeReleaseReads": 6,
+          "storedRemote": null,
+          "storedBranch": "main",
+          "blocked": 0,
+          "blockedKinds": {},
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      },
+      {
+        "title": "Git Settings preserves typing during save at 1440",
+        "status": "passed",
+        "duration": 4518,
+        "retry": 0,
+        "proof": {
+          "width": 1440,
+          "operation": "save",
+          "posts": [
+            {
+              "intent": "configure-remote",
+              "remoteUrl": "https://example.test/synthetic/submitted.git",
+              "branch": "submitted-branch"
+            }
+          ],
+          "gitReads": 7,
+          "beforeReleaseReads": 6,
+          "storedRemote": "https://example.test/synthetic/submitted.git",
+          "storedBranch": "submitted-branch",
+          "blocked": 0,
+          "blockedKinds": {},
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      },
+      {
+        "title": "Git Settings preserves typing during remove at 1440",
+        "status": "passed",
+        "duration": 4150,
+        "retry": 0,
+        "proof": {
+          "width": 1440,
+          "operation": "remove",
+          "posts": [
+            {
+              "intent": "remove-remote"
+            }
+          ],
+          "gitReads": 7,
+          "beforeReleaseReads": 6,
+          "storedRemote": null,
+          "storedBranch": "main",
+          "blocked": 0,
+          "blockedKinds": {},
+          "providerCalled": false,
+          "oauthCalled": false
+        }
+      }
+    ]
+  }
+}

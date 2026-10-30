@@ -26,11 +26,15 @@ describe('le chat pose, efface et lit la marque du tour en cours', () => {
     expect(bloc('experimental_prepareRequestBody:', 1200)).toContain('noterLeTourEnCours(projectId);');
   });
 
-  it('effacée à la fin normale, à l’arrêt volontaire, sur une erreur du serveur, après rattrapage', () => {
-    expect(bloc('onFinish: (message, response) => {', 400)).toContain('effacerLeTourEnCours(projectId);');
-    expect(bloc('const abort = () => {', 300)).toContain('effacerLeTourEnCours(projectId);');
-    expect(bloc('if (estUneCoupureReseau(e)) {', 300)).toContain('effacerLeTourEnCours(projectId);');
-    expect(bloc('appliquer: (fil) => {', 300)).toContain('effacerLeTourEnCours(projectId);');
+  it('la fin est évaluée par le hook testé, et seul l’arrêt volontaire efface sans reçu', () => {
+    expect(bloc('onFinish: (message, response) => {', 400)).toContain(
+      'terminalRecovery.finish(message, response.finishReason)',
+    );
+    expect(bloc('experimental_prepareRequestBody:', 250)).toContain('terminalRecovery.begin();');
+    expect(bloc('const abort = () => {', 400)).toContain('effacerLeTourEnCours(projectId);');
+    expect(bloc('onError: (e) => {', 240)).toContain('terminalRecovery.fail()');
+    expect(bloc('if (estUneCoupureReseau(e)) {', 300)).not.toContain('effacerLeTourEnCours(projectId);');
+    expect(bloc('appliquer: (fil) => {', 300)).not.toContain('effacerLeTourEnCours(projectId);');
   });
 
   it('lue AVANT le parseur : au premier rendu pour le cache local, avant setMessages pour le fil relu', () => {

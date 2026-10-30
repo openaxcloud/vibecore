@@ -373,9 +373,10 @@ describe('command palette deferred return focus', () => {
   it('restores the connected opener after explicit close and clears the reference', () => {
     const { opener, previous, view, tree } = setup();
     view.rerender(tree(false));
-    expect(previous.current).toBeNull();
+    expect(previous.current).toBe(opener);
     expect(pending.size).toBe(1);
     flush();
+    expect(previous.current).toBeNull();
     expect(document.activeElement).toBe(opener);
   });
 
@@ -424,6 +425,77 @@ describe('command palette deferred return focus', () => {
     flush();
     expect(document.activeElement).toBe(input);
     expect(cancelAnimationFrame).toHaveBeenCalledOnce();
+  });
+
+  it('hands pending close focus to the replacement shell in the same route scope', () => {
+    const { opener, previous, outside, view, tree } = setup();
+    view.rerender(tree(false));
+    opener.remove();
+
+    const replacement = makeTarget();
+    vi.spyOn(replacement, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    view.rerender(<Probe key="loaded-shell" open={false} previous={previous} outside={outside} />);
+    expect(pending.size).toBe(1);
+    flush();
+    expect(document.activeElement).toBe(replacement);
+    expect(previous.current).toBeNull();
+  });
+
+  it('does not restore a receipt into a different route scope', () => {
+    const { opener, view, tree } = setup();
+    view.rerender(tree(false));
+    opener.remove();
+
+    const next = { current: null as HTMLElement | null };
+    view.rerender(<Probe key="project-b" open={false} previous={next} outside={{ current: false }} />);
+
+    const other = makeTarget();
+    vi.spyOn(other, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    flush();
+    expect(document.activeElement).not.toBe(other);
+  });
+
+  it('does not overwrite a new return-focus intention before the frame', () => {
+    const { previous, view, tree } = setup();
+    view.rerender(tree(false));
+
+    const other = makeTarget('other-opener');
+    previous.current = other;
+    flush();
+    expect(previous.current).toBe(other);
+    expect(document.activeElement).not.toBe(other);
+  });
+
+  it.each([false, true])('preserves a newly focused external target (shell replacement=%s)', (replace) => {
+    const { previous, outside, view, tree } = setup();
+    view.rerender(tree(false));
+
+    const clicked = makeTarget('external-action');
+    clicked.focus();
+
+    if (replace) {
+      view.rerender(<Probe key="loaded-shell" open={false} previous={previous} outside={outside} />);
+    }
+
+    flush();
+    expect(document.activeElement).toBe(clicked);
+    expect(previous.current).toBeNull();
+  });
+
+  it('declines an ambiguous replacement when two visible openers share the test id', () => {
+    const { opener, view, tree } = setup();
+    opener.remove();
+
+    const first = makeTarget();
+    const second = makeTarget();
+
+    for (const target of [first, second]) {
+      vi.spyOn(target, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    }
+    view.rerender(tree(false));
+    flush();
+    expect(document.activeElement).not.toBe(first);
+    expect(document.activeElement).not.toBe(second);
   });
 
   it('preserves outside-click focus and resets the close reason without scheduling a frame', () => {

@@ -15,6 +15,7 @@ import {
   isStreamStalled,
   RESPONSE_COMPLETE_GRACE_MS,
 } from '~/lib/chat/composer-send-guard';
+import { latestStreamTerminal } from '~/lib/runtime/stream-terminal';
 import { processStreamSnapshot } from '~/lib/chat/finalize-stream-message';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
@@ -32,7 +33,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { chatMetadata, description, useChatHistory } from '~/lib/persistence';
-import { getProjectIdeMemory, saveProjectIdeMemory, type ProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
@@ -49,7 +50,6 @@ import {
   countWorkspaceFiles,
   decidePendingPromptReplay,
   promptRecuperable,
-  resolvePendingPrompt,
 } from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
 import {
@@ -75,6 +75,7 @@ import { fautIlAdopterLaTranscriptionRestauree } from './late-stored-transcript'
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { PendingComposerShell } from './PendingComposerShell';
 import { useEditorCompositionHandoff } from './useEditorCompositionHandoff';
+import { useChatTerminalRecovery, type PendingChatGeneration } from './useChatTerminalRecovery';
 import { useProjectAiTranscriptHydration } from './useProjectAiTranscriptHydration';
 import {
   projectModelSelectionFromMetadata,
@@ -558,11 +559,22 @@ export const ChatImpl = memo(
      */
     const [promptDeSecours, setPromptDeSecours] = useState<string | undefined>(undefined);
 
-    const pendingGenerationRef = useRef<{
-      promptId: string;
-      pendingPrompt: NonNullable<NonNullable<ProjectIdeMemory['chat']>['pendingPrompt']>;
-      baselineFileCount: number;
-    } | null>(null);
+    const pendingGenerationRef = useRef<PendingChatGeneration | null>(null);
+
+    const terminalRecovery = useChatTerminalRecovery({
+      projectId,
+      generation: () => generationDuFilRef.current,
+      pendingGeneration: pendingGenerationRef,
+      countFiles: () => countWorkspaceFiles(workbenchStore.files.get()),
+      consume: (targetProjectId, generation) => {
+        void saveProjectIdeMemory(targetProjectId, {
+          chat: {
+            pendingPrompt: null,
+            consumedPrompt: consommerPrompt(generation.pendingPrompt, 'generated'),
+          },
+        });
+      },
+    });
 
     const ensureProjectAiConversation = useCallback(async () => {
       if (!projectIdeMode || !projectId) {
@@ -860,6 +872,11 @@ export const ChatImpl = memo(
        * fix for the reopened-project send-stall where append() produced zero POST.
        */
       experimental_prepareRequestBody: ({ id, messages: requestMessages, requestData, requestBody }) => {
+        terminalRecovery.begin();
+
+        // The SDK is already submitted; pre-request/template loading must not outlive its transport.
+        setFakeLoading(false);
+
         /*
          * La demande part avec les fichiers tels qu'ils sont : c'est CE que l'agent
          * lit. Un enregistrement de l'utilisateur après cet instant, l'agent ne
@@ -944,6 +961,10 @@ export const ChatImpl = memo(
         return window.fetch(input, init);
       }) as typeof fetch,
       onError: (e) => {
+        if (!terminalRecovery.fail()) {
+          return;
+        }
+
         console.error('[chat-onError] /api/chat request failed (may be a pre-fetch throw swallowed by the SDK):', e);
         setFakeLoading(false);
 
@@ -957,9 +978,6 @@ export const ChatImpl = memo(
          */
         if (estUneCoupureReseau(e)) {
           armerRattrapageRef.current();
-        } else if (projectId) {
-          /* Le serveur a dit que le tour a échoué : il n'y a rien à reprendre. */
-          effacerLeTourEnCours(projectId);
         }
 
         /*
@@ -985,13 +1003,26 @@ export const ChatImpl = memo(
         }, 0);
       },
       onFinish: (message, response) => {
+        const outcome = terminalRecovery.finish(message, response.finishReason);
+
+        // A cancelled, unmounted or replaced turn cannot mutate the active conversation.
+        if (!outcome) {
+          return;
+        }
+
+        const terminal = latestStreamTerminal(message.annotations, message.id);
+        logger.info(
+          JSON.stringify({
+            event: 'chat.stream.terminal',
+            finishReason: response.finishReason,
+            hasTerminal: Boolean(terminal),
+            terminalStatus: terminal?.status ?? 'unknown',
+            outcome,
+          }),
+        );
+
         const usage = response.usage;
         setData(undefined);
-
-        /* Le tour est arrivé jusqu'ici : rien à reprendre à la prochaine ouverture. */
-        if (projectId) {
-          effacerLeTourEnCours(projectId);
-        }
 
         /*
          * Fail-safe (LOT A): the stream reached its terminal finish, so the UI
@@ -1048,47 +1079,10 @@ export const ChatImpl = memo(
           }
         }
 
-        const generation = pendingGenerationRef.current;
-
-        if (generation && projectId) {
-          /*
-           * Resolve the queued initial-generation prompt. Let the streamed file
-           * writes flush into the workbench file map, then clear the prompt ONLY if
-           * the agent actually produced a file; if nothing was written (empty or
-           * truncated response) keep it so generation retries on the next open.
-           * Erring toward keep is safe — a redundant retry beats a stranded project.
-           */
-          window.setTimeout(() => {
-            if (pendingGenerationRef.current?.promptId !== generation.promptId) {
-              return;
-            }
-
-            pendingGenerationRef.current = null;
-
-            const resolution = resolvePendingPrompt({
-              baselineFileCount: generation.baselineFileCount,
-              finalFileCount: countWorkspaceFiles(workbenchStore.files.get()),
-              errored: false,
-            });
-
-            if (resolution === 'clear') {
-              /*
-               * DÉPLACÉ, PAS DÉTRUIT. Le prompt reste récupérable et l'effacement
-               * devient traçable — voir `consumedPrompt` dans projectIdeMemory.
-               */
-              void saveProjectIdeMemory(projectId, {
-                chat: {
-                  pendingPrompt: null,
-                  consumedPrompt: consommerPrompt(generation.pendingPrompt, 'generated'),
-                },
-              });
-            }
-          }, 1500);
-        }
-
         if (usage) {
           console.log('Token usage:', usage);
-          logStore.logProvider('Chat response completed', {
+          logStore.logProvider('Chat response stream ended', {
+            outcome,
             component: 'Chat',
             action: 'response',
             model,
@@ -1211,7 +1205,7 @@ export const ChatImpl = memo(
       latestMessagesRef.current = messages;
     }, [messages]);
 
-    const { armer: armerRattrapage } = useRattrapageALaReprise({
+    const { armer: armerRattrapage, annuler: annulerRattrapage } = useRattrapageALaReprise({
       enabled: Boolean(projectIdeMode && projectId),
       projectId,
       isLoading,
@@ -1221,9 +1215,7 @@ export const ChatImpl = memo(
         latestMessagesRef.current = fil;
         setMessages(fil);
 
-        if (projectId) {
-          effacerLeTourEnCours(projectId);
-        }
+        // Server-only transcripts carry no terminal receipt. Text recovery is not completion proof.
       },
     });
 
@@ -1412,6 +1404,8 @@ export const ChatImpl = memo(
     };
 
     const abort = () => {
+      annulerRattrapage();
+      terminalRecovery.cancel();
       stop();
 
       /* Un arrêt volontaire n'est pas une coupure : ce que l'utilisateur a arrêté reste arrêté. */
@@ -2595,6 +2589,8 @@ export const ChatImpl = memo(
            */
           transcriptionAdoptee.current = initialMessages;
           filVideParLUtilisateurRef.current = true;
+          annulerRattrapage();
+          terminalRecovery.cancel();
           generationDuFilRef.current += 1;
           setMessages([]);
           latestMessagesRef.current = [];

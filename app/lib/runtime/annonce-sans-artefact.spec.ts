@@ -207,3 +207,14 @@ describe('l’utilisateur a dit non — la relance ne passe JAMAIS par-dessus', 
     expect(refusExpliciteDeFichiers(null)).toBe(false);
   });
 });
+
+describe('terminal failures never trigger announcement retries', () => {
+  it.each(['error', 'unknown', 'content-filter', 'tool-calls', 'other'])(
+    'does not retry %s, including zero-file output',
+    (finishReason) => {
+      for (const fichierEmis of [false, true]) {
+        expect(suiteDuTour({ ...base, finishReason, fichierEmis }, CONTINUE)).toEqual({ action: 'terminer' });
+      }
+    },
+  );
+});

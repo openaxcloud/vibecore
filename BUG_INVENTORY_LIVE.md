@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-592 entrées.
+598 entrées.
 
 ## Sans section
 
@@ -801,6 +801,21 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029](docs/bugs/BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029](docs/bugs/BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-DATABASE-GRID-IDENTITY-20261030](docs/bugs/BUG-DATABASE-GRID-IDENTITY-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Agent et messages
+
+- [BUG-AGENT-TERMINAL-EVIDENCE-20261030](docs/bugs/BUG-AGENT-TERMINAL-EVIDENCE-20261030.md) — 📤 Dispatché : ☑ 30/10 — suite de la recette interrompue, reproductions isolées sans appel fournisseur. · 💻 Codé : ☐ — branche dédiée ; publication et intégration sous coordination. · ✅ Testé live : ☐ — aucune recette production de ce correctif, aucun projet utilisateur modifié.
+
+## Facturation
+
+- [BUG-CREDIT-PACK-WEBHOOK-RETRY-20261029](docs/bugs/BUG-CREDIT-PACK-WEBHOOK-RETRY-20261029.md) — 📤 Dispatché : ☑ 29/10 — contre-épreuve isolée sur le code de main fe790924. · 💻 Codé : ☐ — non fusionnée ni livrée. Correction locale validée et relue le 29/10 ; voir les preuves ci-dessous. · ✅ Testé live : ☐ — aucun paiement Stripe ou webhook fournisseur réel exécuté.
+
+## Sans section
+
+- [BUG-GIT-REMOTE-PENDING-DRAFT-20261030](docs/bugs/BUG-GIT-REMOTE-PENDING-DRAFT-20261030.md) — 📤 Dispatché : ☑ Audit du 30 octobre 2026, lot local séparé de #858, base locale `9e69bcee7`. · 💻 Codé : ☐ main — correctif local en validation, non publié ni fusionné. · ✅ Testé live : ☐ production — preuve locale sur composants réels avec réponses synthétiques.
+- [BUG-GIT-REMOTE-STALE-COMPLETION-20261030](docs/bugs/BUG-GIT-REMOTE-STALE-COMPLETION-20261030.md) — 📤 Dispatché : ☑ Audit navigation A→B→A du 30 octobre 2026, base `bd5e0f5ea`. · 💻 Codé : ☐ main — correction locale en validation ; pas encore fusionnée. · ✅ Testé live : ☐ production — composants locaux avec réponses synthétiques et recette navigateur locale seulement.
+- [BUG-MOBILE-CHROME-HYDRATION-GAP-20261030](docs/bugs/BUG-MOBILE-CHROME-HYDRATION-GAP-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030](docs/bugs/BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
