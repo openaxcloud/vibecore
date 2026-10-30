@@ -19,6 +19,7 @@ const boundary = vi.hoisted(() => ({
   api: vi.fn(),
   fetch: vi.fn(),
   toolReplay: vi.fn(),
+  logInfo: vi.fn(),
 }));
 vi.mock('ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('ai')>();
@@ -29,6 +30,14 @@ vi.mock('ai', async (importOriginal) => {
       boundary.streamStartup();
       return actual.createDataStream(...args);
     },
+  };
+});
+vi.mock('~/utils/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/utils/logger')>();
+
+  return {
+    ...actual,
+    createScopedLogger: (scope: string) => ({ ...actual.createScopedLogger(scope), info: boundary.logInfo }),
   };
 });
 vi.mock('~/lib/.server/llm/stream-text', () => ({ streamText: boundary.streamText }));
@@ -273,3 +282,131 @@ for (const language of ['en', 'fr']) {
     });
   }
 }
+
+function terminalFixture(finishReason: 'stop' | 'length' | 'error' | 'unknown', text: string) {
+  boundary.streamText.mockImplementation(async (input) => ({
+    mergeIntoDataStream(writer: { merge: (source: ReadableStream<string>) => void }) {
+      writer.merge(
+        new ReadableStream<string>({
+          async start(controller) {
+            controller.enqueue(formatDataStreamPart('text', text));
+            await input.options.onFinish({
+              text,
+              finishReason,
+              usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+            });
+            controller.enqueue(
+              formatDataStreamPart('finish_message', {
+                finishReason,
+                usage: { promptTokens: 10, completionTokens: 10 },
+              }),
+            );
+            controller.close();
+          },
+        }),
+      );
+    },
+  }));
+}
+
+function terminalAnnotations(body: string) {
+  return body
+    .split('\n')
+    .filter((line) => line.startsWith('8:'))
+    .flatMap((line) => JSON.parse(line.slice(2)))
+    .filter((value) => value.type === 'streamTerminal');
+}
+
+test.each(['error', 'unknown'] as const)(
+  'terminal %s with zero files does not retry or claim generated completion',
+  async (reason) => {
+    terminalFixture(reason, 'Synthetic interrupted text');
+
+    const { body } = await invoke();
+    expect(boundary.streamText).toHaveBeenCalledTimes(1);
+    expect(terminalAnnotations(body)).toMatchObject([
+      { status: reason === 'error' ? 'error' : 'incomplete', finishReason: reason },
+    ]);
+    expect(terminalAnnotations(body)).toHaveLength(1);
+  },
+);
+
+test('stop with an open file action is incomplete without a new paid call', async () => {
+  terminalFixture(
+    'stop',
+    generated + '<boltArtifact id="second"><boltAction type="file" filePath="src/styles.css">body {',
+  );
+
+  const { body } = await invoke();
+  expect(boundary.streamText).toHaveBeenCalledTimes(1);
+  expect(terminalAnnotations(body)).toMatchObject([
+    { status: 'incomplete', reason: 'open-action', openActions: 1, openArtifacts: 1 },
+  ]);
+});
+
+test('two length segments stay bounded and report an output limit instead of completion', async () => {
+  terminalFixture('length', generated);
+
+  const { body } = await invoke();
+  expect(boundary.streamText).toHaveBeenCalledTimes(2);
+  expect(terminalAnnotations(body)).toMatchObject([
+    { status: 'incomplete', finishReason: 'length', reason: 'output-limit', segments: 2 },
+  ]);
+  expect(terminalAnnotations(body)).toHaveLength(1);
+});
+
+test('closed stop reports one stream completion, without claiming an application verification', async () => {
+  terminalFixture('stop', generated);
+
+  const { body } = await invoke();
+  expect(boundary.streamText).toHaveBeenCalledTimes(1);
+  expect(terminalAnnotations(body)).toMatchObject([
+    { status: 'complete', finishReason: 'stop', reason: 'finished', openActions: 0, openArtifacts: 0 },
+  ]);
+});
+
+test('a failed continuation emits an error receipt without a third call or success outcome', async () => {
+  terminalFixture('length', generated);
+
+  const initial = boundary.streamText.getMockImplementation()!;
+  boundary.streamText
+    .mockImplementationOnce(initial)
+    .mockRejectedValueOnce(new Error('synthetic continuation failure'));
+
+  const { body } = await invoke();
+  expect(boundary.streamText).toHaveBeenCalledTimes(2);
+  expect(terminalAnnotations(body)).toMatchObject([{ status: 'error', reason: 'continuation-error' }]);
+
+  const progress = body
+    .split('\n')
+    .filter((line) => line.startsWith('2:'))
+    .flatMap((line) => JSON.parse(line.slice(2)));
+  expect(progress.filter((entry) => entry.outcome)).toMatchObject([{ outcome: 'error' }]);
+});
+
+function diagnosticEvent(event: string) {
+  return boundary.logInfo.mock.calls
+    .map(([value]) => {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    })
+    .find((value) => value?.event === event);
+}
+
+test('stream closure correlates with the terminal receipt without logging generated content', async () => {
+  terminalFixture('stop', generated);
+
+  const { body } = await invoke();
+  const [terminal] = terminalAnnotations(body);
+  const closed = diagnosticEvent('chat.stream.closed');
+  expect(closed).toMatchObject({
+    projectId: 'synthetic-project',
+    messageId: terminal.messageId,
+    terminalObserved: true,
+    finishReason: 'stop',
+  });
+  expect(JSON.stringify(closed)).not.toContain('src/App.tsx');
+});

@@ -53,6 +53,13 @@ export const assistantMessageEn = {
   'assistantMessage.lanes.writeConfirmed':
     '{{count}} file(s) with writes confirmed by runtime read-back; not cloud backup, build or QA evidence.',
   'assistantMessage.lanes.writePending': 'Generation is still running; confirmations may arrive later.',
+  'assistantMessage.modelOutput.observed': 'Text observed from the configured call {{provider}} / {{model}}.',
+  'assistantMessage.streamTerminal.complete': 'Response stream completed.',
+  'assistantMessage.streamTerminal.incomplete':
+    'Response stream incomplete. Review the files before requesting a continuation.',
+  'assistantMessage.streamTerminal.error': 'Response stream failed. Review the partial files before trying again.',
+  'assistantMessage.streamTerminal.validation':
+    'Application validation is separate; this status does not confirm writes, build or tests.',
   'assistantMessage.modelOutput':
     'Text observed from the configured call {{provider}} / {{model}}; response completion is not confirmed.',
   'assistantMessage.lanes.shortfallTitle': 'Unconfirmed delivery',
@@ -192,6 +199,14 @@ export const assistantMessageFr: AssistantMessageCopy = {
   'assistantMessage.lanes.writeConfirmed':
     '{{count}} fichier(s) avec écriture confirmée par relecture dans l’environnement d’exécution ; aucune preuve de sauvegarde cloud, compilation ou QA.',
   'assistantMessage.lanes.writePending': 'Génération encore active ; des confirmations peuvent arriver ensuite.',
+  'assistantMessage.modelOutput.observed': 'Texte observé pour l’appel configuré {{provider}} / {{model}}.',
+  'assistantMessage.streamTerminal.complete': 'Flux de réponse terminé.',
+  'assistantMessage.streamTerminal.incomplete':
+    'Flux de réponse incomplet. Vérifiez les fichiers avant de demander une continuation.',
+  'assistantMessage.streamTerminal.error':
+    'Échec du flux de réponse. Vérifiez les fichiers partiels avant de réessayer.',
+  'assistantMessage.streamTerminal.validation':
+    'La validation de l’application reste distincte ; cet état ne confirme ni les écritures, ni la compilation, ni les tests.',
   'assistantMessage.modelOutput':
     'Texte observé pour l’appel configuré {{provider}} / {{model}} ; fin de réponse non confirmée.',
   'assistantMessage.lanes.shortfallTitle': 'Livraison non confirmée',

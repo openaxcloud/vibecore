@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-591 entrées.
+592 entrées.
 
 ## Sans section
 
@@ -800,6 +800,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029](docs/bugs/BUG-MOBILE-MODAL-KEYBOARD-CONTAINMENT-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029](docs/bugs/BUG-WORKBENCH-DYNAMIC-IMPORT-RECOVERY-20261029.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Agent et messages
+
+- [BUG-AGENT-TERMINAL-EVIDENCE-20261030](docs/bugs/BUG-AGENT-TERMINAL-EVIDENCE-20261030.md) — 📤 Dispatché : ☑ 30/10 — suite de la recette interrompue, reproductions isolées sans appel fournisseur. · 💻 Codé : ☐ — branche dédiée ; publication et intégration sous coordination. · ✅ Testé live : ☐ — aucune recette production de ce correctif, aucun projet utilisateur modifié.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

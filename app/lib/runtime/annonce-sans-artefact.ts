@@ -149,6 +149,9 @@ export type FinDeTour = Readonly<{
 
   /** Plafond dur, partagé avec la continuation `length`. */
   segmentsMax: number;
+
+  /** An incomplete action/artifact is not a zero-file announcement to replay. */
+  blocsOuverts?: boolean;
 }>;
 
 export type SuiteDuTour =
@@ -171,6 +174,11 @@ export function suiteDuTour(fin: FinDeTour, relanceLongueur: string): SuiteDuTou
     return fin.segmentsConsommes >= fin.segmentsMax
       ? { action: 'terminer' }
       : { action: 'continuer', cause: 'longueur', relance: relanceLongueur };
+  }
+
+  // Only a genuine provider stop may retry an announcement; errors and ambiguous EOF are terminal.
+  if (fin.finishReason !== 'stop' || fin.blocsOuverts) {
+    return { action: 'terminer' };
   }
 
   if (!fin.modeConstruction || fin.fichierEmis || fin.fichiersRefuses) {

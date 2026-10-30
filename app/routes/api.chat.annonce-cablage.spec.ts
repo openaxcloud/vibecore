@@ -39,7 +39,7 @@ describe('la décision « annonce sans artefact » est réellement branchée', (
     expect(code).toMatch(/fichierEmis: fichiersEmis > 0/u);
     expect(code).not.toMatch(/emittedFileAction/u);
     expect(code).toMatch(/segmentsConsommes: continuationSegments/u);
-    expect(code).toMatch(/segmentsMax: MAX_RESPONSE_SEGMENTS/u);
+    expect(code).toMatch(/segmentsMax: explicitPermit \? explicitPermit\.maxCalls - 1 : MAX_RESPONSE_SEGMENTS/u);
   });
 
   it('LA BRANCHE TERMINALE la consulte — sans quoi rien ne change', () => {
