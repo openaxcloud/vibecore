@@ -5,10 +5,14 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Preview } from './Preview';
 import { idePanelsEn, idePanelsFr } from '~/lib/i18n/catalogs/ide-panels';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { WORK_DIR } from '~/utils/constants';
 
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
     appendWorkspaceLog: vi.fn(),
+    setSelectedFile: vi.fn(),
+    setCurrentDocumentScrollPosition: vi.fn(),
+    currentView: atom('preview'),
     previewStoppedByUser: atom(false),
     previews: atom([]),
     workspaceLoading: atom(false),
@@ -37,6 +41,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   workbenchStore.previewStoppedByUser.set(false);
   workbenchStore.previews.set([]);
+  workbenchStore.files.set({});
+  workbenchStore.currentView.set('preview');
   workbenchStore.workspaceStatus.set(undefined);
   workbenchStore.workspaceLoading.set(false);
   workbenchStore.previewServerState.set({ status: 'idle', command: 'npm run dev' });
@@ -128,4 +134,90 @@ it('ignores a late error after user Stop removes the frame', async () => {
   report(frame, 'PREVIEW_ERROR', 'https://fixture.invalid', source);
   expect(status()).not.toContain('Unexpected token in App.tsx');
   expect(workbenchStore.appendWorkspaceLog).not.toHaveBeenCalled();
+});
+it.each(['PREVIEW_ERROR', 'PREVIEW_UNHANDLED_REJECTION', 'PREVIEW_BLANK'])(
+  'surfaces %s without requiring the user to open technical panels',
+  async (type) => {
+    const { frame, view } = await mountPreview();
+    fireEvent.click(view.getByTitle('idePanels.preview.hideLogs'));
+    fireEvent.load(frame);
+    report(frame, type);
+
+    const alert = view.getByRole('alert');
+    expect(alert.textContent).toContain('idePanels.preview.reportedErrorTitle');
+    expect(alert.textContent).not.toContain('Unexpected token');
+    fireEvent.click(view.getByRole('button', { name: 'idePanels.preview.viewLogs' }));
+    expect(view.getByRole('region', { name: 'idePanels.preview.logsLabel' })).toBeTruthy();
+  },
+);
+it('surfaces a Vite compilation signal and keeps its raw details out of the alert', async () => {
+  const { frame, view } = await mountPreview();
+  fireEvent(
+    window,
+    new MessageEvent('message', {
+      source: frame.contentWindow,
+      origin: new URL(frame.src).origin,
+      data: { type: 'PREVIEW_ERROR', source: 'vite', message: 'Preview compilation failed' },
+    }),
+  );
+  expect(view.getByRole('alert').textContent).toContain('idePanels.preview.reportedErrorTitle');
+  expect(view.getByRole('alert').textContent).not.toContain('Preview compilation failed');
+});
+
+it('opens a known affected file at the reported line without running a command', async () => {
+  const path = `${WORK_DIR}/src/App.tsx`;
+  workbenchStore.files.set({ [path]: { type: 'file', content: 'source', isBinary: false } });
+
+  const { frame, view } = await mountPreview();
+  fireEvent(
+    window,
+    new MessageEvent('message', {
+      source: frame.contentWindow,
+      origin: new URL(frame.src).origin,
+      data: {
+        type: 'PREVIEW_ERROR',
+        message: 'Unexpected token',
+        filename: 'https://fixture.invalid/src/App.tsx',
+        lineno: 334,
+      },
+    }),
+  );
+  fireEvent.click(view.getByRole('button', { name: 'idePanels.preview.openAffectedFile' }));
+  expect(workbenchStore.setSelectedFile).toHaveBeenCalledWith(path);
+  expect(workbenchStore.setCurrentDocumentScrollPosition).toHaveBeenCalledWith({ line: 333, column: 0 });
+  expect(workbenchStore.currentView.get()).toBe('code');
+  expect(workbenchStore.startPreviewServer).not.toHaveBeenCalled();
+});
+it('clears the visible alert on project navigation and user Stop', async () => {
+  const { frame, view } = await mountPreview();
+  report(frame);
+  expect(view.getByRole('alert')).toBeTruthy();
+  await act(async () => {
+    workbenchStore.previews.set([{ port: 5173, ready: true, serving: true, baseUrl: 'https://next.invalid' }]);
+  });
+  expect(view.queryByRole('alert')).toBeNull();
+  report(frame);
+  expect(view.getByRole('alert')).toBeTruthy();
+  await act(async () => {
+    workbenchStore.previewStoppedByUser.set(true);
+  });
+  expect(view.queryByRole('alert')).toBeNull();
+});
+
+it('uses neutral log text for a reported error and resets it on navigation and Stop', async () => {
+  const { frame, view } = await mountPreview();
+  const logText = () => view.getByRole('region', { name: 'idePanels.preview.logsLabel' }).querySelector('pre')!;
+  expect(logText().style.color).toBe('');
+  report(frame);
+  expect(logText().style.color).toBe('var(--bolt-elements-textPrimary)');
+  await act(async () => {
+    workbenchStore.previews.set([{ port: 5173, ready: true, serving: true, baseUrl: 'https://next.invalid' }]);
+  });
+  expect(logText().style.color).toBe('');
+  report(frame);
+  expect(logText().style.color).toBe('var(--bolt-elements-textPrimary)');
+  await act(async () => {
+    workbenchStore.previewStoppedByUser.set(true);
+  });
+  expect(logText().style.color).toBe('');
 });

@@ -327,13 +327,35 @@ export function rejouerLeMessage(messageId: string, contenuComplet: string) {
   messagesARejouer.set(messageId, contenuComplet);
 }
 
-const extractTextContent = (message: Message) =>
-  Array.isArray(message.content)
-    ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
+const extractTextContent = (message: Message): string => {
+  const content = Array.isArray(message.content)
+    ? message.content
+        .filter((item) => item.type === 'text' && typeof item.text === 'string')
+        .map((item) => item.text)
+        .join('')
     : message.content;
 
+  if (typeof content === 'string' && content.length > 0) {
+    return content;
+  }
+
+  return (message.parts ?? [])
+    .filter((part) => part.type === 'text')
+    .map((part) => (part.type === 'text' ? part.text : ''))
+    .join('');
+};
+
+function withParsedMessage(previous: Record<string, string>, messageId: string, content: string) {
+  const next = Object.assign(Object.create(null) as Record<string, string>, previous);
+  next[messageId] = content;
+
+  return next;
+}
+
 export function useMessageParser() {
-  const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
+  const [parsedMessages, setParsedMessages] = useState<Record<string, string>>(
+    () => Object.create(null) as Record<string, string>,
+  );
 
   const parseMessages = useCallback((messages: Message[], isLoading: boolean) => {
     let reset = false;
@@ -343,13 +365,25 @@ export function useMessageParser() {
       messageParser.reset();
     }
 
-    for (const [index, message] of messages.entries()) {
-      if (message.role === 'assistant' || message.role === 'user') {
+    for (const message of messages) {
+      if (message.role === 'user') {
+        // User examples are conversation text, never executable artifact instructions.
+        setParsedMessages((previous) => withParsedMessage(previous, message.id, extractTextContent(message)));
+        continue;
+      }
+
+      if (message.role === 'assistant') {
         let newParsedContent = '';
 
         /* Avant de parser : la barrière doit précéder la première action du tour. */
         if (message.role === 'assistant' && consigneSansFichier(message)) {
           toursSansFichier.add(message.id);
+        }
+
+        if (toursSansFichier.has(message.id)) {
+          // A code-only answer must remain an example, including filename-prefixed fences.
+          setParsedMessages((previous) => withParsedMessage(previous, message.id, extractTextContent(message)));
+          continue;
         }
 
         let replaceContent = reset;
@@ -452,10 +486,13 @@ export function useMessageParser() {
           }
         }
 
-        setParsedMessages((prevParsed) => ({
-          ...prevParsed,
-          [index]: !replaceContent ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
-        }));
+        setParsedMessages((previous) =>
+          withParsedMessage(
+            previous,
+            message.id,
+            !replaceContent ? (previous[message.id] || '') + newParsedContent : newParsedContent,
+          ),
+        );
       }
     }
   }, []);

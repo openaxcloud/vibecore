@@ -266,9 +266,9 @@ export const Markdown = memo(
      * remark/rehype pipeline and re-tokenize the whole document. Combined with the
      * useChat throttle this keeps streaming markdown smooth.
      */
-    const memoRemarkPlugins = useMemo(() => remarkPlugins(limitedMarkdown), [limitedMarkdown]);
+    const memoRemarkPlugins = useMemo(() => remarkPlugins(limitedMarkdown, html), [limitedMarkdown, html]);
     const memoRehypePlugins = useMemo(() => rehypePlugins(html), [html]);
-    const strippedChildren = useMemo(() => stripCodeFenceFromArtifact(children), [children]);
+    const strippedChildren = useMemo(() => (html ? stripCodeFenceFromArtifact(children) : children), [children, html]);
 
     /*
      * Markdown supprime les espaces de BORD d'un document — comportement normal
@@ -335,7 +335,13 @@ export const stripCodeFenceFromArtifact = (content: string) => {
   }
 
   const lines = content.split('\n');
-  const artifactLineIndex = lines.findIndex((line) => line.includes('__boltArtifact__'));
+
+  const artifactLineIndex = lines.findIndex(
+    (line) =>
+      /^\s*<div\s+[^>]*class=["']__boltArtifact__["'][^>]*><\/div>\s*$/.test(line) &&
+      /\sdata-message-id=["'][^"']+["']/.test(line) &&
+      /\sdata-artifact-id=["'][^"']+["']/.test(line),
+  );
 
   // Return original content if artifact line not found
   if (artifactLineIndex === -1) {

@@ -30,6 +30,35 @@
    */
   var lastErrorMessage = '';
 
+  /*
+   * Vite reports transform failures through its overlay, not a window ErrorEvent.
+   * Observe presence only: never forward source snippets, paths or overlay text.
+   * Keep watching for a later HMR failure after the previous overlay is removed.
+   */
+  var viteErrorPresent = false;
+
+  function reportViteOverlay() {
+    try {
+      var present = !!document.querySelector('vite-error-overlay');
+
+      if (present && !viteErrorPresent) {
+        var message = 'Preview compilation failed';
+        lastErrorMessage = message;
+        send({ type: 'PREVIEW_ERROR', source: 'vite', message, ts: Date.now() });
+      }
+
+      viteErrorPresent = present;
+    } catch (error) {
+      // Diagnostics must not interfere with the application or its HMR overlay.
+    }
+  }
+
+  if (typeof MutationObserver === 'function') {
+    var viteOverlayObserver = new MutationObserver(reportViteOverlay);
+    viteOverlayObserver.observe(document, { childList: true, subtree: true });
+    reportViteOverlay();
+  }
+
   window.addEventListener('error', (event) => {
     if (event.message) {
       lastErrorMessage = String(event.message);

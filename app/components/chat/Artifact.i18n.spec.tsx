@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -116,6 +116,56 @@ describe('<Artifact /> i18n', () => {
     expect(screen.getByText('The action failed. Review the failed step and try again.')).toBeTruthy();
   });
 
+  it('keeps technical actions collapsed while streaming and exposes interruptions without opening them', async () => {
+    actionsStore.set({ file: { type: 'file', filePath: 'src/App.tsx', content: 'private source', status: 'running' } });
+    artifactsStore.set({
+      application: {
+        id: 'application',
+        title: 'Application',
+        type: 'standard',
+        closed: false,
+        runner: { actions: actionsStore },
+      },
+    });
+    renderArtifact('application', 'fr');
+    expect(screen.getByRole('button', { name: 'Afficher les actions' }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('button', { name: 'Ouvrir src/App.tsx' })).toBeNull();
+    act(() =>
+      actionsStore.setKey('file', {
+        type: 'file',
+        filePath: 'src/App.tsx',
+        content: 'private source',
+        status: 'aborted',
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText('Une action a été interrompue. Consultez les détails avant de reprendre.')).toBeTruthy(),
+    );
+    expect(screen.queryByRole('button', { name: 'Ouvrir src/App.tsx' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les actions' }));
+    expect(screen.getByRole('button', { name: 'Ouvrir src/App.tsx' })).toBeTruthy();
+    expect(screen.queryByText('private source')).toBeNull();
+  });
+
+  it('keeps failed actions visible as a summary and respects the chosen disclosure state on updates', async () => {
+    const action = { type: 'file', filePath: 'src/App.tsx', content: '', status: 'running' };
+    actionsStore.set({ file: action });
+    artifactsStore.set({
+      application: { id: 'application', title: 'Application', type: 'standard', runner: { actions: actionsStore } },
+    });
+    renderArtifact('application', 'fr');
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les actions' }));
+    act(() => actionsStore.setKey('file', { ...action, status: 'failed', error: 'private credential detail' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Masquer les actions' }).getAttribute('aria-expanded')).toBe('true'),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Masquer les actions' }));
+    act(() => actionsStore.setKey('another', { ...action, filePath: 'src/other.ts', status: 'pending' }));
+    expect(screen.getByRole('button', { name: 'Afficher les actions' }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByText('L’action a échoué. Vérifiez l’étape concernée, puis réessayez.')).toBeTruthy();
+    expect(screen.queryByText('private credential detail')).toBeNull();
+  });
+
   it('localizes action chrome while preserving file paths and shell commands', async () => {
     actionsStore.set({
       file: {
@@ -142,6 +192,7 @@ describe('<Artifact /> i18n', () => {
     });
 
     renderArtifact('application', 'fr');
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les actions' }));
 
     await waitFor(() => {
       expect(screen.getByText('Créer')).toBeTruthy();

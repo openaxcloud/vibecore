@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-592 entrées.
+593 entrées.
 
 ## Sans section
 
@@ -804,6 +804,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Agent et messages
 
 - [BUG-AGENT-TERMINAL-EVIDENCE-20261030](docs/bugs/BUG-AGENT-TERMINAL-EVIDENCE-20261030.md) — 📤 Dispatché : ☑ 30/10 — suite de la recette interrompue, reproductions isolées sans appel fournisseur. · 💻 Codé : ☐ — branche dédiée ; publication et intégration sous coordination. · ✅ Testé live : ☐ — aucune recette production de ce correctif, aucun projet utilisateur modifié.
+- [BUG-AGENT-CONVERSATION-LISIBLE-20261030](docs/bugs/BUG-AGENT-CONVERSATION-LISIBLE-20261030.md) — 📤 Dispatché : ☑ 30/10 — plainte utilisateur sur une réponse mêlant prose, fichiers et diagnostic fournisseur ; reproductions · 💻 Codé : ☐ — complément distinct dépendant de #859 ; aucune intégration ni livraison revendiquée. · ✅ Testé live : ☐ — aucune modification du projet utilisateur, aucun appel fournisseur ; recette locale synthétique à distingu
 
 ## Résidus non tabulaires — reportés mot pour mot
 

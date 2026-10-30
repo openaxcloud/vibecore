@@ -9,6 +9,9 @@ import type {
 import { useStore } from '@nanostores/react';
 import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
+import remarkParse from 'remark-parse';
+import { unified } from 'unified';
+import { visit } from 'unist-util-visit';
 import { Markdown } from './Markdown';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { stripInternalAgentScaffolding } from '~/lib/chat/agent-message-scaffolding';
@@ -121,7 +124,7 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
           )}
         </div>
         <div className="group bolt-user-message-bubble flex flex-col gap-3 bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] backdrop-blur-sm px-3 py-2 w-auto rounded-lg [margin-inline-end:auto]">
-          {textContent && <Markdown html>{textContent}</Markdown>}
+          {textContent && <Markdown>{textContent}</Markdown>}
           {images.map((item, index) => (
             <img
               key={index}
@@ -187,7 +190,7 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
             ))}
           </div>
         ) : null}
-        <Markdown html>{textContent}</Markdown>
+        <Markdown>{textContent}</Markdown>
       </div>
       {/*
         « Modifier et renvoyer » occupait une rangée ENTIÈRE dans la bulle, et sur
@@ -209,23 +212,54 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
   );
 }
 
+const userMarkdownParser = unified().use(remarkParse);
+
 function stripMetadata(content: string) {
-  const artifactRegex = /<boltArtifact\s+[^>]*>[\s\S]*?<\/boltArtifact>/gm;
-  const actionRegex = /<boltAction\s+[^>]*>[\s\S]*?<\/boltAction>/gm;
+  /*
+   * Code is user-authored data, even when it quotes our internal protocol.
+   * Use Markdown positions so nested/long fences and inline code remain intact.
+   */
+  let marker = '\u0000user-code-';
+
+  while (content.includes(marker)) {
+    marker = `\u0000${marker}`;
+  }
+
+  const ranges: Array<{ start: number; end: number }> = [];
+  const protectedCode: string[] = [];
+  visit(userMarkdownParser.parse(content), (node) => {
+    if (node.type !== 'code' && node.type !== 'inlineCode') {
+      return;
+    }
+
+    const start = node.position?.start.offset;
+    const end = node.position?.end.offset;
+
+    if (start !== undefined && end !== undefined) {
+      ranges.push({ start, end });
+    }
+  });
+
+  for (const { start, end } of ranges.reverse()) {
+    const index = protectedCode.push(content.slice(start, end)) - 1;
+    content = `${content.slice(0, start)}${marker}${index}\u0000${content.slice(end)}`;
+  }
 
   let text = stripInternalAgentScaffolding(content)
     .replace(MODEL_REGEX, '')
     .replace(PROVIDER_REGEX, '')
     .replace(/\[Model:[^\]]*\]/gi, '')
-    .replace(/\[Provider:[^\]]*\]/gi, '')
-    .replace(artifactRegex, '')
-    .replace(actionRegex, '');
+    .replace(/\[Provider:[^\]]*\]/gi, '');
 
   const userPromptMatch = text.match(/User prompt:\s*([\s\S]*)$/i);
 
   if (userPromptMatch && userPromptMatch[1].trim()) {
     text = userPromptMatch[1];
   }
+
+  protectedCode.forEach((code, index) => {
+    text = text.replace(`${marker}${index}\u0000`, () => code);
+  });
 
   return text.trim();
 }

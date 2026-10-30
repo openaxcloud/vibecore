@@ -582,6 +582,10 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     test.setTimeout(150_000);
     await ouvrirIde(page, request, { fil: true });
 
+    const ouvrirActions = page.getByRole('button', { name: /Afficher les actions|Show actions/ }).first();
+    await expect(ouvrirActions).toHaveAttribute('aria-expanded', 'false', { timeout: 60_000 });
+    await ouvrirActions.click();
+
     const chemin = page.locator('.bolt-action-file-path');
 
     await expect(chemin.first()).toBeVisible({ timeout: 60_000 });

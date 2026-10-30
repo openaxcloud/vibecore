@@ -771,7 +771,7 @@ describe('stream terminal evidence', () => {
     rerender(view('old', true));
     expect(screen.queryByTestId('agent-stream-terminal')).toBeNull();
     rerender(view('old', false));
-    expect(screen.getByTestId('agent-stream-terminal').textContent).toContain('Response stream completed');
+    expect(screen.getByTestId('agent-stream-terminal').textContent).toContain('Response received');
   });
 
   it.each(['complete', 'incomplete', 'error'] as const)(
@@ -805,12 +805,13 @@ describe('stream terminal evidence', () => {
       const evidence = screen.getByTestId('agent-stream-terminal').textContent;
       expect(evidence).toContain(
         status === 'complete'
-          ? 'Response stream completed'
+          ? 'Response received'
           : status === 'error'
-            ? 'Response stream failed'
-            : 'Response stream incomplete',
+            ? 'The response stopped because of an error'
+            : 'The response is incomplete',
       );
-      expect(evidence).toContain('Application validation is separate');
+      expect(screen.getByTestId('agent-technical-details').textContent).toContain('Application validation is separate');
+      expect((screen.getByTestId('agent-technical-details') as HTMLDetailsElement).open).toBe(false);
       expect(screen.getByTestId('agent-model-output').textContent).not.toContain('completion is not confirmed');
     },
   );

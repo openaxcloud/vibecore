@@ -152,6 +152,9 @@ test.describe('panneau Agent en mobile — liste d’actions, pastille « descen
       await page.setViewportSize({ width: vue.width, height: vue.height });
       await page.goto(`/projects/${session.projectId}/ide`, { waitUntil: 'domcontentloaded' });
 
+      const ouvrir = page.getByRole('button', { name: /Afficher les actions|Show actions/ });
+      await expect(ouvrir).toHaveAttribute('aria-expanded', 'false', { timeout: 120_000 });
+      await ouvrir.click();
       const lignes = page.locator('.bolt-action-row');
       await expect(lignes.first()).toBeVisible({ timeout: 120_000 });
       await expect(lignes).toHaveCount(FICHIERS.length, { timeout: 60_000 });

@@ -2501,14 +2501,15 @@ export const ChatImpl = memo(
         importChat={importChat}
         exportChat={exportChat}
         transcriptError={transcriptError}
-        messages={messages.map((message, i) => {
+        messages={messages.map((message) => {
           if (message.role === 'user') {
             return message;
           }
 
           return {
             ...message,
-            content: parsedMessages[i] || message.content,
+            content: parsedMessages[message.id] ?? message.content,
+            contentIsParsed: parsedMessages[message.id] !== undefined,
           };
         })}
         enhancePrompt={() => {
