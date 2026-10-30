@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { discloseInstalledSkills, isSkillTriggered, type DisclosableSkill } from './skill-disclosure';
+import {
+  discloseInstalledSkills,
+  isSkillTriggered,
+  SkillDisclosureSession,
+  type DisclosableSkill,
+} from './skill-disclosure';
 
 function clock() {
   let n = 0;
@@ -79,4 +84,118 @@ describe('discloseInstalledSkills — progressive disclosure (RPL-SK-001.2)', ()
     expect(isSkillTriggered(commitHelper, 'unrelated text')).toBe(false);
     expect(isSkillTriggered(commitHelper, undefined)).toBe(true);
   });
+});
+
+const shortSkill: DisclosableSkill = {
+  ownerRepo: 'qa/ui',
+  name: 'UI',
+  description: '',
+  instructions: 'SYNTHETIC_EXPLICIT_BODY',
+};
+
+describe('explicit installed skill selection', () => {
+  it.each([
+    ['UI', 'Utilise UI.'],
+    ['sql', 'Utilise SQL.'],
+    ['Été', 'Utilise ÉTÉ.'],
+    ['Été', 'Utilise E\u0301te\u0301.'],
+    ['校对', 'Utilise 校对.'],
+    ['a+b', 'Utilise a+b.'],
+  ])('loads the actual body for the complete name %s', (name, prompt) => {
+    const result = discloseInstalledSkills([{ ...shortSkill, name }], prompt, clock());
+    expect(result.triggered).toEqual(['qa/ui']);
+    expect(result.context).toContain('SYNTHETIC_EXPLICIT_BODY');
+    expect(result.trace.map((entry) => entry.level)).toEqual([1, 2]);
+  });
+
+  it('recognizes a short manifest name independently of the displayed name', () => {
+    expect(isSkillTriggered({ ...shortSkill, name: 'Other', manifestName: 'sql' }, 'Utilise sql.')).toBe(true);
+  });
+
+  it.each(['build', 'éUI', 'UIé', 'x_UI', 'UI_suffix', 'not-UI', 'UI-plus', '界UI', 'UI界', '💡build'])(
+    'does not match UI within %s',
+    (prompt) => {
+      expect(isSkillTriggered(shortSkill, prompt)).toBe(false);
+    },
+  );
+
+  it('escapes punctuation in names instead of interpreting it as a regular expression', () => {
+    expect(isSkillTriggered({ ...shortSkill, name: 'a+b' }, 'Use aaab')).toBe(false);
+  });
+
+  it('selects an explicit complete repository even when its name is short', () => {
+    const result = discloseInstalledSkills([shortSkill], 'Utilise QA/UI.', clock());
+    expect(result.triggered).toEqual(['qa/ui']);
+    expect(result.context).toContain('SYNTHETIC_EXPLICIT_BODY');
+  });
+
+  it('prioritizes explicit repositories over shared names and lexical matches', () => {
+    const result = discloseInstalledSkills(
+      [
+        { ...shortSkill, ownerRepo: 'first/review', name: 'review', instructions: 'BODY_FIRST' },
+        { ...shortSkill, ownerRepo: 'second/review', name: 'review', instructions: 'BODY_SECOND' },
+      ],
+      'Utilise first/review pour cette review.',
+      clock(),
+    );
+    expect(result.triggered).toEqual(['first/review']);
+    expect(result.context).toContain('BODY_FIRST');
+    expect(result.context).not.toContain('BODY_SECOND');
+    expect(result.trace.map((entry) => entry.level)).toEqual([1, 1, 2]);
+  });
+
+  it('allows multiple explicitly named repositories', () => {
+    const result = discloseInstalledSkills(
+      [shortSkill, { ...shortSkill, ownerRepo: 'qa/sql', name: 'sql' }],
+      'Utilise qa/ui et qa/sql.',
+      clock(),
+    );
+    expect(result.triggered).toEqual(['qa/ui', 'qa/sql']);
+  });
+
+  it.each(['other/qa/ui', 'qa/ui-extra', 'qa/ui/extra'])(
+    'does not mistake %s for the complete short repository',
+    (prompt) => {
+      expect(isSkillTriggered(shortSkill, prompt)).toBe(false);
+    },
+  );
+
+  it('ignores empty aliases and distinguishes an empty prompt from a missing prompt', () => {
+    const skill = { ...shortSkill, name: '', manifestName: ' ' };
+    expect(isSkillTriggered(skill, '')).toBe(false);
+    expect(isSkillTriggered(skill, 'bonjour')).toBe(false);
+    expect(isSkillTriggered(skill, undefined)).toBe(true);
+  });
+});
+
+describe('installed resource disclosure limits', () => {
+  it('does not represent a requested resource as loaded or provide fake contents', () => {
+    const result = discloseInstalledSkills(
+      [commitHelper],
+      'Use ecode/commit-helper and references/conventional-commits.md',
+    );
+    expect(result.context).toContain('BODY: how to write commits');
+    expect(result.context).toContain('Bundled resource contents are NOT available');
+    expect(result.context).toContain('Do not claim to');
+    expect(result.context).not.toContain('fetch on demand');
+    expect(result.trace.some((entry) => entry.level === 3)).toBe(false);
+    expect(result.bytesByLevel[3]).toBe(0);
+  });
+});
+
+it('refuses metadata-only resource access without recording a successful L3 load', () => {
+  const session = new SkillDisclosureSession(
+    [
+      {
+        name: 'fixture',
+        description: 'Synthetic reference',
+        resources: [{ path: 'reference.md', bytes: 42 }],
+        loadBody: () => 'Synthetic instructions',
+      },
+    ],
+    clock(),
+  );
+  expect(() => session.openResource('fixture', 'reference.md')).toThrow('no available resource');
+  expect(session.trace()).toEqual([]);
+  expect(session.bytesByLevel()[3]).toBe(0);
 });

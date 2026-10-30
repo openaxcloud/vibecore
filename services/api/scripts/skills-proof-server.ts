@@ -15,6 +15,18 @@ const org = await store.createOrganization({ name: 'Skills QA', slug: suffix, ow
 const token = randomUUID();
 await store.createSession({ userId: user.id, token, expiresAt: new Date(Date.now() + 3600000) });
 const project = await store.createProject({ organizationId: org.id, name: 'Skills isolated proof', slug: suffix });
+// Synthetic metadata only: no third-party content is fetched or executed.
+await store.installSkill({
+  scope: 'project',
+  scopeId: project.id,
+  ownerRepo: 'ecode-proof/ui',
+  name: 'UI',
+  description: 'Synthetic interface guidance',
+  instructions: 'Explain the synthetic interface clearly.',
+  enabled: true,
+  auditVerdict: 'approved',
+  resources: [{ path: 'references/synthetic-reference.md', kind: 'reference', bytes: 42 }],
+});
 writeFileSync('/tmp/skills-browser-fixture.json', JSON.stringify({ token, projectId: project.id }));
 const app = await buildApiApp({ store, loggerStream: { write() {} } });
 await app.listen({ host: '127.0.0.1', port: 18787 });

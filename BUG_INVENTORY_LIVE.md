@@ -815,3 +815,5 @@ Ils sont conservés ici tels quels : une migration ne perd pas de contenu en sil
 > Ne pas reposer la question.
 
 - [BUG-SKILLS-REAL-PATH-20261030](docs/qa/skills-20261030/README.md) — Erreurs de chargement masquées en listes vides ; skill projet désactivé réinjecté via workspace ; résumé du catalogue substitué aux instructions indisponibles ; toggle contournant l'approbation de quarantaine. 📤 Dispatché : ☑ audit isolé 30/10/2026 · 💻 Codé : ☐ main, PR draft uniquement · ✅ Testé live : ☐ production ; preuves locales séparées dans le rapport.
+
+- [BUG-SKILLS-DISCLOSURE-20261030](docs/qa/skills-disclosure-20261030/README.md) — Nom court/accentué explicitement demandé ignoré par le déclenchement ; libellé L3 promettant des ressources non disponibles. 📤 Dispatché : ☑ complément isolé · 💻 Codé : ☐ main, branche séparée · ✅ Testé live : ☐ production ; tests SDK sans fournisseur et UI locale trois formats seulement.
