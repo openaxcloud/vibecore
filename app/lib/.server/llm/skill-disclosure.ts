@@ -40,7 +40,7 @@ export interface DisclosureSkillSpec {
   description: string;
   resources: DisclosureResourceSpec[];
   loadBody: () => string;
-  loadResource: (path: string) => string;
+  loadResource?: (path: string) => string;
 }
 
 const utf8Bytes = (text: string): number =>
@@ -116,8 +116,8 @@ export class SkillDisclosureSession {
       throw new Error(`Unknown skill "${skillName}".`);
     }
 
-    if (!skill.resources.some((resource) => resource.path === resourcePath)) {
-      throw new Error(`Skill "${skillName}" declares no resource "${resourcePath}".`);
+    if (!skill.loadResource || !skill.resources.some((resource) => resource.path === resourcePath)) {
+      throw new Error(`Skill "${skillName}" has no available resource "${resourcePath}".`);
     }
 
     const cacheKey = `${skillName} ${resourcePath}`;
@@ -217,13 +217,40 @@ function relevanceTerms(skill: DisclosableSkill): string[] {
 }
 
 /**
- * Decide whether a skill is triggered by the current request. A skill is relevant
- * when the user's prompt mentions one of its identity terms. When there is no
+ * Match a complete displayed name, manifest name or repository, including short
+ * and non-ASCII names. Unicode boundaries prevent UI from matching inside build.
+ * Canonically equivalent accents match without stripping meaningful diacritics.
+ */
+function mentionsIdentity(userPrompt: string, identities: Array<string | null | undefined>): boolean {
+  const normalize = (value: string) => value.normalize('NFC').toLowerCase().normalize('NFC');
+  const prompt = normalize(userPrompt);
+
+  return identities.some((value) => {
+    const identity = normalize(value?.trim() ?? '');
+
+    if (!identity) {
+      return false;
+    }
+
+    const escaped = identity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const boundary = '[\\p{L}\\p{M}\\p{N}_/-]';
+
+    return new RegExp(`(?:^|[^\\p{L}\\p{M}\\p{N}_/-])${escaped}(?!${boundary})`, 'u').test(prompt);
+  });
+}
+
+/**
+ * Select by an explicit identity mention, then by a lexical relevance heuristic.
+ * This does not infer semantic relevance or translate the request. When there is no
  * prompt to assess (undefined), every skill is triggered — the agent still gets
  * full guidance rather than silently losing a capability.
  */
 export function isSkillTriggered(skill: DisclosableSkill, userPrompt: string | undefined): boolean {
   if (userPrompt === undefined) {
+    return true;
+  }
+
+  if (mentionsIdentity(userPrompt, [skill.name, skill.manifestName, skill.ownerRepo])) {
     return true;
   }
 
@@ -260,11 +287,11 @@ export function discloseInstalledSkills(
       description: skill.description,
       resources: (skill.resources ?? []).map((resource) => ({ path: resource.path, bytes: resource.bytes })),
       loadBody: () => skill.instructions.trim(),
-      loadResource: (path: string) => {
-        const match = (skill.resources ?? []).find((resource) => resource.path === path);
 
-        return match ? `(resource ${path}, ${match.bytes} bytes — fetch on demand)` : '';
-      },
+      /*
+       * Installed rows contain references only, so omit the resource loader.
+       * openResource refuses access without inventing contents or an L3 trace.
+       */
     };
   });
 
@@ -274,8 +301,15 @@ export function discloseInstalledSkills(
   const triggered: string[] = [];
   const bodyBlocks: string[] = [];
 
+  /* An explicit repository disambiguates shared names and overrides lexical guesses. */
+  const explicitRepositories = new Set(
+    userPrompt === undefined
+      ? []
+      : installed.filter((skill) => mentionsIdentity(userPrompt, [skill.ownerRepo])).map((skill) => skill.ownerRepo),
+  );
+
   for (const [key, skill] of byName) {
-    if (isSkillTriggered(skill, userPrompt)) {
+    if (explicitRepositories.size ? explicitRepositories.has(skill.ownerRepo) : isSkillTriggered(skill, userPrompt)) {
       const body = session.open(key);
       triggered.push(skill.ownerRepo);
       bodyBlocks.push(`### ${skill.name} (${skill.ownerRepo})\n${body}`);
@@ -287,7 +321,12 @@ export function discloseInstalledSkills(
     `The user has INSTALLED the following skills. The <available_skills> list is always`,
     `present so you know what exists; a skill's full instructions are loaded below only`,
     `when it is relevant to the current request (progressive disclosure). Apply the`,
-    `active skills' instructions as binding guidance.`,
+    `active skills' instructions as guidance. Selection is based on explicit names or`,
+    `matching words, not semantic understanding. If needed guidance is absent, ask the`,
+    `user to name the installed skill or its full repository.`,
+    `Bundled resource contents are NOT available in this integration. Do not claim to`,
+    `have read or executed referenced files or scripts. If a step requires such a file,`,
+    `explain the limitation and ask the user to provide its contents before proceeding.`,
     ``,
     manifest,
     ...(bodyBlocks.length ? ['', '<active_skills>', bodyBlocks.join('\n\n'), '</active_skills>'] : []),

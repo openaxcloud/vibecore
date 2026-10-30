@@ -121,7 +121,7 @@ export const chatEn = {
   'chat.copy.bucketsPeak_3010e505': 'buckets · peak',
   'chat.copy.buildCommand_2740bf0b': 'Build command',
   'chat.copy.builtinSkills_e1514b4a': 'Builtin skills',
-  'chat.copy.bundledResourcesLoadedOnDemand_afd948a9': 'Bundled resources (loaded on demand):',
+  'chat.copy.bundledResourcesLoadedOnDemand_afd948a9': 'Declared resources (contents unavailable):',
   'chat.copy.cache_50338b3b': 'Cache',
   'chat.copy.callStackAndVariables_6820d7cf': 'Call stack and variables',
   'chat.copy.cancel_77dfd213': 'Cancel',
@@ -966,7 +966,7 @@ export const chatEn = {
   'chat.copy.toggleLiveTail_e5a60fa5': 'Toggle live tail',
   'chat.copy.toggleRegexSearch_4ed228f4': 'Toggle regex search',
   'chat.copy.togglesAreStoredPerProjectOver_7e9883ea':
-    'Toggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.',
+    'Enabled skills add guidance to the agent for this project. To request an installed skill, mention its name or full repository in your message. Automatic selection uses matching words, not meaning.',
   'chat.copy.toggleSplitLogView_4cbcd801': 'Toggle split log view',
   'chat.copy.toImport_f2c4337d': 'to import',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':
@@ -1705,7 +1705,7 @@ export const chatFr = {
   'chat.copy.bucketsPeak_3010e505': 'buckets · pic',
   'chat.copy.buildCommand_2740bf0b': 'Commande de compilation',
   'chat.copy.builtinSkills_e1514b4a': 'Compétences intégrées',
-  'chat.copy.bundledResourcesLoadedOnDemand_afd948a9': 'Ressources groupées (chargées à la demande) :',
+  'chat.copy.bundledResourcesLoadedOnDemand_afd948a9': 'Ressources déclarées (contenu indisponible) :',
   'chat.copy.cache_50338b3b': 'Mémoire cache',
   'chat.copy.callStackAndVariables_6820d7cf': "Pile d'appels et variables",
   'chat.copy.cancel_77dfd213': 'Annuler',
@@ -2573,7 +2573,7 @@ export const chatFr = {
   'chat.copy.toggleLiveTail_e5a60fa5': 'Activer la queue en direct',
   'chat.copy.toggleRegexSearch_4ed228f4': "Activer la recherche d'expressions régulières",
   'chat.copy.togglesAreStoredPerProjectOver_7e9883ea':
-    "Les bascules sont stockées par projet sur un catalogue intégré ; l'agent applique les compétences activées en tant que capacités.",
+    'Les compétences activées ajoutent des consignes à l’agent pour ce projet. Pour demander une compétence installée, indiquez son nom ou son dépôt complet dans votre message. La sélection automatique compare des mots, pas le sens de la demande.',
   'chat.copy.toggleSplitLogView_4cbcd801': 'Basculer la vue fractionnée du journal',
   'chat.copy.toImport_f2c4337d': 'importer',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':

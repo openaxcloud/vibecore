@@ -66,8 +66,8 @@ describe('Skills reach the prepared model request without invoking a provider', 
             skills: [
               {
                 ownerRepo: 'fixture/synthetic',
-                name: 'Synthetic test skill',
-                description: 'Synthetic testing guidance.',
+                name: 'UI',
+                description: 'Interface guidance.',
                 instructions: 'SYNTHETIC_INSTALLED_INSTRUCTIONS',
                 enabled,
                 scope: 'project',
@@ -82,8 +82,8 @@ describe('Skills reach the prepared model request without invoking a provider', 
             skills: [
               {
                 ownerRepo: 'fixture/synthetic',
-                name: 'Synthetic test skill',
-                description: 'Synthetic testing guidance.',
+                name: 'UI',
+                description: 'Interface guidance.',
                 instructions: 'SYNTHETIC_WORKSPACE_FALLBACK',
                 enabled: true,
                 scope: 'workspace',
@@ -113,11 +113,11 @@ describe('Skills reach the prepared model request without invoking a provider', 
       async function prepare() {
         const context = await retrieveSkillsForAgentContext(new Request('http://localhost/api/chat'), {
           projectId: 'synthetic-project',
-          userPrompt: 'Explain synthetic testing',
+          userPrompt: 'Utilise UI pour cette page',
         });
 
         const result = await streamText({
-          messages: [{ role: 'user', content: 'Explain synthetic testing' }],
+          messages: [{ role: 'user', content: 'Utilise UI pour cette page' }],
           chatMode,
           skillsContext: context?.context,
           options: { maxRetries: 0 },
