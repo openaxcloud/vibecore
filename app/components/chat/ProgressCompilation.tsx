@@ -133,7 +133,7 @@ export default function ProgressCompilation({
     for (const item of data) {
       const existing = progressMap.get(item.label);
 
-      if (existing && existing.status === 'complete') {
+      if (existing && existing.status === 'complete' && !item.outcome) {
         continue;
       }
 
@@ -155,12 +155,14 @@ export default function ProgressCompilation({
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const hasActiveWork = progressList.some((item) => item.status === 'in-progress');
 
+  const terminalFailure = progressList.some((item) => item.outcome === 'incomplete' || item.outcome === 'error');
+
   const state = deriveProgressState({
     completedCount,
     totalCount,
     hasActiveWork,
     streaming,
-    failed,
+    failed: failed || terminalFailure,
     degraded,
     refused,
   });

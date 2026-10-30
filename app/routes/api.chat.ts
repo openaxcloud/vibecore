@@ -61,6 +61,7 @@ import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.se
 import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { refusExpliciteDeFichiers, suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
+import { createStreamTerminal } from '~/lib/runtime/stream-terminal';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
@@ -601,6 +602,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * on each continuation and capped at MAX_RESPONSE_SEGMENTS.
    */
   let continuationSegments = 0;
+  let terminalReported = false;
+  let terminalFinishReason: ReturnType<typeof createStreamTerminal>['finishReason'] | undefined;
 
   /*
    * LA CHAÎNE DE GÉNÉRATION DOIT SURVIVRE À `execute`.
@@ -1912,6 +1915,41 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             fichiersEmis += compterActionsDeFichier(content);
             contenuDuTour += content ?? '';
 
+            const terminal = createStreamTerminal({
+              finishReason,
+              content: contenuDuTour,
+              modeConstruction: chatMode === 'build',
+              fichiersRefuses,
+              segments: continuationSegments + 1,
+              fileActions: fichiersEmis,
+              messageId: identifiantDuMessageDeReponse,
+            });
+            const reportTerminal = (failure?: 'continuation-error') => {
+              if (terminalReported) {
+                return;
+              }
+
+              terminalReported = true;
+
+              const verdict = failure ? { ...terminal, status: 'error' as const, reason: failure } : terminal;
+              terminalFinishReason = verdict.finishReason;
+              logger.info(
+                JSON.stringify({
+                  event: 'chat.stream.terminal',
+                  ...verdict,
+                  lastChunkAgeMs: chronoFlux.chunks
+                    ? Date.now() - chronoFlux.debut - chronoFlux.dernierChunkA
+                    : undefined,
+                }),
+              );
+
+              try {
+                dataStream.writeMessageAnnotation(verdict);
+              } catch {
+                // A disconnected consumer cannot receive a receipt; the safe terminal log remains available.
+              }
+            };
+
             /*
              * A build that ends without EVER emitting a `<boltAction type="file">`
              * produced no app — typically a weak model (gpt-3.5) that narrated the
@@ -2148,7 +2186,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 fichierEmis: fichiersEmis > 0,
                 fichiersRefuses,
                 segmentsConsommes: continuationSegments,
-                segmentsMax: MAX_RESPONSE_SEGMENTS,
+                segmentsMax: explicitPermit ? explicitPermit.maxCalls - 1 : MAX_RESPONSE_SEGMENTS,
+                blocsOuverts: terminal.openActions > 0 || terminal.openArtifacts > 0,
               },
               CONTINUE_PROMPT,
             );
@@ -2249,7 +2288,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
-                  message: copy.responseGenerated,
+                  outcome: terminal.status,
+                  message: terminal.status === 'complete' ? copy.responseGenerated : copy.responseInterrupted,
                 } satisfies ProgressAnnotation);
                 await new Promise((resolve) => setTimeout(resolve, 0));
                 jalonOnFinish('avant-memoire');
@@ -2268,7 +2308,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 await safeCloseMcp();
                 jalonOnFinish('apres-mcp');
 
-                // stream.close();
+                reportTerminal();
+
                 return;
               }
 
@@ -2286,8 +2327,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
+                  outcome: terminal.status,
                   message: copy.responseTruncatedSegments,
                 } satisfies ProgressAnnotation);
+                reportTerminal();
 
                 await safeCloseMcp();
 
@@ -2309,8 +2352,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
+                  outcome: terminal.status,
                   message: copy.responseTruncatedNoContent,
                 } satisfies ProgressAnnotation);
+                reportTerminal();
 
                 await safeCloseMcp();
 
@@ -2416,6 +2461,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   return;
                 }
 
+                reportTerminal('continuation-error');
                 logger.error(`continuation streamText failed: ${error instanceof Error ? error.message : error}`);
 
                 /*
@@ -2430,6 +2476,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
+                  outcome: 'error',
                   message: copy.responseInterrupted,
                 } satisfies ProgressAnnotation);
               }
@@ -2440,6 +2487,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                * Last-resort guard for the whole onFinish body — never let a throw
                * here tear down the data stream or leak resources.
                */
+              reportTerminal('continuation-error');
               logger.error(`onFinish failed: ${error instanceof Error ? error.message : error}`);
               await safeCloseMcp();
             } finally {
@@ -2697,6 +2745,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         logger.info(
           JSON.stringify({
             event: 'chat.flux.verdict',
+            messageId: identifiantDuMessageDeReponse,
+            terminalObserved: terminalReported,
+            aborted: suiviDeChaine.signal.aborted,
+            lastChunkAgeMs: chronoFlux.chunks ? Date.now() - chronoFlux.debut - chronoFlux.dernierChunkA : undefined,
             projectId,
             mode: agentSelection?.mode,
             octets: chronoFlux.octets,
@@ -2737,6 +2789,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             label: API_CHAT_PROGRESS_LABELS.response,
             status: 'complete',
             order: progressCounter++,
+            outcome: 'incomplete',
             message: copy.responseInterrupted,
           } satisfies ProgressAnnotation);
         }
@@ -2939,6 +2992,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             JSON.stringify({
               event: 'chat.stream.closed',
               projectId,
+              messageId: identifiantDuMessageDeReponse,
+              terminalObserved: terminalReported,
+              finishReason: terminalFinishReason ?? null,
               octets: chronoFlux.octets,
               chunks: chronoFlux.chunks,
               premierContenuMs: chronoFlux.premierContenuA,

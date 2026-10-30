@@ -1,5 +1,23 @@
 export type ContextAnnotation =
   | {
+      type: 'streamTerminal';
+      status: 'complete' | 'incomplete' | 'error';
+      finishReason: 'stop' | 'length' | 'error' | 'unknown' | 'content-filter' | 'tool-calls' | 'other';
+      reason:
+        | 'finished'
+        | 'provider-error'
+        | 'unknown-finish'
+        | 'output-limit'
+        | 'open-action'
+        | 'no-files'
+        | 'continuation-error';
+      segments: number;
+      fileActions: number;
+      openActions: number;
+      openArtifacts: number;
+      messageId?: string;
+    }
+  | {
       type: 'codeContext';
       files: string[];
     }
@@ -141,6 +159,7 @@ export type ProgressAnnotation = {
   type: 'progress';
   label: string;
   status: 'in-progress' | 'complete';
+  outcome?: 'complete' | 'incomplete' | 'error';
   order: number;
   message: string;
 };

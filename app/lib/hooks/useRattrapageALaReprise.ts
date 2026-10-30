@@ -67,6 +67,13 @@ export function useRattrapageALaReprise({
   const enCours = useRef<{ debut: number } | null>(null);
   const lectureEnCours = useRef(false);
 
+  const annuler = useCallback(() => {
+    enCours.current = null;
+  }, []);
+
+  // A pending GET belongs to this mounted project, never its replacement.
+  useEffect(() => annuler, [annuler, enabled, projectId]);
+
   const tenter = useCallback(async () => {
     const etat = enCours.current;
 
@@ -98,7 +105,7 @@ export function useRattrapageALaReprise({
         `/api/projects/${encodeURIComponent(projectId)}/ai/conversations/${encodeURIComponent(conversation)}/messages`,
       );
 
-      if (!reponse.ok || enCours.current !== etat) {
+      if (!reponse.ok || enCours.current !== etat || conversationId() !== conversation) {
         return;
       }
 
@@ -111,7 +118,7 @@ export function useRattrapageALaReprise({
         corps.messages ?? [],
       );
 
-      if (!plan || enCours.current !== etat) {
+      if (!plan || enCours.current !== etat || conversationId() !== conversation) {
         return;
       }
 
@@ -180,5 +187,5 @@ export function useRattrapageALaReprise({
     };
   }, [enabled, tenter]);
 
-  return { armer };
+  return { armer, annuler };
 }

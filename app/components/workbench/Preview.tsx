@@ -818,6 +818,7 @@ export const Preview = memo(
     const [isRefreshingPorts, setIsRefreshingPorts] = useState(false);
     const [isStartingPreview, setIsStartingPreview] = useState(false);
     const [previewStatus, setPreviewStatus] = useState<string | undefined>();
+    const previewDocumentErrorRef = useRef<string | undefined>();
     const [previewRunFailed, setPreviewRunFailed] = useState(false);
     useEffect(() => {
       if (previewStoppedByUser) {
@@ -984,6 +985,7 @@ export const Preview = memo(
       }
 
       previewLoadIdentityRef.current = previewLoadIdentity;
+      previewDocumentErrorRef.current = undefined;
       previewLoadRetryRef.current = 0;
       setPreviewFrameLoaded(false);
       setLoadedPreviewUrl(undefined);
@@ -1385,6 +1387,8 @@ export const Preview = memo(
          * genuinely-loaded page and forces a real navigation everywhere else
          * (cross-origin frame, blank frame, missing contentWindow).
          */
+        previewDocumentErrorRef.current = undefined;
+
         if (beginPreviewFrameReload(iframe) === 'force-navigation') {
           window.setTimeout(() => {
             if (!workbenchStore.previewStoppedByUser.get() && iframeRef.current === iframe) {
@@ -2364,11 +2368,31 @@ export const Preview = memo(
          * payload that isn't a structured message (extensions/libraries spam
          * postMessage with strings/null that would throw on `.type`).
          */
-        if (event.source !== iframeRef.current?.contentWindow) {
+        if (workbenchStore.previewStoppedByUser.get() || event.source !== iframeRef.current?.contentWindow) {
           return;
         }
 
         if (!event.data || typeof event.data !== 'object') {
+          return;
+        }
+
+        /*
+         * WindowProxy survives navigation: source alone cannot reject a queued
+         * message from the previous preview origin. Opaque srcdoc frames use null.
+         */
+        const frame = iframeRef.current;
+
+        if (!frame || frame.src === 'about:blank') {
+          return;
+        }
+
+        try {
+          const expectedOrigin = frame.srcdoc ? 'null' : new URL(frame.src, window.location.href).origin;
+
+          if (event.origin !== expectedOrigin) {
+            return;
+          }
+        } catch {
           return;
         }
 
@@ -2402,6 +2426,10 @@ export const Preview = memo(
             location: filename,
           });
 
+          previewDocumentErrorRef.current = message;
+          setPreviewStatus(message);
+          setIsStartingPreview(false);
+
           const resolvedPath = rawFilename ? resolvePreviewSourcePath(rawFilename) : undefined;
           const source = resolvedPath && lineno ? { path: resolvedPath, line: lineno } : undefined;
           setPreviewConsoleEvents((events) =>
@@ -2432,6 +2460,9 @@ export const Preview = memo(
           const message = t('idePanels.preview.unhandledRejection', {
             message: event.data.message ?? t('idePanels.preview.unknownError'),
           });
+          previewDocumentErrorRef.current = message;
+          setPreviewStatus(message);
+          setIsStartingPreview(false);
           setPreviewConsoleEvents((events) =>
             [
               {
@@ -2601,7 +2632,9 @@ export const Preview = memo(
         setPreviewFrameLoaded(true);
         setLoadedPreviewUrl(targetUrl);
         setIsStartingPreview(false);
-        setPreviewStatus(t('idePanels.preview.rendered'));
+
+        // A document load proves transport, not successful compilation or mounting.
+        setPreviewStatus(previewDocumentErrorRef.current ?? t('idePanels.preview.rendered'));
       },
       [activePreview?.ready, activePreview?.serving, reloadPreview, visiblePreviewUrl, t],
     );
