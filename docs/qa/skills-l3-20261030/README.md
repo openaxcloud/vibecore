@@ -42,3 +42,11 @@ Résultats locaux : 90 tests API distincts (86 helper/manifeste/routes/audit et 
 
 📤 Dispatché ☑ · 💻 Codé sur main ☐ (branche seulement) · ✅ Testé Skills production ☐.
 La recette authentifiée de production reste à coordonner après livraison. Les PRs #863/#865 sont surveillées sur leur tête exacte, sans relance ni fusion concurrente.
+
+## Suivi CI et frontière d'accès
+
+La première tête #867 (`444e5b343`) a échoué dans le test de la liste fermée `ACTIONABLE_PANEL_CODES` : le nouveau code Skills légitime n'avait pas été ajouté à l'attente exhaustive. Correction limitée à cette attente et à sa justification ; la liste reste exacte et le masquage des erreurs inconnues demeure testé. Les 20 tests des routes Database/Skills passent ensemble.
+
+Douze contre-tests supplémentaires confirment que les liens localhost/loopback IPv4 et IPv6, adresses privées, métadonnées cloud et `file://` inclus dans une référence ne sont jamais suivis, et que les dépôts tentant de modifier la structure de l'URL sont refusés sans fetch. Les 72 tests helper ressources/manifeste passent. Le chemin de production construit lui-même l'URL HTTPS du même dépôt sur raw.githubusercontent.com, refuse les redirections, ne lit aucun fichier local et ne reçoit pas `fetchImpl` depuis la requête utilisateur ; cette injection est uniquement une couture de test. Les références sont lues depuis la base autorisée lors de la préparation du contexte, sans fetch à ce stade.
+
+L'aide du panneau EN/FR précise désormais que seuls les textes sauvegardés sont pris en charge et qu'une compétence exigeant scripts, binaires ou dépendances externes ne peut pas être appliquée entièrement. Il ne s'agit pas d'une sandbox d'exécution de scripts tiers. Les services de recette restent arrêtés. Aucun nettoyage ni lint précédemment refusé n'a été retenté.

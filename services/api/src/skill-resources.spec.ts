@@ -124,6 +124,37 @@ describe('bounded skill resource snapshots', () => {
     ).toEqual({ ok: true, resources: [], resourceContents: {} });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
+  it.each([
+    'http://127.0.0.1:18787/private',
+    'http://localhost/internal',
+    'http://[::1]/private',
+    'http://169.254.169.254/latest/meta-data/',
+    'http://10.0.0.1/private',
+    'file:///etc/passwd',
+    '//127.0.0.1/private',
+  ])('never fetches an explicit non-bundle destination %s', async (destination) => {
+    const fetchImpl = fetchFixture({ 'references/guide.md': `[external](${destination})` });
+    const result = await fetchSkillResourceSnapshots('fixture/skill', instructions, { fetchImpl });
+
+    expect(result.ok).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toBe('https://raw.githubusercontent.com/fixture/skill/HEAD/references/guide.md');
+  });
+  it.each([
+    'http://127.0.0.1/repo',
+    'fixture/../../etc',
+    'fixture/repo?host=localhost',
+    'fixture/repo#x',
+    'fixture/repo@127.0.0.1',
+  ])('rejects a repository attempting to change the URL boundary: %s', async (repo) => {
+    const fetchImpl = fetchFixture({});
+
+    expect(await fetchSkillResourceSnapshots(repo, instructions, { fetchImpl })).toEqual({
+      ok: false,
+      reason: 'invalid_repository',
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
   it.each([404, 403, 500, 302])('fails the whole snapshot on HTTP %s', async (status) => {
     const result = await fetchSkillResourceSnapshots('fixture/skill', instructions, {
       fetchImpl: fetchFixture({ 'references/guide.md': new Response(null, { status }) }),

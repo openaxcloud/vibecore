@@ -975,7 +975,7 @@ export const chatEn = {
   'chat.copy.toggleLiveTail_e5a60fa5': 'Toggle live tail',
   'chat.copy.toggleRegexSearch_4ed228f4': 'Toggle regex search',
   'chat.copy.togglesAreStoredPerProjectOver_7e9883ea':
-    'Enabled skills add guidance to the agent for this project. To request an installed skill, mention its name or full repository in your message. Automatic selection uses matching words, not meaning.',
+    'Enabled skills add guidance to the agent for this project. To request an installed skill, mention its name or full repository in your message. Automatic selection uses matching words, not meaning. Only saved text references are supported. Scripts, binary files and external dependencies are not loaded or executed. A skill that needs them cannot be fully applied.',
   'chat.copy.toggleSplitLogView_4cbcd801': 'Toggle split log view',
   'chat.copy.toImport_f2c4337d': 'to import',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':
@@ -2591,7 +2591,7 @@ export const chatFr = {
   'chat.copy.toggleLiveTail_e5a60fa5': 'Activer la queue en direct',
   'chat.copy.toggleRegexSearch_4ed228f4': "Activer la recherche d'expressions régulières",
   'chat.copy.togglesAreStoredPerProjectOver_7e9883ea':
-    'Les compétences activées ajoutent des consignes à l’agent pour ce projet. Pour demander une compétence installée, indiquez son nom ou son dépôt complet dans votre message. La sélection automatique compare des mots, pas le sens de la demande.',
+    'Les compétences activées ajoutent des consignes à l’agent pour ce projet. Pour demander une compétence installée, indiquez son nom ou son dépôt complet dans votre message. La sélection automatique compare des mots, pas le sens de la demande. Seules les références textuelles sauvegardées sont prises en charge. Les scripts, fichiers binaires et dépendances externes ne sont ni chargés ni exécutés. Une compétence qui en dépend ne peut pas être appliquée entièrement.',
   'chat.copy.toggleSplitLogView_4cbcd801': 'Basculer la vue fractionnée du journal',
   'chat.copy.toImport_f2c4337d': 'importer',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':
