@@ -166,3 +166,20 @@ Shiki est toujours exigée ; géométrie, seuils, menus et sélection inline res
 inchangés. Ce changement de contrat du test est explicite, pas un retry aveugle.
 WebKit n'est pas installé dans l'environnement local : son verdict distant sur
 la nouvelle tête reste obligatoire, sans se fier au seul statut consultatif du job.
+
+L'agrégateur E2E de `c3412ff36` termine en échec : quatre scénarios non exemptés
+sur 558 tests rapportés, et trois instabilités signalées. Deux autres scénarios
+`agent-panel-states` sur mobile/tablette survolent eux aussi un `<pre>` replié.
+Le scénario corrigé ouvre réellement les détails en mode Agent, mesure toutes
+les cibles, puis affiche le code en mode Assistant et mesure aussi ses contrôles.
+Le seuil de 44 px et le minimum de six cibles sont conservés séparément dans
+les deux états ; aucune cible n'est évitée en changeant de mode avant sa mesure.
+Les deux échecs sont reproduits localement, puis les deux cas corrigés passent.
+Aucun défaut de taille du nouveau résumé n'est reproduit dans ces mesures.
+
+Les trois instabilités du run initial (snapshot dashboard, transfert de focus
+éditeur, journaux après reload) restent distinctes des quatre échecs corrigés ;
+un succès après retry ne vaut pas absence de défaut. Les logs détaillés d'une
+tranche réussie restent indisponibles : la lecture du stockage Actions a renvoyé
+`Forbidden`, sans nouvelle tentative ni contournement. La nouvelle tête doit
+encore passer toutes ses validations, y compris le résultat effectif WebKit.
