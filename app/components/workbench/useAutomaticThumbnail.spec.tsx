@@ -287,3 +287,43 @@ it('does not silently reset a budget consumed by readiness interruptions', async
   expect(result.current.status).toBe('unknown');
   expect(unknown).toHaveBeenCalledTimes(1);
 });
+
+it('keeps A → B → A captures and late receipts scoped to their original project and URL', async () => {
+  const replies: Array<(value: Response) => void> = [];
+  const fetchMock = vi.fn().mockImplementation(() => new Promise<Response>((resolve) => replies.push(resolve)));
+  const failure = vi.fn();
+  const unknown = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+
+  const a = { ...input, baseUrl: 'https://preview-a.test' };
+  const b = { ...input, projectId: 'two', baseUrl: 'https://preview-b.test' };
+
+  const { result, rerender, unmount } = renderHook(
+    (props) => useAutomaticThumbnail({ ...props, onFailure: failure, onUnconfirmed: unknown }),
+    { initialProps: a },
+  );
+  rerender(b);
+  rerender(a);
+  expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+    '/api/projects/one/thumbnail/refresh',
+    '/api/projects/two/thumbnail/refresh',
+  ]);
+  expect(fetchMock.mock.calls.map(([, options]) => options.body.get('url'))).toEqual([a.baseUrl, b.baseUrl]);
+  expect(fetchMock.mock.calls.every(([, options]) => options.signal.aborted)).toBe(true);
+  await act(async () => {
+    replies[1](response('failed'));
+    replies[0](response('stored'));
+  });
+  expect(result.current.status).toBe('unknown');
+  expect(failure).not.toHaveBeenCalled();
+  expect(unknown).not.toHaveBeenCalled();
+  await act(async () => vi.advanceTimersByTimeAsync(5_000));
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+  expect(fetchMock.mock.calls[2][0]).toBe('/api/projects/one/thumbnail/refresh');
+  expect(fetchMock.mock.calls[2][1].body.get('url')).toBe(a.baseUrl);
+  await act(async () => replies[2](response('stored')));
+  expect(result.current.status).toBe('stored');
+  unmount();
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+});
