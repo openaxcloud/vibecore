@@ -146,7 +146,7 @@ export async function retrieveSkillsForAgentContext(
       request,
       `/projects/${projectId}/skills/installed?scope=${scope}`,
     )
-      .then((payload) => (payload.skills ?? []).filter((skill) => skill && skill.enabled))
+      .then((payload) => (payload.skills ?? []).filter((skill) => skill))
       .catch((error) => {
         logger.warn(`Installed skills lookup skipped (${scope})`, error);
         return [] as InstalledSkillForPrompt[];
@@ -157,7 +157,11 @@ export async function retrieveSkillsForAgentContext(
     fetchInstalled('workspace'),
   ]);
 
-  const installed = dedupeInstalled([...projectInstalled, ...workspaceInstalled]);
+  /*
+   * Resolve scope precedence before filtering disabled rows. Otherwise disabling
+   * a project override resurrects the same repository from the workspace scope.
+   */
+  const installed = dedupeInstalled([...projectInstalled, ...workspaceInstalled]).filter((skill) => skill.enabled);
 
   /*
    * RPL-SK-001.2 — progressive disclosure. Builtin skills are already one-line

@@ -129,3 +129,67 @@ describe('ide-panel skills action (installable GitHub-repo skills, F#27)', () =>
     expect(init.method).toBe('POST');
   });
 });
+
+describe('ide-panel skills loader failure recovery', () => {
+  afterEach(() => apiRequest.mockReset());
+
+  function args() {
+    return {
+      request: new Request('https://app.test/api/projects/proj-skills/ide-panel/skills'),
+      params: { projectId: 'proj-skills', panel: 'skills' },
+    } as any;
+  }
+
+  function sources(failedPath?: string, status = 503, hasWorkspace = true) {
+    apiRequest.mockImplementation(async (_request: Request, path: string) => {
+      if (path === failedPath) {
+        throw new Response('{}', { status });
+      }
+
+      if (path === '/projects/proj-skills') {
+        return { project: { id: 'proj-skills' } };
+      }
+
+      if (path.endsWith('/catalog')) {
+        return { entries: [], hasWorkspace };
+      }
+
+      if (path.includes('/audit')) {
+        return { events: [] };
+      }
+
+      return { skills: [{ id: 'synthetic', enabled: true }] };
+    });
+  }
+
+  it.each(['', '/catalog', '/installed?scope=project', '/installed?scope=workspace', '/audit?scope=project'])(
+    'shows a recoverable error instead of an empty success when %s fails',
+    async (suffix) => {
+      sources(`/projects/proj-skills/skills${suffix}`);
+
+      const { loader } = await import('./api.projects.$projectId.ide-panel.$panel');
+      const body = readJson(await loader(args()));
+      expect(body.status).toBe('error');
+      expect(body.error).toMatchObject({ code: 'PANEL_BACKEND_UNAVAILABLE', retryable: true });
+    },
+  );
+
+  it('does not request workspace skills when no workspace exists', async () => {
+    sources(undefined, 503, false);
+
+    const { loader } = await import('./api.projects.$projectId.ide-panel.$panel');
+    const body = readJson(await loader(args()));
+    expect(body.status).toBe('ok');
+    expect(body.data.installedWorkspace).toEqual([]);
+    expect(apiRequest.mock.calls.some(([, path]) => path.endsWith('scope=workspace'))).toBe(false);
+  });
+
+  it('preserves forbidden state and recovers on a later reload', async () => {
+    sources('/projects/proj-skills/skills', 403);
+
+    const { loader } = await import('./api.projects.$projectId.ide-panel.$panel');
+    expect(readJson(await loader(args())).error).toMatchObject({ code: 'PANEL_FORBIDDEN', retryable: false });
+    sources();
+    expect(readJson(await loader(args())).status).toBe('ok');
+  });
+});

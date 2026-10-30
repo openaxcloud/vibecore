@@ -161,6 +161,16 @@ describe('skills quarantine + approval + revoke', () => {
     const res = await install(app, token, project.id, 'someone/obfuscated');
     expect(res.statusCode).toBe(201);
     expect(res.json().audit.verdict).toBe('quarantined');
+    const bypass = await app.inject({
+      method: 'PATCH',
+      url: `/projects/${project.id}/skills/installed`,
+      headers: auth(token),
+      payload: { ownerRepo: res.json().skill.ownerRepo, enabled: true },
+    });
+    expect(bypass.statusCode).toBe(409);
+    expect(bypass.json().code).toBe('SKILL_APPROVAL_REQUIRED');
+    expect((await store.listInstalledSkills('project', project.id))[0].enabled).toBe(false);
+
     expect(res.json().skill.enabled).toBe(false);
 
     // Approve it.

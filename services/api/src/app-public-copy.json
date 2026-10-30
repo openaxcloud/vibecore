@@ -1939,6 +1939,10 @@
     "en": "'{value1}' {value2} and cannot be enabled. Uninstall and re-install it to reconsider.",
     "fr": "« {value1} » {value2} et ne peut pas être activé. Désinstallez-le, puis réinstallez-le pour lancer une nouvelle évaluation."
   },
+  "SKILL_APPROVAL_REQUIRED": {
+    "en": "This skill is quarantined. Review its audit findings and use Approve to enable it.",
+    "fr": "Ce skill est en quarantaine. Consultez les résultats de son audit puis utilisez Approuver pour l’activer."
+  },
   "SKILL_CANNOT_APPROVE": {
     "en": "'{value1}' cannot be approved (it is revoked or was rejected by the audit).",
     "fr": "« {value1} » ne peut pas être approuvé, car il a été révoqué ou refusé par l’audit."
