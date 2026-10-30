@@ -1,6 +1,6 @@
 ---
 id: BUG-AGENT-TERMINAL-EVIDENCE-20261030
-section: 'Agent et messages'
+section: "Agent et messages"
 ---
 
 # Distinguer la fin du flux, les écritures et la validation de l’application
@@ -70,3 +70,22 @@ Stop explicite : son libellé historique « Stopped » ne prouve pas un clic uti
   tardifs, Stop, navigation et GET de récupération résolu après changement de portée.
 - Lint applicatif : zéro erreur, 52 avertissements préexistants.
 - Aucun succès de ces tests n’est présenté comme une recette production.
+
+## Relecture du rejeu automatique
+
+Une régression additionnelle a été reproduite après la première publication :
+`baseline=0 → final=1` avec une fin tronquée conserve désormais le prompt. Le
+mécanisme antérieur de première génération pouvait alors le relancer à la
+réouverture d’un projet non borné contenant ce seul fichier. Le contrôle de
+rejeu refuse maintenant une marque d’interruption connue, avant le GET de budget
+et après sa résolution, sans supprimer le prompt ni son accès manuel.
+
+Cette garde n’est pas une barrière universelle : la marque reste locale au
+navigateur, expire après 24 heures et peut manquer si le stockage est indisponible.
+Les limites et autorisations des runs explicites restent inchangées.
+
+L’arrêt volontaire efface cette marque selon le contrat existant. Une garantie
+anti-rejeu durable, inter-appareils et après expiration nécessiterait un état de
+tentative persistant lié au prompt ; ce schéma n’est pas ajouté dans ce lot.
+Le complément est couvert par 59 tests ciblés, dont cinq régressions de réouverture
+(quatre rouges avant correction), et par 38 tests de revue indépendante.
