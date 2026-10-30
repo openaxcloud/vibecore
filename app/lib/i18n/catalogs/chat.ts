@@ -1,4 +1,13 @@
 export const chatEn = {
+  'chat.skills.resourceInstallFailed':
+    'This skill could not be installed: a required reference file is missing, unsupported, or exceeds the size limit. No skill was installed.',
+  'chat.skills.resourcesTitle': 'Reference files',
+  'chat.skills.resourceAvailable': 'Saved copy available · {bytes} B',
+  'chat.skills.resourceMissing': 'Contents unavailable for this installation.',
+  'chat.skills.resourceReadOnly': 'Read-only saved text. Opening it does not run any code.',
+  'chat.skills.resourceContentLabel': 'Contents of {path}',
+  'chat.skills.resourceHash': 'SHA-256: {hash}',
+
   'chat.debugger.startNode': 'Start Node debugging',
   'chat.debugger.nodeHelp':
     'For step debugging, enter a Node.js .js, .mjs or .cjs program and leave Command empty. Other commands run without step debugging.',
@@ -966,7 +975,7 @@ export const chatEn = {
   'chat.copy.toggleLiveTail_e5a60fa5': 'Toggle live tail',
   'chat.copy.toggleRegexSearch_4ed228f4': 'Toggle regex search',
   'chat.copy.togglesAreStoredPerProjectOver_7e9883ea':
-    'Enabled skills add guidance to the agent for this project. To request an installed skill, mention its name or full repository in your message. Automatic selection uses matching words, not meaning.',
+    'Enabled skills add guidance to the agent for this project. To request an installed skill, mention its name or full repository in your message. Automatic selection uses matching words, not meaning. Only saved text references are supported. Scripts, binary files and external dependencies are not loaded or executed. A skill that needs them cannot be fully applied.',
   'chat.copy.toggleSplitLogView_4cbcd801': 'Toggle split log view',
   'chat.copy.toImport_f2c4337d': 'to import',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':
@@ -1580,6 +1589,15 @@ export const chatEn = {
 } as const;
 
 export const chatFr = {
+  'chat.skills.resourceInstallFailed':
+    'Cette compétence n’a pas pu être installée : un fichier de référence requis est absent, non pris en charge ou dépasse la taille autorisée. Aucune compétence n’a été installée.',
+  'chat.skills.resourcesTitle': 'Fichiers de référence',
+  'chat.skills.resourceAvailable': 'Copie sauvegardée disponible · {bytes} o',
+  'chat.skills.resourceMissing': 'Contenu indisponible pour cette installation.',
+  'chat.skills.resourceReadOnly': 'Texte sauvegardé en lecture seule. Son ouverture ne lance aucun code.',
+  'chat.skills.resourceContentLabel': 'Contenu de {path}',
+  'chat.skills.resourceHash': 'SHA-256 : {hash}',
+
   'chat.debugger.startNode': 'Démarrer le débogage Node',
   'chat.debugger.nodeHelp':
     'Pour le débogage pas-à-pas, indiquez un programme Node.js .js, .mjs ou .cjs et laissez Commande vide. Les autres commandes s’exécutent sans pas-à-pas.',
@@ -2573,7 +2591,7 @@ export const chatFr = {
   'chat.copy.toggleLiveTail_e5a60fa5': 'Activer la queue en direct',
   'chat.copy.toggleRegexSearch_4ed228f4': "Activer la recherche d'expressions régulières",
   'chat.copy.togglesAreStoredPerProjectOver_7e9883ea':
-    'Les compétences activées ajoutent des consignes à l’agent pour ce projet. Pour demander une compétence installée, indiquez son nom ou son dépôt complet dans votre message. La sélection automatique compare des mots, pas le sens de la demande.',
+    'Les compétences activées ajoutent des consignes à l’agent pour ce projet. Pour demander une compétence installée, indiquez son nom ou son dépôt complet dans votre message. La sélection automatique compare des mots, pas le sens de la demande. Seules les références textuelles sauvegardées sont prises en charge. Les scripts, fichiers binaires et dépendances externes ne sont ni chargés ni exécutés. Une compétence qui en dépend ne peut pas être appliquée entièrement.',
   'chat.copy.toggleSplitLogView_4cbcd801': 'Basculer la vue fractionnée du journal',
   'chat.copy.toImport_f2c4337d': 'importer',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':

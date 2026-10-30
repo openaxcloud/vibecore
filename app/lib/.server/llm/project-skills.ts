@@ -25,7 +25,7 @@ export interface InstalledSkillForPrompt {
 
   // RPL-SK-001.2 progressive disclosure inputs (from the InstalledSkill record).
   manifestName?: string | null;
-  resources?: Array<{ path: string; kind: string; bytes: number }>;
+  resources?: Array<{ path: string; kind: string; bytes: number; content?: string; contentHash?: string }>;
 }
 
 export interface ProjectSkillsContext {

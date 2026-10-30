@@ -193,3 +193,21 @@ describe('ide-panel skills loader failure recovery', () => {
     expect(readJson(await loader(args())).status).toBe('ok');
   });
 });
+
+it('preserves a safe actionable required-resource failure for the Skills UI', async () => {
+  apiRequest.mockRejectedValueOnce(
+    new Response(
+      JSON.stringify({
+        code: 'SKILL_RESOURCES_UNAVAILABLE',
+        error: 'Synthetic resource failure',
+        reason: 'unavailable',
+      }),
+      { status: 422 },
+    ),
+  );
+
+  const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
+  const body = readJson(await action(actionArgs({ intent: 'install', ownerRepo: 'fixture/resources' })));
+  expect(body).toMatchObject({ ok: false, code: 'SKILL_RESOURCES_UNAVAILABLE' });
+  apiRequest.mockReset();
+});
