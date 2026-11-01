@@ -19,19 +19,19 @@ describe('PostgreSQL table creation', () => {
     });
   });
   it.each(['', ' ', 'a\0b', 'a'.repeat(64), 'é'.repeat(32)])('rejects invalid or truncated identifier %j', (name) => {
-    expect(buildCreateTable({ schema: 'public', name, columns: [] })).toEqual({ error: 'identifier' });
+    expect(buildCreateTable({ schema: 'public', name, columns: [] })).toEqual({ errorCode: 'identifier' });
   });
   it('rejects reserved id and duplicate names after trimming', () => {
     expect(
       buildCreateTable({ schema: 'public', name: 't', columns: [{ name: ' ID ', type: 'integer', required: false }] }),
-    ).toEqual({ error: 'reserved' });
+    ).toEqual({ errorCode: 'reserved' });
     expect(
       buildCreateTable({
         schema: 'public',
         name: 't',
         columns: ['a', ' a '].map((name) => ({ name, type: 'text', required: false })),
       }),
-    ).toEqual({ error: 'duplicate' });
+    ).toEqual({ errorCode: 'duplicate' });
   });
   it('rejects a forged SQL type instead of interpolating it', () => {
     expect(
@@ -40,6 +40,6 @@ describe('PostgreSQL table creation', () => {
         name: 't',
         columns: [{ name: 'a', type: 'text);DROP TABLE users;--' as CreateColumnType, required: false }],
       }),
-    ).toEqual({ error: 'type' });
+    ).toEqual({ errorCode: 'type' });
   });
 });

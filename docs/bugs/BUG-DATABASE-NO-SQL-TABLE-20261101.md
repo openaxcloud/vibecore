@@ -4,7 +4,11 @@ id: BUG-DATABASE-NO-SQL-TABLE-20261101
 
 # Database : créer une table sans saisir de SQL
 
-📤 Dispatché : ☑ ; 💻 Codé sur main : ☐ ; ✅ Testé live production : ☐.
+📤 Dispatché : ☑
+
+💻 Codé : ☐ main — PR #870 en validation.
+
+✅ Testé live : ☐ production — recettes locales isolées seulement.
 
 Base : PR #864, `fdc02d93f564570ddabb49a8706583d00193a0e4`. Ce complément préserve son isolation des connexions, l'échappement des identifiants et les mises à jour par clé primaire. Le proxy Database récupère les erreurs de requête sans démonter le formulaire ; aucun changement du backend Fastify, Git, Skills ou génération Agent.
 
@@ -46,3 +50,18 @@ L'isolation des réponses entre connexions est testée au niveau composant React
 6. Navigation : réserves Retour/Avancer et Escape1180 non reproduites ; les diagnostics précédents restent ouverts, sans nouveau correctif spéculatif.
 7. Safari physique/WebKit, zoom200%, thèmes/langues et interruptions : ne revendiquer que les cases effectivement exécutées dans le reçu navigateur.
 8. Livraison : validations exactes de la nouvelle tête puis intégration/déploiement sérialisés par le coordinateur ; aucune livraison autonome.
+
+## Complément de validation après publication
+
+La première tête c057bc30d échoue au garde i18n (job124805279667, run41292106015) : libellés du formulaire hors catalogue et codes techniques considérés comme texte visible. Les tests unitaires globaux, intégration et build CI ne sont pas exécutés sur cette tentative. La correction raccorde le catalogue existant et nomme explicitement les codes d'erreur techniques ; aucun seuil, baseline ni allowlist modifié.
+
+Une recette supplémentaire utilise le générateur SQL produit puis redémarre réellement PostgreSQL : la ligne synthétique, identity et NOT NULL sont conservés ([reçu](database-table-form-evidence-20261101/persistence-restart-receipt.json)). Ce complément utilise directement PostgreSQL, pas HTTP/navigateur. Le premier essai ne trouvait plus la fixture : le nettoyage normal de l'API avait retiré ses schémas et fichier de session. Un nouveau schéma isolé a été créé pour cette preuve puis supprimé. Ce n'est pas une preuve de persistance des identités/projets.
+
+Pour les huit critères :
+- Compte/projet et permissions réelles : bancs Prisma existants (`prisma-store.spec.ts`, `database-panel-browser-local.ts`), mais pgvector/HNSW requis par les migrations0010/0035 et absent du PostgreSQL natif. Réutiliser le service pgvector du workflow existant sur l'assemblage final ; ne pas amputer les migrations.
+- Git et Skills : recettes locales possibles après assemblage/coordination de leurs propriétaires. OAuth réel exige une connexion déjà autorisée ; aucune nouvelle connexion créée ici.
+- Insertion sans SQL, autres dialectes et PITR : fonctionnalités distinctes du formulaire de table, encore non prouvées.
+- Navigation et compatibilité : poursuivre les cas bornés réellement démontrés, sans attribuer les flakes anciens à ce lot. FR/EN, thèmes et formats supplémentaires sont testables sans production ; Safari physique reste externe.
+- Livraison : attendre CI exacte puis intégration sérialisée par le coordinateur.
+
+Après raccord catalogue : 28 tests ciblés, typage web, compilation client/SSR, validation des catalogues et scan source réussis. Une revue indépendante confirme le maintien du contrat SQL et des contrôles. [16 cas compilés FR/EN × clair/sombre × 320×568,820×1180,1180×820,844×390](database-table-form-evidence-20261101/i18n-theme-receipt.json) passent directement : clavier, actions accessibles après scroll, confinement horizontal, brouillon au redimensionnement et annulation. Aucun formulaire soumis dans ce complément ; aucun contraste WCAG numérique ni Safari physique certifié.

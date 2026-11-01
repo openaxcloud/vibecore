@@ -2,75 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { buildCreateTable, columnTypes, type CreateColumn, type CreateColumnType } from './create-table';
-
-const copies = {
-  en: {
-    title: 'Create a table',
-    schema: 'Schema',
-    name: 'Table name',
-    column: 'Column name',
-    type: 'Type',
-    required: 'Required',
-    add: 'Add column',
-    remove: 'Remove column',
-    create: 'Create table',
-    cancel: 'Cancel',
-    close: 'Close',
-    pending: 'Creating table…',
-    identity: 'A unique identifier is added automatically.',
-    types: {
-      text: 'Text',
-      integer: 'Whole number',
-      numeric: 'Decimal number',
-      boolean: 'Yes/no',
-      date: 'Date',
-      timestamp: 'Date and time',
-    },
-    success: 'Table created.',
-    failed: 'The server did not confirm table creation. Refresh and check the schema before trying again.',
-    connection: 'Select a database connection first.',
-    waiting: 'Wait for the request to finish before closing. Closing does not undo a creation.',
-    errors: {
-      identifier: 'Names must contain 1–63 UTF-8 bytes and no control characters.',
-      duplicate: 'Column names must be unique.',
-      reserved: 'The column name id is reserved for the automatic primary key.',
-      type: 'Select a supported column type.',
-    },
-  },
-  fr: {
-    title: 'Créer une table',
-    schema: 'Schéma',
-    name: 'Nom de la table',
-    column: 'Nom de la colonne',
-    type: 'Type',
-    required: 'Obligatoire',
-    add: 'Ajouter une colonne',
-    remove: 'Retirer la colonne',
-    create: 'Créer la table',
-    cancel: 'Annuler',
-    close: 'Fermer',
-    pending: 'Création de la table…',
-    identity: 'Un identifiant unique est ajouté automatiquement.',
-    types: {
-      text: 'Texte',
-      integer: 'Nombre entier',
-      numeric: 'Nombre décimal',
-      boolean: 'Oui/non',
-      date: 'Date',
-      timestamp: 'Date et heure',
-    },
-    success: 'Table créée.',
-    failed: 'Le serveur n’a pas confirmé la création. Actualisez et vérifiez le schéma avant de réessayer.',
-    connection: 'Sélectionnez d’abord une connexion à la base.',
-    waiting: 'Attendez la fin de la requête avant de fermer. Fermer n’annule pas une création.',
-    errors: {
-      identifier: 'Les noms doivent contenir 1 à 63 octets UTF-8, sans caractère de contrôle.',
-      duplicate: 'Les noms de colonnes doivent être uniques.',
-      reserved: 'Le nom id est réservé à la clé primaire automatique.',
-      type: 'Sélectionnez un type de colonne pris en charge.',
-    },
-  },
-};
+import { getDatabaseStudioCopy } from '~/lib/i18n/catalogs/database-studio';
 
 export interface CreateTableFormProps {
   projectId: string;
@@ -82,7 +14,7 @@ export interface CreateTableFormProps {
 /** Mount with a project/connection key so an old request cannot refresh a different database. */
 export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel }: CreateTableFormProps) {
   const { i18n } = useTranslation();
-  const copy = copies[(i18n.resolvedLanguage ?? i18n.language).startsWith('fr') ? 'fr' : 'en'];
+  const copy = getDatabaseStudioCopy(i18n.resolvedLanguage ?? i18n.language);
   const fetcher = useFetcher<{ ok?: boolean; error?: string; result?: { error?: string; command?: string } }>();
   const id = useId();
   const [schema, setSchema] = useState('public');
@@ -124,9 +56,9 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
       setCreated(true);
       onCreated();
     } else {
-      setError(copy.failed);
+      setError(copy['databaseCreateTable.failed']);
     }
-  }, [fetcher.state, fetcher.data, onCreated, copy.failed]);
+  }, [fetcher.state, fetcher.data, onCreated, copy['databaseCreateTable.failed']]);
 
   const update = (key: number, patch: Partial<CreateColumn>) =>
     setColumns((items) => items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
@@ -145,14 +77,14 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
         }
 
         if (!connectionKey) {
-          setError(copy.connection);
+          setError(copy['databaseCreateTable.connection']);
           return;
         }
 
         const result = buildCreateTable({ schema, name, columns });
 
-        if ('error' in result) {
-          setError(copy.errors[result.error]);
+        if ('errorCode' in result) {
+          setError(copy[`databaseCreateTable.errors.${result.errorCode}`]);
           return;
         }
 
@@ -171,30 +103,30 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
         } catch {
           request.current = null;
           setPending(false);
-          setError(copy.failed);
+          setError(copy['databaseCreateTable.failed']);
         }
       }}
     >
       <h3 id={`${id}-title`} className="font-medium">
-        {copy.title}
+        {copy['databaseCreateTable.title']}
       </h3>
       <fieldset disabled={disabled} className="min-w-0 space-y-3">
         <label className="block">
-          {copy.schema}
+          {copy['databaseCreateTable.schema']}
           <input className={inputClass} value={schema} onChange={(event) => setSchema(event.target.value)} required />
         </label>
         <label className="block">
-          {copy.name}
+          {copy['databaseCreateTable.name']}
           <input className={inputClass} value={name} onChange={(event) => setName(event.target.value)} required />
         </label>
-        <p className="text-sm text-bolt-elements-textSecondary">{copy.identity}</p>
+        <p className="text-sm text-bolt-elements-textSecondary">{copy['databaseCreateTable.identity']}</p>
         {columns.map((column, index) => (
           <fieldset key={column.key} className="min-w-0 space-y-2 rounded border border-bolt-elements-borderColor p-2">
             <legend className="px-1 text-sm">
-              {copy.column} {index + 1}
+              {copy['databaseCreateTable.column']} {index + 1}
             </legend>
             <label className="block">
-              {copy.column}
+              {copy['databaseCreateTable.column']}
               <input
                 className={inputClass}
                 value={column.name}
@@ -203,16 +135,16 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
               />
             </label>
             <label className="block">
-              {copy.type}
+              {copy['databaseCreateTable.type']}
               <select
-                aria-label={copy.type}
+                aria-label={copy['databaseCreateTable.type']}
                 className={inputClass}
                 value={column.type}
                 onChange={(event) => update(column.key, { type: event.target.value as CreateColumnType })}
               >
                 {columnTypes.map((type) => (
                   <option key={type} value={type}>
-                    {copy.types[type]}
+                    {copy[`databaseCreateTable.types.${type}`]}
                   </option>
                 ))}
               </select>
@@ -224,15 +156,15 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
                   checked={column.required}
                   onChange={(event) => update(column.key, { required: event.target.checked })}
                 />
-                {copy.required}
+                {copy['databaseCreateTable.required']}
               </label>
               <button
                 type="button"
                 className="min-h-11 rounded border border-bolt-elements-borderColor px-3"
-                aria-label={`${copy.remove} ${index + 1}`}
+                aria-label={`${copy['databaseCreateTable.remove']} ${index + 1}`}
                 onClick={() => setColumns((items) => items.filter((item) => item.key !== column.key))}
               >
-                {copy.remove}
+                {copy['databaseCreateTable.remove']}
               </button>
             </div>
           </fieldset>
@@ -244,7 +176,7 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
             setColumns((items) => [...items, { key: nextKey.current++, name: '', type: 'text', required: false }])
           }
         >
-          {copy.add}
+          {copy['databaseCreateTable.add']}
         </button>
       </fieldset>
       {error && (
@@ -254,17 +186,17 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
       )}
       {pending && (
         <p role="status">
-          {copy.pending} {copy.waiting}
+          {copy['databaseCreateTable.pending']} {copy['databaseCreateTable.waiting']}
         </p>
       )}
-      {created && <p role="status">{copy.success}</p>}
+      {created && <p role="status">{copy['databaseCreateTable.success']}</p>}
       <div className="flex flex-wrap gap-2">
         <button
           type="submit"
           disabled={disabled || !connectionKey}
           className="min-h-11 rounded bg-bolt-elements-button-primary-background px-3 text-bolt-elements-button-primary-text disabled:opacity-50"
         >
-          {copy.create}
+          {copy['databaseCreateTable.create']}
         </button>
         <button
           type="button"
@@ -272,7 +204,7 @@ export function CreateTableForm({ projectId, connectionKey, onCreated, onCancel 
           className="min-h-11 rounded border border-bolt-elements-borderColor px-3 disabled:opacity-50"
           onClick={onCancel}
         >
-          {created ? copy.close : copy.cancel}
+          {created ? copy['databaseCreateTable.close'] : copy['databaseCreateTable.cancel']}
         </button>
       </div>
     </form>

@@ -13,12 +13,14 @@ function validIdentifier(value: string): boolean {
   );
 }
 
-export function buildCreateTable(definition: CreateTableDefinition): { query: string } | { error: CreateTableError } {
+export function buildCreateTable(
+  definition: CreateTableDefinition,
+): { query: string } | { errorCode: CreateTableError } {
   const schema = definition.schema.trim();
   const name = definition.name.trim();
 
   if (!validIdentifier(schema) || !validIdentifier(name)) {
-    return { error: 'identifier' };
+    return { errorCode: 'identifier' };
   }
 
   const names = new Set<string>();
@@ -28,19 +30,19 @@ export function buildCreateTable(definition: CreateTableDefinition): { query: st
     const columnName = column.name.trim();
 
     if (!validIdentifier(columnName)) {
-      return { error: 'identifier' };
+      return { errorCode: 'identifier' };
     }
 
     if (columnName.toLowerCase() === 'id') {
-      return { error: 'reserved' };
+      return { errorCode: 'reserved' };
     }
 
     if (names.has(columnName)) {
-      return { error: 'duplicate' };
+      return { errorCode: 'duplicate' };
     }
 
     if (!(columnTypes as readonly string[]).includes(column.type)) {
-      return { error: 'type' };
+      return { errorCode: 'type' };
     }
 
     names.add(columnName);

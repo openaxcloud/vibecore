@@ -509,7 +509,7 @@ function ConnectionStudio({
               className="mb-2 min-h-11 w-full rounded border border-bolt-elements-borderColor px-3 text-left text-sm disabled:opacity-50"
               onClick={() => setCreatingTable(true)}
             >
-              {language.toLowerCase().startsWith('fr') ? 'Créer une table' : 'Create a table'}
+              {copy['databaseCreateTable.title']}
             </button>
           ) : null}
           {visibleSchemaError && !loadingSchema ? (
