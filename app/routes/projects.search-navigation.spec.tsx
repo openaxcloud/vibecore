@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Request as FetchRequest } from 'node-fetch';
-import type { ReactNode } from 'react';
+import { StrictMode, useLayoutEffect, type ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -19,7 +19,32 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function renderProjects(initialEntry = '/projects?q=Alpha', navigationDelay = 0) {
+function controlledLoad() {
+  let release!: () => void;
+  let signalStarted!: () => void;
+
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    signalStarted = resolve;
+  });
+
+  return {
+    release,
+    started,
+    load: async () => {
+      signalStarted();
+      await pending;
+    },
+  };
+}
+
+async function renderProjects(
+  initialEntry = '/projects?q=Alpha',
+  navigationDelay = 0,
+  controlledLoads: Array<ReturnType<typeof controlledLoad>> = [],
+) {
   let loadCount = 0;
   vi.stubGlobal('Request', FetchRequest);
 
@@ -28,7 +53,12 @@ async function renderProjects(initialEntry = '/projects?q=Alpha', navigationDela
       {
         path: '/projects',
         loader: async () => {
-          if (loadCount++ > 0 && navigationDelay) {
+          const currentLoad = loadCount++;
+          const controlled = controlledLoads[currentLoad - 1];
+
+          if (controlled) {
+            await controlled.load();
+          } else if (currentLoad > 0 && navigationDelay) {
             await new Promise((resolve) => setTimeout(resolve, navigationDelay));
           }
 
@@ -47,6 +77,10 @@ async function renderProjects(initialEntry = '/projects?q=Alpha', navigationDela
   );
 
   const input = (await screen.findByRole('textbox')) as HTMLInputElement;
+  await act(async () => {
+    expect(router.state.initialized).toBe(true);
+    expect(router.state.navigation.state).toBe('idle');
+  });
 
   return { router, input };
 }
@@ -97,15 +131,37 @@ it('does not let the debounce cancel a slower navigation that clears the query',
 });
 
 it('keeps newer typing when an earlier debounced query finishes loading', async () => {
-  const { router, input } = await renderProjects('/projects', 300);
-  fireEvent.change(input, { target: { value: 'A' } });
-  await waitFor(() => expect(router.state.navigation.state).toBe('loading'));
-  fireEvent.change(input, { target: { value: 'AB' } });
-  await waitFor(() => expect(new URLSearchParams(router.state.location.search).get('q')).toBe('AB'), {
-    timeout: 2000,
-  });
-  expect(input.value).toBe('AB');
-  router.dispose();
+  const first = controlledLoad();
+  const second = controlledLoad();
+  const { router, input } = await renderProjects('/projects', 0, [first, second]);
+
+  try {
+    expect(input.value).toBe('');
+    fireEvent.change(input, { target: { value: 'A' } });
+    expect(input.value).toBe('A');
+    await act(() => first.started);
+    expect(router.state.navigation.state).toBe('loading');
+    expect(input.value).toBe('A');
+    fireEvent.change(input, { target: { value: 'AB' } });
+    expect(input.value).toBe('AB');
+    await act(async () => {
+      first.release();
+    });
+    await act(() => second.started);
+    expect(new URLSearchParams(router.state.location.search).get('q')).toBe('A');
+    expect(router.state.navigation.state).toBe('loading');
+    expect(input.value).toBe('AB');
+    await act(async () => {
+      second.release();
+    });
+    await waitFor(() => expect(new URLSearchParams(router.state.location.search).get('q')).toBe('AB'));
+    expect(router.state.navigation.state).toBe('idle');
+    expect(input.value).toBe('AB');
+  } finally {
+    first.release();
+    second.release();
+    router.dispose();
+  }
 });
 
 it('keeps a pending draft when switching the local status filter', async () => {
@@ -150,4 +206,58 @@ it('distinguishes an explicit PUSH from a pending local write to the same query'
   await waitFor(() => expect(input.value).toBe('A'));
   expect(new URLSearchParams(router.state.location.search).get('q')).toBe('A');
   router.dispose();
+});
+
+it.each([false, true])('preserves input before initial passive effects (StrictMode=%s)', async (strict) => {
+  vi.stubGlobal('Request', FetchRequest);
+
+  const data = { projects: [], failedOrganizationCount: 0, organizationCount: 1 };
+  const load = controlledLoad();
+
+  let committedInput: HTMLInputElement | undefined;
+
+  function EarlyInput() {
+    useLayoutEffect(() => {
+      committedInput = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.change(committedInput, { target: { value: 'A' } });
+    }, []);
+    return <ProjectsPage />;
+  }
+
+  const router = createMemoryRouter(
+    [
+      {
+        id: 'projects',
+        path: '/projects',
+        loader: async () => {
+          await load.load();
+          return data;
+        },
+        Component: EarlyInput,
+      },
+    ],
+    { initialEntries: ['/projects'], hydrationData: { loaderData: { projects: data } } },
+  );
+  const tree = (
+    <I18nextProvider i18n={createI18nInstance('en')}>
+      <RouterProvider router={router} />
+    </I18nextProvider>
+  );
+
+  try {
+    render(strict ? <StrictMode>{tree}</StrictMode> : tree);
+    expect(screen.getByRole('textbox')).toBe(committedInput);
+    expect(committedInput?.value).toBe('A');
+    await act(() => load.started);
+    expect(router.state.navigation.state).toBe('loading');
+    expect(committedInput?.value).toBe('A');
+    await act(async () => {
+      load.release();
+    });
+    await waitFor(() => expect(new URLSearchParams(router.state.location.search).get('q')).toBe('A'));
+    expect(committedInput?.value).toBe('A');
+  } finally {
+    load.release();
+    router.dispose();
+  }
 });

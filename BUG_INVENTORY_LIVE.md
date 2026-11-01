@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-615 entrées.
+616 entrées.
 
 ## Sans section
 
@@ -863,6 +863,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-AGENT-AUTO-APPLY-NO-MANUAL-REVIEW-20261101](docs/bugs/BUG-AGENT-AUTO-APPLY-NO-MANUAL-REVIEW-20261101.md) — P1 — le parcours Agent retombe sur Accepter/Rejeter après échec, conflit, restauration ou réponse tronquée. Demande du 01/11 : application automatique des modif — 📤 Dispatché : ☑ 01/11 — branche distincte fix/agent-automatic-edits-20261101, base 2072771dce3e7bcf0587d9a6231d7db0844ac35a. · 💻 Codé : ☐ — correction locale sur branche distincte, pas intégrée à main. Application automatique validée, file sans A · ✅ Testé live : ☐ — aucune validation produit ou production. Réessai → notification Annuler → réversion réelle du store validé
+
+## Interface et navigation
+
+- [BUG-PROJECTS-INITIAL-SEARCH-EFFECT-20261101](docs/bugs/BUG-PROJECTS-INITIAL-SEARCH-EFFECT-20261101.md) — 📤 Dispatché : ☑ 01/11 — analyser l’échec unitaire sur main `7ecd1d85`, run `41339721137`, · 💻 Codé : ☑ — correction locale préparée : mémoriser l’identité de localisation déjà consommée · ✅ Testé live : ☐ — aucune recette navigateur en production ; validations locales jsdom seulement.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

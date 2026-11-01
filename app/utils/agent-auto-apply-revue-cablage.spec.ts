@@ -17,7 +17,16 @@ describe('la file de revue du chat passe par propositionsAMontrer', () => {
   it('la file elle-même', () => {
     expect(source).toContain("import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';");
     expect(source).toContain('<AgentPatchReviewQueue');
-    expect(queueSource).toContain('() => propositionsAMontrer(proposals, Boolean(autoApplyEnabled)),');
+
+    /*
+     * Même une ancienne préférence manuelle ne doit pas masquer la récupération
+     * ni réintroduire des actions Accepter/Rejeter.
+     */
+    expect(queueSource).toContain('() => propositionsAMontrer(proposals, true)');
+    expect(queueSource).toContain('visibleProposals.filter(canRetryAgentPatchAutomatically)');
+    expect(queueSource).toContain('workbenchStore.retryAutomaticAgentPatchProposals(ids)');
+    expect(queueSource).toContain("if (result.status === 'accepted' && proposal)");
+    expect(queueSource).toContain('scheduleAppliedFilesToast(proposal.relativePath, proposal.id)');
   });
 
   it('la condition de rendu', () => {
