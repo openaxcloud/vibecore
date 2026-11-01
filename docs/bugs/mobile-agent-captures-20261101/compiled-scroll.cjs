@@ -67,7 +67,7 @@ async function setup(p) {
   ]) {
     const b = await type.launch({ executablePath });
     try {
-      for (const width of [393]) {
+      for (const width of (process.env.MOBILE_SCROLL_WIDTHS || '393').split(',').map(Number)) {
         const p = await b.newPage({ viewport: { width, height: 852 }, isMobile: true, hasTouch: true });
         const row = { engine, width };
         rows.push(row);
@@ -140,7 +140,15 @@ async function setup(p) {
           await expect(pill).toBeVisible();
           row.pill = await pill.boundingBox();
           row.scrollbox = await scroller.boundingBox();
-          expect(row.pill.y).toBeGreaterThanOrEqual(row.scrollbox.y + row.scrollbox.height);
+          if (width < 1200) expect(row.pill.y).toBeGreaterThanOrEqual(row.scrollbox.y + row.scrollbox.height);
+          else expect(await pill.evaluate((n) => getComputedStyle(n).position)).toBe('sticky');
+          expect(
+            await pill.evaluate((n) => {
+              const b = n.getBoundingClientRect();
+              const top = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+              return b.y >= 0 && b.bottom <= innerHeight && (top === n || n.contains(top));
+            }),
+          ).toBe(true);
           await p.screenshot({ path: output + '/' + engine + '-scroll-after.png' });
           await pill.click();
           await expect(pill).toBeHidden();
