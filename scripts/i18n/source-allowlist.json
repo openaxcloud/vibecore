@@ -407,10 +407,19 @@
       "expiresOn": "2027-08-05"
     },
     {
+      "id": "skills-proof-synthetic-description",
+      "path": "services/api/scripts/skills-proof-server.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^Synthetic interface guidance$",
+      "justification": "Synthetic fixture metadata only. This opt-in QA script refuses any database except the dedicated localhost proof database; it is not imported by the production server or shipped as product copy.",
+      "owner": "agent-platform-and-i18n",
+      "expiresOn": "2027-08-05"
+    },
+    {
       "id": "skill-disclosure-programming-invariants",
       "path": "app/lib/.server/llm/skill-disclosure.ts",
       "rule": "error-message",
-      "textPattern": "^(?:Unknown skill \"\\{…\\}\"\\.|Skill \"\\{…\\}\" declares no resource \"\\{…\\}\"\\.)$",
+      "textPattern": "^(?:Unknown skill \"\\{…\\}\"\\.|Skill \"\\{…\\}\" has no available resource \"\\{…\\}\"\\.)$",
       "justification": "The production disclosure builder opens only keys derived from its own byName map, and openResource has no production caller. These exceptions protect programmer invariants; the values cannot reach a rendered response.",
       "owner": "agent-platform-and-i18n",
       "expiresOn": "2027-08-05"

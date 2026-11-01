@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -45,11 +45,14 @@ import { Artifact } from './Artifact';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
 function rendre(langue: 'en' | 'fr' = 'fr') {
-  return render(
+  const result = render(
     <I18nextProvider i18n={createI18nInstance(langue)}>
       <Artifact artifactId="artefact-demarrage" messageId="assistant-message" />
     </I18nextProvider>,
   );
+  fireEvent.click(screen.getByRole('button', { name: langue === 'fr' ? 'Afficher les actions' : 'Show actions' }));
+
+  return result;
 }
 
 describe('« Démarrer l’application » lance vraiment le serveur', () => {

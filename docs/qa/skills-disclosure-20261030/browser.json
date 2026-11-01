@@ -1,0 +1,32 @@
+[
+  {
+    "width": 1280,
+    "togglePersisted": true,
+    "geometry": {
+      "client": 588,
+      "scroll": 588,
+      "viewport": 1280
+    },
+    "catalogSearch": true
+  },
+  {
+    "width": 820,
+    "togglePersisted": true,
+    "geometry": {
+      "client": 771,
+      "scroll": 771,
+      "viewport": 820
+    },
+    "catalogSearch": true
+  },
+  {
+    "width": 390,
+    "togglePersisted": true,
+    "geometry": {
+      "client": 358,
+      "scroll": 358,
+      "viewport": 390
+    },
+    "catalogSearch": true
+  }
+]

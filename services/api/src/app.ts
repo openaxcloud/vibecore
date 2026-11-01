@@ -465,6 +465,7 @@ import { auditSkill, localizeAuditFindings, type SkillContent } from './skill-au
 import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
+import { fetchSkillResourceSnapshots } from './skill-resources.js';
 import { findRepoEntry, normalizeOwnerRepo, skillRepoCatalogForLocale } from './skills-repo-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
@@ -24876,19 +24877,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const fetched = await fetchSkillRepoInstructions(ownerRepo);
 
     let instructions: string;
-    let note: string | undefined;
 
     if (fetched.ok) {
       instructions = fetched.instructions;
-    } else if (catalogEntry) {
-      // Public curated repo we couldn't read right now — fall back to our summary.
-      instructions = catalogEntry.description;
-      note = appPublicCopy(
-        fetched.reason === 'private_or_missing'
-          ? 'SKILL_CATALOG_SUMMARY_MANIFEST_MISSING'
-          : 'SKILL_CATALOG_SUMMARY_REPOSITORY_UNREACHABLE',
-        locale,
-      );
+    } else if (fetched.reason === 'too_large' || fetched.reason === 'invalid_content') {
+      return reply.code(422).send({
+        error: appPublicEnglish('SKILL_RESOURCES_UNAVAILABLE'),
+        code: 'SKILL_RESOURCES_UNAVAILABLE',
+        reason: fetched.reason,
+      });
     } else if (fetched.reason === 'private_or_missing') {
       return reply.code(404).send({
         error: appPublicEnglish('SKILL_PUBLIC_MANIFEST_NOT_FOUND', { value1: ownerRepo }),
@@ -24922,7 +24919,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ? parsedManifest.manifest
       : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
 
-    const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
+    const snapshots = await fetchSkillResourceSnapshots(ownerRepo, instructions);
+
+    if (!snapshots.ok) {
+      return reply.code(422).send({
+        error: appPublicEnglish('SKILL_RESOURCES_UNAVAILABLE'),
+        code: 'SKILL_RESOURCES_UNAVAILABLE',
+        reason: snapshots.reason,
+      });
+    }
+
+    auditManifest.resources = snapshots.resources.map(({ path, kind, bytes }) => ({ path, kind, bytes }));
+    const auditContent: SkillContent = { manifest: auditManifest, resourceContents: snapshots.resourceContents };
 
     const audit = auditSkill(auditContent);
     const auditedAt = new Date().toISOString();
@@ -24965,7 +24973,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       auditFindings: audit.findings,
       auditedAt,
       manifestName: parsedManifest.ok ? parsedManifest.manifest.name : null,
-      resources: auditManifest.resources,
+      resources: snapshots.resources,
     });
 
     if (!created) {
@@ -24990,7 +24998,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(201).send({
       skill: localizeInstalledSkillRecord(record, locale),
       source: fetched.ok ? fetched.source : null,
-      note,
       audit: { verdict: audit.verdict, findings: localizeAuditFindings(audit.findings, locale) },
     });
   });
@@ -25064,6 +25071,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (scopeId === undefined) {
       return reply; // 409 already sent
+    }
+
+    // A normal toggle must not bypass the explicit approval action and journal.
+    if (body.enabled) {
+      const current = (await store.listInstalledSkills(scope, scopeId)).find((skill) => skill.ownerRepo === ownerRepo);
+
+      if (current?.auditVerdict === 'quarantined' && !current.enabled) {
+        return reply.code(409).send({
+          error: appPublicEnglish('SKILL_APPROVAL_REQUIRED'),
+          code: 'SKILL_APPROVAL_REQUIRED',
+        });
+      }
     }
 
     const updated = await store.setInstalledSkillEnabled({

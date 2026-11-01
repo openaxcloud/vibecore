@@ -435,7 +435,11 @@ async function assertCompactShellForProfile(
     ).toBeVisible();
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
-    await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click({ force: true });
+    /*
+     * Startup can replace this node after the visibility assertion. Preserve
+     * actionability checks so the locator interacts with the live control.
+     */
+    await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click();
     await expect(page.getByTestId('mobile-more-menu-sheet'), `${profile.name} more menu`).toBeVisible({
       timeout: 10_000,
     });

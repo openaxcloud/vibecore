@@ -75,6 +75,10 @@ describe('IDE panel actions keep a failure the user can act on', () => {
    * changera jamais rien — exactement le cas du provisionnement de base de
    * données qui a ouvert cette liste.
    *
+   * Les références Skills absentes/non prises en charge exigent un contenu
+   * compatible ; le panneau utilise ce code pour sa propre explication traduite,
+   * sans afficher le détail technique de la réponse amont.
+   *
    * Une VRAIE panne, elle, reste masquée : c'est le test juste au-dessus.
    */
   it('keeps the pass-through list deliberately small', () => {
@@ -84,6 +88,7 @@ describe('IDE panel actions keep a failure the user can act on', () => {
       'ENTERPRISE_DEPLOYMENT_REQUIRED',
       'FEATURE_NOT_ENABLED',
       'PROVIDER_NOT_CONFIGURED',
+      'SKILL_RESOURCES_UNAVAILABLE',
     ]);
   });
 });

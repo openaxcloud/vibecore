@@ -1,0 +1,8 @@
+
+ ✓ app/lib/.server/llm/stream-text.skills.spec.ts (2 tests) 62ms
+
+ Test Files  4 passed (4)
+      Tests  33 passed (33)
+   Start at  11:07:03
+   Duration  4.58s (transform 2.33s, setup 214ms, collect 1.32s, tests 764ms, environment 1ms, prepare 488ms)
+

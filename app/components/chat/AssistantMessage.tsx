@@ -17,10 +17,12 @@ import { AgentLaneSummary, AgentVerificationClaims, getAgentOutputLabel } from '
 import { Markdown } from './Markdown';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { MessagePatchReview } from './MessagePatchReview';
+import { MessageTechnicalActivity } from './MessageTechnicalActivity';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
 import { ToolInvocations } from './ToolInvocations';
 import { extractLaneStreamSummary, resolveLaneState } from './agent-lane-state';
+import { assistantPresentation } from './assistant-presentation';
 import { ConnectionFailedNote } from './connector-cards/ConnectionFailedNote';
 import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
 import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote';
@@ -53,6 +55,12 @@ import { createScopedLogger } from '~/utils/logger';
 
 export interface AssistantMessageProps {
   content: string;
+
+  /** An empty parser projection is intentional, not a missing SDK body. */
+  contentIsParsed?: boolean;
+
+  /** Display-only original text; never sent to execution from this component. */
+  originalSource?: string;
   annotations?: JSONValue[];
   messageId?: string;
   onRewind?: (messageId: string) => void;
@@ -105,6 +113,8 @@ function normalizedFilePath(path: string) {
 export const AssistantMessage = memo(
   ({
     content,
+    contentIsParsed = false,
+    originalSource,
     annotations,
     messageId,
     onRewind,
@@ -364,7 +374,21 @@ export const AssistantMessage = memo(
      * `content` reste prioritaire : c'est la version passée par l'analyseur de
      * messages (artefacts convertis). Les `parts` sont le filet.
      */
-    const corpsDuMessage = lireCorpsDuMessage(content, parts);
+    const corpsDuMessage = contentIsParsed ? content : lireCorpsDuMessage(content, parts);
+    const noFiles = filteredAnnotations.some((annotation) => annotation.type === 'consigneSansFichier');
+
+    const presentation = assistantPresentation(corpsDuMessage, {
+      collapseFencedCode: chatMode === 'build' && !noFiles,
+    });
+
+    const technicalActivities = presentation.filter((part) => part.kind === 'activity');
+
+    const sourcePresentation =
+      originalSource === undefined || originalSource === corpsDuMessage
+        ? presentation
+        : assistantPresentation(originalSource, { collapseFencedCode: chatMode === 'build' && !noFiles });
+
+    const sourceIncomplete = sourcePresentation.some((part) => part.kind === 'activity' && part.incomplete);
 
     const connectorAnnotations = filteredAnnotations.filter(
       (annotation) =>
@@ -384,6 +408,7 @@ export const AssistantMessage = memo(
      */
     const aQuelqueChoseAMontrer =
       corpsDuMessage.trim().length > 0 ||
+      (!isStreaming && sourceIncomplete) ||
       (toolInvocations?.length ?? 0) > 0 ||
       connectorAnnotations.length > 0 ||
       reasoningTexts.length > 0 ||
@@ -391,6 +416,7 @@ export const AssistantMessage = memo(
       Boolean(agentPlan) ||
       Boolean(basculeTexte) ||
       Boolean(observedModel) ||
+      Boolean(streamTerminal) ||
       Boolean(agentLaneStreams?.length) ||
       (!masquerLesPuces && Boolean(agentModeChipText || usageChipText));
 
@@ -398,36 +424,169 @@ export const AssistantMessage = memo(
       return null;
     }
 
-    return (
-      <div
-        className="bolt-assistant-message overflow-hidden w-full"
-        ref={menuContextuel.ancre as React.RefObject<HTMLDivElement>}
-        data-menu-contextuel="true"
-        {...menuContextuel.gestes}
-        onKeyDown={menuContextuel.onKeyDown}
+    const planContent = agentPlan?.tasks?.length
+      ? (() => {
+          /*
+           * Live plan status: correlate each planned task with the matching
+           * specialist lane's state (same data the "Parallel agents" panel
+           * uses) so the checklist lights up pending → running → done as the
+           * agents execute — instead of a static list. Only when we actually
+           * have lane data (parallel-subagents run); otherwise the plan is
+           * just a proposal and we show plain numbered steps.
+           */
+          const hasLaneData = Boolean(agentLaneStreams?.length || agentExecution);
+
+          const stateForRole = (roleId: (typeof agentPlan.tasks)[number]['roleId']) => {
+            if (!hasLaneData) {
+              return undefined;
+            }
+
+            const result = agentExecution?.results.find((r) => r.roleId === roleId);
+            const stream = agentLaneStreams?.find((lane) => lane.roleId === roleId);
+
+            return resolveLaneState({
+              resultStatus: result?.status,
+              streamStatus: stream?.status,
+              hasExecution: Boolean(agentExecution),
+              isStreaming,
+            });
+          };
+
+          const iconForState = (state: ReturnType<typeof stateForRole>) =>
+            state === 'running'
+              ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
+              : state === 'complete'
+                ? 'i-ph:check-circle text-emerald-500'
+                : state === 'partial'
+                  ? 'i-ph:warning-circle text-amber-500'
+                  : state === 'failed'
+                    ? 'i-ph:x-circle text-red-500'
+                    : 'i-ph:circle text-bolt-elements-textTertiary';
+
+          const completed = hasLaneData
+            ? agentPlan.tasks.filter((task) => stateForRole(task.roleId) === 'complete').length
+            : 0;
+
+          return (
+            <div
+              className="bolt-agent-plan my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+              data-testid="agent-plan-panel"
+            >
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+                <span className="i-ph:list-checks text-bolt-elements-item-contentAccent" aria-hidden />
+                <span>{copy['assistantMessage.plan.title']}</span>
+                <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
+                  {hasLaneData
+                    ? text(copy['assistantMessage.plan.done'], {
+                        completed: formatAssistantUsageNumber(completed, language) ?? completed,
+                        total: formatAssistantUsageNumber(agentPlan.tasks.length, language) ?? agentPlan.tasks.length,
+                      })
+                    : formatAssistantTasksAgents(
+                        copy,
+                        agentPlan.tasks.length,
+                        new Set(agentPlan.tasks.map((task) => task.roleId)).size,
+                        language,
+                      )}
+                </span>
+              </div>
+              <ol className="space-y-1">
+                {agentPlan.tasks.map((task, index) => {
+                  const state = stateForRole(task.roleId);
+
+                  return (
+                    <li
+                      key={`${task.roleId}-${index}`}
+                      className="flex min-w-0 items-start gap-2 text-xs"
+                      data-testid={`agent-plan-task-${index}`}
+                      data-state={state ?? 'proposed'}
+                    >
+                      {state ? (
+                        <span
+                          className={`mt-[1px] shrink-0 ${iconForState(state)}`}
+                          aria-label={localizeAssistantEnum(copy, 'status', state)}
+                        />
+                      ) : (
+                        <span className="mt-[1px] shrink-0 text-bolt-elements-textTertiary">{index + 1}.</span>
+                      )}
+                      <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
+                        {localizeAssistantEnum(copy, 'role', task.roleId)}
+                      </span>
+                      <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">{task.title}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+              {agentPlan.needsApproval ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-bolt-elements-borderColor pt-2">
+                  <span className="text-[11px] text-bolt-elements-textSecondary">
+                    {copy['assistantMessage.plan.review']}
+                  </span>
+                  <button
+                    type="button"
+                    className="[margin-inline-start:auto] rounded-md bg-bolt-elements-button-primary-background px-2.5 py-1 text-xs font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover"
+                    onClick={() => {
+                      if (typeof window === 'undefined') {
+                        return;
+                      }
+
+                      window.dispatchEvent(
+                        new CustomEvent('vibecore:plan-approved', { detail: { tasks: agentPlan.tasks } }),
+                      );
+                    }}
+                  >
+                    {copy['assistantMessage.plan.approve']}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          );
+        })()
+      : null;
+    const hasTechnicalDetails = Boolean(
+      technicalActivities.length ||
+        codeContext ||
+        chatSummary ||
+        agentOrchestration ||
+        agentExecution ||
+        agentMemory ||
+        agentRules ||
+        agentPlan ||
+        agentLaneStreams?.length ||
+        reasoningTexts.length ||
+        observedModel ||
+        streamTerminal ||
+        basculeTexte ||
+        (!masquerLesPuces && (agentModeChipText || usageChipText)),
+    );
+    const needsAttention =
+      (!streamTerminal || streamTerminal.status === 'complete' || isStreaming) &&
+      ((!isStreaming && sourceIncomplete) ||
+        ecartsIncomplets.length > 0 ||
+        agentExecution?.results.some((result) => result.status === 'failed' || result.status === 'partial') ||
+        agentLaneStreams?.some((lane) => lane.status === 'failed' || lane.status === 'partial'));
+    const technicalDetails = hasTechnicalDetails ? (
+      <details
+        key={`technical:${messageId ?? 'message'}`}
+        className="my-2 min-w-0 text-sm"
+        data-testid="agent-technical-details"
       >
-        {/*
-          CIBLE VISIBLE, SANS COUT AU REPOS.
-          Un appui long est invisible tant qu'on ne l'a pas decouvert. Ce
-          chevron rend la fonction trouvable pour qui ne connait pas le geste,
-          et il ne coute rien a la densite : `position: absolute`, donc il ne
-          pousse jamais le texte a l'apparition — un element qui deplace la
-          mise en page au survol est un defaut visuel a lui seul.
-          Il n'apparait qu'au survol (souris) ou au focus (clavier) ; au doigt,
-          l'appui long suffit, comme sur WhatsApp.
-        */}
-        <button
-          type="button"
-          className="bolt-message-menu-trigger"
-          aria-label={copy['assistantMessage.footer.group']}
-          aria-haspopup="menu"
-          onClick={(evenement) => {
-            const boite = evenement.currentTarget.getBoundingClientRect();
-            menuContextuel.ouvrirEn(boite.left, boite.bottom);
-          }}
-        >
-          <span aria-hidden>⋯</span>
-        </button>
+        <summary className="min-h-11 cursor-pointer rounded px-2 py-3 text-bolt-elements-textSecondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+          {copy['assistantMessage.activity.details']}
+        </summary>
+        {technicalActivities.length ? (
+          <p className="my-2 text-xs text-bolt-elements-textSecondary">
+            {
+              copy[
+                technicalActivities.some((part) => part.incomplete)
+                  ? 'assistantMessage.activity.incomplete'
+                  : 'assistantMessage.activity.source'
+              ]
+            }
+          </p>
+        ) : null}
+        {technicalActivities.map((part) => (
+          <MessageTechnicalActivity key={part.offset} activity={part} />
+        ))}
         <>
           {/*
             Le bandeau « Agent » se répétait au-dessus de CHAQUE réponse, avec un
@@ -437,7 +596,6 @@ export const AssistantMessage = memo(
             à droite, celui de l'agent du texte pleine largeur. On garde
             l'information pour les lecteurs d'écran, on retire le bandeau.
           */}
-          <span className="vc-sr-only">{copy['assistantMessage.agent']}</span>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
             {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) && (
               <Popover
@@ -785,127 +943,8 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
-        {agentPlan?.tasks?.length
-          ? (() => {
-              /*
-               * Live plan status: correlate each planned task with the matching
-               * specialist lane's state (same data the "Parallel agents" panel
-               * uses) so the checklist lights up pending → running → done as the
-               * agents execute — instead of a static list. Only when we actually
-               * have lane data (parallel-subagents run); otherwise the plan is
-               * just a proposal and we show plain numbered steps.
-               */
-              const hasLaneData = Boolean(agentLaneStreams?.length || agentExecution);
 
-              const stateForRole = (roleId: (typeof agentPlan.tasks)[number]['roleId']) => {
-                if (!hasLaneData) {
-                  return undefined;
-                }
-
-                const result = agentExecution?.results.find((r) => r.roleId === roleId);
-                const stream = agentLaneStreams?.find((lane) => lane.roleId === roleId);
-
-                return resolveLaneState({
-                  resultStatus: result?.status,
-                  streamStatus: stream?.status,
-                  hasExecution: Boolean(agentExecution),
-                  isStreaming,
-                });
-              };
-
-              const iconForState = (state: ReturnType<typeof stateForRole>) =>
-                state === 'running'
-                  ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
-                  : state === 'complete'
-                    ? 'i-ph:check-circle text-emerald-500'
-                    : state === 'partial'
-                      ? 'i-ph:warning-circle text-amber-500'
-                      : state === 'failed'
-                        ? 'i-ph:x-circle text-red-500'
-                        : 'i-ph:circle text-bolt-elements-textTertiary';
-
-              const completed = hasLaneData
-                ? agentPlan.tasks.filter((task) => stateForRole(task.roleId) === 'complete').length
-                : 0;
-
-              return (
-                <div
-                  className="bolt-agent-plan my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
-                  data-testid="agent-plan-panel"
-                >
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
-                    <span className="i-ph:list-checks text-bolt-elements-item-contentAccent" aria-hidden />
-                    <span>{copy['assistantMessage.plan.title']}</span>
-                    <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
-                      {hasLaneData
-                        ? text(copy['assistantMessage.plan.done'], {
-                            completed: formatAssistantUsageNumber(completed, language) ?? completed,
-                            total:
-                              formatAssistantUsageNumber(agentPlan.tasks.length, language) ?? agentPlan.tasks.length,
-                          })
-                        : formatAssistantTasksAgents(
-                            copy,
-                            agentPlan.tasks.length,
-                            new Set(agentPlan.tasks.map((task) => task.roleId)).size,
-                            language,
-                          )}
-                    </span>
-                  </div>
-                  <ol className="space-y-1">
-                    {agentPlan.tasks.map((task, index) => {
-                      const state = stateForRole(task.roleId);
-
-                      return (
-                        <li
-                          key={`${task.roleId}-${index}`}
-                          className="flex min-w-0 items-start gap-2 text-xs"
-                          data-testid={`agent-plan-task-${index}`}
-                          data-state={state ?? 'proposed'}
-                        >
-                          {state ? (
-                            <span
-                              className={`mt-[1px] shrink-0 ${iconForState(state)}`}
-                              aria-label={localizeAssistantEnum(copy, 'status', state)}
-                            />
-                          ) : (
-                            <span className="mt-[1px] shrink-0 text-bolt-elements-textTertiary">{index + 1}.</span>
-                          )}
-                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
-                            {localizeAssistantEnum(copy, 'role', task.roleId)}
-                          </span>
-                          <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">
-                            {task.title}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                  {agentPlan.needsApproval ? (
-                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-bolt-elements-borderColor pt-2">
-                      <span className="text-[11px] text-bolt-elements-textSecondary">
-                        {copy['assistantMessage.plan.review']}
-                      </span>
-                      <button
-                        type="button"
-                        className="[margin-inline-start:auto] rounded-md bg-bolt-elements-button-primary-background px-2.5 py-1 text-xs font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover"
-                        onClick={() => {
-                          if (typeof window === 'undefined') {
-                            return;
-                          }
-
-                          window.dispatchEvent(
-                            new CustomEvent('vibecore:plan-approved', { detail: { tasks: agentPlan.tasks } }),
-                          );
-                        }}
-                      >
-                        {copy['assistantMessage.plan.approve']}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })()
-          : null}
+        {!agentPlan?.needsApproval ? planContent : null}
         {((agentOrchestration?.mode === 'parallel-subagents' && agentOrchestration.roles.length > 0) ||
           agentLaneStreams?.length) &&
           lanePanelRoles.length > 0 && (
@@ -1063,65 +1102,6 @@ export const AssistantMessage = memo(
             ))}
           </div>
         )}
-        {(() => {
-          /*
-           * Sprint 5 wiring — if the message contains a parseable plan
-           * checklist (markdown task list), render the structured
-           * `<PlanChecklistView>` above the prose and pass only the
-           * non-plan remainder to Markdown so we don't render the same
-           * list twice. Streaming-safe: parsePlanChecklist tolerates
-           * partial input (an in-flight `- [ ]` line missing a description
-           * is just skipped).
-           */
-          const extracted = extractAndStripPlanChecklist(corpsDuMessage);
-          const markdownBody = extracted ? extracted.remainingText : corpsDuMessage;
-
-          return (
-            <>
-              {extracted ? <PlanChecklistView plan={extracted.plan} /> : null}
-              {markdownBody ? (
-                <Markdown
-                  append={append}
-                  chatMode={chatMode}
-                  setChatMode={setChatMode}
-                  model={model}
-                  provider={provider}
-                  html
-                >
-                  {markdownBody}
-                </Markdown>
-              ) : null}
-            </>
-          );
-        })()}
-        {messageId ? <MessagePatchReview messageId={messageId} content={content} parts={parts} /> : null}
-        {connectorAnnotations.length > 0
-          ? connectorAnnotations.map((annotation) => {
-              const { payload } = annotation;
-
-              switch (payload.kind) {
-                case 'connection_request':
-                  return <ConnectionRequestCard key={payload.messageId} payload={payload} />;
-                case 'connection_resolved':
-                  return <ConnectionResolvedNote key={payload.messageId} payload={payload} />;
-                case 'connection_failed':
-                  return <ConnectionFailedNote key={payload.messageId} payload={payload} />;
-                case 'secret_request':
-                  return <SecretRequestCard key={payload.messageId} payload={payload} />;
-                case 'reconnection_required':
-                  return <ReconnectionRequiredBanner key={payload.messageId} payload={payload} />;
-                default:
-                  return null;
-              }
-            })
-          : null}
-        {toolInvocations && toolInvocations.length > 0 && (
-          <ToolInvocations
-            toolInvocations={toolInvocations}
-            toolCallAnnotations={toolCallAnnotations}
-            addToolResult={addToolResult}
-          />
-        )}
         {observedModel ? (
           <p className="my-2 break-words text-xs text-bolt-elements-textSecondary" data-testid="agent-model-output">
             {text(
@@ -1133,12 +1113,6 @@ export const AssistantMessage = memo(
                 provider: observedModel.provider,
               },
             )}
-          </p>
-        ) : null}
-        {streamTerminal && !isStreaming ? (
-          <p className="my-2 break-words text-xs text-bolt-elements-textSecondary" data-testid="agent-stream-terminal">
-            {copy[`assistantMessage.streamTerminal.${streamTerminal.status}`]}{' '}
-            {copy['assistantMessage.streamTerminal.validation']}
           </p>
         ) : null}
         {basculeTexte ? (
@@ -1176,6 +1150,126 @@ export const AssistantMessage = memo(
             {usageChipText}
           </Link>
         ) : null}
+
+        {streamTerminal ? (
+          <p className="my-2 text-xs text-bolt-elements-textSecondary">
+            {copy['assistantMessage.streamTerminal.validation']}
+          </p>
+        ) : null}
+      </details>
+    ) : null;
+
+    return (
+      <div
+        className="bolt-assistant-message overflow-hidden w-full"
+        ref={menuContextuel.ancre as React.RefObject<HTMLDivElement>}
+        data-menu-contextuel="true"
+        {...menuContextuel.gestes}
+        onKeyDown={menuContextuel.onKeyDown}
+      >
+        <span className="vc-sr-only">{copy['assistantMessage.agent']}</span>
+        {/*
+          CIBLE VISIBLE, SANS COUT AU REPOS.
+          Un appui long est invisible tant qu'on ne l'a pas decouvert. Ce
+          chevron rend la fonction trouvable pour qui ne connait pas le geste,
+          et il ne coute rien a la densite : `position: absolute`, donc il ne
+          pousse jamais le texte a l'apparition — un element qui deplace la
+          mise en page au survol est un defaut visuel a lui seul.
+          Il n'apparait qu'au survol (souris) ou au focus (clavier) ; au doigt,
+          l'appui long suffit, comme sur WhatsApp.
+        */}
+        <button
+          type="button"
+          className="bolt-message-menu-trigger"
+          aria-label={copy['assistantMessage.footer.group']}
+          aria-haspopup="menu"
+          onClick={(evenement) => {
+            const boite = evenement.currentTarget.getBoundingClientRect();
+            menuContextuel.ouvrirEn(boite.left, boite.bottom);
+          }}
+        >
+          <span aria-hidden>⋯</span>
+        </button>
+        {agentPlan?.needsApproval ? planContent : null}
+        {presentation.map((part) => {
+          if (part.kind === 'activity') {
+            return null;
+          }
+
+          const extracted = extractAndStripPlanChecklist(part.text);
+          const markdownBody = extracted ? extracted.remainingText : part.text;
+
+          return (
+            <Fragment key={`prose:${part.offset}`}>
+              {extracted ? <PlanChecklistView plan={extracted.plan} /> : null}
+              {markdownBody ? (
+                <Markdown
+                  append={append}
+                  chatMode={chatMode}
+                  setChatMode={setChatMode}
+                  model={model}
+                  provider={provider}
+                  html={contentIsParsed && !noFiles}
+                >
+                  {markdownBody}
+                </Markdown>
+              ) : null}
+            </Fragment>
+          );
+        })}
+        {messageId ? <MessagePatchReview messageId={messageId} content={content} parts={parts} /> : null}
+        {connectorAnnotations.length > 0
+          ? connectorAnnotations.map((annotation) => {
+              const { payload } = annotation;
+
+              switch (payload.kind) {
+                case 'connection_request':
+                  return <ConnectionRequestCard key={payload.messageId} payload={payload} />;
+                case 'connection_resolved':
+                  return <ConnectionResolvedNote key={payload.messageId} payload={payload} />;
+                case 'connection_failed':
+                  return <ConnectionFailedNote key={payload.messageId} payload={payload} />;
+                case 'secret_request':
+                  return <SecretRequestCard key={payload.messageId} payload={payload} />;
+                case 'reconnection_required':
+                  return <ReconnectionRequiredBanner key={payload.messageId} payload={payload} />;
+                default:
+                  return null;
+              }
+            })
+          : null}
+        {toolInvocations && toolInvocations.length > 0 && (
+          <ToolInvocations
+            toolInvocations={toolInvocations}
+            toolCallAnnotations={toolCallAnnotations}
+            addToolResult={addToolResult}
+          />
+        )}
+        {streamTerminal && !isStreaming ? (
+          <p className="my-2 break-words text-xs text-bolt-elements-textSecondary" data-testid="agent-stream-terminal">
+            {copy[`assistantMessage.streamTerminal.${streamTerminal.status}`]}
+          </p>
+        ) : null}
+        {needsAttention ? (
+          <p className="my-2 text-sm" role="status" data-testid="agent-attention">
+            {
+              copy[
+                !isStreaming && sourceIncomplete
+                  ? 'assistantMessage.activity.sourceIncomplete'
+                  : 'assistantMessage.activity.attention'
+              ]
+            }
+          </p>
+        ) : null}
+        {basculeTexte ? (
+          <p className="my-2 text-xs" role="status">
+            {copy['assistantMessage.activity.fallback']}
+          </p>
+        ) : null}
+        {!streamTerminal && observedModel && !isStreaming ? (
+          <p className="my-2 text-xs">{copy['assistantMessage.activity.unknown']}</p>
+        ) : null}
+        {technicalDetails}
         {/*
           La rangée d'actions n'est plus posée sous chaque message : c'est
           exactement ce qu'Avi entoure en rouge sur ses captures — « pourquoi
