@@ -119,3 +119,11 @@ no product assertion or CI protection was weakened.
 This is 220 distinct API tests plus 29 CI-contract tests. Source hash receipts
 refer to measured source contents, not a production deployment. Final GitHub CI
 must also pass on the PR's exact head before integration by the coordinator.
+
+Initial PR CI stopped at the source-i18n guard because the new exact internal
+backup refusal identifiers were not declared. The existing provisioner diagnostic
+allowlist now names only `BACKUP_SOURCE_NAME_AMBIGUOUS`,
+`BACKUP_SOURCE_IDENTITY_MISMATCH`, and `BACKUP_REPORTED_ERROR`, with rationale;
+the migration's public message remains catalogued. No baseline threshold was
+raised. Catalog validation and source guard pass locally after this declaration.
+No measured runtime source changed in that correction.
