@@ -106,3 +106,11 @@ La CI de la première tête `fab6f71f` s'est arrêtée au contrôle i18n (trois
 nouvelles chaînes d'erreur). Les libellés ont été intégrés au catalogue EN/FR
 sans élargir la baseline ; le scanner et les 19 tests du catalogue passent.
 Cette ancienne CI ne valide pas la tête corrigée.
+
+La tête suivante `25a7b9f3d` a passé i18n, typage et sécurité, mais la suite
+unitaire complète a détecté un second test de câblage exigeant encore l'ancien
+comptage par segment (11 443 réussites, un échec, quatre skips). Le test exige
+désormais un unique comptage du contenu concaténé, son ordre après accumulation
+et l'absence de l'ancien comptage. Les 41 tests ciblés route/câblage passent ;
+aucune assertion comportementale ni contrôle n'est retiré. La tête suivante
+requiert sa propre CI complète.
