@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-606 entrées.
+607 entrées.
 
 ## Sans section
 
@@ -836,6 +836,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DATABASE-NO-SQL-TABLE-20261101](docs/bugs/BUG-DATABASE-NO-SQL-TABLE-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-DATABASE-NO-SQL-INSERT-20261101](docs/bugs/BUG-DATABASE-NO-SQL-INSERT-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-MOBILE-AGENT-CAPTURES-20261101](docs/bugs/BUG-MOBILE-AGENT-CAPTURES-20261101.md) — P1 — captures IMG_0939–0942 : compteurs rognés, cartes spécialistes inutilement hautes, texte système anglais, notification volumineuse et chevauchement de la f — 📤 Dispatché : ☑ 01/11 — correction mobile, menu inférieur conservé. Aucun changement de routage IA. · 💻 Codé : ☐ — branche fix/mobile-agent-captures-20261101 ; correctifs et preuves locales prêts ; pas encore intégré sur · ✅ Testé live : ☐ — aucune validation de production. Reproduction locale synthétique Chromium 393 px : métadonnées hautes de 2
+- [BUG-MOBILE-APPLIED-NOTICE-FLOW-20261101](docs/bugs/BUG-MOBILE-APPLIED-NOTICE-FLOW-20261101.md) — P1 — le toast de fichiers appliqués reste superposé au rapport malgré sa réduction (y=113 px inchangé dans la preuve de #881). — 📤 Dispatché : ☑ 01/11 — complément distinct demandé après validation de #881. Menu inférieur et avertissements conservés. · 💻 Codé : ☐ — branche fix/mobile-toast-flow-20261101, séparée de la tête verte 4692759e0946789104cb9df9770e51adeb30f256 · ✅ Testé live : ☐ — pas de validation de production ni d’iPhone physique. Validation locale compilée : 6 parcours Chromium/Web
 
 ## Résidus non tabulaires — reportés mot pour mot
 

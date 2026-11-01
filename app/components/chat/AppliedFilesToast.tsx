@@ -8,6 +8,10 @@ import {
 } from '~/lib/i18n/catalogs/applied-files-toast';
 import { generationEstHonnete, type ConstatDeGeneration } from '~/lib/runtime/generation-incomplete';
 
+export const AGENT_APPLIED_CONTAINER_ID = 'agent-applied-files-notices';
+
+let activeAppliedContainer: string | undefined;
+
 export const AGENT_APPLIED_TOAST_ID = 'agent-auto-applied-files';
 
 export function AppliedFilesToast({
@@ -110,19 +114,30 @@ export function showCoalescedAppliedToast(
    */
   const autoClose = honnete ? 4000 : (false as const);
 
-  if (toast.isActive(AGENT_APPLIED_TOAST_ID)) {
+  const active = toast.isActive(AGENT_APPLIED_TOAST_ID);
+
+  if (!active) {
+    const dock = typeof document === 'undefined' ? null : document.getElementById(AGENT_APPLIED_CONTAINER_ID);
+    activeAppliedContainer = dock && dock.getClientRects().length > 0 ? AGENT_APPLIED_CONTAINER_ID : undefined;
+  }
+
+  const containerId = activeAppliedContainer;
+
+  if (active) {
     toast.update(AGENT_APPLIED_TOAST_ID, {
       render: content,
       type,
       autoClose,
-      closeButton: true,
+      containerId,
+      closeButton: !containerId,
     });
   } else {
     toast(content, {
       toastId: AGENT_APPLIED_TOAST_ID,
       type,
       autoClose,
-      closeButton: true,
+      containerId,
+      closeButton: !containerId,
     });
   }
 }

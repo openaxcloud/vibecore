@@ -33129,3 +33129,44 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   bottom: auto !important;
   margin: 0;
 }
+
+/* Applied-file notices have their own row below the reading viewport. The
+ * empty row has no height; open details scroll within a bounded notification. */
+.bolt-agent-applied-notice-dock {
+  flex: 0 0 auto;
+  min-height: 0;
+  min-width: 0;
+}
+body:has(.bolt-project-statusbar) .bolt-agent-applied-notice-dock .Toastify__toast-container {
+  position: relative;
+  inset: auto;
+  transform: none;
+  width: 100%;
+  max-height: min(180px, 18dvh);
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.bolt-agent-applied-notice-dock .Toastify__toast {
+  min-height: 0;
+  margin: 0;
+  padding: 8px;
+  width: 100%;
+}
+.bolt-agent-applied-notice-dock .bolt-agent-applied-toast {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  width: 100%;
+}
+.bolt-agent-applied-notice-dock .bolt-agent-applied-toast-head {
+  grid-column: 1 / -1;
+}
+.bolt-agent-applied-notice-dock .bolt-agent-applied-toast-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-self: start;
+}
+.bolt-agent-applied-notice-dock .bolt-agent-applied-toast details[open] {
+  grid-column: 1 / -1;
+}

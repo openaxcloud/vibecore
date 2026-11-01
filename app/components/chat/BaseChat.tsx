@@ -98,6 +98,7 @@ import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './comp
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { AppliedFilesNoticeDock } from './AppliedFilesNoticeDock';
 import { AvisEcrituresEnAttente } from '~/components/chat/AvisEcrituresEnAttente';
 import { getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
 import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attente';
@@ -8193,6 +8194,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </ClientOnly>
             {!useMobileIde && <ScrollToBottom />}
           </StickToBottom.Content>
+          {projectIdeMode && <AppliedFilesNoticeDock />}
           {useMobileIde && <ScrollToBottom docked />}
           {shouldRenderAgentComposer && (
             <div
