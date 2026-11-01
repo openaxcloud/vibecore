@@ -3,10 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { CreateTableForm } from './CreateTableForm';
+import { InsertRowForm, hasInsertMetadata } from './InsertRowForm';
 import { QueryHistoryControl } from './QueryHistoryControl';
 import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
 import { columnLookupKey, quoteIdentifier, rowUpdateSql, tableSql } from './sql-grid';
-import { colonnesDuSchema, tablesDuSchema, type TableDuSchema } from './tables-du-schema';
+import { colonnesDuSchema, tablesDuSchema, type ColonneDuSchema, type TableDuSchema } from './tables-du-schema';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
 import Popover from '~/components/ui/Popover';
@@ -327,6 +328,11 @@ function ConnectionStudio({
   const [decalage, setDecalage] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [creatingTable, setCreatingTable] = useState(false);
+  const [insertingScope, setInsertingScope] = useState<string | null>(null);
+
+  const [insertionSnapshot, setInsertionSnapshot] = useState<{ scope: string; columns: ColonneDuSchema[] } | null>(
+    null,
+  );
 
   // Destructive statement awaiting user confirmation (null = no dialog).
   const [pendingSql, setPendingSql] = useState<string | null>(null);
@@ -392,6 +398,35 @@ function ConnectionStudio({
    */
   const activeConnection = connections.find((c) => c.key === connectionKey);
 
+  const insertionColumns = selectedTable ? (colonnesParTable.get(columnLookupKey(selectedTable)) ?? []) : [];
+  const insertionScope = JSON.stringify([projectId, connectionKey, selectedTable?.schema, selectedTable?.nom]);
+
+  const canInsertRow =
+    activeConnection?.declaredKind === 'postgres' &&
+    Boolean(selectedTable?.schema) &&
+    hasInsertMetadata(insertionColumns);
+
+  const insertionMetadataConfirmed =
+    canInsertRow &&
+    !loadingSchema &&
+    !schemaError &&
+    !(
+      schemaFetcher.data &&
+      typeof schemaFetcher.data === 'object' &&
+      'ok' in schemaFetcher.data &&
+      schemaFetcher.data.ok === false
+    ) &&
+    tables.some((table) => table.schema === selectedTable?.schema && table.nom === selectedTable?.nom);
+  useEffect(() => {
+    if (insertingScope === insertionScope && insertionMetadataConfirmed) {
+      setInsertionSnapshot((previous) =>
+        previous?.scope === insertionScope && previous.columns === insertionColumns
+          ? previous
+          : { scope: insertionScope, columns: insertionColumns },
+      );
+    }
+  }, [insertingScope, insertionScope, insertionMetadataConfirmed, insertionColumns]);
+
   const isProductionConnection = Boolean(
     activeConnection && /prod/i.test(`${activeConnection.key} ${activeConnection.label}`),
   );
@@ -407,6 +442,8 @@ function ConnectionStudio({
 
     setSql(q);
     setSelectedTable(table);
+    setCreatingTable(false);
+    setInsertingScope(null);
     setEditMode(false);
     setDecalage(borne);
     runQuery(q);
@@ -507,7 +544,10 @@ function ConnectionStudio({
               data-testid="studio-create-table"
               disabled={running || creatingTable}
               className="mb-2 min-h-11 w-full rounded border border-bolt-elements-borderColor px-3 text-left text-sm disabled:opacity-50"
-              onClick={() => setCreatingTable(true)}
+              onClick={() => {
+                setInsertingScope(null);
+                setCreatingTable(true);
+              }}
             >
               {copy['databaseCreateTable.title']}
             </button>
@@ -552,7 +592,26 @@ function ConnectionStudio({
 
         {/* SQL runner + results */}
         <section className="bolt-database-studio-main flex min-w-0 min-h-0 flex-col gap-2">
-          {creatingTable ? (
+          {insertingScope === insertionScope && selectedTable && insertionSnapshot?.scope === insertionScope ? (
+            <div className="min-h-0 overflow-auto">
+              <InsertRowForm
+                key={insertionScope}
+                projectId={projectId}
+                connectionKey={connectionKey}
+                table={selectedTable}
+                columns={insertionMetadataConfirmed ? insertionColumns : insertionSnapshot.columns}
+                metadataConfirmed={insertionMetadataConfirmed}
+                metadataLoading={loadingSchema}
+                onClose={() => setInsertingScope(null)}
+                onInserted={() => {
+                  loadSchema(connectionKey);
+                  executeQuery(
+                    `SELECT * FROM ${tableSql(selectedTable, 'postgres')} LIMIT ${LIGNES_PAR_PAGE} OFFSET ${decalage};`,
+                  );
+                }}
+              />
+            </div>
+          ) : creatingTable ? (
             <div className="min-h-0 overflow-auto">
               <CreateTableForm
                 key={`${projectId}:${connectionKey}`}
@@ -631,6 +690,14 @@ function ConnectionStudio({
                       <button
                         type="button"
                         onClick={() => {
+                          if (canInsertRow) {
+                            setCreatingTable(false);
+                            setInsertionSnapshot({ scope: insertionScope, columns: insertionColumns });
+                            setInsertingScope(insertionScope);
+
+                            return;
+                          }
+
                           const cols = (
                             selectedTable ? (colonnesParTable.get(columnLookupKey(selectedTable)) ?? []) : []
                           ).map((c) => c.nom);
@@ -645,8 +712,9 @@ function ConnectionStudio({
                         }}
                         className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
                       >
-                        {copy['databaseStudio.insertRow']}
+                        {copy[canInsertRow ? 'databaseStudio.insertRow' : 'databaseInsertRow.prepareSql']}
                       </button>
+                      {!canInsertRow && <p className="text-sm">{copy['databaseInsertRow.unavailable']}</p>}
                       <button
                         type="button"
                         disabled={

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-599 entrées.
+600 entrées.
 
 ## Sans section
 
@@ -817,6 +817,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-MOBILE-CHROME-HYDRATION-GAP-20261030](docs/bugs/BUG-MOBILE-CHROME-HYDRATION-GAP-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030](docs/bugs/BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-DATABASE-NO-SQL-TABLE-20261101](docs/bugs/BUG-DATABASE-NO-SQL-TABLE-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-DATABASE-NO-SQL-INSERT-20261101](docs/bugs/BUG-DATABASE-NO-SQL-INSERT-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

@@ -1,6 +1,27 @@
 import { resolveMarketingLanguage } from './marketing';
 
 export const databaseStudioEn = {
+  'databaseInsertRow.timezoneHint':
+    'Include the time zone offset in ISO format, for example 2026-11-01T12:34:56+02:00. The value is sent unchanged.',
+  'databaseInsertRow.yes': 'Yes',
+  'databaseInsertRow.no': 'No',
+  'databaseInsertRow.chooseBoolean': 'Choose yes or no',
+  'databaseInsertRow.prepareSql': 'Prepare INSERT in SQL editor',
+  'databaseInsertRow.metadataChanged':
+    'The table structure changed. Existing values were kept; check the input modes and new fields before inserting.',
+  'databaseInsertRow.title': 'Insert a row',
+  'databaseInsertRow.mode': 'Input mode',
+  'databaseInsertRow.value': 'Value',
+  'databaseInsertRow.null': 'No value (NULL)',
+  'databaseInsertRow.default': 'Database default',
+  'databaseInsertRow.automatic': 'Generated automatically by the database.',
+  'databaseInsertRow.unavailable':
+    'The form requires complete PostgreSQL column information. Use the SQL editor for this table.',
+  'databaseInsertRow.failed':
+    'The server did not confirm insertion. Refresh the table before trying again; your values have been kept.',
+  'databaseInsertRow.pending': 'Inserting row… Wait for the request to finish. Closing does not undo an insertion.',
+  'databaseInsertRow.success': 'Row inserted.',
+  'databaseInsertRow.submit': 'Insert row',
   'databaseCreateTable.title': 'Create a table',
   'databaseCreateTable.schema': 'Schema',
   'databaseCreateTable.name': 'Table name',
@@ -137,6 +158,28 @@ export type DatabaseStudioKey = keyof typeof databaseStudioEn;
 export type DatabaseStudioCopy = Readonly<Record<DatabaseStudioKey, string>>;
 
 export const databaseStudioFr: DatabaseStudioCopy = {
+  'databaseInsertRow.timezoneHint':
+    'Incluez le décalage horaire au format ISO, par exemple 2026-11-01T12:34:56+02:00. La valeur est transmise sans conversion.',
+  'databaseInsertRow.yes': 'Oui',
+  'databaseInsertRow.no': 'Non',
+  'databaseInsertRow.chooseBoolean': 'Choisissez oui ou non',
+  'databaseInsertRow.prepareSql': 'Préparer INSERT dans l’éditeur SQL',
+  'databaseInsertRow.metadataChanged':
+    'La structure de la table a changé. Les valeurs existantes ont été conservées ; vérifiez les modes de saisie et les nouveaux champs avant l’insertion.',
+  'databaseInsertRow.title': 'Ajouter une ligne',
+  'databaseInsertRow.mode': 'Mode de saisie',
+  'databaseInsertRow.value': 'Valeur',
+  'databaseInsertRow.null': 'Sans valeur (NULL)',
+  'databaseInsertRow.default': 'Valeur par défaut de la base',
+  'databaseInsertRow.automatic': 'Généré automatiquement par la base.',
+  'databaseInsertRow.unavailable':
+    'Le formulaire nécessite les informations complètes des colonnes PostgreSQL. Utilisez l’éditeur SQL pour cette table.',
+  'databaseInsertRow.failed':
+    'Le serveur n’a pas confirmé l’insertion. Actualisez la table avant de réessayer ; vos valeurs ont été conservées.',
+  'databaseInsertRow.pending':
+    'Insertion de la ligne… Attendez la fin de la requête. Fermer n’annule pas une insertion.',
+  'databaseInsertRow.success': 'Ligne ajoutée.',
+  'databaseInsertRow.submit': 'Ajouter la ligne',
   'databaseCreateTable.title': 'Créer une table',
   'databaseCreateTable.schema': 'Schéma',
   'databaseCreateTable.name': 'Nom de la table',

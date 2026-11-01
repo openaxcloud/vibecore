@@ -159,3 +159,130 @@ describe('DatabaseStudio request and row safety', () => {
     await screen.findByText('1 row(s) changed');
   });
 });
+
+it('opens the PostgreSQL row form and refreshes exactly its qualified table after insertion', async () => {
+  const calls: FormData[] = [];
+  const complete = schema();
+
+  const enriched = {
+    schema: {
+      ...complete.schema,
+      columns: complete.schema.columns.map((c) => ({
+        ...c,
+        is_nullable: 'NO',
+        is_identity: c.column_name === 'id' ? 'YES' : 'NO',
+        is_generated: 'NEVER',
+        has_default: false,
+      })),
+    },
+  };
+  const router = createMemoryRouter([
+    { path: '/', element: <DatabaseStudio projectId="p" connexionFournie="DB" schemaFourni={enriched} /> },
+    {
+      path: '/api/projects/:id/ide-panel/database',
+      loader: ({ request }) =>
+        request.url.includes('schemaKey') ? enriched : { connections: [{ key: 'DB', kind: 'postgres' }] },
+      action: async ({ request }) => {
+        const body = await request.formData();
+        calls.push(body);
+
+        return body.get('intent') === 'insert-row'
+          ? { ok: true, result: { command: 'INSERT', rowCount: 1 } }
+          : { ok: true, result: { columns: ['id', 'Name'], rows: [], rowCount: 0 } };
+      },
+    },
+  ]);
+  render(<RouterProvider router={router} />);
+  fireEvent.click(await screen.findByTestId('studio-table'));
+  fireEvent.click(await screen.findByRole('button', { name: '+ Insert row' }));
+  await screen.findByLabelText('Value — Name');
+  fireEvent.click(screen.getByTestId('studio-create-table'));
+  expect(await screen.findByLabelText('Table name')).toBeTruthy();
+  expect(screen.queryByLabelText('Value — Name')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+  expect(screen.queryByLabelText('Table name')).toBeNull();
+  fireEvent.click(screen.getByTestId('studio-create-table'));
+  fireEvent.click(screen.getByTestId('studio-table'));
+  await waitFor(() => expect(screen.queryByLabelText('Table name')).toBeNull());
+  fireEvent.click(await screen.findByRole('button', { name: '+ Insert row' }));
+  fireEvent.change(await screen.findByLabelText('Value — Name'), { target: { value: 'exact row' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Insert row', exact: true }));
+  await screen.findByText('Row inserted.');
+  await waitFor(() => expect(calls).toHaveLength(4));
+  expect(calls[2].get('intent')).toBe('insert-row');
+  expect(calls[2].get('schemaName')).toBe('private');
+  expect(calls[2].get('tableName')).toBe('Order Items');
+  expect(calls[3].get('query')).toBe('SELECT * FROM "private"."Order Items" LIMIT 50 OFFSET 0;');
+});
+
+it.each(['error', 'unknown', 'deleted'])(
+  'keeps the insertion draft through %s schema refresh and recovers without changing scope',
+  async (failure) => {
+    const complete = schema();
+
+    const enriched = {
+      schema: {
+        ...complete.schema,
+        columns: complete.schema.columns.map((c) => ({
+          ...c,
+          is_nullable: 'NO',
+          is_identity: c.column_name === 'id' ? 'YES' : 'NO',
+          is_generated: 'NEVER',
+          has_default: false,
+        })),
+      },
+    };
+
+    let failRefresh = true;
+    let schemaLoads = 0;
+
+    const router = createMemoryRouter([
+      { path: '/', element: <DatabaseStudio projectId="p" connexionFournie="DB" schemaFourni={enriched} /> },
+      {
+        path: '/api/projects/:id/ide-panel/database',
+        loader: ({ request }) => {
+          if (!request.url.includes('schemaKey')) {
+            return { connections: [{ key: 'DB', kind: 'postgres' }] };
+          }
+
+          schemaLoads++;
+
+          if (!failRefresh) {
+            return enriched;
+          }
+
+          return failure === 'error'
+            ? { ok: false, error: 'unavailable' }
+            : failure === 'unknown'
+              ? complete
+              : { schema: { tables: [], columns: [] } };
+        },
+        action: () => ({ ok: true, result: { columns: ['id', 'Name'], rows: [], rowCount: 0 } }),
+      },
+    ]);
+    render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByTestId('studio-table'));
+    fireEvent.click(await screen.findByRole('button', { name: '+ Insert row' }));
+    fireEvent.change(await screen.findByLabelText('Value — Name'), { target: { value: 'keep exact draft' } });
+
+    const refreshControl = screen.getByRole('button', { name: 'Refresh schema', exact: true });
+    fireEvent.click(refreshControl);
+    await waitFor(() => expect(schemaLoads).toBe(1));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Insert row', exact: true }) as HTMLButtonElement).disabled).toBe(
+        true,
+      ),
+    );
+    expect((screen.getByLabelText('Value — Name') as HTMLInputElement).value).toBe('keep exact draft');
+    expect(screen.getAllByRole('alert').length).toBeGreaterThan(0);
+    failRefresh = false;
+    fireEvent.click(refreshControl);
+    await waitFor(() => expect(schemaLoads).toBe(2));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Insert row', exact: true }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+    expect((screen.getByLabelText('Value — Name') as HTMLInputElement).value).toBe('keep exact draft');
+  },
+);

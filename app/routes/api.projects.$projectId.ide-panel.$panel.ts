@@ -2444,6 +2444,39 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
         method: 'POST',
       });
+    } else if (intent === 'insert-row') {
+      try {
+        let values: unknown;
+
+        try {
+          values = JSON.parse(body.values ?? '');
+        } catch {
+          throw new Response(null, { status: 400 });
+        }
+
+        if (!Array.isArray(values)) {
+          throw new Response(null, { status: 400 });
+        }
+
+        const result = await apiRequest(request, `/projects/${encodeURIComponent(projectId)}/databases/rows`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({
+            key: body.connectionKey,
+            schema: body.schemaName,
+            table: body.tableName,
+            values,
+          }),
+        });
+
+        return json({ ok: true, ...(result as any) });
+      } catch (error) {
+        const failure = panelEnvelopeError('database', null, error, language);
+        const upstreamStatus = Number((error as { status?: unknown } | null)?.status);
+        const status = upstreamStatus >= 400 && upstreamStatus <= 599 ? upstreamStatus : 500;
+
+        return json({ ok: false, error: failure.error?.message, code: failure.error?.code }, { status });
+      }
     } else if (intent === 'query') {
       /*
        * redirectOn401:false — a failed SQL run must surface as a panel error, NEVER
