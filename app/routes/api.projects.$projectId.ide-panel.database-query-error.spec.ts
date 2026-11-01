@@ -1,4 +1,6 @@
+import { createRequire } from 'node:module';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { normalizeRows } from '~/components/database/query-result';
 import { toResponse } from '~/lib/test/rr7-data';
 
 const apiRequest = vi.fn();
@@ -52,6 +54,51 @@ describe('database query failures stay in the form', () => {
 
     const response = await query();
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, result: { command: 'CREATE', rows: [], rowCount: 0 } });
+    expect(await response.json()).toEqual({ ok: true, result: { command: 'CREATE', rowsJson: '[]', rowCount: 0 } });
   });
+});
+
+// Use the serializer installed by React Router, not a hand-written approximation.
+const require = createRequire(import.meta.url);
+const { encode, decode } = createRequire(require.resolve('react-router'))('turbo-stream');
+it.each([
+  'own proto',
+  null,
+  { nested: 'own JSON' },
+  JSON.parse('{"__proto__":{"marker":"nested"},"constructor":"c","prototype":"p"}'),
+  [JSON.parse('{"__proto__":{"marker":"array"}}')],
+])('preserves special column values through the real single-fetch serializer: %j', async (value) => {
+  const row = Object.fromEntries([
+    ['__proto__', value],
+    ['constructor', 'own ctor'],
+    ['prototype', 'own prototype'],
+    ['amount', '900719925474099312345.000001'],
+    ['flag', false],
+  ]);
+  apiRequest.mockResolvedValue({
+    result: {
+      columns: ['__proto__', 'constructor', 'prototype', 'amount', 'flag'],
+      rows: [row],
+      rowCount: 1,
+      command: 'SELECT',
+    },
+  });
+
+  const response = await query();
+  const data = await response.json();
+  const roundTrip = (await decode(encode(data))).value;
+  expect(normalizeRows(roundTrip.result).rows).toEqual([
+    [value, 'own ctor', 'own prototype', '900719925474099312345.000001', false],
+  ]);
+  expect(roundTrip.result).toMatchObject({ rowCount: 1, command: 'SELECT' });
+  expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+  expect(Object.hasOwn(Object.prototype, 'nested')).toBe(false);
+});
+it('preserves array rows and never reads an inherited column from object rows', async () => {
+  apiRequest.mockResolvedValue({
+    result: { columns: ['__proto__'], rows: [['already array'], {}], rowCount: 2, command: 'SELECT' },
+  });
+
+  const data = await (await query()).json();
+  expect(normalizeRows(data.result).rows).toEqual([['already array'], [null]]);
 });

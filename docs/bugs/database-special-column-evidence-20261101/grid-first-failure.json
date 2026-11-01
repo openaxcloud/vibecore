@@ -1,0 +1,16 @@
+{
+  "table": "browser_a_bf71ecb4e42d4709968acff90b708119",
+  "scope": "Real local compiled web + API + PostgreSQL; one owned synthetic table, no production",
+  "cases": [
+    {
+      "width": 390,
+      "pass": false,
+      "errors": [],
+      "reads": [],
+      "failure": "expect(locator).toHaveText(expected) failed\n\nLocator:  locator('table').filter({ has: getByTestId('studio-entete').filter({ hasText: '__proto__' }) }).locator('tbody tr').first().locator('td').first()\nExpected: \"own proto\"\nReceived: \"[object Object]\"\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.have.text\" with timeout 5000ms\n  - waiting for locator('table').filter({ has: getByTestId('studio-entete').filter({ hasText: '__proto__' }) }).locator('tbody tr').first().locator('td').first()\n    9 × locator resolved to <td class=\"max-w-[280px] truncate px-3 py-1.5 text-bolt-elements-textSecondary\">[object Object]</td>\n      - unexpected value \"[object Object]\"\n"
+    }
+  ],
+  "limitations": [
+    "Grid renders object JSON as [object Object]; full JSON value asserted in real API response, not claimed visibly readable."
+  ]
+}

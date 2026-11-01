@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-603 entrées.
+604 entrées.
 
 ## Sans section
 
@@ -827,6 +827,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-SKILLS-RESOURCE-SNAPSHOT-20261030](docs/bugs/BUG-SKILLS-RESOURCE-SNAPSHOT-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-MOBILE-MORE-FORCED-CLICK-20261030](docs/bugs/BUG-MOBILE-MORE-FORCED-CLICK-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-DATABASE-SPECIAL-COLUMN-READ-20261101](docs/bugs/BUG-DATABASE-SPECIAL-COLUMN-READ-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

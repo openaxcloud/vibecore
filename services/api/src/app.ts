@@ -3681,7 +3681,7 @@ async function inspectRedisSchema(connectionString: string) {
   }
 }
 
-async function runDatabaseQuery(
+export async function runDatabaseQuery(
   connection: DatabaseConnectionCandidate,
   query: string,
   collection?: string,
@@ -3703,7 +3703,7 @@ async function runDatabaseQuery(
       await client.query('BEGIN');
 
       try {
-        const response = await client.query(query);
+        const response = await client.query({ text: query, rowMode: 'array' });
         // node-postgres returns one result per statement for a SQL batch.
         // The grid displays the final statement, including its real affected count.
         const result = Array.isArray(response) ? response.at(-1) : response;
@@ -3712,7 +3712,15 @@ async function runDatabaseQuery(
 
         return {
           columns: (result?.fields ?? []).map((field: { name: string }) => field.name),
-          rows: serializeDbRows(result?.rows ?? []),
+
+          // Define own properties, including __proto__, without invoking prototype setters.
+          rows: serializeDbRows(
+            (result?.rows ?? []).map((row: unknown[]) =>
+              Object.fromEntries(
+                (result?.fields ?? []).map((field: { name: string }, index: number) => [field.name, row[index]]),
+              ),
+            ),
+          ),
           rowCount: result?.rowCount ?? 0,
           command: result?.command,
         };
