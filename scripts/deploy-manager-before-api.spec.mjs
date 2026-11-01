@@ -12,6 +12,7 @@ import {
   assertMigrationComplete,
   assertOnlyManagerChanges,
   runStage,
+  renderedRelease,
   stagePlan,
 } from '../infra/helm/stage-manager-before-api.mjs';
 
@@ -24,8 +25,20 @@ const managerName = 'test-vibecore-platform-workspace-manager';
 
 const manifest = {
   services: [
-    { service: 'api', image: 'api', sourceSha: sha, digest: apiDigest, rebuilt: true },
-    { service: 'workspaceManager', image: 'workspace-manager', sourceSha: sha, digest: managerDigest, rebuilt: true },
+    {
+      service: 'api',
+      image: 'api',
+      sourceSha: sha,
+      digest: apiDigest,
+      rebuilt: true,
+    },
+    {
+      service: 'workspaceManager',
+      image: 'workspace-manager',
+      sourceSha: sha,
+      digest: managerDigest,
+      rebuilt: true,
+    },
   ],
 };
 
@@ -34,8 +47,19 @@ function deployment(name, image) {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
     metadata: { name, generation: 2 },
-    spec: { replicas: 1, template: { metadata: { annotations: {} }, spec: { containers: [{ name: 'app', image }] } } },
-    status: { observedGeneration: 2, updatedReplicas: 1, readyReplicas: 1, availableReplicas: 1 },
+    spec: {
+      replicas: 1,
+      template: {
+        metadata: { annotations: {} },
+        spec: { containers: [{ name: 'app', image }] },
+      },
+    },
+    status: {
+      observedGeneration: 2,
+      updatedReplicas: 1,
+      readyReplicas: 1,
+      availableReplicas: 1,
+    },
   };
 }
 
@@ -58,12 +82,24 @@ function hooks(image) {
     {
       apiVersion: 'v1',
       kind: 'ServiceAccount',
-      metadata: { name, annotations: { 'helm.sh/hook': 'pre-install,pre-upgrade', 'helm.sh/hook-weight': '-20' } },
+      metadata: {
+        name,
+        annotations: {
+          'helm.sh/hook': 'pre-install,pre-upgrade',
+          'helm.sh/hook-weight': '-20',
+        },
+      },
     },
     {
       apiVersion: 'batch/v1',
       kind: 'Job',
-      metadata: { name, annotations: { 'helm.sh/hook': 'pre-install,pre-upgrade', 'helm.sh/hook-weight': '-10' } },
+      metadata: {
+        name,
+        annotations: {
+          'helm.sh/hook': 'pre-install,pre-upgrade',
+          'helm.sh/hook-weight': '-10',
+        },
+      },
       spec: {
         template: {
           spec: {
@@ -82,12 +118,20 @@ const readyPod = {
   spec: prepared[1].spec.template.spec,
   status: {
     conditions: [{ type: 'Ready', status: 'True' }],
-    containerStatuses: [{ ready: true, imageID: `containerd://${registry}/workspace-manager@${managerDigest}` }],
+    containerStatuses: [
+      {
+        ready: true,
+        imageID: `containerd://${registry}/workspace-manager@${managerDigest}`,
+      },
+    ],
   },
 };
 const completedMigration = {
   ...hooks(`${registry}/api@${apiDigest}`)[1],
-  metadata: { ...hooks(`${registry}/api@${apiDigest}`)[1].metadata, uid: 'synthetic-migration-uid' },
+  metadata: {
+    ...hooks(`${registry}/api@${apiDigest}`)[1].metadata,
+    uid: 'synthetic-migration-uid',
+  },
   status: { succeeded: 1, conditions: [{ type: 'Complete', status: 'True' }] },
 };
 
@@ -123,8 +167,14 @@ function execute({ after = prepared, failure, pod = readyPod, migration = comple
               : docs(old);
         }
 
-        if (bin === 'helm' && args[0] === 'template') {
-          return docs([...after, ...hooks(`${registry}/api@${apiDigest}`)]);
+        if (bin === 'helm' && args[0] === 'upgrade' && args.includes('--dry-run=server')) {
+          expect(readFileSync(envFile, 'utf8')).not.toContain('STAGED_UPGRADE_STARTED=1');
+          return JSON.stringify({
+            manifest: docs(after),
+            hooks: hooks(`${registry}/api@${apiDigest}`).map((hook) => ({
+              manifest: docs([hook]),
+            })),
+          });
         }
 
         if (bin === 'helm' && args[0] === 'upgrade') {
@@ -170,8 +220,86 @@ function execute({ after = prepared, failure, pod = readyPod, migration = comple
 }
 
 describe('migration, manager, API sequencing', () => {
+  it('previews the same reuse-values upgrade and preserves all hook manifests', () => {
+    const { calls, error } = execute();
+    expect(error).toBeUndefined();
+
+    const preview = calls.find((call) => call.includes('--dry-run=server'));
+
+    const mutation = calls.find((call) => call[1] === 'upgrade' && !call.includes('--dry-run=server'));
+    expect(preview.slice(0, -3)).toEqual(mutation);
+    expect(preview.slice(-3)).toEqual(['--dry-run=server', '-o', 'json']);
+    expect(preview).toContain('--reuse-values');
+    expect(calls.some((call) => call.includes('template') || call.includes('values'))).toBe(false);
+
+    for (const output of ['bad secret contents', '{}', '{"manifest":"x","hooks":[{}]}']) {
+      expect(() => renderedRelease(output)).toThrow('STAGED_MANAGER_INVALID_DRY_RUN_RELEASE');
+    }
+  });
+
+  it('reports resource identities and paths without leaking leaf values or secret map keys', () => {
+    const secret = {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: 'test-secret' },
+      data: { 'private-key-name': 'old-secret-value' },
+    };
+
+    const changed = structuredClone(secret);
+    changed.data['private-key-name'] = 'new-secret-value';
+
+    const changedDeployment = structuredClone(prepared);
+    changedDeployment[0].spec.replicas = 91;
+
+    let message;
+
+    try {
+      assertOnlyManagerChanges(docs([...old, secret]), docs([...changedDeployment, changed]), managerName);
+    } catch (error) {
+      message = error.message;
+    }
+    expect(message).toContain('UNRELATED_RESOURCE_CHANGED');
+    expect(message).toContain('test-secret');
+    expect(message).toContain('/data/*');
+    expect(message).toContain('/spec/replicas');
+
+    for (const privateValue of ['private-key-name', 'old-secret-value', 'new-secret-value', '91']) {
+      expect(message).not.toContain(privateValue);
+    }
+  });
+
+  it('bounds diagnostics while retaining the rejection for wide unexpected changes', () => {
+    const config = {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: { name: 'config' },
+      spec: {},
+    };
+
+    const changed = structuredClone(config);
+
+    for (let i = 0; i < 100; i++) {
+      changed.spec[`field${i}`] = 'sensitive-leaf';
+    }
+
+    let message;
+
+    try {
+      assertOnlyManagerChanges(docs([...old, config]), docs([...prepared, changed]), managerName);
+    } catch (error) {
+      message = error.message;
+    }
+    expect(message).toContain('UNRELATED_RESOURCE_CHANGED');
+    expect(message).toContain('"truncated":true');
+    expect(message).not.toContain('sensitive-leaf');
+    expect(message.length).toBeLessThan(3000);
+  });
+
   it('requires exact target provenance and an original rollback revision before mutation', () => {
-    expect(stagePlan(manifest, sha, '42')).toMatchObject({ migrationDigest: apiDigest, managerDigest });
+    expect(stagePlan(manifest, sha, '42')).toMatchObject({
+      migrationDigest: apiDigest,
+      managerDigest,
+    });
 
     for (const revision of ['', '0', undefined, 'latest']) {
       expect(() => stagePlan(manifest, sha, revision)).toThrow();
@@ -198,13 +326,22 @@ describe('migration, manager, API sequencing', () => {
     }
 
     const changed = structuredClone(prepared);
-    changed[1].spec.template.spec.containers.push({ name: 'unapproved', image: 'unapproved' });
+    changed[1].spec.template.spec.containers.push({
+      name: 'unapproved',
+      image: 'unapproved',
+    });
     expect(() => assertOnlyManagerChanges(docs(old), docs(changed), managerName)).toThrow('CONTAINER');
   });
 
   it('refuses ConfigMap, Service, RBAC, Secret, added and removed resources before mutation', () => {
     for (const kind of ['ConfigMap', 'Service', 'Role', 'Secret']) {
-      const item = { apiVersion: 'v1', kind, metadata: { name: 'same' }, data: { value: 'old' } };
+      const item = {
+        apiVersion: 'v1',
+        kind,
+        metadata: { name: 'same' },
+        data: { value: 'old' },
+      };
+
       const changed = { ...item, data: { value: 'changed' } };
       expect(() => assertOnlyManagerChanges(docs([...old, item]), docs([...prepared, changed]), managerName)).toThrow(
         'UNRELATED',
@@ -233,7 +370,9 @@ describe('migration, manager, API sequencing', () => {
     const { calls, error } = execute();
     expect(error).toBeUndefined();
 
-    const upgrade = calls.find((call) => call[0] === 'helm' && call[1] === 'upgrade');
+    const upgrade = calls.find(
+      (call) => call[0] === 'helm' && call[1] === 'upgrade' && !call.includes('--dry-run=server'),
+    );
     expect(upgrade).toContain(`migrations.imageDigest=${apiDigest}`);
     expect(upgrade).toContain('migrations.enabled=true');
     expect(upgrade).toContain(`services.workspaceManager.imageDigest=${managerDigest}`);
@@ -255,7 +394,7 @@ describe('migration, manager, API sequencing', () => {
 
     const result = execute({ after: changed });
     expect(result.error).toBeDefined();
-    expect(result.calls.some((call) => call.includes('upgrade'))).toBe(false);
+    expect(result.calls.some((call) => call.includes('upgrade') && !call.includes('--dry-run=server'))).toBe(false);
   });
 
   it('rejects old, unready, absent or mismatched manager imageIDs', () => {
@@ -303,7 +442,11 @@ describe('migration, manager, API sequencing', () => {
   it('requires a completed retained migration Job with the new API image and UID', () => {
     const verify = (job) =>
       assertMigrationComplete(job, 'test-vibecore-platform-prisma-migrate', `${registry}/api@${apiDigest}`);
-    expect(verify(completedMigration)).toMatchObject({ uid: 'synthetic-migration-uid', complete: true, succeeded: 1 });
+    expect(verify(completedMigration)).toMatchObject({
+      uid: 'synthetic-migration-uid',
+      complete: true,
+      succeeded: 1,
+    });
     expect(() => verify(undefined)).toThrow();
 
     for (const patch of [{ succeeded: 0 }, { conditions: [{ type: 'Failed', status: 'True' }] }, { conditions: [] }]) {
@@ -323,7 +466,9 @@ describe('migration, manager, API sequencing', () => {
 
   it('wires both stages after security gates and rolls any staged failure back to the original revision', () => {
     const workflow = parse(readFileSync('.github/workflows/deploy-main.yml', 'utf8'));
+
     const steps = workflow.jobs['build-and-deploy'].steps;
+
     const stage = steps.findIndex((step) => step.name === 'Migrate and prepare manager before API');
     const final = steps.findIndex((step) => step.name === 'Helm upgrade (all services pinned by digest)');
     expect(stage).toBeLessThan(final);
@@ -380,7 +525,7 @@ describe('migration, manager, API sequencing', () => {
             HELM_RELEASE: 'test', HELM_NAMESPACE: 'test', GITHUB_ENV: 'env' },
           command: (bin, args) => {
             if (bin === 'helm' && args[0] === 'get') return args[1] === 'values' ? '{}' : args[1] === 'hooks' ? f.hooksYaml : f.beforeYaml;
-            if (bin === 'helm' && args[0] === 'template') return f.afterYaml;
+            if (bin === 'helm' && args[0] === 'upgrade' && args.includes('--dry-run=server')) return JSON.stringify({manifest:f.afterYaml,hooks:[]});
             if (bin === 'helm' && args[0] === 'upgrade') { upgraded = true; return ''; }
             if (args.includes('rollout')) return '';
             if (args.includes('pods')) return JSON.stringify({ items: [f.readyPod] });
@@ -391,7 +536,11 @@ describe('migration, manager, API sequencing', () => {
         assert.match(readFileSync('env', 'utf8'), /STAGED_UPGRADE_STARTED=1/);
       `,
       );
-      execFileSync(process.execPath, ['check.mjs'], { cwd: directory, env: { PATH: process.env.PATH }, stdio: 'pipe' });
+      execFileSync(process.execPath, ['check.mjs'], {
+        cwd: directory,
+        env: { PATH: process.env.PATH },
+        stdio: 'pipe',
+      });
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

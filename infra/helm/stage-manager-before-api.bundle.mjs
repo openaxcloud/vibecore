@@ -31,9 +31,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/identity.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/identity.js
 var require_identity = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/identity.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/identity.js"(exports) {
     "use strict";
     var ALIAS = /* @__PURE__ */ Symbol.for("yaml.alias");
     var DOC = /* @__PURE__ */ Symbol.for("yaml.document");
@@ -88,9 +88,9 @@ var require_identity = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/visit.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/visit.js
 var require_visit = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/visit.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/visit.js"(exports) {
     "use strict";
     var identity = require_identity();
     var BREAK = /* @__PURE__ */ Symbol("break visit");
@@ -246,9 +246,9 @@ var require_visit = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/directives.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/directives.js
 var require_directives = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/directives.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/directives.js"(exports) {
     "use strict";
     var identity = require_identity();
     var visit = require_visit();
@@ -417,9 +417,9 @@ var require_directives = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/anchors.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/anchors.js
 var require_anchors = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/anchors.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/anchors.js"(exports) {
     "use strict";
     var identity = require_identity();
     var visit = require_visit();
@@ -487,9 +487,9 @@ var require_anchors = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/applyReviver.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/applyReviver.js
 var require_applyReviver = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/applyReviver.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/applyReviver.js"(exports) {
     "use strict";
     function applyReviver(reviver, obj, key, val) {
       if (val && typeof val === "object") {
@@ -537,9 +537,9 @@ var require_applyReviver = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/toJS.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/toJS.js
 var require_toJS = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/toJS.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/toJS.js"(exports) {
     "use strict";
     var identity = require_identity();
     function toJS(value, arg, ctx) {
@@ -567,9 +567,9 @@ var require_toJS = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Node.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Node.js
 var require_Node = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Node.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Node.js"(exports) {
     "use strict";
     var applyReviver = require_applyReviver();
     var identity = require_identity();
@@ -608,9 +608,9 @@ var require_Node = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Alias.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Alias.js
 var require_Alias = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Alias.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Alias.js"(exports) {
     "use strict";
     var anchors = require_anchors();
     var visit = require_visit();
@@ -724,9 +724,9 @@ var require_Alias = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Scalar.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Scalar.js
 var require_Scalar = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Scalar.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Scalar.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Node = require_Node();
@@ -754,9 +754,9 @@ var require_Scalar = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/createNode.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/createNode.js
 var require_createNode = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/createNode.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/createNode.js"(exports) {
     "use strict";
     var Alias = require_Alias();
     var identity = require_identity();
@@ -829,9 +829,9 @@ var require_createNode = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Collection.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Collection.js
 var require_Collection = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Collection.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Collection.js"(exports) {
     "use strict";
     var createNode = require_createNode();
     var identity = require_identity();
@@ -972,9 +972,9 @@ var require_Collection = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyComment.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyComment.js
 var require_stringifyComment = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyComment.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyComment.js"(exports) {
     "use strict";
     var stringifyComment = (str) => str.replace(/^(?!$)(?: $)?/gm, "#");
     function indentComment(comment, indent) {
@@ -989,9 +989,9 @@ var require_stringifyComment = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/foldFlowLines.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/foldFlowLines.js
 var require_foldFlowLines = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/foldFlowLines.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/foldFlowLines.js"(exports) {
     "use strict";
     var FOLD_FLOW = "flow";
     var FOLD_BLOCK = "block";
@@ -1125,9 +1125,9 @@ ${indent}${text.slice(fold + 1, end2)}`;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyString.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyString.js
 var require_stringifyString = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyString.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyString.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     var foldFlowLines = require_foldFlowLines();
@@ -1408,9 +1408,9 @@ ${indent}`);
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringify.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringify.js
 var require_stringify = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringify.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringify.js"(exports) {
     "use strict";
     var anchors = require_anchors();
     var identity = require_identity();
@@ -1532,9 +1532,9 @@ ${ctx.indent}${str}`;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyPair.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyPair.js
 var require_stringifyPair = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyPair.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyPair.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Scalar = require_Scalar();
@@ -1665,9 +1665,9 @@ ${ctx.indent}`;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/log.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/log.js
 var require_log = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/log.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/log.js"(exports) {
     "use strict";
     var node_process = __require("process");
     function debug(logLevel, ...messages) {
@@ -1687,9 +1687,9 @@ var require_log = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/merge.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/merge.js
 var require_merge = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/merge.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/merge.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Scalar = require_Scalar();
@@ -1747,9 +1747,9 @@ var require_merge = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/addPairToJSMap.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/addPairToJSMap.js
 var require_addPairToJSMap = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/addPairToJSMap.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/addPairToJSMap.js"(exports) {
     "use strict";
     var log = require_log();
     var merge = require_merge();
@@ -1811,9 +1811,9 @@ var require_addPairToJSMap = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Pair.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Pair.js
 var require_Pair = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Pair.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/Pair.js"(exports) {
     "use strict";
     var createNode = require_createNode();
     var stringifyPair = require_stringifyPair();
@@ -1851,9 +1851,9 @@ var require_Pair = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyCollection.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyCollection.js
 var require_stringifyCollection = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyCollection.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyCollection.js"(exports) {
     "use strict";
     var identity = require_identity();
     var stringify = require_stringify();
@@ -2002,9 +2002,9 @@ ${indent}${end}`;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLMap.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLMap.js
 var require_YAMLMap = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLMap.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLMap.js"(exports) {
     "use strict";
     var stringifyCollection = require_stringifyCollection();
     var addPairToJSMap = require_addPairToJSMap();
@@ -2146,9 +2146,9 @@ var require_YAMLMap = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/map.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/map.js
 var require_map = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/map.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/map.js"(exports) {
     "use strict";
     var identity = require_identity();
     var YAMLMap = require_YAMLMap();
@@ -2168,9 +2168,9 @@ var require_map = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLSeq.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLSeq.js
 var require_YAMLSeq = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLSeq.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/nodes/YAMLSeq.js"(exports) {
     "use strict";
     var createNode = require_createNode();
     var stringifyCollection = require_stringifyCollection();
@@ -2284,9 +2284,9 @@ var require_YAMLSeq = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/seq.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/seq.js
 var require_seq = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/seq.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/seq.js"(exports) {
     "use strict";
     var identity = require_identity();
     var YAMLSeq = require_YAMLSeq();
@@ -2306,9 +2306,9 @@ var require_seq = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/string.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/string.js
 var require_string = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/string.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/string.js"(exports) {
     "use strict";
     var stringifyString = require_stringifyString();
     var string = {
@@ -2325,9 +2325,9 @@ var require_string = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/null.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/null.js
 var require_null = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/null.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/common/null.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     var nullTag = {
@@ -2343,9 +2343,9 @@ var require_null = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/bool.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/bool.js
 var require_bool = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/bool.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/bool.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     var boolTag = {
@@ -2367,9 +2367,9 @@ var require_bool = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyNumber.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyNumber.js
 var require_stringifyNumber = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyNumber.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyNumber.js"(exports) {
     "use strict";
     function stringifyNumber({ format, minFractionDigits, tag, value }) {
       if (typeof value === "bigint")
@@ -2394,9 +2394,9 @@ var require_stringifyNumber = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/float.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/float.js
 var require_float = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/float.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/float.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     var stringifyNumber = require_stringifyNumber();
@@ -2440,9 +2440,9 @@ var require_float = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/int.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/int.js
 var require_int = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/int.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/int.js"(exports) {
     "use strict";
     var stringifyNumber = require_stringifyNumber();
     var intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
@@ -2485,9 +2485,9 @@ var require_int = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/schema.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/schema.js
 var require_schema = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/schema.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/core/schema.js"(exports) {
     "use strict";
     var map = require_map();
     var _null = require_null();
@@ -2513,9 +2513,9 @@ var require_schema = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/json/schema.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/json/schema.js
 var require_schema2 = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/json/schema.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/json/schema.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     var map = require_map();
@@ -2580,9 +2580,9 @@ var require_schema2 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/binary.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/binary.js
 var require_binary = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/binary.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/binary.js"(exports) {
     "use strict";
     var node_buffer = __require("buffer");
     var Scalar = require_Scalar();
@@ -2646,9 +2646,9 @@ var require_binary = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/pairs.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/pairs.js
 var require_pairs = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/pairs.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/pairs.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Pair = require_Pair();
@@ -2724,9 +2724,9 @@ ${cn.comment}` : item.comment;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/omap.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/omap.js
 var require_omap = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/omap.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/omap.js"(exports) {
     "use strict";
     var identity = require_identity();
     var toJS = require_toJS();
@@ -2802,9 +2802,9 @@ var require_omap = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/bool.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/bool.js
 var require_bool2 = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/bool.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/bool.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     function boolStringify({ value, source }, ctx) {
@@ -2834,9 +2834,9 @@ var require_bool2 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/float.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/float.js
 var require_float2 = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/float.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/float.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     var stringifyNumber = require_stringifyNumber();
@@ -2883,9 +2883,9 @@ var require_float2 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/int.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/int.js
 var require_int2 = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/int.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/int.js"(exports) {
     "use strict";
     var stringifyNumber = require_stringifyNumber();
     var intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
@@ -2962,9 +2962,9 @@ var require_int2 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/set.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/set.js
 var require_set = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/set.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/set.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Pair = require_Pair();
@@ -3051,9 +3051,9 @@ var require_set = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/timestamp.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/timestamp.js
 var require_timestamp = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/timestamp.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/timestamp.js"(exports) {
     "use strict";
     var stringifyNumber = require_stringifyNumber();
     function parseSexagesimal(str, asBigInt) {
@@ -3139,9 +3139,9 @@ var require_timestamp = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/schema.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/schema.js
 var require_schema3 = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/schema.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/yaml-1.1/schema.js"(exports) {
     "use strict";
     var map = require_map();
     var _null = require_null();
@@ -3183,9 +3183,9 @@ var require_schema3 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/tags.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/tags.js
 var require_tags = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/tags.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/tags.js"(exports) {
     "use strict";
     var map = require_map();
     var _null = require_null();
@@ -3277,9 +3277,9 @@ var require_tags = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/Schema.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/Schema.js
 var require_Schema = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/Schema.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/schema/Schema.js"(exports) {
     "use strict";
     var identity = require_identity();
     var map = require_map();
@@ -3309,9 +3309,9 @@ var require_Schema = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyDocument.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyDocument.js
 var require_stringifyDocument = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyDocument.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/stringify/stringifyDocument.js"(exports) {
     "use strict";
     var identity = require_identity();
     var stringify = require_stringify();
@@ -3389,9 +3389,9 @@ var require_stringifyDocument = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/Document.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/Document.js
 var require_Document = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/Document.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/doc/Document.js"(exports) {
     "use strict";
     var Alias = require_Alias();
     var Collection = require_Collection();
@@ -3698,9 +3698,9 @@ var require_Document = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/errors.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/errors.js
 var require_errors = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/errors.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/errors.js"(exports) {
     "use strict";
     var YAMLError = class extends Error {
       constructor(name, pos, code, message) {
@@ -3763,9 +3763,9 @@ ${pointer}
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-props.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-props.js
 var require_resolve_props = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-props.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-props.js"(exports) {
     "use strict";
     function resolveProps(tokens, { flow, indicator, next, offset, onError, parentIndent, startOnNewline }) {
       let spaceBefore = false;
@@ -3897,9 +3897,9 @@ var require_resolve_props = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-contains-newline.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-contains-newline.js
 var require_util_contains_newline = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-contains-newline.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-contains-newline.js"(exports) {
     "use strict";
     function containsNewline(key) {
       if (!key)
@@ -3939,9 +3939,9 @@ var require_util_contains_newline = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-flow-indent-check.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-flow-indent-check.js
 var require_util_flow_indent_check = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-flow-indent-check.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-flow-indent-check.js"(exports) {
     "use strict";
     var utilContainsNewline = require_util_contains_newline();
     function flowIndentCheck(indent, fc, onError) {
@@ -3957,9 +3957,9 @@ var require_util_flow_indent_check = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-map-includes.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-map-includes.js
 var require_util_map_includes = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-map-includes.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-map-includes.js"(exports) {
     "use strict";
     var identity = require_identity();
     function mapIncludes(ctx, items, search) {
@@ -3973,9 +3973,9 @@ var require_util_map_includes = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-map.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-map.js
 var require_resolve_block_map = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-map.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-map.js"(exports) {
     "use strict";
     var Pair = require_Pair();
     var YAMLMap = require_YAMLMap();
@@ -4081,9 +4081,9 @@ var require_resolve_block_map = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-seq.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-seq.js
 var require_resolve_block_seq = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-seq.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-seq.js"(exports) {
     "use strict";
     var YAMLSeq = require_YAMLSeq();
     var resolveProps = require_resolve_props();
@@ -4132,9 +4132,9 @@ var require_resolve_block_seq = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-end.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-end.js
 var require_resolve_end = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-end.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-end.js"(exports) {
     "use strict";
     function resolveEnd(end, offset, reqSpace, onError) {
       let comment = "";
@@ -4175,9 +4175,9 @@ var require_resolve_end = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-collection.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-collection.js
 var require_resolve_flow_collection = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-collection.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-collection.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Pair = require_Pair();
@@ -4369,9 +4369,9 @@ var require_resolve_flow_collection = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-collection.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-collection.js
 var require_compose_collection = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-collection.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-collection.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Scalar = require_Scalar();
@@ -4434,9 +4434,9 @@ var require_compose_collection = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-scalar.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-scalar.js
 var require_resolve_block_scalar = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-scalar.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-block-scalar.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     function resolveBlockScalar(ctx, scalar, onError) {
@@ -4617,9 +4617,9 @@ var require_resolve_block_scalar = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-scalar.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-scalar.js
 var require_resolve_flow_scalar = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-scalar.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/resolve-flow-scalar.js"(exports) {
     "use strict";
     var Scalar = require_Scalar();
     var resolveEnd = require_resolve_end();
@@ -4837,9 +4837,9 @@ var require_resolve_flow_scalar = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-scalar.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-scalar.js
 var require_compose_scalar = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-scalar.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-scalar.js"(exports) {
     "use strict";
     var identity = require_identity();
     var Scalar = require_Scalar();
@@ -4918,9 +4918,9 @@ var require_compose_scalar = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-empty-scalar-position.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-empty-scalar-position.js
 var require_util_empty_scalar_position = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-empty-scalar-position.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/util-empty-scalar-position.js"(exports) {
     "use strict";
     function emptyScalarPosition(offset, before, pos) {
       if (before) {
@@ -4948,9 +4948,9 @@ var require_util_empty_scalar_position = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-node.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-node.js
 var require_compose_node = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-node.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-node.js"(exports) {
     "use strict";
     var Alias = require_Alias();
     var identity = require_identity();
@@ -5054,9 +5054,9 @@ var require_compose_node = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-doc.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-doc.js
 var require_compose_doc = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-doc.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/compose-doc.js"(exports) {
     "use strict";
     var Document = require_Document();
     var composeNode = require_compose_node();
@@ -5097,9 +5097,9 @@ var require_compose_doc = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/composer.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/composer.js
 var require_composer = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/composer.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/compose/composer.js"(exports) {
     "use strict";
     var node_process = __require("process");
     var directives = require_directives();
@@ -5303,9 +5303,9 @@ ${end.comment}` : end.comment;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-scalar.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-scalar.js
 var require_cst_scalar = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-scalar.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-scalar.js"(exports) {
     "use strict";
     var resolveBlockScalar = require_resolve_block_scalar();
     var resolveFlowScalar = require_resolve_flow_scalar();
@@ -5488,9 +5488,9 @@ var require_cst_scalar = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-stringify.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-stringify.js
 var require_cst_stringify = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-stringify.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-stringify.js"(exports) {
     "use strict";
     var stringify = (cst) => "type" in cst ? stringifyToken(cst) : stringifyItem(cst);
     function stringifyToken(token) {
@@ -5549,9 +5549,9 @@ var require_cst_stringify = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-visit.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-visit.js
 var require_cst_visit = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-visit.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst-visit.js"(exports) {
     "use strict";
     var BREAK = /* @__PURE__ */ Symbol("break visit");
     var SKIP = /* @__PURE__ */ Symbol("skip children");
@@ -5611,9 +5611,9 @@ var require_cst_visit = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst.js
 var require_cst = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/cst.js"(exports) {
     "use strict";
     var cstScalar = require_cst_scalar();
     var cstStringify = require_cst_stringify();
@@ -5713,9 +5713,9 @@ var require_cst = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/lexer.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/lexer.js
 var require_lexer = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/lexer.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/lexer.js"(exports) {
     "use strict";
     var cst = require_cst();
     function isEmpty(ch) {
@@ -6292,9 +6292,9 @@ var require_lexer = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/line-counter.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/line-counter.js
 var require_line_counter = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/line-counter.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/line-counter.js"(exports) {
     "use strict";
     var LineCounter = class {
       constructor() {
@@ -6323,9 +6323,9 @@ var require_line_counter = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/parser.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/parser.js
 var require_parser = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/parser.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/parse/parser.js"(exports) {
     "use strict";
     var node_process = __require("process");
     var cst = require_cst();
@@ -7190,9 +7190,9 @@ var require_parser = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/public-api.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/public-api.js
 var require_public_api = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/public-api.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/public-api.js"(exports) {
     "use strict";
     var composer = require_composer();
     var Document = require_Document();
@@ -7287,9 +7287,9 @@ var require_public_api = __commonJS({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/index.js
+// ../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/index.js
 var require_dist = __commonJS({
-  "node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/index.js"(exports) {
+  "../vibecore-next-backup-mobile-20261101/node_modules/.pnpm/yaml@2.8.4/node_modules/yaml/dist/index.js"(exports) {
     "use strict";
     var composer = require_composer();
     var Document = require_Document();
@@ -7342,8 +7342,7 @@ var require_dist = __commonJS({
 // infra/helm/stage-manager-before-api.mjs
 var import_yaml = __toESM(require_dist(), 1);
 import { execFileSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 var digestPattern = /^sha256:[a-f0-9]{64}$/;
@@ -7356,6 +7355,55 @@ var canonical = (value) => JSON.stringify(
   value,
   (_key, item) => item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item
 );
+function changedPaths(before, after) {
+  const paths = /* @__PURE__ */ new Set();
+  let visited = 0;
+  let truncated = false;
+  const walk = (a, b, path, depth) => {
+    if (canonical(a) === canonical(b)) {
+      return;
+    }
+    if (++visited > 4096 || depth > 20 || paths.size >= 32) {
+      truncated = true;
+      return;
+    }
+    if (/(?:^|\/)(?:data|stringData|annotations|labels)$/.test(path)) {
+      paths.add(`${path}/*`);
+      return;
+    }
+    if (a && b && typeof a === "object" && typeof b === "object" && Array.isArray(a) === Array.isArray(b)) {
+      for (const key of /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])) {
+        const safe = /^[a-zA-Z0-9_-]{1,80}$/.test(key) ? key : "*";
+        walk(a[key], b[key], `${path}/${safe}`, depth + 1);
+      }
+    } else {
+      paths.add(path || "/");
+    }
+  };
+  walk(before, after, "", 0);
+  return { paths: [...paths].sort(), truncated };
+}
+function resourceIdentity(item) {
+  const safe = (value) => typeof value === "string" && /^[a-zA-Z0-9./_-]{1,253}$/.test(value) ? value : "[redacted]";
+  return {
+    apiVersion: safe(item.apiVersion),
+    kind: safe(item.kind),
+    namespace: item.metadata.namespace ? safe(item.metadata.namespace) : "",
+    name: safe(item.metadata.name)
+  };
+}
+function renderedRelease(output) {
+  let release;
+  try {
+    release = JSON.parse(output);
+  } catch {
+    fail("INVALID_DRY_RUN_RELEASE");
+  }
+  if (typeof release?.manifest !== "string" || !Array.isArray(release.hooks) || release.hooks.some((hook) => typeof hook?.manifest !== "string")) {
+    fail("INVALID_DRY_RUN_RELEASE");
+  }
+  return [release.manifest, ...release.hooks.map((hook) => hook.manifest)].join("\n---\n");
+}
 function resources(yaml) {
   return (0, import_yaml.parseAllDocuments)(yaml).map((doc) => {
     if (doc.errors.length) {
@@ -7388,7 +7436,11 @@ function stagePlan(manifest, targetSha, previousRevision) {
   if (api[0].image !== "api" || manager[0].image !== "workspace-manager") {
     fail("IMAGE_REQUIRED");
   }
-  return { migrationDigest: api[0].digest, managerDigest: manager[0].digest, sourceSha: targetSha };
+  return {
+    migrationDigest: api[0].digest,
+    managerDigest: manager[0].digest,
+    sourceSha: targetSha
+  };
 }
 function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationImage) {
   const before = resources(beforeYaml);
@@ -7406,6 +7458,8 @@ function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationI
       fail("MIGRATION_HOOK_UNVERIFIED");
     }
   }
+  const changes = [];
+  let truncated = false;
   for (const old of before) {
     const next = after.find((item) => key(item) === key(old));
     if (!next) {
@@ -7426,11 +7480,23 @@ function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationI
       if (item.kind === "Job" && item.metadata.name === migrationName && migrationImage) {
         delete copy.spec.template.spec.containers[0].image;
       }
-      return canonical(copy);
+      return copy;
     };
-    if (normalize(old) !== normalize(next)) {
-      fail("UNRELATED_RESOURCE_CHANGED");
+    const a = normalize(old);
+    const b = normalize(next);
+    if (canonical(a) !== canonical(b)) {
+      if (changes.length < 16) {
+        changes.push({
+          resource: resourceIdentity(old),
+          ...changedPaths(a, b)
+        });
+      } else {
+        truncated = true;
+      }
     }
+  }
+  if (changes.length || truncated) {
+    fail(`UNRELATED_RESOURCE_CHANGED ${JSON.stringify({ changes, truncated })}`);
   }
 }
 function assertManagerReady(deployment, pods, expectedImage, expectedDigest) {
@@ -7454,12 +7520,21 @@ function assertMigrationComplete(job, expectedName, expectedImage) {
   if (job?.metadata?.name !== expectedName || typeof job.metadata.uid !== "string" || !job.metadata.uid || job.metadata.deletionTimestamp || job.status?.succeeded !== 1 || !job.status.conditions?.some((condition) => condition.type === "Complete" && condition.status === "True") || job.status.conditions.some((condition) => condition.type === "Failed" && condition.status === "True") || job.spec?.template?.spec?.containers?.length !== 1 || job.spec.template.spec.containers[0].image !== expectedImage) {
     fail("MIGRATION_JOB_UNVERIFIED");
   }
-  return { uid: job.metadata.uid, image: expectedImage, succeeded: 1, complete: true };
+  return {
+    uid: job.metadata.uid,
+    image: expectedImage,
+    succeeded: 1,
+    complete: true
+  };
 }
 function runStage({
   manifest,
   env = process.env,
-  command = (bin, args) => execFileSync(bin, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 32 * 1024 * 1024 })
+  command = (bin, args) => execFileSync(bin, args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 32 * 1024 * 1024
+  })
 }) {
   const plan = stagePlan(manifest, env.TARGET_SHA, env.INITIAL_REVISION);
   if (!plan) {
@@ -7471,120 +7546,115 @@ function runStage({
   }
   const managerName = `${release}-vibecore-platform-workspace-manager`;
   const image = `${registry}/workspace-manager@${plan.managerDigest}`;
-  const directory = mkdtempSync(join(tmpdir(), "vibecore-manager-stage-"));
-  try {
-    const valuesFile = join(directory, "values.json");
-    const values = command("helm", ["get", "values", release, "-n", namespace, "-o", "json"]);
-    JSON.parse(values);
-    writeFileSync(valuesFile, values, { mode: 384 });
-    const before = command("helm", ["get", "manifest", release, "-n", namespace]) + "\n---\n" + command("helm", ["get", "hooks", release, "-n", namespace]);
-    const oldApi = deployments(before).filter(
-      (deployment2) => deployment2.metadata.name === `${release}-vibecore-platform-api`
-    );
-    if (oldApi.length !== 1 || oldApi[0].spec.template.spec.containers.length !== 1 || !/@sha256:[a-f0-9]{64}$/.test(oldApi[0].spec.template.spec.containers[0].image)) {
-      fail("OLD_API_NOT_PINNED");
-    }
-    const overrides = [
-      "--set",
-      "migrations.enabled=true",
-      "--set-string",
-      `migrations.imageDigest=${plan.migrationDigest}`,
-      "--set-string",
-      `services.workspaceManager.imageDigest=${plan.managerDigest}`,
-      "--set-string",
-      `services.workspaceManager.imageSourceSha=${plan.sourceSha}`,
-      "--set-string",
-      `services.workspaceManager.imageSourceDigest=${plan.managerDigest}`
-    ];
-    const rendered = command("helm", [
-      "template",
-      release,
-      chart,
-      "-n",
-      namespace,
-      "--is-upgrade",
-      "--dry-run=server",
-      "-f",
-      valuesFile,
-      ...overrides
-    ]);
-    assertOnlyManagerChanges(before, rendered, managerName, `${registry}/api@${plan.migrationDigest}`);
-    if (deployments(rendered).find((item) => item.metadata.name === managerName)?.spec.template.spec.containers[0].image !== image) {
-      fail("REGISTRY_MISMATCH");
-    }
-    for (const deployment2 of deployments(before)) {
-      const live = JSON.parse(
-        command("kubectl", ["-n", namespace, "get", "deployment", deployment2.metadata.name, "-o", "json"])
-      );
-      if (canonical(live.spec.template.spec.containers.map(({ name, image: image2 }) => ({ name, image: image2 }))) !== canonical(deployment2.spec.template.spec.containers.map(({ name, image: image2 }) => ({ name, image: image2 })))) {
-        fail("LIVE_IMAGE_DRIFT");
-      }
-    }
-    const receipt = {
-      targetSha: plan.sourceSha,
-      initialRevision: env.INITIAL_REVISION,
-      oldApiImage: oldApi[0].spec.template.spec.containers[0].image,
-      migrationImage: `${registry}/api@${plan.migrationDigest}`,
-      managerImage: image,
-      phase: "upgrade-requested"
-    };
-    const record = () => {
-      if (env.RUNNER_TEMP) {
-        writeFileSync(join(env.RUNNER_TEMP, "manager-stage.json"), JSON.stringify(receipt, null, 2) + "\n");
-      }
-    };
-    record();
-    appendFileSync(env.GITHUB_ENV, "STAGED_UPGRADE_STARTED=1\n");
-    command("helm", [
-      "upgrade",
-      release,
-      chart,
-      "-n",
-      namespace,
-      "--reuse-values",
-      "--atomic",
-      "--timeout",
-      "25m",
-      ...overrides
-    ]);
-    receipt.phase = "upgrade-returned";
-    record();
-    const migrationName = `${release}-vibecore-platform-prisma-migrate`;
-    const migrationJob = JSON.parse(command("kubectl", ["-n", namespace, "get", "job", migrationName, "-o", "json"]));
-    receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
-    receipt.phase = "migration-job-verified";
-    record();
-    command("kubectl", ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"]);
-    const deployment = JSON.parse(
-      command("kubectl", ["-n", namespace, "get", "deployment", managerName, "-o", "json"])
-    );
-    const pods = JSON.parse(
-      command("kubectl", [
-        "-n",
-        namespace,
-        "get",
-        "pods",
-        "-l",
-        `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
-        "-o",
-        "json"
-      ])
-    );
-    assertManagerReady(deployment, pods, image, plan.managerDigest);
-    receipt.phase = "manager-ready";
-    record();
-    return {
-      migrationDigest: plan.migrationDigest,
-      managerDigest: plan.managerDigest,
-      initialRevision: env.INITIAL_REVISION
-    };
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
+  const before = command("helm", ["get", "manifest", release, "-n", namespace]) + "\n---\n" + command("helm", ["get", "hooks", release, "-n", namespace]);
+  const oldApi = deployments(before).filter(
+    (deployment2) => deployment2.metadata.name === `${release}-vibecore-platform-api`
+  );
+  if (oldApi.length !== 1 || oldApi[0].spec.template.spec.containers.length !== 1 || !/@sha256:[a-f0-9]{64}$/.test(oldApi[0].spec.template.spec.containers[0].image)) {
+    fail("OLD_API_NOT_PINNED");
   }
+  const overrides = [
+    "--set",
+    "migrations.enabled=true",
+    "--set-string",
+    `migrations.imageDigest=${plan.migrationDigest}`,
+    "--set-string",
+    `services.workspaceManager.imageDigest=${plan.managerDigest}`,
+    "--set-string",
+    `services.workspaceManager.imageSourceSha=${plan.sourceSha}`,
+    "--set-string",
+    `services.workspaceManager.imageSourceDigest=${plan.managerDigest}`
+  ];
+  const upgradeArgs = [
+    "upgrade",
+    release,
+    chart,
+    "-n",
+    namespace,
+    "--reuse-values",
+    "--atomic",
+    "--timeout",
+    "25m",
+    ...overrides
+  ];
+  const rendered = renderedRelease(command("helm", [...upgradeArgs, "--dry-run=server", "-o", "json"]));
+  assertOnlyManagerChanges(before, rendered, managerName, `${registry}/api@${plan.migrationDigest}`);
+  if (deployments(rendered).find((item) => item.metadata.name === managerName)?.spec.template.spec.containers[0].image !== image) {
+    fail("REGISTRY_MISMATCH");
+  }
+  for (const deployment2 of deployments(before)) {
+    const live = JSON.parse(
+      command("kubectl", ["-n", namespace, "get", "deployment", deployment2.metadata.name, "-o", "json"])
+    );
+    if (canonical(
+      live.spec.template.spec.containers.map(({ name, image: image2 }) => ({
+        name,
+        image: image2
+      }))
+    ) !== canonical(
+      deployment2.spec.template.spec.containers.map(({ name, image: image2 }) => ({
+        name,
+        image: image2
+      }))
+    )) {
+      fail("LIVE_IMAGE_DRIFT");
+    }
+  }
+  const receipt = {
+    targetSha: plan.sourceSha,
+    initialRevision: env.INITIAL_REVISION,
+    oldApiImage: oldApi[0].spec.template.spec.containers[0].image,
+    migrationImage: `${registry}/api@${plan.migrationDigest}`,
+    managerImage: image,
+    phase: "upgrade-requested"
+  };
+  const record = () => {
+    if (env.RUNNER_TEMP) {
+      writeFileSync(join(env.RUNNER_TEMP, "manager-stage.json"), JSON.stringify(receipt, null, 2) + "\n");
+    }
+  };
+  record();
+  appendFileSync(env.GITHUB_ENV, "STAGED_UPGRADE_STARTED=1\n");
+  command("helm", upgradeArgs);
+  receipt.phase = "upgrade-returned";
+  record();
+  const migrationName = `${release}-vibecore-platform-prisma-migrate`;
+  const migrationJob = JSON.parse(command("kubectl", ["-n", namespace, "get", "job", migrationName, "-o", "json"]));
+  receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
+  receipt.phase = "migration-job-verified";
+  record();
+  command("kubectl", ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"]);
+  const deployment = JSON.parse(command("kubectl", ["-n", namespace, "get", "deployment", managerName, "-o", "json"]));
+  const pods = JSON.parse(
+    command("kubectl", [
+      "-n",
+      namespace,
+      "get",
+      "pods",
+      "-l",
+      `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
+      "-o",
+      "json"
+    ])
+  );
+  assertManagerReady(deployment, pods, image, plan.managerDigest);
+  receipt.phase = "manager-ready";
+  record();
+  return {
+    migrationDigest: plan.migrationDigest,
+    managerDigest: plan.managerDigest,
+    initialRevision: env.INITIAL_REVISION
+  };
 }
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   try {
-    console.log(JSON.stringify(runStage({ manifest: JSON.parse(readFileSync("release-manifest.json", "utf8")) })));
+    console.log(
+      JSON.stringify(
+        runStage({
+          manifest: JSON.parse(readFileSync("release-manifest.json", "utf8"))
+        })
+      )
+    );
   } catch (error) {
     console.error(error.message?.startsWith("STAGED_MANAGER_") ? error.message : "STAGED_MANAGER_COMMAND_FAILED");
     process.exitCode = 1;
@@ -7594,6 +7664,7 @@ export {
   assertManagerReady,
   assertMigrationComplete,
   assertOnlyManagerChanges,
+  renderedRelease,
   runStage,
   stagePlan
 };

@@ -7,7 +7,11 @@ The initial deployed revision is recorded before this upgrade, not between stage
 1. The hook runs with `migrations.imageDigest` set to the new API digest. Its
    existing pre-upgrade ServiceAccount and Job apply all additive migrations.
 2. Only the manager image/provenance and migration Job image may change. The
-   complete chart is rendered with read-only server lookups; all other resources,
+   complete chart is previewed with `helm upgrade --reuse-values --dry-run=server
+   -o json`, using the same arguments and overrides as the actual upgrade.
+   This preserves the previous release's coalesced defaults; a separate
+   `helm template` with only user values would instead introduce new defaults.
+   The JSON release's manifest and every hook manifest are compared; all other resources,
    including Secrets, ConfigMaps and RBAC, must match the stored manifest/hooks.
    The current API stays pinned; existing live images must match the stored
    release. Drift or a missing initial revision stops before mutation. Helm waits
@@ -38,3 +42,8 @@ they do not establish cloud recovery or a completed production rollout.
 The preservation check deliberately refuses chart changes that would also alter
 another resource during the preparatory stage. Such changes require a separately
 reviewed rollout plan; the check must not be bypassed to force the upgrade.
+
+On unrelated drift the error reports bounded resource identities and field paths,
+never values. Secret data and dynamic annotation/label keys are redacted. At most
+16 resources and 32 paths per resource are reported; truncation remains an error.
+Do not publish stored Helm values or raw rendered manifests for diagnosis.
