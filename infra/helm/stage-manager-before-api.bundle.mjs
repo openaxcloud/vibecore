@@ -7342,8 +7342,7 @@ var require_dist = __commonJS({
 // infra/helm/stage-manager-before-api.mjs
 var import_yaml = __toESM(require_dist(), 1);
 import { execFileSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 var digestPattern = /^sha256:[a-f0-9]{64}$/;
@@ -7356,6 +7355,55 @@ var canonical = (value) => JSON.stringify(
   value,
   (_key, item) => item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item
 );
+function changedPaths(before, after) {
+  const paths = /* @__PURE__ */ new Set();
+  let visited = 0;
+  let truncated = false;
+  const walk = (a, b, path, depth) => {
+    if (canonical(a) === canonical(b)) {
+      return;
+    }
+    if (++visited > 4096 || depth > 20 || paths.size >= 32) {
+      truncated = true;
+      return;
+    }
+    if (/(?:^|\/)(?:data|stringData|annotations|labels)$/.test(path)) {
+      paths.add(`${path}/*`);
+      return;
+    }
+    if (a && b && typeof a === "object" && typeof b === "object" && Array.isArray(a) === Array.isArray(b)) {
+      for (const key of /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])) {
+        const safe = /^[a-zA-Z0-9_-]{1,80}$/.test(key) ? key : "*";
+        walk(a[key], b[key], `${path}/${safe}`, depth + 1);
+      }
+    } else {
+      paths.add(path || "/");
+    }
+  };
+  walk(before, after, "", 0);
+  return { paths: [...paths].sort(), truncated };
+}
+function resourceIdentity(item) {
+  const safe = (value) => typeof value === "string" && /^[a-zA-Z0-9./_-]{1,253}$/.test(value) ? value : "[redacted]";
+  return {
+    apiVersion: safe(item.apiVersion),
+    kind: safe(item.kind),
+    namespace: item.metadata.namespace ? safe(item.metadata.namespace) : "",
+    name: safe(item.metadata.name)
+  };
+}
+function renderedRelease(output) {
+  let release;
+  try {
+    release = JSON.parse(output);
+  } catch {
+    fail("INVALID_DRY_RUN_RELEASE");
+  }
+  if (typeof release?.manifest !== "string" || !Array.isArray(release.hooks) || release.hooks.some((hook) => typeof hook?.manifest !== "string")) {
+    fail("INVALID_DRY_RUN_RELEASE");
+  }
+  return [release.manifest, ...release.hooks.map((hook) => hook.manifest)].join("\n---\n");
+}
 function resources(yaml) {
   return (0, import_yaml.parseAllDocuments)(yaml).map((doc) => {
     if (doc.errors.length) {
@@ -7388,7 +7436,11 @@ function stagePlan(manifest, targetSha, previousRevision) {
   if (api[0].image !== "api" || manager[0].image !== "workspace-manager") {
     fail("IMAGE_REQUIRED");
   }
-  return { migrationDigest: api[0].digest, managerDigest: manager[0].digest, sourceSha: targetSha };
+  return {
+    migrationDigest: api[0].digest,
+    managerDigest: manager[0].digest,
+    sourceSha: targetSha
+  };
 }
 function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationImage) {
   const before = resources(beforeYaml);
@@ -7406,6 +7458,8 @@ function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationI
       fail("MIGRATION_HOOK_UNVERIFIED");
     }
   }
+  const changes = [];
+  let truncated = false;
   for (const old of before) {
     const next = after.find((item) => key(item) === key(old));
     if (!next) {
@@ -7426,11 +7480,23 @@ function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationI
       if (item.kind === "Job" && item.metadata.name === migrationName && migrationImage) {
         delete copy.spec.template.spec.containers[0].image;
       }
-      return canonical(copy);
+      return copy;
     };
-    if (normalize(old) !== normalize(next)) {
-      fail("UNRELATED_RESOURCE_CHANGED");
+    const a = normalize(old);
+    const b = normalize(next);
+    if (canonical(a) !== canonical(b)) {
+      if (changes.length < 16) {
+        changes.push({
+          resource: resourceIdentity(old),
+          ...changedPaths(a, b)
+        });
+      } else {
+        truncated = true;
+      }
     }
+  }
+  if (changes.length || truncated) {
+    fail(`UNRELATED_RESOURCE_CHANGED ${JSON.stringify({ changes, truncated })}`);
   }
 }
 function assertManagerReady(deployment, pods, expectedImage, expectedDigest) {
@@ -7454,12 +7520,21 @@ function assertMigrationComplete(job, expectedName, expectedImage) {
   if (job?.metadata?.name !== expectedName || typeof job.metadata.uid !== "string" || !job.metadata.uid || job.metadata.deletionTimestamp || job.status?.succeeded !== 1 || !job.status.conditions?.some((condition) => condition.type === "Complete" && condition.status === "True") || job.status.conditions.some((condition) => condition.type === "Failed" && condition.status === "True") || job.spec?.template?.spec?.containers?.length !== 1 || job.spec.template.spec.containers[0].image !== expectedImage) {
     fail("MIGRATION_JOB_UNVERIFIED");
   }
-  return { uid: job.metadata.uid, image: expectedImage, succeeded: 1, complete: true };
+  return {
+    uid: job.metadata.uid,
+    image: expectedImage,
+    succeeded: 1,
+    complete: true
+  };
 }
 function runStage({
   manifest,
   env = process.env,
-  command = (bin, args) => execFileSync(bin, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 32 * 1024 * 1024 })
+  command = (bin, args) => execFileSync(bin, args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 32 * 1024 * 1024
+  })
 }) {
   const plan = stagePlan(manifest, env.TARGET_SHA, env.INITIAL_REVISION);
   if (!plan) {
@@ -7471,120 +7546,115 @@ function runStage({
   }
   const managerName = `${release}-vibecore-platform-workspace-manager`;
   const image = `${registry}/workspace-manager@${plan.managerDigest}`;
-  const directory = mkdtempSync(join(tmpdir(), "vibecore-manager-stage-"));
-  try {
-    const valuesFile = join(directory, "values.json");
-    const values = command("helm", ["get", "values", release, "-n", namespace, "-o", "json"]);
-    JSON.parse(values);
-    writeFileSync(valuesFile, values, { mode: 384 });
-    const before = command("helm", ["get", "manifest", release, "-n", namespace]) + "\n---\n" + command("helm", ["get", "hooks", release, "-n", namespace]);
-    const oldApi = deployments(before).filter(
-      (deployment2) => deployment2.metadata.name === `${release}-vibecore-platform-api`
-    );
-    if (oldApi.length !== 1 || oldApi[0].spec.template.spec.containers.length !== 1 || !/@sha256:[a-f0-9]{64}$/.test(oldApi[0].spec.template.spec.containers[0].image)) {
-      fail("OLD_API_NOT_PINNED");
-    }
-    const overrides = [
-      "--set",
-      "migrations.enabled=true",
-      "--set-string",
-      `migrations.imageDigest=${plan.migrationDigest}`,
-      "--set-string",
-      `services.workspaceManager.imageDigest=${plan.managerDigest}`,
-      "--set-string",
-      `services.workspaceManager.imageSourceSha=${plan.sourceSha}`,
-      "--set-string",
-      `services.workspaceManager.imageSourceDigest=${plan.managerDigest}`
-    ];
-    const rendered = command("helm", [
-      "template",
-      release,
-      chart,
-      "-n",
-      namespace,
-      "--is-upgrade",
-      "--dry-run=server",
-      "-f",
-      valuesFile,
-      ...overrides
-    ]);
-    assertOnlyManagerChanges(before, rendered, managerName, `${registry}/api@${plan.migrationDigest}`);
-    if (deployments(rendered).find((item) => item.metadata.name === managerName)?.spec.template.spec.containers[0].image !== image) {
-      fail("REGISTRY_MISMATCH");
-    }
-    for (const deployment2 of deployments(before)) {
-      const live = JSON.parse(
-        command("kubectl", ["-n", namespace, "get", "deployment", deployment2.metadata.name, "-o", "json"])
-      );
-      if (canonical(live.spec.template.spec.containers.map(({ name, image: image2 }) => ({ name, image: image2 }))) !== canonical(deployment2.spec.template.spec.containers.map(({ name, image: image2 }) => ({ name, image: image2 })))) {
-        fail("LIVE_IMAGE_DRIFT");
-      }
-    }
-    const receipt = {
-      targetSha: plan.sourceSha,
-      initialRevision: env.INITIAL_REVISION,
-      oldApiImage: oldApi[0].spec.template.spec.containers[0].image,
-      migrationImage: `${registry}/api@${plan.migrationDigest}`,
-      managerImage: image,
-      phase: "upgrade-requested"
-    };
-    const record = () => {
-      if (env.RUNNER_TEMP) {
-        writeFileSync(join(env.RUNNER_TEMP, "manager-stage.json"), JSON.stringify(receipt, null, 2) + "\n");
-      }
-    };
-    record();
-    appendFileSync(env.GITHUB_ENV, "STAGED_UPGRADE_STARTED=1\n");
-    command("helm", [
-      "upgrade",
-      release,
-      chart,
-      "-n",
-      namespace,
-      "--reuse-values",
-      "--atomic",
-      "--timeout",
-      "25m",
-      ...overrides
-    ]);
-    receipt.phase = "upgrade-returned";
-    record();
-    const migrationName = `${release}-vibecore-platform-prisma-migrate`;
-    const migrationJob = JSON.parse(command("kubectl", ["-n", namespace, "get", "job", migrationName, "-o", "json"]));
-    receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
-    receipt.phase = "migration-job-verified";
-    record();
-    command("kubectl", ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"]);
-    const deployment = JSON.parse(
-      command("kubectl", ["-n", namespace, "get", "deployment", managerName, "-o", "json"])
-    );
-    const pods = JSON.parse(
-      command("kubectl", [
-        "-n",
-        namespace,
-        "get",
-        "pods",
-        "-l",
-        `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
-        "-o",
-        "json"
-      ])
-    );
-    assertManagerReady(deployment, pods, image, plan.managerDigest);
-    receipt.phase = "manager-ready";
-    record();
-    return {
-      migrationDigest: plan.migrationDigest,
-      managerDigest: plan.managerDigest,
-      initialRevision: env.INITIAL_REVISION
-    };
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
+  const before = command("helm", ["get", "manifest", release, "-n", namespace]) + "\n---\n" + command("helm", ["get", "hooks", release, "-n", namespace]);
+  const oldApi = deployments(before).filter(
+    (deployment2) => deployment2.metadata.name === `${release}-vibecore-platform-api`
+  );
+  if (oldApi.length !== 1 || oldApi[0].spec.template.spec.containers.length !== 1 || !/@sha256:[a-f0-9]{64}$/.test(oldApi[0].spec.template.spec.containers[0].image)) {
+    fail("OLD_API_NOT_PINNED");
   }
+  const overrides = [
+    "--set",
+    "migrations.enabled=true",
+    "--set-string",
+    `migrations.imageDigest=${plan.migrationDigest}`,
+    "--set-string",
+    `services.workspaceManager.imageDigest=${plan.managerDigest}`,
+    "--set-string",
+    `services.workspaceManager.imageSourceSha=${plan.sourceSha}`,
+    "--set-string",
+    `services.workspaceManager.imageSourceDigest=${plan.managerDigest}`
+  ];
+  const upgradeArgs = [
+    "upgrade",
+    release,
+    chart,
+    "-n",
+    namespace,
+    "--reuse-values",
+    "--atomic",
+    "--timeout",
+    "25m",
+    ...overrides
+  ];
+  const rendered = renderedRelease(command("helm", [...upgradeArgs, "--dry-run=server", "-o", "json"]));
+  assertOnlyManagerChanges(before, rendered, managerName, `${registry}/api@${plan.migrationDigest}`);
+  if (deployments(rendered).find((item) => item.metadata.name === managerName)?.spec.template.spec.containers[0].image !== image) {
+    fail("REGISTRY_MISMATCH");
+  }
+  for (const deployment2 of deployments(before)) {
+    const live = JSON.parse(
+      command("kubectl", ["-n", namespace, "get", "deployment", deployment2.metadata.name, "-o", "json"])
+    );
+    if (canonical(
+      live.spec.template.spec.containers.map(({ name, image: image2 }) => ({
+        name,
+        image: image2
+      }))
+    ) !== canonical(
+      deployment2.spec.template.spec.containers.map(({ name, image: image2 }) => ({
+        name,
+        image: image2
+      }))
+    )) {
+      fail("LIVE_IMAGE_DRIFT");
+    }
+  }
+  const receipt = {
+    targetSha: plan.sourceSha,
+    initialRevision: env.INITIAL_REVISION,
+    oldApiImage: oldApi[0].spec.template.spec.containers[0].image,
+    migrationImage: `${registry}/api@${plan.migrationDigest}`,
+    managerImage: image,
+    phase: "upgrade-requested"
+  };
+  const record = () => {
+    if (env.RUNNER_TEMP) {
+      writeFileSync(join(env.RUNNER_TEMP, "manager-stage.json"), JSON.stringify(receipt, null, 2) + "\n");
+    }
+  };
+  record();
+  appendFileSync(env.GITHUB_ENV, "STAGED_UPGRADE_STARTED=1\n");
+  command("helm", upgradeArgs);
+  receipt.phase = "upgrade-returned";
+  record();
+  const migrationName = `${release}-vibecore-platform-prisma-migrate`;
+  const migrationJob = JSON.parse(command("kubectl", ["-n", namespace, "get", "job", migrationName, "-o", "json"]));
+  receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
+  receipt.phase = "migration-job-verified";
+  record();
+  command("kubectl", ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"]);
+  const deployment = JSON.parse(command("kubectl", ["-n", namespace, "get", "deployment", managerName, "-o", "json"]));
+  const pods = JSON.parse(
+    command("kubectl", [
+      "-n",
+      namespace,
+      "get",
+      "pods",
+      "-l",
+      `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
+      "-o",
+      "json"
+    ])
+  );
+  assertManagerReady(deployment, pods, image, plan.managerDigest);
+  receipt.phase = "manager-ready";
+  record();
+  return {
+    migrationDigest: plan.migrationDigest,
+    managerDigest: plan.managerDigest,
+    initialRevision: env.INITIAL_REVISION
+  };
 }
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   try {
-    console.log(JSON.stringify(runStage({ manifest: JSON.parse(readFileSync("release-manifest.json", "utf8")) })));
+    console.log(
+      JSON.stringify(
+        runStage({
+          manifest: JSON.parse(readFileSync("release-manifest.json", "utf8"))
+        })
+      )
+    );
   } catch (error) {
     console.error(error.message?.startsWith("STAGED_MANAGER_") ? error.message : "STAGED_MANAGER_COMMAND_FAILED");
     process.exitCode = 1;
@@ -7594,6 +7664,7 @@ export {
   assertManagerReady,
   assertMigrationComplete,
   assertOnlyManagerChanges,
+  renderedRelease,
   runStage,
   stagePlan
 };

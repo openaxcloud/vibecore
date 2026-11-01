@@ -48,6 +48,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import { cssTransition, ToastContainer } from 'react-toastify';
+import { AppliedFilesNoticeHost } from '~/components/chat/AppliedFilesNoticeDock';
 
 import { shouldShowGlobalRouteSplash } from './lib/global-route-splash';
 import { chargerLesCataloguesDuDocument, urlDuCatalogue } from './lib/i18n/catalogues-client';
@@ -125,6 +126,8 @@ export function loader({ request }: LoaderFunctionArgs) {
     { headers: localeResponseHeaders(request, locale) },
   );
 }
+
+export { shouldRevalidateRoot as shouldRevalidate } from './root.revalidate';
 
 export const headers: HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
@@ -895,51 +898,54 @@ function AppToastContainer() {
   const { t } = useTranslation();
 
   return (
-    <ToastContainer
-      className={compactIde ? 'vc-ide-compact-toasts' : undefined}
-      closeButton={({ closeToast }) => {
-        return (
-          <button
-            type="button"
-            className="Toastify__close-button"
-            aria-label={t('root.dismissNotification')}
-            onClick={closeToast}
-          >
-            <div className="i-ph:x text-lg" aria-hidden="true" />
-          </button>
-        );
-      }}
-      icon={({ type, isLoading }) => {
-        if (isLoading) {
-          return <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-textSecondary text-2xl" />;
-        }
+    <>
+      <ToastContainer
+        className={compactIde ? 'vc-ide-compact-toasts' : undefined}
+        closeButton={({ closeToast }) => {
+          return (
+            <button
+              type="button"
+              className="Toastify__close-button"
+              aria-label={t('root.dismissNotification')}
+              onClick={closeToast}
+            >
+              <div className="i-ph:x text-lg" aria-hidden="true" />
+            </button>
+          );
+        }}
+        icon={({ type, isLoading }) => {
+          if (isLoading) {
+            return <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-textSecondary text-2xl" />;
+          }
 
-        switch (type) {
-          case 'success': {
-            return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
+          switch (type) {
+            case 'success': {
+              return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
+            }
+            case 'error': {
+              return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
+            }
+            case 'info': {
+              return <div className="i-ph:info text-2xl" style={{ color: 'var(--status-info-text)' }} />;
+            }
+            case 'warning': {
+              return <div className="i-ph:warning text-2xl" style={{ color: 'var(--status-warning-text)' }} />;
+            }
           }
-          case 'error': {
-            return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
-          }
-          case 'info': {
-            return <div className="i-ph:info text-2xl" style={{ color: 'var(--status-info-text)' }} />;
-          }
-          case 'warning': {
-            return <div className="i-ph:warning text-2xl" style={{ color: 'var(--status-warning-text)' }} />;
-          }
-        }
 
-        return undefined;
-      }}
-      position="top-right"
-      pauseOnFocusLoss
-      transition={toastAnimation}
-      autoClose={4000}
-      limit={3}
-      stacked
-      newestOnTop={compactIde}
-      theme={theme}
-    />
+          return undefined;
+        }}
+        position="top-right"
+        pauseOnFocusLoss
+        transition={toastAnimation}
+        autoClose={4000}
+        limit={3}
+        stacked
+        newestOnTop={compactIde}
+        theme={theme}
+      />
+      <AppliedFilesNoticeHost />
+    </>
   );
 }
 
