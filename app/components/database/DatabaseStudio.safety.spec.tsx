@@ -65,6 +65,41 @@ function mount(primary = true, action?: () => Promise<unknown>) {
 afterEach(cleanup);
 
 describe('DatabaseStudio request and row safety', () => {
+  it('creates a table without SQL input and refreshes its schema only after confirmation', async () => {
+    const { queries, loads } = mount(true, async () => ({ ok: true, result: { command: 'CREATE' } }));
+    fireEvent.click(await screen.findByTestId('studio-create-table'));
+    fireEvent.change(screen.getByLabelText('Table name'), { target: { value: 'Contacts' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create table', exact: true }));
+    await screen.findByText('Table created.');
+    expect(queries).toHaveLength(1);
+    expect(queries[0].get('connectionKey')).toBe('DATABASE_URL');
+    expect(queries[0].get('query')).toContain('CREATE TABLE "public"."Contacts"');
+    await waitFor(() => expect(loads.some((url) => url.includes('schemaKey=DATABASE_URL'))).toBe(true));
+  });
+
+  it('does not apply a pending creation response to a newly selected connection', async () => {
+    let finish!: (result: unknown) => void;
+
+    const { queries, loads } = mount(
+      true,
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    fireEvent.click(await screen.findByTestId('studio-create-table'));
+    fireEvent.change(screen.getByLabelText('Table name'), { target: { value: 'Contacts' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create table', exact: true }));
+    await waitFor(() => expect(queries).toHaveLength(1));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Connection' }), { target: { value: 'PROD_DATABASE_URL' } });
+    await waitFor(() => expect(loads.some((url) => url.includes('schemaKey=PROD_DATABASE_URL'))).toBe(true));
+    finish({ ok: true });
+    await waitFor(() => expect(screen.queryByText('Creating table…')).toBeNull());
+    expect(screen.queryByText('Table created.')).toBeNull();
+    expect(screen.queryByLabelText('Table name')).toBeNull();
+    expect(loads.filter((url) => url.includes('schemaKey=DATABASE_URL'))).toHaveLength(0);
+  });
+
   it('quotes schema/table/columns and updates only the primary-key row', async () => {
     const { queries } = mount();
     fireEvent.click(screen.getByTestId('studio-table'));

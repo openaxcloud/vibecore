@@ -1,0 +1,21 @@
+{
+  "nativeZoom": true,
+  "creationSubmitted": false,
+  "errors": [],
+  "metrics": {
+    "width": 720,
+    "dpr": 2,
+    "cssZoom": "1"
+  },
+  "bounds": {
+    "left": 28.796875,
+    "right": 691.203125,
+    "width": 720,
+    "overflow": false
+  },
+  "departed": true,
+  "backNoCancelledDraft": true,
+  "forwardDeparted": true,
+  "interconnection": "Not tested: fixture has one connection",
+  "pass": true
+}

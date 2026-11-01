@@ -2450,18 +2450,27 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
        * eject the user to /login (which bounced them out of the Database panel to
        * /dashboard). This is a fetcher action serving an IDE panel, not a page load.
        */
-      const queryResult = await apiRequest(request, `/projects/${projectId}/databases/query`, {
-        method: 'POST',
-        redirectOn401: false,
-        body: JSON.stringify({
-          key: body.connectionKey,
-          query: body.query,
-          collection: body.collection || undefined,
-          limit: body.limit ? Number(body.limit) : undefined,
-        }),
-      });
+      try {
+        const queryResult = await apiRequest(request, `/projects/${projectId}/databases/query`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({
+            key: body.connectionKey,
+            query: body.query,
+            collection: body.collection || undefined,
+            limit: body.limit ? Number(body.limit) : undefined,
+          }),
+        });
 
-      return json({ ok: true, ...(queryResult as any) });
+        return json({ ok: true, ...(queryResult as any) });
+      } catch (error) {
+        /* A rejected SQL command must leave the form and its draft mounted. */
+        const failure = panelEnvelopeError('database', null, error, language);
+        const upstreamStatus = Number((error as { status?: unknown } | null)?.status);
+        const status = upstreamStatus >= 400 && upstreamStatus <= 599 ? upstreamStatus : 500;
+
+        return json({ ok: false, error: failure.error?.message, code: failure.error?.code }, { status });
+      }
     } else if (intent === 'provision') {
       // Provision a managed CNPG database for this project (the button-wired path).
       const provisioned = await apiRequest(request, `/projects/${projectId}/database/provision`, {
