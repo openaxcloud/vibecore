@@ -405,6 +405,7 @@ import {
 import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
 import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import { statutConnexion } from './database-connection-status.js';
+import { databaseRowSchema, insertPostgresRow } from './database-row-insert.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -3581,7 +3582,7 @@ async function inspectPostgresSchema(connectionString: string) {
        * peuvent plus diverger.
        */
       client.query(
-        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable, exists (select 1 from information_schema.table_constraints pk join information_schema.key_column_usage k on k.constraint_catalog = pk.constraint_catalog and k.constraint_schema = pk.constraint_schema and k.constraint_name = pk.constraint_name and k.table_schema = pk.table_schema and k.table_name = pk.table_name where pk.constraint_type = 'PRIMARY KEY' and k.table_schema = c.table_schema and k.table_name = c.table_name and k.column_name = c.column_name) as is_primary_key from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
+        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable, c.is_identity, c.is_generated, (c.column_default IS NOT NULL) as has_default, exists (select 1 from information_schema.table_constraints pk join information_schema.key_column_usage k on k.constraint_catalog = pk.constraint_catalog and k.constraint_schema = pk.constraint_schema and k.constraint_name = pk.constraint_name and k.table_schema = pk.table_schema and k.table_name = pk.table_name where pk.constraint_type = 'PRIMARY KEY' and k.table_schema = c.table_schema and k.table_name = c.table_name and k.column_name = c.column_name) as is_primary_key from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
       ),
       client
         .query(
@@ -25945,6 +25946,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { schema };
+  });
+  app.post('/projects/:projectId/databases/rows', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = databaseRowSchema.parse(request.body ?? {});
+    const connection = await requireDatabaseConnection(store, project.id, body.key);
+
+    if (connection.kind !== 'postgres') {
+      throw Object.assign(new Error(appPublicEnglish('DATABASE_ROW_POSTGRES_REQUIRED')), {
+        statusCode: 400,
+        code: 'DATABASE_ROW_POSTGRES_REQUIRED',
+      });
+    }
+
+    const client = new PgClient({ connectionString: connection.value, connectionTimeoutMillis: 5000 });
+
+    let result;
+
+    try {
+      await client.connect();
+      result = await insertPostgresRow(client, body);
+    } finally {
+      await client.end();
+    }
+
+    const metadata = { key: connection.key, kind: connection.kind, rowCount: result.rowCount };
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'database.row.insert',
+      metadata,
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'database.row.insert',
+      resourceType: 'projectDatabase',
+      resourceId: project.id,
+      metadata,
+    });
+
+    return { result };
   });
   app.post('/projects/:projectId/databases/query', async (request) => {
     const project = await requireProject(

@@ -1,0 +1,248 @@
+{
+  "backend": "Actual API with TestApiStore metadata; native PostgreSQL data",
+  "webkitInstalled": false,
+  "webkitExecuted": false,
+  "cases": [
+    {
+      "width": 1440,
+      "height": 1000,
+      "errors": [],
+      "blockedRequests": [
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/headless",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/headless",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        }
+      ],
+      "requests": 0,
+      "keyboardFocus": {
+        "tag": "INPUT",
+        "label": "Column name"
+      },
+      "bounds": {
+        "left": 639,
+        "right": 1145.265625,
+        "viewport": 1440,
+        "overflow": false
+      },
+      "nativePostgresPrimaryKey": true,
+      "duplicatePreservesDataAndDraft": true,
+      "cancelDidNotCreate": true,
+      "reloadedSchemaPersists": true,
+      "resizeDraftPreserved": true,
+      "functionalPass": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "errors": [],
+      "blockedRequests": [
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/headless",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/headless",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        }
+      ],
+      "requests": 0,
+      "keyboardFocus": {
+        "tag": "INPUT",
+        "label": "Column name"
+      },
+      "bounds": {
+        "left": 23.03125,
+        "right": 744.96875,
+        "viewport": 768,
+        "overflow": false
+      },
+      "nativePostgresPrimaryKey": true,
+      "duplicatePreservesDataAndDraft": true,
+      "cancelDidNotCreate": true,
+      "reloadedSchemaPersists": true,
+      "resizeDraftPreserved": true,
+      "functionalPass": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "errors": [],
+      "blockedRequests": [
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/headless",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "path": "/headless",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        },
+        {
+          "path": "/api/projects/project_s1oh46n68xmvxlkbc0/ai/conversations",
+          "method": "GET"
+        }
+      ],
+      "requests": 0,
+      "keyboardFocus": {
+        "tag": "INPUT",
+        "label": "Column name"
+      },
+      "bounds": {
+        "left": 16,
+        "right": 374,
+        "viewport": 390,
+        "overflow": false
+      },
+      "nativePostgresPrimaryKey": true,
+      "duplicatePreservesDataAndDraft": true,
+      "cancelDidNotCreate": true,
+      "reloadedSchemaPersists": true,
+      "resizeDraftPreserved": true,
+      "functionalPass": true
+    }
+  ],
+  "zoom200": "Not executed; native browser zoom requires separate controlled recipe. No CSS zoom represented as native zoom."
+}
