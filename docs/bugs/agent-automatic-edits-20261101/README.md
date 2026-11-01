@@ -41,3 +41,14 @@ No merge, rollout, paid model call, key/routing/budget change or production writ
 Further investigation: [WebKit diagnosis](webkit-diagnosis.md).
 
 Final local checks: production build passed; monorepo typecheck passed (missing local workspace package links were restored in ignored node_modules only); final web typecheck passed after the added tests; lint passed with 0 errors / 52 existing warnings. Targeted suites: 88 tests in 10 files initially, then 98 visual/conflict/settings regressions in 6 files, then 95 focused tests including the new mixed-result and shared-toast tests (overlapping suites; do not sum these totals). Six bug-index checks also passed.
+
+
+## Undo debounce race follow-up
+
+The reported race was reproduced with fake timers: A was visible, confirmed B arrived during the 80 ms debounce, and clicking A's Undo reverted only A while deleting B's pending notification. Three new tests failed before the fix (`undo-race-validation.txt`). Undo now consumes the live confirmed batch atomically before starting asynchronous reversion. Callback generations make old actions inert, and in-flight identities cannot be reverted twice. B arriving during A's reversion remains a separate batch, whether A finishes before or after B's notification flush.
+
+Manual dismissal removes only the displayed identities; newly confirmed unseen files are immediately shown in the next batch. New arrivals during the toast exit animation are retained until the old DOM node is actually removed, because React Toastify emits its removal event before freeing the same toast ID. This uses DOM observation, not a guessed animation delay. Tests cover all of these timings and preserve the existing mixed-result guard excluding failed/ignored writes.
+
+The PR remains blocked pending specific publication authorization. No retry of PR creation, no APT retry, no merge or rollout was performed for this follow-up.
+
+Follow-up validation: 30 targeted tests passed (7 notification race tests, 8 queue tests and 15 real-store integration tests); production build, web typecheck and lint passed (0 errors / 52 existing warnings). Chromium 154 journeys were rerun against the final build at 390/768/1440 plus landscape: all passed, including one visible Undo, its callback and completed dismissal. Race timing evidence is from fake timers; browser retry transport remains synthetic.

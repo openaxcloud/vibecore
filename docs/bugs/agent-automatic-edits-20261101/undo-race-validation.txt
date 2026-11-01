@@ -1,0 +1,79 @@
+
+## retry-race-before.log
+
+ ❯ app/components/chat/schedule-applied-files-toast.spec.ts:85:39
+     83|     old.onDismissAll?.();
+     84|     vi.advanceTimersByTime(80);
+     85|     expect(showCoalescedAppliedToast).toHaveBeenLastCalledWith(['b.ts'…
+       |                                       ^
+     86|     old.onUndoAll();
+     87|     expect(workbenchStore.revertAgentPatchProposal).not.toHaveBeenCall…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 2 passed (5)
+   Start at  18:52:00
+   Duration  2.94s (transform 1.33s, setup 28ms, collect 52ms, tests 19ms, environment 385ms, prepare 75ms)
+
+
+## retry-race-final.log
+DEBUG ActionRunner File written src/App.tsx
+
+stdout | app/lib/stores/workbench.reprise-de-session.spec.ts > à la réouverture, ce que la base a gardé d’un tour interrompu > Retry confirms writes before offering Undo, whose UI calls the real store revert
+DEBUG ActionRunner Created folder src
+
+stdout | app/lib/stores/workbench.reprise-de-session.spec.ts > à la réouverture, ce que la base a gardé d’un tour interrompu > Retry confirms writes before offering Undo, whose UI calls the real store revert
+DEBUG ActionRunner File written src/App.tsx
+
+ ✓ app/lib/stores/workbench.reprise-de-session.spec.ts (15 tests) 1866ms
+   ✓ à la réouverture, ce que la base a gardé d’un tour interrompu > revalidates and confirms a live importer once its dependency is actually available  478ms
+   ✓ à la réouverture, ce que la base a gardé d’un tour interrompu > Retry confirms writes before offering Undo, whose UI calls the real store revert  494ms
+
+ Test Files  3 passed (3)
+      Tests  30 passed (30)
+   Start at  18:56:08
+   Duration  9.28s (transform 3.84s, setup 109ms, collect 4.52s, tests 2.65s, environment 1.50s, prepare 277ms)
+
+
+## retry-race-types.log
+
+
+## retry-race-lint.log
+  85:26  warning  Unexpected empty method 'dispose'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/toast-batcher.spec.ts
+  119:33  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  129:34  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  135:38  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/url.ts
+  104:47  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+✖ 52 problems (0 errors, 52 warnings)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+
+## retry-race-build.log
+build/server/assets/server-build-C4QyA-wm.js                  10,450.14 kB
+
+✓ 5 assets cleaned from React Router server build.
+build/client/assets/index-DCFkLQef.css
+build/client/assets/tailwind-compat-Bwh-BmjE.css
+build/client/assets/xterm-LZoznX6r.css
+build/client/assets/ReactToastify-tlSLHgLC.css
+build/server/assets/server-build-DBJ_nk5r.css
+✓ 1 asset moved from React Router server build to client assets.
+build/client/assets/server-build-DBJ_nk5r.css
+
+✓ built in 17.97s
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

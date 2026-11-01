@@ -1,0 +1,390 @@
+{
+  "rows": [
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 390,
+      "synthetic": true,
+      "retryUndo": {
+        "retries": [
+          "safe"
+        ],
+        "reverts": [
+          "safe"
+        ]
+      },
+      "portrait": {
+        "x": 10,
+        "y": 313.078125,
+        "width": 370,
+        "height": 427.8125
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 2728.125,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">R\u00e9essayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 2923.7350000001024,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 2692.810000000056,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2719.7600000000093,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2748.969999999972,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3096.8850000000093,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 768,
+      "synthetic": true,
+      "retryUndo": {
+        "retries": [
+          "safe"
+        ],
+        "reverts": [
+          "safe"
+        ]
+      },
+      "portrait": {
+        "x": 10,
+        "y": 208.5,
+        "width": 748,
+        "height": 407.9375
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 2689.8649999999907,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">R\u00e9essayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 2862.554999999935,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 2657.689999999944,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2675.2350000001024,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2706.7900000000373,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3006.1450000000186,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 1440,
+      "synthetic": true,
+      "retryUndo": {
+        "retries": [
+          "safe"
+        ],
+        "reverts": [
+          "safe"
+        ]
+      },
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 425.28125
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3004.3349999999627,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">R\u00e9essayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 3186.554999999935,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 2968.244999999879,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2990.559999999823,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3013.8299999998417,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3364.780000000028,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "R\u00e9essayer ces modifications",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification",
+                  "R\u00e9essayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    }
+  ]
+}
