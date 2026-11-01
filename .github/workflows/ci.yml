@@ -230,7 +230,7 @@ jobs:
           pnpm --filter @vibecore/preview-proxy test
           pnpm --filter @vibecore/screenshotter test
 
-      # These two suites deliberately skip without a dedicated database.
+      # These suites deliberately skip without a dedicated database.
       # Create one only in this job's PostgreSQL service, apply every migration,
       # require every test to execute, and remove only the database we created.
       - name: PostgreSQL restore and ownership regressions

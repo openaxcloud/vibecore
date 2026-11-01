@@ -31,6 +31,7 @@ export async function inspectCnpgRestoreSource(
 ) {
   const sourceName = clusterName(input.projectId, input.environment);
   const backupName = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
+
   if (
     !input.projectId ||
     !input.organizationId ||
@@ -39,11 +40,16 @@ export async function inspectCnpgRestoreSource(
   ) {
     throw new RestoreSourceError('RESTORE_SOURCE_IDENTITY_REQUIRED');
   }
+
   const completeSourceName = `db-${input.projectId}${input.environment === 'production' ? '-prod' : ''}`;
-  if (sourceName !== completeSourceName || backupName !== `${completeSourceName}-${input.snapshotId}`)
+
+  if (sourceName !== completeSourceName || backupName !== `${completeSourceName}-${input.snapshotId}`) {
     throw new RestoreSourceError('RESTORE_SOURCE_NAME_AMBIGUOUS');
+  }
+
   let source: unknown;
   let backup: unknown;
+
   try {
     [source, backup] = await Promise.all([
       reader.get('Cluster', DB_NAMESPACE, sourceName),
@@ -52,10 +58,12 @@ export async function inspectCnpgRestoreSource(
   } catch {
     throw new RestoreSourceError('RESTORE_SOURCE_READ_FAILED');
   }
+
   const inspect = (value: unknown, kind: string, name: string) => {
     const resource = record(value);
     const metadata = record(resource.metadata);
     const labels = record(metadata.labels);
+
     if (
       resource.kind !== kind ||
       resource.apiVersion !== 'postgresql.cnpg.io/v1' ||
@@ -68,10 +76,13 @@ export async function inspectCnpgRestoreSource(
     ) {
       throw new RestoreSourceError('RESTORE_SOURCE_IDENTITY_MISMATCH');
     }
+
     return { resource, metadata, labels };
   };
+
   const cluster = inspect(source, 'Cluster', sourceName);
   const snapshot = inspect(backup, 'Backup', backupName);
+
   if (
     cluster.labels['vibecore.ai/org-id'] !== input.organizationId ||
     snapshot.labels['vibecore.ai/snapshot-id'] !== input.snapshotId ||
@@ -79,20 +90,48 @@ export async function inspectCnpgRestoreSource(
   ) {
     throw new RestoreSourceError('RESTORE_SOURCE_IDENTITY_MISMATCH');
   }
-  const owners = Array.isArray(snapshot.metadata.ownerReferences) ? snapshot.metadata.ownerReferences.map(record) : [];
-  const clusterOwners = owners.filter((owner) => owner.kind === 'Cluster');
-  if (clusterOwners.some((owner) => owner.name !== sourceName || owner.uid !== cluster.metadata.uid)) {
+
+  const ownerReferences = snapshot.metadata.ownerReferences;
+
+  if (ownerReferences !== undefined && !Array.isArray(ownerReferences)) {
     throw new RestoreSourceError('RESTORE_SOURCE_IDENTITY_MISMATCH');
   }
+
+  const owners = Array.isArray(ownerReferences) ? ownerReferences.map(record) : [];
+
+  if (
+    owners.some((owner) =>
+      ['apiVersion', 'kind', 'name', 'uid'].some((key) => typeof owner[key] !== 'string' || !owner[key]),
+    )
+  ) {
+    throw new RestoreSourceError('RESTORE_SOURCE_IDENTITY_MISMATCH');
+  }
+
+  const clusterOwners = owners.filter((owner) => owner.kind === 'Cluster');
+
+  if (
+    clusterOwners.length > 1 ||
+    clusterOwners.some(
+      (owner) =>
+        owner.apiVersion !== 'postgresql.cnpg.io/v1' || owner.name !== sourceName || owner.uid !== cluster.metadata.uid,
+    )
+  ) {
+    throw new RestoreSourceError('RESTORE_SOURCE_IDENTITY_MISMATCH');
+  }
+
   const status = record(snapshot.resource.status);
+
   if (status.phase !== 'completed' || status.error || typeof status.backupId !== 'string' || !status.backupId) {
     throw new RestoreSourceError('RESTORE_SOURCE_BACKUP_UNCONFIRMED');
   }
+
   const started = typeof status.startedAt === 'string' ? Date.parse(status.startedAt) : NaN;
   const stopped = typeof status.stoppedAt === 'string' ? Date.parse(status.stoppedAt) : NaN;
+
   if (!Number.isFinite(started) || !Number.isFinite(stopped) || stopped < started) {
     throw new RestoreSourceError('RESTORE_SOURCE_BACKUP_UNCONFIRMED');
   }
+
   // Bind later verification to immutable UIDs, not reusable Kubernetes names.
   return {
     namespace: DB_NAMESPACE,
