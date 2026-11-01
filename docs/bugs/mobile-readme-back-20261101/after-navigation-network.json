@@ -1,0 +1,21 @@
+{
+  "case": "390px delayed response, first final repetition",
+  "ideDataRequests": [
+    {
+      "query": "panel=files&_routes=root",
+      "status": 200,
+      "timeMs": 32.903
+    },
+    {
+      "query": "panel=editor",
+      "status": 200,
+      "timeMs": 182.86999999999534
+    },
+    {
+      "query": "panel=editor",
+      "status": 200,
+      "timeMs": 957.188
+    }
+  ],
+  "editorRootOnlyRequests": 0
+}

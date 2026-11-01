@@ -127,6 +127,8 @@ export function loader({ request }: LoaderFunctionArgs) {
   );
 }
 
+export { shouldRevalidateRoot as shouldRevalidate } from './root.revalidate';
+
 export const headers: HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 /** Fallback metadata for routes that do not publish more specific metadata. */
