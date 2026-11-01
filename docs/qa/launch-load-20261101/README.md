@@ -120,3 +120,58 @@ error contract. That assertion was corrected to the actual `QUOTA_EXCEEDED`
 contract; it was a harness error, not a demonstrated product defect. Early
 state-only exploration was superseded by actual file import/export measurements.
 No product performance change or capacity guarantee follows from this exercise.
+
+
+## Measurements retained without cherry-picking
+
+Raw receipts contain only synthetic fixture metrics and source hashes. The first
+two runs used the same pressure profile and product code, before the final
+harness review added explicit last-ZIP validation before/after restart and gated
+the overall objectives flag on functional success. Their recorded hashes are
+historical, not hashes of the final harness. Both had functional success, so the
+verdict tightening does not change their results.
+
+| Run | HTTP requests (including expected refusals) | Acknowledged edits/state pairs | Maximum pressure event-loop p99 sample | Functional checks | Proposed objectives |
+|---|---:|---:|---:|---|---|
+| [First file-edit run](exploratory-file-edits.json) | 25885 | 2639 | 107.5 ms | passed | failed: lag above 100 ms |
+| [Repeat before final review](repeat-before-review.json) | 25536 | 2602 | 58.1 ms | passed | passed |
+
+The 107.5 ms pressure sample remains a missed proposed objective. A subsequent
+passing run does not erase it, nor prove a stable production latency bound. All
+HTTP route p95 objectives passed in those two runs; neither had unexpected
+responses or a final state/retained archive mismatch.
+
+## Final reviewed-source run
+
+Recorded 2026-11-01T10:24:27.964Z from committed harness `aafc7e306c20e70be1d32bbe122779b95c91fe80`; source hashes match submitted files, sourceStable=True, initial dirty=False.
+
+**Functional checks: passed. Proposed objectives: all met in this run.** [Full raw receipt](reviewed-source-run.json).
+
+| Phase | Users | Actual seconds | HTTP requests | Completed requests/s | Worst route p95 | Worst route p99 | Max sampled event-loop p99 | Unexpected |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| warmup | 4 | 15.10 | 557 | 36.9 | 62.9 ms | 70.9 ms | 28.7 ms | 0 |
+| steady | 8 | 60.13 | 4420 | 73.5 | 93.0 ms | 112.7 ms | 28.0 ms | 0 |
+| pressure | 24 | 90.14 | 16382 | 181.7 | 233.6 ms | 350.9 ms | 40.4 ms | 0 |
+| recovery | 8 | 30.11 | 2192 | 72.8 | 118.7 ms | 140.0 ms | 53.6 ms | 0 |
+
+Total 25790 HTTP requests including setup/readback/bursts and expected refusals; 0 unexpected responses. 2630 acknowledged file edits and state saves across 24 projects, each with 20 files. Final ZIP contents match all final acknowledged versions before/after both API process restarts; counters and retained archive bytes also match. Fixture rows removed: True.
+
+Quota admission: one 201 and 39 explicit QUOTA_EXCEEDED refusals from forty contenders; database contains exactly one active project. Slot reuse after archive passes. Shared Redis burst: 2000 successes, 100 rate-limit refusals with Retry-After; subsequent post-expiry request passes.
+
+| Resource observation | Value |
+|---|---:|
+| API 0 max RSS | 705.0 MiB |
+| API 0 max sampled CPU | 110.0% of one core |
+| API 1 max RSS | 734.5 MiB |
+| API 1 max sampled CPU | 106.7% of one core |
+| Max sampled PostgreSQL connections | 32/100 |
+| Max sampled PostgreSQL lock waiters | 1 |
+| PostgreSQL deadlocks, sampled end minus start | 0 |
+| PostgreSQL temp_bytes, sampled end minus start | 0 |
+| Redis max sampled blocked_clients | 0 |
+| Redis max sampled evicted_keys | 0 |
+| Redis max sampled rejected_connections | 0 |
+
+Docker CPU/memory and per-phase raw samples are retained in the receipt. Samples can straddle phase boundaries; DB counters are cumulative for the reused disposable database, so differences matter. API CPU excludes Git subprocesses. These measurements expose resource use/lag but do not locate a production saturation limit.
+
+The seven verdict tests, lint and strict typecheck passed; [local validation record](local-validation.json). Independent read-only review confirmed the overall verdict gate and final ZIP/restart checks before this run.
