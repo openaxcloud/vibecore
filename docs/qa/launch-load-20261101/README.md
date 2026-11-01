@@ -175,3 +175,11 @@ Quota admission: one 201 and 39 explicit QUOTA_EXCEEDED refusals from forty cont
 Docker CPU/memory and per-phase raw samples are retained in the receipt. Samples can straddle phase boundaries; DB counters are cumulative for the reused disposable database, so differences matter. API CPU excludes Git subprocesses. These measurements expose resource use/lag but do not locate a production saturation limit.
 
 The seven verdict tests, lint and strict typecheck passed; [local validation record](local-validation.json). Independent read-only review confirmed the overall verdict gate and final ZIP/restart checks before this run.
+
+The first PR CI run `41297619967` caught an undocumented `LOCAL_LOAD_PROOF`
+opt-in in the repository-wide environment contract test. `.env.example` now
+records it as an empty local-only option (no deployed configuration change);
+all four environment contract tests pass locally. No measured harness/product
+source changed, so recorded source hashes remain valid. The GitHub check
+annotation provided the precise failure. Its raw log download was denied HTTP
+403; no alternate retrieval or access-policy change was attempted.
