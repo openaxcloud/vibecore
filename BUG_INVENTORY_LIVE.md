@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-613 entrées.
+615 entrées.
 
 ## Sans section
 
@@ -851,7 +851,18 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-MOBILE-AGENT-CAPTURES-20261101](docs/bugs/BUG-MOBILE-AGENT-CAPTURES-20261101.md) — P1 — captures IMG_0939–0942 : compteurs rognés, cartes spécialistes inutilement hautes, texte système anglais, notification volumineuse et chevauchement de la f — 📤 Dispatché : ☑ 01/11 — correction mobile, menu inférieur conservé. Aucun changement de routage IA. · 💻 Codé : ☐ — branche fix/mobile-agent-captures-20261101 ; correctifs et preuves locales prêts ; pas encore intégré sur · ✅ Testé live : ☐ — aucune validation de production. Reproduction locale synthétique Chromium 393 px : métadonnées hautes de 2
 - [BUG-MOBILE-APPLIED-NOTICE-FLOW-20261101](docs/bugs/BUG-MOBILE-APPLIED-NOTICE-FLOW-20261101.md) — P1 — le toast de fichiers appliqués reste superposé au rapport malgré sa réduction (y=113 px inchangé dans la preuve de #881). La première version du complément — 📤 Dispatché : ☑ 01/11 — complément distinct demandé après validation de #881. Menu inférieur et avertissements conservés. · 💻 Codé : ☐ — branche fix/mobile-toast-flow-20261101, séparée de la tête verte 4692759e0946789104cb9df9770e51adeb30f256 · ✅ Testé live : ☐ — pas de validation de production ni d’iPhone physique. Validation locale compilée : 6 parcours Chromium/Web
 - [BUG-MOBILE-README-BACK-RACE-20261101](docs/bugs/BUG-MOBILE-README-BACK-RACE-20261101.md) — P1 — à 390 px, choisir README puis quitter immédiatement vers le tableau de bord peut laisser Library dans l’historique. Retour n’ouvre alors pas l’éditeur. #88 — 📤 Dispatché : ☑ 01/11 — diagnostic et correction séparés, base exacte 5dea2523b68b36adf6709bd28c7576c31cb3198f. Ne pas modif · 💻 Codé : ☐ — branche fix/mobile-readme-back-race-20261101, non intégrée sur main. Le chargement racine n’est plus relan · ✅ Testé live : ☐ — aucune production ni iPhone physique. Reproduction locale compilée : 10 passages sans délai, puis 3 échecs
-- [BUG-AGENT-AUTO-APPLY-NO-MANUAL-REVIEW-20261101](docs/bugs/BUG-AGENT-AUTO-APPLY-NO-MANUAL-REVIEW-20261101.md) — P1 — le parcours Agent retombe sur Accepter/Rejeter après échec, conflit, restauration ou réponse tronquée. Demande du 01/11 : application automatique des modif — 📤 Dispatché : ☑ 01/11 — branche distincte fix/agent-automatic-edits-20261101, base 2072771dce3e7bcf0587d9a6231d7db0844ac35a. · 💻 Codé : ☐ — correction locale sur branche distincte, pas intégrée à main. Application automatique validée, file sans A · ✅ Testé live : ☐ — aucune validation produit ou production. Captures matérialisées et inspectées ; Undo après réessai validé en mémoire ; WebKit local bloqué
+
+## Agent et budget
+
+- [BUG-ASTER-BUDGET-ADMIN-TRANSPORT-20261101](docs/bugs/BUG-ASTER-BUDGET-ADMIN-TRANSPORT-20261101.md) — La PR #879 expose une API administrative limitée à Aster, mais aucun écran, — 📤 Dispatché : ☑ 01/11 — vérifier un parcours utilisable sans console navigateur ni copie de session. · 💻 Codé : ☐ — raccord local séparé de la PR API #879 ; non livré. · ✅ Testé live : ☐ — aucune connexion, activation ou invocation fournisseur réelle.
+
+## Déploiement et sécurité
+
+- [BUG-STAGED-UPGRADE-PREFLIGHT-DEFAULTS-20261101](docs/bugs/BUG-STAGED-UPGRADE-PREFLIGHT-DEFAULTS-20261101.md) — 📤 Dispatché : ☑ 01/11 — diagnostiquer le refus `STAGED_MANAGER_UNRELATED_RESOURCE_CHANGED` · 💻 Codé : ☐ — correctif isolé préparé ; livraison encore requise. · ✅ Testé live : ☐ — aucun nouveau rollout ni lecture du registre Prisma démontré.
+
+## Sans section
+
+- [BUG-AGENT-AUTO-APPLY-NO-MANUAL-REVIEW-20261101](docs/bugs/BUG-AGENT-AUTO-APPLY-NO-MANUAL-REVIEW-20261101.md) — P1 — le parcours Agent retombe sur Accepter/Rejeter après échec, conflit, restauration ou réponse tronquée. Demande du 01/11 : application automatique des modif — 📤 Dispatché : ☑ 01/11 — branche distincte fix/agent-automatic-edits-20261101, base 2072771dce3e7bcf0587d9a6231d7db0844ac35a. · 💻 Codé : ☐ — correction locale sur branche distincte, pas intégrée à main. Application automatique validée, file sans A · ✅ Testé live : ☐ — aucune validation produit ou production. Réessai → notification Annuler → réversion réelle du store validé
 
 ## Résidus non tabulaires — reportés mot pour mot
 
