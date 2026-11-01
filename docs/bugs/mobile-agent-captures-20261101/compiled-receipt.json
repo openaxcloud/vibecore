@@ -1,0 +1,176 @@
+[
+  {
+    "engine": "chromium",
+    "width": 390,
+    "running": {
+      "x": 21.5,
+      "y": 375.75,
+      "width": 347,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 355.625,
+      "width": 347,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "doc": {
+      "width": 390,
+      "scroll": 390
+    },
+    "keyboardSurrogate": true,
+    "reload": true,
+    "modal": true,
+    "back": true
+  },
+  {
+    "engine": "chromium",
+    "width": 393,
+    "running": {
+      "x": 21.5,
+      "y": 375.75,
+      "width": 350,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 355.625,
+      "width": 350,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "doc": {
+      "width": 393,
+      "scroll": 393
+    },
+    "keyboardSurrogate": true,
+    "reload": true,
+    "modal": true,
+    "back": true
+  },
+  {
+    "engine": "chromium",
+    "width": 430,
+    "running": {
+      "x": 21.5,
+      "y": 395.75,
+      "width": 387,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 375.625,
+      "width": 387,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "doc": {
+      "width": 430,
+      "scroll": 430
+    },
+    "keyboardSurrogate": true,
+    "reload": true,
+    "modal": true,
+    "back": true
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "running": {
+      "x": 21.5,
+      "y": 318.75,
+      "width": 347,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 345.625,
+      "width": 347,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "doc": {
+      "width": 390,
+      "scroll": 390
+    },
+    "keyboardSurrogate": true,
+    "reload": true,
+    "modal": true,
+    "back": true
+  },
+  {
+    "engine": "webkit",
+    "width": 393,
+    "running": {
+      "x": 21.5,
+      "y": 318.75,
+      "width": 350,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 345.625,
+      "width": 350,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "doc": {
+      "width": 393,
+      "scroll": 393
+    },
+    "keyboardSurrogate": true,
+    "reload": true,
+    "modal": true,
+    "back": true
+  },
+  {
+    "engine": "webkit",
+    "width": 430,
+    "running": {
+      "x": 21.5,
+      "y": 318.75,
+      "width": 387,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 345.625,
+      "width": 387,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "doc": {
+      "width": 430,
+      "scroll": 430
+    },
+    "keyboardSurrogate": true,
+    "reload": true,
+    "modal": true,
+    "back": true
+  }
+]

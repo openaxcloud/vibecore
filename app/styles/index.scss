@@ -33096,3 +33096,36 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   }
 }
 /* End Secrets short-height scrollport */
+
+/* Agent cards: reserve real line boxes while streaming; release empty slots at rest.
+ * The global interface line-height is taller than Uno's rem-based h-8/h-12. */
+.bolt-agent-lane-output {
+  overflow-wrap: anywhere;
+}
+.bolt-agent-lane-output:empty {
+  display: none;
+}
+.bolt-agent-lane-summary[data-streaming='true'] .bolt-agent-lane-preview {
+  height: 3lh;
+}
+.bolt-agent-lane-status {
+  overflow-wrap: anywhere;
+}
+.bolt-agent-lane-status[data-streaming='true'] {
+  height: 1lh;
+  overflow: hidden;
+}
+
+/* Mobile reading controls live outside the transcript scrollport: no text can
+ * pass behind the jump button, and the bottom navigation stays in place. */
+.bolt-agent-scroll-dock {
+  display: flex;
+  flex: 0 0 46px;
+  align-items: center;
+  justify-content: center;
+}
+.bolt-responsive-ide-mobile .bolt-agent-scroll-dock .bolt-agent-scroll-to-bottom {
+  position: relative !important;
+  bottom: auto !important;
+  margin: 0;
+}

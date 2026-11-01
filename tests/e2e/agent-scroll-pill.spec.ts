@@ -399,7 +399,20 @@ test.describe('pilule « descendre au dernier message »', () => {
         };
       });
 
-      expect(atteignable.position, 'la pastille a perdu son ancrage collant').toBe('sticky');
+      if (vue.width < 1200) {
+        // Mobile/tablet uses a dedicated row outside the scrolling transcript.
+        const dock = page.locator('.bolt-agent-scroll-dock');
+        await expect(dock.locator('.bolt-agent-scroll-to-bottom')).toHaveCount(1);
+
+        const scrollport = await page.locator('.bolt-project-agent-transcript').locator('..').boundingBox();
+        expect(scrollport).not.toBeNull();
+        expect(boite!.y, 'la pastille recouvre encore le fil').toBeGreaterThanOrEqual(
+          scrollport!.y + scrollport!.height,
+        );
+      } else {
+        expect(atteignable.position, 'la pastille a perdu son ancrage collant').toBe('sticky');
+      }
+
       expect(atteignable.dansLaFenetre, 'la pastille est rendue hors de la fenêtre').toBe(true);
       expect(atteignable.auCentre, 'un appui au centre de la pastille tombe sur autre chose').toBe(true);
 

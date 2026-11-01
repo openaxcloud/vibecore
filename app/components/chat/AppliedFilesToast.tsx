@@ -46,7 +46,7 @@ export function AppliedFilesToast({
     <div className="bolt-agent-applied-toast">
       <div className="bolt-agent-applied-toast-head" role="status" aria-live="polite">
         <strong>{appliedTitle}</strong>
-        {constat && !generationEstHonnete(constat) ? (
+        {constat && !generationEstHonnete(constat) && (
           <span className="bolt-agent-applied-toast-incomplete">
             {copy['appliedFilesToast.incomplete']}
             {constat.entreesManquantes.length > 0
@@ -55,12 +55,11 @@ export function AppliedFilesToast({
                 })}`
               : ''}
           </span>
-        ) : (
-          <span>{copy['appliedFilesToast.description']}</span>
         )}
       </div>
       <details>
         <summary>{copy['appliedFilesToast.details']}</summary>
+        {(!constat || generationEstHonnete(constat)) && <p>{copy['appliedFilesToast.description']}</p>}
         <ul>
           {visibleFiles.map((file) => (
             <li key={file} title={file}>
