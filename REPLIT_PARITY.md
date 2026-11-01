@@ -92,3 +92,9 @@ Replit Agent lit une URL donnée dans le prompt et s'en sert comme source (struc
 |---|:---:|:---:|:---:|---|
 | BILLING-ANNUAL — conserver la période et refuser un annuel sans prix annuel | ✅ 08/10 | ✅ #684 `a11d0a16` | ☐ | CI du SHA fusionné verte ; livraison bloquée au scan des images (run `37885667512`), avant Helm. Parcours connecté responsive à vérifier après livraison. `services/api/src/tests/api.spec.ts` + `app/routes/upgrade.i18n.spec.tsx`. |
 | BILLING-CATALOG — Core 25 / Pro 100, décision Avi | ✅ 08/10 | ☐ | ☐ | Réconcilier devise, prix Stripe et abonnements existants. |
+
+## Database — audit réel local du 30/10/2026
+
+| Point | 📤 Dispatché | 💻 Codé sur main | ✅ Testé live production | Preuves |
+|---|---|---|---|---|
+| DB-GRID-20261030 — isolation des connexions, édition par clé primaire, SQL réel | Oui, lot Database | Non — branche et PR draft, intégration réservée au coordinateur | Non — recette authentifiée séparée bloquée par reconnexion | [Rapport local et limites](docs/reprise/2026-10-30-database-audit.md) |

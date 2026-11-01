@@ -1,0 +1,37 @@
+{
+  "realHTTP": true,
+  "realPostgres": true,
+  "metadata": "TestApiStore memory only",
+  "origin": "http://127.0.0.1:8787",
+  "createStatus": 200,
+  "command": "CREATE",
+  "columns": [
+    {
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "is_identity": "YES"
+    },
+    {
+      "column_name": "Display \"name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "is_identity": "NO"
+    },
+    {
+      "column_name": "Active",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "is_identity": "NO"
+    },
+    {
+      "column_name": "Score",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "is_identity": "NO"
+    }
+  ],
+  "duplicateStatus": 500,
+  "retainedRows": 1,
+  "clientData": false
+}

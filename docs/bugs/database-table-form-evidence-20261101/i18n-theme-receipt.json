@@ -1,0 +1,354 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "locale": "en",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 16,
+      "right": 304,
+      "width": 320,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 820,
+    "height": 1180,
+    "locale": "en",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 24.59375,
+      "right": 795.40625,
+      "width": 820,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 1180,
+    "height": 820,
+    "locale": "en",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 35.390625,
+      "right": 1144.609375,
+      "width": 1180,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "locale": "en",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 25.3125,
+      "right": 818.6875,
+      "width": 844,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "locale": "en",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 16,
+      "right": 304,
+      "width": 320,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 820,
+    "height": 1180,
+    "locale": "en",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 24.59375,
+      "right": 795.40625,
+      "width": 820,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 1180,
+    "height": 820,
+    "locale": "en",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 35.390625,
+      "right": 1144.609375,
+      "width": 1180,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "locale": "en",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 25.3125,
+      "right": 818.6875,
+      "width": 844,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "locale": "fr",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 1,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 16,
+      "right": 304,
+      "width": 320,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 820,
+    "height": 1180,
+    "locale": "fr",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 24.59375,
+      "right": 795.40625,
+      "width": 820,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 1180,
+    "height": 820,
+    "locale": "fr",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 35.390625,
+      "right": 1144.609375,
+      "width": 1180,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "locale": "fr",
+    "theme": "light",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "light",
+      "className": "light"
+    },
+    "bounds": {
+      "left": 25.3125,
+      "right": 818.6875,
+      "width": 844,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "locale": "fr",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 16,
+      "right": 304,
+      "width": 320,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 820,
+    "height": 1180,
+    "locale": "fr",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 24.59375,
+      "right": 795.40625,
+      "width": 820,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 1180,
+    "height": 820,
+    "locale": "fr",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 35.390625,
+      "right": 1144.609375,
+      "width": 1180,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "locale": "fr",
+    "theme": "dark",
+    "pass": true,
+    "errors": [
+      "Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+    ],
+    "blockedMutations": 0,
+    "themeActual": {
+      "theme": "dark",
+      "className": "dark"
+    },
+    "bounds": {
+      "left": 25.3125,
+      "right": 818.6875,
+      "width": 844,
+      "overflow": false
+    },
+    "resizeDraftPreserved": true
+  }
+]

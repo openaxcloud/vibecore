@@ -95,6 +95,10 @@
     "en": "Only read-only Redis commands are allowed in the IDE query editor",
     "fr": "Seules les commandes Redis en lecture seule sont autorisées dans l’éditeur de requêtes de l’IDE."
   },
+  "DATABASE_CONNECTION_AMBIGUOUS": {
+    "en": "This database key has different values across environments. Use a distinct key for each database.",
+    "fr": "Cette clé désigne des bases différentes selon l’environnement. Utilisez une clé distincte pour chaque base."
+  },
   "DATABASE_CONNECTION_NOT_FOUND": {
     "en": "Database connection not found for this project",
     "fr": "Aucune connexion à une base de données n’a été trouvée pour ce projet."

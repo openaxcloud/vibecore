@@ -19,6 +19,11 @@ import { readConnections } from './DatabaseStudio';
  * l'expression avec `??`.
  */
 describe('readConnections — quelle liste fait foi', () => {
+  it('distinguishes an explicit PostgreSQL dialect from the legacy display fallback', () => {
+    expect(readConnections({ connections: [{ key: 'UNKNOWN' }] })[0].declaredKind).toBeUndefined();
+    expect(readConnections({ connections: [{ key: 'PG', kind: 'postgres' }] })[0].declaredKind).toBe('postgres');
+    expect(readConnections({ connections: [{ key: 'MY', kind: 'mysql' }] })[0].declaredKind).toBe('mysql');
+  });
   it('lit `connections` même quand `databases` est un tableau VIDE', () => {
     const conns = readConnections({
       data: {
@@ -44,7 +49,7 @@ describe('readConnections — quelle liste fait foi', () => {
   });
 
   it('accepte l’enveloppe complète comme la charge déjà déballée', () => {
-    const attendu = [{ key: 'DATABASE_URL', label: 'DATABASE_URL' }];
+    const attendu = [{ key: 'DATABASE_URL', label: 'DATABASE_URL', kind: 'postgres' }];
 
     expect(readConnections({ data: { connections: [{ key: 'DATABASE_URL' }] } })).toEqual(attendu);
     expect(readConnections({ connections: [{ key: 'DATABASE_URL' }] })).toEqual(attendu);
