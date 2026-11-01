@@ -242,8 +242,16 @@ describe('database restore integrity', () => {
         spec: { cluster: { name: clusterName(project.id, environment) } },
       });
       const snapshotId = response.json().snapshot.id as string;
-      await resolveDefaultDatabaseProvisioner().backupStatus({ projectId: project.id, snapshotId, environment });
-      expect(new URL(`http://localhost${reads[0]}`).searchParams.get('name')).toBe(manifests[0].metadata.name);
+      const readsBeforeStatus = reads.length;
+      const status = await resolveDefaultDatabaseProvisioner().backupStatus({
+        projectId: project.id,
+        snapshotId,
+        environment,
+      });
+      // These real generated IDs are truncated in Kubernetes names. Kickoff is not provenance.
+      // Refuse verification rather than accepting a relabelled, colliding historical backup.
+      expect(status).toMatchObject({ completed: false, error: 'BACKUP_SOURCE_NAME_AMBIGUOUS' });
+      expect(reads).toHaveLength(readsBeforeStatus);
     });
 
     it(`${environment}: transports the selected backup source to CNPG`, async () => {

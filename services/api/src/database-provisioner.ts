@@ -736,27 +736,59 @@ export class CnpgProvisioner implements DatabaseProvisioner {
   }
 
   async backupStatus(input: { projectId: string; snapshotId: string; environment?: DatabaseEnvironment }) {
+    const sourceName = clusterName(input.projectId, input.environment);
     const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
+    const completeSourceName = `db-${input.projectId}${input.environment === 'production' ? '-prod' : ''}`;
+
     /*
-     * Kind `Backup` exactement : le workspace-manager filtre sur une allowlist
-     * (`DB_ROLLBACK_KINDS`) et refuse 403 toute autre forme, y compris le nom
-     * pleinement qualifié. Même convention que `restoreProgress`, qui lit `Cluster`.
+     * Truncated names can alias a previous backup even if mutable labels were replaced.
+     * Refuse ambiguous/legacy identity rather than treating it as migration safety proof.
      */
+    if (
+      !input.projectId ||
+      !input.snapshotId ||
+      (input.environment !== undefined && !['development', 'production'].includes(input.environment)) ||
+      sourceName !== completeSourceName ||
+      name !== `${completeSourceName}-${input.snapshotId}`
+    ) {
+      return { found: false, completed: false, error: 'BACKUP_SOURCE_NAME_AMBIGUOUS' };
+    }
+
     const object = await this.k8s.get('Backup', DB_NAMESPACE, name).catch(() => undefined);
 
     if (!object) {
       return { found: false, completed: false, error: `Backup CR ${name} introuvable` };
     }
 
-    /*
-     * CNPG écrit la phase terminale de succès en `completed`. On compare en
-     * minuscules mais on n'accepte QUE cette valeur : traiter `running` ou une
-     * phase inconnue comme un succès reviendrait à migrer sans filet.
-     */
-    const phase = typeof object.status?.phase === 'string' ? object.status.phase : undefined;
-    const error = typeof object.status?.error === 'string' ? object.status.error : undefined;
+    const asRecord = (value: unknown): Record<string, unknown> =>
+      value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
-    return { found: true, phase, completed: phase?.toLowerCase() === 'completed', error };
+    const resource = asRecord(object);
+    const metadata = asRecord(resource.metadata);
+    const labels = asRecord(metadata.labels);
+    const spec = asRecord(resource.spec);
+
+    if (
+      resource.kind !== 'Backup' ||
+      resource.apiVersion !== CNPG_API ||
+      metadata.name !== name ||
+      metadata.namespace !== DB_NAMESPACE ||
+      typeof metadata.uid !== 'string' ||
+      !metadata.uid ||
+      metadata.deletionTimestamp ||
+      labels['vibecore.ai/project-id'] !== input.projectId ||
+      labels['vibecore.ai/snapshot-id'] !== input.snapshotId ||
+      asRecord(spec.cluster).name !== sourceName
+    ) {
+      return { found: true, completed: false, error: 'BACKUP_SOURCE_IDENTITY_MISMATCH' };
+    }
+
+    const status = asRecord(resource.status);
+    const phase = typeof status.phase === 'string' ? status.phase : undefined;
+    const error = status.error ? 'BACKUP_REPORTED_ERROR' : undefined;
+
+    // A contradictory error must never admit migration, and provider details stay private.
+    return { found: true, phase, completed: phase?.toLowerCase() === 'completed' && !error, error };
   }
 
   async startRestore(input: {

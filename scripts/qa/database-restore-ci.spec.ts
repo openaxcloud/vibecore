@@ -46,8 +46,8 @@ function completeReport() {
     numFailedTests: 0,
     numPendingTests: 0,
     numTodoTests: 0,
-    numTotalTests: 2,
-    numPassedTests: 2,
+    numTotalTests: requiredSpecs.length,
+    numPassedTests: requiredSpecs.length,
     testResults: requiredSpecs.map((file) => ({
       name: resolve('services/api', file),
       status: 'passed',
@@ -66,6 +66,7 @@ describe('restore CI report completeness (report parsing only)', () => {
     (status) => {
       const report = completeReport();
       report.testResults[0].assertionResults[0].status = status;
+
       const summary = summarizeCiTestReport(report);
       expect(summary.valid).toBe(false);
       expect(summary.files[0].failedTests).toEqual([{ name: `real PostgreSQL ${requiredSpecs[0]}`, status }]);
@@ -82,6 +83,7 @@ describe('restore CI report completeness (report parsing only)', () => {
     const duplicated = completeReport();
     duplicated.testResults[1] = duplicated.testResults[0];
     expect(summarizeCiTestReport(duplicated).valid).toBe(false);
+
     const empty = completeReport();
     empty.testResults[1].assertionResults = [];
     expect(summarizeCiTestReport(empty).valid).toBe(false);
@@ -105,6 +107,7 @@ describe('restore CI report completeness (report parsing only)', () => {
   it('prints test names and statuses without raw exception data or dynamic credentials', () => {
     const report = completeReport();
     report.testResults[0].assertionResults[0] = { fullName: `connection ${service}`, status: 'failed' };
+
     const summary = summarizeCiTestReport({
       ...report,
       rawError: service,
