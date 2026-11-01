@@ -1,0 +1,64 @@
+{
+  "baseCommit": "a9f8b02b737e775b68a34d29e33124e5662ec63c",
+  "recordedAt": "2026-11-01",
+  "production": false,
+  "results": [
+    {
+      "suite": "restore-unit",
+      "passed": 74,
+      "failed": 0,
+      "skipped": 39,
+      "files": [
+        {
+          "file": "services/api/src/database-restore-executor.spec.ts",
+          "passed": 33,
+          "total": 33
+        },
+        {
+          "file": "services/api/src/tests/database-restore-consumer.spec.ts",
+          "passed": 0,
+          "total": 9
+        },
+        {
+          "file": "services/api/src/tests/database-restore-integrity.spec.ts",
+          "passed": 16,
+          "total": 16
+        },
+        {
+          "file": "services/api/src/tests/database-restore-repository.spec.ts",
+          "passed": 0,
+          "total": 30
+        },
+        {
+          "file": "services/api/src/tests/database-restore-routes.spec.ts",
+          "passed": 10,
+          "total": 10
+        },
+        {
+          "file": "services/api/src/tests/database-restore-source.spec.ts",
+          "passed": 15,
+          "total": 15
+        }
+      ]
+    },
+    {
+      "suite": "restore-postgres",
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "file": "services/api/src/tests/database-restore-consumer.spec.ts",
+          "passed": 9,
+          "total": 9
+        },
+        {
+          "file": "services/api/src/tests/database-restore-repository.spec.ts",
+          "passed": 30,
+          "total": 30
+        }
+      ]
+    }
+  ],
+  "note": "39 initial skipped DB tests are all covered by the subsequent PostgreSQL run; do not sum the 30 repeated repository tests in the physical harness."
+}

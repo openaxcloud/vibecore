@@ -340,6 +340,7 @@ export const chatEn = {
   'chat.copy.episodic_2de3ef9c': 'Episodic',
   'chat.copy.errors_e6ef8d02': 'errors ·',
   'chat.copy.estimatedCost_516cbee2': 'Estimated cost',
+  'chat.copy.aiCostUnavailable': 'Estimate unavailable or incomplete',
   'chat.copy.event_5006ed02': 'event',
   'chat.copy.events_c5497bca': 'Events',
   'chat.copy.eventStreaming_d053a572': 'Event Streaming',
@@ -970,7 +971,7 @@ export const chatEn = {
   'chat.copy.toggleSplitLogView_4cbcd801': 'Toggle split log view',
   'chat.copy.toImport_f2c4337d': 'to import',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':
-    'Token totals are calculated from the real `/ai/usage` response.',
+    'Organization usage over the last 30 days, across projects. Estimated costs are not an invoice.',
   'chat.copy.tools_9d0e510b': 'TOOLS',
   'chat.copy.totalEvents_65939a4f': 'Total events',
   'chat.copy.tryADifferentSearchTerm_0ba628a3': 'Try a different search term.',
@@ -1921,6 +1922,7 @@ export const chatFr = {
   'chat.copy.episodic_2de3ef9c': 'Épisodique',
   'chat.copy.errors_e6ef8d02': 'erreurs ·',
   'chat.copy.estimatedCost_516cbee2': 'Coût estimé',
+  'chat.copy.aiCostUnavailable': 'Estimation indisponible ou incomplète',
   'chat.copy.event_5006ed02': 'événement',
   'chat.copy.events_c5497bca': 'Événements',
   'chat.copy.eventStreaming_d053a572': "Diffusion d'événements",
@@ -2577,7 +2579,7 @@ export const chatFr = {
   'chat.copy.toggleSplitLogView_4cbcd801': 'Basculer la vue fractionnée du journal',
   'chat.copy.toImport_f2c4337d': 'importer',
   'chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be':
-    'Les totaux des jetons sont calculés à partir de la réponse réelle « /ai/usage ».',
+    'Utilisation de l’organisation sur les 30 derniers jours, tous projets confondus. Les coûts estimés ne sont pas une facture.',
   'chat.copy.tools_9d0e510b': 'OUTILS',
   'chat.copy.totalEvents_65939a4f': 'Total des événements',
   'chat.copy.tryADifferentSearchTerm_0ba628a3': 'Essayez un autre terme de recherche.',
