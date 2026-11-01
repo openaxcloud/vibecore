@@ -54,3 +54,33 @@ sont démontrés synthétiquement, sans attribution certaine de la cause product
 Source primaire des phases et de la conservation des pods terminaux :
 https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
 https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#garbage-collection-of-pods
+
+
+## Complément diagnostic — livraison main1e64
+
+La livraison suivante, après intégration de la correction de readiness, s’est
+arrêtée avec `STAGED_MANAGER_COMMAND_FAILED` après24min04. Le rollback vers1343
+a réussi, avec sept rollouts confirmés selon les preuves du coordinateur. La
+commande qui a échoué et sa cause restent inconnues : la durée n’établit pas
+un timeout. Le reçu manager-stage n’est pas accessible par le canal actuellement
+autorisé ; aucun transfert alternatif n’a été tenté.
+
+Un correctif **d’observabilité uniquement** est préparé séparément. Les neuf
+opérations existantes reçoivent des identifiants et phases constants. En cas
+d’échec, le log expose uniquement le statut de sortie entier, le signal et le
+code OS s’ils appartiennent aux listes fermées, ainsi que le dernier diagnostic
+readiness déjà filtré lorsqu’il existe. Les valeurs inconnues restent nulles.
+Ni texte d’erreur fournisseur, arguments, stdout/stderr, environnement, secrets
+ou valeurs Helm ne sont publiés. Gardes, commandes, délais, permissions et
+politique de retry restent inchangés.
+
+Contre-épreuve CLI locale avec un faux exécutable Helm quittant7 : l’ancien
+bundle affiche seulement le code générique ; le nouveau indique l’opération
+read-release-manifest, sa phase preflight et le statut7, sans les canaris placés
+dans les sorties et l’environnement. Les31tests historiques et17nouveaux cas
+passent, soit48/48 sans test ignoré ; lint et bundle reproductible validés.
+
+Ce complément ne corrige pas une cause de panne encore inconnue et n’autorise
+pas un nouveau déploiement aveugle. Prochain point : PR diagnostic validée puis
+obtenir les preuves de l’opération réelle par un accès autorisé. Aucune nouvelle
+mutation cluster n’a été exécutée pour ces tests.
