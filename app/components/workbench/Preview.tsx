@@ -819,12 +819,18 @@ export const Preview = memo(
     const [isStartingPreview, setIsStartingPreview] = useState(false);
     const [previewStatus, setPreviewStatus] = useState<string | undefined>();
     const previewDocumentErrorRef = useRef<string | undefined>();
+
+    const [reportedPreviewError, setReportedPreviewError] = useState<{
+      source?: { path: string; line: number };
+    }>();
+
     const [previewRunFailed, setPreviewRunFailed] = useState(false);
     useEffect(() => {
       if (previewStoppedByUser) {
         setIsStartingPreview(false);
         setPreviewStatus(undefined);
         setPreviewRunFailed(false);
+        setReportedPreviewError(undefined);
 
         if (previewReloadTimer.current !== undefined) {
           window.clearTimeout(previewReloadTimer.current);
@@ -986,6 +992,7 @@ export const Preview = memo(
 
       previewLoadIdentityRef.current = previewLoadIdentity;
       previewDocumentErrorRef.current = undefined;
+      setReportedPreviewError(undefined);
       previewLoadRetryRef.current = 0;
       setPreviewFrameLoaded(false);
       setLoadedPreviewUrl(undefined);
@@ -1388,6 +1395,7 @@ export const Preview = memo(
          * (cross-origin frame, blank frame, missing contentWindow).
          */
         previewDocumentErrorRef.current = undefined;
+        setReportedPreviewError(undefined);
 
         if (beginPreviewFrameReload(iframe) === 'force-navigation') {
           window.setTimeout(() => {
@@ -2421,10 +2429,13 @@ export const Preview = memo(
           const lineno = typeof event.data.lineno === 'number' ? event.data.lineno : undefined;
           const filename = rawFilename ? ` (${rawFilename}:${lineno ?? '?'})` : '';
 
-          const message = t('idePanels.preview.runtimeError', {
-            message: event.data.message ?? t('idePanels.preview.unknownError'),
-            location: filename,
-          });
+          const message =
+            event.data.source === 'vite'
+              ? t('idePanels.preview.compilationFailed')
+              : t('idePanels.preview.runtimeError', {
+                  message: event.data.message ?? t('idePanels.preview.unknownError'),
+                  location: filename,
+                });
 
           previewDocumentErrorRef.current = message;
           setPreviewStatus(message);
@@ -2432,6 +2443,7 @@ export const Preview = memo(
 
           const resolvedPath = rawFilename ? resolvePreviewSourcePath(rawFilename) : undefined;
           const source = resolvedPath && lineno ? { path: resolvedPath, line: lineno } : undefined;
+          setReportedPreviewError({ source });
           setPreviewConsoleEvents((events) =>
             [
               {
@@ -2460,6 +2472,7 @@ export const Preview = memo(
           const message = t('idePanels.preview.unhandledRejection', {
             message: event.data.message ?? t('idePanels.preview.unknownError'),
           });
+          setReportedPreviewError({});
           previewDocumentErrorRef.current = message;
           setPreviewStatus(message);
           setIsStartingPreview(false);
@@ -2501,6 +2514,10 @@ export const Preview = memo(
             blankRecoveredRef.current = true;
             reloadPreview('blank-preview:auto-recover');
           }
+
+          previewDocumentErrorRef.current = message;
+          setPreviewStatus(message);
+          setReportedPreviewError({});
         }
       };
 
@@ -3003,6 +3020,40 @@ export const Preview = memo(
           </div>
         </div>
 
+        {reportedPreviewError && !previewStoppedByUser ? (
+          <div
+            role="alert"
+            className="shrink-0 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-sm"
+          >
+            <p className="font-medium">{t('idePanels.preview.reportedErrorTitle')}</p>
+            <p className="mt-1 text-bolt-elements-textSecondary">{t('idePanels.preview.reportedErrorBody')}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="min-h-11 rounded border border-bolt-elements-borderColor px-3"
+                onClick={openPreviewLogs}
+              >
+                {t('idePanels.preview.viewLogs')}
+              </button>
+              {reportedPreviewError.source ? (
+                <button
+                  type="button"
+                  className="min-h-11 rounded border border-bolt-elements-borderColor px-3"
+                  onClick={() => {
+                    const source = reportedPreviewError.source;
+
+                    if (source) {
+                      openPreviewSource(source.path, source.line);
+                    }
+                  }}
+                >
+                  {t('idePanels.preview.openAffectedFile')}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <div
           className="bolt-project-webview-frame flex-1 border-t border-bolt-elements-borderColor flex justify-center items-center overflow-auto"
           data-preview-device={previewDevice}
@@ -3335,7 +3386,7 @@ export const Preview = memo(
                 <span className="i-ph:x" aria-hidden />
               </button>
             </header>
-            <pre>
+            <pre style={reportedPreviewError ? { color: 'var(--bolt-elements-textPrimary)' } : undefined}>
               {(activeLogTab === 'webview'
                 ? [
                     t('idePanels.preview.logUrl', {

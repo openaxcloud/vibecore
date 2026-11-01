@@ -95,6 +95,10 @@
     "en": "Only read-only Redis commands are allowed in the IDE query editor",
     "fr": "Seules les commandes Redis en lecture seule sont autorisées dans l’éditeur de requêtes de l’IDE."
   },
+  "DATABASE_CONNECTION_AMBIGUOUS": {
+    "en": "This database key has different values across environments. Use a distinct key for each database.",
+    "fr": "Cette clé désigne des bases différentes selon l’environnement. Utilisez une clé distincte pour chaque base."
+  },
   "DATABASE_CONNECTION_NOT_FOUND": {
     "en": "Database connection not found for this project",
     "fr": "Aucune connexion à une base de données n’a été trouvée pour ce projet."
@@ -1938,6 +1942,14 @@
   "SKILL_CANNOT_ENABLE": {
     "en": "'{value1}' {value2} and cannot be enabled. Uninstall and re-install it to reconsider.",
     "fr": "« {value1} » {value2} et ne peut pas être activé. Désinstallez-le, puis réinstallez-le pour lancer une nouvelle évaluation."
+  },
+  "SKILL_RESOURCES_UNAVAILABLE": {
+    "en": "This skill could not be installed: a required reference file is missing, unsupported, or exceeds the size limit. No skill was installed.",
+    "fr": "Cette compétence n’a pas pu être installée : un fichier de référence requis est manquant, non pris en charge ou trop volumineux. Aucune compétence n’a été installée."
+  },
+  "SKILL_APPROVAL_REQUIRED": {
+    "en": "This skill is quarantined. Review its audit findings and use Approve to enable it.",
+    "fr": "Ce skill est en quarantaine. Consultez les résultats de son audit puis utilisez Approuver pour l’activer."
   },
   "SKILL_CANNOT_APPROVE": {
     "en": "'{value1}' cannot be approved (it is revoked or was rejected by the audit).",

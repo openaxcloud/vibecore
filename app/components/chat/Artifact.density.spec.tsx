@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,11 +64,14 @@ function renderNovaMarket() {
     },
   });
 
-  return render(
+  const result = render(
     <I18nextProvider i18n={createI18nInstance('fr')}>
       <Artifact artifactId="nova-market" messageId="assistant-message" />
     </I18nextProvider>,
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Afficher les actions' }));
+
+  return result;
 }
 
 describe('<Artifact /> — densité de la liste d’actions', () => {

@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { computed, map } from 'nanostores';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import { DiffActionRow } from './DiffActionRow';
@@ -48,7 +48,6 @@ interface ArtifactProps {
 export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const { i18n } = useTranslation();
   const copy = getChatRenderersCopy(i18n.resolvedLanguage ?? i18n.language ?? 'en');
-  const userToggledActions = useRef(false);
   const [showActions, setShowActions] = useState(false);
   const [bundledState, setBundledState] = useState<BundledArtifactState>('running');
 
@@ -71,16 +70,16 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
 
   const actions = useStore(filteredActions);
 
+  useEffect(() => setShowActions(false), [artifactId]);
+
+  const hasFailedAction = actions.some((action) => action.status === 'failed');
+  const hasInterruptedAction = actions.some((action) => action.status === 'aborted');
+
   const toggleActions = () => {
-    userToggledActions.current = true;
     setShowActions(!showActions);
   };
 
   useEffect(() => {
-    if (actions.length && !userToggledActions.current) {
-      setShowActions(true);
-    }
-
     if (actions.length !== 0 && artifact?.type === 'bundled') {
       const nextState = deriveBundledArtifactState(actions);
 
@@ -213,6 +212,11 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
             ) : null}
           </div>
         )}
+        {artifact.type !== 'bundled' && (hasFailedAction || hasInterruptedAction) ? (
+          <p className="px-5 py-2 text-sm text-bolt-elements-icon-error" role="status">
+            {copy[hasFailedAction ? 'chatRenderers.artifact.failureSafe' : 'chatRenderers.artifact.interruptedSafe']}
+          </p>
+        ) : null}
         <AnimatePresence>
           {artifact.type !== 'bundled' && showActions && actions.length > 0 && (
             <motion.div

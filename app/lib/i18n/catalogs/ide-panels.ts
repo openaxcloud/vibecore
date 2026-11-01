@@ -341,6 +341,11 @@ export const idePanelsEn = {
   'idePanels.preview.popupTitle': '{device} Preview',
   'idePanels.preview.blankPage':
     'Preview loaded but the app never mounted (blank page). Check the app entry or console. Auto-reloading once…',
+  'idePanels.preview.reportedErrorTitle': 'The preview needs attention',
+  'idePanels.preview.reportedErrorBody':
+    'An error was reported. View the logs for details, or open the affected file when available.',
+  'idePanels.preview.openAffectedFile': 'Open affected file',
+  'idePanels.preview.compilationFailed': 'The latest changes could not be displayed.',
   'idePanels.preview.runtimeError': 'Preview error: {message}{location}',
   'idePanels.preview.unhandledRejection': 'Unhandled promise rejection in preview: {message}',
   'idePanels.preview.unknownError': 'unknown error',
@@ -841,6 +846,11 @@ export const idePanelsFr: Record<keyof typeof idePanelsEn, string> = {
   'idePanels.preview.popupTitle': 'Aperçu — {device}',
   'idePanels.preview.blankPage':
     'L’aperçu a été chargé, mais l’application ne s’est pas montée (page blanche). Vérifiez le point d’entrée ou la console. Une actualisation automatique va être tentée…',
+  'idePanels.preview.reportedErrorTitle': 'L’aperçu nécessite votre attention',
+  'idePanels.preview.reportedErrorBody':
+    'Une erreur a été signalée. Consultez les journaux pour en savoir plus, ou ouvrez le fichier concerné lorsqu’il est disponible.',
+  'idePanels.preview.openAffectedFile': 'Ouvrir le fichier concerné',
+  'idePanels.preview.compilationFailed': 'Les dernières modifications n’ont pas pu être affichées.',
   'idePanels.preview.runtimeError': 'Erreur d’aperçu : {message}{location}',
   'idePanels.preview.unhandledRejection': 'Rejet de promesse non géré dans l’aperçu : {message}',
   'idePanels.preview.unknownError': 'erreur inconnue',
