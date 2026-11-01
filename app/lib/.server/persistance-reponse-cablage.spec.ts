@@ -18,7 +18,9 @@ describe('la réponse du serveur est écrite depuis la route de chat', () => {
   });
 
   it('le texte de CHAQUE segment est accumulé, dans le rappel de fin de segment', () => {
-    expect(ROUTE).toMatch(/fichiersEmis \+= compterActionsDeFichier\(content\);\s*contenuDuTour \+= content \?\? '';/);
+    expect(ROUTE).toMatch(
+      /contenuDuTour \+= content \?\? '';\s*fichiersEmis = compterActionsDeFichier\(contenuDuTour\);/,
+    );
   });
 
   it('l’écriture vise la ligne du navigateur : identifiant stable du message, rôle assistant, PUT transcript', () => {

@@ -570,3 +570,11 @@ describe('agent post-generation import validation', () => {
     });
   });
 });
+
+describe('stylesheet proposal validation', () => {
+  it.each(['css', 'scss'])('rejects truncated %s in the review path', async (extension) => {
+    await expect(
+      validateGeneratedFiles([{ path: `src/styles.${extension}`, content: '.panel { color: red;' }]),
+    ).rejects.toBeInstanceOf(GeneratedFileSyntaxError);
+  });
+});

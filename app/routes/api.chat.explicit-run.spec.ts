@@ -410,3 +410,139 @@ test('stream closure correlates with the terminal receipt without logging genera
   });
   expect(JSON.stringify(closed)).not.toContain('src/App.tsx');
 });
+
+// These counters describe emitted protocol, not validated or applied workspace writes.
+const splitFileMarker = generated.indexOf('type="file"') + 7;
+
+test.each([
+  {
+    name: 'a file marker split across segments',
+    first: generated.slice(0, splitFileMarker),
+    second: generated.slice(splitFileMarker),
+    finishReason: 'stop',
+    status: 'complete',
+    fileActions: 1,
+    openActions: 0,
+    openArtifacts: 0,
+  },
+  {
+    name: 'distinct file actions in both segments',
+    first: generated,
+    second: generated.replaceAll('fixture', 'second').replace('src/App.tsx', 'src/Other.tsx'),
+    finishReason: 'stop',
+    status: 'complete',
+    fileActions: 2,
+    openActions: 0,
+    openArtifacts: 0,
+  },
+  {
+    name: 'a file marker still incomplete at stop',
+    first: generated.slice(0, splitFileMarker - 2),
+    second: generated.slice(splitFileMarker - 2, splitFileMarker),
+    finishReason: 'stop',
+    status: 'incomplete',
+    fileActions: 0,
+    openActions: 1,
+    openArtifacts: 1,
+  },
+  {
+    name: 'a closed split file at the output limit',
+    first: generated.slice(0, splitFileMarker),
+    second: generated.slice(splitFileMarker),
+    finishReason: 'length',
+    status: 'incomplete',
+    fileActions: 1,
+    openActions: 0,
+    openArtifacts: 0,
+  },
+  {
+    name: 'a closed split file followed by provider error',
+    first: generated.slice(0, splitFileMarker),
+    second: generated.slice(splitFileMarker),
+    finishReason: 'error',
+    status: 'error',
+    fileActions: 1,
+    openActions: 0,
+    openArtifacts: 0,
+  },
+] as const)('continuation preserves emitted-file evidence: $name', async (fixture) => {
+  let calls = 0;
+  boundary.streamText.mockImplementation(async (input) => {
+    const index = calls++;
+    const text = index === 0 ? fixture.first : fixture.second;
+    const finishReason = index === 0 ? 'length' : fixture.finishReason;
+
+    return {
+      mergeIntoDataStream(writer: { merge: (source: ReadableStream<string>) => void }) {
+        writer.merge(
+          new ReadableStream<string>({
+            async start(controller) {
+              controller.enqueue(formatDataStreamPart('text', text));
+              await input.options.onFinish({
+                text,
+                finishReason,
+                usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+              });
+              controller.enqueue(
+                formatDataStreamPart('finish_message', {
+                  finishReason,
+                  usage: { promptTokens: 10, completionTokens: 10 },
+                }),
+              );
+              controller.close();
+            },
+          }),
+        );
+      },
+    };
+  });
+
+  const { body } = await invoke();
+  expect(boundary.streamText).toHaveBeenCalledTimes(2);
+  expect(terminalAnnotations(body)).toHaveLength(1);
+  expect(terminalAnnotations(body)).toMatchObject([
+    {
+      status: fixture.status,
+      finishReason: fixture.finishReason,
+      fileActions: fixture.fileActions,
+      openActions: fixture.openActions,
+      openArtifacts: fixture.openArtifacts,
+      segments: 2,
+    },
+  ]);
+  expect(boundary.fetch).not.toHaveBeenCalled();
+});
+
+test('only the bounded final outcome persists a content-bound receipt across two segments', async () => {
+  terminalFixture('length', generated);
+
+  const original = boundary.streamText.getMockImplementation()!;
+
+  const persisted = () =>
+    boundary.api.mock.calls
+      .filter(([, path]) => String(path).endsWith('/transcript'))
+      .flatMap(([, , options]) => JSON.parse(options.body).messages)
+      .filter((message: { role: string }) => message.role === 'assistant');
+
+  let calls = 0;
+  boundary.streamText.mockImplementation(async (...args) => {
+    if (++calls === 2) {
+      expect(persisted().every((message: { terminalReceipt?: unknown }) => !message.terminalReceipt)).toBe(true);
+    }
+
+    return original(...args);
+  });
+
+  const { body } = await invoke({ conversationId: 'synthetic-conversation', clientMessageId: 'fixture-message' });
+  const writes = persisted();
+  expect(calls).toBe(2);
+  expect(writes.length).toBeGreaterThanOrEqual(2);
+  expect(writes[0].terminalReceipt).toBeUndefined();
+  expect(writes.at(-1).terminalReceipt).toEqual(terminalAnnotations(body)[0]);
+  expect(writes.at(-1).terminalReceipt).toMatchObject({
+    status: 'incomplete',
+    segments: 2,
+    contentSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+  });
+  expect(writes.at(-1).content).toBe(generated + generated);
+});

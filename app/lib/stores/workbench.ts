@@ -400,23 +400,6 @@ export class WorkbenchStore {
   /** Last DEFINED project the artifacts belong to — see configureProject. */
   #artifactsProjectId: string | undefined;
 
-  /*
-   * Paths already materialized in the runtime by the streaming sampler.
-   *
-   * BUG-AGENT-001. The streaming branch of `#processFileAction` wrote the file
-   * to the runtime whenever the editor had no document for it. That guard never
-   * closed, because `EditorStore.updateFile` no-ops when the document is
-   * missing instead of creating it — so a FULL-FILE write left every 100ms
-   * (`ACTION_STREAM_SAMPLE_INTERVAL_MS`) for as long as the file streamed.
-   * Measured live: 150 writes for 9 files (55 for one single file), 750 for 20
-   * in the QA run. Those writes are chained on one serial promise, so the
-   * authoritative close-writes queued behind them had not drained when the
-   * stream ended — and `abortStreamingFileActions` then cancelled the backlog,
-   * so the files were NEVER written to the runtime.
-   *
-   * One materialization per path is all the guard was ever after.
-   */
-  #streamMaterializedPaths = new Set<string>();
   #agentPatchOriginals = new Map<string, string>();
 
   /*
@@ -3971,7 +3954,9 @@ export class WorkbenchStore {
     }
 
     if (data.action.type === 'file') {
-      if (this.agentPatchReviewRequired.get() || aRevoir) {
+      const existingProposal = this.agentPatchProposals.get()[`${data.artifactId}:${data.actionId}`];
+
+      if (this.agentPatchReviewRequired.get() || aRevoir || data.fermetureDeSecours || existingProposal) {
         this.#queueAgentPatchProposal(data, isStreaming, aRevoir);
 
         /*
@@ -4019,41 +4004,62 @@ export class WorkbenchStore {
       }
 
       if (isStreaming) {
-        const doc = this.#editorStore.documents.get()[fullPath];
-
-        if (!doc && !this.#streamMaterializedPaths.has(fullPath)) {
-          this.#streamMaterializedPaths.add(fullPath);
-          await artifact.runner.runAction(data, true);
-        }
-
         /*
          * Don't stomp the editor buffer of a file the user is actively editing:
          * if the target has unsaved edits or is locked, preserve the user's
          * work and surface a one-time conflict alert instead of silently
          * overwriting it with the streamed AI content.
          */
-        const hasUnsavedEdits = this.unsavedFiles.get().has(fullPath);
-        const lockState = this.isFileLocked(fullPath);
+        const streamingFilePath = data.action.filePath;
 
-        if (hasUnsavedEdits || lockState.locked) {
-          const conflictTitle = workbenchText('workbenchRuntime.write.conflictTitle');
+        const hasConflict = () => {
+          const hasUnsavedEdits = this.unsavedFiles.get().has(fullPath);
+          const lockState = this.isFileLocked(fullPath);
 
-          if (this.actionAlert.value?.title !== conflictTitle) {
-            this.actionAlert.set({
-              type: 'warning',
-              title: conflictTitle,
-              description: workbenchText('workbenchRuntime.write.conflictDescription', {
-                file: data.action.filePath,
-              }),
-              content: '',
-              source: 'preview',
-            });
+          if (hasUnsavedEdits || lockState.locked) {
+            const conflictTitle = workbenchText('workbenchRuntime.write.conflictTitle');
+
+            if (this.actionAlert.value?.title !== conflictTitle) {
+              this.actionAlert.set({
+                type: 'warning',
+                title: conflictTitle,
+                description: workbenchText('workbenchRuntime.write.conflictDescription', {
+                  file: streamingFilePath,
+                }),
+                content: '',
+                source: 'preview',
+              });
+            }
+
+            return true;
           }
 
+          return false;
+        };
+
+        if (hasConflict()) {
           return;
         }
 
-        this.#editorStore.updateFile(fullPath, data.action.content);
+        // Keep the action's streaming state and cancellation semantics, without writing files.
+        await artifact.runner.runAction(data, true);
+
+        if (!writeScopeIsCurrent() || action.abortSignal.aborted || hasConflict()) {
+          return;
+        }
+
+        const doc = this.#editorStore.documents.get()[fullPath];
+
+        // New files are visible in the editor without persisting partial source.
+        if (!doc) {
+          this.#editorStore.documents.setKey(fullPath, {
+            filePath: fullPath,
+            value: data.action.content,
+            isBinary: false,
+          });
+        } else {
+          this.#editorStore.updateFile(fullPath, data.action.content);
+        }
 
         return;
       }
@@ -4351,9 +4357,10 @@ export class WorkbenchStore {
      * single legitimate generation. Streaming uses the non-counting probe so a
      * halted path still stops updating and identical bytes are still skipped.
      */
-    const admission = isStreaming
-      ? this.#agentPatchFloodGuard.probe(data.action.filePath, fingerprint)
-      : this.#agentPatchFloodGuard.admit(data.action.filePath, fingerprint);
+    const admission =
+      isStreaming || data.fermetureDeSecours
+        ? this.#agentPatchFloodGuard.probe(data.action.filePath, fingerprint)
+        : this.#agentPatchFloodGuard.admit(data.action.filePath, fingerprint);
 
     if (admission.kind === 'skip-identical') {
       if (!isStreaming && !this.#agentPatchSkipLogged.has(data.action.filePath)) {

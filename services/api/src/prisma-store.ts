@@ -1,3 +1,5 @@
+import { bindTranscriptTerminal, readTranscriptTerminal, type TranscriptTerminal } from './transcript-terminal.js';
+import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
@@ -5175,6 +5177,60 @@ export class PrismaApiStore implements ApiStore {
     return mapAiMessage(await this.prisma.aiMessage.create({ data: { ...input, createdAt } }));
   }
 
+  async syncAiTranscriptMessage(input: {
+    id: string;
+    conversationId: string;
+    role: AiMessageRecord['role'];
+    content: string;
+    terminalReceipt?: TranscriptTerminal;
+  }): Promise<{ message: AiMessageRecord; stale: boolean }> {
+    try {
+      // Serializable also protects absent-row insertion. Conflicts are surfaced, never replayed.
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const current = await tx.aiMessage.findUnique({ where: { id: input.id } });
+
+          if (current && current.conversationId !== input.conversationId) {
+            throw Object.assign(new Error('TRANSCRIPT_CONFLICT'), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+          }
+
+          if (current && !decisionEcritureMessage(current.content, input.content).ecrire) {
+            return { message: mapAiMessage(current), stale: true };
+          }
+
+          const retained = current && readTranscriptTerminal(input.content, current.terminalReceipt, input.id);
+          const receipt = input.role === 'assistant' ? (input.terminalReceipt ?? retained) : undefined;
+          const terminalReceipt = receipt ? bindTranscriptTerminal(input.content, receipt, input.id) : undefined;
+
+          const data = {
+            role: input.role,
+            content: input.content,
+            terminalReceipt: terminalReceipt ? (terminalReceipt as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+          };
+          const row = current
+            ? await tx.aiMessage.update({ where: { id: input.id }, data })
+            : await tx.aiMessage.create({
+                data: {
+                  ...data,
+                  id: input.id,
+                  conversationId: input.conversationId,
+                  createdAt: horodatageMessageMonotone(),
+                },
+              });
+
+          return { message: mapAiMessage(row), stale: false };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code)) {
+        throw Object.assign(new Error('TRANSCRIPT_CONFLICT'), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+      }
+
+      throw error;
+    }
+  }
+
   async listAiMessages(conversationId: string) {
     /*
      * Cap the number of messages loaded so a long-lived conversation can't pull
@@ -7796,6 +7852,7 @@ function mapAiMessage(message: any): AiMessageRecord {
     conversationId: message.conversationId,
     role: message.role,
     content: message.content,
+    ...(message.terminalReceipt ? { terminalReceipt: message.terminalReceipt } : {}),
     createdAt: toIso(message.createdAt)!,
   };
 }

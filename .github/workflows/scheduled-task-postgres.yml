@@ -114,6 +114,56 @@ jobs:
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\nCredit-pack PostgreSQL: 6 passed, 0 skipped, commit ${receipt.sha}.\n`);
           JS
 
+      - name: Create and migrate the isolated terminal-receipt database
+        env:
+          DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55438/terminal_receipt_proof
+        run: |
+          docker exec "${{ job.services.postgres.id }}" createdb --username=vibecore terminal_receipt_proof
+          pnpm --filter @vibecore/database db:deploy
+
+      - name: Require all 2 terminal-receipt PostgreSQL scenarios and zero skips
+        working-directory: services/api
+        env:
+          DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55438/terminal_receipt_proof
+          TERMINAL_RECEIPT_POSTGRES_PROOF: '1'
+          NODE_ENV: test
+        run: |
+          proof_dir="$RUNNER_TEMP/terminal-receipt-proof"
+          mkdir -p "$proof_dir"
+          set +e
+          node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts \
+            src/transcript-terminal-postgres.integration.spec.ts --reporter=json \
+            --outputFile="$proof_dir/tests.json" > "$proof_dir/tests.log" 2>&1
+          test_exit=$?
+          set -e
+          node --input-type=module - "$proof_dir" "$test_exit" <<'JS'
+          import assert from 'node:assert/strict';
+          import { execFileSync } from 'node:child_process';
+          import { readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const [directory, exitCode] = process.argv.slice(2);
+          const report = JSON.parse(readFileSync(`${directory}/tests.json`, 'utf8'));
+          const receipt = {
+            sha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+            dirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim() !== '',
+            exitCode: Number(exitCode),
+            total: report.numTotalTests, passed: report.numPassedTests,
+            failed: report.numFailedTests, skipped: report.numPendingTests, todo: report.numTodoTests,
+            sourceSha256: createHash('sha256').update(readFileSync('src/transcript-terminal-postgres.integration.spec.ts')).digest('hex'),
+          };
+          writeFileSync(`${directory}/receipt.json`, JSON.stringify(receipt, null, 2) + '\n');
+          assert.equal(receipt.sha, process.env.EXPECTED_SHA);
+          assert.equal(receipt.dirty, false);
+          assert.equal(receipt.exitCode, 0);
+          assert.equal(report.success, true);
+          assert.equal(receipt.total, 2);
+          assert.equal(receipt.passed, 2);
+          assert.equal(receipt.failed, 0);
+          assert.equal(receipt.skipped, 0);
+          assert.equal(receipt.todo, 0);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\nTerminal-receipt PostgreSQL: 2 passed, 0 skipped, commit ${receipt.sha}.\n`);
+          JS
+
       - name: Verify the exact tested commit and publish the receipt
         run: |
           node --input-type=module <<'JS'
@@ -143,5 +193,8 @@ jobs:
             ${{ runner.temp }}/credit-pack-proof/tests.log
             ${{ runner.temp }}/credit-pack-proof/tests.json
             ${{ runner.temp }}/credit-pack-proof/receipt.json
+            ${{ runner.temp }}/terminal-receipt-proof/tests.log
+            ${{ runner.temp }}/terminal-receipt-proof/tests.json
+            ${{ runner.temp }}/terminal-receipt-proof/receipt.json
           if-no-files-found: error
           retention-days: 7

@@ -29,7 +29,7 @@ import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
-import { reponseAPersister } from '~/lib/.server/persistance-reponse';
+import { reponseAPersister, empreinteReponse } from '~/lib/.server/persistance-reponse';
 import { demandeAPersister } from '~/lib/.server/persistance-demande';
 import { avecSuiviDuTourPartage } from '~/lib/.server/tours-partages.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
@@ -1031,11 +1031,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * `clientId`, `upsert` côté API). N'interrompt JAMAIS le tour : un échec
          * est journalisé, la fin du tour continue.
          */
-        const persisterLaReponseDuServeur = async () => {
+        const persisterLaReponseDuServeur = async (terminalReceipt?: ReturnType<typeof createStreamTerminal>) => {
           const reponse = reponseAPersister({
             conversationId: demande?.conversationId,
             clientId: identifiantDuMessageDeReponse,
             contenu: contenuDuTour,
+            terminalObserved: Boolean(terminalReceipt),
           });
 
           if (!reponse || !projectId) {
@@ -1048,7 +1049,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               redirectOn401: false,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                messages: [{ clientId: reponse.clientId, role: 'assistant', content: reponse.content }],
+                messages: [
+                  { clientId: reponse.clientId, role: 'assistant', content: reponse.content, terminalReceipt },
+                ],
               }),
             });
             logger.info(
@@ -1911,20 +1914,23 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               // diagnostics must never break the stream
             }
 
-            // Accumulates across continuation segments: chaque segment ajoute ses fichiers.
-            fichiersEmis += compterActionsDeFichier(content);
+            // Count emitted protocol across segment boundaries, not applied workspace writes.
             contenuDuTour += content ?? '';
+            fichiersEmis = compterActionsDeFichier(contenuDuTour);
 
-            const terminal = createStreamTerminal({
-              finishReason,
-              content: contenuDuTour,
-              modeConstruction: chatMode === 'build',
-              fichiersRefuses,
-              segments: continuationSegments + 1,
-              fileActions: fichiersEmis,
-              messageId: identifiantDuMessageDeReponse,
-            });
-            const reportTerminal = (failure?: 'continuation-error') => {
+            const terminal = {
+              ...createStreamTerminal({
+                finishReason,
+                content: contenuDuTour,
+                modeConstruction: chatMode === 'build',
+                fichiersRefuses,
+                segments: continuationSegments + 1,
+                fileActions: fichiersEmis,
+                messageId: identifiantDuMessageDeReponse,
+              }),
+              contentSha256: empreinteReponse(contenuDuTour),
+            };
+            const reportTerminal = async (failure?: 'continuation-error') => {
               if (terminalReported) {
                 return;
               }
@@ -1933,6 +1939,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
               const verdict = failure ? { ...terminal, status: 'error' as const, reason: failure } : terminal;
               terminalFinishReason = verdict.finishReason;
+              await persisterLaReponseDuServeur(verdict);
               logger.info(
                 JSON.stringify({
                   event: 'chat.stream.terminal',
@@ -2308,7 +2315,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 await safeCloseMcp();
                 jalonOnFinish('apres-mcp');
 
-                reportTerminal();
+                await reportTerminal();
 
                 return;
               }
@@ -2330,7 +2337,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   outcome: terminal.status,
                   message: copy.responseTruncatedSegments,
                 } satisfies ProgressAnnotation);
-                reportTerminal();
+                await reportTerminal();
 
                 await safeCloseMcp();
 
@@ -2355,7 +2362,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   outcome: terminal.status,
                   message: copy.responseTruncatedNoContent,
                 } satisfies ProgressAnnotation);
-                reportTerminal();
+                await reportTerminal();
 
                 await safeCloseMcp();
 
@@ -2461,7 +2468,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   return;
                 }
 
-                reportTerminal('continuation-error');
+                await reportTerminal('continuation-error');
                 logger.error(`continuation streamText failed: ${error instanceof Error ? error.message : error}`);
 
                 /*
@@ -2487,7 +2494,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                * Last-resort guard for the whole onFinish body — never let a throw
                * here tear down the data stream or leak resources.
                */
-              reportTerminal('continuation-error');
+              await reportTerminal('continuation-error');
               logger.error(`onFinish failed: ${error instanceof Error ? error.message : error}`);
               await safeCloseMcp();
             } finally {

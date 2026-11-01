@@ -101,13 +101,14 @@ describe('direct payload receipts on an isolated real filesystem', () => {
     expect(runner.consumeConfirmedFileWrite('write')).toBeUndefined();
   });
 
-  it('does not promote an identical streamed write when closing deduplication skips the final write', async () => {
+  it('stages streaming bytes and confirms only the authoritative closing write', async () => {
     const action = data();
     await execute(action, true);
     await runner.runAction(action, false);
 
     expect(runtime.writeFile).toHaveBeenCalledTimes(1);
-    expect(runtime.writeFile).toHaveBeenCalledWith('write.md', 'observed payload\n', { streaming: true });
+    expect(runtime.writeFile).toHaveBeenCalledWith('write.md', 'observed payload\n', { streaming: false });
+    expect(runner.consumeConfirmedFileWrite('write')?.filePath).toBe('write.md');
     expect(runner.consumeConfirmedFileWrite('write')).toBeUndefined();
   });
 

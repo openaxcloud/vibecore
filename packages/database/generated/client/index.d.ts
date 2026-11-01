@@ -77417,6 +77417,7 @@ export namespace Prisma {
     conversationId: number
     role: number
     content: number
+    terminalReceipt: number
     createdAt: number
     _all: number
   }
@@ -77443,6 +77444,7 @@ export namespace Prisma {
     conversationId?: true
     role?: true
     content?: true
+    terminalReceipt?: true
     createdAt?: true
     _all?: true
   }
@@ -77524,6 +77526,7 @@ export namespace Prisma {
     conversationId: string
     role: string
     content: string
+    terminalReceipt: JsonValue | null
     createdAt: Date
     _count: AiMessageCountAggregateOutputType | null
     _min: AiMessageMinAggregateOutputType | null
@@ -77549,6 +77552,7 @@ export namespace Prisma {
     conversationId?: boolean
     role?: boolean
     content?: boolean
+    terminalReceipt?: boolean
     createdAt?: boolean
     conversation?: boolean | AiConversationDefaultArgs<ExtArgs>
     toolCalls?: boolean | AiMessage$toolCallsArgs<ExtArgs>
@@ -77561,6 +77565,7 @@ export namespace Prisma {
     conversationId?: boolean
     role?: boolean
     content?: boolean
+    terminalReceipt?: boolean
     createdAt?: boolean
     conversation?: boolean | AiConversationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["aiMessage"]>
@@ -77570,6 +77575,7 @@ export namespace Prisma {
     conversationId?: boolean
     role?: boolean
     content?: boolean
+    terminalReceipt?: boolean
     createdAt?: boolean
     conversation?: boolean | AiConversationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["aiMessage"]>
@@ -77579,10 +77585,11 @@ export namespace Prisma {
     conversationId?: boolean
     role?: boolean
     content?: boolean
+    terminalReceipt?: boolean
     createdAt?: boolean
   }
 
-  export type AiMessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "conversationId" | "role" | "content" | "createdAt", ExtArgs["result"]["aiMessage"]>
+  export type AiMessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "conversationId" | "role" | "content" | "terminalReceipt" | "createdAt", ExtArgs["result"]["aiMessage"]>
   export type AiMessageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     conversation?: boolean | AiConversationDefaultArgs<ExtArgs>
     toolCalls?: boolean | AiMessage$toolCallsArgs<ExtArgs>
@@ -77608,6 +77615,10 @@ export namespace Prisma {
       conversationId: string
       role: string
       content: string
+      /**
+       * Validated stream outcome bound to normalized message content; not execution proof.
+       */
+      terminalReceipt: Prisma.JsonValue | null
       createdAt: Date
     }, ExtArgs["result"]["aiMessage"]>
     composites: {}
@@ -78039,6 +78050,7 @@ export namespace Prisma {
     readonly conversationId: FieldRef<"AiMessage", 'String'>
     readonly role: FieldRef<"AiMessage", 'String'>
     readonly content: FieldRef<"AiMessage", 'String'>
+    readonly terminalReceipt: FieldRef<"AiMessage", 'Json'>
     readonly createdAt: FieldRef<"AiMessage", 'DateTime'>
   }
     
@@ -163366,6 +163378,7 @@ export namespace Prisma {
     conversationId: 'conversationId',
     role: 'role',
     content: 'content',
+    terminalReceipt: 'terminalReceipt',
     createdAt: 'createdAt'
   };
 
@@ -169347,6 +169360,7 @@ export namespace Prisma {
     conversationId?: StringFilter<"AiMessage"> | string
     role?: StringFilter<"AiMessage"> | string
     content?: StringFilter<"AiMessage"> | string
+    terminalReceipt?: JsonNullableFilter<"AiMessage">
     createdAt?: DateTimeFilter<"AiMessage"> | Date | string
     conversation?: XOR<AiConversationScalarRelationFilter, AiConversationWhereInput>
     toolCalls?: AiToolCallListRelationFilter
@@ -169358,6 +169372,7 @@ export namespace Prisma {
     conversationId?: SortOrder
     role?: SortOrder
     content?: SortOrder
+    terminalReceipt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     conversation?: AiConversationOrderByWithRelationInput
     toolCalls?: AiToolCallOrderByRelationAggregateInput
@@ -169372,6 +169387,7 @@ export namespace Prisma {
     conversationId?: StringFilter<"AiMessage"> | string
     role?: StringFilter<"AiMessage"> | string
     content?: StringFilter<"AiMessage"> | string
+    terminalReceipt?: JsonNullableFilter<"AiMessage">
     createdAt?: DateTimeFilter<"AiMessage"> | Date | string
     conversation?: XOR<AiConversationScalarRelationFilter, AiConversationWhereInput>
     toolCalls?: AiToolCallListRelationFilter
@@ -169383,6 +169399,7 @@ export namespace Prisma {
     conversationId?: SortOrder
     role?: SortOrder
     content?: SortOrder
+    terminalReceipt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: AiMessageCountOrderByAggregateInput
     _max?: AiMessageMaxOrderByAggregateInput
@@ -169397,6 +169414,7 @@ export namespace Prisma {
     conversationId?: StringWithAggregatesFilter<"AiMessage"> | string
     role?: StringWithAggregatesFilter<"AiMessage"> | string
     content?: StringWithAggregatesFilter<"AiMessage"> | string
+    terminalReceipt?: JsonNullableWithAggregatesFilter<"AiMessage">
     createdAt?: DateTimeWithAggregatesFilter<"AiMessage"> | Date | string
   }
 
@@ -180278,6 +180296,7 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     conversation: AiConversationCreateNestedOneWithoutMessagesInput
     toolCalls?: AiToolCallCreateNestedManyWithoutMessageInput
@@ -180289,6 +180308,7 @@ export namespace Prisma {
     conversationId: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     toolCalls?: AiToolCallUncheckedCreateNestedManyWithoutMessageInput
     tokenUsage?: AiTokenUsageUncheckedCreateNestedOneWithoutMessageInput
@@ -180298,6 +180318,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     conversation?: AiConversationUpdateOneRequiredWithoutMessagesNestedInput
     toolCalls?: AiToolCallUpdateManyWithoutMessageNestedInput
@@ -180309,6 +180330,7 @@ export namespace Prisma {
     conversationId?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     toolCalls?: AiToolCallUncheckedUpdateManyWithoutMessageNestedInput
     tokenUsage?: AiTokenUsageUncheckedUpdateOneWithoutMessageNestedInput
@@ -180319,6 +180341,7 @@ export namespace Prisma {
     conversationId: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
   }
 
@@ -180326,6 +180349,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -180334,6 +180358,7 @@ export namespace Prisma {
     conversationId?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -190621,6 +190646,7 @@ export namespace Prisma {
     conversationId?: SortOrder
     role?: SortOrder
     content?: SortOrder
+    terminalReceipt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -219149,6 +219175,7 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     toolCalls?: AiToolCallCreateNestedManyWithoutMessageInput
     tokenUsage?: AiTokenUsageCreateNestedOneWithoutMessageInput
@@ -219158,6 +219185,7 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     toolCalls?: AiToolCallUncheckedCreateNestedManyWithoutMessageInput
     tokenUsage?: AiTokenUsageUncheckedCreateNestedOneWithoutMessageInput
@@ -219405,6 +219433,7 @@ export namespace Prisma {
     conversationId?: StringFilter<"AiMessage"> | string
     role?: StringFilter<"AiMessage"> | string
     content?: StringFilter<"AiMessage"> | string
+    terminalReceipt?: JsonNullableFilter<"AiMessage">
     createdAt?: DateTimeFilter<"AiMessage"> | Date | string
   }
 
@@ -219570,6 +219599,7 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     conversation: AiConversationCreateNestedOneWithoutMessagesInput
     tokenUsage?: AiTokenUsageCreateNestedOneWithoutMessageInput
@@ -219580,6 +219610,7 @@ export namespace Prisma {
     conversationId: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     tokenUsage?: AiTokenUsageUncheckedCreateNestedOneWithoutMessageInput
   }
@@ -219604,6 +219635,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     conversation?: AiConversationUpdateOneRequiredWithoutMessagesNestedInput
     tokenUsage?: AiTokenUsageUpdateOneWithoutMessageNestedInput
@@ -219614,6 +219646,7 @@ export namespace Prisma {
     conversationId?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tokenUsage?: AiTokenUsageUncheckedUpdateOneWithoutMessageNestedInput
   }
@@ -219622,6 +219655,7 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     conversation: AiConversationCreateNestedOneWithoutMessagesInput
     toolCalls?: AiToolCallCreateNestedManyWithoutMessageInput
@@ -219632,6 +219666,7 @@ export namespace Prisma {
     conversationId: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     toolCalls?: AiToolCallUncheckedCreateNestedManyWithoutMessageInput
   }
@@ -219656,6 +219691,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     conversation?: AiConversationUpdateOneRequiredWithoutMessagesNestedInput
     toolCalls?: AiToolCallUpdateManyWithoutMessageNestedInput
@@ -219666,6 +219702,7 @@ export namespace Prisma {
     conversationId?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     toolCalls?: AiToolCallUncheckedUpdateManyWithoutMessageNestedInput
   }
@@ -235313,6 +235350,7 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
   }
 
@@ -235320,6 +235358,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     toolCalls?: AiToolCallUpdateManyWithoutMessageNestedInput
     tokenUsage?: AiTokenUsageUpdateOneWithoutMessageNestedInput
@@ -235329,6 +235368,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     toolCalls?: AiToolCallUncheckedUpdateManyWithoutMessageNestedInput
     tokenUsage?: AiTokenUsageUncheckedUpdateOneWithoutMessageNestedInput
@@ -235338,6 +235378,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    terminalReceipt?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

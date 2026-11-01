@@ -1,3 +1,4 @@
+import type { BoundTranscriptTerminal, TranscriptTerminal } from './transcript-terminal.js';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type {
@@ -750,6 +751,7 @@ export interface AiConversationRecord {
 }
 
 export interface AiMessageRecord {
+  terminalReceipt?: BoundTranscriptTerminal;
   id: string;
   conversationId: string;
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -2615,6 +2617,13 @@ export interface ApiStore {
     role: AiMessageRecord['role'];
     content: string;
   }): Promise<AiMessageRecord>;
+  syncAiTranscriptMessage(input: {
+    id: string;
+    conversationId: string;
+    role: AiMessageRecord['role'];
+    content: string;
+    terminalReceipt?: TranscriptTerminal;
+  }): Promise<{ message: AiMessageRecord; stale: boolean }>;
   listAiMessages(conversationId: string): Promise<AiMessageRecord[]>;
 
   /**

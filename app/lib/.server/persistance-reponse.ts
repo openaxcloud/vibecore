@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 /*
  * LA RÉPONSE DE L'AGENT SURVIT AU NAVIGATEUR.
  *
@@ -29,6 +31,7 @@ export function reponseAPersister(input: {
   conversationId?: string | null;
   clientId?: string | null;
   contenu?: string | null;
+  terminalObserved?: boolean;
 }): ReponseAPersister | null {
   const conversationId = typeof input.conversationId === 'string' ? input.conversationId.trim() : '';
   const clientId = typeof input.clientId === 'string' ? input.clientId.trim() : '';
@@ -43,13 +46,18 @@ export function reponseAPersister(input: {
   const content = typeof input.contenu === 'string' ? sansReflexion(input.contenu).texte : '';
 
   /*
-   * Une réponse vide ne s'écrit pas : elle écraserait la ligne que le
-   * navigateur a peut-être déjà remplie, et un message d'assistant vide est un
-   * défaut déjà corrigé ailleurs (#312).
+   * Une réponse vide sans verdict observé ne s'écrit pas. Un verdict terminal
+   * peut exister sans texte (erreur fournisseur) ; la garde anti-raccourcissement
+   * de l'API conserve toute réponse déjà remplie par le navigateur.
    */
-  if (!conversationId || !clientId || content.trim().length === 0) {
+  if (!conversationId || !clientId || (content.trim().length === 0 && !input.terminalObserved)) {
     return null;
   }
 
   return { conversationId, clientId, content };
+}
+
+/** Bind an observed terminal receipt to the exact normalized response, not a later browser edit. */
+export function empreinteReponse(content: string): string {
+  return createHash('sha256').update(sansReflexion(content).texte).digest('hex');
 }
