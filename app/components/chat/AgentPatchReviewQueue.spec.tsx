@@ -3,15 +3,19 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';
+import { scheduleAppliedFilesToast } from './schedule-applied-files-toast';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 import { workbenchStore, type AgentPatchProposal } from '~/lib/stores/workbench';
 import { buildReviewableDiffHunks } from '~/utils/diff';
+
+vi.mock('./schedule-applied-files-toast', () => ({ scheduleAppliedFilesToast: vi.fn() }));
 
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
     acceptAgentPatchProposal: vi.fn(async () => 'accepted'),
     rejectAgentPatchProposal: vi.fn(async () => undefined),
     acceptAllAgentPatchProposals: vi.fn(async () => undefined),
+    retryAutomaticAgentPatchProposals: vi.fn(async () => []),
   },
 }));
 
@@ -72,28 +76,43 @@ describe('AI patch review presentation', () => {
       expect(screen.getByText(change.error!).closest('details')?.open).toBe(true);
       await waitFor(() => expect(screen.getByRole('button', { name: retry })).toBeTruthy());
       fireEvent.click(screen.getByRole('button', { name: retry }));
-      expect(workbenchStore.acceptAgentPatchProposal).toHaveBeenCalledTimes(1);
-      expect(workbenchStore.acceptAgentPatchProposal).toHaveBeenCalledWith(
-        change.id,
-        change.hunks.map((hunk) => hunk.id),
-      );
+      expect(workbenchStore.retryAutomaticAgentPatchProposals).toHaveBeenCalledExactlyOnceWith([change.id]);
+      expect(screen.queryByRole('checkbox')).toBeNull();
+      expect(screen.queryByText(/accept|reject/i)).toBeNull();
     },
   );
 
   it.each([{ conflit: true }, { relueDeLaBase: true }, { tronquee: true }])(
-    'opens the review when automatic application is unsafe: %j',
-    (flags) => {
+    'explains unsafe changes without allowing a manual override: %j',
+    async (flags) => {
       const { container } = renderQueue([proposal(flags)]);
-      expect(container.querySelector('details')?.open).toBe(true);
-      expect(screen.getByText('Changes need your review')).toBeTruthy();
-      expect(workbenchStore.acceptAgentPatchProposal).not.toHaveBeenCalled();
+      fireEvent.click(container.querySelector('summary')!);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Retry this change' })).toBeTruthy());
+      expect((screen.getByRole('button', { name: 'Retry this change' }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText(/cannot be retried safely/)).toBeTruthy();
+      expect(screen.queryByText(/accept|reject/i)).toBeNull();
+      expect(workbenchStore.retryAutomaticAgentPatchProposals).not.toHaveBeenCalled();
     },
   );
 
-  it('honours the explicit review preference for otherwise applicable pending changes', () => {
+  it('offers Undo only for confirmed results and retains their proposal identities in a mixed batch', async () => {
+    const changes = ['confirmed', 'failed', 'ignored'].map((id) => proposal({ id, relativePath: `${id}.ts` }));
+    vi.mocked(workbenchStore.retryAutomaticAgentPatchProposals).mockResolvedValueOnce([
+      { id: 'confirmed', status: 'accepted' },
+      { id: 'failed', status: 'failed' },
+      { id: 'ignored', status: 'ignored' },
+    ]);
+
+    const { container } = renderQueue(changes);
+    fireEvent.click(container.querySelector('summary')!);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Retry these changes' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Retry these changes' }));
+    await waitFor(() => expect(scheduleAppliedFilesToast).toHaveBeenCalledExactlyOnceWith('confirmed.ts', 'confirmed'));
+  });
+
+  it('does not revive manual review for an old persisted preference', () => {
     const { container } = renderQueue([proposal({ status: 'pending', error: undefined })], false);
-    expect(container.querySelector('details')?.open).toBe(true);
-    expect(screen.getByText('Changes need your review')).toBeTruthy();
+    expect(container.childElementCount).toBe(0);
     expect(workbenchStore.acceptAllAgentPatchProposals).not.toHaveBeenCalled();
   });
 

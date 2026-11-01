@@ -9,6 +9,8 @@ export const baseChatAstEn = {
   'baseChatAst.patch.failed_one': '1 change could not be applied. Open the details to retry.',
   'baseChatAst.patch.failed_other': '{count} changes could not be applied. Open the details to retry.',
   'baseChatAst.patch.review_one': '1 AI change to review',
+  'baseChatAst.patch.regenerateSafely':
+    'This change cannot be retried safely. Ask the agent to generate a complete change from your current files. Your edits are preserved.',
   'baseChatAst.patch.decisionRequired': 'Changes need your review',
   'baseChatAst.patch.detailsAndRetry': 'Details and retry',
   'baseChatAst.patch.retryChange': 'Retry this change',
@@ -743,6 +745,8 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.patch.failed_other':
     '{count} modifications n’ont pas pu être appliquées. Ouvrez les détails pour réessayer.',
   'baseChatAst.patch.review_one': '1 modification de l’IA à vérifier',
+  'baseChatAst.patch.regenerateSafely':
+    'Cette modification ne peut pas être réessayée sans risque. Demandez à l’agent une modification complète à partir des fichiers actuels. Vos éditions sont conservées.',
   'baseChatAst.patch.decisionRequired': 'Des modifications attendent votre avis',
   'baseChatAst.patch.detailsAndRetry': 'Détails et nouvelle tentative',
   'baseChatAst.patch.retryChange': 'Réessayer cette modification',

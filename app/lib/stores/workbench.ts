@@ -55,7 +55,13 @@ import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import { reportOptTelemetry } from '~/lib/telemetry/report-opt-telemetry';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
-import { validateGeneratedFile, validateGeneratedFiles, type GeneratedFile } from '~/services/agent/post-validate';
+import {
+  validateGeneratedFile,
+  validateGeneratedFiles,
+  MissingImportError,
+  resolveImport,
+  type GeneratedFile,
+} from '~/services/agent/post-validate';
 import type { ITerminal } from '~/types/terminal';
 import { path } from '~/utils/path';
 import { getCurrentChatId } from '~/utils/fileLocks';
@@ -68,11 +74,8 @@ import {
   extractRelativePath,
   type ReviewableDiffHunk,
 } from '~/utils/diff';
-import {
-  dropFailedPatchLogsForPath,
-  dropResolvedMissingImportPatchLogs,
-  isResolvedMissingImportPatchFailure,
-} from '~/utils/agent-patch-logs';
+import { dropFailedPatchLogsForPath, isResolvedMissingImportPatchFailure } from '~/utils/agent-patch-logs';
+import { canRetryAgentPatchAutomatically } from '~/utils/agent-auto-apply';
 import { sanitizeFileContent } from '~/utils/sanitize-file-content';
 import { isJsoncFile } from '~/utils/jsonc';
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
@@ -152,6 +155,12 @@ export interface AgentPatchProposal {
   createdAt: string;
   updatedAt: string;
   error?: string;
+
+  /** Structured local validation failure; never recovered by matching translated UI text. */
+  missingImport?: { filePath: string; importSpecifier: string };
+
+  /** At most one dependency-triggered retry for this emitted content. */
+  dependencyRetryFingerprint?: number;
 
   /*
    * UN ÉTAT INTERMÉDIAIRE N'EST PAS UN ÉTAT FINAL.
@@ -811,7 +820,7 @@ export class WorkbenchStore {
       this.#agentPatchOriginals.set(proposal.actionId, proposal.originalContent);
     }
 
-    this.#dropResolvedMissingImportFailures();
+    this.#retryResolvedMissingImportFailures();
   }
 
   #syncAgentPatchProposalToServer(proposalId: string) {
@@ -877,7 +886,7 @@ export class WorkbenchStore {
     this.setDocuments(this.files.get());
     this.#runtimeFilesLoadedProjectId = this.#projectId;
     this.#markFilesHydrated(this.#projectId);
-    this.#dropResolvedMissingImportFailures();
+    this.#retryResolvedMissingImportFailures();
   }
 
   /*
@@ -954,7 +963,7 @@ export class WorkbenchStore {
     this.setDocuments(this.files.get());
     this.#runtimeFilesLoadedProjectId = projectId;
     this.#markFilesHydrated(projectId);
-    this.#dropResolvedMissingImportFailures();
+    this.#retryResolvedMissingImportFailures();
 
     return true;
   }
@@ -2300,50 +2309,43 @@ export class WorkbenchStore {
     }
   }
 
-  #dropResolvedMissingImportFailures() {
+  #retryResolvedMissingImportFailures() {
     const files = this.#workspaceImportValidationFiles();
-    const nextLogs = dropResolvedMissingImportPatchLogs(this.workspaceLogs.get(), files);
-
-    if (nextLogs) {
-      this.workspaceLogs.set(nextLogs);
-    }
-
-    this.#dropResolvedMissingImportProposals(files);
-  }
-
-  #dropResolvedMissingImportProposals(files: ReadonlyMap<string, string>) {
     const projectId = this.#projectId;
 
     if (!projectId || this.#runtimeFilesLoadedProjectId !== projectId || files.size === 0) {
       return;
     }
 
-    const proposals = this.agentPatchProposals.get();
-    const nextProposals = { ...proposals };
-    const removedIds: string[] = [];
-
-    for (const [proposalId, proposal] of Object.entries(proposals)) {
-      if (proposal.status !== 'failed') {
+    for (const proposal of Object.values(this.agentPatchProposals.get())) {
+      if (proposal.status !== 'failed' || !canRetryAgentPatchAutomatically(proposal)) {
         continue;
       }
 
-      if (!isResolvedMissingImportPatchFailure(proposal.error, files)) {
+      const fingerprint = patchContentFingerprint(proposal.proposedContent);
+
+      if (proposal.dependencyRetryFingerprint === fingerprint) {
         continue;
       }
 
-      delete nextProposals[proposalId];
-      removedIds.push(proposalId);
-      this.#agentPatchOriginals.delete(proposal.actionId);
-    }
+      const resolved = proposal.missingImport
+        ? Boolean(
+            resolveImport(proposal.missingImport.importSpecifier, proposal.missingImport.filePath, new Map(files)),
+          )
+        : isResolvedMissingImportPatchFailure(proposal.error, files);
 
-    if (!removedIds.length) {
-      return;
-    }
+      if (!resolved) {
+        continue;
+      }
 
-    this.agentPatchProposals.set(nextProposals);
-
-    for (const proposalId of removedIds) {
-      void deleteAgentPatchProposalRemote(projectId, proposalId);
+      // A dependency arriving is only permission to revalidate, never proof of a successful write.
+      this.agentPatchProposals.setKey(proposal.id, {
+        ...proposal,
+        status: 'pending',
+        dependencyRetryFingerprint: fingerprint,
+        updatedAt: new Date().toISOString(),
+      });
+      this.#syncAgentPatchProposalToServer(proposal.id);
     }
   }
 
@@ -2915,9 +2917,41 @@ export class WorkbenchStore {
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.rejected', { file: proposal.relativePath }));
   }
 
+  async applyAutomaticAgentPatchProposal(proposalId: string, retry = false) {
+    const proposal = this.agentPatchProposals.get()[proposalId];
+
+    if (!proposal || !canRetryAgentPatchAutomatically(proposal) || (!retry && proposal.status !== 'pending')) {
+      return 'ignored' as const;
+    }
+
+    return this.acceptAgentPatchProposal(proposalId, undefined, { automatic: true });
+  }
+
+  async retryAutomaticAgentPatchProposals(proposalIds: string[]) {
+    const proposals = this.agentPatchProposals.get();
+
+    const candidates = proposalIds.flatMap((id) => {
+      const proposal = proposals[id];
+      return proposal && canRetryAgentPatchAutomatically(proposal)
+        ? [{ id, filePath: proposal.relativePath, content: proposal.proposedContent }]
+        : [];
+    });
+    const results: Array<{
+      id: string;
+      status: Awaited<ReturnType<WorkbenchStore['applyAutomaticAgentPatchProposal']>>;
+    }> = [];
+
+    for (const proposal of topologicallySortFileActions(candidates).ordered) {
+      results.push({ id: proposal.id, status: await this.applyAutomaticAgentPatchProposal(proposal.id, true) });
+    }
+
+    return results;
+  }
+
   async acceptAgentPatchProposal(
     proposalId: string,
     acceptedHunkIds?: string[],
+    options: { automatic?: boolean } = {},
   ): Promise<'accepted' | 'failed' | 'ignored' | 'rejected'> {
     const proposal = this.agentPatchProposals.get()[proposalId];
 
@@ -2927,7 +2961,12 @@ export class WorkbenchStore {
      * fermeture (voir `AgentPatchProposal.enFlux`). Vaut pour l'application
      * automatique comme pour un clic.
      */
-    if (!proposal || proposal.status === 'applying' || proposal.enFlux) {
+    if (
+      !proposal ||
+      proposal.status === 'applying' ||
+      proposal.enFlux ||
+      (options.automatic && !canRetryAgentPatchAutomatically(proposal))
+    ) {
       return 'ignored';
     }
 
@@ -3069,7 +3108,25 @@ export class WorkbenchStore {
           return 'ignored';
         }
 
+        const liveProposal = this.agentPatchProposals.get()[proposalId];
+
+        if (
+          options.automatic &&
+          (!liveProposal ||
+            liveProposal.status !== 'applying' ||
+            liveProposal.proposedContent !== proposal.proposedContent ||
+            !canRetryAgentPatchAutomatically({ ...liveProposal, status: 'pending' }))
+        ) {
+          return 'ignored';
+        }
+
         const freshBeforeWrite = this.#filesStore.getFile(proposal.filePath)?.content;
+
+        if (options.automatic && this.unsavedFiles.get().has(proposal.filePath)) {
+          const localContent =
+            this.#editorStore.documents.get()[proposal.filePath]?.value ?? freshBeforeWrite ?? proposal.originalContent;
+          return this.#mettreEnConflit(proposal, localContent, acceptedContent);
+        }
 
         /*
          * CE QUE L'UTILISATEUR ENREGISTRE FAIT FOI (décision d'Avi, 2026-10-01).
@@ -3207,6 +3264,7 @@ export class WorkbenchStore {
           conflit: undefined,
           error: undefined,
           status: 'accepted',
+          missingImport: undefined,
           updatedAt: new Date().toISOString(),
         });
         this.#syncAgentPatchProposalToServer(proposalId);
@@ -3216,7 +3274,7 @@ export class WorkbenchStore {
           actionId: proposal.actionId,
         });
         this.#dropResolvedAgentPatchLogs(proposal.relativePath);
-        this.#dropResolvedMissingImportFailures();
+        this.#retryResolvedMissingImportFailures();
         this.#agentPatchFloodGuard.recordAccepted(proposal.relativePath, patchContentFingerprint(acceptedContent));
         this.#maybeRunDeferredStart(proposal.artifactId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.accepted', { file: proposal.relativePath }));
@@ -3247,6 +3305,10 @@ export class WorkbenchStore {
           status: 'failed',
           updatedAt: new Date().toISOString(),
           error: message,
+          missingImport:
+            error instanceof MissingImportError
+              ? { filePath: error.filePath, importSpecifier: error.importSpecifier }
+              : undefined,
         });
         this.#syncAgentPatchProposalToServer(proposalId);
         this.#agentPatchFloodGuard.recordFailure(proposal.relativePath);
@@ -4185,7 +4247,7 @@ export class WorkbenchStore {
         artifactId: data.artifactId,
         actionId: data.actionId,
       });
-      this.#dropResolvedMissingImportFailures();
+      this.#retryResolvedMissingImportFailures();
     } else {
       if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
         /*
@@ -4312,6 +4374,10 @@ export class WorkbenchStore {
           status: 'failed',
           updatedAt: new Date().toISOString(),
           error: message,
+          missingImport:
+            error instanceof MissingImportError
+              ? { filePath: error.filePath, importSpecifier: error.importSpecifier }
+              : undefined,
         });
         this.#syncAgentPatchProposalToServer(proposal.id);
         this.appendWorkspaceLog(

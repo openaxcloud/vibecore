@@ -36,24 +36,24 @@ describe('require-review / auto-apply setting', () => {
     expect(reviewResult.current).toBe(false);
   });
 
-  it('requires review (auto-apply off) when the user turns it on', () => {
+  it('keeps automatic application enabled despite a legacy review preference', () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
     expect(readRequireAiChangeReviewFromStorage()).toBe(true);
     expect(readAutoApplyFromStorage()).toBe(false);
 
     const { result } = renderHook(() => useAutoApplyEnabled());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
   });
 
-  it('reacts to a same-tab toggle via the custom event', () => {
+  it('does not restore a manual gate from a legacy same-tab toggle', () => {
     const { result } = renderHook(() => useAutoApplyEnabled());
     expect(result.current).toBe(true);
 
     act(() => {
       setRequireAiChangeReview(true);
     });
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
     expect(window.localStorage.getItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY)).toBe('true');
 
     act(() => {
@@ -63,13 +63,13 @@ describe('require-review / auto-apply setting', () => {
     expect(window.localStorage.getItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY)).toBe('false');
   });
 
-  it('setAutoApplyEnabled is the inverse of require-review', () => {
+  it('preserves the legacy setter without disabling the Agent flow', () => {
     const { result } = renderHook(() => useAutoApplyEnabled());
 
     act(() => {
       setAutoApplyEnabled(false);
     });
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
     expect(window.localStorage.getItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY)).toBe('true');
 
     act(() => {
@@ -79,7 +79,7 @@ describe('require-review / auto-apply setting', () => {
     expect(window.localStorage.getItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY)).toBe('false');
   });
 
-  it('reacts to cross-tab storage changes', () => {
+  it('does not restore a manual gate from cross-tab storage', () => {
     const { result } = renderHook(() => useAutoApplyEnabled());
     expect(result.current).toBe(true);
 
@@ -88,7 +88,7 @@ describe('require-review / auto-apply setting', () => {
         new StorageEvent('storage', { key: REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, newValue: 'true' }),
       );
     });
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
 
     act(() => {
       window.dispatchEvent(new StorageEvent('storage', { key: REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, newValue: null }));
@@ -100,21 +100,21 @@ describe('require-review / auto-apply setting', () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
     const { result } = renderHook(() => useAutoApplyEnabled());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
 
     act(() => {
       window.dispatchEvent(new StorageEvent('storage', { key: 'something-else', newValue: 'false' }));
     });
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
   });
 
-  it('falls back to reading storage when the custom event has no detail', () => {
+  it('does not restore a manual gate from a custom event without detail', () => {
     const { result } = renderHook(() => useAutoApplyEnabled());
 
     act(() => {
       window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
       window.dispatchEvent(new Event(REQUIRE_AI_CHANGE_REVIEW_CHANGED_EVENT));
     });
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
   });
 });

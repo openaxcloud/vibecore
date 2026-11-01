@@ -1,0 +1,97 @@
+
+## retry-final-focused.log
+
+stdout | app/lib/stores/workbench.reprise-de-session.spec.ts > à la réouverture, ce que la base a gardé d’un tour interrompu > Retry confirms writes before offering Undo, whose UI calls the real store revert
+DEBUG ActionRunner Created folder src
+
+stdout | app/lib/stores/workbench.reprise-de-session.spec.ts > à la réouverture, ce que la base a gardé d’un tour interrompu > Retry confirms writes before offering Undo, whose UI calls the real store revert
+DEBUG ActionRunner File written src/App.tsx
+
+ ✓ app/lib/stores/workbench.reprise-de-session.spec.ts (15 tests) 1163ms
+   ✓ à la réouverture, ce que la base a gardé d’un tour interrompu > Retry confirms writes before offering Undo, whose UI calls the real store revert  300ms
+
+ Test Files  4 passed (4)
+      Tests  95 passed (95)
+   Start at  18:45:04
+   Duration  6.37s (transform 3.24s, setup 138ms, collect 3.72s, tests 1.81s, environment 1.76s, prepare 427ms)
+
+
+## retry-visual-regressions.log
+INFO Debug logger initialized
+
+ ✓ app/lib/stores/workbench.conflit-utilisateur.spec.ts (6 tests) 4621ms
+   ✓ ce que l’utilisateur enregistre fait foi > l’utilisateur enregistre PENDANT que l’agent écrit : sa ligne ET le bouton de l’agent survivent (cas mesuré en production)  668ms
+   ✓ ce que l’utilisateur enregistre fait foi > l’utilisateur enregistre APRÈS l’envoi mais AVANT le premier morceau : l’agent, qui ne l’a pas lu, ne l’efface pas  660ms
+   ✓ ce que l’utilisateur enregistre fait foi > les deux modifications ne se combinent pas : la version de l’utilisateur reste, la proposition attend en revue, l’utilisateur est prévenu  655ms
+   ✓ ce que l’utilisateur enregistre fait foi > accepter ensuite la proposition en conflit, c’est le choix de l’utilisateur : elle s’applique  672ms
+   ✓ ce que l’utilisateur enregistre fait foi > l’utilisateur avait enregistré AVANT l’envoi : l’agent l’a lu, sa version s’applique telle quelle  658ms
+   ✓ ce que l’utilisateur enregistre fait foi > deux écritures de L’AGENT sur le même fichier ouvert : la seconde s’applique — l’agent ne se prend pas pour l’utilisateur  1306ms
+
+ Test Files  6 passed (6)
+      Tests  98 passed (98)
+   Start at  18:43:11
+   Duration  12.79s (transform 4.56s, setup 258ms, collect 4.55s, tests 5.40s, environment 2.42s, prepare 1.15s)
+
+
+## retry-index-last.log
+
+ RUN  v3.2.6 /workspace/vibecore
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 36ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  18:46:13
+   Duration  4.57s (transform 2.09s, setup 32ms, collect 9ms, tests 36ms, environment 0ms, prepare 68ms)
+
+
+## retry-types-final.log
+packages/runtime-remote typecheck: Done
+packages/database typecheck: Done
+services/ai-gateway typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts
+services/api typecheck$ tsc --noEmit -p tsconfig.json
+services/workspace-agent typecheck: Done
+services/connector-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+services/ai-gateway typecheck: Done
+services/worker typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts src/enqueue-cli.ts
+services/connector-proxy typecheck: Done
+services/workspace-manager typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts
+services/worker typecheck: Done
+services/screenshotter typecheck: Done
+services/api typecheck: Done
+services/workspace-manager typecheck: Done
+[typecheck] workspace packages passed in 74.1s
+
+## retry-lint-last.log
+/workspace/vibecore/app/utils/toast-batcher.spec.ts
+  119:33  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  129:34  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  135:38  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/url.ts
+  104:47  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+✖ 52 problems (0 errors, 52 warnings)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+
+## retry-build-final.log
+✓ 5 assets cleaned from React Router server build.
+build/client/assets/index-DCFkLQef.css
+build/client/assets/tailwind-compat-Bwh-BmjE.css
+build/client/assets/xterm-LZoznX6r.css
+build/client/assets/ReactToastify-tlSLHgLC.css
+build/server/assets/server-build-DBJ_nk5r.css
+✓ 1 asset moved from React Router server build to client assets.
+build/client/assets/server-build-DBJ_nk5r.css
+
+✓ built in 21.25s
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

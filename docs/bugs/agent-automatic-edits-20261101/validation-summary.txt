@@ -1,0 +1,82 @@
+
+## automatic-import-before.log
+       |                                                              ^
+    302|       status: 'failed',
+    303|       proposedContent,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  18:06:56
+   Duration  4.86s (transform 2.38s, setup 31ms, collect 1.60s, tests 316ms, environment 307ms, prepare 60ms)
+
+
+## auto-review-all-verified.log
+ ✓ app/components/chat/MessagePatchReview.spec.tsx (6 tests) 99ms
+ ✓ app/utils/agent-auto-apply.spec.ts (19 tests) 10ms
+ ✓ app/lib/stores/workbench.conflit-branchements.spec.ts (2 tests) 7ms
+ ✓ app/lib/stores/agent-patch-fallback.spec.ts (9 tests) 6ms
+ ✓ app/lib/runtime/topological-apply.spec.ts (11 tests) 12ms
+ ✓ app/lib/hooks/useAutoApplyEnabled.spec.ts (7 tests) 35ms
+
+ Test Files  14 passed (14)
+      Tests  149 passed (149)
+   Start at  18:18:58
+   Duration  16.35s (transform 5.94s, setup 503ms, collect 11.46s, tests 11.32s, environment 5.70s, prepare 1.34s)
+
+
+## auto-review-index.log
+
+ RUN  v3.2.6 /workspace/vibecore
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 27ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  18:21:36
+   Duration  2.53s (transform 1.30s, setup 26ms, collect 13ms, tests 27ms, environment 0ms, prepare 55ms)
+
+
+## auto-review-types-release.log
+services/screenshotter typecheck$ tsc --noEmit -p tsconfig.json
+services/ai-gateway typecheck: Done
+services/worker typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts src/enqueue-cli.ts
+services/connector-proxy typecheck: Done
+services/workspace-agent typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts
+services/worker typecheck: Done
+services/workspace-agent typecheck: Done
+services/screenshotter typecheck: Done
+services/api typecheck: Done
+services/workspace-manager typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts
+services/workspace-manager typecheck: Done
+[typecheck] workspace packages passed in 70.4s
+
+## auto-review-lint-release.log
+  85:26  warning  Unexpected empty method 'dispose'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/toast-batcher.spec.ts
+  119:33  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  129:34  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  135:38  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/url.ts
+  104:47  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+✖ 52 problems (0 errors, 52 warnings)
+
+
+## auto-review-build-verified.log
+build/server/assets/server-build-D4Y1wQww.js                  10,449.28 kB
+
+✓ 5 assets cleaned from React Router server build.
+build/client/assets/index-B_andiiN.css
+build/client/assets/tailwind-compat-Bwh-BmjE.css
+build/client/assets/xterm-LZoznX6r.css
+build/client/assets/ReactToastify-tlSLHgLC.css
+build/server/assets/server-build-DBJ_nk5r.css
+✓ 1 asset moved from React Router server build to client assets.
+build/client/assets/server-build-DBJ_nk5r.css
+
+✓ built in 19.30s

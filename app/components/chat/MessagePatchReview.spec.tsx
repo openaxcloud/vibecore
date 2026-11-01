@@ -2,9 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
-import { toast } from 'react-toastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MessagePatchReview } from './MessagePatchReview';
@@ -104,7 +103,7 @@ describe('<MessagePatchReview />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders the review panel when the user requires review of AI changes', () => {
+  it('does not restore manual review from a legacy persisted preference', () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
     const { container } = renderReview({
@@ -112,8 +111,8 @@ describe('<MessagePatchReview />', () => {
       content: MESSAGE_WITH_TWO_FILES,
       parts: undefined,
     });
-    expect(container.firstChild).not.toBeNull();
-    expect(container.querySelector('.bolt-message-patch-review')).not.toBeNull();
+    expect(container.firstChild).toBeNull();
+    expect(container.querySelector('.bolt-message-patch-review')).toBeNull();
   });
 
   it('renders nothing when the message has no file actions', () => {
@@ -125,44 +124,29 @@ describe('<MessagePatchReview />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders French plurals, preserves paths, and switches all review chrome live', async () => {
+  it('does not restore manual buttons when the language changes', async () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
-    const { i18n } = renderReview({ messageId: 'm-fr', content: MESSAGE_WITH_TWO_FILES, parts: undefined }, 'fr');
-
-    expect(screen.getByText('Fichiers modifiés')).toBeTruthy();
-    expect(screen.getByLabelText('2 fichiers')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Tout accepter (2 fichiers)' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Tout refuser (2 fichiers)' })).toBeTruthy();
-    expect(screen.getByText('src/one.ts')).toBeTruthy();
-
+    const { container, i18n } = renderReview(
+      { messageId: 'm-fr', content: MESSAGE_WITH_TWO_FILES, parts: undefined },
+      'fr',
+    );
+    expect(container.firstChild).toBeNull();
     await act(async () => {
       await i18n.changeLanguage('en');
     });
-
-    expect(screen.getByText('Files changed')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Accept all (2 files)' })).toBeTruthy();
-    expect(screen.getByText('src/one.ts')).toBeTruthy();
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('summarizes apply failures safely without rendering the thrown error', async () => {
+  it('does not perform a duplicate write through the old message review handler', () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
-    const errorSpy = vi.spyOn(toast, 'error').mockImplementation(() => 'patch-summary' as never);
-
     const onApply = vi.fn(async () => {
-      throw new Error('upstream secret detail');
+      throw new Error('must not execute');
     });
-
     renderReview({ messageId: 'm-failure', content: MESSAGE_WITH_TWO_FILES, parts: undefined, onApply }, 'fr');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Tout accepter (2 fichiers)' }));
-
-    await waitFor(() => {
-      expect(errorSpy).toHaveBeenCalledWith('0 fichier appliqué ; échec pour 2 fichiers.');
-    });
-    expect(screen.queryByText(/upstream secret detail/i)).toBeNull();
-
-    errorSpy.mockRestore();
+    expect(onApply).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

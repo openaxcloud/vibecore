@@ -33170,3 +33170,29 @@ body:has(.bolt-project-statusbar) .bolt-agent-applied-notice-dock .Toastify__toa
 .bolt-agent-applied-notice-dock .bolt-agent-applied-toast details[open] {
   grid-column: 1 / -1;
 }
+
+
+/* Automatic recovery has one retry action, not the former two review decisions. */
+.bolt-project-agent-patch-review.bolt-project-agent-patch-review--automatic {
+  max-height: none;
+  overflow: visible;
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-card);
+
+  .bolt-project-agent-patch-review-list {
+    max-height: min(35dvh, 380px);
+    overflow-y: auto;
+  }
+
+  .bolt-project-agent-patch-review-bulk button:only-child,
+  .bolt-project-agent-patch-actions button:only-child {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+    padding: 8px 10px;
+  }
+}

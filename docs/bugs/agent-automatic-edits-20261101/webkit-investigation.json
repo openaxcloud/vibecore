@@ -1,0 +1,1170 @@
+{
+  "rows": [
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 390,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 286.078125,
+        "width": 370,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 2712,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 5393,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 2679.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2712,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2726,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 393,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 286.078125,
+        "width": 373,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3453.0000000000005,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 4543,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3417.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3452,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3470,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 430,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 285.6875,
+        "width": 410,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 2885.0000000000005,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 4437,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 2824,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2885.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 2913.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3566.0000000000005,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 5094,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3472,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3566.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3584,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3443,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 4833,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3338,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3443,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3458,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3694,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 4981,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3616,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3694,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3724,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3445.0000000000005,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 4721,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3353,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3435,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3462,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3808.0000000000005,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 5147,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3673,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3807,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3823,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3672,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 4741,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3610,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3672,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3685,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3276.0000000000005,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 4868,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3234,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3276.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3283,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3758,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 5014,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3646,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3757,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3770,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed",
+      "events": {
+        "toggles": [
+          {
+            "time": 3522.0000000000005,
+            "open": true,
+            "hidden": "<div hidden=\"\"><div class=\"bolt-project-agent-patch-review-head\"><div class=\"bolt-project-agent-patch-review-bulk\"><button type=\"button\">Réessayer ces modifications</button></div></div><div class=\"bol"
+          },
+          {
+            "time": 5128,
+            "open": true
+          }
+        ],
+        "states": [
+          {
+            "time": 3436,
+            "states": [
+              {
+                "id": 1,
+                "open": false,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3522.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": true,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          },
+          {
+            "time": 3538.0000000000005,
+            "states": [
+              {
+                "id": 1,
+                "open": true,
+                "hidden": false,
+                "buttons": [
+                  "Réessayer ces modifications",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification",
+                  "Réessayer cette modification"
+                ],
+                "lang": "fr",
+                "connected": true,
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    }
+  ]
+}

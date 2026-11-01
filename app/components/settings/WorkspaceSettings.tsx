@@ -2,7 +2,6 @@ import { useStore } from '@nanostores/react';
 import { Minus, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ThemePreferenceControl } from '~/components/ui/ThemePreferenceControl';
-import { setRequireAiChangeReview, useRequireAiChangeReview } from '~/lib/hooks/useAutoApplyEnabled';
 import {
   formatApiKeysWorkspaceSettingsNumber,
   formatWorkspaceSpaces,
@@ -70,7 +69,6 @@ function ToggleRow({
 
 export function WorkspaceSettings({ language }: { language?: string }) {
   const editor = useStore(editorSettingsStore);
-  const requireAiChangeReview = useRequireAiChangeReview();
   const { i18n } = useTranslation();
   const resolvedLanguage = resolveApiKeysWorkspaceSettingsLanguage(language ?? i18n.resolvedLanguage ?? i18n.language);
   const copy = getWorkspaceSettingsCopy(resolvedLanguage);
@@ -175,14 +173,7 @@ export function WorkspaceSettings({ language }: { language?: string }) {
       </Section>
 
       <Section title={copy.agent.title} description={copy.agent.description}>
-        <ToggleRow
-          label={copy.agent.requireReview}
-          checked={requireAiChangeReview}
-          onChange={setRequireAiChangeReview}
-        />
-        <p className="break-words text-[12px] leading-5 text-bolt-elements-textSecondary">
-          {requireAiChangeReview ? copy.agent.reviewOn : copy.agent.reviewOff}
-        </p>
+        <p className="break-words text-[12px] leading-5 text-bolt-elements-textSecondary">{copy.agent.reviewOff}</p>
         <a
           href="/settings"
           className="w-fit max-w-full break-words text-[13px] leading-5 text-[var(--ecode-accent-text)] hover:underline"

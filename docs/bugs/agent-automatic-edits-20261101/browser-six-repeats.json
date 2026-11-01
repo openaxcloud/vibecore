@@ -1,0 +1,138 @@
+{
+  "rows": [
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    }
+  ],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    }
+  ]
+}

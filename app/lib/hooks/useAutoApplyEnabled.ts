@@ -1,28 +1,7 @@
 /**
- * "Require review of AI changes" is a persisted USER setting.
- *
- * Default is OFF (`false`) → the agent's file changes AUTO-APPLY (Replit-style):
- * pending proposals are accepted automatically, no review gate. When the user
- * turns the setting ON in Settings, every AI change stays pending and must be
- * accepted/rejected in the review queue before it lands.
- *
- * Auto-apply is exactly the inverse of this setting:
- *   autoApplyEnabled === !requireAiChangeReview
- *
- * Persistence (#23): the value lives in TWO places, reconciled on mount.
- *  - localStorage (per browser): the fast local cache. It seeds the SSR default,
- *    survives reload, and is broadcast via a custom DOM event so every panel in
- *    the same tab reacts immediately (the native `storage` event only fires in
- *    OTHER tabs).
- *  - the server `preferences` blob (`/api/user/preferences`, key
- *    `requireAiChangeReview`): the cross-device source of truth. On mount the
- *    hook fetches it once and, if the signed-in user has a stored value,
- *    reconciles the local cache to it so the choice follows the user to another
- *    device/browser. Every write is pushed back with a best-effort PATCH.
- *
- * Both server calls are best-effort: an unauthenticated IDE session (401) or an
- * unreachable backend simply falls back to localStorage-only, exactly like the
- * rest of the in-IDE settings panel.
+ * Legacy review preferences remain readable and writable for compatibility.
+ * The Agent UI always applies complete, safe proposals through technical
+ * validation; a persisted manual-review preference no longer blocks that flow.
  */
 
 import { useEffect, useState } from 'react';
@@ -245,7 +224,10 @@ export function useRequireAiChangeReview(): boolean {
   return useReviewSubscription();
 }
 
-/** Reactive: whether AI changes auto-apply (the inverse of require-review). */
+/**
+ * Agent edits always pass technical validation and apply without a manual review gate.
+ * Legacy persisted preferences remain readable for compatibility but cannot disable this flow.
+ */
 export function useAutoApplyEnabled(): boolean {
-  return !useReviewSubscription();
+  return true;
 }

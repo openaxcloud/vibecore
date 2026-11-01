@@ -1,0 +1,38 @@
+[
+  {
+    "file": "IMG_0944.png",
+    "path": "/workspace/agent-captures/IMG_0944.png",
+    "size": 1306717,
+    "sha256": "68ecc84fea8c6bf93bc91febfd40ebc4e0a1b4db9ca8e23a70f5a36f5615584e",
+    "library_file_id": "libfile_80a486451aec8191a70316876847b42d",
+    "version": "0",
+    "pixels_inspected": true
+  },
+  {
+    "file": "IMG_0945.png",
+    "path": "/workspace/agent-captures/IMG_0945.png",
+    "size": 1420134,
+    "sha256": "47a92bc6c0167b370fae2f64c9c74f6bc9b5967ef89f6e6016242681f22177e0",
+    "library_file_id": "libfile_9d5046c30d408191a4c62aa918e35e9e",
+    "version": "0",
+    "pixels_inspected": true
+  },
+  {
+    "file": "IMG_0946.png",
+    "path": "/workspace/agent-captures/IMG_0946.png",
+    "size": 1254312,
+    "sha256": "a55efc48a49b0be6bc83d6bf41b4c6ba65ce9ee66740ff9aa7a8ffefbbd033fc",
+    "library_file_id": "libfile_31ad65c55a248191b864414a6302fa72",
+    "version": "0",
+    "pixels_inspected": true
+  },
+  {
+    "file": "IMG_0947.png",
+    "path": "/workspace/agent-captures/IMG_0947.png",
+    "size": 1375854,
+    "sha256": "ba13893c5d55425f53d1ff47955034b0d3c097e5a069f1f631df07f27fcc71cc",
+    "library_file_id": "libfile_77ff919f7a208191aef0db434f2e4f58",
+    "version": "0",
+    "pixels_inspected": true
+  }
+]

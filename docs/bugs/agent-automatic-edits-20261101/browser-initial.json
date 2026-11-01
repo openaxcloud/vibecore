@@ -1,0 +1,198 @@
+{
+  "rows": [
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 390,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 158,
+        "width": 370,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 393,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 158,
+        "width": 373,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 430,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 158,
+        "width": 410,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": -469,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 390,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 158,
+        "width": 370,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 393,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 158,
+        "width": 373,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 430,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 158,
+        "width": 410,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": -469,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    }
+  ],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    }
+  ]
+}

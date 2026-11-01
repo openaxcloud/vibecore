@@ -125,6 +125,17 @@ export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
   );
 }
 
+/** A retry must never turn a technical failure into permission to overwrite or finish a fragment. */
+export function canRetryAgentPatchAutomatically(input: Omit<AutoApplyDecisionInput, 'autoApplyEnabled'>): boolean {
+  return (
+    (input.status === 'pending' || input.status === 'failed') &&
+    !input.enFlux &&
+    !input.tronquee &&
+    !input.conflit &&
+    !input.relueDeLaBase
+  );
+}
+
 /**
  * Builds a per-version key for the auto-apply effect. The proposal id alone
  * is not enough because the agent may regenerate the same action after a
