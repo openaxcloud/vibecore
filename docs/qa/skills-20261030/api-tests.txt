@@ -1,0 +1,8 @@
+ ✓ src/tests/skills-audit-routes.spec.ts (5 tests) 792ms
+   ✓ skills install audit — malicious skill is REFUSED end-to-end > rejects a malicious skill with 422, persists nothing, and journals it  337ms
+
+ Test Files  5 passed (5)
+      Tests  36 passed (36)
+   Start at  11:07:00
+   Duration  7.66s (transform 2.63s, setup 0ms, collect 12.62s, tests 6.78s, environment 1ms, prepare 377ms)
+

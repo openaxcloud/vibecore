@@ -186,43 +186,79 @@ for (const viewport of [
     // Le fil doit être là : les cibles à mesurer vivent dans les messages.
     await expect(page.locator('.bolt-chat-message-row')).toHaveCount(2, { timeout: 90_000 });
 
-    // Déplier les actions de l'artefact et le bloc de code met leurs cibles à l'écran.
-    await page.locator('.bolt-project-agent-panel pre, .bolt-project-agent-panel .shiki').first().hover();
+    const mesurerCibles = () =>
+      page.evaluate(() => {
+        const panel = document.querySelector('[data-testid="ide-agent-panel"]');
+
+        if (!panel) {
+          return null;
+        }
+
+        return [...panel.querySelectorAll('button, a[href], summary, [role="button"], input, textarea')]
+          .map((el) => ({ el, b: el.getBoundingClientRect() }))
+          .filter(({ el, b }) => {
+            const s = getComputedStyle(el);
+            return (
+              b.width > 0 && b.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0'
+            );
+          })
+          .map(({ el, b }) => ({
+            w: Math.round(b.width),
+            h: Math.round(b.height),
+            nom: (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 30),
+          }));
+      });
+
+    // En mode Agent, le code est volontairement replié : son résumé est aussi une cible tactile.
+    const details = page.getByTestId('agent-technical-details');
+
+    await expect(details).toHaveCount(1);
+    await expect(details).not.toHaveAttribute('open');
+    await details.locator(':scope > summary').click();
+    await expect(details).toHaveAttribute('open', '');
+    await expect(details.locator('pre')).toContainText('export const schema = z.object');
+
+    const mesuresAgent = await mesurerCibles();
+
+    // Le contrôle de copie du code coloré vit en mode Assistant : mesurer aussi ce parcours réel.
+    const mode = page.locator('.bolt-chatbox-mode-trigger').first();
+
+    await mode.click();
+    await page.locator('.bolt-chatbox-mode-menu button').filter({ hasText: 'Assistant' }).first().click();
+    await expect(mode).toContainText('Assistant');
+
+    const pre = page.locator('.bolt-assistant-message pre').filter({ hasText: 'export const schema = z.object' });
+
+    await expect(pre).toHaveCount(1);
+    await expect(pre).toHaveClass(/(?:^|\s)shiki(?:\s|$)/);
+    await pre.hover();
     await page.waitForTimeout(400);
 
-    const mesures = await page.evaluate(() => {
-      const panel = document.querySelector('[data-testid="ide-agent-panel"]');
+    const mesuresAssistant = await mesurerCibles();
 
-      if (!panel) {
-        return null;
-      }
-
-      return [...panel.querySelectorAll('button, a[href], summary, [role="button"], input, textarea')]
-        .map((el) => ({ el, b: el.getBoundingClientRect() }))
-        .filter(({ el, b }) => {
-          const s = getComputedStyle(el);
-          return b.width > 0 && b.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
-        })
-        .map(({ el, b }) => ({
-          w: Math.round(b.width),
-          h: Math.round(b.height),
-          nom: (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 30),
-        }));
+    await test.info().attach('agent-touch-targets', {
+      body: JSON.stringify({ agent: mesuresAgent, assistant: mesuresAssistant }),
+      contentType: 'application/json',
     });
 
-    /*
-     * Témoin positif : sans lui, un sélecteur périmé donnerait « aucune cible
-     * trop petite » sur un panneau où rien n'a été mesuré.
-     */
-    expect(mesures, 'panneau introuvable').not.toBeNull();
-    expect(mesures!.length, 'aucune cible mesurée dans le panneau').toBeGreaterThanOrEqual(6);
+    for (const [etat, mesures] of [
+      ['Agent', mesuresAgent],
+      ['Assistant', mesuresAssistant],
+    ] as const) {
+      /*
+       * Témoin positif : sans lui, un sélecteur périmé donnerait « aucune cible
+       * trop petite » sur un panneau où rien n'a été mesuré.
+       */
+      expect(mesures, 'panneau introuvable').not.toBeNull();
+      expect(mesures!.length, 'aucune cible mesurée dans le panneau').toBeGreaterThanOrEqual(6);
 
-    const tropPetites = mesures!.filter((c) => c.w < 44 || c.h < 44);
+      const tropPetites = mesures!.filter((c) => c.w < 44 || c.h < 44);
 
-    expect(
-      tropPetites,
-      `cibles sous 44px en ${viewport.label} :\n${tropPetites.map((c) => `  ${c.w}x${c.h} ${c.nom}`).join('\n')}`,
-    ).toEqual([]);
+      expect(
+        tropPetites,
+        `cibles sous 44px en ${viewport.label} (${etat}) :\n${tropPetites.map((c) => `  ${c.w}x${c.h} ${c.nom}`).join('\n')}`,
+      ).toEqual([]);
+    }
   });
 }
 

@@ -362,6 +362,9 @@ it('keeps borrowed workspace models alive when indexing stops and the owner unmo
   );
   await waitFor(() => expect(pendingMonaco.created.filter((e) => !e.disposed)).toHaveLength(1));
 
+  /* Editor creation precedes the editorVersion effect that indexes workspace models. */
+  await waitFor(() => expect(monaco.editor.getModel(monaco.Uri.parse('file:///other.ts'))).toBeTruthy());
+
   const indexed = monaco.editor.getModel(monaco.Uri.parse('file:///other.ts'))!;
   expect(indexed).toBeTruthy();
 
@@ -888,7 +891,7 @@ it.each(['resolved', 'focus', 'pointer', 'navigation', 'scope', 'cancel', 'compo
 
     let release!: (module: { default: typeof EditorAdapter }) => void;
 
-    const Deferred = lazy(
+    const deferredEditor = lazy(
       () =>
         new Promise<{ default: typeof EditorAdapter }>((resolve) => {
           release = resolve;
@@ -906,7 +909,7 @@ it.each(['resolved', 'focus', 'pointer', 'navigation', 'scope', 'cancel', 'compo
               identity: phase === 'pending' ? identity : undefined,
               children: createElement(Suspense, {
                 fallback: createElement('span', null, 'Loading destination'),
-                children: createElement(Deferred, props),
+                children: createElement(deferredEditor, props),
               }),
             });
 

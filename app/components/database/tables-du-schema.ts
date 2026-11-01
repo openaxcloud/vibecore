@@ -131,6 +131,7 @@ export function nomDeLaBase(
 
 /** Une colonne, telle qu'on veut l'afficher : son nom et son type SQL lisible. */
 export interface ColonneDuSchema {
+  primaryKey?: boolean;
   nom: string;
   type: string;
 }
@@ -166,7 +167,17 @@ export function colonnesDuSchema(donnees: unknown): Map<string, ColonneDuSchema[
 
     const liste = parTable.get(table) ?? [];
 
-    liste.push({ nom, type: typeDeColonne(o) });
+    const column = {
+      nom,
+      type: typeDeColonne(o),
+      ...(o.is_primary_key === true || o.is_primary_key === 1 ? { primaryKey: true } : {}),
+    };
+    liste.push(column);
+
+    const qualifiedKey = JSON.stringify([texte(o.table_schema ?? o.tableSchema ?? o.schema), table]);
+    const qualified = parTable.get(qualifiedKey) ?? [];
+    qualified.push(column);
+    parTable.set(qualifiedKey, qualified);
     parTable.set(table, liste);
   }
 

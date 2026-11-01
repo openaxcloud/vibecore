@@ -44,7 +44,7 @@ describe('readConnections — quelle liste fait foi', () => {
   });
 
   it('accepte l’enveloppe complète comme la charge déjà déballée', () => {
-    const attendu = [{ key: 'DATABASE_URL', label: 'DATABASE_URL' }];
+    const attendu = [{ key: 'DATABASE_URL', label: 'DATABASE_URL', kind: 'postgres' }];
 
     expect(readConnections({ data: { connections: [{ key: 'DATABASE_URL' }] } })).toEqual(attendu);
     expect(readConnections({ connections: [{ key: 'DATABASE_URL' }] })).toEqual(attendu);

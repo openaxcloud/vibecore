@@ -176,14 +176,16 @@ const rehypeSanitizeOptions: RehypeSanitizeOptions = {
   strip: [],
 };
 
-export function remarkPlugins(limitedMarkdown: boolean) {
+export function remarkPlugins(limitedMarkdown: boolean, allowInternalHtml = true) {
   const plugins: PluggableList = [remarkGfm, remarkMath];
 
   if (limitedMarkdown) {
     plugins.unshift(limitedMarkdownPlugin);
   }
 
-  plugins.unshift(remarkThinkRawContent);
+  if (allowInternalHtml) {
+    plugins.unshift(remarkThinkRawContent);
+  }
 
   return plugins;
 }

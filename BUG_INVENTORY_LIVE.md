@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-597 entrées.
+601 entrées.
 
 ## Sans section
 
@@ -816,6 +816,16 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-MOBILE-CHROME-HYDRATION-GAP-20261030](docs/bugs/BUG-MOBILE-CHROME-HYDRATION-GAP-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030](docs/bugs/BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
+## Agent et messages
+
+- [BUG-AGENT-CONVERSATION-LISIBLE-20261030](docs/bugs/BUG-AGENT-CONVERSATION-LISIBLE-20261030.md) — 📤 Dispatché : ☑ 30/10 — plainte utilisateur sur une réponse mêlant prose, fichiers et diagnostic fournisseur ; reproductions · 💻 Codé : ☐ — complément distinct dépendant de #859 ; aucune intégration ni livraison revendiquée. · ✅ Testé live : ☐ — aucune modification du projet utilisateur, aucun appel fournisseur ; recette locale synthétique à distingu
+
+## Sans section
+
+- [BUG-DATABASE-GRID-IDENTITY-20261030](docs/bugs/BUG-DATABASE-GRID-IDENTITY-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-SKILLS-RESOURCE-SNAPSHOT-20261030](docs/bugs/BUG-SKILLS-RESOURCE-SNAPSHOT-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-MOBILE-MORE-FORCED-CLICK-20261030](docs/bugs/BUG-MOBILE-MORE-FORCED-CLICK-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
 ## Résidus non tabulaires — reportés mot pour mot
 
 1 bloc(s) commençaient comme une entrée sans être une ligne de tableau.
@@ -828,3 +838,7 @@ Ils sont conservés ici tels quels : une migration ne perd pas de contenu en sil
 > de la periode fautive. Mesure a l appui : 77 % de messages assistant vides le
 > 01/09, 9 % le 04/09, **0 % le 05/09** — le defaut est eteint, pas masque.
 > Ne pas reposer la question.
+
+- [BUG-SKILLS-REAL-PATH-20261030](docs/qa/skills-20261030/README.md) — Erreurs de chargement masquées en listes vides ; skill projet désactivé réinjecté via workspace ; résumé du catalogue substitué aux instructions indisponibles ; toggle contournant l'approbation de quarantaine. 📤 Dispatché : ☑ audit isolé 30/10/2026 · 💻 Codé : ☐ main, PR draft uniquement · ✅ Testé live : ☐ production ; preuves locales séparées dans le rapport.
+
+- [BUG-SKILLS-DISCLOSURE-20261030](docs/qa/skills-disclosure-20261030/README.md) — Nom court/accentué explicitement demandé ignoré par le déclenchement ; libellé L3 promettant des ressources non disponibles. 📤 Dispatché : ☑ complément isolé · 💻 Codé : ☐ main, branche séparée · ✅ Testé live : ☐ production ; tests SDK sans fournisseur et UI locale trois formats seulement.

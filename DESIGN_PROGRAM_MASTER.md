@@ -327,3 +327,9 @@ Revue en réel sur `app.e-code.ai`, navigateur de bureau 1440×900 et 1280×800,
 | Lot secondaire UI : factures, support, paramètres locaux, membres, clés API, modèles/récents et navigation marketing | Session UI dédiée 25/10 | Intégré par #795 sur main5b09bf65b ; livraison suivie séparément | Non | [Cartographie et limites](docs/bugs/user-area-secondary-2026-10-25/coverage-map.md) ; géométrie 11 formats, zoom natif, clavier/Retour, API synthétique uniquement. CI PR #792 verte et fusion sur ef65c1e68 ; livraison #792 suivie séparément. |
 | Complément UI organisation, ancres légales et filtres Features | Session UI dédiée25/10 | Non sur main ; lot consolidé en préparation après #795 | Non | [Matrice](docs/bugs/user-area-tertiary-2026-10-25/README.md) :63tests ciblés, build/typage/lint, revues et recettes locales synthétiques ; aucune validation production authentifiée. |
 | Hero Agent IA à320px français : actions contenues et libellés complets | Session UI dédiée25/10 | Non sur main ; commit local séparé | Non | [Preuves](docs/bugs/ai-agent-hero-2026-10-25/after10099/README.md) :16cascompilés,8groupesinteraction,4tests etlint, build/typage ; pas recetteproduction. |
+
+## Database — audit réel local du 30/10/2026
+
+| Point | 📤 Dispatché | 💻 Codé sur main | ✅ Testé live production | Preuves |
+|---|---|---|---|---|
+| DB-GRID-20261030 — isolation des connexions, édition par clé primaire, SQL réel | Oui, lot Database | Non — branche et PR draft, intégration réservée au coordinateur | Non — recette authentifiée séparée bloquée par reconnexion | [Rapport local et limites](docs/reprise/2026-10-30-database-audit.md) |
