@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-606 entrées.
+607 entrées.
 
 ## Sans section
 
@@ -839,6 +839,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Agent et budget
 
 - [BUG-PROJECT-EXPLICIT-BUDGET-EXTENSION-20261101](docs/bugs/BUG-PROJECT-EXPLICIT-BUDGET-EXTENSION-20261101.md) — 📤 Dispatché : ☑ 01/11 — préparer une extension autorisée de 10,52 USD, de 20 à 30,52 USD, · 💻 Codé : ☐ — branche isolée en préparation ; aucune livraison ni mutation de l'enveloppe réelle. · ✅ Testé live : ☐ — aucun run fournisseur ni activation production exécuté par ce chantier.
+- [BUG-ASTER-BUDGET-ADMIN-TRANSPORT-20261101](docs/bugs/BUG-ASTER-BUDGET-ADMIN-TRANSPORT-20261101.md) — La PR #879 expose une API administrative limitée à Aster, mais aucun écran, — 📤 Dispatché : ☑ 01/11 — vérifier un parcours utilisable sans console navigateur ni copie de session. · 💻 Codé : ☐ — raccord local séparé de la PR API #879 ; non livré. · ✅ Testé live : ☐ — aucune connexion, activation ou invocation fournisseur réelle.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
