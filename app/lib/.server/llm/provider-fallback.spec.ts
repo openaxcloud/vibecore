@@ -14,6 +14,7 @@ import {
   resetProviderProbeCache,
   resolveRuntimeProvider,
 } from './provider-fallback';
+import { createProviderHealthScope } from './provider-health-scope';
 import { PROVIDER_LIST } from '~/utils/constants';
 
 /*
@@ -38,6 +39,9 @@ const CLES = {
   OpenAI: 'sk-proj-test',
   Google: 'AIza-test',
 };
+
+const scope = (name: string) =>
+  createProviderHealthScope({ provider: PROVIDER_LIST.find((p) => p.name === name)!, apiKeys: CLES });
 
 beforeEach(() => {
   resetProviderHealth();
@@ -128,18 +132,18 @@ describe('table de santé', () => {
   it('écarte puis relâche un fournisseur à l’expiration du TTL', () => {
     const t0 = 1_000_000;
 
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé', t0);
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé', t0);
 
-    expect(isProviderHealthy('Anthropic', t0 + 1)).toBe(false);
-    expect(getProviderHealth('Anthropic', t0 + 1)?.kind).toBe('credit');
-    expect(isProviderHealthy('Anthropic', t0 + PROVIDER_UNHEALTHY_TTL_MS + 1)).toBe(true);
+    expect(isProviderHealthy(scope('Anthropic'), t0 + 1)).toBe(false);
+    expect(getProviderHealth(scope('Anthropic'), t0 + 1)?.kind).toBe('credit');
+    expect(isProviderHealthy(scope('Anthropic'), t0 + PROVIDER_UNHEALTHY_TTL_MS + 1)).toBe(true);
   });
 
   it('relâche immédiatement un fournisseur redevenu sain', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
-    markProviderHealthy('Anthropic');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé');
+    markProviderHealthy(scope('Anthropic'));
 
-    expect(isProviderHealthy('Anthropic')).toBe(true);
+    expect(isProviderHealthy(scope('Anthropic'))).toBe(true);
   });
 });
 
@@ -157,7 +161,7 @@ describe('choix du fournisseur pour le tour', () => {
   });
 
   it('bascule sur OpenAI quand Anthropic est à sec — le scénario mesuré', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'Your credit balance is too low');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'Your credit balance is too low');
 
     const choix = resolveRuntimeProvider({
       provider: anthropic,
@@ -171,13 +175,13 @@ describe('choix du fournisseur pour le tour', () => {
       provider: 'Anthropic',
       model: 'claude-sonnet-4-5-20250929',
       reason: 'credit',
-      detail: 'Your credit balance is too low',
+      detail: 'credit',
     });
   });
 
   it('descend jusqu’à Gemini quand Anthropic ET OpenAI sont tombés', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
-    markProviderUnhealthy('OpenAI', 'rate-limit', '429');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé');
+    markProviderUnhealthy(scope('OpenAI'), 'rate-limit', '429');
 
     const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-sonnet-4-5-20250929', apiKeys: CLES });
 
@@ -186,7 +190,7 @@ describe('choix du fournisseur pour le tour', () => {
   });
 
   it('saute un fournisseur de repli dont la clé manque', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé');
 
     const choix = resolveRuntimeProvider({
       provider: anthropic,
@@ -199,9 +203,9 @@ describe('choix du fournisseur pour le tour', () => {
   });
 
   it('arrête la génération quand le crédit est épuisé et toute la chaîne indisponible', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'private provider diagnostic');
-    markProviderUnhealthy('OpenAI', 'auth', '401');
-    markProviderUnhealthy('Google', 'server', '503');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'private provider diagnostic');
+    markProviderUnhealthy(scope('OpenAI'), 'auth', '401');
+    markProviderUnhealthy(scope('Google'), 'server', '503');
 
     expect(() =>
       resolveRuntimeProvider({ provider: anthropic, model: 'claude-sonnet-4-5-20250929', apiKeys: CLES }),
@@ -214,7 +218,7 @@ describe('choix du fournisseur pour le tour', () => {
   it.each(['auth', 'rate-limit', 'server', 'timeout'] as const)(
     'conserve le fournisseur sans repli pour une panne %s',
     (kind) => {
-      markProviderUnhealthy('Anthropic', kind, 'original diagnostic');
+      markProviderUnhealthy(scope('Anthropic'), kind, 'original diagnostic');
 
       const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES, chaine: [] });
 
@@ -224,7 +228,7 @@ describe('choix du fournisseur pour le tour', () => {
   );
 
   it('ne se choisit pas lui-même comme repli', () => {
-    markProviderUnhealthy('OpenAI', 'rate-limit', '429');
+    markProviderUnhealthy(scope('OpenAI'), 'rate-limit', '429');
 
     const choix = resolveRuntimeProvider({ provider: openai, model: 'gpt-4.1', apiKeys: CLES });
 
@@ -277,16 +281,16 @@ describe('portée de la mise à l’écart — jamais le pod pour l’échec d�
      * Mesuré en production le 2026-09-28 : une demande de plan sans fichier avait
      * écarté Anthropic 300 s pour tous les utilisateurs du pod.
      */
-    markProviderUnhealthy('Anthropic', 'sterile' as never, 'zéro fichier');
+    markProviderUnhealthy(scope('Anthropic'), 'sterile' as never, 'zéro fichier');
 
-    expect(isProviderHealthy('Anthropic')).toBe(true);
-    expect(getProviderHealth('Anthropic')).toBeUndefined();
+    expect(isProviderHealthy(scope('Anthropic'))).toBe(true);
+    expect(getProviderHealth(scope('Anthropic'))).toBeUndefined();
   });
 
   it('TÉMOIN — la table fonctionne pour un vrai motif de clé', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'credit balance is too low');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'credit balance is too low');
 
-    expect(isProviderHealthy('Anthropic')).toBe(false);
+    expect(isProviderHealthy(scope('Anthropic'))).toBe(false);
   });
 });
 
@@ -301,7 +305,7 @@ describe('le repli est CELUI DE LA CARTE de routage (2026-09-28)', () => {
      * premier maillon de la chaîne codée en dur, alors que la carte déclarait
      * `google/gemini-2.5-pro`.
      */
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé');
 
     const choix = resolveRuntimeProvider({
       provider: anthropic,
@@ -316,7 +320,7 @@ describe('le repli est CELUI DE LA CARTE de routage (2026-09-28)', () => {
   });
 
   it('arrête un compte épuisé quand la carte ne déclare aucun repli', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé');
 
     expect(() =>
       resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES, chaine: [] }),
@@ -324,8 +328,8 @@ describe('le repli est CELUI DE LA CARTE de routage (2026-09-28)', () => {
   });
 
   it('ne sort pas de la carte quand son seul repli est indisponible', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
-    markProviderUnhealthy('Google', 'credit', 'solde épuisé');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé');
+    markProviderUnhealthy(scope('Google'), 'credit', 'solde épuisé');
 
     expect(() =>
       resolveRuntimeProvider({
@@ -338,7 +342,7 @@ describe('le repli est CELUI DE LA CARTE de routage (2026-09-28)', () => {
   });
 
   it('TÉMOIN — sans carte, la chaîne historique reste le dernier recours', () => {
-    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+    markProviderUnhealthy(scope('Anthropic'), 'credit', 'solde épuisé');
 
     const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES });
 

@@ -2,8 +2,14 @@ import { generateText, type Message } from 'ai';
 import type { AgentRoleId } from './agent-orchestration';
 import { ECODE_AGENT_ROLES } from './agent-orchestration';
 import { removeUnsupportedModelSettings } from './model-compat';
-import { resolveUsableProvider } from './provider-credentials';
-import { classifyProviderFailure, markProviderUnhealthy, resolveRuntimeProvider } from './provider-fallback';
+import { resolveAuxiliaryProvider, type AuxiliaryProviderRoute } from './provider-credentials';
+import {
+  classifyProviderFailure,
+  echecDeCle,
+  markProviderUnhealthy,
+  resolveRuntimeProvider,
+} from './provider-fallback';
+import { createProviderHealthScope, type ProviderHealthScope } from './provider-health-scope';
 import { extractPropertiesFromMessage } from './utils';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { IProviderSetting } from '~/types/model';
@@ -146,6 +152,7 @@ export function buildPlanLanguageRule(language?: string): string {
 
 export async function createAgentPlan(props: {
   messages: Message[];
+  routing?: AuxiliaryProviderRoute;
   env?: Env;
   apiKeys?: Record<string, string>;
   providerSettings?: Record<string, IProviderSetting>;
@@ -177,12 +184,14 @@ export async function createAgentPlan(props: {
   currentProvider = provider;
 
   /* Retenu hors du `try` pour que le chemin d'erreur sache QUEL fournisseur a refusé. */
-  let fournisseurDuTour = currentProvider;
+  let providerHealthScope: ProviderHealthScope | undefined;
 
   try {
-    const resolved = resolveUsableProvider({
+    const resolved = resolveAuxiliaryProvider({
+      routing: props.routing,
       requestedProvider: currentProvider,
       requestedModel: currentModel,
+      providerSettings,
       apiKeys,
       serverEnv: serverEnv as Record<string, string> | undefined,
     });
@@ -200,15 +209,16 @@ export async function createAgentPlan(props: {
      * fournisseurs répondent. Le repli s'applique donc ici aussi.
      */
     const runtimeChoice = resolveRuntimeProvider({
+      ...(props.routing ? { chaine: [] } : {}),
       provider: resolved.provider,
       model: resolved.model,
+      providerSettings,
       apiKeys,
       serverEnv: serverEnv as Record<string, string> | undefined,
     });
 
     const resolvedProvider = runtimeChoice.provider;
     currentModel = runtimeChoice.model;
-    fournisseurDuTour = resolvedProvider.name;
 
     if (runtimeChoice.switchedFrom) {
       logger.warn(
@@ -249,6 +259,13 @@ export async function createAgentPlan(props: {
     const roleCatalog = ECODE_AGENT_ROLES.map((role) => `- ${role.id}: ${role.responsibility}`).join('\n');
 
     const roleCap = Math.max(1, Math.min(maxRoles ?? ECODE_AGENT_ROLES.length, ECODE_AGENT_ROLES.length));
+
+    providerHealthScope = createProviderHealthScope({
+      provider: resolvedProvider,
+      apiKeys,
+      serverEnv: serverEnv as Record<string, string> | undefined,
+      providerSettings,
+    });
 
     const resp = await generateText({
       system: `You are the planning layer of an autonomous coding agent. Given a build request, decompose it into the specialist sub-tasks needed to deliver it, and assign each sub-task to ONE specialist role.
@@ -307,11 +324,11 @@ ${buildPlanLanguageRule(language)}- Output STRICT JSON only, no prose, no code f
      */
     const kind = classifyProviderFailure(error);
 
-    if (kind) {
-      markProviderUnhealthy(fournisseurDuTour, kind, String(error).slice(0, 300));
+    if (echecDeCle(kind) && providerHealthScope) {
+      markProviderUnhealthy(providerHealthScope, kind, kind);
     }
 
-    logger.warn(`Agent planner failed: ${error instanceof Error ? error.message : error}`);
+    logger.warn('Agent planner failed', { kind: kind ?? 'unclassified' });
 
     return undefined;
   }

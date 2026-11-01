@@ -9,7 +9,11 @@ const boundary = vi.hoisted(() => ({ model: vi.fn(), fetch: vi.fn(), selectedMod
 const catalog = vi.hoisted(() => [{ name: 'configured-model', provider: 'Google', maxTokenAllowed: 8192 }]);
 vi.mock('~/lib/enterprise-api.server', () => ({ apiRequest: vi.fn() }));
 vi.mock('./managed-provider-keys', () => ({ applyManagedProviderKeys: async (env: unknown) => env }));
+vi.mock('./provider-health-scope', () => ({
+  createProviderHealthScope: () => ({ provider: 'Google', id: 'fixture-scope' }),
+}));
 vi.mock('./provider-credentials', () => ({
+  isProviderUsable: () => true,
   resolveUsableProvider: () => ({
     provider: { name: 'Google', getModelInstance: boundary.model, staticModels: catalog },
     model: boundary.selectedModel,

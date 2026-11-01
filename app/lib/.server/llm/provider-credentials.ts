@@ -1,9 +1,12 @@
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
+import { streamErrorCodeMessages } from '~/types/context';
+import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('provider-credentials');
+const MISSING_CREDENTIALS = 'missing-credentials' as const;
 
 export type LLMProvider = (typeof PROVIDER_LIST)[number];
 
@@ -38,44 +41,16 @@ export function isProviderUsable(
   provider: LLMProvider,
   apiKeys?: Record<string, string>,
   serverEnv?: Record<string, string>,
+  providerSettings?: Record<string, IProviderSetting>,
 ): boolean {
-  const userKey = apiKeys?.[provider.name];
-
-  if (typeof userKey === 'string' && userKey.trim().length > 0) {
-    return true;
-  }
-
-  const manager = LLMManager.getInstance();
-
-  /*
-   * Read the genuine Node runtime env (globalThis.process.env). A bare
-   * `process.env` is the vite browser shim with an empty `env`, so managed
-   * keys set by the K8s deployment would otherwise look absent and every
-   * provider would be misclassified as unusable. Mirrors base-provider's
-   * getProviderBaseUrlAndKey so this check and the real LLM call agree.
-   */
-  const readEnv = (key?: string): string | undefined => {
-    if (!key) {
-      return undefined;
-    }
-
-    return serverEnv?.[key] || readRuntimeEnv(key) || manager.env?.[key];
-  };
-
-  const apiToken = readEnv(provider.config.apiTokenKey);
-
-  if (typeof apiToken === 'string' && apiToken.trim().length > 0) {
-    return true;
-  }
-
-  // Key-less providers only need a base URL (configured or built-in default).
-  if (!provider.config.apiTokenKey) {
-    const baseUrl = readEnv(provider.config.baseUrlKey) || provider.config.baseUrl;
-
-    return Boolean(baseUrl && String(baseUrl).trim().length > 0);
-  }
-
-  return false;
+  const { apiKey, baseUrl } = provider.getProviderBaseUrlAndKey({
+    apiKeys,
+    serverEnv,
+    providerSettings: providerSettings?.[provider.name],
+    defaultApiTokenKey: provider.config.apiTokenKey ?? '',
+    defaultBaseUrlKey: provider.config.baseUrlKey ?? '',
+  });
+  return provider.config.apiTokenKey ? Boolean(apiKey) : Boolean(baseUrl);
 }
 
 /**
@@ -86,11 +61,13 @@ export function isProviderUsable(
 export function pickFallbackProvider(
   apiKeys?: Record<string, string>,
   serverEnv?: Record<string, string>,
+  providerSettings?: Record<string, IProviderSetting>,
 ): LLMProvider | undefined {
   const ordered = [DEFAULT_PROVIDER, ...PROVIDER_LIST.filter((p) => p.name !== DEFAULT_PROVIDER.name)];
 
   return ordered.find(
-    (provider) => isProviderUsable(provider, apiKeys, serverEnv) && isUsableAsFallback(provider, serverEnv),
+    (provider) =>
+      isProviderUsable(provider, apiKeys, serverEnv, providerSettings) && isUsableAsFallback(provider, serverEnv),
   );
 }
 
@@ -115,26 +92,52 @@ function isUsableAsFallback(provider: LLMProvider, serverEnv?: Record<string, st
 }
 
 /**
- * Resolve the provider/model an LLM call should actually use. If the requested
- * provider has no usable credentials, transparently fall back to a credentialed
- * provider (and a valid model for it) so the request never fails with a fatal
- * "Authentication Error". Shared by stream-text, create-summary and
- * select-context so every LLM path is protected.
+ * Resolve credentials under the caller's routing policy. An explicit empty
+ * chain forbids substitution; a declared chain only permits its candidates.
+ * An absent chain preserves the legacy registry order for callers without a
+ * routing card (including summaries/context). Every substitution is returned
+ * with its provenance so generation can announce the final destination.
  */
+export type CredentialProviderChoice = {
+  provider: LLMProvider;
+  model: string;
+  switchedFrom?: { provider: string; model: string; reason: 'missing-credentials' };
+};
+
 export function resolveUsableProvider(options: {
   requestedProvider: string;
   requestedModel: string;
+  chaine?: readonly { provider: string; model: string }[];
   apiKeys?: Record<string, string>;
   serverEnv?: Record<string, string>;
-}): { provider: LLMProvider; model: string } {
-  const { requestedProvider, requestedModel, apiKeys, serverEnv } = options;
-  const provider = PROVIDER_LIST.find((p) => p.name === requestedProvider) || DEFAULT_PROVIDER;
+  providerSettings?: Record<string, IProviderSetting>;
+}): CredentialProviderChoice {
+  const { requestedProvider, requestedModel, apiKeys, serverEnv, providerSettings, chaine } = options;
+  const requested = PROVIDER_LIST.find((p) => p.name === requestedProvider);
 
-  if (isProviderUsable(provider, apiKeys, serverEnv)) {
+  if (!requested && chaine !== undefined) {
+    throw Object.assign(new Error(streamErrorCodeMessages.MODEL_NOT_FOUND), {
+      code: 'MODEL_NOT_FOUND',
+      isRetryable: false,
+    });
+  }
+
+  const provider = requested ?? DEFAULT_PROVIDER;
+
+  if (isProviderUsable(provider, apiKeys, serverEnv, providerSettings)) {
     return { provider, model: requestedModel };
   }
 
-  const fallback = pickFallbackProvider(apiKeys, serverEnv);
+  const declared = chaine?.find((step) => {
+    const candidate = PROVIDER_LIST.find((entry) => entry.name === step.provider);
+    return (
+      candidate && candidate.name !== provider.name && isProviderUsable(candidate, apiKeys, serverEnv, providerSettings)
+    );
+  });
+  const fallback =
+    chaine === undefined
+      ? pickFallbackProvider(apiKeys, serverEnv, providerSettings)
+      : PROVIDER_LIST.find((entry) => entry.name === declared?.provider);
 
   if (!fallback || fallback.name === provider.name) {
     logger.error(`Provider [${provider.name}] has no usable credentials and no fallback provider is configured.`);
@@ -144,14 +147,54 @@ export function resolveUsableProvider(options: {
 
   logger.warn(`Provider [${provider.name}] has no usable credentials; falling back to [${fallback.name}].`);
 
+  const switchedFrom = {
+    provider: provider.name,
+    model: requestedModel,
+    reason: MISSING_CREDENTIALS,
+  };
+
+  if (declared) {
+    return { provider: fallback, model: declared.model, switchedFrom };
+  }
+
   const fallbackStatic = LLMManager.getInstance().getStaticModelListFromProvider(fallback);
   const requestedModelStillValid = fallbackStatic.some((m) => m.name === requestedModel);
 
   if (requestedModelStillValid) {
-    return { provider: fallback, model: requestedModel };
+    return { provider: fallback, model: requestedModel, switchedFrom };
   }
 
   const model = fallbackStatic.find((m) => m.name === DEFAULT_MODEL)?.name ?? fallbackStatic[0]?.name ?? requestedModel;
 
-  return { provider: fallback, model };
+  return { provider: fallback, model, switchedFrom };
+}
+
+/** Auxiliary work must not silently substitute a provider on a card-governed turn. */
+export type AuxiliaryProviderRoute = Readonly<{
+  primary: { provider: string; model: string };
+  fallback: null;
+}>;
+
+export function resolveAuxiliaryProvider(
+  options: Parameters<typeof resolveUsableProvider>[0] & { routing?: AuxiliaryProviderRoute },
+): CredentialProviderChoice {
+  const resolved = resolveUsableProvider({
+    ...options,
+    ...(options.routing
+      ? {
+          requestedProvider: options.routing.primary.provider,
+          requestedModel: options.routing.primary.model,
+          chaine: [],
+        }
+      : {}),
+  });
+
+  if (
+    options.routing &&
+    !isProviderUsable(resolved.provider, options.apiKeys, options.serverEnv, options.providerSettings)
+  ) {
+    throw Object.assign(new Error(streamErrorCodeMessages.AUTH_FAILED), { code: 'AUTH_FAILED', isRetryable: false });
+  }
+
+  return resolved;
 }
