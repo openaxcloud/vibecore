@@ -134,6 +134,7 @@ export default function ProjectsPage() {
   const urlQuery = searchParams.get('q') ?? '';
   const location = useLocation();
   const navigationType = useNavigationType();
+  const synchronizedLocation = useRef({ key: location.key, navigationType, urlQuery });
   const pendingLocalQuery = useRef<string | null>(null);
   const [query, setQuery] = useState(urlQuery);
   const [view, setView] = useState<'grid' | 'list'>('grid');
@@ -151,6 +152,18 @@ export default function ProjectsPage() {
    * History navigation always restores its query, even during an in-flight write.
    */
   useEffect(() => {
+    const previous = synchronizedLocation.current;
+
+    /*
+     * useState already consumed this URL. Replaying the initial effect must not
+     * erase input received between the DOM commit and passive effects.
+     */
+    if (previous.key === location.key && previous.navigationType === navigationType && previous.urlQuery === urlQuery) {
+      return;
+    }
+
+    synchronizedLocation.current = { key: location.key, navigationType, urlQuery };
+
     const expectedQuery = pendingLocalQuery.current;
     pendingLocalQuery.current = null;
 

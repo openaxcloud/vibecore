@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-614 entrées.
+615 entrées.
 
 ## Sans section
 
@@ -859,6 +859,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Déploiement et sécurité
 
 - [BUG-STAGED-UPGRADE-PREFLIGHT-DEFAULTS-20261101](docs/bugs/BUG-STAGED-UPGRADE-PREFLIGHT-DEFAULTS-20261101.md) — 📤 Dispatché : ☑ 01/11 — diagnostiquer le refus `STAGED_MANAGER_UNRELATED_RESOURCE_CHANGED` · 💻 Codé : ☐ — correctif isolé préparé ; livraison encore requise. · ✅ Testé live : ☐ — aucun nouveau rollout ni lecture du registre Prisma démontré.
+
+## Interface et navigation
+
+- [BUG-PROJECTS-INITIAL-SEARCH-EFFECT-20261101](docs/bugs/BUG-PROJECTS-INITIAL-SEARCH-EFFECT-20261101.md) — 📤 Dispatché : ☑ 01/11 — analyser l’échec unitaire sur main `7ecd1d85`, run `41339721137`, · 💻 Codé : ☑ — correction locale préparée : mémoriser l’identité de localisation déjà consommée · ✅ Testé live : ☐ — aucune recette navigateur en production ; validations locales jsdom seulement.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
