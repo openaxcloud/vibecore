@@ -1,0 +1,37 @@
+{
+  "capturedFromRealComponent": true,
+  "query": "INSERT INTO \"ui_insert_defect\".\"contacts\" (\"id\", \"label\")\nVALUES ('', '');",
+  "postgresReal": true,
+  "http": false,
+  "production": false,
+  "failure": {
+    "code": "22P02",
+    "message": "invalid input syntax for type bigint: \"\""
+  },
+  "before": [
+    {
+      "id": "1",
+      "label": "existing synthetic row"
+    }
+  ],
+  "after": [
+    {
+      "id": "1",
+      "label": "existing synthetic row"
+    }
+  ],
+  "columns": [
+    {
+      "column_name": "id",
+      "is_identity": "YES",
+      "identity_generation": "ALWAYS",
+      "is_nullable": "NO"
+    },
+    {
+      "column_name": "label",
+      "is_identity": "NO",
+      "identity_generation": null,
+      "is_nullable": "NO"
+    }
+  ]
+}

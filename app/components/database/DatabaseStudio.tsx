@@ -2,10 +2,13 @@ import { Check, Copy, Play, Table2, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
+import { CreateTableForm } from './CreateTableForm';
+import { InsertRowForm, hasInsertMetadata } from './InsertRowForm';
 import { QueryHistoryControl } from './QueryHistoryControl';
 import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
+import { formatQueryCell, normalizeRows, type QueryResult } from './query-result';
 import { columnLookupKey, quoteIdentifier, rowUpdateSql, tableSql } from './sql-grid';
-import { colonnesDuSchema, tablesDuSchema, type TableDuSchema } from './tables-du-schema';
+import { colonnesDuSchema, tablesDuSchema, type ColonneDuSchema, type TableDuSchema } from './tables-du-schema';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
 import Popover from '~/components/ui/Popover';
@@ -23,18 +26,10 @@ import { classNames } from '~/utils/classNames';
  * survives backend field naming differences.
  */
 
-type Conn = { key: string; label: string; kind: string };
+type Conn = { key: string; label: string; kind: string; declaredKind?: string };
 
 /* La taille de page de Replit, reprise telle quelle : « 50 / 0 » sous la grille. */
 const LIGNES_PAR_PAGE = 50;
-
-type QueryResult = {
-  columns?: string[];
-  rows?: Array<Record<string, unknown> | unknown[]>;
-  rowCount?: number;
-  command?: string;
-  error?: string;
-};
 
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
@@ -69,7 +64,14 @@ export function readConnections(data: unknown): Conn[] {
       const key = String(o.key ?? o.connectionKey ?? o.id ?? o.name ?? '');
       const label = String(o.label ?? o.name ?? o.displayName ?? key);
 
-      return key ? { key, label, kind: String(o.kind ?? 'postgres') } : null;
+      return key
+        ? {
+            key,
+            label,
+            kind: String(o.kind ?? 'postgres'),
+            ...(typeof o.kind === 'string' ? { declaredKind: o.kind } : {}),
+          }
+        : null;
     })
     .filter((c): c is Conn => Boolean(c));
 
@@ -141,24 +143,6 @@ function downloadCsv(columns: string[], rows: unknown[][]): void {
   anchor.download = 'query-result.csv';
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function normalizeRows(result: QueryResult): { columns: string[]; rows: unknown[][] } {
-  const rows = result.rows ?? [];
-
-  if (!rows.length) {
-    return { columns: result.columns ?? [], rows: [] };
-  }
-
-  const first = rows[0];
-
-  if (Array.isArray(first)) {
-    return { columns: result.columns ?? first.map((_, i) => `col_${i + 1}`), rows: rows as unknown[][] };
-  }
-
-  const columns = result.columns ?? Object.keys(first as Record<string, unknown>);
-
-  return { columns, rows: (rows as Array<Record<string, unknown>>).map((r) => columns.map((c) => r[c])) };
 }
 
 /*
@@ -318,6 +302,12 @@ function ConnectionStudio({
    */
   const [decalage, setDecalage] = useState(0);
   const [editMode, setEditMode] = useState(false);
+  const [creatingTable, setCreatingTable] = useState(false);
+  const [insertingScope, setInsertingScope] = useState<string | null>(null);
+
+  const [insertionSnapshot, setInsertionSnapshot] = useState<{ scope: string; columns: ColonneDuSchema[] } | null>(
+    null,
+  );
 
   // Destructive statement awaiting user confirmation (null = no dialog).
   const [pendingSql, setPendingSql] = useState<string | null>(null);
@@ -383,6 +373,35 @@ function ConnectionStudio({
    */
   const activeConnection = connections.find((c) => c.key === connectionKey);
 
+  const insertionColumns = selectedTable ? (colonnesParTable.get(columnLookupKey(selectedTable)) ?? []) : [];
+  const insertionScope = JSON.stringify([projectId, connectionKey, selectedTable?.schema, selectedTable?.nom]);
+
+  const canInsertRow =
+    activeConnection?.declaredKind === 'postgres' &&
+    Boolean(selectedTable?.schema) &&
+    hasInsertMetadata(insertionColumns);
+
+  const insertionMetadataConfirmed =
+    canInsertRow &&
+    !loadingSchema &&
+    !schemaError &&
+    !(
+      schemaFetcher.data &&
+      typeof schemaFetcher.data === 'object' &&
+      'ok' in schemaFetcher.data &&
+      schemaFetcher.data.ok === false
+    ) &&
+    tables.some((table) => table.schema === selectedTable?.schema && table.nom === selectedTable?.nom);
+  useEffect(() => {
+    if (insertingScope === insertionScope && insertionMetadataConfirmed) {
+      setInsertionSnapshot((previous) =>
+        previous?.scope === insertionScope && previous.columns === insertionColumns
+          ? previous
+          : { scope: insertionScope, columns: insertionColumns },
+      );
+    }
+  }, [insertingScope, insertionScope, insertionMetadataConfirmed, insertionColumns]);
+
   const isProductionConnection = Boolean(
     activeConnection && /prod/i.test(`${activeConnection.key} ${activeConnection.label}`),
   );
@@ -398,6 +417,8 @@ function ConnectionStudio({
 
     setSql(q);
     setSelectedTable(table);
+    setCreatingTable(false);
+    setInsertingScope(null);
     setEditMode(false);
     setDecalage(borne);
     runQuery(q);
@@ -441,12 +462,24 @@ function ConnectionStudio({
     }
   }, [queryFetcher.state, queryFetcher.data, projectId]);
 
-  const result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
-  const queryError = queryFetcher.data?.error ?? queryFetcher.data?.result?.error;
+  let result: ReturnType<typeof normalizeRows> | null = null;
+  let invalidResult = false;
+
+  try {
+    result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
+  } catch {
+    invalidResult = true;
+  }
+
+  const queryError =
+    queryFetcher.data?.error ?? queryFetcher.data?.result?.error ?? (invalidResult ? 'invalid-result' : undefined);
+
   const command = queryFetcher.data?.result?.command;
 
   const changedRows =
-    command && ['INSERT', 'UPDATE', 'DELETE'].includes(command) ? queryFetcher.data?.result?.rowCount : undefined;
+    !queryError && command && ['INSERT', 'UPDATE', 'DELETE'].includes(command)
+      ? queryFetcher.data?.result?.rowCount
+      : undefined;
 
   const visibleQueryError = queryError ? copy['databaseStudio.safeQueryError'] : undefined;
 
@@ -492,6 +525,20 @@ function ConnectionStudio({
           <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-bolt-elements-textSecondary">
             <Table2 className="h-3.5 w-3.5" aria-hidden /> {copy['databaseStudio.tables']}
           </div>
+          {activeConnection?.declaredKind === 'postgres' ? (
+            <button
+              type="button"
+              data-testid="studio-create-table"
+              disabled={running || creatingTable}
+              className="mb-2 min-h-11 w-full rounded border border-bolt-elements-borderColor px-3 text-left text-sm disabled:opacity-50"
+              onClick={() => {
+                setInsertingScope(null);
+                setCreatingTable(true);
+              }}
+            >
+              {copy['databaseCreateTable.title']}
+            </button>
+          ) : null}
           {visibleSchemaError && !loadingSchema ? (
             <div className="px-1 py-2" role="alert">
               <p className="text-[12px] font-medium text-[var(--status-error-text)]">
@@ -532,261 +579,304 @@ function ConnectionStudio({
 
         {/* SQL runner + results */}
         <section className="bolt-database-studio-main flex min-w-0 min-h-0 flex-col gap-2">
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={sql}
-              onChange={(e) => setSql(e.target.value)}
-              spellCheck={false}
-              rows={4}
-              aria-label={copy['databaseStudio.sqlQuery']}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                  e.preventDefault();
-                  setSelectedTable(null);
-                  setEditMode(false);
-                  runQuery(sql);
-                }
-              }}
-              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1.5 font-mono text-[12px] outline-none focus:border-bolt-elements-focus"
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedTable(null);
-                  setEditMode(false);
-                  runQuery(sql);
+          {insertingScope === insertionScope && selectedTable && insertionSnapshot?.scope === insertionScope ? (
+            <div className="min-h-0 overflow-auto">
+              <InsertRowForm
+                key={insertionScope}
+                projectId={projectId}
+                connectionKey={connectionKey}
+                table={selectedTable}
+                columns={insertionMetadataConfirmed ? insertionColumns : insertionSnapshot.columns}
+                metadataConfirmed={insertionMetadataConfirmed}
+                metadataLoading={loadingSchema}
+                onClose={() => setInsertingScope(null)}
+                onInserted={() => {
+                  loadSchema(connectionKey);
+                  executeQuery(
+                    `SELECT * FROM ${tableSql(selectedTable, 'postgres')} LIMIT ${LIGNES_PAR_PAGE} OFFSET ${decalage};`,
+                  );
                 }}
-                disabled={running || !connectionKey}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-[13px] font-medium text-[var(--vc-ide-on-accent-action)] hover:opacity-90 disabled:opacity-60"
-              >
-                <Play className="h-3.5 w-3.5" aria-hidden />
-                {running ? copy['databaseStudio.running'] : copy['databaseStudio.run']}
-              </button>
-              <span className="text-[11px] text-bolt-elements-textTertiary">{copy['databaseStudio.shortcut']}</span>
-              {isProductionConnection ? (
-                <span
-                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium"
-                  style={{
-                    color: 'var(--status-error-text)',
-                    background: 'color-mix(in srgb, var(--vc-ide-accent-error) 12%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
-                  }}
-                  title={copy['databaseStudio.productionTitle']}
-                >
-                  {copy['databaseStudio.production']}
-                </span>
-              ) : null}
-              <QueryHistoryControl
-                entries={history}
-                onPick={setSql}
-                onRemove={(statement) => setHistory(removeQueryHistory(projectId, statement))}
-                onClear={() => setHistory(clearQueryHistory(projectId))}
               />
-
-              {result && result.rows.length ? (
-                <button
-                  type="button"
-                  onClick={() => downloadCsv(result.columns, result.rows)}
-                  className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                >
-                  {copy['databaseStudio.exportCsv']}
-                </button>
-              ) : null}
-              {selectedTable ? (
-                <>
-                  <span className="mx-1 h-4 w-px bg-bolt-elements-borderColor" aria-hidden />
+            </div>
+          ) : creatingTable ? (
+            <div className="min-h-0 overflow-auto">
+              <CreateTableForm
+                key={`${projectId}:${connectionKey}`}
+                projectId={projectId}
+                connectionKey={connectionKey}
+                onCreated={() => loadSchema(connectionKey)}
+                onCancel={() => setCreatingTable(false)}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                <textarea
+                  value={sql}
+                  onChange={(e) => setSql(e.target.value)}
+                  spellCheck={false}
+                  rows={4}
+                  aria-label={copy['databaseStudio.sqlQuery']}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      setSelectedTable(null);
+                      setEditMode(false);
+                      runQuery(sql);
+                    }
+                  }}
+                  className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1.5 font-mono text-[12px] outline-none focus:border-bolt-elements-focus"
+                />
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={() => {
-                      const cols = (
-                        selectedTable ? (colonnesParTable.get(columnLookupKey(selectedTable)) ?? []) : []
-                      ).map((c) => c.nom);
-
-                      const colonnes = cols.length ? cols : (result?.columns ?? []);
-
-                      setSql(
-                        `INSERT INTO ${tableSql(selectedTable, activeConnection?.kind)} (${colonnes.map((c) => quoteIdentifier(c, activeConnection?.kind)).join(', ')})\nVALUES (${colonnes
-                          .map(() => "''")
-                          .join(', ')});`,
-                      );
+                      setSelectedTable(null);
+                      setEditMode(false);
+                      runQuery(sql);
                     }}
-                    className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                    disabled={running || !connectionKey}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-[13px] font-medium text-[var(--vc-ide-on-accent-action)] hover:opacity-90 disabled:opacity-60"
                   >
-                    {copy['databaseStudio.insertRow']}
+                    <Play className="h-3.5 w-3.5" aria-hidden />
+                    {running ? copy['databaseStudio.running'] : copy['databaseStudio.run']}
+                  </button>
+                  <span className="text-[11px] text-bolt-elements-textTertiary">{copy['databaseStudio.shortcut']}</span>
+                  {isProductionConnection ? (
+                    <span
+                      className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium"
+                      style={{
+                        color: 'var(--status-error-text)',
+                        background: 'color-mix(in srgb, var(--vc-ide-accent-error) 12%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
+                      }}
+                      title={copy['databaseStudio.productionTitle']}
+                    >
+                      {copy['databaseStudio.production']}
+                    </span>
+                  ) : null}
+                  <QueryHistoryControl
+                    entries={history}
+                    onPick={setSql}
+                    onRemove={(statement) => setHistory(removeQueryHistory(projectId, statement))}
+                    onClear={() => setHistory(clearQueryHistory(projectId))}
+                  />
+
+                  {result && result.rows.length ? (
+                    <button
+                      type="button"
+                      onClick={() => downloadCsv(result.columns, result.rows)}
+                      className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                    >
+                      {copy['databaseStudio.exportCsv']}
+                    </button>
+                  ) : null}
+                  {selectedTable ? (
+                    <>
+                      <span className="mx-1 h-4 w-px bg-bolt-elements-borderColor" aria-hidden />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (canInsertRow) {
+                            setCreatingTable(false);
+                            setInsertionSnapshot({ scope: insertionScope, columns: insertionColumns });
+                            setInsertingScope(insertionScope);
+
+                            return;
+                          }
+
+                          const cols = (
+                            selectedTable ? (colonnesParTable.get(columnLookupKey(selectedTable)) ?? []) : []
+                          ).map((c) => c.nom);
+
+                          const colonnes = cols.length ? cols : (result?.columns ?? []);
+
+                          setSql(
+                            `INSERT INTO ${tableSql(selectedTable, activeConnection?.kind)} (${colonnes.map((c) => quoteIdentifier(c, activeConnection?.kind)).join(', ')})\nVALUES (${colonnes
+                              .map(() => "''")
+                              .join(', ')});`,
+                          );
+                        }}
+                        className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                      >
+                        {copy[canInsertRow ? 'databaseStudio.insertRow' : 'databaseInsertRow.prepareSql']}
+                      </button>
+                      {!canInsertRow && <p className="text-sm">{copy['databaseInsertRow.unavailable']}</p>}
+                      <button
+                        type="button"
+                        disabled={
+                          running ||
+                          !(colonnesParTable.get(columnLookupKey(selectedTable)) ?? []).some((c) => c.primaryKey)
+                        }
+                        title={copy['databaseStudio.primaryKeyRequired']}
+                        onClick={() => setEditMode((v) => !v)}
+                        aria-pressed={editMode}
+                        className={classNames(
+                          'rounded-md border px-2.5 py-1 text-[12px]',
+                          editMode
+                            ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+                            : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                        )}
+                      >
+                        {editMode ? copy['databaseStudio.editing'] : copy['databaseStudio.edit']}
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              <div
+                aria-busy={running}
+                className="bolt-database-studio-results min-h-0 flex-1 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2"
+              >
+                {visibleQueryError ? (
+                  <div className="p-3" role="alert">
+                    <p className="text-[12px] font-medium text-[var(--status-error-text)]">
+                      {copy['databaseStudio.queryFailed']}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap break-words font-mono text-[12px] text-[var(--status-error-text)]">
+                      {visibleQueryError}
+                    </p>
+                  </div>
+                ) : result && result.rows.length ? (
+                  <table className="w-full border-collapse text-left font-mono text-[12px]">
+                    <thead className="sticky top-0 bg-bolt-elements-background-depth-3">
+                      <tr>
+                        {result.columns.map((c) => {
+                          const type = (
+                            selectedTable ? (colonnesParTable.get(columnLookupKey(selectedTable)) ?? []) : []
+                          ).find((col) => col.nom === c)?.type;
+
+                          return (
+                            <th
+                              key={c}
+                              data-testid="studio-entete"
+                              className="border-b border-bolt-elements-borderColor px-3 py-1.5 font-medium"
+                            >
+                              <span className="text-bolt-elements-textPrimary">{c}</span>
+                              {type ? (
+                                <span className="ml-1.5 font-normal text-bolt-elements-textTertiary">{type}</span>
+                              ) : null}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.rows.map((row, i) => (
+                        <tr key={i} className="border-b border-bolt-elements-borderColor last:border-b-0">
+                          {row.map((cell, j) => (
+                            <td key={j} className="max-w-[280px] truncate px-3 py-1.5 text-bolt-elements-textSecondary">
+                              {editMode && selectedTable ? (
+                                <input
+                                  disabled={running}
+                                  defaultValue={cell === null || cell === undefined ? '' : String(cell)}
+                                  onBlur={(e) => {
+                                    const next = e.currentTarget.value;
+                                    const orig = cell === null || cell === undefined ? '' : String(cell);
+
+                                    if (next === orig) {
+                                      return;
+                                    }
+
+                                    const update = rowUpdateSql(
+                                      selectedTable,
+                                      colonnesParTable.get(columnLookupKey(selectedTable)) ?? [],
+                                      result.columns,
+                                      row,
+                                      result.columns[j],
+                                      next,
+                                      activeConnection?.kind,
+                                    );
+
+                                    if (update) {
+                                      runQuery(update);
+                                    }
+                                  }}
+                                  className="w-full bg-bolt-elements-background-depth-1 px-1 text-bolt-elements-textPrimary outline-none focus:ring-1 focus:ring-[var(--vc-ide-accent-action)]"
+                                />
+                              ) : cell === null || cell === undefined ? (
+                                '∅'
+                              ) : (
+                                <CellValue value={formatQueryCell(cell)} />
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : running ? (
+                  <EmptyState
+                    variant="compact"
+                    icon="i-ph:circle-notch"
+                    title={copy['databaseStudio.runningQuery']}
+                    className="m-3"
+                  />
+                ) : result ? (
+                  <EmptyState
+                    variant="compact"
+                    icon="i-ph:rows"
+                    title={
+                      changedRows !== undefined
+                        ? text(copy['databaseStudio.rowsChanged'], { count: changedRows })
+                        : copy['databaseStudio.noRows']
+                    }
+                    description={
+                      changedRows !== undefined
+                        ? undefined
+                        : selectedTable
+                          ? formatDatabaseStudioCopy(copy['databaseStudio.pageEmpty'], {
+                              limit: String(LIGNES_PAR_PAGE),
+                              offset: String(decalage),
+                            })
+                          : copy['databaseStudio.noRowsDescription']
+                    }
+                    className="m-3"
+                  />
+                ) : (
+                  <EmptyState
+                    variant="compact"
+                    icon="i-ph:table"
+                    title={copy['databaseStudio.noResults']}
+                    description={copy['databaseStudio.noResultsDescription']}
+                    className="m-3"
+                  />
+                )}
+              </div>
+              {selectedTable ? (
+                <div
+                  data-testid="studio-pagination"
+                  className="flex min-w-0 flex-wrap items-center justify-end gap-2 border-t border-bolt-elements-borderColor px-3 py-2"
+                >
+                  <span className="font-mono text-[12px] text-bolt-elements-textTertiary">
+                    {formatDatabaseStudioCopy(copy['databaseStudio.page'], {
+                      limit: String(LIGNES_PAR_PAGE),
+                      offset: String(decalage),
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="studio-page-precedente"
+                    disabled={decalage === 0 || running}
+                    onClick={() => parcourirLaTable(selectedTable, decalage - LIGNES_PAR_PAGE)}
+                    className="min-h-11 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
+                  >
+                    {copy['databaseStudio.pagePrevious']}
                   </button>
                   <button
                     type="button"
-                    disabled={
-                      running || !(colonnesParTable.get(columnLookupKey(selectedTable)) ?? []).some((c) => c.primaryKey)
-                    }
-                    title={copy['databaseStudio.primaryKeyRequired']}
-                    onClick={() => setEditMode((v) => !v)}
-                    aria-pressed={editMode}
-                    className={classNames(
-                      'rounded-md border px-2.5 py-1 text-[12px]',
-                      editMode
-                        ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
-                        : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
-                    )}
+                    data-testid="studio-page-suivante"
+                    disabled={running || (result?.rows.length ?? 0) < LIGNES_PAR_PAGE}
+                    onClick={() => parcourirLaTable(selectedTable, decalage + LIGNES_PAR_PAGE)}
+                    className="min-h-11 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
                   >
-                    {editMode ? copy['databaseStudio.editing'] : copy['databaseStudio.edit']}
+                    {copy['databaseStudio.pageNext']}
                   </button>
-                </>
+                </div>
               ) : null}
-            </div>
-          </div>
-
-          <div
-            aria-busy={running}
-            className="bolt-database-studio-results min-h-0 flex-1 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2"
-          >
-            {visibleQueryError ? (
-              <div className="p-3" role="alert">
-                <p className="text-[12px] font-medium text-[var(--status-error-text)]">
-                  {copy['databaseStudio.queryFailed']}
-                </p>
-                <p className="mt-1 whitespace-pre-wrap break-words font-mono text-[12px] text-[var(--status-error-text)]">
-                  {visibleQueryError}
-                </p>
-              </div>
-            ) : result && result.rows.length ? (
-              <table className="w-full border-collapse text-left font-mono text-[12px]">
-                <thead className="sticky top-0 bg-bolt-elements-background-depth-3">
-                  <tr>
-                    {result.columns.map((c) => {
-                      const type = (
-                        selectedTable ? (colonnesParTable.get(columnLookupKey(selectedTable)) ?? []) : []
-                      ).find((col) => col.nom === c)?.type;
-
-                      return (
-                        <th
-                          key={c}
-                          data-testid="studio-entete"
-                          className="border-b border-bolt-elements-borderColor px-3 py-1.5 font-medium"
-                        >
-                          <span className="text-bolt-elements-textPrimary">{c}</span>
-                          {type ? (
-                            <span className="ml-1.5 font-normal text-bolt-elements-textTertiary">{type}</span>
-                          ) : null}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.rows.map((row, i) => (
-                    <tr key={i} className="border-b border-bolt-elements-borderColor last:border-b-0">
-                      {row.map((cell, j) => (
-                        <td key={j} className="max-w-[280px] truncate px-3 py-1.5 text-bolt-elements-textSecondary">
-                          {editMode && selectedTable ? (
-                            <input
-                              disabled={running}
-                              defaultValue={cell === null || cell === undefined ? '' : String(cell)}
-                              onBlur={(e) => {
-                                const next = e.currentTarget.value;
-                                const orig = cell === null || cell === undefined ? '' : String(cell);
-
-                                if (next === orig) {
-                                  return;
-                                }
-
-                                const update = rowUpdateSql(
-                                  selectedTable,
-                                  colonnesParTable.get(columnLookupKey(selectedTable)) ?? [],
-                                  result.columns,
-                                  row,
-                                  result.columns[j],
-                                  next,
-                                  activeConnection?.kind,
-                                );
-
-                                if (update) {
-                                  runQuery(update);
-                                }
-                              }}
-                              className="w-full bg-bolt-elements-background-depth-1 px-1 text-bolt-elements-textPrimary outline-none focus:ring-1 focus:ring-[var(--vc-ide-accent-action)]"
-                            />
-                          ) : cell === null || cell === undefined ? (
-                            '∅'
-                          ) : (
-                            <CellValue value={String(cell)} />
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : running ? (
-              <EmptyState
-                variant="compact"
-                icon="i-ph:circle-notch"
-                title={copy['databaseStudio.runningQuery']}
-                className="m-3"
-              />
-            ) : result ? (
-              <EmptyState
-                variant="compact"
-                icon="i-ph:rows"
-                title={
-                  changedRows !== undefined
-                    ? text(copy['databaseStudio.rowsChanged'], { count: changedRows })
-                    : copy['databaseStudio.noRows']
-                }
-                description={
-                  changedRows !== undefined
-                    ? undefined
-                    : selectedTable
-                      ? formatDatabaseStudioCopy(copy['databaseStudio.pageEmpty'], {
-                          limit: String(LIGNES_PAR_PAGE),
-                          offset: String(decalage),
-                        })
-                      : copy['databaseStudio.noRowsDescription']
-                }
-                className="m-3"
-              />
-            ) : (
-              <EmptyState
-                variant="compact"
-                icon="i-ph:table"
-                title={copy['databaseStudio.noResults']}
-                description={copy['databaseStudio.noResultsDescription']}
-                className="m-3"
-              />
-            )}
-          </div>
-          {selectedTable ? (
-            <div
-              data-testid="studio-pagination"
-              className="flex min-w-0 flex-wrap items-center justify-end gap-2 border-t border-bolt-elements-borderColor px-3 py-2"
-            >
-              <span className="font-mono text-[12px] text-bolt-elements-textTertiary">
-                {formatDatabaseStudioCopy(copy['databaseStudio.page'], {
-                  limit: String(LIGNES_PAR_PAGE),
-                  offset: String(decalage),
-                })}
-              </span>
-              <button
-                type="button"
-                data-testid="studio-page-precedente"
-                disabled={decalage === 0 || running}
-                onClick={() => parcourirLaTable(selectedTable, decalage - LIGNES_PAR_PAGE)}
-                className="min-h-11 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
-              >
-                {copy['databaseStudio.pagePrevious']}
-              </button>
-              <button
-                type="button"
-                data-testid="studio-page-suivante"
-                disabled={running || (result?.rows.length ?? 0) < LIGNES_PAR_PAGE}
-                onClick={() => parcourirLaTable(selectedTable, decalage + LIGNES_PAR_PAGE)}
-                className="min-h-11 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
-              >
-                {copy['databaseStudio.pageNext']}
-              </button>
-            </div>
-          ) : null}
+            </>
+          )}
         </section>
       </div>
 

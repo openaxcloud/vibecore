@@ -237,6 +237,12 @@ jobs:
         timeout-minutes: 15
         run: node --import tsx scripts/qa/database-restore-ci.ts
 
+      # Dedicated database_audit, full migrations, exactly twelve passing tests.
+      # A new API/Prisma child reads over loopback HTTP; no browser claim.
+      - name: PostgreSQL row-form persistence regressions
+        timeout-minutes: 15
+        run: node --import tsx scripts/qa/database-panel-persistence-ci.ts
+
       - name: Build web
         timeout-minutes: 20
         run: pnpm run build

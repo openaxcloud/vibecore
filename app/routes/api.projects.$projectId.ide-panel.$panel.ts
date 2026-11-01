@@ -2441,24 +2441,79 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
         method: 'POST',
       });
+    } else if (intent === 'insert-row') {
+      try {
+        let values: unknown;
+
+        try {
+          values = JSON.parse(body.values ?? '');
+        } catch {
+          throw new Response(null, { status: 400 });
+        }
+
+        if (!Array.isArray(values)) {
+          throw new Response(null, { status: 400 });
+        }
+
+        const result = await apiRequest(request, `/projects/${encodeURIComponent(projectId)}/databases/rows`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({
+            key: body.connectionKey,
+            schema: body.schemaName,
+            table: body.tableName,
+            values,
+          }),
+        });
+
+        return json({ ok: true, ...(result as any) });
+      } catch (error) {
+        const failure = panelEnvelopeError('database', null, error, language);
+        const upstreamStatus = Number((error as { status?: unknown } | null)?.status);
+        const status = upstreamStatus >= 400 && upstreamStatus <= 599 ? upstreamStatus : 500;
+
+        return json({ ok: false, error: failure.error?.message, code: failure.error?.code }, { status });
+      }
     } else if (intent === 'query') {
       /*
        * redirectOn401:false — a failed SQL run must surface as a panel error, NEVER
        * eject the user to /login (which bounced them out of the Database panel to
        * /dashboard). This is a fetcher action serving an IDE panel, not a page load.
        */
-      const queryResult = await apiRequest(request, `/projects/${projectId}/databases/query`, {
-        method: 'POST',
-        redirectOn401: false,
-        body: JSON.stringify({
-          key: body.connectionKey,
-          query: body.query,
-          collection: body.collection || undefined,
-          limit: body.limit ? Number(body.limit) : undefined,
-        }),
-      });
+      try {
+        const queryResult = await apiRequest(request, `/projects/${projectId}/databases/query`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({
+            key: body.connectionKey,
+            query: body.query,
+            collection: body.collection || undefined,
+            limit: body.limit ? Number(body.limit) : undefined,
+          }),
+        });
 
-      return json({ ok: true, ...(queryResult as any) });
+        const envelope = queryResult as { result?: { columns?: unknown; rows?: unknown } };
+        const result = envelope.result;
+
+        /*
+         * Keep arbitrary column names and nested JSON keys out of single-fetch's
+         * object-property assignment decoder. DatabaseStudio parses this payload.
+         */
+        if (result && Array.isArray(result.rows)) {
+          const { rows, ...metadata } = result;
+
+          return json({ ok: true, ...envelope, result: { ...metadata, rowsJson: JSON.stringify(rows) } });
+        }
+
+        return json({ ok: true, ...envelope });
+      } catch (error) {
+        /* A rejected SQL command must leave the form and its draft mounted. */
+        const failure = panelEnvelopeError('database', null, error, language);
+        const upstreamStatus = Number((error as { status?: unknown } | null)?.status);
+        const status = upstreamStatus >= 400 && upstreamStatus <= 599 ? upstreamStatus : 500;
+
+        return json({ ok: false, error: failure.error?.message, code: failure.error?.code }, { status });
+      }
     } else if (intent === 'provision') {
       // Provision a managed CNPG database for this project (the button-wired path).
       const provisioned = await apiRequest(request, `/projects/${projectId}/database/provision`, {

@@ -132,6 +132,10 @@ export function nomDeLaBase(
 /** Une colonne, telle qu'on veut l'afficher : son nom et son type SQL lisible. */
 export interface ColonneDuSchema {
   primaryKey?: boolean;
+  nullable?: boolean;
+  identity?: boolean;
+  generated?: boolean;
+  hasDefault?: boolean;
   nom: string;
   type: string;
 }
@@ -170,6 +174,10 @@ export function colonnesDuSchema(donnees: unknown): Map<string, ColonneDuSchema[
     const column = {
       nom,
       type: typeDeColonne(o),
+      ...(o.is_nullable === 'YES' || o.is_nullable === 'NO' ? { nullable: o.is_nullable === 'YES' } : {}),
+      ...(o.is_identity === 'YES' || o.is_identity === 'NO' ? { identity: o.is_identity === 'YES' } : {}),
+      ...(o.is_generated === 'ALWAYS' || o.is_generated === 'NEVER' ? { generated: o.is_generated === 'ALWAYS' } : {}),
+      ...(typeof o.has_default === 'boolean' ? { hasDefault: o.has_default } : {}),
       ...(o.is_primary_key === true || o.is_primary_key === 1 ? { primaryKey: true } : {}),
     };
     liste.push(column);

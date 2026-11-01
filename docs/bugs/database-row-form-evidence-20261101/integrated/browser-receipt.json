@@ -1,0 +1,37 @@
+{
+  "setup": "Root-owned synthetic Row Modes table; insertion via real UI/API",
+  "table": "Row Modes",
+  "rows": [
+    {
+      "width": 1440,
+      "pass": true,
+      "errors": [],
+      "insertRequests": 3,
+      "basicCreationAndInsert": true,
+      "errorPreservesDraft": true,
+      "realInsertVerified": true,
+      "cancelNoInsert": true,
+      "reloadRead": true
+    },
+    {
+      "width": 768,
+      "pass": true,
+      "errors": [],
+      "insertRequests": 2,
+      "errorPreservesDraft": true,
+      "realInsertVerified": true,
+      "cancelNoInsert": true,
+      "reloadRead": true
+    },
+    {
+      "width": 390,
+      "pass": true,
+      "errors": [],
+      "insertRequests": 2,
+      "errorPreservesDraft": true,
+      "realInsertVerified": true,
+      "cancelNoInsert": true,
+      "reloadRead": true
+    }
+  ]
+}

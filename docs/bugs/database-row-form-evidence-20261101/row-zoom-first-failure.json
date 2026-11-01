@@ -1,0 +1,6 @@
+{
+  "pass": false,
+  "submitted": false,
+  "errors": [],
+  "failure": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('db-carte').first()\u001b[22m\n"
+}

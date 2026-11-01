@@ -171,3 +171,33 @@ describe('l’enveloppe de la route — les DEUX formes', () => {
     }
   });
 });
+
+it('preserves insertion metadata without converting unknown values to false', () => {
+  const parsed = colonnesDuSchema({
+    columns: [
+      {
+        table_schema: 's',
+        table_name: 't',
+        column_name: 'known',
+        is_nullable: 'NO',
+        is_identity: 'YES',
+        is_generated: 'NEVER',
+        has_default: false,
+      },
+      {
+        table_schema: 's',
+        table_name: 't',
+        column_name: 'unknown',
+        is_nullable: null,
+        is_identity: 'unknown',
+        is_generated: '',
+        has_default: 'false',
+      },
+    ],
+  }).get(JSON.stringify(['s', 't']))!;
+  expect(parsed[0]).toMatchObject({ nullable: false, identity: true, generated: false, hasDefault: false });
+
+  for (const field of ['nullable', 'identity', 'generated', 'hasDefault']) {
+    expect(parsed[1]).not.toHaveProperty(field);
+  }
+});
