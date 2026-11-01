@@ -164,6 +164,40 @@ const instrumented = source + `\nwindow.__syntheticWorkbench=${alias};`;
           await expect(disclosure).toBeInViewport();
           const bounds = await queue.boundingBox();
           if (!bounds || bounds.x < -1 || bounds.x + bounds.width > width + 1) throw new Error('Recovery queue overflows viewport');
+          // Synthetic transport result only: real-store writes/revert are tested in Vitest.
+          await page.evaluate(() => {
+            const store = window.__syntheticWorkbench;
+            window.__retryUndo = { retries: [], reverts: [] };
+            store.retryAutomaticAgentPatchProposals = async ids => {
+              window.__retryUndo.retries.push(...ids);
+              for (const id of ids) {
+                const proposal = store.agentPatchProposals.get()[id];
+                store.agentPatchProposals.setKey(id, { ...proposal, status: 'accepted' });
+              }
+              return ids.map(id => ({ id, status: 'accepted' }));
+            };
+            store.revertAgentPatchProposal = async id => {
+              window.__retryUndo.reverts.push(id);
+              const proposal = store.agentPatchProposals.get()[id];
+              store.agentPatchProposals.setKey(id, { ...proposal, status: 'reverted' });
+            };
+          });
+          await retry.nth(0).click();
+          const undo = page.getByRole('button', { name: 'Tout annuler', exact: true });
+          await expect(undo).toHaveCount(1);
+          await expect(undo).toBeVisible();
+          await page.locator('.Toastify__toast').filter({ visible: true }).first().evaluate(async element => {
+            await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined)));
+          });
+          await page.screenshot({ path: path.join(output, engine + '-' + width + '-undo.png') });
+          await undo.click();
+          await expect.poll(() => page.evaluate(() => window.__retryUndo.reverts)).toEqual(['safe']);
+          await expect(undo).toHaveCount(0);
+          row.retryUndo = await page.evaluate(() => window.__retryUndo);
+          const overflow = await queue.locator('button').evaluateAll(buttons => buttons
+            .filter(button => button.getClientRects().length && button.scrollWidth > button.clientWidth + 1)
+            .map(button => button.textContent));
+          expect(overflow).toEqual([]);
           row.portrait = bounds;
           await page.screenshot({ path: path.join(output, engine + '-' + width + '.png') });
           await page.setViewportSize({ width: 852, height: 393 });

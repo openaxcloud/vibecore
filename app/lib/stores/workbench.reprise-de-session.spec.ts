@@ -19,8 +19,14 @@
  * Harnais repris de workbench.conflit-utilisateur.spec.ts (vrai WorkbenchStore).
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WorkbenchStore } from './workbench';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { createElement } from 'react';
+import { I18nextProvider } from 'react-i18next';
+import { toast } from 'react-toastify';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { workbenchStore, WorkbenchStore } from './workbench';
+import { AgentPatchReviewQueue } from '~/components/chat/AgentPatchReviewQueue';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import { buildReviewableDiffHunks } from '~/utils/diff';
@@ -210,6 +216,15 @@ vi.mock('./terminal', async () => {
       toggleTerminal = vi.fn();
     },
   };
+});
+
+vi.mock('react-toastify', () => ({
+  toast: Object.assign(vi.fn(), { isActive: vi.fn(() => false), update: vi.fn(), dismiss: vi.fn(), error: vi.fn() }),
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
 });
 
 const CHEMIN = '/home/project/src/App.tsx';
@@ -408,6 +423,55 @@ describe('à la réouverture, ce que la base a gardé d’un tour interrompu', (
     for (const [, path, content] of contents) {
       expect(runtimeFiles.get(path)).toBe(content);
     }
+  });
+
+  it('Retry confirms writes before offering Undo, whose UI calls the real store revert', async () => {
+    runtimeFiles.set('src/App.tsx', ORIGINAL);
+
+    const store = workbenchStore;
+    store.configureProject('retry-ui');
+    store.addArtifact({
+      id: 'artifact-1',
+      artifactId: 'artifact-1',
+      messageId: 'assistant-1',
+      title: 'Retry UI',
+      type: 'bundled',
+    });
+    await store.loadRuntimeFiles();
+
+    const content = ORIGINAL.replace('Bonjour', 'Après réessai');
+    const change = { ...propositionEnBase('failed', { proposedContent: content }), status: 'failed' as const };
+    store.agentPatchProposals.set({ [change.id]: change });
+
+    const revert = vi.spyOn(store, 'revertAgentPatchProposal');
+    const statuses: string[] = [];
+
+    const unsubscribe = store.agentPatchProposals.subscribe((items) => {
+      statuses.push(items[change.id]?.status ?? 'absent');
+    });
+
+    const i18n = createI18nInstance('fr');
+
+    const ui = render(
+      createElement(I18nextProvider, { i18n }, createElement(AgentPatchReviewQueue, { proposals: [change] })),
+    );
+    fireEvent.click(ui.container.querySelector('summary')!);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Réessayer cette modification' })).toBeTruthy());
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    vi.mocked(toast).mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer cette modification' }));
+    await waitFor(() => expect(vi.mocked(toast)).toHaveBeenCalledTimes(1));
+    expect(statuses).toEqual(expect.arrayContaining(['failed', 'applying', 'accepted']));
+    expect(runtimeFiles.get('src/App.tsx')).toBe(content);
+
+    const notice = vi.mocked(toast).mock.calls[0][0];
+    ui.unmount();
+    render(createElement(I18nextProvider, { i18n }, notice as ReturnType<typeof createElement>));
+    fireEvent.click(screen.getByRole('button', { name: /annuler/i }));
+    await waitFor(() => expect(store.agentPatchProposals.get()[change.id].status).toBe('reverted'));
+    expect(revert).toHaveBeenCalledExactlyOnceWith(change.id);
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    unsubscribe();
   });
 
   it('preserves an unsaved user edit instead of applying an automatic proposal', async () => {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { scheduleAppliedFilesToast } from './schedule-applied-files-toast';
 import { workbenchStore, type AgentPatchProposal } from '~/lib/stores/workbench';
 import { canRetryAgentPatchAutomatically, propositionsAMontrer } from '~/utils/agent-auto-apply';
 
@@ -15,10 +16,27 @@ export function AgentPatchReviewQueue({ proposals }: { proposals: AgentPatchProp
   }
 
   const retryable = visibleProposals.filter(canRetryAgentPatchAutomatically);
-  const retryAll = () => void workbenchStore.retryAutomaticAgentPatchProposals(retryable.map(({ id }) => id));
+
+  const retry = async (ids: string[]) => {
+    const results = await workbenchStore.retryAutomaticAgentPatchProposals(ids);
+
+    for (const result of results) {
+      const proposal = proposals.find(({ id }) => id === result.id);
+
+      // Only confirmed writes enter the same Undo batch used by initial auto-apply.
+      if (result.status === 'accepted' && proposal) {
+        scheduleAppliedFilesToast(proposal.relativePath, proposal.id);
+      }
+    }
+  };
+
+  const retryAll = () => void retry(retryable.map(({ id }) => id));
 
   return (
-    <section className="bolt-project-agent-patch-review" aria-label={t('chat.copy.aiPatchReviewQueue_b6f83c83')}>
+    <section
+      className="bolt-project-agent-patch-review bolt-project-agent-patch-review--automatic"
+      aria-label={t('chat.copy.aiPatchReviewQueue_b6f83c83')}
+    >
       {
         <p role="status" className="text-sm text-bolt-elements-textPrimary">
           {t('baseChatAst.patch.failed', { count: visibleProposals.length })}
@@ -60,7 +78,7 @@ export function AgentPatchReviewQueue({ proposals }: { proposals: AgentPatchProp
                       <button
                         type="button"
                         disabled={!canRetryAgentPatchAutomatically(proposal)}
-                        onClick={() => void workbenchStore.retryAutomaticAgentPatchProposals([proposal.id])}
+                        onClick={() => void retry([proposal.id])}
                       >
                         {t('baseChatAst.patch.retryChange')}
                       </button>

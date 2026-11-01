@@ -8,7 +8,7 @@ P1 — le parcours Agent retombe sur Accepter/Rejeter après échec, conflit, re
 
 ## 📤 Dispatché
 
-☑ 01/11 — branche distincte fix/agent-automatic-edits-20261101, base 2072771dce3e7bcf0587d9a6231d7db0844ac35a. Analyse indépendante de #883. Quatre nouvelles captures IMG_0944–0947 à inspecter avant les changements visuels ; leur transfert local est en attente d’autorisation réseau.
+☑ 01/11 — branche distincte fix/agent-automatic-edits-20261101, base 2072771dce3e7bcf0587d9a6231d7db0844ac35a. Analyse indépendante de #883. Les quatre captures IMG_0944–0947 sont matérialisées avec identité Library et inspectées en pixels dans le nouvel environnement autorisé.
 
 ## 💻 Codé
 
@@ -16,4 +16,4 @@ P1 — le parcours Agent retombe sur Accepter/Rejeter après échec, conflit, re
 
 ## ✅ Testé live
 
-☐ — aucune validation produit ou production. Les captures ne sont pas encore matérialisées dans cet environnement. Aucun appel IA payant ni changement d’accès de production.
+☐ — aucune validation produit ou production. Réessai → notification Annuler → réversion réelle du store validé avec adaptateur mémoire ; parcours navigateur synthétiques distingués de la persistance réelle. WebKit local bloqué par dépendances système absentes. Aucun appel IA payant ni changement d’accès de production.

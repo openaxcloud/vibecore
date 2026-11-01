@@ -98,12 +98,11 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './composer-reserved-space';
 import { toast } from 'react-toastify';
 
-import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { scheduleAppliedFilesToast } from './schedule-applied-files-toast';
 import { AppliedFilesNoticeDock } from './AppliedFilesNoticeDock';
 import { AvisEcrituresEnAttente } from '~/components/chat/AvisEcrituresEnAttente';
 import { getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
 import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attente';
-import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
   decideImageAttachment,
@@ -136,7 +135,6 @@ import {
   projectEditorToolsByCategory,
   resolveProjectEditorToolOpen,
 } from './project-editor-tool-catalog';
-import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   consumeDeployPanelView,
   initializeLegacyDomainsSession,
@@ -3951,105 +3949,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * those mutations non-deterministically. Chaining keeps them one-at-a-time.
      */
     const autoApplyChainRef = useRef<Promise<void>>(Promise.resolve());
-    const appliedToastBufferRef = useRef<AppliedFilesToastBuffer>(new AppliedFilesToastBuffer());
-    const appliedToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    /*
-     * True while a coalesced toast is open; lets a flush detect that a prior
-     * toast already closed (auto-close) so the next turn starts a fresh buffer.
-     */
-    const appliedToastOpenRef = useRef(false);
-
-    const flushAppliedFilesToast = useCallback(() => {
-      /*
-       * If we previously opened a coalesced toast but it is no longer active, it
-       * auto-closed (or was dismissed) — the buffered items belong to a finished
-       * turn. Reset so a new agent turn starts fresh and does not re-render or
-       * re-revert already-closed batches. We only reset on a *closed* prior toast,
-       * never before the first toast of a turn is created.
-       */
-      if (appliedToastOpenRef.current && !toast.isActive(AGENT_APPLIED_TOAST_ID)) {
-        appliedToastOpenRef.current = false;
-        appliedToastBufferRef.current.reset();
-      }
-
-      const buffer = appliedToastBufferRef.current;
-
-      if (buffer.isEmpty()) {
-        return;
-      }
-
-      /*
-       * Emit the FULL accumulated set on every flush. Each accepted file triggers
-       * its own debounced flush (the serialized accepts resolve with gaps larger
-       * than the debounce window), and the toast is updated in place under one
-       * toast id. Carrying only the current batch would make the in-place update
-       * replace the file list AND the "Undo all" closure with the last batch
-       * only — silently undoing just the last proposal(s). Accumulating means the
-       * toast always shows every applied file and "Undo all" reverts them all.
-       */
-      const { files, proposalIds } = buffer.snapshot();
-
-      appliedToastOpenRef.current = true;
-
-      showCoalescedAppliedToast(
-        files,
-        {
-          onUndoAll: () => {
-            for (const proposalId of proposalIds) {
-              void workbenchStore.revertAgentPatchProposal(proposalId);
-            }
-
-            appliedToastOpenRef.current = false;
-            appliedToastBufferRef.current.reset();
-            toast.dismiss(AGENT_APPLIED_TOAST_ID);
-          },
-          onDismissAll: () => {
-            appliedToastOpenRef.current = false;
-            appliedToastBufferRef.current.reset();
-            toast.dismiss(AGENT_APPLIED_TOAST_ID);
-          },
-        },
-
-        /*
-         * LE CONSTAT D'HONNÊTETÉ DU TOUR, LU AU MOMENT DE L'AFFICHAGE.
-         *
-         * `AppliedFilesToast` acceptait déjà une prop `constat` et savait
-         * afficher le message honnête — mais RIEN ne la lui passait : la moitié
-         * visible de la garde était du code mort, et le bandeau annonçait « les
-         * patchs ont bien été appliqués » sur une application sans point
-         * d'entrée. Lecture directe du magasin plutôt qu'abonnement : le bandeau
-         * n'est pas un composant réactif, il est peint une fois par flush, et
-         * c'est l'état À CET INSTANT qui doit être dit.
-         */
-        constatDeGenerationStore.get(),
-      );
-    }, []);
-
-    const scheduleAppliedFilesToast = useCallback(
-      (filePath: string, proposalId: string) => {
-        appliedToastBufferRef.current.add(filePath, proposalId);
-
-        if (appliedToastTimerRef.current) {
-          clearTimeout(appliedToastTimerRef.current);
-        }
-
-        appliedToastTimerRef.current = setTimeout(() => {
-          appliedToastTimerRef.current = null;
-          flushAppliedFilesToast();
-        }, 80);
-      },
-      [flushAppliedFilesToast],
-    );
-
-    useEffect(() => {
-      return () => {
-        if (appliedToastTimerRef.current) {
-          clearTimeout(appliedToastTimerRef.current);
-        }
-      };
-    }, []);
-
     useEffect(() => {
       for (const { proposal } of topologicallySortFileActions(
         Object.values(agentPatchProposals).map((proposal) => ({
