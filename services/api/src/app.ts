@@ -1,4 +1,6 @@
 import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
+import { EXPLICIT_EXTENSION_POLICY, matchesExplicitExtensionPolicy } from './explicit-budget-extension-policy.js';
+import { extensionPermit, explicitBudgetSnapshotDigest, stableExtensionApproval } from './explicit-budget-extension.js';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -47,6 +49,8 @@ import {
   StripeBillingClient,
   BUILTIN_AGENT_ROUTING_CARD,
   buildExplicitRunPermit,
+  applyExplicitBudgetExtension,
+  summarizeExplicitRunBudget,
   EXPLICIT_RUN_USAGE_LEDGER_REASON,
   assertQuota,
   assertPublishEntitlement,
@@ -29866,6 +29870,153 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return summary;
+  });
+
+  app.get('/admin/projects/:projectId/explicit-budget-extension', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    await requirePlatformAdmin(request);
+    const { projectId } = parse(projectParams, request.params);
+    if (projectId !== EXPLICIT_EXTENSION_POLICY.projectId)
+      return reply
+        .code(403)
+        .send({
+          code: 'EXPLICIT_RUN_EXTENSION_CONFLICT',
+          error: appPublicCopy('EXPLICIT_RUN_EXTENSION_CONFLICT', transactionalLocaleForRequest(request)),
+        });
+    const project = await store.getProject(projectId);
+    const organization = project && (await store.getOrganization(project.organizationId));
+    if (!project || organization?.slug !== EXPLICIT_EXTENSION_POLICY.organizationSlug)
+      return reply
+        .code(409)
+        .send({
+          code: 'EXPLICIT_RUN_EXTENSION_CONFLICT',
+          error: appPublicCopy('EXPLICIT_RUN_EXTENSION_CONFLICT', transactionalLocaleForRequest(request)),
+        });
+    const [state, card, provider, subscription] = await Promise.all([
+      store.getExplicitRunBudgetState(projectId),
+      store.getActiveAgentRoutingCard(),
+      store.getExplicitRunProviderConfiguration(),
+      store.getSubscription(project.organizationId),
+    ]);
+    const summary = summarizeExplicitRunBudget(state, projectId);
+    if (!summary)
+      return reply
+        .code(503)
+        .send({
+          code: 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE',
+          error: appPublicCopy('EXPLICIT_RUN_EXTENSION_UNAVAILABLE', transactionalLocaleForRequest(request)),
+        });
+    const ledger = state as { runIds?: unknown; extension?: unknown } | undefined;
+    const runIds =
+      Array.isArray(ledger?.runIds) && ledger.runIds.every((id) => typeof id === 'string')
+        ? (ledger.runIds as string[])
+        : [];
+    const permit = extensionPermit({ projectId, card, provider, subscription });
+    const proposal = {
+      approvalId: EXPLICIT_EXTENSION_POLICY.approvalId,
+      expectedOrganizationSlug: organization.slug,
+      expectedRunIds: runIds,
+      expectedReservedMicros: 15260000,
+      expectedLimitMicros: 20000000,
+      targetLimitMicros: 30520000,
+      routingVersion: card?.version ?? 0,
+      expectedLedgerSha256: explicitBudgetSnapshotDigest(state),
+    };
+    const candidate = applyExplicitBudgetExtension(
+      state,
+      stableExtensionApproval(state, {
+        projectId,
+        approvalId: proposal.approvalId,
+        approvedBy: request.currentUser!.id,
+        approvedAt: new Date().toISOString(),
+        expectedRunIds: runIds,
+        baselineReservedMicros: 15260000,
+        limitMicros: 30520000,
+        maxAdditionalRuns: 1,
+        maxRunReservationMicros: 15260000,
+        maxCalls: 2,
+        routingVersion: proposal.routingVersion,
+      }),
+    );
+    return {
+      projectId,
+      organizationSlug: organization.slug,
+      summary,
+      runIds,
+      activeRoutingVersion: card?.version,
+      permit,
+      eligible: Boolean(permit && candidate.ok && !candidate.idempotent),
+      grantApplied: Boolean(ledger?.extension),
+      provider: {
+        enabled: provider?.enabled === true,
+        baseUrlSafe: !provider?.baseUrl || provider.baseUrl === 'https://api.openai.com/v1',
+      },
+      liveBillingSupported: [undefined, 'false'].includes(process.env.BILLING_CREDITS_ENABLED),
+      proposal,
+    };
+  });
+
+  app.post('/admin/projects/:projectId/explicit-budget-extension', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+    const { projectId } = parse(projectParams, request.params);
+    const body = parse(
+      z
+        .object({
+          approvalId: z.literal(EXPLICIT_EXTENSION_POLICY.approvalId),
+          expectedOrganizationSlug: z.literal(EXPLICIT_EXTENSION_POLICY.organizationSlug),
+          expectedRunIds: z.array(z.string().min(1).max(128)).length(1),
+          expectedReservedMicros: z.literal(15260000),
+          expectedLimitMicros: z.literal(20000000),
+          targetLimitMicros: z.literal(30520000),
+          routingVersion: z.number().int().positive(),
+          expectedLedgerSha256: z.string().regex(/^[a-f0-9]{64}$/),
+        })
+        .strict(),
+      request.body,
+    );
+    if (!matchesExplicitExtensionPolicy({ projectId, ...body }))
+      return reply
+        .code(403)
+        .send({
+          code: 'EXPLICIT_RUN_EXTENSION_CONFLICT',
+          error: appPublicCopy('EXPLICIT_RUN_EXTENSION_CONFLICT', transactionalLocaleForRequest(request)),
+        });
+    const result = await store.extendExplicitRunBudget({
+      projectId,
+      expectedOrganizationSlug: body.expectedOrganizationSlug,
+      expectedLedgerSha256: body.expectedLedgerSha256,
+      ipAddress: request.ip,
+      approvalId: body.approvalId,
+      approvedBy: request.currentUser!.id,
+      approvedAt: new Date().toISOString(),
+      expectedRunIds: body.expectedRunIds,
+      baselineReservedMicros: 15260000,
+      limitMicros: 30520000,
+      maxAdditionalRuns: 1,
+      maxRunReservationMicros: 15260000,
+      maxCalls: 2,
+      routingVersion: body.routingVersion,
+    });
+    if (!result.ok)
+      return reply
+        .code(409)
+        .send({
+          code: result.code,
+          error: appPublicCopy(
+            result.code === 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE'
+              ? 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE'
+              : 'EXPLICIT_RUN_EXTENSION_CONFLICT',
+            transactionalLocaleForRequest(request),
+          ),
+        });
+    return {
+      projectId,
+      idempotent: result.idempotent,
+      extension: result.state.extension,
+      summary: summarizeExplicitRunBudget(result.state, projectId),
+    };
   });
 
   app.get('/projects/:projectId/agent/explicit-run', async (request) => {

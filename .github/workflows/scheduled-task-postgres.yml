@@ -61,7 +61,7 @@ jobs:
       - name: Require all 7 PostgreSQL scenarios and zero skipped tests
         run: sh services/api/scripts/verify-scheduled-task-postgres.sh "$RUNNER_TEMP/scheduled-task-proof"
 
-      - name: Require all 4 explicit-budget PostgreSQL scenarios and zero skips
+      - name: Require all 6 explicit-budget PostgreSQL scenarios and zero skips
         run: sh services/api/scripts/verify-explicit-run-postgres.sh "$RUNNER_TEMP/explicit-run-proof"
 
       - name: Create and migrate the isolated credit-pack database

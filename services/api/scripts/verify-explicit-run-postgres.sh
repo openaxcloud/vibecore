@@ -10,7 +10,7 @@ export EXPLICIT_RUN_POSTGRES_PROOF=1
 export NODE_ENV=test
 set +e
 node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts \
-  src/explicit-run-postgres.integration.spec.ts \
+  src/explicit-run-postgres.integration.spec.ts src/explicit-extension-postgres.integration.spec.ts \
   --reporter=json --outputFile="$proof_dir/tests.json" > "$proof_dir/tests.log" 2>&1
 test_exit=$?
 set -e
@@ -22,13 +22,15 @@ import { createHash } from 'node:crypto';
 const [directory, exitCode] = process.argv.slice(2);
 const report = JSON.parse(readFileSync(`${directory}/tests.json`, 'utf8'));
 const match = readFileSync(`${directory}/tests.log`, 'utf8').match(/EXPLICIT_RUN_POSTGRES_OBSERVATIONS (\[[^\n]*\])/);
+const extensionMatch = readFileSync(`${directory}/tests.log`, 'utf8').match(/EXPLICIT_EXTENSION_POSTGRES (\{[^\n]*\})/);
 const summary = {
   sha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   dirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim() !== '',
   exitCode: Number(exitCode), passed: report.numPassedTests, failed: report.numFailedTests,
   skipped: report.numPendingTests, todo: report.numTodoTests,
   observations: match ? JSON.parse(match[1]) : [],
-  sources: ['src/prisma-store.ts', '../../packages/billing/src/explicit-run.ts', 'src/explicit-run-postgres.integration.spec.ts']
+  extensionObservations: extensionMatch ? JSON.parse(extensionMatch[1]) : null,
+  sources: ['src/prisma-store.ts', '../../packages/billing/src/explicit-run.ts', 'src/explicit-run-postgres.integration.spec.ts', 'src/explicit-extension-postgres.integration.spec.ts', 'src/explicit-budget-extension.ts', 'src/explicit-budget-extension-policy.ts']
     .map(path => ({ path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') })),
 };
 writeFileSync(`${directory}/summary.json`, JSON.stringify(summary, null, 2) + '\n');
@@ -38,11 +40,12 @@ if (process.env.EXPECTED_SHA) {
 }
 assert.equal(Number(exitCode), 0);
 assert.equal(report.success, true);
-assert.equal(report.numTotalTests, 4);
-assert.equal(report.numPassedTests, 4);
+assert.equal(report.numTotalTests, 6);
+assert.equal(report.numPassedTests, 6);
 assert.equal(report.numPendingTests, 0);
 assert.equal(report.numTodoTests, 0);
 assert.equal(report.numFailedTests, 0);
 assert(match, 'Missing real PostgreSQL observations');
+assert.deepEqual(summary.extensionObservations, { oneGrant: true, oneAudit: true, oneAdditionalRun: true, baselineUnchanged: true, scopeDriftRefused: true });
 console.log(JSON.stringify(summary));
 JS

@@ -2838,5 +2838,13 @@
   "DATABASE_ROW_POSTGRES_REQUIRED": {
     "en": "Row forms require a PostgreSQL connection.",
     "fr": "Les formulaires de ligne nécessitent une connexion PostgreSQL."
+  },
+  "EXPLICIT_RUN_EXTENSION_CONFLICT": {
+    "en": "This budget approval no longer matches the authorized project or its current reservation. Refresh the proposal.",
+    "fr": "Cette approbation ne correspond plus au projet autorisé ou à sa réservation actuelle. Actualisez la proposition."
+  },
+  "EXPLICIT_RUN_EXTENSION_UNAVAILABLE": {
+    "en": "The current provider, plan or routing price does not permit this budget extension.",
+    "fr": "Le fournisseur, le forfait ou le tarif actuel ne permet pas cette extension de budget."
   }
 }

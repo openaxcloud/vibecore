@@ -5,10 +5,19 @@ import {
   type TranscriptTerminal,
 } from '../transcript-terminal.js';
 import { decisionEcritureMessage } from '../message-ne-raccourcit-pas.js';
+import { matchesExplicitExtensionPolicy } from '../explicit-budget-extension-policy.js';
+import {
+  extensionPermit,
+  stableExtensionApproval,
+  explicitBudgetSnapshotDigest,
+} from '../explicit-budget-extension.js';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import {
   reserveExplicitRunBudget,
+  applyExplicitBudgetExtension,
+  type ExplicitBudgetExtensionInput,
+  type ExplicitBudgetExtensionResult,
   summarizeExplicitRunBudget,
   type ExplicitRunPermit,
   type ExplicitRunReservation,
@@ -3208,6 +3217,57 @@ export class TestApiStore implements ApiStore {
     return summarizeExplicitRunBudget(row ? row.value : undefined, projectId);
   }
 
+  async getExplicitRunBudgetState(projectId: string): Promise<unknown> {
+    return this.systemSettings.get(`agent.explicit-run.v1:${projectId}`)?.value;
+  }
+
+  async extendExplicitRunBudget(
+    input: ExplicitBudgetExtensionInput & {
+      expectedOrganizationSlug: string;
+      expectedLedgerSha256: string;
+      ipAddress?: string;
+    },
+  ): Promise<ExplicitBudgetExtensionResult | { ok: false; code: 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE' }> {
+    const { expectedOrganizationSlug, expectedLedgerSha256, ipAddress, ...approval } = input;
+    if (!matchesExplicitExtensionPolicy(input)) return { ok: false, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' };
+    const project = await this.getProject(input.projectId);
+    const org = project && (await this.getOrganization(project.organizationId));
+    if (!project || org?.slug !== expectedOrganizationSlug)
+      return { ok: false, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' };
+    const permit = extensionPermit({
+      projectId: input.projectId,
+      card: await this.getActiveAgentRoutingCard(),
+      provider: await this.getExplicitRunProviderConfiguration(),
+      subscription: await this.getSubscription(project.organizationId),
+      routingVersion: input.routingVersion,
+    });
+    if (!permit) return { ok: false, code: 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE' };
+    const key = `agent.explicit-run.v1:${input.projectId}`;
+    const existing = this.systemSettings.get(key);
+    const result = applyExplicitBudgetExtension(existing?.value, stableExtensionApproval(existing?.value, approval));
+    if (result.ok && explicitBudgetSnapshotDigest(existing?.value) !== expectedLedgerSha256)
+      return { ok: false, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' };
+    if (result.ok && !result.idempotent) {
+      this.systemSettings.set(key, { key, value: result.state, updatedAt: now() });
+      await this.recordAudit({
+        organizationId: project.organizationId,
+        actorUserId: input.approvedBy,
+        action: 'admin.project.explicit_budget.extend',
+        resourceType: 'project',
+        resourceId: input.projectId,
+        ipAddress,
+        metadata: {
+          approvalId: input.approvalId,
+          baselineReservedMicros: input.baselineReservedMicros,
+          limitMicros: input.limitMicros,
+          routingVersion: input.routingVersion,
+          expectedLedgerSha256,
+        },
+      });
+    }
+    return result;
+  }
+
   async hasExplicitRunBudget(projectId: string): Promise<boolean> {
     return this.systemSettings.has(`agent.explicit-run.v1:${projectId}`);
   }
@@ -3232,7 +3292,24 @@ export class TestApiStore implements ApiStore {
   async reserveExplicitRun(permit: ExplicitRunPermit): Promise<ExplicitRunReservation> {
     const key = `agent.explicit-run.v1:${permit.projectId}`;
     const existing = this.systemSettings.get(key);
-    const result = reserveExplicitRunBudget(existing ? existing.value : undefined, permit);
+    const extension = (existing?.value as { extension?: { approvalId?: string } } | undefined)?.extension;
+    if (extension) {
+      const project = await this.getProject(permit.projectId);
+      const org = project && (await this.getOrganization(project.organizationId));
+      const card = await this.getActiveAgentRoutingCard();
+      if (
+        !matchesExplicitExtensionPolicy({
+          projectId: permit.projectId,
+          expectedOrganizationSlug: org?.slug ?? '',
+          approvalId: extension.approvalId ?? '',
+        }) ||
+        card?.version !== permit.routingVersion
+      )
+        return { ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' };
+    }
+    // Re-read after async checks so competing synthetic reservations remain serialized.
+    const latest = this.systemSettings.get(key);
+    const result = reserveExplicitRunBudget(latest ? latest.value : undefined, permit);
 
     if (result.ok) {
       this.systemSettings.set(key, { key, value: result.state, updatedAt: now() });

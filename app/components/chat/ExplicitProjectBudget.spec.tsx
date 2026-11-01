@@ -80,3 +80,24 @@ it('times out a suspended read and retries only the read on demand', async () =>
   expect(fetcher).toHaveBeenCalledTimes(2);
   expect(fetcher.mock.calls.every(([, options]) => !options.method || options.method === 'GET')).toBe(true);
 });
+
+it('reads the extended project balance and preserves the history disclaimer', async () => {
+  const fetcher = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        ...summary,
+        limitMicros: 30520000,
+        reservedMicros: 30520000,
+        remainingMicros: 0,
+        runCount: 2,
+      }),
+    ),
+  );
+  vi.stubGlobal('fetch', fetcher);
+  render(<ExplicitProjectBudget projectId="extended-fixture" language="en" />);
+  await waitFor(() => expect(screen.getByRole('status').textContent).toContain('$30.52'));
+  expect(screen.getByRole('status').textContent).toContain('$0.00');
+  expect(screen.getByRole('status').textContent).toContain('budget is unknown');
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher.mock.calls[0][1].method).toBeUndefined();
+});

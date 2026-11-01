@@ -3,6 +3,8 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type {
   ExplicitRunBudgetSummary,
+  ExplicitBudgetExtensionInput,
+  ExplicitBudgetExtensionResult,
   ExplicitRunPermit,
   ExplicitRunReservation,
   PlanKey,
@@ -2451,6 +2453,14 @@ export interface ApiStore {
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
   getExplicitRunBudgetSummary(projectId: string): Promise<ExplicitRunBudgetSummary | undefined>;
+  getExplicitRunBudgetState(projectId: string): Promise<unknown>;
+  extendExplicitRunBudget(
+    input: ExplicitBudgetExtensionInput & {
+      expectedOrganizationSlug: string;
+      expectedLedgerSha256: string;
+      ipAddress?: string;
+    },
+  ): Promise<ExplicitBudgetExtensionResult | { ok: false; code: 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE' }>;
   hasExplicitRunBudget(projectId: string): Promise<boolean>;
   getExplicitRunProviderConfiguration(): Promise<{ enabled: boolean; baseUrl?: string | null } | undefined>;
   getExplicitRunPermit(projectId: string, runId: string): Promise<ExplicitRunPermit | undefined>;
