@@ -35,3 +35,7 @@ The additional `compiled-multilane.cjs` scenario starts twelve specialists and c
 The synthetic harness allows one second for initial read-only history/provider hydration before entering the prompt. Multi-lane reader positioning waits for native keyboard scrolling to settle before collecting the reference; there are no forced clicks or reduced geometry assertions.
 
 Final follow-up verification: all three scripts exited 0 (6 matrix + 2 scroll + 8 multi-lane cases). Across all twelve successive completions and the end of the turn, middle-reader displacement stayed ≤0.875 px on both engines. Bottom gap stayed ≤2 px. Completed cards measured 125.86 px versus 165.61 px initially, so no streaming reservation remained. New receipts are `compiled-review-receipt.json`, `scroll-review-receipt.json`, and `multilane-after-receipt.json`; the original receipts were not overwritten. Build, web typecheck, changed-file lint and all 61 targeted unit/index tests passed.
+
+## CI guard follow-up
+
+The first PR CI run found three guard failures (11,658 tests passed): the scroll-button source guard searched for the old parameterless signature, and the new browser fixture did not follow the suite's nested hook/explicit setup-timeout convention. The guard now verifies that the function exists before checking its unchanged bottom-state assertion. The browser cases share a named suite with an explicit 180-second setup budget. No product assertion was relaxed. All 15 affected guard tests and all 8 Chromium/WebKit geometry cases passed locally after the correction.
