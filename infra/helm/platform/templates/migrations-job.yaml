@@ -30,6 +30,9 @@
 {{- $migrationsEnabled := true -}}
 {{- $apiImageTag := default .Values.global.imageTag .Values.services.api.imageTag -}}
 {{- $apiImageDigest := default .Values.global.imageDigest .Values.services.api.imageDigest -}}
+{{- /* A preparatory upgrade can migrate with the verified new API image while
+     keeping every API pod on its existing image until the manager is ready. */ -}}
+{{- $apiImageDigest = default $apiImageDigest $migrations.imageDigest -}}
 {{- $apiImageArgs := dict "registry" .Values.global.imageRegistry "image" "api" "digest" $apiImageDigest "tag" $apiImageTag -}}
 {{- if hasKey $migrations "enabled" -}}
 {{-   $migrationsEnabled = $migrations.enabled -}}

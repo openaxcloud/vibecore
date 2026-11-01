@@ -51,3 +51,23 @@ it('does not leak errors or accept mutations', async () => {
   expect(action().status).toBe(405);
   expect(apiRequest).not.toHaveBeenCalled();
 });
+
+it.each([
+  { ...summary, limitMicros: 30520000, remainingMicros: 15260000 },
+  { ...summary, limitMicros: 30520000, reservedMicros: 30520000, remainingMicros: 0, runCount: 2 },
+])('reads a server-confirmed project extension without authorizing it from the browser', async (value) => {
+  vi.mocked(apiRequest).mockResolvedValue(value);
+
+  const response = await invoke();
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual(value);
+  expect(action().status).toBe(405);
+});
+it.each([30520001, 40000000, 25000000])('rejects an unrecognized project ceiling %d', async (limitMicros) => {
+  vi.mocked(apiRequest).mockResolvedValue({
+    ...summary,
+    limitMicros,
+    remainingMicros: limitMicros - summary.reservedMicros,
+  });
+  expect((await invoke()).status).toBe(503);
+});

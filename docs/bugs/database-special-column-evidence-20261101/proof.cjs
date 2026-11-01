@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const Result=require('/workspace/vibecore-ui-terminal-handoff/node_modules/pg/lib/result.js');
+const fields=[{name:'__proto__',dataTypeID:25,format:'text'},{name:'constructor',dataTypeID:25,format:'text'},{name:'amount',dataTypeID:1700,format:'text'}];
+const source=['own proto','own constructor','900719925474099312345.000001'];
+function parse(mode,metadata,values){const r=new Result(mode);r.addFields(metadata);return r.parseRow(values);}
+const old=parse(undefined,fields,source);const array=parse('array',fields,source);const fixed=Object.fromEntries(fields.map((f,i)=>[f.name,array[i]]));
+assert.equal(Object.hasOwn(old,'__proto__'),false);assert.equal(Object.hasOwn(fixed,'__proto__'),true);assert.equal(fixed.__proto__,'own proto');assert.equal(fixed.constructor,'own constructor');assert.equal(fixed.amount,source[2]);assert.equal(Object.getPrototypeOf(fixed),Object.prototype);
+const jsonFields=[{name:'__proto__',dataTypeID:114,format:'text'}];const jsonSource=['{"syntheticMarker":"inherited by old parser"}'];
+const oldJson=parse(undefined,jsonFields,jsonSource),arrayJson=parse('array',jsonFields,jsonSource);const fixedJson=Object.fromEntries(jsonFields.map((f,i)=>[f.name,arrayJson[i]]));
+assert.equal(Object.hasOwn(oldJson,'__proto__'),false);assert.equal(oldJson.syntheticMarker,'inherited by old parser');assert.equal(Object.hasOwn(fixedJson,'__proto__'),true);assert.equal(fixedJson.syntheticMarker,undefined);assert.equal(Object.hasOwn(Object.prototype,'syntheticMarker'),false);
+const nullArray=parse('array',fields,[null,'ctor',null]);const nullFixed=Object.fromEntries(fields.map((f,i)=>[f.name,nullArray[i]]));assert.equal(nullFixed.__proto__,null);assert.equal(Object.hasOwn(nullFixed,'__proto__'),true);
+const serialize=rows=>JSON.parse(JSON.stringify(rows,(_key,value)=>typeof value==='bigint'?value.toString():value));
+assert.equal(serialize([fixed])[0].__proto__,'own proto');assert.equal(serialize([{large:9007199254740993n}])[0].large,'9007199254740993');
+function proposed(response){const result=Array.isArray(response)?response.at(-1):response;return {columns:(result?.fields??[]).map(f=>f.name),rows:serialize((result?.rows??[]).map(row=>Object.fromEntries((result?.fields??[]).map((field,index)=>[field.name,row[index]])))),rowCount:result?.rowCount??0,command:result?.command};}
+const final={fields,rows:[array],rowCount:1,command:'SELECT'};assert.equal(proposed([{fields:[],rows:[],rowCount:0,command:'CREATE'},final]).rows[0].__proto__,'own proto');assert.deepEqual(proposed({fields:[],rows:[],rowCount:1,command:'INSERT'}),{columns:[],rows:[],rowCount:1,command:'INSERT'});assert.deepEqual(proposed([]),{columns:[],rows:[],rowCount:0,command:undefined});
+const receipt={scope:'Installed pg Result parser, no database/network/service; proposed mapping only, no checkout changes',installedVersion:require('/workspace/vibecore-ui-terminal-handoff/node_modules/pg/package.json').version,text:{oldOwnProto:Object.hasOwn(old,'__proto__'),oldSerialized:JSON.stringify(old),fixedSerialized:JSON.stringify(fixed)},json:{oldOwnProto:Object.hasOwn(oldJson,'__proto__'),oldInheritedSyntheticMarker:oldJson.syntheticMarker,fixedOwnProto:Object.hasOwn(fixedJson,'__proto__'),globalPrototypeUnaffected:!Object.hasOwn(Object.prototype,'syntheticMarker')},checks:['text special names and precision','JSON value changes old row prototype, not global Object.prototype','NULL value preserved by mapping','serializeDbRows bigint contract','batch selects final statement','INSERT affected count','empty batch'],pass:true};
+fs.writeFileSync('/workspace/ui-pg-row-parser-20261101/receipt.json',JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt));

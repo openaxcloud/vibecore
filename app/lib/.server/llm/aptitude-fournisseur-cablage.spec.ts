@@ -102,7 +102,9 @@ describe('la route de chat applique réellement le critère', () => {
     expect(bloc.length).toBeGreaterThan(50);
 
     const corps = bloc.slice(0, 1400);
-    expect(corps.includes('if (echecDeCle(kind)) {')).toBe(true);
+    expect(corps.includes('if (echecDeCle(kind) && routedTurnHealthScope?.provider === routedTurnProvider) {')).toBe(
+      true,
+    );
     expect(compter('markProviderUnhealthy(')).toBe(1);
   });
 

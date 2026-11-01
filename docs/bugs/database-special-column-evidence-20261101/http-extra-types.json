@@ -1,0 +1,9 @@
+{
+  "realHttp": true,
+  "realPostgres": true,
+  "production": false,
+  "bytea": true,
+  "nestedSpecialJson": true,
+  "booleanPrototype": true,
+  "nullConstructor": true
+}

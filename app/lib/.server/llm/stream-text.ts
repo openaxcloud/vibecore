@@ -20,8 +20,9 @@ import { removeUnsupportedModelSettings } from './model-compat';
 import { createModelOutputObserver, type ModelOutputReceipt } from './model-output-receipt';
 import { AUTO_MODEL, decideRoute, resolveRouteTable, type RouteDecision } from './model-routing';
 import { estimateOutputBudget, clampOutputBudget, type OutputBudgetInput } from './output-budget';
-import { resolveUsableProvider } from './provider-credentials';
+import { isProviderUsable, resolveUsableProvider } from './provider-credentials';
 import { ensureProviderProbed, resolveRuntimeProvider } from './provider-fallback';
+import { createProviderHealthScope, type ProviderHealthScope } from './provider-health-scope';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
@@ -30,6 +31,7 @@ import { resolvePromptRuntimeMode } from '~/lib/common/prompts/runtime-constrain
 import { ANTHROPIC_CACHE_BREAKPOINT, shouldInsertCacheBreakpoint } from '~/lib/modules/llm/cache-breakpoint';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
+import { streamErrorCodeMessages } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
@@ -399,6 +401,9 @@ export async function streamText(props: {
    * stable across a generation (correctness + prompt cache) instead of
    * re-classifying the CONTINUE_PROMPT and risking a mid-stream flip.
    */
+  /** Private server callback, never forwarded to annotations. */
+  onProviderHealthScope?: (scope: ProviderHealthScope | undefined) => void;
+
   onModelDecision?: (decidedModel: string, decidedProvider: string) => void;
 
   /** First nonempty text delta observed for this configured invocation, not proof of completion. */
@@ -431,6 +436,8 @@ export async function streamText(props: {
     motif: string;
   }) => void;
 }) {
+  props.onProviderHealthScope?.(undefined);
+
   const {
     messages,
     env: serverEnv,
@@ -532,10 +539,12 @@ export async function streamText(props: {
 
   const resolved =
     props.explicitRun && strictProvider
-      ? { provider: strictProvider, model: props.explicitRun.permit.model }
+      ? { provider: strictProvider, model: props.explicitRun.permit.model, switchedFrom: undefined }
       : resolveUsableProvider({
           requestedProvider: currentProvider,
           requestedModel: currentModel,
+          ...(props.repliDeCarte === undefined ? {} : { chaine: props.repliDeCarte ? [props.repliDeCarte] : [] }),
+          providerSettings,
           apiKeys,
           serverEnv: effectiveServerEnv as Record<string, string> | undefined,
         });
@@ -553,10 +562,23 @@ export async function streamText(props: {
    * les cinq minutes ; un échec qui ne désigne pas le fournisseur (prompt,
    * abandon client) ne déclenche aucune bascule.
    */
+  if (
+    !props.explicitRun &&
+    !isProviderUsable(
+      resolved.provider,
+      apiKeys,
+      effectiveServerEnv as Record<string, string> | undefined,
+      providerSettings,
+    )
+  ) {
+    throw Object.assign(new Error(streamErrorCodeMessages.AUTH_FAILED), { code: 'AUTH_FAILED', isRetryable: false });
+  }
+
   if (!props.explicitRun) {
     await ensureProviderProbed({
       provider: resolved.provider,
       model: resolved.model,
+      providerSettings,
       apiKeys,
       serverEnv: effectiveServerEnv as Record<string, string> | undefined,
       abortSignal,
@@ -568,6 +590,7 @@ export async function streamText(props: {
     : resolveRuntimeProvider({
         provider: resolved.provider,
         model: resolved.model,
+        providerSettings,
         apiKeys,
         serverEnv: effectiveServerEnv as Record<string, string> | undefined,
         ...(props.repliDeCarte === undefined ? {} : { chaine: props.repliDeCarte ? [props.repliDeCarte] : [] }),
@@ -576,12 +599,14 @@ export async function streamText(props: {
   const provider = runtimeChoice.provider;
   currentModel = runtimeChoice.model;
 
-  if (runtimeChoice.switchedFrom) {
+  const switchedFrom = resolved.switchedFrom ?? runtimeChoice.switchedFrom;
+
+  if (switchedFrom) {
     logger.warn(
       JSON.stringify({
         event: 'provider.fallback',
-        from: runtimeChoice.switchedFrom.provider,
-        reason: runtimeChoice.switchedFrom.reason,
+        from: switchedFrom.provider,
+        reason: switchedFrom.reason,
         to: provider.name,
         model: currentModel,
         source: props.repliDeCarte === undefined ? 'chaine-historique' : 'carte',
@@ -589,9 +614,9 @@ export async function streamText(props: {
     );
 
     props.onBasculeFournisseur?.({
-      depuis: { provider: runtimeChoice.switchedFrom.provider, model: runtimeChoice.switchedFrom.model },
+      depuis: { provider: switchedFrom.provider, model: switchedFrom.model },
       vers: { provider: provider.name, model: currentModel },
-      motif: runtimeChoice.switchedFrom.reason,
+      motif: switchedFrom.reason,
     });
   }
 
@@ -1014,6 +1039,17 @@ ${props.summary}
       removedParams: options ? Object.keys(options).filter((key) => !(key in filteredOptions)) : [],
     }),
   );
+
+  if (!props.explicitRun) {
+    props.onProviderHealthScope?.(
+      createProviderHealthScope({
+        provider,
+        apiKeys,
+        providerSettings,
+        serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+      }),
+    );
+  }
 
   const modelInstance = props.explicitRun
     ? createExplicitRunModel(props.explicitRun, effectiveServerEnv as Record<string, unknown> | undefined)

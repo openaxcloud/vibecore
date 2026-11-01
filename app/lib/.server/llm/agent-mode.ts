@@ -16,7 +16,7 @@ import { generateText } from 'ai';
 
 import { removeUnsupportedModelSettings } from './model-compat';
 import { classifyTask, type OutputBudgetInput } from './output-budget';
-import { resolveUsableProvider } from './provider-credentials';
+import { resolveAuxiliaryProvider } from './provider-credentials';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('agent-mode');
@@ -258,7 +258,12 @@ export async function decideTaskHardness(input: {
   }
 
   try {
-    const resolved = resolveUsableProvider({
+    const resolved = resolveAuxiliaryProvider({
+      routing: {
+        primary: { provider: boltProviderName(input.classifier.provider), model: input.classifier.model },
+        fallback: null,
+      },
+      providerSettings: input.providerSettings as Record<string, import('~/types/model').IProviderSetting> | undefined,
       requestedProvider: boltProviderName(input.classifier.provider),
       requestedModel: input.classifier.model,
       apiKeys: input.apiKeys,

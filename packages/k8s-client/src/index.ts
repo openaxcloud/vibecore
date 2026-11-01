@@ -341,7 +341,7 @@ export interface WorkspaceResourceLimits {
 export interface K8sObject {
   apiVersion: string;
   kind: string;
-  metadata: { name: string; namespace?: string; labels?: Record<string, string>; annotations?: Record<string, string> };
+  metadata: { name: string; namespace?: string; uid?: string; labels?: Record<string, string>; annotations?: Record<string, string> };
   spec?: Record<string, unknown>;
   data?: Record<string, string>;
   stringData?: Record<string, string>;
@@ -359,6 +359,8 @@ export interface K8sObject {
 
 export interface WorkspaceK8sClient {
   apply(object: K8sObject): Promise<K8sObject>;
+  /** Atomic creation only: existing objects must never be patched or replaced. */
+  createResource?(object: K8sObject): Promise<K8sObject>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
   get(kind: string, namespace: string, name: string): Promise<K8sObject | undefined>;
   getPod(namespace: string, name: string): Promise<K8sObject | undefined>;
@@ -1341,6 +1343,22 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
       );
 
       return object;
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+
+  async createResource(object: K8sObject): Promise<K8sObject> {
+    const dir = await mkdtemp(join(tmpdir(), 'vibecore-k8s-create-'));
+    const manifest = join(dir, 'object.json');
+    try {
+      await writeFile(manifest, JSON.stringify(object));
+      const { stdout } = await execFile(
+        this.kubectl,
+        [...this.configArgs, 'create', '-f', manifest, '-o', 'json', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+        { timeout: KUBECTL_TIMEOUT_MS },
+      );
+      return JSON.parse(stdout) as K8sObject;
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

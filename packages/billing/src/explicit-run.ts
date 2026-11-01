@@ -132,11 +132,132 @@ export function buildExplicitRunPermit(input: {
   };
 }
 
+/** A single audited project grant; it never changes prices or historical permits. */
+export interface ExplicitBudgetExtension {
+  projectId: string;
+  approvalId: string;
+  approvedBy: string;
+  approvedAt: string;
+  baselineRunIds: string[];
+  baselineReservedMicros: 15260000;
+  limitMicros: 30520000;
+  maxAdditionalRuns: 1;
+  maxRunReservationMicros: 15260000;
+  maxCalls: 2;
+  routingVersion: number;
+}
+
+export type ExplicitBudgetExtensionInput = Omit<ExplicitBudgetExtension, 'baselineRunIds'> & {
+  expectedRunIds: string[];
+};
+export type ExplicitBudgetExtensionResult =
+  | { ok: true; state: ExplicitRunBudgetState; idempotent: boolean }
+  | { ok: false; code: 'EXPLICIT_RUN_BUDGET_INVALID' | 'EXPLICIT_RUN_EXTENSION_CONFLICT' };
+
+const EXTENSION_KEYS = [
+  'projectId',
+  'approvalId',
+  'approvedBy',
+  'approvedAt',
+  'baselineRunIds',
+  'baselineReservedMicros',
+  'limitMicros',
+  'maxAdditionalRuns',
+  'maxRunReservationMicros',
+  'maxCalls',
+  'routingVersion',
+] as const;
+
+function validExtension(value: unknown, projectId: string): value is ExplicitBudgetExtension {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const grant = value as ExplicitBudgetExtension;
+
+  return (
+    Object.keys(value).length === EXTENSION_KEYS.length &&
+    EXTENSION_KEYS.every((key) => Object.prototype.hasOwnProperty.call(value, key)) &&
+    grant.projectId === projectId &&
+    [grant.projectId, grant.approvalId, grant.approvedBy].every(
+      (field) => typeof field === 'string' && field.trim().length > 0,
+    ) &&
+    typeof grant.approvedAt === 'string' &&
+    Number.isFinite(Date.parse(grant.approvedAt)) &&
+    new Date(grant.approvedAt).toISOString() === grant.approvedAt &&
+    Array.isArray(grant.baselineRunIds) &&
+    grant.baselineRunIds.length > 0 &&
+    grant.baselineRunIds.every((id) => typeof id === 'string' && id.trim().length > 0) &&
+    new Set(grant.baselineRunIds).size === grant.baselineRunIds.length &&
+    grant.baselineReservedMicros === 15260000 &&
+    grant.limitMicros === 30520000 &&
+    grant.maxAdditionalRuns === 1 &&
+    grant.maxRunReservationMicros === 15260000 &&
+    grant.maxCalls === 2 &&
+    Number.isSafeInteger(grant.routingVersion) &&
+    grant.routingVersion > 0
+  );
+}
+
+/** Authentication and active-card validation belong to the caller's transaction. */
+export function applyExplicitBudgetExtension(
+  existing: unknown,
+  input: ExplicitBudgetExtensionInput,
+): ExplicitBudgetExtensionResult {
+  if (
+    !input ||
+    typeof input !== 'object' ||
+    !Array.isArray(input.expectedRunIds) ||
+    Object.keys(input).length !== EXTENSION_KEYS.length ||
+    !EXTENSION_KEYS.every((key) =>
+      Object.prototype.hasOwnProperty.call(input, key === 'baselineRunIds' ? 'expectedRunIds' : key),
+    )
+  ) {
+    return { ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' };
+  }
+
+  const { expectedRunIds, ...fields } = input;
+  const extension = { ...fields, baselineRunIds: [...expectedRunIds] };
+
+  if (!validExtension(extension, input.projectId) || !summarizeExplicitRunBudget(existing, input.projectId)) {
+    return { ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' };
+  }
+
+  const state = existing as ExplicitRunBudgetState | undefined;
+
+  if (!state) {
+    return { ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' };
+  }
+
+  if (state.extension !== undefined) {
+    const same = EXTENSION_KEYS.every(
+      (key) => JSON.stringify(state.extension?.[key]) === JSON.stringify(extension[key]),
+    );
+    return same ? { ok: true, state, idempotent: true } : { ok: false, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' };
+  }
+
+  if (
+    state.reservedMicros !== extension.baselineReservedMicros ||
+    JSON.stringify(state.runIds) !== JSON.stringify(expectedRunIds)
+  ) {
+    return { ok: false, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' };
+  }
+
+  const next = { ...state, extension };
+
+  if (!summarizeExplicitRunBudget(next, input.projectId)) {
+    return { ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' };
+  }
+
+  return { ok: true, state: next, idempotent: false };
+}
+
 export interface ExplicitRunBudgetState {
   version: 1;
   reservedMicros: number;
   runIds: string[];
   permits: ExplicitRunPermit[];
+  extension?: ExplicitBudgetExtension;
 }
 export type ExplicitRunReservation =
   | { ok: true; state: ExplicitRunBudgetState }
@@ -149,18 +270,7 @@ export function reserveExplicitRunBudget(existing: unknown, permit: ExplicitRunP
       ? { version: 1, reservedMicros: 0, runIds: [], permits: [] }
       : (existing as ExplicitRunBudgetState);
 
-  if (
-    !state ||
-    state.version !== 1 ||
-    !Number.isSafeInteger(state.reservedMicros) ||
-    state.reservedMicros < 0 ||
-    !Array.isArray(state.permits) ||
-    !Array.isArray(state.runIds) ||
-    state.runIds.some((id) => typeof id !== 'string') ||
-    !Number.isSafeInteger(permit.reservedBudgetMicros) ||
-    permit.reservedBudgetMicros <= 0 ||
-    permit.budgetLimitMicros !== 20000000
-  ) {
+  if (!permit || typeof permit !== 'object' || !summarizeExplicitRunBudget(state, permit.projectId)) {
     return { ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' };
   }
 
@@ -170,21 +280,36 @@ export function reserveExplicitRunBudget(existing: unknown, permit: ExplicitRunP
 
   const reservedMicros = state.reservedMicros + permit.reservedBudgetMicros;
 
-  if (!Number.isSafeInteger(reservedMicros) || reservedMicros > permit.budgetLimitMicros) {
+  const extension = state.extension;
+  const limitMicros = extension?.limitMicros ?? 20000000;
+
+  if (
+    !Number.isSafeInteger(reservedMicros) ||
+    reservedMicros > limitMicros ||
+    (extension && state.runIds.length >= extension.baselineRunIds.length + extension.maxAdditionalRuns)
+  ) {
     return { ok: false, code: 'EXPLICIT_RUN_BUDGET_EXCEEDED' };
   }
 
-  return {
-    ok: true,
-    state: { version: 1, reservedMicros, runIds: [...state.runIds, permit.runId], permits: [...state.permits, permit] },
+  const next: ExplicitRunBudgetState = {
+    ...state,
+    reservedMicros,
+    runIds: [...state.runIds, permit.runId],
+    permits: [...state.permits, permit],
   };
+
+  if (!summarizeExplicitRunBudget(next, permit.projectId)) {
+    return { ok: false, code: 'EXPLICIT_RUN_BUDGET_INVALID' };
+  }
+
+  return { ok: true, state: next };
 }
 
 /** Reservations only: this is neither historical spend nor the total recipe budget. */
 export interface ExplicitRunBudgetSummary {
   scope: 'explicit-runs-only';
   currency: 'USD';
-  limitMicros: 20000000;
+  limitMicros: 20000000 | 30520000;
   reservedMicros: number;
   remainingMicros: number;
   runCount: number;
@@ -201,12 +326,22 @@ export function summarizeExplicitRunBudget(existing: unknown, projectId: string)
   }
 
   const ledger = state as ExplicitRunBudgetState;
+  const extension = ledger.extension;
+
+  if (
+    (extension !== undefined || Object.prototype.hasOwnProperty.call(ledger, 'extension')) &&
+    !validExtension(extension, projectId)
+  ) {
+    return undefined;
+  }
+
+  const limitMicros = extension?.limitMicros ?? 20000000;
 
   if (
     ledger.version !== 1 ||
     !Number.isSafeInteger(ledger.reservedMicros) ||
     ledger.reservedMicros < 0 ||
-    ledger.reservedMicros > 20000000 ||
+    ledger.reservedMicros > limitMicros ||
     !Array.isArray(ledger.runIds) ||
     !Array.isArray(ledger.permits) ||
     ledger.runIds.length !== ledger.permits.length ||
@@ -220,14 +355,14 @@ export function summarizeExplicitRunBudget(existing: unknown, projectId: string)
 
   let sum = 0;
 
-  for (const permit of ledger.permits) {
+  for (const [index, permit] of ledger.permits.entries()) {
     if (
       !permit ||
       typeof permit !== 'object' ||
       permit.kind !== 'bounded-explicit-v1' ||
       permit.projectId !== projectId ||
       typeof permit.runId !== 'string' ||
-      !ledger.runIds.includes(permit.runId) ||
+      ledger.runIds[index] !== permit.runId ||
       seen.has(permit.runId) ||
       permit.provider !== 'openai' ||
       permit.model !== 'gpt-5.6-luna' ||
@@ -280,12 +415,34 @@ export function summarizeExplicitRunBudget(existing: unknown, projectId: string)
     return undefined;
   }
 
+  if (extension) {
+    const baselineCount = extension.baselineRunIds.length;
+    const baselinePermits = ledger.permits.slice(0, baselineCount);
+    const added = ledger.permits.slice(baselineCount);
+
+    if (
+      JSON.stringify(ledger.runIds.slice(0, baselineCount)) !== JSON.stringify(extension.baselineRunIds) ||
+      baselinePermits.reduce((total, permit) => total + permit.reservedBudgetMicros, 0) !==
+        extension.baselineReservedMicros ||
+      baselinePermits.some((permit) => permit.routingVersion !== extension.routingVersion) ||
+      added.length > extension.maxAdditionalRuns ||
+      added.some(
+        (permit) =>
+          permit.reservedBudgetMicros > extension.maxRunReservationMicros ||
+          permit.maxCalls > extension.maxCalls ||
+          permit.routingVersion !== extension.routingVersion,
+      )
+    ) {
+      return undefined;
+    }
+  }
+
   return {
     scope: 'explicit-runs-only',
     currency: 'USD',
-    limitMicros: 20000000,
+    limitMicros,
     reservedMicros: sum,
-    remainingMicros: 20000000 - sum,
+    remainingMicros: limitMicros - sum,
     runCount: seen.size,
     historicalCostsIncluded: false,
     totalRecipeRemainingMicros: null,

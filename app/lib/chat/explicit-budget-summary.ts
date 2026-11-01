@@ -5,9 +5,9 @@ export const explicitBudgetSummarySchema = z
   .object({
     scope: z.literal('explicit-runs-only'),
     currency: z.literal('USD'),
-    limitMicros: z.literal(20000000),
-    reservedMicros: z.number().int().min(0).max(20000000),
-    remainingMicros: z.number().int().min(0).max(20000000),
+    limitMicros: z.union([z.literal(20000000), z.literal(30520000)]),
+    reservedMicros: z.number().int().min(0).max(30520000),
+    remainingMicros: z.number().int().min(0).max(30520000),
     runCount: z.number().int().nonnegative(),
     historicalCostsIncluded: z.literal(false),
     totalRecipeRemainingMicros: z.null(),

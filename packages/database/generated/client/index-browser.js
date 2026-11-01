@@ -1399,6 +1399,22 @@ exports.Prisma.DatabaseInstanceScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.DatabaseBackupProvenanceScalarFieldEnum = {
+  id: 'id',
+  nonce: 'nonce',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  instanceId: 'instanceId',
+  environment: 'environment',
+  bindingVersion: 'bindingVersion',
+  snapshotId: 'snapshotId',
+  sourceName: 'sourceName',
+  sourceUid: 'sourceUid',
+  backupName: 'backupName',
+  backupUid: 'backupUid',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.DatabaseSnapshotScalarFieldEnum = {
   id: 'id',
   databaseInstanceId: 'databaseInstanceId',
@@ -2049,6 +2065,7 @@ exports.Prisma.ModelName = {
   ProviderConfig: 'ProviderConfig',
   ModelConfig: 'ModelConfig',
   DatabaseInstance: 'DatabaseInstance',
+  DatabaseBackupProvenance: 'DatabaseBackupProvenance',
   DatabaseSnapshot: 'DatabaseSnapshot',
   DatabaseRestore: 'DatabaseRestore',
   DatabaseRestoreExecution: 'DatabaseRestoreExecution',

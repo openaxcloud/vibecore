@@ -1,0 +1,1150 @@
+{
+  "metadata-before": {
+    "numTotalTests": 35,
+    "numPassedTests": 19,
+    "numFailedTests": 16,
+    "numPendingTests": 0,
+    "files": [
+      {
+        "name": "services/api/src/tests/database-backup-status.spec.ts",
+        "tests": [
+          {
+            "name": "CNPG backup status identity guard accepts an exact completed Backup identity, without requiring an owner",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid kind",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid apiVersion",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid name",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid namespace",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid project",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid snapshot",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid cluster",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid uid",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid deleting",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid error",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses colliding truncated names before reading even relabelled resources",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not accept a missing snapshot label as legacy proof",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not confirm phase running",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not confirm phase failed",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not confirm phase unknown",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-restore-source.spec.ts",
+        "tests": [
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata reads only the exact production source and backup and never claims archive or WAL integrity",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid project before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid organization before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid environment before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid uid before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid deleting before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid cluster before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid phase before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid backupId before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid time before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata redacts transport errors and refuses absent sources",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects a colliding truncated backup name even after its completed resource is relabelled",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects ambiguous environment names before reading resources",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses legacy backups without full snapshot identity rather than guessing from their name",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects a stale Cluster owner UID and reports absent generation linkage honestly",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: wrong-group",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: missing-group",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: duplicate",
+            "status": "failed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: malformed",
+            "status": "failed"
+          }
+        ]
+      }
+    ]
+  },
+  "metadata-after": {
+    "numTotalTests": 100,
+    "numPassedTests": 100,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "files": [
+      {
+        "name": "services/api/src/db-migration-execution.spec.ts",
+        "tests": [
+          {
+            "name": "P0-V3-11 \u2014 chemin nominal ex\u00e9cute PLANNED\u2192\u2026\u2192COMMITTED, v\u00e9rifie le backup puis applique",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 chemin nominal attend l'aboutissement du backup au lieu de se fier \u00e0 la soumission",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 N\u00c9GATIF : sans backup v\u00e9rifi\u00e9, refus REFUSE d'appliquer quand le backup n'aboutit jamais (timeout)",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 N\u00c9GATIF : sans backup v\u00e9rifi\u00e9, refus REFUSE quand le backup part en \u00e9chec (phase failed)",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 N\u00c9GATIF : sans backup v\u00e9rifi\u00e9, refus REFUSE quand le backup ne peut m\u00eame pas \u00eatre lanc\u00e9",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 N\u00c9GATIF : sans backup v\u00e9rifi\u00e9, refus le provisionneur INERTE ne vaut jamais un backup (garde anti-r\u00e9gression)",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 N\u00c9GATIF : concurrence REFUSE une 2e migration active sur le m\u00eame (projet, environnement)",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 N\u00c9GATIF : concurrence un autre ENVIRONNEMENT n est pas bloqu\u00e9 par le verrou de production",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 idempotence rejouer la m\u00eame cl\u00e9 ne r\u00e9-applique RIEN",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 idempotence un lot MODIFI\u00c9 produit une empreinte diff\u00e9rente",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 \u00e9chec pendant l application \u00e9chec applicatif \u2192 FAILED_SAFE, verrou lib\u00e9r\u00e9, base annonc\u00e9e intacte",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 \u00e9chec pendant l application COMMIT non confirm\u00e9 \u2192 MANUAL_RECOVERY, jamais un FAILED_SAFE pr\u00e9sum\u00e9",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 moteur REFUSE un moteur sans DDL transactionnel plut\u00f4t que de pr\u00e9tendre le supporter",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 briques isLockConflict reconna\u00eet Prisma P2002 et Postgres 23505",
+            "status": "passed"
+          },
+          {
+            "name": "P0-V3-11 \u2014 briques waitForVerifiedBackup ne conclut jamais au succ\u00e8s sur une phase inconnue",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-backup-status.spec.ts",
+        "tests": [
+          {
+            "name": "CNPG backup status identity guard accepts an exact completed Backup identity, without requiring an owner",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid kind",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid apiVersion",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid name",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid namespace",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid project",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid snapshot",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid cluster",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid uid",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid deleting",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses a completed backup with invalid error",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard refuses colliding truncated names before reading even relabelled resources",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not accept a missing snapshot label as legacy proof",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not confirm phase running",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not confirm phase failed",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG backup status identity guard does not confirm phase unknown",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-provisioner.spec.ts",
+        "tests": [
+          {
+            "name": "tiered routing (v3) routes free\u2192shared and paid\u2192isolated",
+            "status": "passed"
+          },
+          {
+            "name": "tiered routing (v3) shared tier: Database CRD + isolation SQL with cuid-safe identifiers",
+            "status": "passed"
+          },
+          {
+            "name": "tiered routing (v3) shared tier: one transaction-mode Pooler per shared cluster",
+            "status": "passed"
+          },
+          {
+            "name": "tiered routing (v3) isolated tier: hibernation annotation + instances honoured",
+            "status": "passed"
+          },
+          {
+            "name": "provisioner dispatch + DATABASE_URL resolution isolated tier: applies a dedicated Cluster and reads the -app uri once present",
+            "status": "passed"
+          },
+          {
+            "name": "provisioner dispatch + DATABASE_URL resolution shared tier: applies a Pooler + Database CRD (no dedicated Cluster)",
+            "status": "passed"
+          },
+          {
+            "name": "provisioner dispatch + DATABASE_URL resolution shared tier: n_applique RIEN quand le locataire ne peut pas etre cree",
+            "status": "passed"
+          },
+          {
+            "name": "PgTenantSqlExecutor SQL sequence grants the tenant role to the admin BEFORE creating the owned database (PG16 SET ROLE rule)",
+            "status": "passed"
+          },
+          {
+            "name": "PgTenantSqlExecutor SQL sequence does not create the database (nor re-grant) when it already exists \u2014 idempotent",
+            "status": "passed"
+          },
+          {
+            "name": "shared-tier tenant provisioning (admin-SQL slice) deterministic password = HMAC(secret, projectId), stable + embedded in the URI",
+            "status": "passed"
+          },
+          {
+            "name": "shared-tier tenant provisioning (admin-SQL slice) provisionInstance(shared) creates the tenant via the SQL executor with cuid-safe ids",
+            "status": "passed"
+          },
+          {
+            "name": "shared-tier tenant provisioning (admin-SQL slice) getConnectionUri(shared) returns the pooled tenant DATABASE_URL",
+            "status": "passed"
+          },
+          {
+            "name": "shared-tier tenant provisioning (admin-SQL slice) degrades to inert (no SQL, undefined URI) when the tenant secret is unset",
+            "status": "passed"
+          },
+          {
+            "name": "shared-tier tenant provisioning (admin-SQL slice) degrades to undefined when the shared cluster admin secret is missing",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG manifest builders builds a Cluster with WAL\u2192GCS backup + retention",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG manifest builders omits serviceAccountTemplate without a backup GSA, adds the WI annotation with one",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG manifest builders builds a restore Cluster targeting an exact timestamp (PITR)",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG manifest builders builds a daily scheduled backup referencing the cluster",
+            "status": "passed"
+          },
+          {
+            "name": "CnpgProvisioner applies Cluster + ScheduledBackup on provision",
+            "status": "passed"
+          },
+          {
+            "name": "CnpgProvisioner reports restore readiness from CNPG cluster status",
+            "status": "passed"
+          },
+          {
+            "name": "CnpgProvisioner deletes the cluster + scheduled backup on teardown",
+            "status": "passed"
+          },
+          {
+            "name": "resolveDatabaseProvisioner (dormancy) is Noop when the flag is off",
+            "status": "passed"
+          },
+          {
+            "name": "resolveDatabaseProvisioner (dormancy) is Noop when enabled but no bucket/port is configured",
+            "status": "passed"
+          },
+          {
+            "name": "resolveDatabaseProvisioner (dormancy) is CNPG only when fully enabled + configured",
+            "status": "passed"
+          },
+          {
+            "name": "resolveDatabaseProvisioner (dormancy) Noop provisioner never reports applied/ready",
+            "status": "passed"
+          },
+          {
+            "name": "P2d dev/prod split (environment-scoped naming) development keeps the original un-suffixed names (backward compatible)",
+            "status": "passed"
+          },
+          {
+            "name": "P2d dev/prod split (environment-scoped naming) production suffixes the cluster (-prod), db (_prod) and role (_prod)",
+            "status": "passed"
+          },
+          {
+            "name": "P2d dev/prod split (environment-scoped naming) derives a distinct production tenant password",
+            "status": "passed"
+          },
+          {
+            "name": "P2d dev/prod split (environment-scoped naming) provisionInstance(production, shared) provisions the prod-suffixed tenant",
+            "status": "passed"
+          },
+          {
+            "name": "P2d dev/prod split (environment-scoped naming) isolated production cluster gets the -prod name",
+            "status": "passed"
+          },
+          {
+            "name": "P2d isolated tier (paid) \u2014 dedicated per-project dev + prod clusters provisionInstance(isolated, production) applies a dedicated -prod Cluster + ScheduledBackup",
+            "status": "passed"
+          },
+          {
+            "name": "P2d isolated tier (paid) \u2014 dedicated per-project dev + prod clusters dev and prod isolated clusters are distinct dedicated clusters",
+            "status": "passed"
+          },
+          {
+            "name": "P2d isolated tier (paid) \u2014 dedicated per-project dev + prod clusters getConnectionUri(isolated, production) reads the -prod cluster app secret",
+            "status": "passed"
+          },
+          {
+            "name": "P2d isolated tier (paid) \u2014 dedicated per-project dev + prod clusters teardown removes BOTH dev and prod isolated clusters",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-restore-integrity.spec.ts",
+        "tests": [
+          {
+            "name": "database restore integrity databases: rejects the old provisioning response after a restored binding became current",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity database: rejects the old provisioning response after a restored binding became current",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity database/provision: rejects the old provisioning response after a restored binding became current",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity labels historical completed rows as unverified without rewriting them",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity exposes unavailable application restore separately from the paid entitlement",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity development: requests a manual backup from the selected instance",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity development: transports the selected backup source to CNPG",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity restore/development: refuses before creating a request or resource without application cutover",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity restores/development: refuses before creating a request or resource without application cutover",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity production: requests a manual backup from the selected instance",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity production: transports the selected backup source to CNPG",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity restore/production: refuses before creating a request or resource without application cutover",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity restores/production: refuses before creating a request or resource without application cutover",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity ready=false: never completes without application cutover or changes connection secrets",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity ready=true: never completes without application cutover or changes connection secrets",
+            "status": "passed"
+          },
+          {
+            "name": "database restore integrity does not report a transition when persisting the failure failed",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-restore-source.spec.ts",
+        "tests": [
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata reads only the exact production source and backup and never claims archive or WAL integrity",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid project before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid organization before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid environment before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid uid before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid deleting before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid cluster before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid phase before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid backupId before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects invalid time before any target operation",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata redacts transport errors and refuses absent sources",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects a colliding truncated backup name even after its completed resource is relabelled",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects ambiguous environment names before reading resources",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses legacy backups without full snapshot identity rather than guessing from their name",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata rejects a stale Cluster owner UID and reports absent generation linkage honestly",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: wrong-group",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: missing-group",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: duplicate",
+            "status": "passed"
+          },
+          {
+            "name": "CNPG restore source preflight \u2014 controlled metadata refuses ambiguous or invalid owner provenance: malformed",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "postgres-sequential": {
+    "numTotalTests": 77,
+    "numPassedTests": 77,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "files": [
+      {
+        "name": "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts",
+        "tests": [
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'database'/'development'/'ACTIVE' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'database'/'development'/'recent' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'development'/'ACTIVE' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'development'/'recent' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'development'/'stale' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'development'/'absent' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'database'/'production'/'ACTIVE' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'database'/'production'/'recent' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'production'/'ACTIVE' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'production'/'recent' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'production'/'stale' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'provision'/'production'/'absent' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'databases'/'development'/'ACTIVE' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP 'databases'/'development'/'recent' refuses source authorization after a transfer before the real instance read",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP database/development refuses the fresh destination fallback after a source provider response returns late",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP database/production refuses the fresh destination fallback after a source provider response returns late",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP final-scope/'development'/'snapshots' refuses a transfer during the final metadata projection",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP final-scope/'development'/'evidence' refuses a transfer during the final metadata projection",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP final-scope/'production'/'snapshots' refuses a transfer during the final metadata projection",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP final-scope/'production'/'evidence' refuses a transfer during the final metadata projection",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP scope-message/en returns an actionable localized refusal rather than a raw error code",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL HTTP scope-message/fr returns an actionable localized refusal rather than a raw error code",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL refuses stale initial development creation under A after transfer, then accepts an authorized fresh B request",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL refuses stale initial production creation under A after transfer, then accepts an authorized fresh B request",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL refuses initial creation once the project is deleted",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL refuses initial creation once the project is deletion-pending",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL reconciles fresh development ownership after transfer but rejects the old source response",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL reconciles fresh production ownership after transfer but rejects the old source response",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL commits both environment owners atomically with the project owner",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL rolls back both instance owners when the real project write is followed by an error",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL still refuses transfer while a restore admission holds the instance",
+            "status": "passed"
+          },
+          {
+            "name": "database provisioning and project transfer \u2014 dedicated PostgreSQL still refuses transfer of a restored target without lifecycle support",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-restore-consumer.spec.ts",
+        "tests": [
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore denies new requests immediately and drains a real blocked query before acknowledging closure",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore verifies data through the replacement pool, keeps admission closed, and releases only the exact binding",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore does not let an older queued release reopen admission after a newer pause request",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore fences a live participant only after all real queries drain, then requires revalidation",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore invalidates a queued release and a queued verification before adopting the next attempt",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore invalidates an in-flight verification and waits for its replacement pool to close",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore requires exact operation/previous owner and refuses adoption after permanent closure",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore fails closed for hash without releasing the application",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore fails closed for identity without releasing the application",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore fails closed for version without releasing the application",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore fails closed for connection without releasing the application",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore fails closed for write without releasing the application",
+            "status": "passed"
+          },
+          {
+            "name": "participating restore consumer \u2014 real dedicated PostgreSQL, no physical restore uses the consumer through the real QA child IPC and HTTP, including ordinary reads after release",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-restore-distributed.spec.ts",
+        "tests": [
+          {
+            "name": "restore handoff across real local PostgreSQL participants requires both drains, rejects old commands, and explicitly reconnects both consumers before serving data",
+            "status": "passed"
+          },
+          {
+            "name": "restore handoff across real local PostgreSQL participants does not turn a dead process or a missing acknowledgement into a fence receipt",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-restore-repository.spec.ts",
+        "tests": [
+          {
+            "name": "restore repository (dedicated local PostgreSQL) development: refuses a fresh transferred instance under the previously authorized organization",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) restore/development: refuses HTTP admission after a transfer commits between authorization and instance read",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) restores/development: refuses HTTP admission after a transfer commits between authorization and instance read",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) production: refuses a fresh transferred instance under the previously authorized organization",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) restore/production: refuses HTTP admission after a transfer commits between authorization and instance read",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) restores/production: refuses HTTP admission after a transfer commits between authorization and instance read",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) admits exactly one concurrent operation for the same instance",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) reports a busy project without inventing a restore, then safely admits a retry after release",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) keeps development and production admission/binding scopes separate",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) locks both managed-secret and homonymous env-var writes while allowing unrelated configuration",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) refuses admission when a homonymous environment variable makes the binding ambiguous",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) refuses a legacy secret row without an encrypted connection before creating a restore",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) holds project transfer/deletion until an early failure explicitly releases the journal",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) keeps the durable target handle and deletion fence after an uncertain preparation failure",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) atomically activates initial provisioning once and rejects a later competing result",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) preserves an explicit secret change made while the provisioner response was pending",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) changes binding, encrypted secret and phase atomically, rejecting stale ownership",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) rejects a binding changed before cutover without a partial reference write",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) continues cutover after independent ciphertext rotation but rejects a changed plaintext binding",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) continues completion after independent ciphertext rotation but rejects a changed plaintext binding",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) rotates the real restore corpus with a SQL compare-and-swap conflict against concurrent cutover",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) rejects old checkpoints and failures after durable ownership changes",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) blocks cutover after two takeovers until every durable predecessor has been excluded",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) serializes concurrent acknowledgements of A and B by owner C without losing either acknowledgement",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) preserves ownership and exclusion debt when fail(A) races resume(A to B), fail queued first",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) preserves ownership and exclusion debt when fail(A) races resume(A to B), resume queued first",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) retains all debt and the original resume phase across repeated fence failures",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) cannot complete an applied binding while a recovery predecessor remains unconfirmed",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) prevents a legacy writer from completing or failing a coordinated restore",
+            "status": "passed"
+          },
+          {
+            "name": "restore repository (dedicated local PostgreSQL) keeps completion unverified until readback and release receipts are durable",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "multiprocess-reviewed": {
+    "numTotalTests": 2,
+    "numPassedTests": 2,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "files": [
+      {
+        "name": "services/api/src/tests/database-restore-distributed.spec.ts",
+        "tests": [
+          {
+            "name": "restore handoff across real local PostgreSQL participants requires both drains, rejects old commands, and explicitly reconnects both consumers before serving data",
+            "status": "passed"
+          },
+          {
+            "name": "restore handoff across real local PostgreSQL participants does not turn a dead process or a missing acknowledgement into a fence receipt",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "production-gates": {
+    "numTotalTests": 43,
+    "numPassedTests": 43,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "files": [
+      {
+        "name": "services/api/src/database-restore-executor.spec.ts",
+        "tests": [
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) refuses an unauthorized organization before consulting a driver (foreign-organization)",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) refuses an unauthorized organization before consulting a driver (undefined)",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) requires validated archive, stable target, cutover, new application readback and release in order",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) refuses unavailable capabilities before creating any row",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) refuses a non-active instance even when the driver declares availability",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) refuses a snapshot belonging to another instance before admission",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) rejects invalid manifest archive before target allocation",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) rejects invalid instance archive before target allocation",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) rejects invalid environment archive before target allocation",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) rejects invalid timestamp archive before target allocation",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) rejects invalid sourceSystem archive before target allocation",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) does not treat a wrong target identity as a usable prepared target",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) keeps a target preparation with an uncertain outcome reserved for fenced recovery",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) rejects a physical target from a different PostgreSQL source system before quiescence",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) keeps the job incomplete until application release confirms the verified binding",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) holds an uncertain post-cutover failure and resumes only after fencing, using a new coordinator",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) rejects the old continuation after durable takeover, before any second target or cutover",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) quarantines a mismatching readback receipt",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) quarantines a mismatching newConnection receipt",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) quarantines a mismatching closedPool receipt",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) quarantines a mismatching binding receipt",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) quarantines a mismatching system receipt",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) does not steal a claimed job during automatic maintenance",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) does not invoke any driver twice for concurrent execute calls",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) keeps a failed fence held and does not run the resumed phase",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) excludes the original attempt after a crash between durable takeover and fencing",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) retries an unconfirmed original exclusion before a second recovery can make effects",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) retains exclusion debt when the fence succeeded but its durable acknowledgement was lost",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) does not let a superseded recovery acknowledge debt or run a second preparation",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) preserves a committed exclusion when its acknowledgement response is lost",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) keeps debt and blocks effects when the receipt identifies another excluded attempt",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) does not release the lock or alter the source secret after an uncertain quiescence",
+            "status": "passed"
+          },
+          {
+            "name": "durable restore coordinator (explicit driver fixtures) never persists a driver message disguised as a structured error code",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "name": "services/api/src/tests/database-restore-routes.spec.ts",
+        "tests": [
+          {
+            "name": "managed restore routes use the coordinated journal restore: reports admission contention without starting a restore and accepts a subsequent retry",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal restores: reports admission contention without starting a restore and accepts a subsequent retry",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal restore/development: admits the authorized scope and returns pending, never a fake completed result",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal restores/development: admits the authorized scope and returns pending, never a fake completed result",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal restore/production: admits the authorized scope and returns pending, never a fake completed result",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal restores/production: admits the authorized scope and returns pending, never a fake completed result",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal refuses unavailable capability before admission and keeps recovery coverage unknown",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal checks the selected snapshot even when a timestamp is also supplied",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal does not manufacture continuous recovery coverage from an available per-request driver",
+            "status": "passed"
+          },
+          {
+            "name": "managed restore routes use the coordinated journal refuses manual and automatic legacy backups after cutover, without creating a recovery point",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "sourceSha256": {
+    "services/api/src/database-restore-consumer.ts": "4fd23b3b9c0ff6ad7acafc5770e637f31d7a4e4bf101a80cd55f1324154018d4",
+    "services/api/src/database-restore-source.ts": "02021f80f96e142586ece7643f5dc811955af811af46c9700016a28d86230131",
+    "services/api/src/database-provisioner.ts": "d46f05882d1cfbd44c0c70c8cb7bd26ccbc5027022a71f2020f4b801afebc5da",
+    "services/api/src/tests/database-restore-distributed.spec.ts": "d2be3778a887a135e14a2cfcca75994fae5ae7f64f201c11fc5cf0efa9c8253d",
+    "services/api/src/tests/restore-fence-child.fixture.mts": "7296857257fa17d5475ff04ed5138ff919c42c8ba373cc69f6b19a5bc0cd1690",
+    "scripts/qa/database-restore-ci.ts": "02acd5e572e6855079f0c4503945a55fcd4c01ee16d6ebae28c40a4d6b8c9fa4"
+  },
+  "baseCommit": "ddac2968afc72d223473a902642a51d8c5704dcf",
+  "scope": "Local synthetic fixture; no production/cloud restore or distributed-completeness attestation."
+}

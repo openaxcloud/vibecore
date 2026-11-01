@@ -5,11 +5,17 @@ import {
   type TranscriptTerminal,
 } from './transcript-terminal.js';
 import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
+import { PrismaDatabaseBackupProvenanceRepository } from './database-backup-provenance.js';
+import { matchesExplicitExtensionPolicy } from './explicit-budget-extension-policy.js';
+import { extensionPermit, stableExtensionApproval, explicitBudgetSnapshotDigest } from './explicit-budget-extension.js';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import {
   reserveExplicitRunBudget,
+  applyExplicitBudgetExtension,
+  type ExplicitBudgetExtensionInput,
+  type ExplicitBudgetExtensionResult,
   summarizeExplicitRunBudget,
   type ExplicitRunPermit,
   type ExplicitRunReservation,
@@ -278,6 +284,8 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
 }
 
 export class PrismaApiStore implements ApiStore {
+  readonly backupProvenance: PrismaDatabaseBackupProvenanceRepository;
+
   constructor(
     readonly prisma: DatabaseClient = createDatabaseClient(),
 
@@ -287,7 +295,9 @@ export class PrismaApiStore implements ApiStore {
      * Node resolver in production.
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
-  ) {}
+  ) {
+    this.backupProvenance = new PrismaDatabaseBackupProvenanceRepository(prisma);
+  }
 
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.
@@ -4228,6 +4238,87 @@ export class PrismaApiStore implements ApiStore {
     return summarizeExplicitRunBudget(row ? row.value : undefined, projectId);
   }
 
+  async getExplicitRunBudgetState(projectId: string): Promise<unknown> {
+    return (
+      await this.prisma.systemSetting.findUnique({
+        where: { key: `agent.explicit-run.v1:${projectId}` },
+        select: { value: true },
+      })
+    )?.value;
+  }
+
+  async extendExplicitRunBudget(
+    input: ExplicitBudgetExtensionInput & {
+      expectedOrganizationSlug: string;
+      expectedLedgerSha256: string;
+      ipAddress?: string;
+    },
+  ): Promise<ExplicitBudgetExtensionResult | { ok: false; code: 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE' }> {
+    const { expectedOrganizationSlug, expectedLedgerSha256, ipAddress, ...approval } = input;
+    if (!matchesExplicitExtensionPolicy(input)) return { ok: false, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' };
+    const key = `agent.explicit-run.v1:${input.projectId}`;
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `system-setting:${key}`);
+      // Rotation updates the active row, so it cannot change under this transaction's shared lock.
+      await tx.$queryRaw`SELECT id FROM "AgentRoutingCard" WHERE active = true FOR SHARE`;
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${input.projectId} FOR SHARE`;
+      await tx.$queryRaw`SELECT id FROM "ProviderConfig" WHERE provider = 'OpenAI' FOR SHARE`;
+      const project = await tx.project.findUnique({ where: { id: input.projectId } });
+      if (!project) return { ok: false as const, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' as const };
+      await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${project.organizationId} FOR SHARE`;
+      const organization = await tx.organization.findUnique({ where: { id: project.organizationId } });
+      if (organization?.slug !== expectedOrganizationSlug)
+        return { ok: false as const, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' as const };
+      await tx.$queryRaw`SELECT id FROM "Subscription" WHERE "organizationId" = ${project.organizationId} FOR SHARE`;
+      const card = await tx.agentRoutingCard.findFirst({ where: { active: true }, orderBy: { version: 'desc' } });
+      const subscription = await tx.subscription.findFirst({
+        where: { organizationId: project.organizationId },
+        include: { plan: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      const provider = await tx.providerConfig.findUnique({
+        where: { provider: 'OpenAI' },
+        select: { enabled: true, baseUrl: true },
+      });
+      const permit = extensionPermit({
+        projectId: input.projectId,
+        card: card ?? undefined,
+        provider: provider ?? undefined,
+        subscription: subscription ? { status: subscription.status, planKey: subscription.plan.key } : undefined,
+        routingVersion: input.routingVersion,
+      });
+      if (!permit) return { ok: false as const, code: 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE' as const };
+      const row = await tx.systemSetting.findUnique({ where: { key } });
+      const result = applyExplicitBudgetExtension(row?.value, stableExtensionApproval(row?.value, approval));
+      if (result.ok && explicitBudgetSnapshotDigest(row?.value) !== expectedLedgerSha256)
+        return { ok: false as const, code: 'EXPLICIT_RUN_EXTENSION_CONFLICT' as const };
+      if (result.ok && !result.idempotent) {
+        await tx.systemSetting.update({
+          where: { key },
+          data: { value: result.state as unknown as Prisma.InputJsonValue },
+        });
+        await tx.auditLog.create({
+          data: {
+            organizationId: project.organizationId,
+            actorUserId: input.approvedBy,
+            action: 'admin.project.explicit_budget.extend',
+            resourceType: 'project',
+            resourceId: input.projectId,
+            ipAddress,
+            metadata: {
+              approvalId: input.approvalId,
+              baselineReservedMicros: input.baselineReservedMicros,
+              limitMicros: input.limitMicros,
+              routingVersion: input.routingVersion,
+              expectedLedgerSha256,
+            },
+          },
+        });
+      }
+      return result;
+    });
+  }
+
   async hasExplicitRunBudget(projectId: string): Promise<boolean> {
     const row = await this.prisma.systemSetting.findUnique({
       where: { key: `agent.explicit-run.v1:${projectId}` },
@@ -4265,6 +4356,25 @@ export class PrismaApiStore implements ApiStore {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `system-setting:${key}`);
 
       const existing = await tx.systemSetting.findUnique({ where: { key } });
+      const extension = (existing?.value as { extension?: { approvalId?: string } } | undefined)?.extension;
+      if (extension) {
+        await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${permit.projectId} FOR SHARE`;
+        const project = await tx.project.findUnique({ where: { id: permit.projectId } });
+        if (!project) return { ok: false as const, code: 'EXPLICIT_RUN_BUDGET_INVALID' as const };
+        await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${project.organizationId} FOR SHARE`;
+        const org = await tx.organization.findUnique({ where: { id: project.organizationId } });
+        await tx.$queryRaw`SELECT id FROM "AgentRoutingCard" WHERE active = true FOR SHARE`;
+        const card = await tx.agentRoutingCard.findFirst({ where: { active: true }, orderBy: { version: 'desc' } });
+        if (
+          !matchesExplicitExtensionPolicy({
+            projectId: permit.projectId,
+            expectedOrganizationSlug: org?.slug ?? '',
+            approvalId: extension.approvalId ?? '',
+          }) ||
+          card?.version !== permit.routingVersion
+        )
+          return { ok: false as const, code: 'EXPLICIT_RUN_BUDGET_INVALID' as const };
+      }
       const result = reserveExplicitRunBudget(existing ? existing.value : undefined, permit);
 
       if (result.ok) {

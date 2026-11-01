@@ -3,12 +3,15 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type {
   ExplicitRunBudgetSummary,
+  ExplicitBudgetExtensionInput,
+  ExplicitBudgetExtensionResult,
   ExplicitRunPermit,
   ExplicitRunReservation,
   PlanKey,
   QuotaKey,
 } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { DatabaseBackupProvenanceRepository } from './database-backup-provenance.js';
 import { appPublicEnglish } from './app-public-copy.js';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
@@ -1369,6 +1372,9 @@ export function validateCreditPackReceipt(value: unknown, input: StripeCreditPac
 }
 
 export interface ApiStore {
+  /** Durable backup ownership metadata; absence must not authorize a provider backup. */
+  readonly backupProvenance?: DatabaseBackupProvenanceRepository;
+
   /**
    * Lightweight liveness probe that issues a trivial query against the backing
    * database. Resolves when the database is reachable, rejects otherwise.
@@ -2451,6 +2457,14 @@ export interface ApiStore {
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
   getExplicitRunBudgetSummary(projectId: string): Promise<ExplicitRunBudgetSummary | undefined>;
+  getExplicitRunBudgetState(projectId: string): Promise<unknown>;
+  extendExplicitRunBudget(
+    input: ExplicitBudgetExtensionInput & {
+      expectedOrganizationSlug: string;
+      expectedLedgerSha256: string;
+      ipAddress?: string;
+    },
+  ): Promise<ExplicitBudgetExtensionResult | { ok: false; code: 'EXPLICIT_RUN_EXTENSION_UNAVAILABLE' }>;
   hasExplicitRunBudget(projectId: string): Promise<boolean>;
   getExplicitRunProviderConfiguration(): Promise<{ enabled: boolean; baseUrl?: string | null } | undefined>;
   getExplicitRunPermit(projectId: string, runId: string): Promise<ExplicitRunPermit | undefined>;

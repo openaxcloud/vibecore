@@ -618,6 +618,12 @@ export type ModelConfig = $Result.DefaultSelection<Prisma.$ModelConfigPayload>
  */
 export type DatabaseInstance = $Result.DefaultSelection<Prisma.$DatabaseInstancePayload>
 /**
+ * Model DatabaseBackupProvenance
+ * Immutable provenance reserved before creating a CNPG Backup. Snapshot IDs also
+ * cover migration/checkpoint backups that do not have DatabaseSnapshot rows.
+ */
+export type DatabaseBackupProvenance = $Result.DefaultSelection<Prisma.$DatabaseBackupProvenancePayload>
+/**
  * Model DatabaseSnapshot
  * A recovery point for a DatabaseInstance — either a scheduled automatic
  * snapshot or a user-requested manual one. `lsn` records the Postgres WAL
@@ -2287,6 +2293,16 @@ export class PrismaClient<
   get databaseInstance(): Prisma.DatabaseInstanceDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.databaseBackupProvenance`: Exposes CRUD operations for the **DatabaseBackupProvenance** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DatabaseBackupProvenances
+    * const databaseBackupProvenances = await prisma.databaseBackupProvenance.findMany()
+    * ```
+    */
+  get databaseBackupProvenance(): Prisma.DatabaseBackupProvenanceDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.databaseSnapshot`: Exposes CRUD operations for the **DatabaseSnapshot** model.
     * Example usage:
     * ```ts
@@ -3045,6 +3061,7 @@ export namespace Prisma {
     ProviderConfig: 'ProviderConfig',
     ModelConfig: 'ModelConfig',
     DatabaseInstance: 'DatabaseInstance',
+    DatabaseBackupProvenance: 'DatabaseBackupProvenance',
     DatabaseSnapshot: 'DatabaseSnapshot',
     DatabaseRestore: 'DatabaseRestore',
     DatabaseRestoreExecution: 'DatabaseRestoreExecution',
@@ -3082,7 +3099,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "databaseRestoreExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseBackupProvenance" | "databaseSnapshot" | "databaseRestore" | "databaseRestoreExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10914,6 +10931,80 @@ export namespace Prisma {
           }
         }
       }
+      DatabaseBackupProvenance: {
+        payload: Prisma.$DatabaseBackupProvenancePayload<ExtArgs>
+        fields: Prisma.DatabaseBackupProvenanceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DatabaseBackupProvenanceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DatabaseBackupProvenanceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>
+          }
+          findFirst: {
+            args: Prisma.DatabaseBackupProvenanceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DatabaseBackupProvenanceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>
+          }
+          findMany: {
+            args: Prisma.DatabaseBackupProvenanceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>[]
+          }
+          create: {
+            args: Prisma.DatabaseBackupProvenanceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>
+          }
+          createMany: {
+            args: Prisma.DatabaseBackupProvenanceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DatabaseBackupProvenanceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>[]
+          }
+          delete: {
+            args: Prisma.DatabaseBackupProvenanceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>
+          }
+          update: {
+            args: Prisma.DatabaseBackupProvenanceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>
+          }
+          deleteMany: {
+            args: Prisma.DatabaseBackupProvenanceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DatabaseBackupProvenanceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DatabaseBackupProvenanceUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>[]
+          }
+          upsert: {
+            args: Prisma.DatabaseBackupProvenanceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseBackupProvenancePayload>
+          }
+          aggregate: {
+            args: Prisma.DatabaseBackupProvenanceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDatabaseBackupProvenance>
+          }
+          groupBy: {
+            args: Prisma.DatabaseBackupProvenanceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseBackupProvenanceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DatabaseBackupProvenanceCountArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseBackupProvenanceCountAggregateOutputType> | number
+          }
+        }
+      }
       DatabaseSnapshot: {
         payload: Prisma.$DatabaseSnapshotPayload<ExtArgs>
         fields: Prisma.DatabaseSnapshotFieldRefs
@@ -12756,6 +12847,7 @@ export namespace Prisma {
     providerConfig?: ProviderConfigOmit
     modelConfig?: ModelConfigOmit
     databaseInstance?: DatabaseInstanceOmit
+    databaseBackupProvenance?: DatabaseBackupProvenanceOmit
     databaseSnapshot?: DatabaseSnapshotOmit
     databaseRestore?: DatabaseRestoreOmit
     databaseRestoreExecution?: DatabaseRestoreExecutionOmit
@@ -14215,11 +14307,13 @@ export namespace Prisma {
   export type DatabaseInstanceCountOutputType = {
     snapshots: number
     restores: number
+    backupProvenance: number
   }
 
   export type DatabaseInstanceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     snapshots?: boolean | DatabaseInstanceCountOutputTypeCountSnapshotsArgs
     restores?: boolean | DatabaseInstanceCountOutputTypeCountRestoresArgs
+    backupProvenance?: boolean | DatabaseInstanceCountOutputTypeCountBackupProvenanceArgs
   }
 
   // Custom InputTypes
@@ -14245,6 +14339,13 @@ export namespace Prisma {
    */
   export type DatabaseInstanceCountOutputTypeCountRestoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DatabaseRestoreWhereInput
+  }
+
+  /**
+   * DatabaseInstanceCountOutputType without action
+   */
+  export type DatabaseInstanceCountOutputTypeCountBackupProvenanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseBackupProvenanceWhereInput
   }
 
 
@@ -135317,6 +135418,7 @@ export namespace Prisma {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    backupProvenance?: boolean | DatabaseInstance$backupProvenanceArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["databaseInstance"]>
 
@@ -135378,6 +135480,7 @@ export namespace Prisma {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    backupProvenance?: boolean | DatabaseInstance$backupProvenanceArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DatabaseInstanceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -135393,6 +135496,7 @@ export namespace Prisma {
       project: Prisma.$ProjectPayload<ExtArgs>
       snapshots: Prisma.$DatabaseSnapshotPayload<ExtArgs>[]
       restores: Prisma.$DatabaseRestorePayload<ExtArgs>[]
+      backupProvenance: Prisma.$DatabaseBackupProvenancePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -135809,6 +135913,7 @@ export namespace Prisma {
     project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     snapshots<T extends DatabaseInstance$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restores<T extends DatabaseInstance$restoresArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$restoresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    backupProvenance<T extends DatabaseInstance$backupProvenanceArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$backupProvenanceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -136301,6 +136406,30 @@ export namespace Prisma {
   }
 
   /**
+   * DatabaseInstance.backupProvenance
+   */
+  export type DatabaseInstance$backupProvenanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    where?: DatabaseBackupProvenanceWhereInput
+    orderBy?: DatabaseBackupProvenanceOrderByWithRelationInput | DatabaseBackupProvenanceOrderByWithRelationInput[]
+    cursor?: DatabaseBackupProvenanceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DatabaseBackupProvenanceScalarFieldEnum | DatabaseBackupProvenanceScalarFieldEnum[]
+  }
+
+  /**
    * DatabaseInstance without action
    */
   export type DatabaseInstanceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -136316,6 +136445,1207 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DatabaseInstanceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DatabaseBackupProvenance
+   */
+
+  export type AggregateDatabaseBackupProvenance = {
+    _count: DatabaseBackupProvenanceCountAggregateOutputType | null
+    _avg: DatabaseBackupProvenanceAvgAggregateOutputType | null
+    _sum: DatabaseBackupProvenanceSumAggregateOutputType | null
+    _min: DatabaseBackupProvenanceMinAggregateOutputType | null
+    _max: DatabaseBackupProvenanceMaxAggregateOutputType | null
+  }
+
+  export type DatabaseBackupProvenanceAvgAggregateOutputType = {
+    bindingVersion: number | null
+  }
+
+  export type DatabaseBackupProvenanceSumAggregateOutputType = {
+    bindingVersion: number | null
+  }
+
+  export type DatabaseBackupProvenanceMinAggregateOutputType = {
+    id: string | null
+    nonce: string | null
+    projectId: string | null
+    organizationId: string | null
+    instanceId: string | null
+    environment: string | null
+    bindingVersion: number | null
+    snapshotId: string | null
+    sourceName: string | null
+    sourceUid: string | null
+    backupName: string | null
+    backupUid: string | null
+    createdAt: Date | null
+  }
+
+  export type DatabaseBackupProvenanceMaxAggregateOutputType = {
+    id: string | null
+    nonce: string | null
+    projectId: string | null
+    organizationId: string | null
+    instanceId: string | null
+    environment: string | null
+    bindingVersion: number | null
+    snapshotId: string | null
+    sourceName: string | null
+    sourceUid: string | null
+    backupName: string | null
+    backupUid: string | null
+    createdAt: Date | null
+  }
+
+  export type DatabaseBackupProvenanceCountAggregateOutputType = {
+    id: number
+    nonce: number
+    projectId: number
+    organizationId: number
+    instanceId: number
+    environment: number
+    bindingVersion: number
+    snapshotId: number
+    sourceName: number
+    sourceUid: number
+    backupName: number
+    backupUid: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DatabaseBackupProvenanceAvgAggregateInputType = {
+    bindingVersion?: true
+  }
+
+  export type DatabaseBackupProvenanceSumAggregateInputType = {
+    bindingVersion?: true
+  }
+
+  export type DatabaseBackupProvenanceMinAggregateInputType = {
+    id?: true
+    nonce?: true
+    projectId?: true
+    organizationId?: true
+    instanceId?: true
+    environment?: true
+    bindingVersion?: true
+    snapshotId?: true
+    sourceName?: true
+    sourceUid?: true
+    backupName?: true
+    backupUid?: true
+    createdAt?: true
+  }
+
+  export type DatabaseBackupProvenanceMaxAggregateInputType = {
+    id?: true
+    nonce?: true
+    projectId?: true
+    organizationId?: true
+    instanceId?: true
+    environment?: true
+    bindingVersion?: true
+    snapshotId?: true
+    sourceName?: true
+    sourceUid?: true
+    backupName?: true
+    backupUid?: true
+    createdAt?: true
+  }
+
+  export type DatabaseBackupProvenanceCountAggregateInputType = {
+    id?: true
+    nonce?: true
+    projectId?: true
+    organizationId?: true
+    instanceId?: true
+    environment?: true
+    bindingVersion?: true
+    snapshotId?: true
+    sourceName?: true
+    sourceUid?: true
+    backupName?: true
+    backupUid?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DatabaseBackupProvenanceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseBackupProvenance to aggregate.
+     */
+    where?: DatabaseBackupProvenanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseBackupProvenances to fetch.
+     */
+    orderBy?: DatabaseBackupProvenanceOrderByWithRelationInput | DatabaseBackupProvenanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DatabaseBackupProvenanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseBackupProvenances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseBackupProvenances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DatabaseBackupProvenances
+    **/
+    _count?: true | DatabaseBackupProvenanceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DatabaseBackupProvenanceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DatabaseBackupProvenanceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DatabaseBackupProvenanceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DatabaseBackupProvenanceMaxAggregateInputType
+  }
+
+  export type GetDatabaseBackupProvenanceAggregateType<T extends DatabaseBackupProvenanceAggregateArgs> = {
+        [P in keyof T & keyof AggregateDatabaseBackupProvenance]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDatabaseBackupProvenance[P]>
+      : GetScalarType<T[P], AggregateDatabaseBackupProvenance[P]>
+  }
+
+
+
+
+  export type DatabaseBackupProvenanceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseBackupProvenanceWhereInput
+    orderBy?: DatabaseBackupProvenanceOrderByWithAggregationInput | DatabaseBackupProvenanceOrderByWithAggregationInput[]
+    by: DatabaseBackupProvenanceScalarFieldEnum[] | DatabaseBackupProvenanceScalarFieldEnum
+    having?: DatabaseBackupProvenanceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DatabaseBackupProvenanceCountAggregateInputType | true
+    _avg?: DatabaseBackupProvenanceAvgAggregateInputType
+    _sum?: DatabaseBackupProvenanceSumAggregateInputType
+    _min?: DatabaseBackupProvenanceMinAggregateInputType
+    _max?: DatabaseBackupProvenanceMaxAggregateInputType
+  }
+
+  export type DatabaseBackupProvenanceGroupByOutputType = {
+    id: string
+    nonce: string
+    projectId: string
+    organizationId: string
+    instanceId: string
+    environment: string
+    bindingVersion: number
+    snapshotId: string
+    sourceName: string
+    sourceUid: string
+    backupName: string
+    backupUid: string | null
+    createdAt: Date
+    _count: DatabaseBackupProvenanceCountAggregateOutputType | null
+    _avg: DatabaseBackupProvenanceAvgAggregateOutputType | null
+    _sum: DatabaseBackupProvenanceSumAggregateOutputType | null
+    _min: DatabaseBackupProvenanceMinAggregateOutputType | null
+    _max: DatabaseBackupProvenanceMaxAggregateOutputType | null
+  }
+
+  type GetDatabaseBackupProvenanceGroupByPayload<T extends DatabaseBackupProvenanceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DatabaseBackupProvenanceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DatabaseBackupProvenanceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DatabaseBackupProvenanceGroupByOutputType[P]>
+            : GetScalarType<T[P], DatabaseBackupProvenanceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DatabaseBackupProvenanceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    nonce?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    instanceId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    snapshotId?: boolean
+    sourceName?: boolean
+    sourceUid?: boolean
+    backupName?: boolean
+    backupUid?: boolean
+    createdAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseBackupProvenance"]>
+
+  export type DatabaseBackupProvenanceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    nonce?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    instanceId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    snapshotId?: boolean
+    sourceName?: boolean
+    sourceUid?: boolean
+    backupName?: boolean
+    backupUid?: boolean
+    createdAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseBackupProvenance"]>
+
+  export type DatabaseBackupProvenanceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    nonce?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    instanceId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    snapshotId?: boolean
+    sourceName?: boolean
+    sourceUid?: boolean
+    backupName?: boolean
+    backupUid?: boolean
+    createdAt?: boolean
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseBackupProvenance"]>
+
+  export type DatabaseBackupProvenanceSelectScalar = {
+    id?: boolean
+    nonce?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    instanceId?: boolean
+    environment?: boolean
+    bindingVersion?: boolean
+    snapshotId?: boolean
+    sourceName?: boolean
+    sourceUid?: boolean
+    backupName?: boolean
+    backupUid?: boolean
+    createdAt?: boolean
+  }
+
+  export type DatabaseBackupProvenanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nonce" | "projectId" | "organizationId" | "instanceId" | "environment" | "bindingVersion" | "snapshotId" | "sourceName" | "sourceUid" | "backupName" | "backupUid" | "createdAt", ExtArgs["result"]["databaseBackupProvenance"]>
+  export type DatabaseBackupProvenanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseBackupProvenanceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseBackupProvenanceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    instance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+
+  export type $DatabaseBackupProvenancePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DatabaseBackupProvenance"
+    objects: {
+      instance: Prisma.$DatabaseInstancePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      nonce: string
+      projectId: string
+      organizationId: string
+      instanceId: string
+      environment: string
+      bindingVersion: number
+      snapshotId: string
+      sourceName: string
+      sourceUid: string
+      backupName: string
+      backupUid: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["databaseBackupProvenance"]>
+    composites: {}
+  }
+
+  type DatabaseBackupProvenanceGetPayload<S extends boolean | null | undefined | DatabaseBackupProvenanceDefaultArgs> = $Result.GetResult<Prisma.$DatabaseBackupProvenancePayload, S>
+
+  type DatabaseBackupProvenanceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DatabaseBackupProvenanceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DatabaseBackupProvenanceCountAggregateInputType | true
+    }
+
+  export interface DatabaseBackupProvenanceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DatabaseBackupProvenance'], meta: { name: 'DatabaseBackupProvenance' } }
+    /**
+     * Find zero or one DatabaseBackupProvenance that matches the filter.
+     * @param {DatabaseBackupProvenanceFindUniqueArgs} args - Arguments to find a DatabaseBackupProvenance
+     * @example
+     * // Get one DatabaseBackupProvenance
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DatabaseBackupProvenanceFindUniqueArgs>(args: SelectSubset<T, DatabaseBackupProvenanceFindUniqueArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DatabaseBackupProvenance that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DatabaseBackupProvenanceFindUniqueOrThrowArgs} args - Arguments to find a DatabaseBackupProvenance
+     * @example
+     * // Get one DatabaseBackupProvenance
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DatabaseBackupProvenanceFindUniqueOrThrowArgs>(args: SelectSubset<T, DatabaseBackupProvenanceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseBackupProvenance that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseBackupProvenanceFindFirstArgs} args - Arguments to find a DatabaseBackupProvenance
+     * @example
+     * // Get one DatabaseBackupProvenance
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DatabaseBackupProvenanceFindFirstArgs>(args?: SelectSubset<T, DatabaseBackupProvenanceFindFirstArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseBackupProvenance that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseBackupProvenanceFindFirstOrThrowArgs} args - Arguments to find a DatabaseBackupProvenance
+     * @example
+     * // Get one DatabaseBackupProvenance
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DatabaseBackupProvenanceFindFirstOrThrowArgs>(args?: SelectSubset<T, DatabaseBackupProvenanceFindFirstOrThrowArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DatabaseBackupProvenances that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseBackupProvenanceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DatabaseBackupProvenances
+     * const databaseBackupProvenances = await prisma.databaseBackupProvenance.findMany()
+     * 
+     * // Get first 10 DatabaseBackupProvenances
+     * const databaseBackupProvenances = await prisma.databaseBackupProvenance.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const databaseBackupProvenanceWithIdOnly = await prisma.databaseBackupProvenance.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DatabaseBackupProvenanceFindManyArgs>(args?: SelectSubset<T, DatabaseBackupProvenanceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DatabaseBackupProvenance.
+     * @param {DatabaseBackupProvenanceCreateArgs} args - Arguments to create a DatabaseBackupProvenance.
+     * @example
+     * // Create one DatabaseBackupProvenance
+     * const DatabaseBackupProvenance = await prisma.databaseBackupProvenance.create({
+     *   data: {
+     *     // ... data to create a DatabaseBackupProvenance
+     *   }
+     * })
+     * 
+     */
+    create<T extends DatabaseBackupProvenanceCreateArgs>(args: SelectSubset<T, DatabaseBackupProvenanceCreateArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DatabaseBackupProvenances.
+     * @param {DatabaseBackupProvenanceCreateManyArgs} args - Arguments to create many DatabaseBackupProvenances.
+     * @example
+     * // Create many DatabaseBackupProvenances
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DatabaseBackupProvenanceCreateManyArgs>(args?: SelectSubset<T, DatabaseBackupProvenanceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DatabaseBackupProvenances and returns the data saved in the database.
+     * @param {DatabaseBackupProvenanceCreateManyAndReturnArgs} args - Arguments to create many DatabaseBackupProvenances.
+     * @example
+     * // Create many DatabaseBackupProvenances
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DatabaseBackupProvenances and only return the `id`
+     * const databaseBackupProvenanceWithIdOnly = await prisma.databaseBackupProvenance.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DatabaseBackupProvenanceCreateManyAndReturnArgs>(args?: SelectSubset<T, DatabaseBackupProvenanceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DatabaseBackupProvenance.
+     * @param {DatabaseBackupProvenanceDeleteArgs} args - Arguments to delete one DatabaseBackupProvenance.
+     * @example
+     * // Delete one DatabaseBackupProvenance
+     * const DatabaseBackupProvenance = await prisma.databaseBackupProvenance.delete({
+     *   where: {
+     *     // ... filter to delete one DatabaseBackupProvenance
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DatabaseBackupProvenanceDeleteArgs>(args: SelectSubset<T, DatabaseBackupProvenanceDeleteArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DatabaseBackupProvenance.
+     * @param {DatabaseBackupProvenanceUpdateArgs} args - Arguments to update one DatabaseBackupProvenance.
+     * @example
+     * // Update one DatabaseBackupProvenance
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DatabaseBackupProvenanceUpdateArgs>(args: SelectSubset<T, DatabaseBackupProvenanceUpdateArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DatabaseBackupProvenances.
+     * @param {DatabaseBackupProvenanceDeleteManyArgs} args - Arguments to filter DatabaseBackupProvenances to delete.
+     * @example
+     * // Delete a few DatabaseBackupProvenances
+     * const { count } = await prisma.databaseBackupProvenance.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DatabaseBackupProvenanceDeleteManyArgs>(args?: SelectSubset<T, DatabaseBackupProvenanceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseBackupProvenances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseBackupProvenanceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DatabaseBackupProvenances
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DatabaseBackupProvenanceUpdateManyArgs>(args: SelectSubset<T, DatabaseBackupProvenanceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseBackupProvenances and returns the data updated in the database.
+     * @param {DatabaseBackupProvenanceUpdateManyAndReturnArgs} args - Arguments to update many DatabaseBackupProvenances.
+     * @example
+     * // Update many DatabaseBackupProvenances
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DatabaseBackupProvenances and only return the `id`
+     * const databaseBackupProvenanceWithIdOnly = await prisma.databaseBackupProvenance.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DatabaseBackupProvenanceUpdateManyAndReturnArgs>(args: SelectSubset<T, DatabaseBackupProvenanceUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DatabaseBackupProvenance.
+     * @param {DatabaseBackupProvenanceUpsertArgs} args - Arguments to update or create a DatabaseBackupProvenance.
+     * @example
+     * // Update or create a DatabaseBackupProvenance
+     * const databaseBackupProvenance = await prisma.databaseBackupProvenance.upsert({
+     *   create: {
+     *     // ... data to create a DatabaseBackupProvenance
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DatabaseBackupProvenance we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DatabaseBackupProvenanceUpsertArgs>(args: SelectSubset<T, DatabaseBackupProvenanceUpsertArgs<ExtArgs>>): Prisma__DatabaseBackupProvenanceClient<$Result.GetResult<Prisma.$DatabaseBackupProvenancePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DatabaseBackupProvenances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseBackupProvenanceCountArgs} args - Arguments to filter DatabaseBackupProvenances to count.
+     * @example
+     * // Count the number of DatabaseBackupProvenances
+     * const count = await prisma.databaseBackupProvenance.count({
+     *   where: {
+     *     // ... the filter for the DatabaseBackupProvenances we want to count
+     *   }
+     * })
+    **/
+    count<T extends DatabaseBackupProvenanceCountArgs>(
+      args?: Subset<T, DatabaseBackupProvenanceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DatabaseBackupProvenanceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DatabaseBackupProvenance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseBackupProvenanceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DatabaseBackupProvenanceAggregateArgs>(args: Subset<T, DatabaseBackupProvenanceAggregateArgs>): Prisma.PrismaPromise<GetDatabaseBackupProvenanceAggregateType<T>>
+
+    /**
+     * Group by DatabaseBackupProvenance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseBackupProvenanceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DatabaseBackupProvenanceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DatabaseBackupProvenanceGroupByArgs['orderBy'] }
+        : { orderBy?: DatabaseBackupProvenanceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DatabaseBackupProvenanceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDatabaseBackupProvenanceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DatabaseBackupProvenance model
+   */
+  readonly fields: DatabaseBackupProvenanceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DatabaseBackupProvenance.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DatabaseBackupProvenanceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    instance<T extends DatabaseInstanceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstanceDefaultArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DatabaseBackupProvenance model
+   */
+  interface DatabaseBackupProvenanceFieldRefs {
+    readonly id: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly nonce: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly projectId: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly organizationId: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly instanceId: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly environment: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly bindingVersion: FieldRef<"DatabaseBackupProvenance", 'Int'>
+    readonly snapshotId: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly sourceName: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly sourceUid: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly backupName: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly backupUid: FieldRef<"DatabaseBackupProvenance", 'String'>
+    readonly createdAt: FieldRef<"DatabaseBackupProvenance", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DatabaseBackupProvenance findUnique
+   */
+  export type DatabaseBackupProvenanceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseBackupProvenance to fetch.
+     */
+    where: DatabaseBackupProvenanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseBackupProvenance findUniqueOrThrow
+   */
+  export type DatabaseBackupProvenanceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseBackupProvenance to fetch.
+     */
+    where: DatabaseBackupProvenanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseBackupProvenance findFirst
+   */
+  export type DatabaseBackupProvenanceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseBackupProvenance to fetch.
+     */
+    where?: DatabaseBackupProvenanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseBackupProvenances to fetch.
+     */
+    orderBy?: DatabaseBackupProvenanceOrderByWithRelationInput | DatabaseBackupProvenanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseBackupProvenances.
+     */
+    cursor?: DatabaseBackupProvenanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseBackupProvenances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseBackupProvenances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseBackupProvenances.
+     */
+    distinct?: DatabaseBackupProvenanceScalarFieldEnum | DatabaseBackupProvenanceScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseBackupProvenance findFirstOrThrow
+   */
+  export type DatabaseBackupProvenanceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseBackupProvenance to fetch.
+     */
+    where?: DatabaseBackupProvenanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseBackupProvenances to fetch.
+     */
+    orderBy?: DatabaseBackupProvenanceOrderByWithRelationInput | DatabaseBackupProvenanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseBackupProvenances.
+     */
+    cursor?: DatabaseBackupProvenanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseBackupProvenances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseBackupProvenances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseBackupProvenances.
+     */
+    distinct?: DatabaseBackupProvenanceScalarFieldEnum | DatabaseBackupProvenanceScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseBackupProvenance findMany
+   */
+  export type DatabaseBackupProvenanceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseBackupProvenances to fetch.
+     */
+    where?: DatabaseBackupProvenanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseBackupProvenances to fetch.
+     */
+    orderBy?: DatabaseBackupProvenanceOrderByWithRelationInput | DatabaseBackupProvenanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DatabaseBackupProvenances.
+     */
+    cursor?: DatabaseBackupProvenanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseBackupProvenances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseBackupProvenances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseBackupProvenances.
+     */
+    distinct?: DatabaseBackupProvenanceScalarFieldEnum | DatabaseBackupProvenanceScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseBackupProvenance create
+   */
+  export type DatabaseBackupProvenanceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DatabaseBackupProvenance.
+     */
+    data: XOR<DatabaseBackupProvenanceCreateInput, DatabaseBackupProvenanceUncheckedCreateInput>
+  }
+
+  /**
+   * DatabaseBackupProvenance createMany
+   */
+  export type DatabaseBackupProvenanceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DatabaseBackupProvenances.
+     */
+    data: DatabaseBackupProvenanceCreateManyInput | DatabaseBackupProvenanceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DatabaseBackupProvenance createManyAndReturn
+   */
+  export type DatabaseBackupProvenanceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * The data used to create many DatabaseBackupProvenances.
+     */
+    data: DatabaseBackupProvenanceCreateManyInput | DatabaseBackupProvenanceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseBackupProvenance update
+   */
+  export type DatabaseBackupProvenanceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DatabaseBackupProvenance.
+     */
+    data: XOR<DatabaseBackupProvenanceUpdateInput, DatabaseBackupProvenanceUncheckedUpdateInput>
+    /**
+     * Choose, which DatabaseBackupProvenance to update.
+     */
+    where: DatabaseBackupProvenanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseBackupProvenance updateMany
+   */
+  export type DatabaseBackupProvenanceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DatabaseBackupProvenances.
+     */
+    data: XOR<DatabaseBackupProvenanceUpdateManyMutationInput, DatabaseBackupProvenanceUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseBackupProvenances to update
+     */
+    where?: DatabaseBackupProvenanceWhereInput
+    /**
+     * Limit how many DatabaseBackupProvenances to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseBackupProvenance updateManyAndReturn
+   */
+  export type DatabaseBackupProvenanceUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * The data used to update DatabaseBackupProvenances.
+     */
+    data: XOR<DatabaseBackupProvenanceUpdateManyMutationInput, DatabaseBackupProvenanceUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseBackupProvenances to update
+     */
+    where?: DatabaseBackupProvenanceWhereInput
+    /**
+     * Limit how many DatabaseBackupProvenances to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseBackupProvenance upsert
+   */
+  export type DatabaseBackupProvenanceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DatabaseBackupProvenance to update in case it exists.
+     */
+    where: DatabaseBackupProvenanceWhereUniqueInput
+    /**
+     * In case the DatabaseBackupProvenance found by the `where` argument doesn't exist, create a new DatabaseBackupProvenance with this data.
+     */
+    create: XOR<DatabaseBackupProvenanceCreateInput, DatabaseBackupProvenanceUncheckedCreateInput>
+    /**
+     * In case the DatabaseBackupProvenance was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DatabaseBackupProvenanceUpdateInput, DatabaseBackupProvenanceUncheckedUpdateInput>
+  }
+
+  /**
+   * DatabaseBackupProvenance delete
+   */
+  export type DatabaseBackupProvenanceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
+    /**
+     * Filter which DatabaseBackupProvenance to delete.
+     */
+    where: DatabaseBackupProvenanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseBackupProvenance deleteMany
+   */
+  export type DatabaseBackupProvenanceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseBackupProvenances to delete
+     */
+    where?: DatabaseBackupProvenanceWhereInput
+    /**
+     * Limit how many DatabaseBackupProvenances to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseBackupProvenance without action
+   */
+  export type DatabaseBackupProvenanceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseBackupProvenance
+     */
+    select?: DatabaseBackupProvenanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseBackupProvenance
+     */
+    omit?: DatabaseBackupProvenanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseBackupProvenanceInclude<ExtArgs> | null
   }
 
 
@@ -164188,6 +165518,25 @@ export namespace Prisma {
   export type DatabaseInstanceScalarFieldEnum = (typeof DatabaseInstanceScalarFieldEnum)[keyof typeof DatabaseInstanceScalarFieldEnum]
 
 
+  export const DatabaseBackupProvenanceScalarFieldEnum: {
+    id: 'id',
+    nonce: 'nonce',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    instanceId: 'instanceId',
+    environment: 'environment',
+    bindingVersion: 'bindingVersion',
+    snapshotId: 'snapshotId',
+    sourceName: 'sourceName',
+    sourceUid: 'sourceUid',
+    backupName: 'backupName',
+    backupUid: 'backupUid',
+    createdAt: 'createdAt'
+  };
+
+  export type DatabaseBackupProvenanceScalarFieldEnum = (typeof DatabaseBackupProvenanceScalarFieldEnum)[keyof typeof DatabaseBackupProvenanceScalarFieldEnum]
+
+
   export const DatabaseSnapshotScalarFieldEnum: {
     id: 'id',
     databaseInstanceId: 'databaseInstanceId',
@@ -173427,6 +174776,7 @@ export namespace Prisma {
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
+    backupProvenance?: DatabaseBackupProvenanceListRelationFilter
   }
 
   export type DatabaseInstanceOrderByWithRelationInput = {
@@ -173447,6 +174797,7 @@ export namespace Prisma {
     project?: ProjectOrderByWithRelationInput
     snapshots?: DatabaseSnapshotOrderByRelationAggregateInput
     restores?: DatabaseRestoreOrderByRelationAggregateInput
+    backupProvenance?: DatabaseBackupProvenanceOrderByRelationAggregateInput
   }
 
   export type DatabaseInstanceWhereUniqueInput = Prisma.AtLeast<{
@@ -173471,6 +174822,7 @@ export namespace Prisma {
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
+    backupProvenance?: DatabaseBackupProvenanceListRelationFilter
   }, "id" | "projectId_environment">
 
   export type DatabaseInstanceOrderByWithAggregationInput = {
@@ -173513,6 +174865,104 @@ export namespace Prisma {
     bindingVersion?: IntWithAggregatesFilter<"DatabaseInstance"> | number
     createdAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
+  }
+
+  export type DatabaseBackupProvenanceWhereInput = {
+    AND?: DatabaseBackupProvenanceWhereInput | DatabaseBackupProvenanceWhereInput[]
+    OR?: DatabaseBackupProvenanceWhereInput[]
+    NOT?: DatabaseBackupProvenanceWhereInput | DatabaseBackupProvenanceWhereInput[]
+    id?: StringFilter<"DatabaseBackupProvenance"> | string
+    nonce?: StringFilter<"DatabaseBackupProvenance"> | string
+    projectId?: StringFilter<"DatabaseBackupProvenance"> | string
+    organizationId?: StringFilter<"DatabaseBackupProvenance"> | string
+    instanceId?: StringFilter<"DatabaseBackupProvenance"> | string
+    environment?: StringFilter<"DatabaseBackupProvenance"> | string
+    bindingVersion?: IntFilter<"DatabaseBackupProvenance"> | number
+    snapshotId?: StringFilter<"DatabaseBackupProvenance"> | string
+    sourceName?: StringFilter<"DatabaseBackupProvenance"> | string
+    sourceUid?: StringFilter<"DatabaseBackupProvenance"> | string
+    backupName?: StringFilter<"DatabaseBackupProvenance"> | string
+    backupUid?: StringNullableFilter<"DatabaseBackupProvenance"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseBackupProvenance"> | Date | string
+    instance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }
+
+  export type DatabaseBackupProvenanceOrderByWithRelationInput = {
+    id?: SortOrder
+    nonce?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    instanceId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    snapshotId?: SortOrder
+    sourceName?: SortOrder
+    sourceUid?: SortOrder
+    backupName?: SortOrder
+    backupUid?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    instance?: DatabaseInstanceOrderByWithRelationInput
+  }
+
+  export type DatabaseBackupProvenanceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    nonce?: string
+    projectId_environment_snapshotId?: DatabaseBackupProvenanceProjectIdEnvironmentSnapshotIdCompoundUniqueInput
+    AND?: DatabaseBackupProvenanceWhereInput | DatabaseBackupProvenanceWhereInput[]
+    OR?: DatabaseBackupProvenanceWhereInput[]
+    NOT?: DatabaseBackupProvenanceWhereInput | DatabaseBackupProvenanceWhereInput[]
+    projectId?: StringFilter<"DatabaseBackupProvenance"> | string
+    organizationId?: StringFilter<"DatabaseBackupProvenance"> | string
+    instanceId?: StringFilter<"DatabaseBackupProvenance"> | string
+    environment?: StringFilter<"DatabaseBackupProvenance"> | string
+    bindingVersion?: IntFilter<"DatabaseBackupProvenance"> | number
+    snapshotId?: StringFilter<"DatabaseBackupProvenance"> | string
+    sourceName?: StringFilter<"DatabaseBackupProvenance"> | string
+    sourceUid?: StringFilter<"DatabaseBackupProvenance"> | string
+    backupName?: StringFilter<"DatabaseBackupProvenance"> | string
+    backupUid?: StringNullableFilter<"DatabaseBackupProvenance"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseBackupProvenance"> | Date | string
+    instance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }, "id" | "nonce" | "projectId_environment_snapshotId">
+
+  export type DatabaseBackupProvenanceOrderByWithAggregationInput = {
+    id?: SortOrder
+    nonce?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    instanceId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    snapshotId?: SortOrder
+    sourceName?: SortOrder
+    sourceUid?: SortOrder
+    backupName?: SortOrder
+    backupUid?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DatabaseBackupProvenanceCountOrderByAggregateInput
+    _avg?: DatabaseBackupProvenanceAvgOrderByAggregateInput
+    _max?: DatabaseBackupProvenanceMaxOrderByAggregateInput
+    _min?: DatabaseBackupProvenanceMinOrderByAggregateInput
+    _sum?: DatabaseBackupProvenanceSumOrderByAggregateInput
+  }
+
+  export type DatabaseBackupProvenanceScalarWhereWithAggregatesInput = {
+    AND?: DatabaseBackupProvenanceScalarWhereWithAggregatesInput | DatabaseBackupProvenanceScalarWhereWithAggregatesInput[]
+    OR?: DatabaseBackupProvenanceScalarWhereWithAggregatesInput[]
+    NOT?: DatabaseBackupProvenanceScalarWhereWithAggregatesInput | DatabaseBackupProvenanceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    nonce?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    projectId?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    organizationId?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    instanceId?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    environment?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    bindingVersion?: IntWithAggregatesFilter<"DatabaseBackupProvenance"> | number
+    snapshotId?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    sourceName?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    sourceUid?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    backupName?: StringWithAggregatesFilter<"DatabaseBackupProvenance"> | string
+    backupUid?: StringNullableWithAggregatesFilter<"DatabaseBackupProvenance"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DatabaseBackupProvenance"> | Date | string
   }
 
   export type DatabaseSnapshotWhereInput = {
@@ -184797,6 +186247,7 @@ export namespace Prisma {
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateInput = {
@@ -184816,6 +186267,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUpdateInput = {
@@ -184835,6 +186287,7 @@ export namespace Prisma {
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateInput = {
@@ -184854,6 +186307,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateManyInput = {
@@ -184904,6 +186358,117 @@ export namespace Prisma {
     bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseBackupProvenanceCreateInput = {
+    id?: string
+    nonce: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    snapshotId: string
+    sourceName: string
+    sourceUid: string
+    backupName: string
+    backupUid?: string | null
+    createdAt?: Date | string
+    instance: DatabaseInstanceCreateNestedOneWithoutBackupProvenanceInput
+  }
+
+  export type DatabaseBackupProvenanceUncheckedCreateInput = {
+    id?: string
+    nonce: string
+    projectId: string
+    organizationId: string
+    instanceId: string
+    environment: string
+    bindingVersion: number
+    snapshotId: string
+    sourceName: string
+    sourceUid: string
+    backupName: string
+    backupUid?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseBackupProvenanceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    snapshotId?: StringFieldUpdateOperationsInput | string
+    sourceName?: StringFieldUpdateOperationsInput | string
+    sourceUid?: StringFieldUpdateOperationsInput | string
+    backupName?: StringFieldUpdateOperationsInput | string
+    backupUid?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    instance?: DatabaseInstanceUpdateOneRequiredWithoutBackupProvenanceNestedInput
+  }
+
+  export type DatabaseBackupProvenanceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    snapshotId?: StringFieldUpdateOperationsInput | string
+    sourceName?: StringFieldUpdateOperationsInput | string
+    sourceUid?: StringFieldUpdateOperationsInput | string
+    backupName?: StringFieldUpdateOperationsInput | string
+    backupUid?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseBackupProvenanceCreateManyInput = {
+    id?: string
+    nonce: string
+    projectId: string
+    organizationId: string
+    instanceId: string
+    environment: string
+    bindingVersion: number
+    snapshotId: string
+    sourceName: string
+    sourceUid: string
+    backupName: string
+    backupUid?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseBackupProvenanceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    snapshotId?: StringFieldUpdateOperationsInput | string
+    sourceName?: StringFieldUpdateOperationsInput | string
+    sourceUid?: StringFieldUpdateOperationsInput | string
+    backupName?: StringFieldUpdateOperationsInput | string
+    backupUid?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseBackupProvenanceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    snapshotId?: StringFieldUpdateOperationsInput | string
+    sourceName?: StringFieldUpdateOperationsInput | string
+    sourceUid?: StringFieldUpdateOperationsInput | string
+    backupName?: StringFieldUpdateOperationsInput | string
+    backupUid?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type DatabaseSnapshotCreateInput = {
@@ -193030,11 +194595,21 @@ export namespace Prisma {
     none?: DatabaseRestoreWhereInput
   }
 
+  export type DatabaseBackupProvenanceListRelationFilter = {
+    every?: DatabaseBackupProvenanceWhereInput
+    some?: DatabaseBackupProvenanceWhereInput
+    none?: DatabaseBackupProvenanceWhereInput
+  }
+
   export type DatabaseSnapshotOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type DatabaseRestoreOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DatabaseBackupProvenanceOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -193135,6 +194710,68 @@ export namespace Prisma {
   export type DatabaseInstanceScalarRelationFilter = {
     is?: DatabaseInstanceWhereInput
     isNot?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseBackupProvenanceProjectIdEnvironmentSnapshotIdCompoundUniqueInput = {
+    projectId: string
+    environment: string
+    snapshotId: string
+  }
+
+  export type DatabaseBackupProvenanceCountOrderByAggregateInput = {
+    id?: SortOrder
+    nonce?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    instanceId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    snapshotId?: SortOrder
+    sourceName?: SortOrder
+    sourceUid?: SortOrder
+    backupName?: SortOrder
+    backupUid?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DatabaseBackupProvenanceAvgOrderByAggregateInput = {
+    bindingVersion?: SortOrder
+  }
+
+  export type DatabaseBackupProvenanceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    nonce?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    instanceId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    snapshotId?: SortOrder
+    sourceName?: SortOrder
+    sourceUid?: SortOrder
+    backupName?: SortOrder
+    backupUid?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DatabaseBackupProvenanceMinOrderByAggregateInput = {
+    id?: SortOrder
+    nonce?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    instanceId?: SortOrder
+    environment?: SortOrder
+    bindingVersion?: SortOrder
+    snapshotId?: SortOrder
+    sourceName?: SortOrder
+    sourceUid?: SortOrder
+    backupName?: SortOrder
+    backupUid?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DatabaseBackupProvenanceSumOrderByAggregateInput = {
+    bindingVersion?: SortOrder
   }
 
   export type DatabaseSnapshotCountOrderByAggregateInput = {
@@ -201270,6 +202907,13 @@ export namespace Prisma {
     connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
   }
 
+  export type DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput = {
+    create?: XOR<DatabaseBackupProvenanceCreateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput> | DatabaseBackupProvenanceCreateWithoutInstanceInput[] | DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput | DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput[]
+    createMany?: DatabaseBackupProvenanceCreateManyInstanceInputEnvelope
+    connect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+  }
+
   export type DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -201282,6 +202926,13 @@ export namespace Prisma {
     connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput | DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput[]
     createMany?: DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope
     connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+  }
+
+  export type DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput = {
+    create?: XOR<DatabaseBackupProvenanceCreateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput> | DatabaseBackupProvenanceCreateWithoutInstanceInput[] | DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput | DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput[]
+    createMany?: DatabaseBackupProvenanceCreateManyInstanceInputEnvelope
+    connect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
   }
 
   export type EnumDatabaseInstanceStatusFieldUpdateOperationsInput = {
@@ -201332,6 +202983,20 @@ export namespace Prisma {
     deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
   }
 
+  export type DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput = {
+    create?: XOR<DatabaseBackupProvenanceCreateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput> | DatabaseBackupProvenanceCreateWithoutInstanceInput[] | DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput | DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput[]
+    upsert?: DatabaseBackupProvenanceUpsertWithWhereUniqueWithoutInstanceInput | DatabaseBackupProvenanceUpsertWithWhereUniqueWithoutInstanceInput[]
+    createMany?: DatabaseBackupProvenanceCreateManyInstanceInputEnvelope
+    set?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    disconnect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    delete?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    connect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    update?: DatabaseBackupProvenanceUpdateWithWhereUniqueWithoutInstanceInput | DatabaseBackupProvenanceUpdateWithWhereUniqueWithoutInstanceInput[]
+    updateMany?: DatabaseBackupProvenanceUpdateManyWithWhereWithoutInstanceInput | DatabaseBackupProvenanceUpdateManyWithWhereWithoutInstanceInput[]
+    deleteMany?: DatabaseBackupProvenanceScalarWhereInput | DatabaseBackupProvenanceScalarWhereInput[]
+  }
+
   export type DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -201358,6 +203023,34 @@ export namespace Prisma {
     update?: DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput[]
     updateMany?: DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput | DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput[]
     deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
+  }
+
+  export type DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput = {
+    create?: XOR<DatabaseBackupProvenanceCreateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput> | DatabaseBackupProvenanceCreateWithoutInstanceInput[] | DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput[]
+    connectOrCreate?: DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput | DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput[]
+    upsert?: DatabaseBackupProvenanceUpsertWithWhereUniqueWithoutInstanceInput | DatabaseBackupProvenanceUpsertWithWhereUniqueWithoutInstanceInput[]
+    createMany?: DatabaseBackupProvenanceCreateManyInstanceInputEnvelope
+    set?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    disconnect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    delete?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    connect?: DatabaseBackupProvenanceWhereUniqueInput | DatabaseBackupProvenanceWhereUniqueInput[]
+    update?: DatabaseBackupProvenanceUpdateWithWhereUniqueWithoutInstanceInput | DatabaseBackupProvenanceUpdateWithWhereUniqueWithoutInstanceInput[]
+    updateMany?: DatabaseBackupProvenanceUpdateManyWithWhereWithoutInstanceInput | DatabaseBackupProvenanceUpdateManyWithWhereWithoutInstanceInput[]
+    deleteMany?: DatabaseBackupProvenanceScalarWhereInput | DatabaseBackupProvenanceScalarWhereInput[]
+  }
+
+  export type DatabaseInstanceCreateNestedOneWithoutBackupProvenanceInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutBackupProvenanceInput, DatabaseInstanceUncheckedCreateWithoutBackupProvenanceInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutBackupProvenanceInput
+    connect?: DatabaseInstanceWhereUniqueInput
+  }
+
+  export type DatabaseInstanceUpdateOneRequiredWithoutBackupProvenanceNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutBackupProvenanceInput, DatabaseInstanceUncheckedCreateWithoutBackupProvenanceInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutBackupProvenanceInput
+    upsert?: DatabaseInstanceUpsertWithoutBackupProvenanceInput
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutBackupProvenanceInput, DatabaseInstanceUpdateWithoutBackupProvenanceInput>, DatabaseInstanceUncheckedUpdateWithoutBackupProvenanceInput>
   }
 
   export type DatabaseInstanceCreateNestedOneWithoutSnapshotsInput = {
@@ -208998,6 +210691,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutProjectInput = {
@@ -209016,6 +210710,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutProjectInput = {
@@ -228705,6 +230400,46 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type DatabaseBackupProvenanceCreateWithoutInstanceInput = {
+    id?: string
+    nonce: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    snapshotId: string
+    sourceName: string
+    sourceUid: string
+    backupName: string
+    backupUid?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput = {
+    id?: string
+    nonce: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    snapshotId: string
+    sourceName: string
+    sourceUid: string
+    backupName: string
+    backupUid?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DatabaseBackupProvenanceCreateOrConnectWithoutInstanceInput = {
+    where: DatabaseBackupProvenanceWhereUniqueInput
+    create: XOR<DatabaseBackupProvenanceCreateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput>
+  }
+
+  export type DatabaseBackupProvenanceCreateManyInstanceInputEnvelope = {
+    data: DatabaseBackupProvenanceCreateManyInstanceInput | DatabaseBackupProvenanceCreateManyInstanceInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectUpsertWithoutDatabaseInstancesInput = {
     update: XOR<ProjectUpdateWithoutDatabaseInstancesInput, ProjectUncheckedUpdateWithoutDatabaseInstancesInput>
     create: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
@@ -228866,6 +230601,133 @@ export namespace Prisma {
     completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
   }
 
+  export type DatabaseBackupProvenanceUpsertWithWhereUniqueWithoutInstanceInput = {
+    where: DatabaseBackupProvenanceWhereUniqueInput
+    update: XOR<DatabaseBackupProvenanceUpdateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedUpdateWithoutInstanceInput>
+    create: XOR<DatabaseBackupProvenanceCreateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedCreateWithoutInstanceInput>
+  }
+
+  export type DatabaseBackupProvenanceUpdateWithWhereUniqueWithoutInstanceInput = {
+    where: DatabaseBackupProvenanceWhereUniqueInput
+    data: XOR<DatabaseBackupProvenanceUpdateWithoutInstanceInput, DatabaseBackupProvenanceUncheckedUpdateWithoutInstanceInput>
+  }
+
+  export type DatabaseBackupProvenanceUpdateManyWithWhereWithoutInstanceInput = {
+    where: DatabaseBackupProvenanceScalarWhereInput
+    data: XOR<DatabaseBackupProvenanceUpdateManyMutationInput, DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceInput>
+  }
+
+  export type DatabaseBackupProvenanceScalarWhereInput = {
+    AND?: DatabaseBackupProvenanceScalarWhereInput | DatabaseBackupProvenanceScalarWhereInput[]
+    OR?: DatabaseBackupProvenanceScalarWhereInput[]
+    NOT?: DatabaseBackupProvenanceScalarWhereInput | DatabaseBackupProvenanceScalarWhereInput[]
+    id?: StringFilter<"DatabaseBackupProvenance"> | string
+    nonce?: StringFilter<"DatabaseBackupProvenance"> | string
+    projectId?: StringFilter<"DatabaseBackupProvenance"> | string
+    organizationId?: StringFilter<"DatabaseBackupProvenance"> | string
+    instanceId?: StringFilter<"DatabaseBackupProvenance"> | string
+    environment?: StringFilter<"DatabaseBackupProvenance"> | string
+    bindingVersion?: IntFilter<"DatabaseBackupProvenance"> | number
+    snapshotId?: StringFilter<"DatabaseBackupProvenance"> | string
+    sourceName?: StringFilter<"DatabaseBackupProvenance"> | string
+    sourceUid?: StringFilter<"DatabaseBackupProvenance"> | string
+    backupName?: StringFilter<"DatabaseBackupProvenance"> | string
+    backupUid?: StringNullableFilter<"DatabaseBackupProvenance"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseBackupProvenance"> | Date | string
+  }
+
+  export type DatabaseInstanceCreateWithoutBackupProvenanceInput = {
+    id?: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
+    snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateWithoutBackupProvenanceInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceCreateOrConnectWithoutBackupProvenanceInput = {
+    where: DatabaseInstanceWhereUniqueInput
+    create: XOR<DatabaseInstanceCreateWithoutBackupProvenanceInput, DatabaseInstanceUncheckedCreateWithoutBackupProvenanceInput>
+  }
+
+  export type DatabaseInstanceUpsertWithoutBackupProvenanceInput = {
+    update: XOR<DatabaseInstanceUpdateWithoutBackupProvenanceInput, DatabaseInstanceUncheckedUpdateWithoutBackupProvenanceInput>
+    create: XOR<DatabaseInstanceCreateWithoutBackupProvenanceInput, DatabaseInstanceUncheckedCreateWithoutBackupProvenanceInput>
+    where?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseInstanceUpdateToOneWithWhereWithoutBackupProvenanceInput = {
+    where?: DatabaseInstanceWhereInput
+    data: XOR<DatabaseInstanceUpdateWithoutBackupProvenanceInput, DatabaseInstanceUncheckedUpdateWithoutBackupProvenanceInput>
+  }
+
+  export type DatabaseInstanceUpdateWithoutBackupProvenanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutBackupProvenanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
   export type DatabaseInstanceCreateWithoutSnapshotsInput = {
     id?: string
     organizationId: string
@@ -228882,6 +230744,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutSnapshotsInput = {
@@ -228900,6 +230763,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutSnapshotsInput = {
@@ -228934,6 +230798,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput = {
@@ -228952,6 +230817,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateWithoutRestoresInput = {
@@ -228970,6 +230836,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutRestoresInput = {
@@ -228988,6 +230855,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedCreateNestedManyWithoutInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutRestoresInput = {
@@ -229073,6 +230941,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutRestoresInput = {
@@ -229091,6 +230960,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseRestoreExecutionUpsertWithoutRestoreInput = {
@@ -234842,6 +236712,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutProjectInput = {
@@ -234860,6 +236731,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    backupProvenance?: DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateManyWithoutProjectInput = {
@@ -235834,6 +237706,21 @@ export namespace Prisma {
     completedAt?: Date | string | null
   }
 
+  export type DatabaseBackupProvenanceCreateManyInstanceInput = {
+    id?: string
+    nonce: string
+    projectId: string
+    organizationId: string
+    environment: string
+    bindingVersion: number
+    snapshotId: string
+    sourceName: string
+    sourceUid: string
+    backupName: string
+    backupUid?: string | null
+    createdAt?: Date | string
+  }
+
   export type DatabaseSnapshotUpdateWithoutDatabaseInstanceInput = {
     id?: StringFieldUpdateOperationsInput | string
     kind?: StringFieldUpdateOperationsInput | string
@@ -235906,6 +237793,51 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseBackupProvenanceUpdateWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    snapshotId?: StringFieldUpdateOperationsInput | string
+    sourceName?: StringFieldUpdateOperationsInput | string
+    sourceUid?: StringFieldUpdateOperationsInput | string
+    backupName?: StringFieldUpdateOperationsInput | string
+    backupUid?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseBackupProvenanceUncheckedUpdateWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    snapshotId?: StringFieldUpdateOperationsInput | string
+    sourceName?: StringFieldUpdateOperationsInput | string
+    sourceUid?: StringFieldUpdateOperationsInput | string
+    backupName?: StringFieldUpdateOperationsInput | string
+    backupUid?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseBackupProvenanceUncheckedUpdateManyWithoutInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    bindingVersion?: IntFieldUpdateOperationsInput | number
+    snapshotId?: StringFieldUpdateOperationsInput | string
+    sourceName?: StringFieldUpdateOperationsInput | string
+    sourceUid?: StringFieldUpdateOperationsInput | string
+    backupName?: StringFieldUpdateOperationsInput | string
+    backupUid?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ScheduledTaskRunCreateManyTaskInput = {
