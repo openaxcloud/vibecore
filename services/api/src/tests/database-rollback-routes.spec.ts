@@ -163,7 +163,7 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
     expect(snap.statusCode).toBe(404);
   });
 
-  it('provisions a (dormant) instance row, then takes a manual snapshot', async () => {
+  it('provisions a dormant instance but refuses unconfirmed manual backup creation', async () => {
     process.env.DB_ROLLBACK_ENABLED = 'true';
 
     const { app, store, project } = await setup();
@@ -182,9 +182,13 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
       headers: auth,
       payload: { label: 'before migration' },
     });
-    expect(snap.statusCode).toBe(202);
-    expect(snap.json().snapshot.kind).toBe('manual');
-    expect(await store.listDatabaseSnapshots(instance!.id)).toHaveLength(1);
+    expect(snap.statusCode).toBe(503);
+    expect(snap.json().code).toBe('BACKUP_REQUEST_UNCONFIRMED');
+
+    const requests = await store.listDatabaseSnapshots(instance!.id);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].id).toBe(snap.json().snapshotId);
+    expect(requests[0].kind).toBe('manual');
   });
 });
 

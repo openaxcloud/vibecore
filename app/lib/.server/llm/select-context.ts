@@ -2,7 +2,7 @@ import { generateText, type CoreTool, type GenerateTextResult, type Message } fr
 import ignore from 'ignore';
 import { IGNORE_PATTERNS, type FileMap } from './constants';
 import { removeUnsupportedModelSettings } from './model-compat';
-import { resolveUsableProvider } from './provider-credentials';
+import { resolveAuxiliaryProvider, type AuxiliaryProviderRoute } from './provider-credentials';
 import { createFilesContext, extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { IProviderSetting } from '~/types/model';
@@ -37,6 +37,7 @@ function isPathAllowed(relPath: string): boolean {
 
 export async function selectContext(props: {
   messages: Message[];
+  routing?: AuxiliaryProviderRoute;
   env?: Env;
   apiKeys?: Record<string, string>;
   files: FileMap;
@@ -86,9 +87,11 @@ export async function selectContext(props: {
   });
 
   // Fall back to a credentialed provider when the requested one has no key (avoids a fatal auth error).
-  const resolved = resolveUsableProvider({
+  const resolved = resolveAuxiliaryProvider({
+    routing: props.routing,
     requestedProvider: currentProvider,
     requestedModel: currentModel,
+    providerSettings,
     apiKeys,
     serverEnv: serverEnv as Record<string, string> | undefined,
   });

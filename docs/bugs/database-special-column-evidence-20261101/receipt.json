@@ -1,0 +1,25 @@
+{
+  "scope": "Installed pg Result parser, no database/network/service; proposed mapping only, no checkout changes",
+  "installedVersion": "8.20.0",
+  "text": {
+    "oldOwnProto": false,
+    "oldSerialized": "{\"constructor\":\"own constructor\",\"amount\":\"900719925474099312345.000001\"}",
+    "fixedSerialized": "{\"__proto__\":\"own proto\",\"constructor\":\"own constructor\",\"amount\":\"900719925474099312345.000001\"}"
+  },
+  "json": {
+    "oldOwnProto": false,
+    "oldInheritedSyntheticMarker": "inherited by old parser",
+    "fixedOwnProto": true,
+    "globalPrototypeUnaffected": true
+  },
+  "checks": [
+    "text special names and precision",
+    "JSON value changes old row prototype, not global Object.prototype",
+    "NULL value preserved by mapping",
+    "serializeDbRows bigint contract",
+    "batch selects final statement",
+    "INSERT affected count",
+    "empty batch"
+  ],
+  "pass": true
+}

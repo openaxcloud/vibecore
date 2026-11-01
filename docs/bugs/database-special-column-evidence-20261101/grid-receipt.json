@@ -1,0 +1,85 @@
+{
+  "table": "browser_a_bf71ecb4e42d4709968acff90b708119",
+  "scope": "Real local compiled web + API + PostgreSQL; one owned synthetic table, no production",
+  "cases": [
+    {
+      "width": 390,
+      "pass": true,
+      "errors": [],
+      "reads": [
+        [
+          "own proto",
+          "own constructor",
+          "own prototype",
+          "900719925474099312345.000001",
+          "false",
+          "{\"synthetic\":\"own JSON\"}",
+          "∅"
+        ],
+        [
+          "own proto",
+          "own constructor",
+          "own prototype",
+          "900719925474099312345.000001",
+          "false",
+          "{\"synthetic\":\"own JSON\"}",
+          "∅"
+        ]
+      ],
+      "reload": true
+    },
+    {
+      "width": 768,
+      "pass": true,
+      "errors": [],
+      "reads": [
+        [
+          "own proto",
+          "own constructor",
+          "own prototype",
+          "900719925474099312345.000001",
+          "false",
+          "{\"synthetic\":\"own JSON\"}",
+          "∅"
+        ],
+        [
+          "own proto",
+          "own constructor",
+          "own prototype",
+          "900719925474099312345.000001",
+          "false",
+          "{\"synthetic\":\"own JSON\"}",
+          "∅"
+        ]
+      ],
+      "reload": true
+    },
+    {
+      "width": 1440,
+      "pass": true,
+      "errors": [],
+      "reads": [
+        [
+          "own proto",
+          "own constructor",
+          "own prototype",
+          "900719925474099312345.000001",
+          "false",
+          "{\"synthetic\":\"own JSON\"}",
+          "∅"
+        ],
+        [
+          "own proto",
+          "own constructor",
+          "own prototype",
+          "900719925474099312345.000001",
+          "false",
+          "{\"synthetic\":\"own JSON\"}",
+          "∅"
+        ]
+      ],
+      "reload": true
+    }
+  ],
+  "limitations": []
+}

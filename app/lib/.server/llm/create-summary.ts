@@ -1,6 +1,6 @@
 import { generateText, type CoreTool, type GenerateTextResult, type Message } from 'ai';
 import { removeUnsupportedModelSettings } from './model-compat';
-import { resolveUsableProvider } from './provider-credentials';
+import { resolveAuxiliaryProvider, type AuxiliaryProviderRoute } from './provider-credentials';
 import { extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { IProviderSetting } from '~/types/model';
@@ -11,6 +11,7 @@ const logger = createScopedLogger('create-summary');
 
 export async function createSummary(props: {
   messages: Message[];
+  routing?: AuxiliaryProviderRoute;
   env?: Env;
   apiKeys?: Record<string, string>;
   providerSettings?: Record<string, IProviderSetting>;
@@ -62,9 +63,11 @@ export async function createSummary(props: {
   });
 
   // Fall back to a credentialed provider when the requested one has no key (avoids a fatal auth error).
-  const resolved = resolveUsableProvider({
+  const resolved = resolveAuxiliaryProvider({
+    routing: props.routing,
     requestedProvider: currentProvider,
     requestedModel: currentModel,
+    providerSettings,
     apiKeys,
     serverEnv: serverEnv as Record<string, string> | undefined,
   });

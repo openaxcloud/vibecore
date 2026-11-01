@@ -376,7 +376,9 @@ jobs:
     # coureur tuait le job AVANT ses propres horloges — et un job tué n'écrit
     # aucun rapport, donc la production restait dans un état qu'on ne pouvait pas
     # lire. Épinglé par tests/guards/budget-drain-deploiement.spec.ts.
-    timeout-minutes: 130
+    # The additional stage may spend 25m upgrading plus 25m in Helm's atomic
+    # rollback. Its 55m envelope leaves the original 130m budget intact.
+    timeout-minutes: 185
     permissions:
       contents: read
       id-token: write # the ONLY job that can exchange a WIF token
@@ -1579,10 +1581,23 @@ jobs:
       # including services this run did not rebuild, whose current digest is carried
       # forward. imageTag is re-asserted alongside purely as human-readable
       # provenance; the chart ignores it whenever a digest is present.
+      # The previous revision above is captured ONCE, before either upgrade.
+      # The migration hook uses the scanned/signed new API digest, while API and
+      # all other service templates remain unchanged until the manager is ready.
+      - name: Migrate and prepare manager before API
+        timeout-minutes: 55
+        env:
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+          INITIAL_REVISION: ${{ steps.prevrev.outputs.revision }}
+        run: node infra/helm/stage-manager-before-api.bundle.mjs
+
       - name: Helm upgrade (all services pinned by digest)
         run: |
           set -euo pipefail
           SETS=( --set "platformEnv.runtime.previewUrlTemplate=https://{workspaceId}-{port}.preview.e-code.ai/" )
+          # Clear the preparatory hook override: this and later upgrades migrate
+          # with the selected API image again, never a stale intermediate digest.
+          SETS+=( --set-string "migrations.imageDigest=" )
           # D2 (approved 2026-07-17): re-assert the digest-rollback flag on EVERY
           # upgrade (configmap value that --reuse-values would otherwise freeze
           # at whatever the release stored). Belt on top of the chart default
@@ -2191,7 +2206,7 @@ jobs:
       # production on a rollout we just declared unverifiable, and merely going red, is
       # the wrong default: the previous revision was verified, this one is not.
       - name: Roll back to the previous revision (post-check failure)
-        if: failure() && env.UPGRADE_APPLIED == '1' && steps.prevrev.outputs.revision != ''
+        if: failure() && (env.UPGRADE_APPLIED == '1' || env.STAGED_UPGRADE_STARTED == '1') && steps.prevrev.outputs.revision != ''
         env:
           PREV_REVISION: ${{ steps.prevrev.outputs.revision }}
         run: |
@@ -2224,7 +2239,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: rollout-status-${{ needs.resolve-target.outputs.short_sha }}
-          path: ${{ runner.temp }}/rollout-status.jsonl
+          path: |
+            ${{ runner.temp }}/rollout-status.jsonl
+            ${{ runner.temp }}/manager-stage.json
           if-no-files-found: warn
 
       - name: Upload release manifest and SBOMs

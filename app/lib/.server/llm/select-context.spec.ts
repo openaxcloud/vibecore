@@ -8,7 +8,7 @@ vi.mock('ai', () => ({ generateText: (...args: unknown[]) => generateTextMock(..
 
 vi.mock('./model-compat', () => ({ removeUnsupportedModelSettings: (m: unknown) => m }));
 vi.mock('./provider-credentials', () => ({
-  resolveUsableProvider: () => ({
+  resolveAuxiliaryProvider: () => ({
     provider: {
       name: 'FakeProvider',
       staticModels: [{ name: 'fake-model', provider: 'FakeProvider', maxTokenAllowed: 4000 }],

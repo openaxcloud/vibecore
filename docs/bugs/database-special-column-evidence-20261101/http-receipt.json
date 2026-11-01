@@ -1,0 +1,53 @@
+{
+  "realHttp": true,
+  "realPostgres": true,
+  "authMetadata": "synthetic TestApiStore",
+  "production": false,
+  "cases": [
+    {
+      "kind": "string",
+      "status": 200,
+      "passed": true,
+      "columns": [
+        "__proto__",
+        "constructor",
+        "prototype",
+        "amount",
+        "big",
+        "enabled",
+        "numbers",
+        "at"
+      ]
+    },
+    {
+      "kind": "object",
+      "status": 200,
+      "passed": true,
+      "columns": [
+        "__proto__",
+        "constructor",
+        "prototype",
+        "amount",
+        "big",
+        "enabled",
+        "numbers",
+        "at"
+      ]
+    },
+    {
+      "kind": "null",
+      "status": 200,
+      "passed": true,
+      "columns": [
+        "__proto__",
+        "constructor",
+        "prototype",
+        "amount",
+        "big",
+        "enabled",
+        "numbers",
+        "at"
+      ]
+    }
+  ]
+}

@@ -105,6 +105,130 @@ run('participating restore consumer — real dedicated PostgreSQL, no physical r
     expect((await c.query('SELECT 1 AS value')).rows).toEqual([{ value: 1 }]);
   });
 
+  it('fences a live participant only after all real queries drain, then requires revalidation', async () => {
+    const c = await consumer();
+    await c.quiesce(attempt);
+    await c.verify(input());
+    await c.release(attempt, binding);
+    const next = { ...attempt, attemptToken: randomUUID() };
+    const lock = Math.floor(Math.random() * 1e9);
+    await admin.query('SELECT pg_advisory_lock($1)', [lock]);
+    const queries = Promise.all(Array.from({ length: 3 }, () => c.query('SELECT pg_advisory_xact_lock($1)', [lock])));
+    let adopted = false;
+    const handoff = c.fenceAndAdopt(attempt, next);
+    void handoff.then(() => {
+      adopted = true;
+    });
+    expect(c.fenceAndAdopt(attempt, next)).toBe(handoff);
+    try {
+      await expect(c.query('SELECT 1')).rejects.toMatchObject({ code: 'RESTORE_APPLICATION_QUIESCED' });
+      await admin.query('SELECT 1');
+      expect(adopted).toBe(false);
+      await expect(c.fenceAndAdopt(attempt, { ...next, attemptToken: randomUUID() })).rejects.toMatchObject({
+        code: 'RESTORE_CONSUMER_ATTEMPT_MISMATCH',
+      });
+    } finally {
+      await admin.query('SELECT pg_advisory_unlock($1)', [lock]);
+    }
+    await queries;
+    await handoff;
+    await expect(c.release(attempt, binding)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_ATTEMPT_MISMATCH' });
+    await expect(c.release(next, binding)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_BINDING_MISMATCH' });
+    await c.reconnectVerified({ ...input(), ...next });
+    await c.release(next, binding);
+    await c.fenceAndAdopt(attempt, next); // Lost acknowledgement: no re-pause or reopening.
+    expect((await c.query(`SELECT value FROM "${table}"`)).rows).toEqual(rows);
+    const third = { ...attempt, attemptToken: randomUUID() };
+    await c.fenceAndAdopt(next, third);
+    await expect(c.fenceAndAdopt(attempt, next)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_ATTEMPT_MISMATCH' });
+    await expect(c.fenceAndAdopt(third, attempt)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_ATTEMPT_MISMATCH' });
+    await c.reconnectVerified({ ...input(), ...third });
+    await c.release(third, binding);
+  });
+
+  it('invalidates a queued release and a queued verification before adopting the next attempt', async () => {
+    const c = await consumer();
+    await c.quiesce(attempt);
+    await c.verify(input());
+    const release = c.release(attempt, binding).catch((error) => error);
+    const next = { ...attempt, attemptToken: randomUUID() };
+    await c.fenceAndAdopt(attempt, next);
+    expect(await release).toMatchObject({ code: 'RESTORE_CONSUMER_ADMISSION_CHANGED' });
+    await expect(c.query('SELECT 1')).rejects.toMatchObject({ code: 'RESTORE_APPLICATION_QUIESCED' });
+    // The prior verification had not yet been released: reconnect still uses its verified version.
+    await c.reconnectVerified({ ...input(), ...next });
+    await c.release(next, binding);
+
+    const other = await consumer();
+    await other.quiesce(attempt);
+    const verification = other.verify(input()).catch((error) => error);
+    await other.fenceAndAdopt(attempt, next);
+    expect(await verification).toMatchObject({ code: 'RESTORE_CONSUMER_ADMISSION_CHANGED' });
+    await other.verify({ ...input(), ...next });
+    await other.release(next, binding);
+  });
+
+  it('invalidates an in-flight verification and waits for its replacement pool to close', async () => {
+    const c = await consumer();
+    await c.quiesce(attempt);
+    const marker = randomUUID();
+    await admin.query('BEGIN');
+    await admin.query(`LOCK TABLE "${table}" IN ACCESS EXCLUSIVE MODE`);
+    const verification = c
+      .verify({ ...input(), readback: { text: `${input().readback.text} /* ${marker} */` } })
+      .catch((error) => error);
+    let handoff: Promise<void> | undefined;
+    let adopted = false;
+    const next = { ...attempt, attemptToken: randomUUID() };
+    try {
+      let blocked = false;
+      for (let i = 0; i < 100; i++) {
+        // pg_stat_activity snapshots are cached within this lock-holding transaction.
+        await admin.query('SELECT pg_stat_clear_snapshot()');
+        const result = await admin.query(
+          `SELECT count(*)::int AS count FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND query LIKE $1 AND wait_event_type = 'Lock'`,
+          [`%${marker}%`],
+        );
+        if (result.rows[0].count > 0) {
+          blocked = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      expect(blocked).toBe(true);
+      handoff = c.fenceAndAdopt(attempt, next).then(() => {
+        adopted = true;
+      });
+      await admin.query('SELECT 1');
+      expect(adopted).toBe(false);
+    } finally {
+      await admin.query('COMMIT');
+    }
+    expect(await verification).toMatchObject({ code: 'RESTORE_CONSUMER_ADMISSION_CHANGED' });
+    await handoff;
+    await expect(c.query('SELECT 1')).rejects.toMatchObject({ code: 'RESTORE_APPLICATION_QUIESCED' });
+    await c.verify({ ...input(), ...next });
+    await c.release(next, binding);
+  });
+
+  it('requires exact operation/previous owner and refuses adoption after permanent closure', async () => {
+    const c = await consumer();
+    await c.quiesce(attempt);
+    const next = { ...attempt, attemptToken: randomUUID() };
+    for (const [previous, successor] of [
+      [{ ...attempt, attemptToken: 'stale' }, next],
+      [attempt, { ...next, operationId: randomUUID() }],
+      [attempt, attempt],
+      [attempt, { ...next, attemptToken: '' }],
+    ]) {
+      await expect(c.fenceAndAdopt(previous, successor)).rejects.toMatchObject({
+        code: 'RESTORE_CONSUMER_ATTEMPT_MISMATCH',
+      });
+    }
+    await c.close();
+    await expect(c.fenceAndAdopt(attempt, next)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_ATTEMPT_MISMATCH' });
+  });
+
   it.each(['hash', 'identity', 'version', 'connection', 'write'] as const)(
     'fails closed for %s without releasing the application',
     async (kind) => {

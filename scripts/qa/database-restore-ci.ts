@@ -21,6 +21,10 @@ const apiRoot = resolve(root, 'services/api');
 export const requiredSpecs = [
   'src/tests/database-restore-repository.spec.ts',
   'src/tests/database-provisioning-transfer.prisma.spec.ts',
+  'src/tests/database-restore-consumer.spec.ts',
+  'src/tests/database-restore-distributed.spec.ts',
+  'src/tests/database-backup-provenance.spec.ts',
+  'src/tests/database-backup-workflows.spec.ts',
 ] as const;
 
 /** Pure preflight; callers must run it before constructing a database client. */
@@ -44,8 +48,10 @@ function safeTestName(value: unknown): string {
     return '(unnamed test)';
   }
 
-  // Test names normally come from static source. Avoid emitting future dynamic
-  // credentials even when somebody adds them to a test title.
+  /*
+   * Test names normally come from static source. Avoid emitting future dynamic
+   * credentials even when somebody adds them to a test title.
+   */
   if (/[\w+.-]+:\/\/|\b(?:password|secret|token)\s*[:=]/i.test(value)) {
     return '(test name redacted)';
   }
@@ -56,11 +62,13 @@ function safeTestName(value: unknown): string {
 export function summarizeCiTestReport(value: unknown) {
   const report = record(value);
   const results = Array.isArray(report.testResults) ? report.testResults.map(record) : [];
+
   const files = requiredSpecs.map((file) => {
     const matches = results.filter((result) => result.name === resolve(apiRoot, file));
     const result = matches[0] ?? {};
     const assertions = Array.isArray(result.assertionResults) ? result.assertionResults.map(record) : [];
     const passed = assertions.filter((assertion) => assertion.status === 'passed').length;
+
     const failedTests = assertions
       .filter((assertion) => assertion.status !== 'passed')
       .map((assertion) => ({ name: safeTestName(assertion.fullName), status: safeTestName(assertion.status) }));
@@ -76,7 +84,9 @@ export function summarizeCiTestReport(value: unknown) {
         matches.length === 1 && result.status === 'passed' && assertions.length > 0 && passed === assertions.length,
     };
   });
+
   const total = files.reduce((sum, file) => sum + file.tests, 0);
+
   const valid =
     report.success === true &&
     results.length === requiredSpecs.length &&
@@ -106,10 +116,14 @@ function runChild(args: string[], cwd: string, env: NodeJS.ProcessEnv, signal: A
   signal.throwIfAborted();
 
   return new Promise<boolean>((done) => {
-    // Linux CI: the private process group includes any workers. No inherited
-    // stdout/stderr and no shell interpolation of credentials or SQL.
+    /*
+     * Linux CI: the private process group includes any workers. No inherited
+     * stdout/stderr and no shell interpolation of credentials or SQL.
+     */
     const child = spawn(process.execPath, args, { cwd, env, stdio: 'ignore', detached: true });
+
     let stopped = false;
+
     const stop = () => {
       stopped = true;
 
@@ -121,6 +135,7 @@ function runChild(args: string[], cwd: string, env: NodeJS.ProcessEnv, signal: A
         }
       }
     };
+
     const timeout = setTimeout(stop, timeoutMs);
     signal.addEventListener('abort', stop, { once: true });
 
@@ -153,10 +168,12 @@ async function main() {
   let identity: DatabaseIdentity | undefined;
   let cleanup = 'not-created';
   let passed = false;
+
   const abort = new AbortController();
   const cancel = () => abort.abort();
   process.once('SIGINT', cancel);
   process.once('SIGTERM', cancel);
+
   const suffix = randomBytes(16).toString('hex');
   const database = `vibecore_restore_ci_${suffix}`;
   const marker = `restore-ci-${suffix}`;
@@ -184,9 +201,11 @@ async function main() {
       query_timeout: 20_000,
       application_name: 'vibecore-restore-ci',
     });
+
     // pg may emit errors outside a pending query; never print their raw text.
     client.on('error', cancel);
     await client.connect();
+
     const server = await client.query<{
       database: string;
       role: string;
@@ -196,6 +215,7 @@ async function main() {
       `SELECT current_database() AS database, current_user AS role,
        current_setting('server_version_num')::int AS version, pg_is_in_recovery() AS recovery`,
     );
+
     const current = server.rows[0];
 
     if (
@@ -221,6 +241,7 @@ async function main() {
     await client.query(`CREATE DATABASE "${database}" OWNER vibecore TEMPLATE template0`);
     created = true;
     cleanup = 'identity-not-attested';
+
     const createdIdentity = await client.query<DatabaseIdentity>(
       `SELECT oid::text AS oid, pg_get_userbyid(datdba) AS owner,
        shobj_description(oid, 'pg_database') AS marker FROM pg_database WHERE datname = $1`,
@@ -236,6 +257,7 @@ async function main() {
     await client.query(`COMMENT ON DATABASE "${database}" IS '${marker}'`);
     directory = await mkdtemp(resolve(tmpdir(), 'vibecore-restore-ci-'));
     target.pathname = `/${database}`;
+
     const env: NodeJS.ProcessEnv = {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
@@ -262,7 +284,9 @@ async function main() {
 
     stage = 'postgresql-regressions';
     log(stage, { files: requiredSpecs });
+
     const reportFile = resolve(directory, 'vitest.json');
+
     const testsPassed = await runChild(
       [
         resolve(root, 'node_modules/vitest/vitest.mjs'),
@@ -282,6 +306,7 @@ async function main() {
       abort.signal,
       540_000,
     );
+
     const report = summarizeCiTestReport(JSON.parse(await readFile(reportFile, 'utf8')));
     log(stage, { processPassed: testsPassed, ...report });
 
@@ -302,6 +327,7 @@ async function main() {
            shobj_description(oid, 'pg_database') AS marker FROM pg_database WHERE datname = $1`,
           [database],
         );
+
         const owned = result.rows[0];
 
         if (
@@ -314,6 +340,7 @@ async function main() {
         }
 
         await client.query(`DROP DATABASE "${database}" WITH (FORCE)`);
+
         const remaining = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [database]);
 
         if (remaining.rows.length !== 0) {
