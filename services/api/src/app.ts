@@ -30475,8 +30475,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(201).send({ toolMessage, toolCall, output: result.output, snapshotId: result.snapshotId });
   });
   app.get('/ai/usage', async (request) => {
-    const organization = await requireAnyOrgPermission(request, store, 'usage:read');
-
     /*
      * Bound this to a window (default: last 30 days, overridable via from/to) so
      * it can't load the org's entire — fastest-growing — AI cost ledger into
@@ -30487,13 +30485,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * `new Date('garbage')` — matching the sibling /orgs/:orgId/ai/cost-summary.
      */
     const query = parse(
-      z.object({ from: z.string().datetime().optional(), to: z.string().datetime().optional() }),
+      z.object({
+        organizationId: z.string().min(1).optional(),
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
+      }),
       request.query ?? {},
     );
 
+    const organizationId = query.organizationId ?? (await requireAnyOrgPermission(request, store, 'usage:read')).id;
+
+    if (query.organizationId) {
+      await requireOrg(request, store, organizationId, 'usage:read');
+    }
+
     const from = query.from ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    return { usage: await store.listAiCosts(organization.id, { from, to: query.to }) };
+    return { usage: await store.listAiCosts(organizationId, { from, to: query.to }) };
   });
 
   /*

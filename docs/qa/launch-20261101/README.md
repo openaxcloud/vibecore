@@ -40,7 +40,11 @@ The observed usage panel zero was also reproduced from the API contract:
 defaulted missing values to zero. The UI now converts explicit cents, preserves
 explicit zero and marks missing/partial estimates unavailable. Its label states
 organization-wide usage for the last 30 days, distinct from a project quota or
-provider invoice. No amount is inferred from the user-reported token counts.
+provider invoice. No amount is inferred from the user-reported token counts. The settings loader now
+selects the project organization explicitly for both usage and billing; the API
+checks that organization’s usage permission. Six prior-failing scope cases are
+covered by the final 9 API and 53 panel tests, documented in
+[the cost report](../ai-usage-cost-units-20261101.md).
 
 ## Restore reproduction and provenance
 

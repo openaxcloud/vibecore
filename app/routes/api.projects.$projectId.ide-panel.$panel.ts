@@ -1250,6 +1250,8 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'settings') {
     try {
+      const projectOrgId = (project.project as any)?.organizationId;
+
       const [settings, account, sessions, envVars, secrets, aiUsage, organizations] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/settings`),
         apiRequest(request, '/auth/me').catch((error) => ({ error: panelErrorMessage(error, language) })),
@@ -1259,22 +1261,20 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         })),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/secrets`),
-        apiRequest(request, '/ai/usage').catch((error) => ({
-          error: panelErrorMessage(error, language),
-          usage: [],
-        })),
+        projectOrgId
+          ? apiRequest(request, `/ai/usage?organizationId=${encodeURIComponent(projectOrgId)}`).catch((error) => ({
+              error: panelErrorMessage(error, language),
+              usage: [],
+            }))
+          : { error: copy['apiRuntime.panel.billingOrganizationMissing'], usage: [] },
         apiRequest(request, '/orgs').catch((error) => ({
           error: panelErrorMessage(error, language),
           organizations: [],
         })),
       ]);
 
-      const orgs = (organizations as any)?.organizations ?? [];
-      const projectOrgId = (project.project as any)?.organizationId;
-      const billingOrg = orgs.find((o: any) => o?.id === projectOrgId) ?? orgs[0];
-
-      const billing = billingOrg?.id
-        ? await apiRequest(request, `/orgs/${billingOrg.id}/billing`).catch((error) => ({
+      const billing = projectOrgId
+        ? await apiRequest(request, `/orgs/${encodeURIComponent(projectOrgId)}/billing`).catch((error) => ({
             error: panelErrorMessage(error, language),
           }))
         : { error: copy['apiRuntime.panel.billingOrganizationMissing'] };

@@ -23,3 +23,22 @@ réussis. Formatage de BaseChat vérifié sans réécriture générale. Aucun ch
 backend, paiement, prix ni crédit. La recette navigateur/production demeure à
 effectuer après livraison ; ceci constitue une correction locale du contrat
 d'affichage, pas une preuve de facturation fournisseur.
+
+
+## Complément de revue : organisation explicite
+
+La revue a également trouvé une divergence de périmètre : `/ai/usage` choisissait
+la première organisation accessible, alors que le panneau appartient à un projet
+potentiellement situé dans une autre organisation. Le loader transmet désormais
+l'identifiant d'organisation du projet, et l'API accepte ce filtre uniquement
+après `requireOrg(..., 'usage:read')`. Une organisation explicitement interdite
+ne déclenche aucun repli. Les appels historiques sans filtre restent compatibles.
+Le billing du panneau utilise le même identifiant projet sans fallback vers
+`orgs[0]` ; si cet identifiant manque, aucune requête de coût/billing n'est envoyée.
+
+Contre-épreuves : quatre tests API et deux tests du loader échouaient avant
+correction. Après correction : neuf tests API (quatre de portée et cinq de
+provenance) réussis ; 53 tests des quatre suites ide-panel contenant settings
+réussis. Typage API complet réussi, lint loader/tests sans erreur (un avertissement
+préexistant dans le loader). Le formatage global historique de `app.ts` comporte
+des divergences ; aucune réécriture hors de la route `/ai/usage` n'est incluse.
