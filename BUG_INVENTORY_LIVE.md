@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-616 entrées.
+617 entrées.
 
 ## Sans section
 
@@ -867,6 +867,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Interface et navigation
 
 - [BUG-PROJECTS-INITIAL-SEARCH-EFFECT-20261101](docs/bugs/BUG-PROJECTS-INITIAL-SEARCH-EFFECT-20261101.md) — 📤 Dispatché : ☑ 01/11 — analyser l’échec unitaire sur main `7ecd1d85`, run `41339721137`, · 💻 Codé : ☑ — correction locale préparée : mémoriser l’identité de localisation déjà consommée · ✅ Testé live : ☐ — aucune recette navigateur en production ; validations locales jsdom seulement.
+
+## Déploiement et sécurité
+
+- [BUG-MANAGER-TERMINAL-PODS-READINESS-20261101](docs/bugs/BUG-MANAGER-TERMINAL-PODS-READINESS-20261101.md) — 📤 Dispatché : ☑ 01/11 — analyser le refus `STAGED_MANAGER_MANAGER_POD_COUNT` du déploiement · 💻 Codé : ☑ — correctif local préparé, pas encore livré. Exclure uniquement les pods · ✅ Testé live : ☐ — aucune mutation cluster ni recette production effectuée pour ce correctif.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

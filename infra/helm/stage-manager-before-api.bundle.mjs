@@ -7499,20 +7499,68 @@ function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, migrationI
     fail(`UNRELATED_RESOURCE_CHANGED ${JSON.stringify({ changes, truncated })}`);
   }
 }
+function terminalManagerPod(pod) {
+  const status = pod.status;
+  const terminated = (container) => container?.state?.terminated && typeof container.state.terminated === "object" && Number.isInteger(container.state.terminated.exitCode) && !container.state.running && !container.state.waiting;
+  return ["Failed", "Succeeded"].includes(status?.phase) && Array.isArray(status.conditions) && status.conditions.some((condition) => condition.type === "Ready" && condition.status === "False") && !status.conditions.some((condition) => condition.type === "Ready" && condition.status === "True") && Array.isArray(status.containerStatuses) && status.containerStatuses.length > 0 && status.containerStatuses.length === pod.spec?.containers?.length && status.containerStatuses.every((container) => container.ready === false && terminated(container)) && [status.initContainerStatuses, status.ephemeralContainerStatuses].every(
+    (containers) => containers === void 0 || Array.isArray(containers) && containers.every(terminated)
+  );
+}
+function managerReadinessDiagnostic(deployment, pods, expectedDigest) {
+  const items = Array.isArray(pods?.items) ? pods.items : [];
+  const identity = (value) => typeof value === "string" && value.length <= 253 && /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(value) ? value : null;
+  const uid = (value) => typeof value === "string" && /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(value) ? value : null;
+  const count = (value) => Number.isSafeInteger(value) && value >= 0 ? value : null;
+  const ready = (pod) => Array.isArray(pod.status?.conditions) && pod.status.conditions.some((condition) => condition.type === "Ready" && condition.status === "True");
+  const terminal = items.filter(terminalManagerPod).length;
+  return {
+    expected: count(deployment.spec?.replicas ?? 1),
+    observed: items.length - terminal,
+    total: items.length,
+    terminal,
+    deleting: items.filter((pod) => Boolean(pod.metadata?.deletionTimestamp)).length,
+    ready: items.filter(ready).length,
+    generation: count(deployment.metadata?.generation),
+    observedGeneration: count(deployment.status?.observedGeneration),
+    updatedReplicas: count(deployment.status?.updatedReplicas),
+    readyReplicas: count(deployment.status?.readyReplicas),
+    availableReplicas: count(deployment.status?.availableReplicas),
+    truncated: items.length > 16,
+    pods: items.slice(0, 16).map((pod) => ({
+      name: identity(pod.metadata?.name),
+      uid: uid(pod.metadata?.uid),
+      phase: ["Pending", "Running", "Succeeded", "Failed", "Unknown"].includes(pod.status?.phase) ? pod.status.phase : "Unknown",
+      deleting: Boolean(pod.metadata?.deletionTimestamp),
+      ready: ready(pod),
+      terminal: terminalManagerPod(pod),
+      targetDigestMatch: Array.isArray(pod.status?.containerStatuses) && pod.status.containerStatuses.length === 1 && pod.status.containerStatuses[0].imageID?.match(/(?:^|@|:\/\/)(sha256:[a-f0-9]{64})$/)?.[1] === expectedDigest,
+      owners: (Array.isArray(pod.metadata?.ownerReferences) ? pod.metadata.ownerReferences : []).slice(0, 2).map((owner) => ({
+        kind: owner.kind === "ReplicaSet" ? "ReplicaSet" : "Other",
+        name: identity(owner.name),
+        uid: uid(owner.uid),
+        controller: owner.controller === true
+      }))
+    }))
+  };
+}
 function assertManagerReady(deployment, pods, expectedImage, expectedDigest) {
   const desired = deployment.spec.replicas ?? 1;
   const status = deployment.status ?? {};
+  const reject = (code) => fail(`${code} ${JSON.stringify(managerReadinessDiagnostic(deployment, pods, expectedDigest))}`);
   if (!Number.isInteger(desired) || desired < 1 || !Number.isInteger(deployment.metadata.generation) || deployment.metadata.generation < 1 || !Number.isInteger(status.observedGeneration) || status.observedGeneration < deployment.metadata.generation || status.updatedReplicas !== desired || status.readyReplicas !== desired || status.availableReplicas !== desired || deployment.spec.template.spec.containers.length !== 1 || deployment.spec.template.spec.containers[0].image !== expectedImage) {
-    fail("MANAGER_NOT_READY");
+    reject("MANAGER_NOT_READY");
   }
-  const active = pods.items.filter((pod) => !pod.metadata.deletionTimestamp);
+  if (!Array.isArray(pods?.items)) {
+    reject("MANAGER_PODS_INVALID");
+  }
+  const active = pods.items.filter((pod) => !terminalManagerPod(pod));
   if (active.length !== desired) {
-    fail("MANAGER_POD_COUNT");
+    reject("MANAGER_POD_COUNT");
   }
   for (const pod of active) {
     const container = pod.status?.containerStatuses;
-    if (pod.spec.containers.length !== 1 || pod.spec.containers[0].image !== expectedImage || container?.length !== 1 || container[0].ready !== true || container[0].imageID?.match(/(?:^|@|:\/\/)(sha256:[a-f0-9]{64})$/)?.[1] !== expectedDigest || !pod.status.conditions?.some((condition) => condition.type === "Ready" && condition.status === "True")) {
-      fail("MANAGER_POD_UNVERIFIED");
+    if (pod.status?.phase !== "Running" || Boolean(pod.metadata?.deletionTimestamp) || pod.spec.containers.length !== 1 || pod.spec.containers[0].image !== expectedImage || container?.length !== 1 || container[0].ready !== true || !container[0].state?.running || typeof container[0].state.running !== "object" || Boolean(container[0].state.terminated || container[0].state.waiting) || container[0].imageID?.match(/(?:^|@|:\/\/)(sha256:[a-f0-9]{64})$/)?.[1] !== expectedDigest || !pod.status.conditions?.some((condition) => condition.type === "Ready" && condition.status === "True")) {
+      reject("MANAGER_POD_UNVERIFIED");
     }
   }
 }
@@ -7527,10 +7575,81 @@ function assertMigrationComplete(job, expectedName, expectedImage) {
     complete: true
   };
 }
+function waitForManagerReady({ command, namespace, release, managerName, image, digest, now, pause }) {
+  const deadline = now() + 22 * 60 * 1e3;
+  command("kubectl", ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"], {
+    timeout: 22 * 60 * 1e3
+  });
+  let lastDiagnostic = null;
+  let observations = 0;
+  const remaining = () => {
+    const left = deadline - now();
+    if (left <= 0) {
+      fail(`MANAGER_READINESS_TIMEOUT ${JSON.stringify({ lastObservation: lastDiagnostic })}`);
+    }
+    return left;
+  };
+  while (true) {
+    const deployment = JSON.parse(
+      command(
+        "kubectl",
+        [
+          "-n",
+          namespace,
+          "get",
+          "deployment",
+          managerName,
+          "-o",
+          "json",
+          `--request-timeout=${Math.ceil(remaining())}ms`
+        ],
+        { timeout: Math.ceil(remaining()) }
+      )
+    );
+    const pods = JSON.parse(
+      command(
+        "kubectl",
+        [
+          "-n",
+          namespace,
+          "get",
+          "pods",
+          "-l",
+          `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
+          "-o",
+          "json",
+          `--request-timeout=${Math.ceil(remaining())}ms`
+        ],
+        { timeout: Math.ceil(remaining()) }
+      )
+    );
+    remaining();
+    observations++;
+    try {
+      assertManagerReady(deployment, pods, image, digest);
+      const diagnostic = managerReadinessDiagnostic(deployment, pods, digest);
+      return {
+        desired: diagnostic.expected,
+        active: diagnostic.observed,
+        terminalExcluded: diagnostic.terminal,
+        observations
+      };
+    } catch (error) {
+      if (!/^STAGED_MANAGER_MANAGER_(?:NOT_READY|POD_COUNT|POD_UNVERIFIED) /.test(error.message)) {
+        throw error;
+      }
+      lastDiagnostic = managerReadinessDiagnostic(deployment, pods, digest);
+    }
+    pause(Math.min(1e3, remaining()));
+  }
+}
 function runStage({
   manifest,
   env = process.env,
-  command = (bin, args) => execFileSync(bin, args, {
+  now = () => performance.now(),
+  pause = (milliseconds) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds),
+  command = (bin, args, options = {}) => execFileSync(bin, args, {
+    timeout: options.timeout,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 32 * 1024 * 1024
@@ -7548,7 +7667,7 @@ function runStage({
   const image = `${registry}/workspace-manager@${plan.managerDigest}`;
   const before = command("helm", ["get", "manifest", release, "-n", namespace]) + "\n---\n" + command("helm", ["get", "hooks", release, "-n", namespace]);
   const oldApi = deployments(before).filter(
-    (deployment2) => deployment2.metadata.name === `${release}-vibecore-platform-api`
+    (deployment) => deployment.metadata.name === `${release}-vibecore-platform-api`
   );
   if (oldApi.length !== 1 || oldApi[0].spec.template.spec.containers.length !== 1 || !/@sha256:[a-f0-9]{64}$/.test(oldApi[0].spec.template.spec.containers[0].image)) {
     fail("OLD_API_NOT_PINNED");
@@ -7582,9 +7701,9 @@ function runStage({
   if (deployments(rendered).find((item) => item.metadata.name === managerName)?.spec.template.spec.containers[0].image !== image) {
     fail("REGISTRY_MISMATCH");
   }
-  for (const deployment2 of deployments(before)) {
+  for (const deployment of deployments(before)) {
     const live = JSON.parse(
-      command("kubectl", ["-n", namespace, "get", "deployment", deployment2.metadata.name, "-o", "json"])
+      command("kubectl", ["-n", namespace, "get", "deployment", deployment.metadata.name, "-o", "json"])
     );
     if (canonical(
       live.spec.template.spec.containers.map(({ name, image: image2 }) => ({
@@ -7592,7 +7711,7 @@ function runStage({
         image: image2
       }))
     ) !== canonical(
-      deployment2.spec.template.spec.containers.map(({ name, image: image2 }) => ({
+      deployment.spec.template.spec.containers.map(({ name, image: image2 }) => ({
         name,
         image: image2
       }))
@@ -7623,27 +7742,24 @@ function runStage({
   receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
   receipt.phase = "migration-job-verified";
   record();
-  command("kubectl", ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"]);
-  const deployment = JSON.parse(command("kubectl", ["-n", namespace, "get", "deployment", managerName, "-o", "json"]));
-  const pods = JSON.parse(
-    command("kubectl", [
-      "-n",
-      namespace,
-      "get",
-      "pods",
-      "-l",
-      `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
-      "-o",
-      "json"
-    ])
-  );
-  assertManagerReady(deployment, pods, image, plan.managerDigest);
+  receipt.managerReadiness = waitForManagerReady({
+    command,
+    namespace,
+    release,
+    managerName,
+    image,
+    digest: plan.managerDigest,
+    now,
+    pause
+  });
   receipt.phase = "manager-ready";
   record();
   return {
     migrationDigest: plan.migrationDigest,
     managerDigest: plan.managerDigest,
-    initialRevision: env.INITIAL_REVISION
+    initialRevision: env.INITIAL_REVISION,
+    managerReadiness: receipt.managerReadiness,
+    migrationJob: receipt.migrationJob
   };
 }
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
@@ -7666,5 +7782,6 @@ export {
   assertOnlyManagerChanges,
   renderedRelease,
   runStage,
-  stagePlan
+  stagePlan,
+  waitForManagerReady
 };
