@@ -1,8 +1,10 @@
 import { generateText } from 'ai';
 
 import { isProviderUsable, type LLMProvider } from './provider-credentials';
+import { createProviderHealthScope, type ProviderHealthScope } from './provider-health-scope';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { hasExhaustedProviderCredits, streamErrorCodeMessages } from '~/types/context';
+import type { IProviderSetting } from '~/types/model';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -29,29 +31,9 @@ const logger = createScopedLogger('provider-fallback');
  */
 
 /*
- * CE QUI PEUT ÉCARTER UN FOURNISSEUR POUR TOUT LE POD — ET CE QUI NE LE PEUT PAS.
- *
- * Décision du 2026-09-28 (Avi) : « un seul échec d'un seul utilisateur ne doit
- * pas pénaliser tous les autres ; la mise à l'écart est bornée à la requête ou à
- * l'utilisateur, jamais au processus entier ». Elle remplace celle du 2026-09-10,
- * qui faisait d'un tour « stérile » (zéro fichier en construction) un motif
- * d'écart global.
- *
- * Mesuré le 2026-09-28 en production (pod `web-…-klvwq`, projet
- * `cmukvgycf00cp0nf94j2l71js`) : une demande de plan « n'écris aucun fichier »
- * — une réponse PARFAITE à zéro fichier — a écarté Anthropic 300 s pour tous les
- * utilisateurs du pod, et la relance du même tour est partie sur `gpt-4.1`.
- *
- * La table de ce module est partagée par le processus. N'y entrent donc que les
- * signaux qui décrivent LE FOURNISSEUR, identiques pour tout le monde :
- *
- *   - la clé de la plateforme refusée ou à sec : `credit`, `auth`, `rate-limit` ;
- *   - le verdict de la SONDE d'un jeton (`ensureProviderProbed`), qui mesure le
- *     fournisseur lui-même et non le tour de quelqu'un.
- *
- * Un 5xx ou un délai pendant le tour d'UN utilisateur, et à plus forte raison un
- * tour qui n'écrit rien, décrivent CETTE requête : ils restent dans sa portée.
- * `sterile` n'existe donc plus comme motif de cette table.
+ * Health belongs to one effective credential/endpoint scope, not a provider name.
+ * A request may report credential failures only through the private scope supplied
+ * by its actual SDK invocation. Probe results use that same resolver and scope.
  */
 export type ProviderFailureKind = 'credit' | 'auth' | 'rate-limit' | 'server' | 'timeout';
 
@@ -60,7 +42,7 @@ const MOTIFS_DE_CLE: ReadonlySet<ProviderFailureKind> = new Set(['credit', 'auth
 
 /**
  * Vrai quand un échec survenu PENDANT le tour d'un utilisateur décrit la clé de
- * la plateforme, et peut donc écarter le fournisseur pour tout le pod.
+ * la plateforme, et peut donc écarter le fournisseur pour cette portée.
  */
 export function echecDeCle(kind: ProviderFailureKind | null | undefined): kind is ProviderFailureKind {
   return kind != null && MOTIFS_DE_CLE.has(kind);
@@ -103,35 +85,29 @@ export const PROVIDER_UNHEALTHY_TTL_MS = 5 * 60 * 1000;
  */
 export const PROVIDER_PROBE_TIMEOUT_MS = 6_000;
 
-/*
- * PORTÉE DE CETTE TABLE : UN POD, PAS LA PLATEFORME. À dire, parce que la lire
- * comme globale surestime ce que le repli garantit.
- *
- * Mesuré le 2026-09-10 : `services.web.replicas: 2` dans `values-prod.yaml`, et
- * cette `Map` vit dans la mémoire du processus. Un fournisseur écarté sur un pod
- * reste donc candidat sur l'autre : le tour suivant a environ une chance sur
- * deux de retomber sur un pod qui n'a rien appris, et de répéter l'échec une
- * fois avant de l'apprendre à son tour.
- *
- * Ce n'est pas un défaut introduit par un motif en particulier — les six le
- * partagent depuis l'origine — et la conséquence reste bornée : chaque pod
- * apprend indépendamment, et la fenêtre de TTL les fait converger. Le rendre
- * réellement global demanderait de porter la table dans Redis, ce qui est un
- * lot à part : une table partagée écarte un fournisseur pour TOUS les
- * utilisateurs d'un coup, et ce changement de rayon de souffle se décide, il ne
- * se glisse pas dans un correctif.
- */
+/* Per-process, opaque credential scopes. Entries expire and both caches are bounded. */
 const health = new Map<string, ProviderHealthEntry>();
+
+let healthEpoch = 0;
+
+const MAX_SCOPES = 512;
+
+function boundCache<T>(cache: Map<string, T>): void {
+  while (cache.size > MAX_SCOPES) {
+    cache.delete(cache.keys().next().value!);
+  }
+}
 
 /** Testable : remet la table de santé à zéro entre deux cas. */
 export function resetProviderHealth(): void {
   health.clear();
+  healthEpoch++;
 }
 
 export function markProviderUnhealthy(
-  providerName: string,
+  scope: ProviderHealthScope,
   kind: ProviderFailureKind,
-  detail: string,
+  _detail: string,
   now: number = Date.now(),
   ttlMs: number = PROVIDER_UNHEALTHY_TTL_MS,
 ): void {
@@ -140,37 +116,41 @@ export function markProviderUnhealthy(
    * pas pouvoir réintroduire un motif de portée « requête » dans la table du pod.
    */
   if (!(['credit', 'auth', 'rate-limit', 'server', 'timeout'] as const).includes(kind)) {
-    logger.error(`Motif [${String(kind)}] refusé : il ne peut pas écarter [${providerName}] pour tout le pod.`);
+    logger.error(`Motif [${String(kind)}] refusé : il ne peut pas écarter [${scope.provider}] pour cette portée.`);
     return;
   }
 
-  health.set(providerName, { kind, until: now + ttlMs, detail });
-  logger.warn(`Fournisseur [${providerName}] écarté ${Math.round(ttlMs / 1000)}s — ${kind} : ${detail}`);
+  health.set(scope.id, { kind, until: now + ttlMs, detail: kind });
+  boundCache(health);
+  logger.warn(`Fournisseur [${scope.provider}] écarté ${Math.round(ttlMs / 1000)}s — ${kind}`);
 }
 
-export function markProviderHealthy(providerName: string): void {
-  if (health.delete(providerName)) {
-    logger.info(`Fournisseur [${providerName}] de nouveau disponible.`);
+export function markProviderHealthy(scope: ProviderHealthScope): void {
+  if (health.delete(scope.id)) {
+    logger.info(`Fournisseur [${scope.provider}] de nouveau disponible.`);
   }
 }
 
-export function getProviderHealth(providerName: string, now: number = Date.now()): ProviderHealthEntry | undefined {
-  const entry = health.get(providerName);
+export function getProviderHealth(
+  scope: ProviderHealthScope,
+  now: number = Date.now(),
+): ProviderHealthEntry | undefined {
+  const entry = health.get(scope.id);
 
   if (!entry) {
     return undefined;
   }
 
   if (entry.until <= now) {
-    health.delete(providerName);
+    health.delete(scope.id);
     return undefined;
   }
 
   return entry;
 }
 
-export function isProviderHealthy(providerName: string, now: number = Date.now()): boolean {
-  return getProviderHealth(providerName, now) === undefined;
+export function isProviderHealthy(scope: ProviderHealthScope, now: number = Date.now()): boolean {
+  return getProviderHealth(scope, now) === undefined;
 }
 
 /*
@@ -311,6 +291,7 @@ export function resolveRuntimeProvider(options: {
   model: string;
   apiKeys?: Record<string, string>;
   serverEnv?: Record<string, string>;
+  providerSettings?: Record<string, IProviderSetting>;
   now?: number;
 
   /*
@@ -323,8 +304,17 @@ export function resolveRuntimeProvider(options: {
    */
   chaine?: readonly MaillonDeRepli[];
 }): RuntimeProviderChoice {
-  const { provider, model, apiKeys, serverEnv, now = Date.now(), chaine = PROVIDER_FALLBACK_CHAIN } = options;
-  const failure = getProviderHealth(provider.name, now);
+  const {
+    provider,
+    model,
+    apiKeys,
+    serverEnv,
+    providerSettings,
+    now = Date.now(),
+    chaine = PROVIDER_FALLBACK_CHAIN,
+  } = options;
+
+  const failure = getProviderHealth(createProviderHealthScope(options), now);
 
   if (!failure) {
     return { provider, model };
@@ -337,7 +327,11 @@ export function resolveRuntimeProvider(options: {
 
     const candidate = providerByName(step.provider);
 
-    if (!candidate || !isProviderUsable(candidate, apiKeys, serverEnv) || !isProviderHealthy(candidate.name, now)) {
+    if (
+      !candidate ||
+      !isProviderUsable(candidate, apiKeys, serverEnv, providerSettings) ||
+      !isProviderHealthy(createProviderHealthScope({ provider: candidate, apiKeys, serverEnv, providerSettings }), now)
+    ) {
       continue;
     }
 
@@ -384,9 +378,12 @@ export async function probeProvider(options: {
   model: string;
   apiKeys?: Record<string, string>;
   serverEnv?: Record<string, string>;
+  providerSettings?: Record<string, IProviderSetting>;
   abortSignal?: AbortSignal;
-}): Promise<ProviderFailureKind | null> {
-  const { provider, model, apiKeys, serverEnv, abortSignal } = options;
+}): Promise<ProviderFailureKind | null | 'unobserved'> {
+  const { provider, model, apiKeys, serverEnv, providerSettings, abortSignal } = options;
+  const scope = createProviderHealthScope(options);
+  const epoch = healthEpoch;
 
   const limite = AbortSignal.timeout(PROVIDER_PROBE_TIMEOUT_MS);
   const signal = abortSignal ? AbortSignal.any([abortSignal, limite]) : limite;
@@ -397,14 +394,16 @@ export async function probeProvider(options: {
         model,
         serverEnv: serverEnv as never,
         apiKeys,
-        providerSettings: undefined,
+        providerSettings,
       }),
       prompt: 'ping',
       maxTokens: 1,
       abortSignal: signal,
     });
 
-    markProviderHealthy(provider.name);
+    if (epoch === healthEpoch) {
+      markProviderHealthy(scope);
+    }
 
     return null;
   } catch (error) {
@@ -416,7 +415,7 @@ export async function probeProvider(options: {
     if (limite.aborted) {
       logger.warn(`Sonde [${provider.name}] expirée après ${PROVIDER_PROBE_TIMEOUT_MS} ms ; fournisseur conservé.`);
 
-      return null;
+      return 'unobserved';
     }
 
     const kind = classifyProviderFailure(error);
@@ -429,10 +428,12 @@ export async function probeProvider(options: {
        */
       logger.warn(`Sonde [${provider.name}] en échec sans cause fournisseur identifiée ; fournisseur conservé.`);
 
-      return null;
+      return 'unobserved';
     }
 
-    markProviderUnhealthy(provider.name, kind, textOf(error).slice(0, 300));
+    if (epoch === healthEpoch) {
+      markProviderUnhealthy(scope, kind, kind);
+    }
 
     return kind;
   }
@@ -448,27 +449,57 @@ export async function ensureProviderProbed(options: {
   model: string;
   apiKeys?: Record<string, string>;
   serverEnv?: Record<string, string>;
+  providerSettings?: Record<string, IProviderSetting>;
   abortSignal?: AbortSignal;
   now?: number;
 }): Promise<void> {
-  const { provider, now = Date.now() } = options;
+  const { now = Date.now() } = options;
+  const scope = createProviderHealthScope(options);
+  const key = `${scope.id}:${options.model}`;
 
-  if (getProviderHealth(provider.name, now) !== undefined) {
+  if (getProviderHealth(scope, now) !== undefined || (probed.get(key) ?? 0) > now) {
     return;
   }
 
-  if (probed.get(provider.name) !== undefined && (probed.get(provider.name) as number) > now) {
+  const pending = probing.get(key);
+
+  if (pending) {
+    await pending;
     return;
   }
 
-  probed.set(provider.name, now + PROVIDER_UNHEALTHY_TTL_MS);
+  // Bound concurrent probes as well as completed entries; at capacity let the real request decide.
+  if (probing.size >= MAX_SCOPES) {
+    return;
+  }
 
-  await probeProvider(options);
+  const epoch = probeEpoch;
+
+  const probe = probeProvider(options).then((outcome) => {
+    if (epoch === probeEpoch && outcome !== 'unobserved') {
+      probed.set(key, now + PROVIDER_UNHEALTHY_TTL_MS);
+      boundCache(probed);
+    }
+  });
+  probing.set(key, probe);
+
+  try {
+    await probe;
+  } finally {
+    if (probing.get(key) === probe) {
+      probing.delete(key);
+    }
+  }
 }
 
-/** Horodatage de la dernière sonde RÉUSSIE, pour ne pas re-sonder à chaque tour. */
+/** Expiration du dernier verdict observé, pour ne pas re-sonder à chaque tour. */
 const probed = new Map<string, number>();
+const probing = new Map<string, Promise<void>>();
+
+let probeEpoch = 0;
 
 export function resetProviderProbeCache(): void {
   probed.clear();
+  probing.clear();
+  probeEpoch++;
 }

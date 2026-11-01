@@ -51,6 +51,7 @@ import {
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { fournisseurInapte, type ConstatDeTour } from '~/lib/.server/llm/aptitude-fournisseur';
+import type { ProviderHealthScope } from '~/lib/.server/llm/provider-health-scope';
 import { classifyProviderFailure, echecDeCle, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { arbitrerCacheAnthropic } from '~/lib/.server/llm/arbitrage-cache-anthropic';
@@ -698,6 +699,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let routedTurnModel: string | undefined;
   let routedTurnProvider: string | undefined;
+  let routedTurnHealthScope: ProviderHealthScope | undefined;
 
   /*
    * F18 — provider-request latency anchor. Reset right before each streamText() so
@@ -1328,6 +1330,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             selectedRoleIds = [...new Set(approvedPlanTasks.map((task) => task.roleId))];
           } else {
             const plan = await createAgentPlan({
+              routing: agentTargetLine
+                ? {
+                    primary: { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model },
+                    fallback: null,
+                  }
+                : undefined,
               messages: messagesForAgents,
               env: context.cloudflare?.env,
               apiKeys,
@@ -1679,6 +1687,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 } satisfies ProgressAnnotation);
 
                 summary = await createSummary({
+                  routing: agentTargetLine
+                    ? {
+                        primary: { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model },
+                        fallback: null,
+                      }
+                    : undefined,
                   messages: [...processedMessages],
                   env: context.cloudflare?.env,
                   apiKeys,
@@ -1768,6 +1782,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               filteredFiles = memoizedSelection;
             } else {
               filteredFiles = await selectContext({
+                routing: agentTargetLine
+                  ? {
+                      primary: { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model },
+                      fallback: null,
+                    }
+                  : undefined,
                 messages: [...processedMessages],
                 env: context.cloudflare?.env,
                 apiKeys,
@@ -2439,6 +2459,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     : undefined,
                   repliDeCarte,
                   onBasculeFournisseur: declarerBascule,
+                  onProviderHealthScope: (scope) => {
+                    routedTurnHealthScope = scope;
+                  },
                   env: context.cloudflare?.env,
                   options,
                   apiKeys,
@@ -2638,6 +2661,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             : undefined,
           repliDeCarte,
           onBasculeFournisseur: declarerBascule,
+          onProviderHealthScope: (scope) => {
+            routedTurnHealthScope = scope;
+          },
           env: context.cloudflare?.env,
           options,
           apiKeys,
@@ -2903,8 +2929,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
            * autres ». Une vraie panne du fournisseur est vue par la sonde d'un
            * jeton de `stream-text`, qui mesure le fournisseur et non un tour.
            */
-          if (echecDeCle(kind)) {
-            markProviderUnhealthy(routedTurnProvider, kind, String(error?.message ?? code).slice(0, 300));
+          if (echecDeCle(kind) && routedTurnHealthScope?.provider === routedTurnProvider) {
+            markProviderUnhealthy(routedTurnHealthScope, kind, kind);
           } else if (kind) {
             logger.warn(
               JSON.stringify({
