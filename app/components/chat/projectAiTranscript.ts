@@ -1,5 +1,6 @@
 import type { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import type { Message } from 'ai';
+import { persistedStreamTerminal } from '~/lib/runtime/stream-terminal';
 
 export type ProjectAiToolCallResponse = {
   id?: string;
@@ -14,6 +15,7 @@ export type ProjectAiMessageResponse = {
   role?: string;
   content?: string;
   toolCalls?: ProjectAiToolCallResponse[];
+  terminalReceipt?: unknown;
 };
 
 export type ProjectAiMessagesResponse = {
@@ -57,11 +59,13 @@ export function projectAiMessagesToChatMessages(messages: ProjectAiMessageRespon
 
       const id = message.id || `${role}:${index}`;
       const parts = projectAiToolCallsToParts(message.toolCalls, id);
+      const terminal = role === 'assistant' ? persistedStreamTerminal([message.terminalReceipt], id) : undefined;
 
       return {
         id,
         role: role === 'tool' ? 'assistant' : role,
         content: message.content ?? '',
+        ...(terminal ? { annotations: [terminal] } : {}),
         ...(parts.length > 0 ? { parts } : {}),
       } as Message;
     })

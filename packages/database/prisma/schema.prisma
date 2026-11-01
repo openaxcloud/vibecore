@@ -1147,6 +1147,8 @@ model AiMessage {
   conversationId String
   role           String
   content        String
+  /// Validated stream outcome bound to normalized message content; not execution proof.
+  terminalReceipt Json?
   createdAt      DateTime       @default(now())
   conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   toolCalls      AiToolCall[]

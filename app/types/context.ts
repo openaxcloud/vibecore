@@ -1,6 +1,9 @@
 export type ContextAnnotation =
   | {
       type: 'streamTerminal';
+
+      /** Producer-observed normalized text binding; legacy receipts may lack it. */
+      contentSha256?: string;
       status: 'complete' | 'incomplete' | 'error';
       finishReason: 'stop' | 'length' | 'error' | 'unknown' | 'content-filter' | 'tool-calls' | 'other';
       reason:

@@ -113,7 +113,11 @@ describe('la route de chat applique réellement le critère', () => {
      * faux au premier refactor. On exige qu'il ne reste plus rien de l'ancien.
      */
     expect(compter('emittedFileAction')).toBe(0);
-    expect(compter('fichiersEmis += compterActionsDeFichier(content);')).toBe(1);
+    expect(compter('fichiersEmis = compterActionsDeFichier(contenuDuTour);')).toBe(1);
+    expect(SOURCE_ROUTE).toMatch(
+      /contenuDuTour \+= content \?\? '';\s*fichiersEmis = compterActionsDeFichier\(contenuDuTour\);/,
+    );
+    expect(compter('fichiersEmis += compterActionsDeFichier(content);')).toBe(0);
     expect(compter('fichiersEmis > 0')).toBeGreaterThanOrEqual(2);
   });
 });

@@ -79,6 +79,13 @@ const SELF_REPAIR_MAX_ATTEMPTS = 2;
 const SELF_REPAIR_BASE_DELAY_MS = 1_000;
 const SELF_REPAIR_ENDPOINT = '/api/agent/self-repair';
 
+class FileValidationError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.name = 'FileValidationError';
+  }
+}
+
 /*
  * Greedy capture so a file whose own content contains the literal string
  * `</boltAction>` is not truncated at the first inner occurrence — match
@@ -446,6 +453,7 @@ export class ActionRunner {
    */
   setRuntime(runtime: RuntimeAdapter) {
     this.#confirmedFileWrites.clear();
+    this.#lastValidatedFingerprint.clear();
     this.#runtime = runtime;
   }
 
@@ -826,6 +834,7 @@ export class ActionRunner {
           error instanceof ActionCommandError ||
           error instanceof ToolTimeoutError ||
           error instanceof JsonValidationError ||
+          error instanceof FileValidationError ||
           isUnconfirmedFilePersistenceError(error)
         ) {
           /*
@@ -1124,7 +1133,7 @@ export class ActionRunner {
    * package.json passe. L'entrée n'est posée qu'APRÈS une écriture réussie,
    * donc un échec laisse le chemin réécrivable.
    */
-  #lastWrittenFingerprint = new Map<string, number>();
+  #lastValidatedFingerprint = new Map<string, number>();
 
   static #contentFingerprint(content: string): number {
     let h = 5381;
@@ -1152,15 +1161,16 @@ export class ActionRunner {
 
     const contentFingerprint = ActionRunner.#contentFingerprint(action.content);
 
+    // Provisional source stays in action/editor memory and never populates the validated cache.
+    if (isStreaming) {
+      return;
+    }
+
     /*
-     * On compare au DERNIER contenu écrit à ce chemin, pas à l'ensemble des
-     * contenus déjà vus. La nuance est ce qui sépare un dédoublonnage sûr d'une
-     * perte de fichier : avec un ensemble, la séquence A → B → A saute la
-     * troisième écriture et laisse B sur le disque. Un test dédié couvre ce
-     * retour arrière.
+     * Only a previously validated, successfully written final input can skip repair.
+     * Keep the last input per path, so A → B → A still writes A again.
      */
-    if (this.#lastWrittenFingerprint.get(relativePath) === contentFingerprint) {
-      logger.debug(`Skipping byte-identical rewrite of ${relativePath} (action ${actionId ?? 'n/a'})`);
+    if (this.#lastValidatedFingerprint.get(relativePath) === contentFingerprint) {
       return;
     }
 
@@ -1240,9 +1250,8 @@ export class ActionRunner {
      * file with the error in context, then re-validate. Up to
      * SELF_REPAIR_MAX_ATTEMPTS retries with an exponential delay so a
      * transient provider hiccup doesn't escalate to a burst of calls. If
-     * we exhaust the budget the original (broken) payload is written
-     * anyway — the user can still edit it in place — and the failure is
-     * surfaced through the workspace log and the patch-review banner.
+     * we exhaust the budget the action fails without changing the workspace.
+     * The proposed source remains available in the action/editor for review.
      *
      * Like the JSON sanitizer above, this only runs on the authoritative
      * non-streaming write. While streaming the content is partial by
@@ -1274,7 +1283,9 @@ export class ActionRunner {
       logger.debug(`File written ${relativePath}`);
 
       // Après succès seulement : un échec doit laisser le chemin réécrivable.
-      this.#lastWrittenFingerprint.set(relativePath, contentFingerprint);
+      if (!action.abortSignal.aborted && this.#runtime === runtime) {
+        this.#lastValidatedFingerprint.set(relativePath, contentFingerprint);
+      }
     } catch (error) {
       /*
        * Seule l'écriture FAISANT FOI est gardée : un morceau de flux est partiel
@@ -1708,8 +1719,7 @@ export class ActionRunner {
     try {
       validation = await validateAndFormatHunk(relativePath, payload);
     } catch (error) {
-      logger.warn(`Pre-write validation crashed for ${relativePath}; continuing with sanitized payload`, error);
-      return payload;
+      throw new FileValidationError(error);
     }
 
     if (validation.kind === 'ok') {
@@ -1755,7 +1765,14 @@ export class ActionRunner {
 
         // Propagate the action's abort signal so Stop cancels the self-repair LLM call.
         const corrected = await callSelfRepairEndpoint(prompt, signal, this._repairProjectId);
-        const reValidation = await validateAndFormatHunk(relativePath, corrected);
+
+        let reValidation: Awaited<ReturnType<typeof validateAndFormatHunk>>;
+
+        try {
+          reValidation = await validateAndFormatHunk(relativePath, corrected);
+        } catch (error) {
+          throw new FileValidationError(error);
+        }
 
         if (reValidation.kind === 'ok') {
           workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
@@ -1779,6 +1796,11 @@ export class ActionRunner {
         lastError = reValidation;
         payload = corrected;
       } catch (error) {
+        if (error instanceof FileValidationError) {
+          workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
+          throw error;
+        }
+
         logger.warn(`Self-repair attempt ${attempt}/${SELF_REPAIR_MAX_ATTEMPTS} for ${relativePath} failed:`, error);
         workspaceEvents.emit('agent:self-repair:event', {
           filePath: relativePath,
@@ -1794,11 +1816,11 @@ export class ActionRunner {
     }
 
     /*
-     * Out of retries — keep the broken-but-most-recent payload so the user
-     * can still see / edit the file. Log + clear the UI banner.
+     * Exhaustion preserves the workspace. The proposed source remains in the
+     * action/editor for review; a failed parse cannot authorize a write.
      */
     logger.warn(
-      `Self-repair exhausted ${SELF_REPAIR_MAX_ATTEMPTS} retries for ${relativePath} (${lastError.language}); writing best-effort payload`,
+      `Self-repair exhausted ${SELF_REPAIR_MAX_ATTEMPTS} retries for ${relativePath} (${lastError.language}); rejecting invalid payload`,
     );
     workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
     workspaceEvents.emit('agent:self-repair:event', {
@@ -1808,7 +1830,7 @@ export class ActionRunner {
       validationError: lastError.message,
     });
 
-    return payload;
+    throw new FileValidationError(lastError.message);
   }
 
   #updateAction(id: string, newState: ActionStateUpdate) {

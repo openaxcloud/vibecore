@@ -1,0 +1,182 @@
+[
+  {
+    "workspace": "tsconfig.web.json",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "tsconfig.scripts.json",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "tsconfig.ide-diagnostics.json",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "electron/main/tsconfig.json",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "electron/preload/tsconfig.json",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/template-catalog",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/runtime-webcontainer",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/ui",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/workspace-sdk",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/config",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/sdk",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/k8s-client",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/security",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/quota",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/database",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/audit",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/shared",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/runtime-remote",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/runtime-contract",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/auth",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/editor",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/rbac",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/sandbox-runtime",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/connector-sdk",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/observability",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "packages/billing",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/preview-proxy",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/screenshotter",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/api",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/worker",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/workspace-manager",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/connector-proxy",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/workspace-agent",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "services/ai-gateway",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "apps/admin",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "workspace": "apps/mobile",
+    "exitCode": 0,
+    "output": ""
+  }
+]
