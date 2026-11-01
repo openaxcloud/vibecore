@@ -9,6 +9,7 @@ import { parse, stringify } from 'yaml';
 // eslint-disable-next-line no-restricted-imports
 import {
   assertManagerReady,
+  waitForManagerReady,
   assertMigrationComplete,
   assertOnlyManagerChanges,
   runStage,
@@ -117,10 +118,12 @@ const readyPod = {
   metadata: {},
   spec: prepared[1].spec.template.spec,
   status: {
+    phase: 'Running',
     conditions: [{ type: 'Ready', status: 'True' }],
     containerStatuses: [
       {
         ready: true,
+        state: { running: { startedAt: '2026-11-01T00:00:00Z' } },
         imageID: `containerd://${registry}/workspace-manager@${managerDigest}`,
       },
     ],
@@ -135,7 +138,7 @@ const completedMigration = {
   status: { succeeded: 1, conditions: [{ type: 'Complete', status: 'True' }] },
 };
 
-function execute({ after = prepared, failure, pod = readyPod, migration = completedMigration } = {}) {
+function execute({ after = prepared, failure, pod = readyPod, pods, migration = completedMigration } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'stage-test-'));
   const envFile = join(directory, 'env');
   writeFileSync(envFile, '');
@@ -143,11 +146,16 @@ function execute({ after = prepared, failure, pod = readyPod, migration = comple
   const calls = [];
 
   let upgraded = false;
+  let time = 0;
   let error;
 
   try {
     runStage({
       manifest,
+      now: () => time,
+      pause: (milliseconds) => {
+        time += milliseconds;
+      },
       env: {
         TARGET_SHA: sha,
         INITIAL_REVISION: '42',
@@ -198,7 +206,11 @@ function execute({ after = prepared, failure, pod = readyPod, migration = comple
         }
 
         if (args.includes('pods')) {
-          return JSON.stringify({ items: [pod] });
+          if (failure === 'pods-access') {
+            throw new Error('Forbidden synthetic-private-provider-message');
+          }
+
+          return JSON.stringify({ items: pods ?? [pod] });
         }
 
         if (args[3] === 'job') {
@@ -533,6 +545,8 @@ describe('migration, manager, API sequencing', () => {
             return JSON.stringify((upgraded ? f.prepared : f.old).find(item => item.metadata.name === args[4]));
           } });
         assert.equal(result.initialRevision, '42');
+        assert.deepEqual(result.managerReadiness, {desired:1, active:1, terminalExcluded:0, observations:1});
+        assert.equal(result.migrationJob.uid, 'synthetic-migration-uid');
         assert.match(readFileSync('env', 'utf8'), /STAGED_UPGRADE_STARTED=1/);
       `,
       );
@@ -544,5 +558,269 @@ describe('migration, manager, API sequencing', () => {
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
+  });
+});
+
+describe('manager pod lifecycle attestation', () => {
+  const image = `${registry}/workspace-manager@${managerDigest}`;
+  const verify = (items, deployment = prepared[1]) => assertManagerReady(deployment, { items }, image, managerDigest);
+
+  const terminal = (phase) => {
+    const pod = structuredClone(readyPod);
+    pod.status.phase = phase;
+    pod.status.conditions = [{ type: 'Ready', status: 'False' }];
+    pod.spec = { containers: [{ name: 'app', image: `${registry}/workspace-manager@${oldDigest}` }] };
+    pod.status.containerStatuses[0] = {
+      name: 'app',
+      ready: false,
+      imageID: oldDigest,
+      state: { terminated: { exitCode: phase === 'Succeeded' ? 0 : 1 } },
+    };
+
+    return pod;
+  };
+
+  it.each(['Failed', 'Succeeded'])('excludes retained %s pods only when consistently terminated', (phase) => {
+    expect(() => verify([readyPod, terminal(phase)])).not.toThrow();
+    expect(execute({ pods: [readyPod, terminal(phase)] }).error).toBeUndefined();
+  });
+
+  it('does not ignore a deleting pod that can still serve or count it as the desired replica', () => {
+    const deleting = structuredClone(readyPod);
+    deleting.metadata.deletionTimestamp = '2026-11-01T00:00:00Z';
+    deleting.spec = { containers: [{ name: 'app', image: `${registry}/workspace-manager@${oldDigest}` }] };
+    expect(() => verify([readyPod, deleting])).toThrow('MANAGER_POD_COUNT');
+    deleting.spec = structuredClone(readyPod.spec);
+    expect(() => verify([deleting])).toThrow('MANAGER_POD_UNVERIFIED');
+  });
+
+  it.each(['Pending', 'Unknown', undefined])('refuses unverified phase %s even with stale Ready status', (phase) => {
+    const pod = structuredClone(readyPod);
+    pod.status.phase = phase;
+    expect(() => verify([pod])).toThrow('MANAGER_POD_UNVERIFIED');
+  });
+
+  it('does not exclude inconsistent or incomplete terminal reports', () => {
+    for (const mutate of [
+      (p) => {
+        p.status.conditions[0].status = 'True';
+      },
+      (p) => {
+        p.status.containerStatuses[0].ready = true;
+      },
+      (p) => {
+        p.status.containerStatuses[0].state = { running: {} };
+      },
+      (p) => {
+        p.status.containerStatuses[0].state = { waiting: {} };
+      },
+      (p) => {
+        delete p.status.containerStatuses;
+      },
+      (p) => {
+        p.status.initContainerStatuses = [{ ready: false, state: { running: {} } }];
+      },
+    ]) {
+      const pod = terminal('Failed');
+      mutate(pod);
+      expect(() => verify([readyPod, pod])).toThrow('MANAGER_POD_COUNT');
+    }
+  });
+
+  it('retains live replica counts for HPA and refuses absent or extra nonterminal pods', () => {
+    const deployment = structuredClone(prepared[1]);
+    deployment.spec.replicas = 3;
+    Object.assign(deployment.status, { updatedReplicas: 3, readyReplicas: 3, availableReplicas: 3 });
+    expect(() => verify([readyPod, readyPod, readyPod], deployment)).not.toThrow();
+    expect(() => verify([readyPod, readyPod], deployment)).toThrow('MANAGER_POD_COUNT');
+    expect(() => verify([readyPod, readyPod, readyPod, readyPod], deployment)).toThrow('MANAGER_POD_COUNT');
+    expect(() => verify([], deployment)).toThrow('MANAGER_POD_COUNT');
+  });
+
+  it('does not hide foreign nonterminal pods or an old digest', () => {
+    const foreign = structuredClone(readyPod);
+    foreign.metadata.ownerReferences = [
+      { kind: 'ReplicaSet', name: 'foreign', uid: '00000000-0000-0000-0000-000000000001', controller: true },
+    ];
+    foreign.status.containerStatuses[0].imageID = oldDigest;
+    expect(() => verify([readyPod, foreign])).toThrow('MANAGER_POD_COUNT');
+    expect(() => verify([foreign])).toThrow('MANAGER_POD_UNVERIFIED');
+  });
+
+  it('emits bounded identities, counts and booleans without raw pod contents', () => {
+    const secret = 'PRIVATE_SENTINEL_DO_NOT_PRINT';
+    const pod = terminal('Failed');
+    pod.metadata = {
+      name: 'manager-old',
+      uid: '00000000-0000-0000-0000-000000000001',
+      annotations: { secret },
+      labels: { secret },
+      ownerReferences: [
+        {
+          kind: 'ReplicaSet',
+          name: 'manager-rs',
+          uid: '00000000-0000-0000-0000-000000000002',
+          controller: true,
+          secret,
+        },
+      ],
+    };
+    pod.status.containerStatuses[0].state.running = { message: secret };
+    pod.spec.containers[0].env = [{ name: 'TOKEN', value: secret }];
+
+    let error;
+
+    try {
+      verify([readyPod, ...Array.from({ length: 20 }, () => pod)]);
+    } catch (e) {
+      error = e;
+    }
+
+    const diagnostic = JSON.parse(error.message.slice(error.message.indexOf('{')));
+    expect(diagnostic.expected).toBe(1);
+    expect(diagnostic.observed).toBe(21);
+    expect(diagnostic.pods).toHaveLength(16);
+    expect(diagnostic.truncated).toBe(true);
+    expect(error.message).toContain('manager-old');
+    expect(error.message).toContain('00000000-0000-0000-0000-000000000002');
+    expect(error.message).not.toContain(secret);
+    expect(error.message).not.toContain(oldDigest);
+    expect(error.message.length).toBeLessThan(14000);
+  });
+
+  it('keeps the 22 minute rollout timeout and never retries timeout or access failures', () => {
+    for (const failure of ['rollout', 'pods-access']) {
+      const result = execute({ failure });
+      expect(result.error).toBeDefined();
+
+      const rollout = result.calls.filter((c) => c.includes('rollout'));
+      expect(rollout).toHaveLength(1);
+      expect(rollout[0]).toContain('--timeout=22m');
+      expect(result.calls.filter((c) => c.includes('pods'))).toHaveLength(failure === 'pods-access' ? 1 : 0);
+      expect(
+        result.calls.filter((c) => c[0] === 'helm' && c.includes('upgrade') && !c.includes('--dry-run=server')),
+      ).toHaveLength(1);
+    }
+  });
+});
+
+describe('manager readiness convergence deadline', () => {
+  const image = `${registry}/workspace-manager@${managerDigest}`;
+  const limit = 22 * 60 * 1000;
+
+  function observe({ snapshots, rolloutTime = 0, errorAt, brokenJson = false }) {
+    let time = 0;
+    let observation = 0;
+
+    const calls = [];
+    const pauses = [];
+    const budgets = [];
+
+    let error;
+    let receipt;
+
+    const command = (bin, args, options) => {
+      budgets.push(options?.timeout);
+      calls.push([bin, ...args]);
+
+      if (args.includes('rollout')) {
+        if (errorAt === 'rollout') {
+          throw new Error('rollout timeout');
+        }
+
+        time += rolloutTime;
+
+        return '';
+      }
+
+      if (errorAt && args.includes(errorAt)) {
+        throw new Error('Forbidden PRIVATE_COMMAND_DETAIL');
+      }
+
+      if (brokenJson) {
+        return '{';
+      }
+
+      const current = snapshots[Math.min(observation, snapshots.length - 1)];
+
+      if (args.includes('deployment')) {
+        return JSON.stringify(current.deployment ?? prepared[1]);
+      }
+
+      observation++;
+
+      return JSON.stringify({ items: current.pods });
+    };
+
+    try {
+      receipt = waitForManagerReady({
+        command,
+        namespace: 'test',
+        release: 'test',
+        managerName,
+        image,
+        digest: managerDigest,
+        now: () => time,
+        pause: (milliseconds) => {
+          pauses.push(milliseconds);
+          time += milliseconds;
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    return { error, time, calls, pauses, observation, receipt, budgets };
+  }
+  it('observes a draining old pod until it is gone without repeating upgrade or rollout', () => {
+    const old = structuredClone(readyPod);
+    old.metadata.deletionTimestamp = '2026-11-01T00:00:00Z';
+    old.status.containerStatuses[0].imageID = oldDigest;
+
+    const result = observe({ snapshots: [{ pods: [readyPod, old] }, { pods: [readyPod] }], rolloutTime: limit - 2000 });
+    expect(result.error).toBeUndefined();
+    expect(result.time).toBe(limit - 1000);
+    expect(result.observation).toBe(2);
+    expect(result.receipt).toEqual({ desired: 1, active: 1, terminalExcluded: 0, observations: 2 });
+    expect(result.pauses).toEqual([1000]);
+    expect(result.budgets).toEqual([limit, 2000, 2000, 1000, 1000]);
+    expect(result.calls.filter((c) => c.includes('rollout'))).toHaveLength(1);
+    expect(result.calls.every((c) => c[0] === 'kubectl')).toBe(true);
+    expect(
+      result.calls.filter((c) => c.includes('get')).every((c) => c.some((a) => a.startsWith('--request-timeout='))),
+    ).toBe(true);
+  });
+  it('uses the next live HPA desired count rather than a captured replica value', () => {
+    const scaled = structuredClone(prepared[1]);
+    scaled.spec.replicas = 2;
+    Object.assign(scaled.status, { updatedReplicas: 2, readyReplicas: 2, availableReplicas: 2 });
+
+    const result = observe({ snapshots: [{ deployment: scaled, pods: [readyPod] }, { pods: [readyPod] }] });
+    expect(result.error).toBeUndefined();
+    expect(result.observation).toBe(2);
+  });
+  it('fails at the original deadline including time already spent in rollout', () => {
+    const result = observe({ snapshots: [{ pods: [] }], rolloutTime: limit - 2000 });
+    expect(result.error.message).toContain('MANAGER_READINESS_TIMEOUT');
+    expect(result.error.message).toContain('"observed":0');
+    expect(result.time).toBe(limit);
+    expect(result.pauses).toEqual([1000, 1000]);
+    expect(result.observation).toBe(2);
+
+    const exhausted = observe({ snapshots: [{ pods: [readyPod] }], rolloutTime: limit });
+    expect(exhausted.error.message).toContain('MANAGER_READINESS_TIMEOUT');
+    expect(exhausted.observation).toBe(0);
+  });
+  it.each(['deployment', 'pods', 'rollout'])('never retries a %s command error', (errorAt) => {
+    const result = observe({ snapshots: [{ pods: [readyPod] }], errorAt });
+    expect(result.error).toBeDefined();
+    expect(result.pauses).toEqual([]);
+    expect(result.calls.filter((c) => c.includes(errorAt))).toHaveLength(1);
+  });
+  it('does not retry malformed JSON', () => {
+    const result = observe({ snapshots: [{ pods: [readyPod] }], brokenJson: true });
+    expect(result.error).toBeInstanceOf(SyntaxError);
+    expect(result.pauses).toEqual([]);
+    expect(result.calls).toHaveLength(2);
   });
 });
