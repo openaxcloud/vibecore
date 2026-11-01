@@ -38,7 +38,7 @@ describe('applied-file notification destination', () => {
     );
   });
 
-  it('keeps the global notification when the Agent panel is not visible', () => {
+  it('keeps the same persistent container when the Agent panel is not visible', () => {
     const dock = document.createElement('div');
     dock.id = AGENT_APPLIED_CONTAINER_ID;
     document.body.appendChild(dock);
@@ -46,8 +46,8 @@ describe('applied-file notification destination', () => {
     expect(toast).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        containerId: undefined,
-        closeButton: true,
+        containerId: AGENT_APPLIED_CONTAINER_ID,
+        closeButton: false,
       }),
     );
   });

@@ -1,0 +1,410 @@
+[
+  {
+    "engine": "chromium",
+    "width": 390,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2466.569999999434,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2533.2339999991527,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6064,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2466.5660000006555,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2566.5660000015932,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6150,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "chromium",
+    "width": 393,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2466.57099999941,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2549.8959999991052,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6128,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "chromium",
+    "width": 393,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2466.5650000014293,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2599.895000001377,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6187,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "chromium",
+    "width": 430,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2466.565000001486,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2533.2360000023205,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6026,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "chromium",
+    "width": 430,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2466.566000000771,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2566.5680000008883,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6054,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2484,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2518,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6031,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2480,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2617,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6050,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "webkit",
+    "width": 393,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2462,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2511,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6047,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "webkit",
+    "width": 393,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": false,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2448,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2554,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6024,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "webkit",
+    "width": 430,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2484,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2519,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6011,
+    "maximumToastCount": 1,
+    "passed": true
+  },
+  {
+    "engine": "webkit",
+    "width": 430,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "idCounts": {
+      "agent-applied-files-dock": 1,
+      "agent-applied-files-notices": 1,
+      "agent-auto-applied-files": 1
+    },
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2471,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2596,
+        "state": "running"
+      }
+    ],
+    "autoCloseElapsedMs": 6033,
+    "maximumToastCount": 1,
+    "passed": true
+  }
+]

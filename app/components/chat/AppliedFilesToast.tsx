@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
+import { AGENT_APPLIED_CONTAINER_ID } from './applied-files-notice-id';
 import {
   formatAppliedFilesToastCopy,
   formatAppliedFilesToastPlural,
@@ -8,9 +9,7 @@ import {
 } from '~/lib/i18n/catalogs/applied-files-toast';
 import { generationEstHonnete, type ConstatDeGeneration } from '~/lib/runtime/generation-incomplete';
 
-export const AGENT_APPLIED_CONTAINER_ID = 'agent-applied-files-notices';
-
-let activeAppliedContainer: string | undefined;
+export { AGENT_APPLIED_CONTAINER_ID } from './applied-files-notice-id';
 
 export const AGENT_APPLIED_TOAST_ID = 'agent-auto-applied-files';
 
@@ -115,13 +114,7 @@ export function showCoalescedAppliedToast(
   const autoClose = honnete ? 4000 : (false as const);
 
   const active = toast.isActive(AGENT_APPLIED_TOAST_ID);
-
-  if (!active) {
-    const dock = typeof document === 'undefined' ? null : document.getElementById(AGENT_APPLIED_CONTAINER_ID);
-    activeAppliedContainer = dock && dock.getClientRects().length > 0 ? AGENT_APPLIED_CONTAINER_ID : undefined;
-  }
-
-  const containerId = activeAppliedContainer;
+  const containerId = AGENT_APPLIED_CONTAINER_ID;
 
   if (active) {
     toast.update(AGENT_APPLIED_TOAST_ID, {
@@ -129,7 +122,7 @@ export function showCoalescedAppliedToast(
       type,
       autoClose,
       containerId,
-      closeButton: !containerId,
+      closeButton: false,
     });
   } else {
     toast(content, {
@@ -137,7 +130,7 @@ export function showCoalescedAppliedToast(
       type,
       autoClose,
       containerId,
-      closeButton: !containerId,
+      closeButton: false,
     });
   }
 }
