@@ -46,8 +46,8 @@ function completeReport() {
     numFailedTests: 0,
     numPendingTests: 0,
     numTodoTests: 0,
-    numTotalTests: requiredSpecs.length,
-    numPassedTests: requiredSpecs.length,
+    numTotalTests: Number(requiredSpecs.length),
+    numPassedTests: Number(requiredSpecs.length),
     testResults: requiredSpecs.map((file) => ({
       name: resolve('services/api', file),
       status: 'passed',

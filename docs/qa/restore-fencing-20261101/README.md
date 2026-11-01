@@ -127,3 +127,9 @@ allowlist now names only `BACKUP_SOURCE_NAME_AMBIGUOUS`,
 the migration's public message remains catalogued. No baseline threshold was
 raised. Catalog validation and source guard pass locally after this declaration.
 No measured runtime source changed in that correction.
+
+The subsequent global typecheck caught tuple-length literal inference in the
+CI report test (`4` versus an intentionally corrupted `1`). The fixture counters
+are now explicitly numeric. Its 29 tests pass again, and the complete repository
+typecheck passes locally across web, scripts, IDE helpers, Electron and workspace
+packages/services. This changes only the test fixture, not runtime behavior.
