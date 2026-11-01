@@ -5362,28 +5362,31 @@ export class PrismaApiStore implements ApiStore {
 
     await this.ensureCreditWallet(input.organizationId);
 
-    const held = await this.prisma.$executeRaw`
-      UPDATE "CreditWallet"
-         SET "heldCents" = "heldCents" + ${amount}, "updatedAt" = NOW()
-       WHERE "organizationId" = ${input.organizationId}
-         AND "balanceCents" - "heldCents" >= ${amount}
-    `;
+    // Commit the hold and its reclaimable reservation together.
+    return this.prisma.$transaction(async (tx) => {
+      const held = await tx.$executeRaw`
+        UPDATE "CreditWallet"
+           SET "heldCents" = "heldCents" + ${amount}, "updatedAt" = NOW()
+         WHERE "organizationId" = ${input.organizationId}
+           AND "balanceCents" - "heldCents" >= ${amount}
+      `;
 
-    if (held !== 1) {
-      return undefined;
-    }
+      if (held !== 1) {
+        return undefined;
+      }
 
-    const reservation = await this.prisma.creditReservation.create({
-      data: {
-        organizationId: input.organizationId,
-        projectId: input.projectId,
-        conversationId: input.conversationId,
-        amountCents: amount,
-        expiresAt: new Date(input.expiresAtMs),
-      },
+      const reservation = await tx.creditReservation.create({
+        data: {
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          conversationId: input.conversationId,
+          amountCents: amount,
+          expiresAt: new Date(input.expiresAtMs),
+        },
+      });
+
+      return { id: reservation.id, amountCents: reservation.amountCents };
     });
-
-    return { id: reservation.id, amountCents: reservation.amountCents };
   }
 
   /*
@@ -5392,32 +5395,35 @@ export class PrismaApiStore implements ApiStore {
    * call matches no row and is a no-op.
    */
   async releaseCreditReservation(input: { id: string; status?: 'RELEASED' | 'EXPIRED' }): Promise<boolean> {
-    const reservation = await this.prisma.creditReservation.findUnique({ where: { id: input.id } });
+    // A terminal status and the wallet release must survive or roll back together.
+    return this.prisma.$transaction(async (tx) => {
+      const reservation = await tx.creditReservation.findUnique({ where: { id: input.id } });
 
-    if (!reservation || reservation.status !== 'HELD') {
-      return false;
-    }
+      if (!reservation || reservation.status !== 'HELD') {
+        return false;
+      }
 
-    const claimed = await this.prisma.creditReservation.updateMany({
-      where: { id: input.id, status: 'HELD' },
-      data: { status: input.status ?? 'RELEASED' },
+      const claimed = await tx.creditReservation.updateMany({
+        where: { id: input.id, status: 'HELD' },
+        data: { status: input.status ?? 'RELEASED' },
+      });
+
+      if (claimed.count !== 1) {
+        return false;
+      }
+
+      /*
+       * Clamp at 0: heldCents must never go negative, whatever bookkeeping drift
+       * an earlier crash left behind.
+       */
+      await tx.$executeRaw`
+        UPDATE "CreditWallet"
+           SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
+         WHERE "organizationId" = ${reservation.organizationId}
+      `;
+
+      return true;
     });
-
-    if (claimed.count !== 1) {
-      return false;
-    }
-
-    /*
-     * Clamp at 0: heldCents must never go negative, whatever bookkeeping drift
-     * an earlier crash left behind.
-     */
-    await this.prisma.$executeRaw`
-      UPDATE "CreditWallet"
-         SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
-       WHERE "organizationId" = ${reservation.organizationId}
-    `;
-
-    return true;
   }
 
   /*
@@ -5426,28 +5432,31 @@ export class PrismaApiStore implements ApiStore {
    * debit path, not two.
    */
   async settleCreditReservation(input: { id: string; actualCents: number }): Promise<boolean> {
-    const reservation = await this.prisma.creditReservation.findUnique({ where: { id: input.id } });
+    // A terminal status and the wallet release must survive or roll back together.
+    return this.prisma.$transaction(async (tx) => {
+      const reservation = await tx.creditReservation.findUnique({ where: { id: input.id } });
 
-    if (!reservation || reservation.status !== 'HELD') {
-      return false;
-    }
+      if (!reservation || reservation.status !== 'HELD') {
+        return false;
+      }
 
-    const claimed = await this.prisma.creditReservation.updateMany({
-      where: { id: input.id, status: 'HELD' },
-      data: { status: 'SETTLED', settledCents: Math.max(0, Math.ceil(input.actualCents)) },
+      const claimed = await tx.creditReservation.updateMany({
+        where: { id: input.id, status: 'HELD' },
+        data: { status: 'SETTLED', settledCents: Math.max(0, Math.ceil(input.actualCents)) },
+      });
+
+      if (claimed.count !== 1) {
+        return false;
+      }
+
+      await tx.$executeRaw`
+        UPDATE "CreditWallet"
+           SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
+         WHERE "organizationId" = ${reservation.organizationId}
+      `;
+
+      return true;
     });
-
-    if (claimed.count !== 1) {
-      return false;
-    }
-
-    await this.prisma.$executeRaw`
-      UPDATE "CreditWallet"
-         SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
-       WHERE "organizationId" = ${reservation.organizationId}
-    `;
-
-    return true;
   }
 
   /*

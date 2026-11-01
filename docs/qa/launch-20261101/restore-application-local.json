@@ -1,0 +1,83 @@
+{
+  "passed": true,
+  "recordedAt": "2026-11-01T08:56:58.820Z",
+  "durationMilliseconds": 21855,
+  "scope": "isolated local PostgreSQL physical backup and WAL",
+  "production": false,
+  "initializeMilliseconds": 6147,
+  "physicalBackupVerified": true,
+  "archivedWalPending": 0,
+  "targetTimestamp": "2026-11-01T08:56:42.940Z",
+  "manifestSha256": "615307820ef9e64a1ba51dc0b829914af5395143f842ac9d061e735cf1ba0489",
+  "originalApplicationSeesPostTargetWrite": true,
+  "archiveSourceIdentityVerified": true,
+  "tamperedArchiveRejected": true,
+  "repositoryTests": {
+    "passed": 30,
+    "database": "isolated restore_control"
+  },
+  "concurrentAdmissionRejected": true,
+  "httpAdmission": {
+    "status": 202,
+    "concurrentStatus": 409
+  },
+  "recoveredRows": [
+    {
+      "id": "base",
+      "value": "before physical backup"
+    },
+    {
+      "id": "target",
+      "value": "included in requested recovery point"
+    }
+  ],
+  "promotedTarget": true,
+  "targetResource": {
+    "targetId": "restore-37079739-a7ba-4b2f-bd6e-c976ef76106c",
+    "container": "vc-restore-qa-463ff7ad0403-target"
+  },
+  "quiescedApplicationHttpStatus": 503,
+  "applicationReadback": {
+    "targetId": "restore-37079739-a7ba-4b2f-bd6e-c976ef76106c",
+    "bindingVersion": 1,
+    "systemIdentifier": "7703124348442148909",
+    "observedReadbackSha256": "3a6273da64498e357b0e2cb4eb5fad02b2a6fecf8df7fced97142c165843f69f"
+  },
+  "previousPoolClosed": true,
+  "newConnection": true,
+  "releasedApplicationHttpStatus": 200,
+  "coordinatorResult": {
+    "status": "COMPLETED",
+    "phase": "COMPLETED",
+    "applicationCutoverVerified": true
+  },
+  "otherEnvironmentBindingUnchanged": true,
+  "durableJournal": {
+    "status": "COMPLETED",
+    "phase": "COMPLETED",
+    "bindingVersion": 1,
+    "activeLockReleased": true
+  },
+  "apiSqlReadback": {
+    "status": 200,
+    "rowCount": 2,
+    "expectedDigestMatched": true
+  },
+  "targetEndpointUnchangedAfterRestart": true,
+  "targetSurvivesContainerRestart": true,
+  "controlClientReopened": true,
+  "phaseOrder": [
+    "validateArchive",
+    "prepareTarget",
+    "quiesceApplication",
+    "reconnectAndReadback",
+    "releaseApplication"
+  ],
+  "limits": [
+    "Local synthetic read-only probe application and locally cached PostgreSQL only",
+    "Control and application databases are distinct but share the source QA container",
+    "No CNPG, cloud archive, production runtime, billing or customer data",
+    "Distributed worker fencing and quiescence of every production SQL consumer are not proven by this drill"
+  ],
+  "ownedResourcesRemoved": true
+}

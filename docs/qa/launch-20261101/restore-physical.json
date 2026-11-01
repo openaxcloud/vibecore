@@ -1,0 +1,10 @@
+{
+  "physicalBackupVerified": true,
+  "tamperedBackupRejected": true,
+  "walRecoveryVerified": true,
+  "postTargetWriteExcluded": true,
+  "targetRestartVerified": true,
+  "networkListeners": false,
+  "postgresVersion": "160015",
+  "manifestSha256": "7962af0ff81a667ecc0fb836fd068bed0df8247e95bb47ed085a813b3fe9962c"
+}

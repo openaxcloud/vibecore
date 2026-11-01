@@ -1,0 +1,848 @@
+{
+  "date": "2026-11-01T08:58:21.795Z",
+  "base": "a9f8b02b737e775b68a34d29e33124e5662ec63c",
+  "scope": "isolated local PostgreSQL and Redis; no Stripe request or payment; not production proof",
+  "postgresImage": "pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b",
+  "hashes": {
+    "services/api/src/prisma-store.ts": "6973b856a335ff703b3be9eebddf5b67e484acdefb4f0edc08c2f90e6f562960",
+    "services/api/src/credit-reservation-postgres.integration.spec.ts": "e93c4e7a164ed5cc615449302a5b6ecc2865047cb3a648f6cab521240b6329e1",
+    ".github/workflows/scheduled-task-postgres.yml": "134f7ce15ccde09aaaa485531bafb6e145eba22b94f74024c1b40b690cc41388"
+  },
+  "reports": {
+    "launch-tests": {
+      "success": true,
+      "passed": 115,
+      "failed": 0,
+      "skipped": 3,
+      "tests": [
+        {
+          "name": "reserveReservation — idempotent, before any paid work creates a RESERVED reservation with zero debit",
+          "status": "passed"
+        },
+        {
+          "name": "reserveReservation — idempotent, before any paid work is idempotent on the same key (no double reserve)",
+          "status": "passed"
+        },
+        {
+          "name": "reserveReservation — idempotent, before any paid work rejects a missing idempotency key (mandatory)",
+          "status": "passed"
+        },
+        {
+          "name": "reserveReservation — idempotent, before any paid work rejects a different key for an already-reserved job",
+          "status": "passed"
+        },
+        {
+          "name": "reserveReservation — idempotent, before any paid work rejects a negative / non-integer amount",
+          "status": "passed"
+        },
+        {
+          "name": "settleReservation — the ONLY debit, only when committed records the debit when committed === true",
+          "status": "passed"
+        },
+        {
+          "name": "settleReservation — the ONLY debit, only when committed REFUSES to settle when the import did not commit (no commit, no debit)",
+          "status": "passed"
+        },
+        {
+          "name": "settleReservation — the ONLY debit, only when committed is idempotent when re-settled with the same amount",
+          "status": "passed"
+        },
+        {
+          "name": "settleReservation — the ONLY debit, only when committed rejects re-settling at a different amount",
+          "status": "passed"
+        },
+        {
+          "name": "settleReservation — the ONLY debit, only when committed cannot settle a compensated reservation",
+          "status": "passed"
+        },
+        {
+          "name": "compensateReservation — release with zero debit releases to COMPENSATED with zero debit",
+          "status": "passed"
+        },
+        {
+          "name": "compensateReservation — release with zero debit is idempotent",
+          "status": "passed"
+        },
+        {
+          "name": "compensateReservation — release with zero debit cannot compensate a settled (already committed + debited) reservation",
+          "status": "passed"
+        },
+        {
+          "name": "assertNoDebitWithoutCommit — the core safety invariant passes for RESERVED/COMPENSATED with zero debit and SETTLED with a debit",
+          "status": "passed"
+        },
+        {
+          "name": "assertNoDebitWithoutCommit — the core safety invariant throws if a positive debit exists outside SETTLED",
+          "status": "passed"
+        },
+        {
+          "name": "ImportCreditLedger — in-process, keyed by job + idempotency key reserve → settle on commit records the debit",
+          "status": "passed"
+        },
+        {
+          "name": "ImportCreditLedger — in-process, keyed by job + idempotency key reserve → compensate on cleanup leaves zero debit",
+          "status": "passed"
+        },
+        {
+          "name": "ImportCreditLedger — in-process, keyed by job + idempotency key compensateByJob is a safe no-op when nothing was reserved",
+          "status": "passed"
+        },
+        {
+          "name": "ImportCreditLedger — in-process, keyed by job + idempotency key double reserve with the same key never double-charges",
+          "status": "passed"
+        },
+        {
+          "name": "ImportCreditLedger — in-process, keyed by job + idempotency key settleByJob throws when no reservation exists",
+          "status": "passed"
+        },
+        {
+          "name": "estimateImportReservation is at least 1 credit and scales with staged file count",
+          "status": "passed"
+        },
+        {
+          "name": "quota de déploiements — comptage par période LE DOUBLE accepte une borne de période, comme son interface",
+          "status": "passed"
+        },
+        {
+          "name": "quota de déploiements — comptage par période LE DOUBLE écarte les constructions ratées, comme le vrai magasin",
+          "status": "passed"
+        },
+        {
+          "name": "quota de déploiements — comptage par période L’INTERFACE et le VRAI MAGASIN s’accordent sur la borne",
+          "status": "passed"
+        },
+        {
+          "name": "quota de déploiements — comptage par période LE SITE D’APPEL transmet la borne de période",
+          "status": "passed"
+        },
+        {
+          "name": "QUOTA-FANTOMES-001 — le quota ne compte plus les espaces morts la sonde lit bien le store",
+          "status": "passed"
+        },
+        {
+          "name": "QUOTA-FANTOMES-001 — le quota ne compte plus les espaces morts le comptage exclut les lignes périmées",
+          "status": "passed"
+        },
+        {
+          "name": "QUOTA-FANTOMES-001 — le quota ne compte plus les espaces morts AUCUNE écriture en base : le correctif ne doit rien armer",
+          "status": "passed"
+        },
+        {
+          "name": "monthly quota through the real webhook and usage routes (in-memory store) annual subscription",
+          "status": "passed"
+        },
+        {
+          "name": "monthly quota through the real webhook and usage routes (in-memory store) monthly subscription",
+          "status": "passed"
+        },
+        {
+          "name": "monthly quota through the real webhook and usage routes (in-memory store) monthly-webhook-late subscription",
+          "status": "passed"
+        },
+        {
+          "name": "does not duplicate credit after audit failure and webhook retry",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) POST /orgs/:orgId/credits/packs/checkout 503s while the credit model is dormant (BILLING_CREDITS_ENABLED unset)",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) POST /orgs/:orgId/credits/packs/checkout 400s for an unknown pack when enabled",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) POST /orgs/:orgId/credits/packs/checkout 503s when the pack Stripe price id is not configured",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) checkout.session.completed (mode=payment) webhook grants the pack credit value with a 6-month expiry and skips the subscription path",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) checkout.session.completed (mode=payment) webhook does not grant a pack when the session is unpaid",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS (a) publier le projet A est AUTORISÉ",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS (b) republier A est AUTORISÉ, sans limite artificielle",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS (c) publier un 2e projet DISTINCT est REFUSÉ, avec invitation à monter de plan",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS (d) après expiration de A à 30 jours, republier est AUTORISÉ",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS (5) REJEU CONCURRENT : deux publications SIMULTANÉES -> exactement un 201 et un 402",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS (5bis) rejeu concurrent à 5 projets distincts -> un seul 201",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS (2) FAIL-CLOSED : lecture des publications en erreur -> 503, jamais un quota remis a zero",
+          "status": "passed"
+        },
+        {
+          "name": "Credit-pack purchase (Replit parity) contrat Starter au publish : projets publiés ACTIFS le contrat s'applique MÊME quand le modèle de crédits est dormant",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation holds credits and reduces what remains available",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation refuses a hold larger than the balance",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation never over-commits under concurrency",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation frees the hold when a reservation is released",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation cannot release the same hold twice",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation cannot settle a hold twice",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation cannot settle a hold that was already released",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation reclaims abandoned holds so a crashed request cannot strand credits",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation does not reclaim a hold that has not expired",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation treats a zero or negative amount as nothing to hold",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes is completely inert while credits are dormant",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes takes a hold and returns its id when credits are enabled",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes refuses the request when no credits can be held",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes releases the hold when usage is reported",
+          "status": "passed"
+        },
+        {
+          "name": "credit wallet store creates a wallet lazily and grants then debits atomically",
+          "status": "passed"
+        },
+        {
+          "name": "credit wallet store records and updates budget cap settings",
+          "status": "passed"
+        },
+        {
+          "name": "credit wallet store recordPaygCharge is idempotent per (org, checkpointId) — re-settle never double-counts",
+          "status": "passed"
+        },
+        {
+          "name": "credit pack store creates a pack, lists active-only, and decrements remaining",
+          "status": "passed"
+        },
+        {
+          "name": "agent checkpoint store opens a PENDING checkpoint and settles it",
+          "status": "passed"
+        },
+        {
+          "name": "admin supervision listings lists wallets and checkpoints across orgs",
+          "status": "passed"
+        },
+        {
+          "name": "provider/model registry store upserts a model, auto-creating its provider shell",
+          "status": "passed"
+        },
+        {
+          "name": "provider/model registry store enabledOnly filters out disabled models and disabled providers",
+          "status": "passed"
+        },
+        {
+          "name": "GET /orgs/:orgId/credits — included grant + billing cycle reports the plan monthly grant and a billing-period window",
+          "status": "passed"
+        },
+        {
+          "name": "GET /orgs/:orgId/credits — included grant + billing cycle defaults a free org to a 0 monthly grant",
+          "status": "passed"
+        },
+        {
+          "name": "GET /orgs/:orgId/credits — included grant + billing cycle localizes platform ledger reasons for the user while preserving operator adjustments",
+          "status": "passed"
+        },
+        {
+          "name": "checkServiceShutdown (Replit-parity service-shutdown limit) is inert in SHADOW (flag off): never shuts down even with zero credits + cap set",
+          "status": "passed"
+        },
+        {
+          "name": "checkServiceShutdown (Replit-parity service-shutdown limit) shuts down when flag on + cap set + credits exhausted",
+          "status": "passed"
+        },
+        {
+          "name": "checkServiceShutdown (Replit-parity service-shutdown limit) does not shut down when credits remain",
+          "status": "passed"
+        },
+        {
+          "name": "checkServiceShutdown (Replit-parity service-shutdown limit) does not shut down when no cap is configured",
+          "status": "passed"
+        },
+        {
+          "name": "reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe) is a no-op in SHADOW (flag off)",
+          "status": "passed"
+        },
+        {
+          "name": "reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe) reports the overage with a checkpoint-id idempotency key when fully configured",
+          "status": "passed"
+        },
+        {
+          "name": "reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe) no-ops when there is no overage",
+          "status": "passed"
+        },
+        {
+          "name": "reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe) no-ops when the subscription has no matching metered item",
+          "status": "passed"
+        },
+        {
+          "name": "settleCheckpoint debits the wallet balance when there are no packs",
+          "status": "passed"
+        },
+        {
+          "name": "settleCheckpoint caps the wallet draw at the real balance and overflows the rest to PAYG",
+          "status": "passed"
+        },
+        {
+          "name": "settleCheckpoint consumes packs earliest-first before touching the balance",
+          "status": "passed"
+        },
+        {
+          "name": "settleCheckpoint shadow mode records cost but debits nothing",
+          "status": "passed"
+        },
+        {
+          "name": "applyPlanGrant grants Core monthly ($25) and expires prior unused balance (no rollover)",
+          "status": "passed"
+        },
+        {
+          "name": "applyPlanGrant grants Pro monthly ($100) and rolls over one period (caps balance)",
+          "status": "passed"
+        },
+        {
+          "name": "applyPlanGrant grants Starter daily credits",
+          "status": "passed"
+        },
+        {
+          "name": "gateCheckpoint allows when credits (balance + packs) cover the estimate",
+          "status": "passed"
+        },
+        {
+          "name": "gateCheckpoint blocks when short and PAYG disabled",
+          "status": "passed"
+        },
+        {
+          "name": "gateCheckpoint allows PAYG overage under the Usage Limit",
+          "status": "passed"
+        },
+        {
+          "name": "debitCredits (concurrent wallet-balance over-spend guard) never settles the wallet negative when the balance read is stale (race)",
+          "status": "passed"
+        },
+        {
+          "name": "debitCredits (concurrent wallet-balance over-spend guard) reports only the cents a clamped pack actually covered, overflowing the shortfall to PAYG",
+          "status": "passed"
+        },
+        {
+          "name": "debitCredits (concurrent wallet-balance over-spend guard) overflows a clamped pack shortfall into the wallet balance before PAYG",
+          "status": "passed"
+        },
+        {
+          "name": "debitCredits (concurrent wallet-balance over-spend guard) draws the real balance and reports no over-draw on the happy path",
+          "status": "passed"
+        },
+        {
+          "name": "un déploiement refusé pour quota le DIT le client gratuit lit que sa limite est atteinte — pas « l’espace démarre, réessayez »",
+          "status": "passed"
+        },
+        {
+          "name": "un déploiement refusé pour quota le DIT état des tours ILLISIBLE (pas de Redis) : l’autre espace n’est PAS arrêté — « on ne sait pas » n’est pas « inactif »",
+          "status": "passed"
+        },
+        {
+          "name": "un déploiement refusé pour quota le DIT TÉMOIN — créneau libre mais espace qui ne répond pas à temps : « réessayez » reste le bon message",
+          "status": "passed"
+        },
+        {
+          "name": "décision d’Avi du 01/10 : publier met en veille l’autre espace — jamais pendant un tour autre espace INACTIF : il est mis en veille, et le client le lit — plus de « arrêtez-le vous-même »",
+          "status": "skipped"
+        },
+        {
+          "name": "décision d’Avi du 01/10 : publier met en veille l’autre espace — jamais pendant un tour autre espace avec un TOUR EN COURS : il n’est PAS arrêté ; le client sait pourquoi, et rien n’est perdu",
+          "status": "skipped"
+        },
+        {
+          "name": "décision d’Avi du 01/10 : publier met en veille l’autre espace — jamais pendant un tour le tour se TERMINE pendant l’attente bornée : l’espace est mis en veille à ce moment-là",
+          "status": "skipped"
+        },
+        {
+          "name": "shouldRecordDeploymentUsage bills a successful (READY) deployment",
+          "status": "passed"
+        },
+        {
+          "name": "shouldRecordDeploymentUsage bills a still-building deployment (pollable / queued externally)",
+          "status": "passed"
+        },
+        {
+          "name": "shouldRecordDeploymentUsage does NOT bill a FAILED build",
+          "status": "passed"
+        },
+        {
+          "name": "shouldRecordDeploymentUsage does NOT bill a build canceled mid-flight (persisted CANCELED)",
+          "status": "passed"
+        },
+        {
+          "name": "un démarrage à la demande respecte le quota workspaces.active une LECTURE sur l’espace éteint du projet B ne donne pas un second espace actif",
+          "status": "passed"
+        },
+        {
+          "name": "un démarrage à la demande respecte le quota workspaces.active une ÉCRITURE sur l’espace éteint du projet B est refusée pour quota, sans démarrage",
+          "status": "passed"
+        },
+        {
+          "name": "un démarrage à la demande respecte le quota workspaces.active une RAFALE de lectures refusées pour quota ne rejoue pas le contrôle à chaque lecture",
+          "status": "passed"
+        },
+        {
+          "name": "un démarrage à la demande respecte le quota workspaces.active le REDÉMARRAGE explicite passe par la même règle : refusé pour quota, sans appel au manager",
+          "status": "passed"
+        },
+        {
+          "name": "un démarrage à la demande respecte le quota workspaces.active un redémarrage refusé pour de bon rend le créneau qu’il avait pris (FAILED, jamais STARTING figé)",
+          "status": "passed"
+        },
+        {
+          "name": "un démarrage à la demande respecte le quota workspaces.active CONTRÔLE — créneau libre : la lecture démarre bien l’espace de B",
+          "status": "passed"
+        },
+        {
+          "name": "un démarrage à la demande respecte le quota workspaces.active un espace DÉJÀ compté actif (pod ramassé, ligne RUNNING) redémarre sans consommer de créneau",
+          "status": "passed"
+        },
+        {
+          "name": "quota d’instantanés : allocation par période SANS fenêtre, tout compte — c’est le comportement fautif, gardé comme référence",
+          "status": "passed"
+        },
+        {
+          "name": "quota d’instantanés : allocation par période AVEC fenêtre, seuls les instantanés de la période comptent",
+          "status": "passed"
+        },
+        {
+          "name": "quota d’instantanés : allocation par période une organisation qui dépasse RÉELLEMENT sur la période reste comptée",
+          "status": "passed"
+        },
+        {
+          "name": "quota d’instantanés : allocation par période une organisation neuve part de zéro sur la période",
+          "status": "passed"
+        },
+        {
+          "name": "quota d’instantanés : allocation par période la borne est INCLUSIVE — un instantané pile au début de période compte",
+          "status": "passed"
+        },
+        {
+          "name": "stripe config admin (store) is empty before any admin write (env-fallback path)",
+          "status": "passed"
+        },
+        {
+          "name": "stripe config admin (store) stores encrypted secrets and reports hasX flags",
+          "status": "passed"
+        },
+        {
+          "name": "stripe config admin (store) preserves an unset field (undefined keeps, null clears)",
+          "status": "passed"
+        },
+        {
+          "name": "stripe config admin (store) sets per-plan price IDs on the Plan row, leaving other fields untouched",
+          "status": "passed"
+        }
+      ]
+    },
+    "routes-tests": {
+      "success": true,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 111,
+      "tests": [
+        {
+          "name": "SaaS API enforces team member quota across invitation acceptance",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API lists real billing subscriptions and supports audited admin plan overrides",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API rejects invalid Stripe webhook signatures and processes duplicate events idempotently",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API blocks quota exceeded actions and allows audited quota overrides",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API plan upgrade updates backend quotas used by protected actions",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API short-circuits FREE and ENTERPRISE checkout without hitting Stripe",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API respects the checkout interval and refuses annual-to-monthly substitution",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API creates Stripe customer portal sessions for existing billing customers",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API lists Stripe invoices for the billing customer",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API returns an empty invoice list when no billing customer exists",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API maps checkout completed webhooks from checkout metadata when subscription items are absent",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API records cancellation behavior from Stripe subscription deletion",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API stops a workspace the manager no longer knows and frees the active-workspace quota",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API lets a free-tier user reopen an existing workspace without re-charging the quota",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API check-quota returns headroom when within the plan limits",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API check-quota allows BYOK on team and enterprise plans",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API check-quota forces managed keys when ENTERPRISE_FORCE_MANAGED_KEYS=true overrides plan",
+          "status": "passed"
+        },
+        {
+          "name": "SaaS API check-quota rejects with 429 when the estimated tokens would exceed the plan",
+          "status": "passed"
+        },
+        {
+          "name": "paiement annuel : jamais facturé au prix mensuel, jamais un identifiant qui n’est pas un prix annuel demandé, aucun prix annuel configuré : refus clair, et RIEN n’est envoyé à Stripe",
+          "status": "passed"
+        },
+        {
+          "name": "paiement annuel : jamais facturé au prix mensuel, jamais un identifiant qui n’est pas un prix une valeur qui n’est pas un identifiant de prix (une adresse e-mail, mesurée en production) n’est jamais envoyée à Stripe",
+          "status": "passed"
+        }
+      ],
+      "note": "Name-filtered API suite: 111 nonbilling tests deliberately excluded; not claimed as run"
+    },
+    "postgres-tests": {
+      "success": true,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "durable packs on isolated PostgreSQL serializes two connections and survives lost response after commit, consumption and expiry",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL rolls back a grant when PostgreSQL connection dies before receipt commit then retries",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL rejects conflicting tenant, SKU, value and either reused purchase identity",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL adopts compatible consumed legacy singleton without refill and refuses duplicates or conflict",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL refuses malformed and missing receipt halves",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL supports concurrent coupon sessions without payment intents but rejects ambiguous legacy grants",
+          "status": "passed"
+        }
+      ]
+    },
+    "budget-postgres-tests": {
+      "success": true,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "explicit budget on real PostgreSQL uses the actual SystemSetting JSONB schema and rejects an unknown budget state",
+          "status": "passed"
+        },
+        {
+          "name": "explicit budget on real PostgreSQL serializes competing reservations across two real connections without overspending",
+          "status": "passed"
+        },
+        {
+          "name": "explicit budget on real PostgreSQL rejects concurrent duplicate, replay and continuation re-reservation of the same permit",
+          "status": "passed"
+        },
+        {
+          "name": "explicit budget on real PostgreSQL persists the normal accounting snapshot separately from reserved ceilings across reconnection",
+          "status": "passed"
+        }
+      ]
+    },
+    "redis-quota-tests": {
+      "success": true,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "un déploiement refusé pour quota le DIT le client gratuit lit que sa limite est atteinte — pas « l’espace démarre, réessayez »",
+          "status": "passed"
+        },
+        {
+          "name": "un déploiement refusé pour quota le DIT état des tours ILLISIBLE (pas de Redis) : l’autre espace n’est PAS arrêté — « on ne sait pas » n’est pas « inactif »",
+          "status": "passed"
+        },
+        {
+          "name": "un déploiement refusé pour quota le DIT TÉMOIN — créneau libre mais espace qui ne répond pas à temps : « réessayez » reste le bon message",
+          "status": "passed"
+        },
+        {
+          "name": "décision d’Avi du 01/10 : publier met en veille l’autre espace — jamais pendant un tour autre espace INACTIF : il est mis en veille, et le client le lit — plus de « arrêtez-le vous-même »",
+          "status": "passed"
+        },
+        {
+          "name": "décision d’Avi du 01/10 : publier met en veille l’autre espace — jamais pendant un tour autre espace avec un TOUR EN COURS : il n’est PAS arrêté ; le client sait pourquoi, et rien n’est perdu",
+          "status": "passed"
+        },
+        {
+          "name": "décision d’Avi du 01/10 : publier met en veille l’autre espace — jamais pendant un tour le tour se TERMINE pendant l’attente bornée : l’espace est mis en veille à ce moment-là",
+          "status": "passed"
+        }
+      ]
+    },
+    "reservation-before": {
+      "success": false,
+      "passed": 1,
+      "failed": 3,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL rolls back a wallet hold if reservation insertion fails",
+          "status": "failed"
+        },
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL rolls back release status if wallet update fails, allowing retry",
+          "status": "failed"
+        },
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL rolls back settle status if wallet update fails, allowing retry",
+          "status": "failed"
+        },
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL admits one competing hold and releases it once under concurrency",
+          "status": "passed"
+        }
+      ]
+    },
+    "reservation-after": {
+      "success": true,
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "durable packs on isolated PostgreSQL serializes two connections and survives lost response after commit, consumption and expiry",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL rolls back a grant when PostgreSQL connection dies before receipt commit then retries",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL rejects conflicting tenant, SKU, value and either reused purchase identity",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL adopts compatible consumed legacy singleton without refill and refuses duplicates or conflict",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL refuses malformed and missing receipt halves",
+          "status": "passed"
+        },
+        {
+          "name": "durable packs on isolated PostgreSQL supports concurrent coupon sessions without payment intents but rejects ambiguous legacy grants",
+          "status": "passed"
+        },
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL rolls back a wallet hold if reservation insertion fails",
+          "status": "passed"
+        },
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL rolls back release status if wallet update fails, allowing retry",
+          "status": "passed"
+        },
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL rolls back settle status if wallet update fails, allowing retry",
+          "status": "passed"
+        },
+        {
+          "name": "credit reservation atomicity on isolated PostgreSQL admits one competing hold and releases it once under concurrency",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation holds credits and reduces what remains available",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation refuses a hold larger than the balance",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation never over-commits under concurrency",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation frees the hold when a reservation is released",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation cannot release the same hold twice",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation cannot settle a hold twice",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation cannot settle a hold that was already released",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation reclaims abandoned holds so a crashed request cannot strand credits",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation does not reclaim a hold that has not expired",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 atomic credit reservation treats a zero or negative amount as nothing to hold",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes is completely inert while credits are dormant",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes takes a hold and returns its id when credits are enabled",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes refuses the request when no credits can be held",
+          "status": "passed"
+        },
+        {
+          "name": "AUDX-018 reservation wiring on the AI routes releases the hold when usage is reported",
+          "status": "passed"
+        },
+        {
+          "name": "credit wallet store creates a wallet lazily and grants then debits atomically",
+          "status": "passed"
+        },
+        {
+          "name": "credit wallet store records and updates budget cap settings",
+          "status": "passed"
+        },
+        {
+          "name": "credit wallet store recordPaygCharge is idempotent per (org, checkpointId) — re-settle never double-counts",
+          "status": "passed"
+        },
+        {
+          "name": "credit pack store creates a pack, lists active-only, and decrements remaining",
+          "status": "passed"
+        },
+        {
+          "name": "agent checkpoint store opens a PENDING checkpoint and settles it",
+          "status": "passed"
+        },
+        {
+          "name": "admin supervision listings lists wallets and checkpoints across orgs",
+          "status": "passed"
+        },
+        {
+          "name": "provider/model registry store upserts a model, auto-creating its provider shell",
+          "status": "passed"
+        },
+        {
+          "name": "provider/model registry store enabledOnly filters out disabled models and disabled providers",
+          "status": "passed"
+        }
+      ]
+    }
+  },
+  "lintComparison": {
+    "baseline": {
+      "errors": 106,
+      "warnings": 1
+    },
+    "current": {
+      "errors": 106,
+      "warnings": 1
+    },
+    "changedRegionMessages": []
+  },
+  "validation": {
+    "apiTypecheck": "exit 0",
+    "apiBuild": "exit 0",
+    "newSpecEslint": "exit 0",
+    "actionsPinning": "PASS 30 reachable YAML, 0 exceptions",
+    "diffCheck": "exit 0"
+  }
+}

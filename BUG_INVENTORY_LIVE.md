@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-597 entrées.
+598 entrées.
 
 ## Sans section
 
@@ -815,6 +815,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-GIT-REMOTE-STALE-COMPLETION-20261030](docs/bugs/BUG-GIT-REMOTE-STALE-COMPLETION-20261030.md) — 📤 Dispatché : ☑ Audit navigation A→B→A du 30 octobre 2026, base `bd5e0f5ea`. · 💻 Codé : ☐ main — correction locale en validation ; pas encore fusionnée. · ✅ Testé live : ☐ production — composants locaux avec réponses synthétiques et recette navigateur locale seulement.
 - [BUG-MOBILE-CHROME-HYDRATION-GAP-20261030](docs/bugs/BUG-MOBILE-CHROME-HYDRATION-GAP-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030](docs/bugs/BUG-PALETTE-CLOSE-FOCUS-HANDOFF-20261030.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-AI-USAGE-COST-CENTS-20261101](docs/bugs/BUG-AI-USAGE-COST-CENTS-20261101.md) — 📤 Dispatché : ☑ 01/11 — observation parent : 294781 jetons entrants, 696641 sortants, estimation $0.0000. Aucun nouveau prom · 💻 Codé : ☐ Non fusionné. Correctif sur branche audit/launch-evidence-20261101 : lire costCents, convertir en USD, disti · ✅ Testé live : ☐ Pas de recette production après correction. Contrat API et défaut UI reproduits localement ; 11 tests de cal
 
 ## Résidus non tabulaires — reportés mot pour mot
 
