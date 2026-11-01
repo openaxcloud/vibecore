@@ -121,7 +121,7 @@ jobs:
           docker exec "${{ job.services.postgres.id }}" createdb --username=vibecore database_audit
           pnpm --filter @vibecore/database db:deploy
 
-      - name: Require all 8 database-panel PostgreSQL scenarios and zero skips
+      - name: Require all 12 database-panel PostgreSQL scenarios and zero skips
         working-directory: services/api
         env:
           DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55439/database_audit
@@ -150,18 +150,20 @@ jobs:
             total: report.numTotalTests, passed: report.numPassedTests,
             failed: report.numFailedTests, skipped: report.numPendingTests, todo: report.numTodoTests,
             sourceSha256: createHash('sha256').update(readFileSync('src/tests/database-panel.postgres.spec.ts')).digest('hex'),
+            apiSha256: createHash('sha256').update(readFileSync('src/app.ts')).digest('hex'),
+            processChildSha256: createHash('sha256').update(readFileSync('src/database-panel-process-child.ts')).digest('hex'),
           };
           writeFileSync(`${directory}/receipt.json`, JSON.stringify(receipt, null, 2) + '\n');
           assert.equal(receipt.sha, process.env.EXPECTED_SHA);
           assert.equal(receipt.dirty, false);
           assert.equal(receipt.exitCode, 0);
           assert.equal(report.success, true);
-          assert.equal(receipt.total, 8);
-          assert.equal(receipt.passed, 8);
+          assert.equal(receipt.total, 12);
+          assert.equal(receipt.passed, 12);
           assert.equal(receipt.failed, 0);
           assert.equal(receipt.skipped, 0);
           assert.equal(receipt.todo, 0);
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\ndatabase-panel PostgreSQL: 8 passed, 0 skipped, commit ${receipt.sha}.\n`);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\ndatabase-panel PostgreSQL: 12 passed, 0 skipped, commit ${receipt.sha}.\n`);
           JS
 
       - name: Create and migrate the isolated skills database
