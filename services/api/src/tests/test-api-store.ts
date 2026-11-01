@@ -1,4 +1,9 @@
-import { bindTranscriptTerminal, readTranscriptTerminal, type TranscriptTerminal } from '../transcript-terminal.js';
+import {
+  bindTranscriptTerminal,
+  readTranscriptTerminal,
+  terminalSnapshotDecision,
+  type TranscriptTerminal,
+} from '../transcript-terminal.js';
 import { decisionEcritureMessage } from '../message-ne-raccourcit-pas.js';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
@@ -3997,16 +4002,24 @@ export class TestApiStore implements ApiStore {
     content: string;
     terminalReceipt?: TranscriptTerminal;
   }) {
+    if (input.terminalReceipt) bindTranscriptTerminal(input.content, input.terminalReceipt, input.id);
     const current = this.aiMessages.get(input.id);
 
     if (current && current.conversationId !== input.conversationId) {
-      throw Object.assign(new Error('TRANSCRIPT_CONFLICT'), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+      throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
     }
 
     if (current && !decisionEcritureMessage(current.content, input.content).ecrire) {
       return { message: current, stale: true };
     }
 
+    const decision =
+      current && input.terminalReceipt
+        ? terminalSnapshotDecision(current, { content: input.content, terminalReceipt: input.terminalReceipt })
+        : 'write';
+    if (decision === 'conflict')
+      throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+    if (decision === 'confirmed' && current) return { message: current, stale: false };
     const retained = current && readTranscriptTerminal(input.content, current.terminalReceipt, input.id);
     const receipt = input.role === 'assistant' ? (input.terminalReceipt ?? retained) : undefined;
 
@@ -4014,7 +4027,7 @@ export class TestApiStore implements ApiStore {
       id: input.id,
       conversationId: input.conversationId,
       role: input.role,
-      content: input.content,
+      content: decision === 'receipt-only' && current ? current.content : input.content,
       createdAt: current?.createdAt ?? now(),
       ...(receipt ? { terminalReceipt: bindTranscriptTerminal(input.content, receipt, input.id) } : {}),
     };

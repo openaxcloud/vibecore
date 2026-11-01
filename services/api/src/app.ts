@@ -29480,6 +29480,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const existingIds = new Set(existants.map((existant) => existant.id));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
 
+    const syncResults: Array<{ id: string; stale: boolean }> = [];
+
     let instantanesPerimes = 0;
     let caracteresProteges = 0;
 
@@ -29501,6 +29503,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       messages.push(result.message);
+      syncResults.push({ id, stale: result.stale });
     }
 
     await audit(request, store, {
@@ -29518,6 +29521,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       conversation,
+      syncResults,
       messages: messages.map((message) => ({
         ...message,
         terminalReceipt: readTranscriptTerminal(message.content, message.terminalReceipt, message.id),

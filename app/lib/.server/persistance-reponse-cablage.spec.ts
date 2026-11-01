@@ -27,7 +27,7 @@ describe('la réponse du serveur est écrite depuis la route de chat', () => {
     const bloc = ROUTE.split('const persisterLaReponseDuServeur = async')[1] ?? '';
     expect(bloc.length).toBeGreaterThan(100);
 
-    const corps = bloc.slice(0, 1600);
+    const corps = bloc.split('const declarerBascule =')[0];
     expect(corps).toContain('clientId: identifiantDuMessageDeReponse');
     expect(corps).toContain('conversationId: demande?.conversationId');
     expect(corps).toContain('contenu: contenuDuTour');

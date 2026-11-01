@@ -81,3 +81,28 @@ n'est revendiqué.
 Typage officiel complet et build production client/serveur réussis. Lint global :
 0 erreur, 52 avertissements après correction du formatage d’un test. Revue
 indépendante favorable ; la CI distante et la recette production restent distinctes.
+
+## Complément de revue : reçu final en concurrence
+
+La première tête a révélé un défaut supplémentaire en revue : un PUT concurrent
+pouvait faire échouer la persistance du reçu final avec 409, puis le serveur
+ne gardait que son journal. La reproduction PostgreSQL impose une barrière
+après la lecture du perdant : le PUT concurrent gagne avant l'écriture finale.
+
+La correction réconcilie une seule fois un conflit PostgreSQL dont l'écriture
+a été annulée, sous verrou de la seule ligne existante et délai borné. Elle
+attache le reçu à un contenu identique, complète son préfixe strict, conserve
+une version plus longue et refuse un contenu divergent ou un autre verdict.
+Le hash est validé avant toute confirmation. Aucun appel fournisseur ni retry
+réseau n'est ajouté. La confirmation du journal repose sur le reçu effectivement
+retourné par l'API, pas seulement sur un HTTP réussi.
+
+Sept courses contrôlées sont vérifiées dans les deux tests PostgreSQL, avec
+conservation des conflits ordinaires. Les 10 tests API et 37 tests BFF/helper
+passent. Un nouvel échec de base de données reste non confirmé ; ce mécanisme
+ne constitue pas une garantie absolue de stockage pendant une indisponibilité.
+
+La CI de la première tête `fab6f71f` s'est arrêtée au contrôle i18n (trois
+nouvelles chaînes d'erreur). Les libellés ont été intégrés au catalogue EN/FR
+sans élargir la baseline ; le scanner et les 19 tests du catalogue passent.
+Cette ancienne CI ne valide pas la tête corrigée.

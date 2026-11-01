@@ -20,6 +20,7 @@ import { createHash } from 'node:crypto';
  * Épinglé par `persistance-reponse.spec.ts` et `persistance-reponse-cablage.spec.ts`.
  */
 import { sansReflexion } from '~/lib/chat/rattrapage-reprise';
+import { persistedStreamTerminal, type StreamTerminal } from '~/lib/runtime/stream-terminal';
 
 export interface ReponseAPersister {
   conversationId: string;
@@ -60,4 +61,41 @@ export function reponseAPersister(input: {
 /** Bind an observed terminal receipt to the exact normalized response, not a later browser edit. */
 export function empreinteReponse(content: string): string {
   return createHash('sha256').update(sansReflexion(content).texte).digest('hex');
+}
+
+/** Confirmation comes from the API's stored result, never from the sent request alone. */
+export function recuTerminalConfirme(expected: StreamTerminal, messages: unknown): boolean {
+  if (!Array.isArray(messages)) {
+    return false;
+  }
+
+  return messages.some((message) => {
+    if (
+      !message ||
+      message.role !== 'assistant' ||
+      typeof message.content !== 'string' ||
+      typeof message.id !== 'string'
+    ) {
+      return false;
+    }
+
+    const receipt = persistedStreamTerminal([message.terminalReceipt], message.id);
+
+    return Boolean(
+      receipt &&
+        empreinteReponse(message.content) === expected.contentSha256 &&
+        (
+          [
+            'contentSha256',
+            'status',
+            'finishReason',
+            'reason',
+            'segments',
+            'fileActions',
+            'openActions',
+            'openArtifacts',
+          ] as const
+        ).every((key) => receipt[key] === expected[key]),
+    );
+  });
 }

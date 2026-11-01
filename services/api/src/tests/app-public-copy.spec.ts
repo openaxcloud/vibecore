@@ -79,6 +79,20 @@ describe('backend application copy catalogue', () => {
 });
 
 describe('backend application response localization', () => {
+  it.each(['TRANSCRIPT_CONFLICT', 'TRANSCRIPT_RECEIPT_CONTENT_MISMATCH'] as const)(
+    'localizes %s without replacing its machine-readable code',
+    (code) => {
+      const english = appPublicCopy(code, 'en');
+      const french = appPublicCopy(code, 'fr');
+      expect(english).not.toBe(code);
+      expect(french).not.toBe(english);
+      expect(localizeAppPublicErrorPayload({ error: code, message: english }, 'fr')).toEqual({
+        handled: true,
+        payload: { error: code, message: french },
+      });
+    },
+  );
+
   it('localizes exact backend-owned messages without translating arbitrary user content', () => {
     expect(localizeAppPublicMessage('Project not found', 'fr')).toEqual({
       matched: true,

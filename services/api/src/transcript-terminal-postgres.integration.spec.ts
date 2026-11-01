@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { createDatabaseClient } from '@vibecore/database';
+import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaApiStore } from './prisma-store.js';
 import { readTranscriptTerminal, transcriptContentHash, type TranscriptTerminal } from './transcript-terminal.js';
@@ -62,7 +62,7 @@ describe.skipIf(process.env.TERMINAL_RECEIPT_POSTGRES_PROOF !== '1')('terminal r
     >`SELECT data_type FROM information_schema.columns WHERE table_name = 'AiMessage' AND column_name = 'terminalReceipt'`;
     expect(columns).toEqual([{ data_type: 'jsonb' }]);
   });
-  it('returns explicit conflicts for concurrent inserts and updates without retrying or shortening the winner', async () => {
+  it('keeps ordinary conflicts explicit and reconciles only safe terminal snapshots without shortening the winner', async () => {
     const id = `proof-${randomUUID()}`;
     const input = { id, conversationId, role: 'assistant' as const, content: 'Synthetic response' };
 
@@ -90,18 +90,111 @@ describe.skipIf(process.env.TERMINAL_RECEIPT_POSTGRES_PROOF !== '1')('terminal r
     }
     expect(await first.prisma.aiMessage.count({ where: { id } })).toBe(1);
 
+    const winnerBeforeFinal = await first.prisma.aiMessage.findUniqueOrThrow({ where: { id } });
     const final = await first.syncAiTranscriptMessage({
       ...input,
-      content: input.content + ' final',
-      terminalReceipt: { ...receipt, contentSha256: transcriptContentHash(input.content + ' final') },
+      content: winnerBeforeFinal.content + ' final',
+      terminalReceipt: { ...receipt, contentSha256: transcriptContentHash(winnerBeforeFinal.content + ' final') },
     });
 
     const stale = await second.syncAiTranscriptMessage(input);
     expect(stale.stale).toBe(true);
     expect(stale.message.content).toBe(final.message.content);
     expect(readTranscriptTerminal(stale.message.content, stale.message.terminalReceipt, id)?.status).toBe('complete');
+    // Pause only after a real SQL read: the final receipt itself loses the first transaction.
+    for (const winner of ['same', 'prefix', 'divergent', 'longer', 'different-receipt', 'thought', 'insert'] as const) {
+      const contestedId = `proof-${randomUUID()}`;
+      const finalContent = 'Synthetic response final';
+      const base = { id: contestedId, conversationId, role: 'assistant' as const };
+      if (winner !== 'insert') await first.syncAiTranscriptMessage({ ...base, content: 'Synthetic' });
+      let sawRead!: () => void;
+      let releaseRead!: () => void;
+      const observed = new Promise<void>((resolve) => {
+        sawRead = resolve;
+      });
+      const released = new Promise<void>((resolve) => {
+        releaseRead = resolve;
+      });
+      let paused = false;
+      const client = createDatabaseClient({ poolMax: 1 });
+      const gated = client.$extends({
+        query: {
+          aiMessage: {
+            async findUnique({ args, query }) {
+              const row = await query(args);
+              if (!paused && args.where.id === contestedId) {
+                paused = true;
+                sawRead();
+                await released;
+              }
+              return row;
+            },
+          },
+        },
+      });
+      const contender = new PrismaApiStore(gated as unknown as DatabaseClient);
+      const attempt = contender.syncAiTranscriptMessage({
+        ...base,
+        content: finalContent,
+        terminalReceipt: { ...receipt, contentSha256: transcriptContentHash(finalContent) },
+      });
+      // Attach rejection handling immediately while the SQL transaction waits.
+      const settled = attempt.then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
+      try {
+        await observed;
+        const winnerContent =
+          winner === 'prefix'
+            ? 'Synthetic response'
+            : winner === 'divergent'
+              ? 'Concurrent user edit'
+              : winner === 'longer'
+                ? finalContent + ' concurrent extension'
+                : winner === 'thought'
+                  ? '<div class="__boltThought__">Synthetic thought</div>\n' + finalContent
+                  : finalContent;
+        await second.syncAiTranscriptMessage({
+          ...base,
+          content: winnerContent,
+          ...(winner === 'different-receipt'
+            ? {
+                terminalReceipt: {
+                  ...receipt,
+                  contentSha256: transcriptContentHash(finalContent),
+                  status: 'incomplete' as const,
+                  finishReason: 'length' as const,
+                  reason: 'output-limit' as const,
+                },
+              }
+            : {}),
+        });
+        releaseRead();
+        const result = await settled;
+        const row = await first.prisma.aiMessage.findUniqueOrThrow({ where: { id: contestedId } });
+        if (winner === 'divergent' || winner === 'different-receipt') {
+          expect(result).toMatchObject({ error: { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' } });
+          expect(row.content).toBe(winnerContent);
+          if (winner === 'divergent') expect(row.terminalReceipt).toBeNull();
+          else expect(readTranscriptTerminal(row.content, row.terminalReceipt, contestedId)?.status).toBe('incomplete');
+        } else if (winner === 'longer') {
+          expect(result).toMatchObject({ value: { stale: true } });
+          expect(row.content).toBe(winnerContent);
+          expect(row.terminalReceipt).toBeNull();
+        } else {
+          expect(result).toHaveProperty('value');
+          expect(row.content).toBe(winner === 'thought' ? winnerContent : finalContent);
+          expect(readTranscriptTerminal(row.content, row.terminalReceipt, contestedId)?.status).toBe('complete');
+        }
+      } finally {
+        releaseRead();
+        await settled;
+        await client.$disconnect();
+      }
+    }
     process.stdout.write(
-      `TERMINAL_RECEIPT_POSTGRES ${JSON.stringify({ conflicts: failures.length, oneRow: true, stalePreserved: true })}\n`,
+      `TERMINAL_RECEIPT_POSTGRES ${JSON.stringify({ conflicts: failures.length, oneRow: true, stalePreserved: true, terminalContendedCases: 7 })}\n`,
     );
   });
 });

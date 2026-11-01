@@ -20,6 +20,7 @@ const boundary = vi.hoisted(() => ({
   fetch: vi.fn(),
   toolReplay: vi.fn(),
   logInfo: vi.fn(),
+  logWarn: vi.fn(),
 }));
 vi.mock('ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('ai')>();
@@ -37,7 +38,11 @@ vi.mock('~/utils/logger', async (importOriginal) => {
 
   return {
     ...actual,
-    createScopedLogger: (scope: string) => ({ ...actual.createScopedLogger(scope), info: boundary.logInfo }),
+    createScopedLogger: (scope: string) => ({
+      ...actual.createScopedLogger(scope),
+      info: boundary.logInfo,
+      warn: boundary.logWarn,
+    }),
   };
 });
 vi.mock('~/lib/.server/llm/stream-text', () => ({ streamText: boundary.streamText }));
@@ -545,4 +550,64 @@ test('only the bounded final outcome persists a content-bound receipt across two
     contentSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
   });
   expect(writes.at(-1).content).toBe(generated + generated);
+});
+
+test('a final receipt absent from the stored winner is logged as unconfirmed, not persisted', async () => {
+  terminalFixture('stop', generated);
+
+  const previous = boundary.api.getMockImplementation()!;
+  boundary.api.mockImplementation(async (...args) => {
+    const [, path, options] = args;
+
+    if (String(path).endsWith('/transcript')) {
+      const message = JSON.parse(options.body).messages[0];
+
+      if (message.terminalReceipt) {
+        return { messages: [{ ...message, content: generated + ' concurrent extension', terminalReceipt: undefined }] };
+      }
+    }
+
+    return previous(...args);
+  });
+  await invoke({ conversationId: 'synthetic-conversation', clientMessageId: 'fixture-message' });
+
+  const events = boundary.logInfo.mock.calls.map(([text]) => {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  });
+  expect(events).toContainEqual(
+    expect.objectContaining({ event: 'chat.reponse.terminale.non-confirmee', projectId: 'synthetic-project' }),
+  );
+  expect(events.filter((event) => event?.terminalReceiptConfirmed !== undefined)).toEqual([
+    expect.objectContaining({ event: 'chat.reponse.terminale.non-confirmee', terminalReceiptConfirmed: false }),
+  ]);
+});
+
+test('an unresolved terminal 409 is logged without an HTTP retry or a persistence success', async () => {
+  terminalFixture('stop', generated);
+
+  const previous = boundary.api.getMockImplementation()!;
+
+  let finalWrites = 0;
+  boundary.api.mockImplementation(async (...args) => {
+    const [, path, options] = args;
+
+    if (String(path).endsWith('/transcript') && JSON.parse(options.body).messages[0].terminalReceipt) {
+      finalWrites++;
+      throw Object.assign(new Error('TRANSCRIPT_CONFLICT'), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+    }
+
+    return previous(...args);
+  });
+  await invoke({ conversationId: 'synthetic-conversation', clientMessageId: 'fixture-message' });
+  expect(finalWrites).toBe(1);
+  expect(boundary.logWarn.mock.calls).toContainEqual([expect.stringContaining('TRANSCRIPT_CONFLICT')]);
+
+  const finalSuccesses = boundary.logInfo.mock.calls.filter(([text]) =>
+    String(text).includes('"terminalReceiptConfirmed":true'),
+  );
+  expect(finalSuccesses).toEqual([]);
 });

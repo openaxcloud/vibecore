@@ -1,3 +1,4 @@
+import { appPublicEnglish } from './app-public-copy.js';
 import { describe, expect, it } from 'vitest';
 import {
   bindTranscriptTerminal,
@@ -28,7 +29,7 @@ describe('terminal receipt is a bounded observed-text claim', () => {
   it('rejects reused observed receipts on edited content and tampered persisted bindings', () => {
     const bound = bindTranscriptTerminal('Synthetic', fixture(), 'id-a');
     expect(readTranscriptTerminal('Synthetic', bound, 'id-a')).toMatchObject({ status: 'complete', messageId: 'id-a' });
-    expect(() => bindTranscriptTerminal('Edited', fixture(), 'id-a')).toThrow('TRANSCRIPT_RECEIPT_CONTENT_MISMATCH');
+    expect(() => bindTranscriptTerminal('Edited', fixture(), 'id-a')).toThrow(appPublicEnglish('TRANSCRIPT_RECEIPT_CONTENT_MISMATCH'));
     expect(readTranscriptTerminal('Edited', bound, 'id-a')).toBeUndefined();
     expect(readTranscriptTerminal('Synthetic', bound, 'id-b')).toBeUndefined();
     expect(

@@ -499,6 +499,14 @@
     "en": "AI conversation not found",
     "fr": "Conversation avec l’IA introuvable."
   },
+  "TRANSCRIPT_CONFLICT": {
+    "en": "The conversation changed during synchronization. The newer content was preserved.",
+    "fr": "La conversation a changé pendant la synchronisation. Le contenu plus récent a été conservé."
+  },
+  "TRANSCRIPT_RECEIPT_CONTENT_MISMATCH": {
+    "en": "The response completion record does not match this message. Its completion could not be confirmed.",
+    "fr": "Le constat de fin de réponse ne correspond pas à ce message. Sa fin n’a pas pu être confirmée."
+  },
   "USER_SPEND_LIMIT_REACHED": {
     "en": "You have reached your personal usage limit for this billing period.",
     "fr": "Vous avez atteint votre plafond d’utilisation personnel pour cette période de facturation."

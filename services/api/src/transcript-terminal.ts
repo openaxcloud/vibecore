@@ -1,3 +1,4 @@
+import { appPublicEnglish } from './app-public-copy.js';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { texteSansReflexion } from './message-ne-raccourcit-pas.js';
@@ -47,7 +48,7 @@ export function bindTranscriptTerminal(
   id: string,
 ): BoundTranscriptTerminal {
   if (receipt.contentSha256 !== transcriptContentHash(content)) {
-    throw Object.assign(new Error('TRANSCRIPT_RECEIPT_CONTENT_MISMATCH'), {
+    throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_RECEIPT_CONTENT_MISMATCH')), {
       statusCode: 409,
       code: 'TRANSCRIPT_RECEIPT_CONTENT_MISMATCH',
     });
@@ -77,4 +78,35 @@ export function readTranscriptTerminal(content: string, bound: unknown, id: stri
     (!parsed.data.messageId || parsed.data.messageId === id)
     ? { ...parsed.data, messageId: id }
     : undefined;
+}
+
+/** Compare observed outcomes independently of the browser/server spelling of the message id. */
+export function sameTranscriptTerminal(left: TranscriptTerminal, right: TranscriptTerminal): boolean {
+  return (
+    [
+      'contentSha256',
+      'status',
+      'finishReason',
+      'reason',
+      'segments',
+      'fileActions',
+      'openActions',
+      'openArtifacts',
+    ] as const
+  ).every((key) => left[key] === right[key]);
+}
+
+/** A final snapshot may extend its own prefix, never overwrite a concurrent edit or another final outcome. */
+export function terminalSnapshotDecision(
+  current: { id: string; role: string; content: string; terminalReceipt?: unknown },
+  input: { content: string; terminalReceipt: TranscriptTerminal },
+): 'write' | 'receipt-only' | 'confirmed' | 'stale' | 'conflict' {
+  const before = texteSansReflexion(current.content);
+  const after = texteSansReflexion(input.content);
+  if (current.role !== 'assistant') return 'conflict';
+  if (before.length > after.length && before.startsWith(after)) return 'stale';
+  if (!after.startsWith(before)) return 'conflict';
+  const existing = readTranscriptTerminal(current.content, current.terminalReceipt, current.id);
+  if (existing) return sameTranscriptTerminal(existing, input.terminalReceipt) ? 'confirmed' : 'conflict';
+  return before === after ? 'receipt-only' : 'write';
 }

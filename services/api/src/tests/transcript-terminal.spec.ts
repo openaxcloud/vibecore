@@ -104,6 +104,23 @@ describe('persisted terminal receipts', () => {
       expect((await put('Complete response', { ...receipt, status: 'invented' })).statusCode).toBe(400);
       expect((await put('Complete response', { ...receipt, messageId: 'another-turn' })).statusCode).toBe(400);
       expect((await put('Different answer', receipt)).statusCode).toBe(409);
+      expect((await put('Complete response extended', receipt)).statusCode).toBe(409);
+      expect(
+        (await put('Different answer', { ...receipt, contentSha256: transcriptContentHash('Different answer') }))
+          .statusCode,
+      ).toBe(409);
+      expect(
+        (
+          await put('Complete response', {
+            ...receipt,
+            status: 'incomplete',
+            finishReason: 'length',
+            reason: 'output-limit',
+          })
+        ).statusCode,
+      ).toBe(409);
+      const preserved = await app.inject({ method: 'GET', url: `${url}/messages`, headers });
+      expect(preserved.json().messages[0].terminalReceipt).toEqual({ ...receipt, messageId: id });
       expect((await put('Different answer')).json().messages[0].terminalReceipt).toBeUndefined();
     } finally {
       await app.close();

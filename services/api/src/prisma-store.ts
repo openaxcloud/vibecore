@@ -1,4 +1,9 @@
-import { bindTranscriptTerminal, readTranscriptTerminal, type TranscriptTerminal } from './transcript-terminal.js';
+import {
+  bindTranscriptTerminal,
+  readTranscriptTerminal,
+  terminalSnapshotDecision,
+  type TranscriptTerminal,
+} from './transcript-terminal.js';
 import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
@@ -5184,27 +5189,35 @@ export class PrismaApiStore implements ApiStore {
     content: string;
     terminalReceipt?: TranscriptTerminal;
   }): Promise<{ message: AiMessageRecord; stale: boolean }> {
+    if (input.terminalReceipt) bindTranscriptTerminal(input.content, input.terminalReceipt, input.id);
     try {
-      // Serializable also protects absent-row insertion. Conflicts are surfaced, never replayed.
+      // Serializable protects insertion too. Only a terminal conflict can enter bounded, content-checked reconciliation.
       return await this.prisma.$transaction(
         async (tx) => {
           const current = await tx.aiMessage.findUnique({ where: { id: input.id } });
 
           if (current && current.conversationId !== input.conversationId) {
-            throw Object.assign(new Error('TRANSCRIPT_CONFLICT'), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+            throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
           }
 
           if (current && !decisionEcritureMessage(current.content, input.content).ecrire) {
             return { message: mapAiMessage(current), stale: true };
           }
 
+          const decision =
+            current && input.terminalReceipt
+              ? terminalSnapshotDecision(current, { content: input.content, terminalReceipt: input.terminalReceipt })
+              : 'write';
+          if (decision === 'conflict')
+            throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+          if (decision === 'confirmed' && current) return { message: mapAiMessage(current), stale: false };
           const retained = current && readTranscriptTerminal(input.content, current.terminalReceipt, input.id);
           const receipt = input.role === 'assistant' ? (input.terminalReceipt ?? retained) : undefined;
           const terminalReceipt = receipt ? bindTranscriptTerminal(input.content, receipt, input.id) : undefined;
 
           const data = {
             role: input.role,
-            content: input.content,
+            content: decision === 'receipt-only' && current ? current.content : input.content,
             terminalReceipt: terminalReceipt ? (terminalReceipt as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
           };
           const row = current
@@ -5224,11 +5237,47 @@ export class PrismaApiStore implements ApiStore {
       );
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code)) {
-        throw Object.assign(new Error('TRANSCRIPT_CONFLICT'), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+        if (input.terminalReceipt && input.role === 'assistant')
+          return this.reconcileTerminalSnapshot({ ...input, terminalReceipt: input.terminalReceipt });
+        throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
       }
 
       throw error;
     }
+  }
+
+  private async reconcileTerminalSnapshot(input: {
+    id: string;
+    conversationId: string;
+    content: string;
+    terminalReceipt: TranscriptTerminal;
+  }): Promise<{ message: AiMessageRecord; stale: boolean }> {
+    const bound = bindTranscriptTerminal(input.content, input.terminalReceipt, input.id);
+    // One bounded reconciliation, not a replay of the losing snapshot. Lock only this existing row.
+    return this.prisma.$transaction(
+      async (tx) => {
+        const locked = await tx.$queryRaw<
+          Array<{ id: string }>
+        >`SELECT id FROM "AiMessage" WHERE id = ${input.id} AND "conversationId" = ${input.conversationId} FOR UPDATE`;
+        if (!locked.length)
+          throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+        const current = await tx.aiMessage.findUniqueOrThrow({ where: { id: input.id } });
+        const decision = terminalSnapshotDecision(current, input);
+        if (decision === 'conflict')
+          throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+        if (decision === 'confirmed' || decision === 'stale')
+          return { message: mapAiMessage(current), stale: decision === 'stale' };
+        const row = await tx.aiMessage.update({
+          where: { id: input.id },
+          data: {
+            ...(decision === 'write' ? { content: input.content } : {}),
+            terminalReceipt: bound as unknown as Prisma.InputJsonValue,
+          },
+        });
+        return { message: mapAiMessage(row), stale: false };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 2000, timeout: 5000 },
+    );
   }
 
   async listAiMessages(conversationId: string) {

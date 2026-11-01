@@ -29,7 +29,7 @@ import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
-import { reponseAPersister, empreinteReponse } from '~/lib/.server/persistance-reponse';
+import { reponseAPersister, empreinteReponse, recuTerminalConfirme } from '~/lib/.server/persistance-reponse';
 import { demandeAPersister } from '~/lib/.server/persistance-demande';
 import { avecSuiviDuTourPartage } from '~/lib/.server/tours-partages.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
@@ -1044,18 +1044,33 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           }
 
           try {
-            await apiRequest(request, `/projects/${projectId}/ai/conversations/${reponse.conversationId}/transcript`, {
-              method: 'PUT',
-              redirectOn401: false,
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                messages: [
-                  { clientId: reponse.clientId, role: 'assistant', content: reponse.content, terminalReceipt },
-                ],
-              }),
-            });
+            const stored = await apiRequest<{ messages?: unknown; syncResults?: Array<{ stale: boolean }> }>(
+              request,
+              `/projects/${projectId}/ai/conversations/${reponse.conversationId}/transcript`,
+              {
+                method: 'PUT',
+                redirectOn401: false,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  messages: [
+                    { clientId: reponse.clientId, role: 'assistant', content: reponse.content, terminalReceipt },
+                  ],
+                }),
+              },
+            );
             logger.info(
-              JSON.stringify({ event: 'chat.reponse.persistee', projectId, caracteres: reponse.content.length }),
+              JSON.stringify({
+                event:
+                  terminalReceipt && !recuTerminalConfirme(terminalReceipt, stored?.messages)
+                    ? 'chat.reponse.terminale.non-confirmee'
+                    : 'chat.reponse.persistee',
+                projectId,
+                caracteres: reponse.content.length,
+                terminalReceiptConfirmed: terminalReceipt
+                  ? recuTerminalConfirme(terminalReceipt, stored?.messages)
+                  : undefined,
+                stale: stored?.syncResults?.some((result) => result.stale) ?? false,
+              }),
             );
           } catch (error) {
             logger.warn(
