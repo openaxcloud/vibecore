@@ -123,15 +123,11 @@ describe('AssistantMessage i18n', () => {
     );
   });
 
-  it('les cartes des sous-agents RÉSERVENT trois lignes, quel que soit leur texte (2026-09-28)', () => {
-    /*
-     * Mesuré en production à 390 px : l'aperçu passait d'une à trois lignes pendant
-     * le flux, et le fil sautait (~750 px en 0,9 s, retours de 40 px). La hauteur
-     * doit être FIXE — la même classe pour un texte court et un texte long.
-     */
+  it('les cartes des sous-agents réservent trois lignes pendant le flux', () => {
     render(
       <I18nextProvider i18n={createI18nInstance('fr')}>
         <AssistantMessage
+          isStreaming
           content="Réponse"
           messageId="message-lanes"
           parts={undefined}
@@ -156,11 +152,11 @@ describe('AssistantMessage i18n', () => {
 
     for (const apercu of apercus) {
       const classes = apercu.className.split(/\s+/);
-      expect(classes).toContain('h-12');
-      expect(classes).toContain('leading-4');
+      expect(classes).toContain('bolt-agent-lane-preview');
+      expect(apercu.parentElement?.getAttribute('data-streaming')).toBe('true');
       expect(classes).toContain('line-clamp-3');
 
-      // Une hauteur MINIMALE laisserait encore grandir la carte.
+      // La hauteur du flux est définie en lignes réelles dans la feuille compilée.
       expect(classes.some((c) => c.startsWith('min-h-') || c.startsWith('max-h-'))).toBe(false);
     }
 

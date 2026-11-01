@@ -89,6 +89,8 @@ export const assistantMessageEn = {
   'assistantMessage.lanes.structured': 'Structured agent report',
   'assistantMessage.lanes.details': 'Original report details',
   'assistantMessage.lanes.emptyResponse': 'The agent did not return a response.',
+  'assistantMessage.lanes.actionsWithoutReport':
+    'The agent emitted actions without a valid report. Execution has not been observed.',
   'assistantMessage.lanes.finalizing': 'finalizing consensus…',
   'assistantMessage.lanes.consensusSummary': 'Consensus · {{algorithm}} · {{outcome}} · {{score}}% agreement',
   'assistantMessage.reasoning': 'Reasoning',
@@ -247,6 +249,8 @@ export const assistantMessageFr: AssistantMessageCopy = {
   'assistantMessage.lanes.structured': 'Rapport structuré de l’agent',
   'assistantMessage.lanes.details': 'Détails du rapport original',
   'assistantMessage.lanes.emptyResponse': 'L’agent n’a renvoyé aucune réponse.',
+  'assistantMessage.lanes.actionsWithoutReport':
+    'L’agent a émis des actions sans rapport valide. L’exécution n’a pas été observée.',
   'assistantMessage.lanes.finalizing': 'finalisation du consensus…',
   'assistantMessage.lanes.consensusSummary': 'Consensus · {{algorithm}} · {{outcome}} · {{score}} % d’accord',
   'assistantMessage.reasoning': 'Raisonnement',

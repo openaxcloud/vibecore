@@ -1050,7 +1050,10 @@ export const AssistantMessage = memo(
                           {role.title}
                         </span>
                       </div>
-                      <div className="mt-1 h-8 overflow-hidden text-[11px] text-bolt-elements-textSecondary">
+                      <div
+                        className="bolt-agent-lane-status mt-1 text-bolt-elements-textSecondary"
+                        data-streaming={state === 'running'}
+                      >
                         {outputLabel
                           ? state !== 'complete' && !interrupted
                             ? `${localizeAssistantEnum(copy, 'status', state)} · ${outputLabel}`
@@ -1062,6 +1065,7 @@ export const AssistantMessage = memo(
                               : localizeAssistantEnum(copy, 'status', state)}
                       </div>
                       <AgentLaneSummary
+                        streaming={state === 'running'}
                         copy={copy}
                         result={output}
                         value={

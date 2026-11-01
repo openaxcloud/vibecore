@@ -8191,8 +8191,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 ) : null;
               }}
             </ClientOnly>
-            <ScrollToBottom />
+            {!useMobileIde && <ScrollToBottom />}
           </StickToBottom.Content>
+          {useMobileIde && <ScrollToBottom docked />}
           {shouldRenderAgentComposer && (
             <div
               ref={agentComposerRef}
@@ -24556,7 +24557,7 @@ function panelTitle(panel: string, t?: TFunction) {
  * onglets, le rail, la palette « + » et les tuiles mobile.
  */
 
-function ScrollToBottom() {
+function ScrollToBottom({ docked = false }: { docked?: boolean }) {
   const { t } = useTranslation();
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
@@ -24578,7 +24579,7 @@ function ScrollToBottom() {
     return null;
   }
 
-  return (
+  const button = (
     <button
       type="button"
       className="bolt-agent-scroll-to-bottom"
@@ -24592,4 +24593,6 @@ function ScrollToBottom() {
       <span className="bolt-agent-scroll-to-bottom__label">{t('chat.copy.scrollToLatest')}</span>
     </button>
   );
+
+  return docked ? <div className="bolt-agent-scroll-dock">{button}</div> : button;
 }

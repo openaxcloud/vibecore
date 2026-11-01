@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-605 entrées.
+606 entrées.
 
 ## Sans section
 
@@ -835,6 +835,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-AI-USAGE-COST-CENTS-20261101](docs/bugs/BUG-AI-USAGE-COST-CENTS-20261101.md) — 📤 Dispatché : ☑ 01/11 — observation parent : 294781 jetons entrants, 696641 sortants, estimation $0.0000. Aucun nouveau prom · 💻 Codé : ☐ Non fusionné. Correctif sur branche audit/launch-evidence-20261101 : lire costCents, convertir en USD, disti · ✅ Testé live : ☐ Pas de recette production après correction. Contrat API et défaut UI reproduits localement ; 11 tests de cal
 - [BUG-DATABASE-NO-SQL-TABLE-20261101](docs/bugs/BUG-DATABASE-NO-SQL-TABLE-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-DATABASE-NO-SQL-INSERT-20261101](docs/bugs/BUG-DATABASE-NO-SQL-INSERT-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-MOBILE-AGENT-CAPTURES-20261101](docs/bugs/BUG-MOBILE-AGENT-CAPTURES-20261101.md) — P1 — captures IMG_0939–0942 : compteurs rognés, cartes spécialistes inutilement hautes, texte système anglais, notification volumineuse et chevauchement de la f — 📤 Dispatché : ☑ 01/11 — correction mobile, menu inférieur conservé. Aucun changement de routage IA. · 💻 Codé : ☐ — branche fix/mobile-agent-captures-20261101 ; correctifs et preuves locales prêts ; pas encore intégré sur · ✅ Testé live : ☐ — aucune validation de production. Reproduction locale synthétique Chromium 393 px : métadonnées hautes de 2
 
 ## Résidus non tabulaires — reportés mot pour mot
 
