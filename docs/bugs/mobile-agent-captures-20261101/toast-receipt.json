@@ -1,0 +1,42 @@
+[
+  {
+    "engine": "chromium",
+    "state": "before",
+    "box": {
+      "x": 29,
+      "y": 113,
+      "width": 351,
+      "height": 144.328125
+    }
+  },
+  {
+    "engine": "chromium",
+    "state": "after",
+    "box": {
+      "x": 29,
+      "y": 113,
+      "width": 351,
+      "height": 122.453125
+    }
+  },
+  {
+    "engine": "webkit",
+    "state": "before",
+    "box": {
+      "x": 29,
+      "y": 113,
+      "width": 351,
+      "height": 144.328125
+    }
+  },
+  {
+    "engine": "webkit",
+    "state": "after",
+    "box": {
+      "x": 29,
+      "y": 113,
+      "width": 351,
+      "height": 122.453125
+    }
+  }
+]

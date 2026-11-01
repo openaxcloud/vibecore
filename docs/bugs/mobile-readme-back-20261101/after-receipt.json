@@ -1,0 +1,407 @@
+{
+  "fullRestoreSuite": {
+    "stats": {
+      "startTime": "2026-11-01T16:47:50.576Z",
+      "duration": 290467.033,
+      "expected": 18,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "restores the selected mobile file through locale, Back, Forward and reload at 768px",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 20467,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "restores the selected mobile file through locale, Back, Forward and reload at 390px",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 18529,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "immediate locale after selecting audit at 768",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 13813,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "immediate locale after selecting audit at 390",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 9592,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "restores the mobile file after leaving during archive hydration",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 8668,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "does not persist project A selection into project B during a client route change",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 12843,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "a late project A memory response does not write its selection into project B",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 17795,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "preserves pending audit through temporary README; explicit choice false",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 18560,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "preserves pending audit through temporary README; explicit choice true",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 19398,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 17141,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390 with delayed panel response",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 19600,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 768",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 18154,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 768 with delayed panel response",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 18704,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README stays in project A after switching to B at 390",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 15692,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README stays in project A after switching to B at 768",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 16339,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "project A never displays project B while its archive is pending at 768",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 15987,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "file choice cancels a pending files navigation at 390",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 7021,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "file choice cancels a pending files navigation at 768",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 6959,
+            "error": ""
+          }
+        ]
+      }
+    ]
+  },
+  "repeated390": {
+    "stats": {
+      "startTime": "2026-11-01T16:49:31.266Z",
+      "duration": 123715.27799999999,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "explicit provisional README then immediate Back at 390",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 17690,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390 with delayed panel response",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 17740,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 18996,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390 with delayed panel response",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 19548,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 19089,
+            "error": ""
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390 with delayed panel response",
+        "project": "chromium",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "durationMs": 19083,
+            "error": ""
+          }
+        ]
+      }
+    ]
+  },
+  "webkitPreconditionFailures": {
+    "stats": {
+      "startTime": "2026-11-01T16:47:51.784Z",
+      "duration": 53412.570999999996,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 4,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "explicit provisional README then immediate Back at 390",
+        "project": "webkit",
+        "status": "unexpected",
+        "results": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 12018,
+            "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).not.\u001b[22mtoHaveURL\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nExpected pattern: not \u001b[32m/\\/login(?:\\?|$)/\u001b[39m\nReceived string: \u001b[31m\"http://127.0.0.1:18210\u001b[7m/login?\u001b[27mreturnTo=%2Fdashboard\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"not toHaveURL\" with timeout 5000ms\u001b[22m\n\u001b[2m    3 × unexpected value \"http://127.0.0.1:18210/login\"\u001b[22m\n\u001b[2m    5 × unexpected value \"http://127.0.0.1:18210/login?returnTo=%2Fdashboard\"\u001b[22m\n"
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 390 with delayed panel response",
+        "project": "webkit",
+        "status": "unexpected",
+        "results": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 10890,
+            "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).not.\u001b[22mtoHaveURL\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nExpected pattern: not \u001b[32m/\\/login(?:\\?|$)/\u001b[39m\nReceived string: \u001b[31m\"http://127.0.0.1:18210\u001b[7m/login?\u001b[27mreturnTo=%2Fdashboard\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"not toHaveURL\" with timeout 5000ms\u001b[22m\n\u001b[2m    3 × unexpected value \"http://127.0.0.1:18210/login\"\u001b[22m\n\u001b[2m    5 × unexpected value \"http://127.0.0.1:18210/login?returnTo=%2Fdashboard\"\u001b[22m\n"
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 768",
+        "project": "webkit",
+        "status": "unexpected",
+        "results": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 11251,
+            "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).not.\u001b[22mtoHaveURL\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nExpected pattern: not \u001b[32m/\\/login(?:\\?|$)/\u001b[39m\nReceived string: \u001b[31m\"http://127.0.0.1:18210\u001b[7m/login?\u001b[27mreturnTo=%2Fdashboard\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"not toHaveURL\" with timeout 5000ms\u001b[22m\n\u001b[2m    3 × unexpected value \"http://127.0.0.1:18210/login\"\u001b[22m\n\u001b[2m    5 × unexpected value \"http://127.0.0.1:18210/login?returnTo=%2Fdashboard\"\u001b[22m\n"
+          }
+        ]
+      },
+      {
+        "title": "explicit provisional README then immediate Back at 768 with delayed panel response",
+        "project": "webkit",
+        "status": "unexpected",
+        "results": [
+          {
+            "status": "failed",
+            "retry": 0,
+            "durationMs": 11894,
+            "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).not.\u001b[22mtoHaveURL\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nExpected pattern: not \u001b[32m/\\/login(?:\\?|$)/\u001b[39m\nReceived string: \u001b[31m\"http://127.0.0.1:18210\u001b[7m/login?\u001b[27mreturnTo=%2Fdashboard\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"not toHaveURL\" with timeout 5000ms\u001b[22m\n\u001b[2m    4 × unexpected value \"http://127.0.0.1:18210/login\"\u001b[22m\n\u001b[2m    3 × unexpected value \"http://127.0.0.1:18210/login?returnTo=%2Fdashboard\"\u001b[22m\n"
+          }
+        ]
+      }
+    ]
+  },
+  "sourceSha256": {
+    "app/root.tsx": "f8ad2c01f7ca73bf469a91ebb4910e520f7456d8c19446014c49162d52bfe342",
+    "app/root.revalidate.ts": "12e304006c12951eb6823e8f9ebea6f33ee182235dc39797d36a10dd54016518",
+    "tests/e2e/ide-mobile-file-restore.spec.ts": "5a58db27ea677eaa76663ce1c6f7283263cedbff8fab14a1f2a8fd6d603384f2"
+  }
+}

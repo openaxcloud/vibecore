@@ -44,9 +44,45 @@ const resource = (text, kind, suffix) => {
   return matches[0];
 };
 
+test('real Helm render exposes retained-value drift without exempting that deployment', () => {
+  // Models a retained old chart default, not a live cluster/Helm storage test.
+  const before = render('services.web.replicas=7');
+
+  const normalizeSyntheticLookups = (text) =>
+    docs(text)
+      .map((item) =>
+        item.kind === 'Secret'
+          ? {
+              ...item,
+              data: docs(before).find((old) => old.kind === 'Secret' && old.metadata.name === item.metadata.name).data,
+            }
+          : item,
+      )
+      .map((item) => stringify(item))
+      .join('---\n');
+
+  const stage = [`migrations.imageDigest=${api}`, `services.workspaceManager.imageDigest=${manager}`];
+
+  const newDefaults = normalizeSyntheticLookups(render(...stage));
+  assert.throws(
+    () =>
+      assertOnlyManagerChanges(
+        before,
+        newDefaults,
+        'test-vibecore-platform-workspace-manager',
+        `${registry}/api@${api}`,
+      ),
+    (error) => error.message.includes('UNRELATED_RESOURCE_CHANGED') && error.message.includes('/spec/replicas'),
+  );
+
+  const retained = normalizeSyntheticLookups(render('services.web.replicas=7', ...stage));
+  assertOnlyManagerChanges(before, retained, 'test-vibecore-platform-workspace-manager', `${registry}/api@${api}`);
+});
+
 // No skip or stand-in Helm: setup-helm is a mandatory preceding CI step.
 test('real Helm keeps old API and other services while migrating with new API before manager', () => {
   const before = render();
+
   const staged = render(`migrations.imageDigest=${api}`, `services.workspaceManager.imageDigest=${manager}`);
 
   /*

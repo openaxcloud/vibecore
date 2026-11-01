@@ -23,6 +23,7 @@
 import { accountSettingsConnectedEn, accountSettingsConnectedFr } from './catalogs/account-settings-connected';
 import { actionRunnerEn, actionRunnerFr } from './catalogs/action-runner';
 import { adminBillingEn, adminBillingFr } from './catalogs/admin-billing';
+import { adminExplicitBudgetEn, adminExplicitBudgetFr } from './catalogs/admin-explicit-budget';
 import { adminInfrastructureEn, adminInfrastructureFr } from './catalogs/admin-infrastructure';
 import { adminOauthProvidersEn, adminOauthProvidersFr } from './catalogs/admin-oauth-providers';
 import { adminStripeEn, adminStripeFr } from './catalogs/admin-stripe';
@@ -198,6 +199,7 @@ export const RESOURCES: Record<SupportedLanguage, { translation: Record<string, 
       ...adminStripeEn,
       ...adminSupportTicketsEn,
       ...adminWalletsEn,
+      ...adminExplicitBudgetEn,
       ...apiAiFeaturesEn,
       ...apiRuntimeRoutesEn,
       ...assistantMessageEn,
@@ -356,6 +358,7 @@ export const RESOURCES: Record<SupportedLanguage, { translation: Record<string, 
       ...adminStripeFr,
       ...adminSupportTicketsFr,
       ...adminWalletsFr,
+      ...adminExplicitBudgetFr,
       ...apiAiFeaturesFr,
       ...apiRuntimeRoutesFr,
       ...assistantMessageFr,

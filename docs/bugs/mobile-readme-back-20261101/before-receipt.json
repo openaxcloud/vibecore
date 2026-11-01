@@ -1,0 +1,310 @@
+{
+  "base": "5dea2523b68b36adf6709bd28c7576c31cb3198f",
+  "browser": "Chromium 154.0.8037.57",
+  "viewport": {
+    "width": 390,
+    "height": 900
+  },
+  "normalRuns": {
+    "passed": 10,
+    "failed": 0,
+    "retries": 0
+  },
+  "delayedRootResponseMs": 750,
+  "delayedRuns": [
+    {
+      "case": "ide-mobile-file-restore-ex-e818d--then-immediate-Back-at-390-chromium",
+      "failedAssertion": "expect(.cm-content).toBeVisible() timeout 5000ms",
+      "rootRequests": [
+        {
+          "query": "panel=editor&_routes=root",
+          "status": 200,
+          "timeMs": 17.622,
+          "startedAt": "2026-11-01T16:39:24.623Z"
+        },
+        {
+          "query": "panel=editor&_routes=root",
+          "status": 200,
+          "timeMs": 11.632999999997992,
+          "startedAt": "2026-11-01T16:39:30.189Z"
+        },
+        {
+          "query": "panel=editor&_routes=root",
+          "status": -1,
+          "timeMs": -1,
+          "startedAt": "2026-11-01T16:39:30.188Z"
+        }
+      ],
+      "lastNavigationSnapshots": [
+        {
+          "snapshot": "after@call@840",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 18439.076
+        },
+        {
+          "snapshot": "before@call@852",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 18444.681
+        },
+        {
+          "snapshot": "input@call@852",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 18481.671
+        },
+        {
+          "snapshot": "after@call@852",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 18548.131
+        },
+        {
+          "snapshot": "before@call@866",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 18560.213
+        },
+        {
+          "snapshot": "after@call@866",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 18748.776
+        },
+        {
+          "snapshot": "before@call@876",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 18785.177
+        },
+        {
+          "snapshot": "after@call@876",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 18794.124
+        },
+        {
+          "snapshot": "before@call@880",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 18825.071
+        },
+        {
+          "snapshot": "after@call@880",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 18855.41
+        },
+        {
+          "snapshot": "before@call@888",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 18881.196
+        },
+        {
+          "snapshot": "after@call@888",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 23894.385
+        }
+      ]
+    },
+    {
+      "case": "ide-mobile-file-restore-ex-e818d--then-immediate-Back-at-390-chromium-repeat1",
+      "failedAssertion": "expect(.cm-content).toBeVisible() timeout 5000ms",
+      "rootRequests": [
+        {
+          "query": "panel=editor&_routes=root",
+          "status": 200,
+          "timeMs": 17.183999999999997,
+          "startedAt": "2026-11-01T16:39:42.856Z"
+        },
+        {
+          "query": "panel=editor&_routes=root",
+          "status": 200,
+          "timeMs": 8.525999999998021,
+          "startedAt": "2026-11-01T16:39:46.463Z"
+        },
+        {
+          "query": "panel=editor&_routes=root",
+          "status": -1,
+          "timeMs": -1,
+          "startedAt": "2026-11-01T16:39:46.461Z"
+        }
+      ],
+      "lastNavigationSnapshots": [
+        {
+          "snapshot": "after@call@825",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 34718.195
+        },
+        {
+          "snapshot": "before@call@833",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 34723.557
+        },
+        {
+          "snapshot": "input@call@833",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 34763.754
+        },
+        {
+          "snapshot": "after@call@833",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 34828.25
+        },
+        {
+          "snapshot": "before@call@847",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 34835.473
+        },
+        {
+          "snapshot": "after@call@847",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 35009.058
+        },
+        {
+          "snapshot": "before@call@857",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 35035.958
+        },
+        {
+          "snapshot": "after@call@857",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 35089.355
+        },
+        {
+          "snapshot": "before@call@861",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 35121.534
+        },
+        {
+          "snapshot": "after@call@861",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 35156.586
+        },
+        {
+          "snapshot": "before@call@869",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 35192.943
+        },
+        {
+          "snapshot": "after@call@869",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 40207.062
+        }
+      ]
+    },
+    {
+      "case": "ide-mobile-file-restore-ex-e818d--then-immediate-Back-at-390-chromium-repeat2",
+      "failedAssertion": "expect(.cm-content).toBeVisible() timeout 5000ms",
+      "rootRequests": [
+        {
+          "query": "panel=editor&_routes=root",
+          "status": 200,
+          "timeMs": 19.518,
+          "startedAt": "2026-11-01T16:39:59.441Z"
+        },
+        {
+          "query": "panel=editor&_routes=root",
+          "status": 200,
+          "timeMs": 9.694999999999709,
+          "startedAt": "2026-11-01T16:40:03.116Z"
+        },
+        {
+          "query": "panel=editor&_routes=root",
+          "status": -1,
+          "timeMs": -1,
+          "startedAt": "2026-11-01T16:40:03.113Z"
+        }
+      ],
+      "lastNavigationSnapshots": [
+        {
+          "snapshot": "after@call@831",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 51371.687
+        },
+        {
+          "snapshot": "before@call@841",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 51379.812
+        },
+        {
+          "snapshot": "input@call@841",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 51416.455
+        },
+        {
+          "snapshot": "after@call@841",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 51476.509
+        },
+        {
+          "snapshot": "before@call@855",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 51483.3
+        },
+        {
+          "snapshot": "after@call@855",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 51663.189
+        },
+        {
+          "snapshot": "before@call@865",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 51682.741
+        },
+        {
+          "snapshot": "after@call@865",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 51720.451
+        },
+        {
+          "snapshot": "before@call@869",
+          "path": "/dashboard",
+          "query": "",
+          "timestamp": 51752.246
+        },
+        {
+          "snapshot": "after@call@869",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 51796.299
+        },
+        {
+          "snapshot": "before@call@877",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 51820.917
+        },
+        {
+          "snapshot": "after@call@877",
+          "path": "/projects/synthetic/ide",
+          "query": "panel=files",
+          "timestamp": 56834.576
+        }
+      ]
+    }
+  ]
+}

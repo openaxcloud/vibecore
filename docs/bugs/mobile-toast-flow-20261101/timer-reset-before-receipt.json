@@ -1,0 +1,56 @@
+[
+  {
+    "engine": "chromium",
+    "width": 393,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2466.5700000003117,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 33.333999999189956,
+        "state": "running"
+      }
+    ],
+    "error": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('.bolt-agent-applied-toast')\nExpected: 0\nReceived: 1\nTimeout:  3500ms\n\nCall log:\n  - Expect \"to.have.count\" with timeout 3500ms\n  - waiting for locator('.bolt-agent-applied-toast')\n    7 × locator resolved to 1 element\n      - unexpected value \"1\"\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 393,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": true,
+      "open": true
+    },
+    "sameNoticeElement": true,
+    "clockBefore": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 2472,
+        "state": "running"
+      }
+    ],
+    "clockAfter": [
+      {
+        "name": "Toastify__trackProgress",
+        "time": 0,
+        "state": "running"
+      }
+    ],
+    "error": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('.bolt-agent-applied-toast')\nExpected: 0\nReceived: 1\nTimeout:  3500ms\n\nCall log:\n  - Expect \"to.have.count\" with timeout 3500ms\n  - waiting for locator('.bolt-agent-applied-toast')\n    7 × locator resolved to 1 element\n      - unexpected value \"1\"\n"
+  }
+]
