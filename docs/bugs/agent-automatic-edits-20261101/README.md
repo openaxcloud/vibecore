@@ -25,3 +25,5 @@ Synthetic screenshots were inspected for Chromium desktop and WebKit mobile. The
 ## Pending
 
 The four new user images (IMG_0944–0947) have not been downloaded or inspected in this environment. Library preparation returned transfers on sdmntprwestus3.oaiusercontent.com, absent from the effective allowed-host policy. Access approval is pending; no download or alternate transfer was attempted. No screenshot-specific visual conformity, physical iPhone, native keyboard, deployment or production validation is claimed.
+
+Further investigation: [WebKit diagnosis](webkit-diagnosis.md). Sixteen additional traced pages, including concurrent proposal refresh and 40 keyboard close/open cycles, did not reproduce the failure. Its cause remains unproved; no product fix or resolution claim is made.

@@ -107,7 +107,34 @@ const instrumented = source + `\nwindow.__syntheticWorkbench=${alias};`;
           const queue = page.locator('.bolt-project-agent-patch-review').filter({ visible: true }).first();
           await expect(queue).toBeVisible();
           await expect(queue.getByRole('status')).toContainText('4 modifications');
-          await page.evaluate(() => { window.__toggles = []; document.addEventListener('toggle', e => { if(e.target.matches('.bolt-project-agent-patch-review details')) window.__toggles.push({time:performance.now(),open:e.target.open,hidden:e.target.querySelector('[hidden]')?.outerHTML.slice(0,200)}); }, true); });
+          await page.evaluate(() => {
+            window.__toggles = []; window.__queueStates = [];
+            const ids = new WeakMap(); let nextId = 0, previous = '';
+            const snapshot = () => {
+              const states = [...document.querySelectorAll('.bolt-project-agent-patch-review')].map(n => {
+                if (!ids.has(n)) ids.set(n, ++nextId);
+                const d = n.querySelector('details');
+                return {id: ids.get(n), open:d?.open, hidden:d?.querySelector(':scope > div')?.hidden,
+                  buttons:[...n.querySelectorAll('button')].map(b=>b.textContent), lang:document.documentElement.lang,
+                  connected:n.isConnected, visible:!!n.getClientRects().length};
+              });
+              const serialized = JSON.stringify(states);
+              if (serialized !== previous) { previous=serialized; window.__queueStates.push({time:performance.now(),states}); }
+            };
+            new MutationObserver(snapshot).observe(document.body,{subtree:true,childList:true,attributes:true});
+            snapshot();
+            document.addEventListener('toggle', e => { if(e.target.matches('.bolt-project-agent-patch-review details')) {
+              window.__toggles.push({time:performance.now(),open:e.target.open,hidden:e.target.querySelector('[hidden]')?.outerHTML.slice(0,200)}); snapshot();
+            } }, true);
+          });
+          if (process.env.STRESS_PROPOSALS === '1') await page.evaluate(() => {
+            const timer = setInterval(() => {
+              const store = window.__syntheticWorkbench.agentPatchProposals;
+              const current = store.get();
+              store.set({...current, safe:{...current.safe, updatedAt:new Date().toISOString()}});
+            }, 50);
+            setTimeout(() => clearInterval(timer), 4000);
+          });
           await queue.locator('summary').first().focus();
           await page.keyboard.press('Enter');
           await expect(queue.locator('details').first()).toHaveAttribute('open', '');
@@ -117,6 +144,15 @@ const instrumented = source + `\nwindow.__syntheticWorkbench=${alias};`;
           await expect(retry).toHaveCount(4);
           await expect(retry.nth(0)).toBeEnabled();
           for (let i = 1; i < 4; i++) await expect(retry.nth(i)).toBeDisabled();
+          for (let attempt = 0; attempt < Number(process.env.REPEAT_TOGGLES || 0); attempt++) {
+            const summary = queue.locator('summary').first();
+            await summary.focus(); await page.keyboard.press('Enter');
+            await expect(queue.locator('details').first()).not.toHaveAttribute('open', '');
+            await expect(retry).toHaveCount(0);
+            await summary.focus(); await page.keyboard.press('Enter');
+            await expect(queue.locator('details').first()).toHaveAttribute('open', '');
+            await expect(retry).toHaveCount(4);
+          }
           const lastDetails = queue.locator('.bolt-project-agent-patch-hunks-toggle summary').last();
           await lastDetails.scrollIntoViewIfNeeded();
           await expect(lastDetails).toBeInViewport();
@@ -135,7 +171,8 @@ const instrumented = source + `\nwindow.__syntheticWorkbench=${alias};`;
           await expect(queue.getByRole('button', { name: /accepter|rejeter|accept|reject/i })).toHaveCount(0);
           row.landscapeVisible = true;
           row.result = 'passed';
-        } catch (error) { row.error = String(error); row.diagnostic = await page.evaluate(() => ({toggles:window.__toggles, queues:[...document.querySelectorAll('.bolt-project-agent-patch-review')].map(n=>n.outerHTML)})); await page.screenshot({path:path.join(output,engine+'-'+width+'-failure.png')}); process.exitCode = 1; }
+          row.events = await page.evaluate(() => ({toggles:window.__toggles,states:window.__queueStates}));
+        } catch (error) { row.error = String(error); row.diagnostic = await page.evaluate(() => ({toggles:window.__toggles, states:window.__queueStates, queues:[...document.querySelectorAll('.bolt-project-agent-patch-review')].map(n=>n.outerHTML)})); await page.screenshot({path:path.join(output,engine+'-'+width+'-failure.png')}); process.exitCode = 1; }
         finally { await page.context().tracing.stop({ path: path.join(output, engine + '-' + width + '-' + rows.length + '.zip') }); await page.close(); }
       }
     } finally { await browser.close(); }
