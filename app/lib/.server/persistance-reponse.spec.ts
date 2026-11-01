@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { reponseAPersister } from './persistance-reponse';
+import { reponseAPersister, empreinteReponse, recuTerminalConfirme } from './persistance-reponse';
 import { estLaVersionDuServeur } from '~/lib/chat/rattrapage-reprise';
 
 describe('la réponse complète est écrite par le serveur', () => {
@@ -43,4 +43,46 @@ describe('la réponse complète est écrite par le serveur', () => {
     expect(reponse?.content).toBe('Voici ma démarche.');
     expect(estLaVersionDuServeur(reponse?.content ?? '')).toBe(true);
   });
+});
+
+it('confirms exactly the persisted terminal outcome, not merely the content hash', () => {
+  const receipt = {
+    type: 'streamTerminal' as const,
+    status: 'complete' as const,
+    finishReason: 'stop' as const,
+    reason: 'finished' as const,
+    segments: 1,
+    fileActions: 1,
+    openActions: 0,
+    openArtifacts: 0,
+    contentSha256: empreinteReponse('Synthetic'),
+  };
+  const row = {
+    id: 'aimsg_fixture',
+    role: 'assistant',
+    content: 'Synthetic',
+    terminalReceipt: { ...receipt, messageId: 'aimsg_fixture' },
+  };
+  expect(recuTerminalConfirme(receipt, [row])).toBe(true);
+
+  for (const field of ['segments', 'fileActions', 'openActions', 'openArtifacts'] as const) {
+    expect(recuTerminalConfirme(receipt, [{ ...row, terminalReceipt: { ...row.terminalReceipt, [field]: 2 } }])).toBe(
+      false,
+    );
+  }
+  expect(
+    recuTerminalConfirme(receipt, [
+      {
+        ...row,
+        terminalReceipt: {
+          ...row.terminalReceipt,
+          status: 'incomplete',
+          finishReason: 'length',
+          reason: 'output-limit',
+        },
+      },
+    ]),
+  ).toBe(false);
+  expect(recuTerminalConfirme(receipt, [{ ...row, content: 'Edited' }])).toBe(false);
+  expect(recuTerminalConfirme(receipt, [{ ...row, terminalReceipt: undefined }])).toBe(false);
 });

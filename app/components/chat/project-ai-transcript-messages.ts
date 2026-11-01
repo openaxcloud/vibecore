@@ -1,4 +1,5 @@
 import type { Message } from 'ai';
+import { persistedStreamTerminal } from '~/lib/runtime/stream-terminal';
 
 /**
  * Un message d'assistant VIDE n'a rien à persister.
@@ -20,7 +21,7 @@ export function messageDAssistantVide(message: Message): boolean {
     return false;
   }
 
-  if ((message.content ?? '').trim().length > 0) {
+  if ((message.content ?? '').trim().length > 0 || persistedStreamTerminal(message.annotations, message.id)) {
     return false;
   }
 
@@ -54,6 +55,7 @@ export function projectAiTranscriptMessages(messages: Message[]) {
         clientId: message.id || `${role}:${index}`,
         role,
         content: message.content ?? '',
+        terminalReceipt: role === 'assistant' ? persistedStreamTerminal(message.annotations, message.id) : undefined,
       };
     })
     .filter(
@@ -63,6 +65,7 @@ export function projectAiTranscriptMessages(messages: Message[]) {
         clientId: string;
         role: 'system' | 'user' | 'assistant' | 'tool';
         content: string;
+        terminalReceipt: ReturnType<typeof persistedStreamTerminal>;
       } => Boolean(message),
     );
 }

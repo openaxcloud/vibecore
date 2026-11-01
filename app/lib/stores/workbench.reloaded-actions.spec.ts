@@ -300,7 +300,7 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     expect(cheminsEcritsParLesLanes('direct-unobserved')).toEqual(['docs/direct.md']);
   });
 
-  it.each(['mismatch', 'emergency'])('keeps direct %s writes unknown', async (mode) => {
+  it.each(['mismatch', 'emergency'])('never confirms a direct %s payload', async (mode) => {
     const store = new WorkbenchStore();
     const file = fileAction(`direct-${mode}`);
     file.action.filePath = 'docs/direct.md';
@@ -318,7 +318,17 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     try {
       await store._addAction(file);
       await store._runAction(file);
-      expect(cheminsEcritsParLesLanes(file.messageId)).toBeUndefined();
+
+      if (mode === 'emergency') {
+        expect(cheminsEcritsParLesLanes(file.messageId)).toEqual([]);
+        expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+        expect(store.agentPatchProposals.get()['artifact-1:file-1']).toMatchObject({
+          tronquee: true,
+          status: 'pending',
+        });
+      } else {
+        expect(cheminsEcritsParLesLanes(file.messageId)).toBeUndefined();
+      }
     } finally {
       runtimeAdapterMock.readFile.mockImplementation(originalRead);
     }

@@ -15,18 +15,22 @@
  *       const documentState = documents[filePath];
  *       if (!documentState) { return; }      // <-- no document is ever created
  *
- * The pre-existing suite could not catch this: its `EditorStore` mock
- * implements `updateFile` as `documents.setKey(...)`, i.e. it DOES create the
- * document, so the guard closed in tests and only ever misbehaved in
- * production. The mock below is deliberately faithful to the real no-op.
+ * The original editor mock created missing documents and hid this defect.
+ * This suite now uses the real EditorStore. Streaming remains visible there,
+ * while only a validated closing action may persist source to the runtime.
  *
  * Measured live before the fix (env d'audit, 2026-08-15): 150 writes for 9
  * files — 55 of them for `src/lib/stats.ts` alone.
  */
 
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbenchStore } from './workbench';
+import { cheminsEcritsParLesLanes } from '~/lib/runtime/agent-lane-writes';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import { shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 
 const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
@@ -130,40 +134,6 @@ vi.mock('./files', async () => {
   };
 });
 
-vi.mock('./editor', async () => {
-  const { atom, map } = await import('nanostores');
-
-  return {
-    EditorStore: class {
-      currentDocument = atom(undefined);
-      selectedFile = atom(undefined);
-      documents = map({});
-
-      setDocuments = vi.fn();
-      updateScrollPosition = vi.fn();
-
-      setSelectedFile(filePath: string | undefined) {
-        this.selectedFile.set(filePath);
-      }
-
-      /*
-       * FAITHFUL to app/lib/stores/editor.ts: a no-op when the document does
-       * not exist. Replacing this with `documents.setKey(...)` makes the test
-       * pass against the buggy code, which is exactly how the defect survived.
-       */
-      updateFile(filePath: string, value: string) {
-        const existing = this.documents.get()[filePath];
-
-        if (!existing) {
-          return;
-        }
-
-        this.documents.setKey(filePath, { filePath, value, isBinary: false });
-      }
-    },
-  };
-});
-
 vi.mock('./terminal', async () => {
   const { atom } = await import('nanostores');
 
@@ -209,7 +179,7 @@ describe('BUG-AGENT-001 — streaming writes must not amplify per sampler tick',
     runtimeAdapterMock.readFile.mockClear();
   });
 
-  it('materializes a streamed file in the runtime once, not once per chunk', async () => {
+  it('updates the real editor across streamed chunks without persisting partial source', async () => {
     const store = new WorkbenchStore();
     const artifact = artifactData();
 
@@ -246,12 +216,196 @@ describe('BUG-AGENT-001 — streaming writes must not amplify per sampler tick',
         String(filePath).endsWith('src/main.tsx'),
       );
 
-    // The runtime write is dispatched through the execution queue, so let it land.
     await vi.waitFor(() => {
-      expect(streamedWrites().length).toBeGreaterThan(0);
+      expect(store.currentDocument.get()?.value).toBe(buffer);
     });
 
-    expect(streamedWrites()).toHaveLength(1);
+    expect(streamedWrites()).toHaveLength(0);
+  });
+
+  it.each(['dirty', 'locked'])('preserves a %s editor buffer while staging', async (conflict) => {
+    const store = new WorkbenchStore();
+    const fullPath = '/home/project/src/main.tsx';
+    store.setDocuments({ [fullPath]: { type: 'file', content: 'user edits', isBinary: false } });
+    store.addArtifact(artifactData());
+
+    const data = chunkAction('partial generated source');
+    store.addAction(data);
+
+    if (conflict === 'dirty') {
+      store.unsavedFiles.set(new Set([fullPath]));
+    } else {
+      vi.spyOn(store, 'isFileLocked').mockReturnValue({ locked: true });
+    }
+
+    await vi.waitFor(() => {
+      expect(store.artifacts.get()['artifact-1'].runner.actions.get()['file-1']).toBeDefined();
+    });
+    await store._runAction(data, true);
+    expect(store.currentDocument.get()?.value).toBe('user edits');
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    expect(runtimeAdapterMock.createFile).not.toHaveBeenCalled();
+  });
+
+  it.each(['dirty', 'locked'])('preserves a %s buffer created while runner staging is pending', async (conflict) => {
+    const store = new WorkbenchStore();
+    const fullPath = '/home/project/src/main.tsx';
+    store.addArtifact(artifactData());
+
+    const data = chunkAction('partial generated source');
+    store.addAction(data);
+    await vi.waitFor(() => expect(store.artifacts.get()['artifact-1'].runner.actions.get()['file-1']).toBeDefined());
+
+    const runner = store.artifacts.get()['artifact-1'].runner;
+
+    let release!: () => void;
+
+    const deferred = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const run = vi.spyOn(runner, 'runAction').mockImplementationOnce(() => deferred);
+    const pending = store._runAction(data, true);
+    await vi.waitFor(() => expect(run).toHaveBeenCalled());
+    store.setDocuments({ [fullPath]: { type: 'file', content: 'concurrent user edits', isBinary: false } });
+
+    if (conflict === 'dirty') {
+      store.unsavedFiles.set(new Set([fullPath]));
+    } else {
+      vi.spyOn(store, 'isFileLocked').mockReturnValue({ locked: true });
+    }
+
+    release();
+    await pending;
+    expect(store.currentDocument.get()?.value).toBe('concurrent user edits');
+    expect(store.actionAlert.get()?.type).toBe('warning');
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    expect(runtimeAdapterMock.createFile).not.toHaveBeenCalled();
+  });
+
+  it('keeps streaming visible but never revives a stopped action through a queued fragment', async () => {
+    const store = new WorkbenchStore();
+    store.addArtifact(artifactData());
+
+    const data = chunkAction('first partial source');
+    store.addAction(data);
+    await vi.waitFor(() => {
+      expect(store.artifacts.get()['artifact-1'].runner.actions.get()['file-1']).toBeDefined();
+    });
+    await store._runAction(data, true);
+
+    const runner = store.artifacts.get()['artifact-1'].runner;
+    expect(runner.actions.get()['file-1'].status).toBe('running');
+    expect(store.currentDocument.get()?.value).toBe('first partial source');
+    runner.abortAll();
+    await store._runAction(chunkAction('late partial source'), true);
+    expect(runner.actions.get()['file-1'].status).toBe('aborted');
+    expect(store.currentDocument.get()?.value).toBe('first partial source');
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    expect(runtimeAdapterMock.createFile).not.toHaveBeenCalled();
+  });
+
+  it('keeps syntactically valid emergency CSS off disk until its real close is reviewed', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'emergency-css-'));
+    const original = '.healthy { color: green; }';
+    const partial = '.partial { color: red; }';
+    await mkdir(join(directory, 'src'));
+    await writeFile(join(directory, 'src/styles.css'), original);
+
+    const writeImpl = runtimeAdapterMock.writeFile.getMockImplementation();
+    const readImpl = runtimeAdapterMock.readFile.getMockImplementation();
+    runtimeAdapterMock.writeFile.mockImplementation(async (path, content) => {
+      await writeFile(join(directory, path), content);
+    });
+    runtimeAdapterMock.readFile.mockImplementation(async (path) => ({
+      content: await readFile(join(directory, path), 'utf8'),
+      encoding: 'utf8' as const,
+    }));
+
+    try {
+      const store = new WorkbenchStore();
+      store.setAgentPatchReviewRequired(false);
+      store.addArtifact(artifactData());
+
+      const data = {
+        ...chunkAction(partial),
+        action: { type: 'file' as const, filePath: 'src/styles.css', content: partial },
+        fermetureDeSecours: true,
+      };
+      store.files.setKey('/home/project/src/styles.css', { type: 'file', content: original, isBinary: false });
+      store.addAction(data);
+      await vi.waitFor(() => expect(store.artifacts.get()['artifact-1'].runner.actions.get()['file-1']).toBeDefined());
+      await store._runAction(data, false);
+      expect(await readFile(join(directory, 'src/styles.css'), 'utf8')).toBe(original);
+      expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+      expect(store.agentPatchProposals.get()['artifact-1:file-1']).toMatchObject({
+        status: 'pending',
+        tronquee: true,
+        proposedContent: partial,
+      });
+      expect(
+        shouldAutoApplyPatch({ ...store.agentPatchProposals.get()['artifact-1:file-1'], autoApplyEnabled: true }),
+      ).toBe(false);
+      expect(store.artifacts.get()['artifact-1'].runner.actions.get()['file-1'].executed).toBeFalsy();
+      await store._runAction({ ...data, fermetureDeSecours: false }, false);
+      expect(store.agentPatchProposals.get()['artifact-1:file-1']).toMatchObject({
+        status: 'pending',
+        tronquee: false,
+        proposedContent: partial,
+      });
+      expect(
+        shouldAutoApplyPatch({ ...store.agentPatchProposals.get()['artifact-1:file-1'], autoApplyEnabled: true }),
+      ).toBe(true);
+      expect(await readFile(join(directory, 'src/styles.css'), 'utf8')).toBe(original);
+    } finally {
+      runtimeAdapterMock.writeFile.mockImplementation(writeImpl!);
+      runtimeAdapterMock.readFile.mockImplementation(readImpl!);
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('hydrates historical file completion without reading, writing or confirming disk content', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'historical-css-'));
+    const original = '.healthy { color: green; }';
+    await mkdir(join(directory, 'src'));
+    await writeFile(join(directory, 'src/styles.css'), original);
+
+    const writeImpl = runtimeAdapterMock.writeFile.getMockImplementation();
+    const readImpl = runtimeAdapterMock.readFile.getMockImplementation();
+    runtimeAdapterMock.writeFile.mockImplementation(async (path, content) => {
+      await writeFile(join(directory, path), content);
+    });
+    runtimeAdapterMock.readFile.mockImplementation(async (path) => ({
+      content: await readFile(join(directory, path), 'utf8'),
+      encoding: 'utf8' as const,
+    }));
+
+    try {
+      const store = new WorkbenchStore();
+      const messageId = 'historical-without-execution';
+      store.setReloadedMessages([messageId]);
+      store.addArtifact({ ...artifactData(), messageId });
+
+      const data = {
+        ...chunkAction('.historical { color: red; }'),
+        messageId,
+        action: { type: 'file' as const, filePath: 'src/styles.css', content: '.historical { color: red; }' },
+      };
+      store.addAction(data);
+      await vi.waitFor(() => expect(store.artifacts.get()['artifact-1'].runner.actions.get()['file-1']).toBeDefined());
+      await store._runAction(data, false);
+      expect(store.artifacts.get()['artifact-1'].runner.actions.get()['file-1'].status).toBe('complete');
+      expect(runtimeAdapterMock.readFile).not.toHaveBeenCalled();
+      expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+      expect(runtimeAdapterMock.createFile).not.toHaveBeenCalled();
+      expect(await readFile(join(directory, 'src/styles.css'), 'utf8')).toBe(original);
+      expect(store.artifacts.get()['artifact-1'].runner.consumeConfirmedFileWrite('file-1')).toBeUndefined();
+      expect(cheminsEcritsParLesLanes(messageId)).toBeUndefined();
+    } finally {
+      runtimeAdapterMock.writeFile.mockImplementation(writeImpl!);
+      runtimeAdapterMock.readFile.mockImplementation(readImpl!);
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   it('still writes the authoritative content when the action closes', async () => {

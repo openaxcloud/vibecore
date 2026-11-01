@@ -20,7 +20,9 @@
  */
 
 import { parse as babelParse, type ParserPlugin } from '@babel/parser';
+import { validateStyleSyntax } from './style-validate';
 import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
+import { isJsoncFile, parseJsonc } from '~/utils/jsonc';
 
 export type HunkLanguage =
   | 'javascript'
@@ -229,9 +231,22 @@ export async function validateAndFormatHunk(
     } catch (error) {
       return parseError(error, language);
     }
+  } else if (language === 'css' || language === 'scss') {
+    const diagnostic = await validateStyleSyntax(filePath, source);
+
+    if (diagnostic) {
+      return { kind: 'error', language, ...diagnostic };
+    }
   } else if (language === 'json') {
     try {
-      JSON.parse(source);
+      if (isJsoncFile(filePath)) {
+        parseJsonc(source);
+
+        // Preserve configuration bytes/comments, including the payload used by confirmed Undo.
+        return { kind: 'ok', formatted: source, language };
+      } else {
+        JSON.parse(source);
+      }
     } catch (error) {
       return parseError(error, language);
     }

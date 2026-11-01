@@ -745,6 +745,7 @@ exports.Prisma.AiMessageScalarFieldEnum = {
   conversationId: 'conversationId',
   role: 'role',
   content: 'content',
+  terminalReceipt: 'terminalReceipt',
   createdAt: 'createdAt'
 };
 

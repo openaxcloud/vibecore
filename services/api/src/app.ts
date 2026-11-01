@@ -1,3 +1,4 @@
+import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -105,7 +106,6 @@ import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSec
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import { resolveProviderKeyPresence } from './provider-key-presence.js';
-import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import { refusalDetail } from './deploy-refus.js';
 import {
   redactSecrets,
@@ -1955,11 +1955,19 @@ const aiMessageSchema = z.object({
   model: z.string().optional(),
   stream: z.boolean().default(false),
 });
-const aiTranscriptMessageSchema = z.object({
-  clientId: z.string().min(1).max(200),
-  role: z.enum(['system', 'user', 'assistant', 'tool']),
-  content: z.string().max(200_000),
-});
+const aiTranscriptMessageSchema = z
+  .object({
+    clientId: z.string().min(1).max(200),
+    role: z.enum(['system', 'user', 'assistant', 'tool']),
+    content: z.string().max(200_000),
+    terminalReceipt: transcriptTerminalSchema.optional(),
+  })
+  .refine(
+    (message) =>
+      !message.terminalReceipt ||
+      (message.role === 'assistant' &&
+        (!message.terminalReceipt.messageId || message.terminalReceipt.messageId === message.clientId)),
+  );
 const aiTranscriptSchema = z.object({
   messages: z.array(aiTranscriptMessageSchema).min(1).max(200),
 });
@@ -29443,6 +29451,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       messages: messages.map((message) => ({
         ...message,
+        terminalReceipt: readTranscriptTerminal(message.content, message.terminalReceipt, message.id),
         toolCalls: toolCallsByMessageId.get(message.id) ?? [],
       })),
     };
@@ -29469,58 +29478,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(aiTranscriptSchema, request.body ?? {});
     const existants = await store.listAiMessages(conversationId);
     const existingIds = new Set(existants.map((existant) => existant.id));
-    const contenuExistant = new Map(existants.map((existant) => [existant.id, existant.content]));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
+
+    const syncResults: Array<{ id: string; stale: boolean }> = [];
+
     let instantanesPerimes = 0;
     let caracteresProteges = 0;
 
     for (const message of body.messages) {
       const id = aiTranscriptMessageId(conversationId, message.clientId, existingIds);
-      const decision = decisionEcritureMessage(contenuExistant.get(id), message.content);
 
-      /*
-       * UN INSTANTANÉ PÉRIMÉ NE REMPLACE PAS CE QUI EST DÉJÀ ÉCRIT.
-       *
-       * La transcription est persistée PENDANT le flux, en `upsert` sur un
-       * identifiant stable. Quand la synchronisation s'arrête avant la fin —
-       * mesuré le 2026-09-08 sur `cmtt810ag…` : dernier PUT 84 s avant la fin du
-       * flux, 37 611 caractères persistés sur 83 703 produits — le message reste
-       * tronqué.
-       *
-       * À la réouverture, le client recharge cette version courte et la RÉÉCRIT
-       * (mesuré à 22:44:49 sur le même projet). La perte devient alors
-       * définitive : l'utilisateur qui rouvre son projet pour comprendre ce qui
-       * s'est passé détruit ce qu'il en restait.
-       *
-       * On refuse donc l'écriture, et on la COMPTE — sans ce journal, la
-       * fréquence réelle du défaut reste introuvable. Ceci ne corrige PAS la
-       * perte : ça l'empêche de s'aggraver.
-       */
-      if (!decision.ecrire) {
+      const result = await store.syncAiTranscriptMessage({
+        id,
+        conversationId,
+        role: message.role,
+        content: message.content,
+        terminalReceipt: message.terminalReceipt,
+      });
+
+      if (result.stale) {
         instantanesPerimes += 1;
-        caracteresProteges += decision.perdus ?? 0;
-        request.log.warn(
-          { conversationId, messageId: id, perdus: decision.perdus },
-          'transcript sync refused: a stale snapshot would have shortened a persisted message',
-        );
-
-        const conserve = existants.find((existant) => existant.id === id);
-
-        if (conserve) {
-          messages.push(conserve);
-        }
-
-        continue;
+        caracteresProteges += Math.max(0, result.message.content.length - message.content.length);
+        request.log.warn({ conversationId, messageId: id }, 'transcript sync refused: stale snapshot');
       }
 
-      messages.push(
-        await store.createAiMessage({
-          id,
-          conversationId,
-          role: message.role,
-          content: message.content,
-        }),
-      );
+      messages.push(result.message);
+      syncResults.push({ id, stale: result.stale });
     }
 
     await audit(request, store, {
@@ -29536,7 +29519,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     });
 
-    return { conversation, messages };
+    return {
+      conversation,
+      syncResults,
+      messages: messages.map((message) => ({
+        ...message,
+        terminalReceipt: readTranscriptTerminal(message.content, message.terminalReceipt, message.id),
+      })),
+    };
   });
 
   /*

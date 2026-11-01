@@ -746,7 +746,20 @@ describe('ActionRunner self-repair retry loop', () => {
     ]);
   });
 
-  it('writes the best-effort payload after exhausting all retries', async () => {
+  it('fails without writing or requesting repair when the validator is unavailable', async () => {
+    validateAndFormatHunkMock.mockRejectedValueOnce(new Error('validator unavailable'));
+
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+    const runner = new ActionRunner(createRuntime({ writeFile }), () => createShell() as any);
+    runner.addAction(fileAction);
+    await runner.runAction(fileAction, false);
+    expect(runner.actions.get()[fileAction.actionId].status).toBe('failed');
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(validateAndFormatHunkMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails without writing after exhausting the bounded repair attempts', async () => {
     vi.useFakeTimers();
 
     validateAndFormatHunkMock
@@ -782,7 +795,9 @@ describe('ActionRunner self-repair retry loop', () => {
     await runPromise;
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2', { streaming: false });
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(runner.actions.get()[fileAction.actionId].status).toBe('failed');
+    expect(runner.consumeConfirmedFileWrite(fileAction.actionId)).toBeUndefined();
 
     const clearing = progressEvents.find((event) => event.status === null);
     expect(clearing).toBeDefined();
@@ -859,7 +874,7 @@ describe('ActionRunner self-repair retry loop', () => {
     expect(writeFile).not.toHaveBeenCalled();
   });
 
-  it('falls back to the last payload when the self-repair endpoint errors', async () => {
+  it('fails without writing when the self-repair endpoint errors', async () => {
     validateAndFormatHunkMock
       .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error' })
       .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error again' });
@@ -883,7 +898,9 @@ describe('ActionRunner self-repair retry loop', () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await runPromise;
 
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;', { streaming: false });
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(runner.actions.get()[fileAction.actionId].status).toBe('failed');
     expect(progressEvents.some((event) => event.status === null)).toBe(true);
   });
 });
