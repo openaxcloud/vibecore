@@ -13,9 +13,9 @@
  * the workspace-manager control plane. The manifest builders + executor state
  * machine are pure and unit-tested with a fake port.
  */
-import { createHmac } from 'node:crypto';
-
+import { createHash, createHmac } from 'node:crypto';
 import { Client as PgClient } from 'pg';
+import type { DatabaseBackupProvenanceRepository, BackupProvenanceRecord } from './database-backup-provenance.js';
 
 /** Minimal manifest shape (structurally compatible with k8s-client's K8sObject). */
 export interface K8sManifest {
@@ -28,6 +28,7 @@ export interface K8sManifest {
 /** Port the provisioner uses to talk to Kubernetes (real impl = via ws-manager). */
 export interface K8sApplyPort {
   apply(manifest: K8sManifest): Promise<void>;
+  createBackup?(manifest: K8sManifest): Promise<unknown>;
   get(kind: string, namespace: string, name: string): Promise<{ status?: Record<string, unknown> } | undefined>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
   /**
@@ -384,6 +385,55 @@ export function onDemandBackupName(projectId: string, snapshotId: string, enviro
   return `${clusterName(projectId, environment)}-${snapshotId}`.toLowerCase().slice(0, 53);
 }
 
+/** Full scope hash prevents truncated snapshot identities from sharing a Kubernetes object. */
+export function provenBackupName(projectId: string, snapshotId: string, environment: DatabaseEnvironment): string {
+  return `bkp-v2-${createHash('sha256')
+    .update(JSON.stringify([projectId, snapshotId, environment]))
+    .digest('hex')
+    .slice(0, 40)}`;
+}
+
+function backupRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function backupProofError(): Error {
+  return Object.assign(new Error('BACKUP_PROVENANCE_UNCONFIRMED'), { code: 'BACKUP_PROVENANCE_UNCONFIRMED' });
+}
+
+function validateProvenBackup(value: unknown, intent: BackupProvenanceRecord): string {
+  const resource = backupRecord(value);
+  const metadata = backupRecord(resource.metadata);
+  const labels = backupRecord(metadata.labels);
+  const annotations = backupRecord(metadata.annotations);
+  const spec = backupRecord(resource.spec);
+
+  if (
+    resource.kind !== 'Backup' ||
+    resource.apiVersion !== CNPG_API ||
+    metadata.name !== intent.backupName ||
+    metadata.namespace !== DB_NAMESPACE ||
+    typeof metadata.uid !== 'string' ||
+    !metadata.uid ||
+    metadata.deletionTimestamp ||
+    labels['vibecore.ai/project-id'] !== intent.projectId ||
+    labels['vibecore.ai/org-id'] !== intent.organizationId ||
+    labels['vibecore.ai/snapshot-id'] !== intent.snapshotId ||
+    annotations['vibecore.ai/backup-intent-id'] !== intent.id ||
+    annotations['vibecore.ai/backup-intent-nonce'] !== intent.nonce ||
+    annotations['vibecore.ai/source-uid'] !== intent.sourceUid ||
+    annotations['vibecore.ai/database-instance-id'] !== intent.instanceId ||
+    annotations['vibecore.ai/database-binding-version'] !== String(intent.bindingVersion) ||
+    annotations['vibecore.ai/database-environment'] !== intent.environment ||
+    backupRecord(spec.cluster).name !== intent.sourceName ||
+    (intent.backupUid !== undefined && metadata.uid !== intent.backupUid)
+  ) {
+    throw backupProofError();
+  }
+
+  return metadata.uid;
+}
+
 export function buildOnDemandBackupManifest(
   projectId: string,
   snapshotId: string,
@@ -590,6 +640,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     private readonly backupBucket: string,
     private readonly backupServiceAccount?: string,
     private readonly sqlExec: TenantSqlExecutor = new PgTenantSqlExecutor(),
+    private readonly backupProvenance?: DatabaseBackupProvenanceRepository,
   ) {}
 
   /**
@@ -725,70 +776,152 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     return uri && uri.length > 0 ? uri : undefined;
   }
 
-  async takeSnapshot(input: {
-    projectId: string;
-    snapshotId: string;
-    environment?: DatabaseEnvironment;
-  }): Promise<{ applied: boolean }> {
-    await this.k8s.apply(buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment));
+  async #readBackupSource(
+    projectId: string,
+    organizationId: string,
+    environment: DatabaseEnvironment,
+  ): Promise<string> {
+    const name = clusterName(projectId, environment);
+    const completeSourceName = `db-${projectId}${environment === 'production' ? '-prod' : ''}`;
 
-    return { applied: true };
-  }
-
-  async backupStatus(input: { projectId: string; snapshotId: string; environment?: DatabaseEnvironment }) {
-    const sourceName = clusterName(input.projectId, input.environment);
-    const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
-    const completeSourceName = `db-${input.projectId}${input.environment === 'production' ? '-prod' : ''}`;
-
-    /*
-     * Truncated names can alias a previous backup even if mutable labels were replaced.
-     * Refuse ambiguous/legacy identity rather than treating it as migration safety proof.
-     */
-    if (
-      !input.projectId ||
-      !input.snapshotId ||
-      (input.environment !== undefined && !['development', 'production'].includes(input.environment)) ||
-      sourceName !== completeSourceName ||
-      name !== `${completeSourceName}-${input.snapshotId}`
-    ) {
-      return { found: false, completed: false, error: 'BACKUP_SOURCE_NAME_AMBIGUOUS' };
+    // V2 backup names do not attest an aliased source name. Preserve the exact-source guard.
+    if (name !== completeSourceName || clusterName(projectId, 'development') === clusterName(projectId, 'production')) {
+      throw backupProofError();
     }
 
-    const object = await this.k8s.get('Backup', DB_NAMESPACE, name).catch(() => undefined);
-
-    if (!object) {
-      return { found: false, completed: false, error: `Backup CR ${name} introuvable` };
-    }
-
-    const asRecord = (value: unknown): Record<string, unknown> =>
-      value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
-
-    const resource = asRecord(object);
-    const metadata = asRecord(resource.metadata);
-    const labels = asRecord(metadata.labels);
-    const spec = asRecord(resource.spec);
+    const resource = backupRecord(await this.k8s.get('Cluster', DB_NAMESPACE, name));
+    const metadata = backupRecord(resource.metadata);
+    const labels = backupRecord(metadata.labels);
 
     if (
-      resource.kind !== 'Backup' ||
+      resource.kind !== 'Cluster' ||
       resource.apiVersion !== CNPG_API ||
       metadata.name !== name ||
       metadata.namespace !== DB_NAMESPACE ||
       typeof metadata.uid !== 'string' ||
       !metadata.uid ||
       metadata.deletionTimestamp ||
-      labels['vibecore.ai/project-id'] !== input.projectId ||
-      labels['vibecore.ai/snapshot-id'] !== input.snapshotId ||
-      asRecord(spec.cluster).name !== sourceName
+      labels['vibecore.ai/project-id'] !== projectId ||
+      labels['vibecore.ai/org-id'] !== organizationId
     ) {
-      return { found: true, completed: false, error: 'BACKUP_SOURCE_IDENTITY_MISMATCH' };
+      throw backupProofError();
     }
 
-    const status = asRecord(resource.status);
-    const phase = typeof status.phase === 'string' ? status.phase : undefined;
-    const error = status.error ? 'BACKUP_REPORTED_ERROR' : undefined;
+    return metadata.uid;
+  }
 
-    // A contradictory error must never admit migration, and provider details stay private.
-    return { found: true, phase, completed: phase?.toLowerCase() === 'completed' && !error, error };
+  async takeSnapshot(input: {
+    projectId: string;
+    snapshotId: string;
+    environment?: DatabaseEnvironment;
+  }): Promise<{ applied: boolean }> {
+    const repository = this.backupProvenance;
+
+    if (!repository || !this.k8s.createBackup) {
+      return { applied: false };
+    }
+
+    const environment = input.environment ?? 'development';
+    const context = await repository.getContext(input.projectId, environment);
+
+    if (!context) {
+      throw backupProofError();
+    }
+
+    const sourceUid = await this.#readBackupSource(input.projectId, context.organizationId, environment);
+
+    const intent = await repository.reserve({
+      ...context,
+      snapshotId: input.snapshotId,
+      sourceUid,
+      sourceName: clusterName(input.projectId, environment),
+      backupName: provenBackupName(input.projectId, input.snapshotId, environment),
+    });
+    const manifest: K8sManifest = {
+      apiVersion: CNPG_API,
+      kind: 'Backup',
+      metadata: {
+        name: intent.backupName,
+        namespace: DB_NAMESPACE,
+        labels: { ...dbLabels(intent.projectId, intent.organizationId), 'vibecore.ai/snapshot-id': intent.snapshotId },
+        annotations: {
+          'vibecore.ai/backup-intent-id': intent.id,
+          'vibecore.ai/backup-intent-nonce': intent.nonce,
+          'vibecore.ai/source-uid': intent.sourceUid,
+          'vibecore.ai/database-instance-id': intent.instanceId,
+          'vibecore.ai/database-binding-version': String(intent.bindingVersion),
+          'vibecore.ai/database-environment': intent.environment,
+        },
+      },
+      spec: { cluster: { name: intent.sourceName } },
+    };
+
+    let resource: unknown;
+
+    if (intent.backupUid) {
+      // A previously bound resource must not be recreated under its old receipt.
+      resource = await this.k8s.get('Backup', DB_NAMESPACE, intent.backupName);
+    } else {
+      try {
+        resource = await this.k8s.createBackup(manifest);
+      } catch {
+        resource = await this.k8s.get('Backup', DB_NAMESPACE, intent.backupName);
+      }
+    }
+
+    const uid = validateProvenBackup(resource, intent);
+
+    if ((await this.#readBackupSource(input.projectId, context.organizationId, environment)) !== intent.sourceUid) {
+      throw backupProofError();
+    }
+
+    await repository.bindUid(intent.id, uid);
+
+    return { applied: true };
+  }
+
+  async backupStatus(input: { projectId: string; snapshotId: string; environment?: DatabaseEnvironment }) {
+    if (!this.backupProvenance) {
+      return { found: false, completed: false, error: 'BACKUP_PROVENANCE_UNAVAILABLE' };
+    }
+
+    try {
+      const environment = input.environment ?? 'development';
+      const intent = await this.backupProvenance.get(input.projectId, environment, input.snapshotId);
+
+      if (
+        !intent?.backupUid ||
+        intent.backupName !== provenBackupName(input.projectId, input.snapshotId, environment)
+      ) {
+        return { found: false, completed: false, error: 'BACKUP_PROVENANCE_UNCONFIRMED' };
+      }
+
+      if ((await this.#readBackupSource(input.projectId, intent.organizationId, environment)) !== intent.sourceUid) {
+        throw backupProofError();
+      }
+
+      const resource = await this.k8s.get('Backup', DB_NAMESPACE, intent.backupName);
+      validateProvenBackup(resource, intent);
+
+      // Revalidate context after remote I/O, including organization transfers and binding changes.
+      if ((await this.#readBackupSource(input.projectId, intent.organizationId, environment)) !== intent.sourceUid) {
+        throw backupProofError();
+      }
+
+      const current = await this.backupProvenance.get(input.projectId, environment, input.snapshotId);
+
+      if (!current || current.id !== intent.id || current.backupUid !== intent.backupUid) {
+        throw backupProofError();
+      }
+
+      const status = backupRecord(backupRecord(resource).status);
+      const phase = typeof status.phase === 'string' ? status.phase : undefined;
+      const error = status.error ? 'BACKUP_REPORTED_ERROR' : undefined;
+
+      return { found: true, phase, completed: phase?.toLowerCase() === 'completed' && !error, error };
+    } catch {
+      return { found: false, completed: false, error: 'BACKUP_PROVENANCE_UNCONFIRMED' };
+    }
   }
 
   async startRestore(input: {
@@ -889,6 +1022,17 @@ export class ManagerK8sPort implements K8sApplyPort {
     }
   }
 
+  async createBackup(manifest: K8sManifest): Promise<unknown> {
+    const res = await this.call('POST', '/databases/backups', { manifest });
+
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => undefined);
+      throw new Error('BACKUP_CREATE_UNCONFIRMED');
+    }
+
+    return await res.json();
+  }
+
   async get(kind: string, namespace: string, name: string) {
     const res = await this.call(
       'GET',
@@ -946,7 +1090,10 @@ export class ManagerK8sPort implements K8sApplyPort {
  * is a no-op (and free) until Avi flips `DB_ROLLBACK_ENABLED` and the operator
  * is installed.
  */
-export function resolveDatabaseProvisioner(port?: K8sApplyPort): DatabaseProvisioner {
+export function resolveDatabaseProvisioner(
+  port?: K8sApplyPort,
+  backupProvenance?: DatabaseBackupProvenanceRepository,
+): DatabaseProvisioner {
   if (process.env.DB_ROLLBACK_ENABLED !== 'true') {
     return new NoopProvisioner();
   }
@@ -958,14 +1105,16 @@ export function resolveDatabaseProvisioner(port?: K8sApplyPort): DatabaseProvisi
   }
 
   // Optional WI backup GSA — when set, cluster pods archive WAL/backups to GCS as it.
-  return new CnpgProvisioner(port, bucket, process.env.DB_BACKUP_GSA?.trim() || undefined);
+  return new CnpgProvisioner(port, bucket, process.env.DB_BACKUP_GSA?.trim() || undefined, undefined, backupProvenance);
 }
 
 /** Build the default env-wired provisioner (ManagerK8sPort → ws-manager). */
-export function resolveDefaultDatabaseProvisioner(): DatabaseProvisioner {
+export function resolveDefaultDatabaseProvisioner(
+  backupProvenance?: DatabaseBackupProvenanceRepository,
+): DatabaseProvisioner {
   const managerUrl = process.env.WORKSPACE_MANAGER_URL?.trim();
   const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
   const port = managerUrl ? new ManagerK8sPort(managerUrl, secret) : undefined;
 
-  return resolveDatabaseProvisioner(port);
+  return resolveDatabaseProvisioner(port, backupProvenance);
 }

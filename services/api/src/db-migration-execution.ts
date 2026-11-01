@@ -25,7 +25,8 @@
  */
 import { createHash } from 'node:crypto';
 
-import type { DatabaseProvisioner } from './database-provisioner.js';
+import { appPublicEnglish } from './app-public-copy.js';
+import type { DatabaseEnvironment, DatabaseProvisioner } from './database-provisioner.js';
 import { assertMigrationTransition, LifecycleError, type MigrationState } from './lifecycle-state-machines.js';
 
 /** Résultat d'une tentative d'exécution. */
@@ -36,12 +37,16 @@ export type MigrationOutcome =
 export type MigrationFailureCode =
   /** Une autre migration est active sur le même (projet, environnement). */
   | 'MIGRATION_LOCK_HELD'
+
   /** Backup impossible à vérifier → on n'applique rien. */
   | 'MIGRATION_BACKUP_UNVERIFIED'
+
   /** Échec pendant l'application, transaction annulée : la base est intacte. */
   | 'MIGRATION_FAILED_SAFE'
+
   /** État incertain (échec au COMMIT) : intervention humaine requise. */
   | 'MIGRATION_MANUAL_RECOVERY'
+
   /** Moteur non supporté (pas de DDL transactionnel). */
   | 'MIGRATION_ENGINE_UNSUPPORTED';
 
@@ -127,6 +132,7 @@ export interface RunPublishMigrationInput {
   backwardCompatible?: boolean | 'UNKNOWN';
   forwardCompatible?: boolean | 'UNKNOWN';
   applySql: SqlApplier;
+
   /** Fenêtre d'attente de l'aboutissement du backup. */
   backupTimeoutMs?: number;
   backupPollIntervalMs?: number;
@@ -146,11 +152,22 @@ export async function waitForVerifiedBackup(input: {
   provisioner: DatabaseProvisioner;
   projectId: string;
   snapshotId: string;
+  environment: DatabaseEnvironment;
   timeoutMs: number;
   pollIntervalMs: number;
   sleep: (ms: number) => Promise<void>;
   now: () => Date;
 }): Promise<{ verified: boolean; phase?: string; method: string; error?: string }> {
+  const environment = input.environment;
+
+  if (environment !== 'development' && environment !== 'production') {
+    return {
+      verified: false,
+      method: 'cnpg-backup-cr-phase-completed',
+      error: appPublicEnglish('MIGRATION_BACKUP_UNVERIFIED_MESSAGE'),
+    };
+  }
+
   const deadline = input.now().getTime() + input.timeoutMs;
 
   for (;;) {
@@ -162,12 +179,14 @@ export async function waitForVerifiedBackup(input: {
      * deadline. Ce qui n'est jamais fait, c'est de la traiter comme un succès.
      */
     const status: BackupStatus = await input.provisioner
-      .backupStatus({ projectId: input.projectId, snapshotId: input.snapshotId })
-      .catch((error: unknown): BackupStatus => ({
-        found: false,
-        completed: false,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      .backupStatus({ projectId: input.projectId, snapshotId: input.snapshotId, environment })
+      .catch(
+        (error: unknown): BackupStatus => ({
+          found: false,
+          completed: false,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
 
     if (status.completed) {
       return { verified: true, phase: status.phase, method: 'cnpg-backup-cr-phase-completed' };
@@ -196,8 +215,7 @@ export async function waitForVerifiedBackup(input: {
   }
 }
 
-const declared = (value: boolean | 'UNKNOWN' | undefined): string =>
-  value === undefined ? 'UNKNOWN' : String(value);
+const declared = (value: boolean | 'UNKNOWN' | undefined): string => (value === undefined ? 'UNKNOWN' : String(value));
 
 /**
  * Machine PLANNED → LOCK_ACQUIRED → BACKUP_VERIFIED → APPLYING → VALIDATING →
@@ -206,6 +224,20 @@ const declared = (value: boolean | 'UNKNOWN' | undefined): string =>
  * exécutée pour de vrai, pas seulement décrite dans un contrat.
  */
 export async function runPublishMigration(input: RunPublishMigrationInput): Promise<MigrationOutcome> {
+  /*
+   * Validate and capture the target before even reading the idempotency journal.
+   * A production migration must never verify a default-development backup.
+   */
+  const environment = input.environment;
+
+  if (environment !== 'development' && environment !== 'production') {
+    return {
+      ok: false,
+      code: 'MIGRATION_BACKUP_UNVERIFIED',
+      error: appPublicEnglish('MIGRATION_BACKUP_UNVERIFIED_MESSAGE'),
+    };
+  }
+
   const now = input.now ?? (() => new Date());
   const sleep = input.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
 
@@ -242,6 +274,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
   }
 
   let state: MigrationState = 'PLANNED';
+
   const statementsSha256 = hashStatements(input.migrations);
 
   // ---- LOCK_ACQUIRED : le SGBD arbitre, pas l'application (I-MIG-2). ----
@@ -253,9 +286,9 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     execution = await input.store.createMigrationExecution({
       projectId: input.projectId,
       organizationId: input.organizationId,
-      environment: input.environment,
+      environment,
       idempotencyKey: input.idempotencyKey,
-      activeLock: `${input.projectId}:${input.environment}`,
+      activeLock: `${input.projectId}:${environment}`,
       state: 'LOCK_ACQUIRED',
       statementsSha256,
       statementCount: input.migrations.length,
@@ -293,8 +326,9 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
   try {
     // ---- BACKUP_VERIFIED : observé abouti, pas seulement demandé (I-MIG-1). ----
     const snapshotId = `mig_${execution.id}`;
+
     const submitted = await input.provisioner
-      .takeSnapshot({ projectId: input.projectId, snapshotId })
+      .takeSnapshot({ projectId: input.projectId, snapshotId, environment })
       .catch(() => ({ applied: false }));
 
     if (!submitted.applied) {
@@ -314,6 +348,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       provisioner: input.provisioner,
       projectId: input.projectId,
       snapshotId,
+      environment,
       timeoutMs: input.backupTimeoutMs ?? DEFAULT_BACKUP_TIMEOUT_MS,
       pollIntervalMs: input.backupPollIntervalMs ?? DEFAULT_BACKUP_POLL_MS,
       sleep,
@@ -400,8 +435,11 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     state = 'VALIDATING';
     await input.store.updateMigrationExecution(execution.id, {
       state,
-      // Nombre RÉELLEMENT appliqué (les migrations déjà présentes au registre
-      // sont sautées), pas le nombre planifié.
+
+      /*
+       * Nombre RÉELLEMENT appliqué (les migrations déjà présentes au registre
+       * sont sautées), pas le nombre planifié.
+       */
       appliedStatements: appliedNames.length,
     });
 

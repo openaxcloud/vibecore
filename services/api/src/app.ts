@@ -225,7 +225,7 @@ import {
   clusterName,
   RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
   resolveDatabaseTier,
-  resolveDefaultDatabaseProvisioner,
+  resolveDefaultDatabaseProvisioner as createDefaultDatabaseProvisioner,
   type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
@@ -9563,6 +9563,7 @@ export function publishedDeploymentExpired(input: {
 
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
+  const resolveDefaultDatabaseProvisioner = () => createDefaultDatabaseProvisioner(store.backupProvenance);
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
 
   const mcpMarketplace =
@@ -34605,14 +34606,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             .createDatabaseSnapshot({ databaseInstanceId: instance.id, kind: 'auto', expiresAt })
             .catch(() => undefined);
 
-      if (snapshot) {
-        snapshotted += 1;
-
-        if (provisioner.active) {
-          await provisioner
-            .takeSnapshot({ projectId: instance.projectId, snapshotId: snapshot.id, environment: instance.environment })
-            .catch(() => {});
-        }
+      if (snapshot && provisioner.active) {
+        const submitted = await provisioner
+          .takeSnapshot({ projectId: instance.projectId, snapshotId: snapshot.id, environment: instance.environment })
+          .catch(() => ({ applied: false }));
+        if (submitted.applied) snapshotted += 1;
       }
 
       // Advance this instance's in-flight restores.
@@ -36564,12 +36562,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       expiresAt,
     });
 
-    const provisioner = resolveDefaultDatabaseProvisioner();
+    const provisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
+    const submitted = provisioner.active
+      ? await provisioner
+          .takeSnapshot({ projectId: project.id, snapshotId: snapshot.id, environment: instance.environment })
+          .catch(() => ({ applied: false }))
+      : { applied: false };
 
-    if (provisioner.active) {
-      await provisioner
-        .takeSnapshot({ projectId: project.id, snapshotId: snapshot.id, environment: instance.environment })
-        .catch((error) => request.log?.warn?.({ err: error }, 'db snapshot kickoff failed (non-fatal)'));
+    if (!submitted.applied) {
+      return reply.code(503).send({
+        error: appPublicEnglish('DATABASE_BACKUP_UNCONFIRMED'),
+        code: 'BACKUP_REQUEST_UNCONFIRMED',
+        snapshotId: snapshot.id,
+      });
     }
 
     return reply.code(202).send({ snapshot });
