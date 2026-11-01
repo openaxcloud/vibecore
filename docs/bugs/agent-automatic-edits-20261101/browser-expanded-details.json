@@ -1,0 +1,191 @@
+{
+  "rows": [
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 390,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 286.078125,
+        "width": 370,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 393,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 286.078125,
+        "width": 373,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 430,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 285.6875,
+        "width": 410,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "width": 1440,
+      "synthetic": true,
+      "portrait": {
+        "x": 67,
+        "y": 116,
+        "width": 303,
+        "height": 383.390625
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 390,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 286.078125,
+        "width": 370,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 393,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 286.078125,
+        "width": 373,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 430,
+      "synthetic": true,
+      "portrait": {
+        "x": 10,
+        "y": 285.6875,
+        "width": 410,
+        "height": 323.75
+      },
+      "landscapeVisible": true,
+      "result": "passed"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.4",
+      "width": 1440,
+      "synthetic": true,
+      "error": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('.bolt-project-agent-patch-review').filter({ visible: true }).first().getByRole('button', { name: 'Réessayer cette modification', exact: true })\nExpected: 4\nReceived: 0\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.have.count\" with timeout 5000ms\n  - waiting for locator('.bolt-project-agent-patch-review').filter({ visible: true }).first().getByRole('button', { name: 'Réessayer cette modification', exact: true })\n    8 × locator resolved to 0 elements\n      - unexpected value \"0\"\n"
+    }
+  ],
+  "blocked": [
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    },
+    {
+      "method": "GET",
+      "path": "/css2"
+    },
+    {
+      "method": "GET",
+      "path": "/headless"
+    }
+  ]
+}

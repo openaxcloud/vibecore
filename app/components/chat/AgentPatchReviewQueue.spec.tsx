@@ -12,6 +12,7 @@ vi.mock('~/lib/stores/workbench', () => ({
     acceptAgentPatchProposal: vi.fn(async () => 'accepted'),
     rejectAgentPatchProposal: vi.fn(async () => undefined),
     acceptAllAgentPatchProposals: vi.fn(async () => undefined),
+    retryAutomaticAgentPatchProposals: vi.fn(async () => []),
   },
 }));
 
@@ -72,28 +73,28 @@ describe('AI patch review presentation', () => {
       expect(screen.getByText(change.error!).closest('details')?.open).toBe(true);
       await waitFor(() => expect(screen.getByRole('button', { name: retry })).toBeTruthy());
       fireEvent.click(screen.getByRole('button', { name: retry }));
-      expect(workbenchStore.acceptAgentPatchProposal).toHaveBeenCalledTimes(1);
-      expect(workbenchStore.acceptAgentPatchProposal).toHaveBeenCalledWith(
-        change.id,
-        change.hunks.map((hunk) => hunk.id),
-      );
+      expect(workbenchStore.retryAutomaticAgentPatchProposals).toHaveBeenCalledExactlyOnceWith([change.id]);
+      expect(screen.queryByRole('checkbox')).toBeNull();
+      expect(screen.queryByText(/accept|reject/i)).toBeNull();
     },
   );
 
   it.each([{ conflit: true }, { relueDeLaBase: true }, { tronquee: true }])(
-    'opens the review when automatic application is unsafe: %j',
-    (flags) => {
+    'explains unsafe changes without allowing a manual override: %j',
+    async (flags) => {
       const { container } = renderQueue([proposal(flags)]);
-      expect(container.querySelector('details')?.open).toBe(true);
-      expect(screen.getByText('Changes need your review')).toBeTruthy();
-      expect(workbenchStore.acceptAgentPatchProposal).not.toHaveBeenCalled();
+      fireEvent.click(container.querySelector('summary')!);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Retry this change' })).toBeTruthy());
+      expect((screen.getByRole('button', { name: 'Retry this change' }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText(/cannot be retried safely/)).toBeTruthy();
+      expect(screen.queryByText(/accept|reject/i)).toBeNull();
+      expect(workbenchStore.retryAutomaticAgentPatchProposals).not.toHaveBeenCalled();
     },
   );
 
-  it('honours the explicit review preference for otherwise applicable pending changes', () => {
+  it('does not revive manual review for an old persisted preference', () => {
     const { container } = renderQueue([proposal({ status: 'pending', error: undefined })], false);
-    expect(container.querySelector('details')?.open).toBe(true);
-    expect(screen.getByText('Changes need your review')).toBeTruthy();
+    expect(container.childElementCount).toBe(0);
     expect(workbenchStore.acceptAllAgentPatchProposals).not.toHaveBeenCalled();
   });
 

@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { totalAiUsage } from '~/lib/ai-usage-totals';
 import { latestTurnModelOutput } from '~/lib/model-output-evidence';
 import { SkillResources, type SkillResourceSnapshot } from './SkillResources';
@@ -3909,9 +3910,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectPlanFirst]);
 
     /*
-     * Auto-apply follows the user's "Require review of AI changes" setting:
-     * default OFF ⇒ auto-apply ON (changes land silently). When the user turns
-     * review on, proposals stay pending for the review queue instead.
+     * Agent edits apply automatically after technical validation. Legacy review
+     * preferences cannot restore a manual acceptance gate.
      */
     const projectAutoApply = useAutoApplyEnabled();
 
@@ -4051,7 +4051,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, []);
 
     useEffect(() => {
-      for (const proposal of Object.values(agentPatchProposals)) {
+      for (const { proposal } of topologicallySortFileActions(
+        Object.values(agentPatchProposals).map((proposal) => ({
+          proposal,
+          filePath: proposal.relativePath,
+          content: proposal.proposedContent,
+        })),
+      ).ordered) {
         const attemptKey = autoApplyAttemptKey({
           id: proposal.id,
           updatedAt: proposal.updatedAt,
@@ -4099,7 +4105,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           });
 
         autoApplyChainRef.current = autoApplyChainRef.current
-          .then(() => workbenchStore.acceptAgentPatchProposal(proposalId))
+          .then(() => workbenchStore.applyAutomaticAgentPatchProposal(proposalId))
           .then((result) => {
             if (result === 'accepted') {
               scheduleAppliedFilesToast(filePath, proposalId);
@@ -4111,16 +4117,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              * A 'failed' return means the patch was rejected (validation / write
              * failure). In auto-apply mode the review queue is hidden, so without
              * an explicit toast the user would never learn the edit didn't land.
-             * Use a per-file toastId so repeated failures for the SAME file (e.g.
-             * several package.json proposals during streaming) collapse into ONE
-             * toast instead of stacking 3-4 identical ones.
+             * Use one toast for the active failure notification. Per-file details
+             * remain in the recovery queue instead of stacking notifications.
              */
-            if (failureIsSuperseded()) {
+            if (result === 'ignored' || failureIsSuperseded()) {
               return;
             }
 
             toast.error(describeAutoApplyFailure(filePath, undefined, language), {
-              toastId: `auto-apply-error-${filePath}`,
+              toastId: 'auto-apply-error',
             });
           })
           .catch((error) => {
@@ -4129,7 +4134,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             }
 
             toast.error(describeAutoApplyFailure(filePath, error, language), {
-              toastId: `auto-apply-error-${filePath}`,
+              toastId: 'auto-apply-error',
             });
           });
       }

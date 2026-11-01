@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -28,27 +28,18 @@ describe('WorkspaceSettings — Require review of AI changes toggle', () => {
     cleanup();
   });
 
-  it('defaults to off (auto-apply) and turns review on when toggled', () => {
-    renderWorkspace();
+  it.each([null, 'true', 'false'])(
+    'shows the automatic policy without a review toggle for stored value %s',
+    (value) => {
+      if (value !== null) {
+        window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, value);
+      }
 
-    const toggle = screen.getByLabelText('Require review of AI changes') as HTMLInputElement;
-
-    // Default: off → auto-apply.
-    expect(toggle.checked).toBe(false);
-
-    fireEvent.click(toggle);
-
-    expect(window.localStorage.getItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY)).toBe('true');
-    expect((screen.getByLabelText('Require review of AI changes') as HTMLInputElement).checked).toBe(true);
-  });
-
-  it('reflects a persisted "on" value on load', () => {
-    window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
-
-    renderWorkspace();
-
-    expect((screen.getByLabelText('Require review of AI changes') as HTMLInputElement).checked).toBe(true);
-  });
+      renderWorkspace();
+      expect(screen.queryByLabelText('Require review of AI changes')).toBeNull();
+      expect(window.localStorage.getItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY)).toBe(value);
+    },
+  );
 
   it('renders all workspace and theme controls in professional French', () => {
     renderWorkspace('fr');
@@ -56,7 +47,7 @@ describe('WorkspaceSettings — Require review of AI changes toggle', () => {
     expect(screen.getByRole('heading', { name: 'Paramètres de l’espace de travail' })).toBeTruthy();
     expect(screen.getByText('Retour automatique à la ligne')).toBeTruthy();
     expect(screen.getByText('Formater lors de l’enregistrement')).toBeTruthy();
-    expect(screen.getByLabelText('Exiger la validation des modifications de l’IA')).toBeTruthy();
+    expect(screen.queryByLabelText('Exiger la validation des modifications de l’IA')).toBeNull();
     expect(screen.getByRole('radiogroup', { name: 'Thème' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Clair' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Sombre' })).toBeTruthy();

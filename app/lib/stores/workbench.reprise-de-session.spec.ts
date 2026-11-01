@@ -288,6 +288,193 @@ describe('à la réouverture, ce que la base a gardé d’un tour interrompu', (
     expect(runtimeFiles.get('src/App.tsx')).toBe(complet);
   });
 
+  it('keeps a failed importer when its dependency appears: resolution is not an applied-write receipt', async () => {
+    const proposedContent = "import Widget from './Widget';\nexport default Widget;\n";
+    propositionsEnBase.push(
+      propositionEnBase('failed', {
+        proposedContent,
+        error: "Missing import in src/App.tsx: './Widget' does not resolve to a generated or existing file.",
+      }),
+    );
+
+    const store = await rouvrir();
+    runtimeFiles.set('src/Widget.tsx', 'export default function Widget() { return null; }');
+    await store.loadRuntimeFiles();
+
+    expect(store.agentPatchProposals.get()['artifact-1:a1']).toMatchObject({
+      status: 'failed',
+      proposedContent,
+      relueDeLaBase: true,
+    });
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    expect(laReglePermettraitDAppliquer(store)).toBe(false);
+  });
+
+  it('revalidates and confirms a live importer once its dependency is actually available', async () => {
+    runtimeFiles.set('src/App.tsx', ORIGINAL);
+
+    const store = new WorkbenchStore();
+    store.configureProject('projet-1');
+    await store.loadRuntimeFiles();
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact({
+      id: 'artifact-1',
+      artifactId: 'artifact-1',
+      messageId: 'assistant-1',
+      title: 'Generated app',
+      type: 'bundled',
+    });
+
+    const proposedContent = "import Widget from './Widget';\nexport default Widget;\n";
+
+    const action: ActionCallbackData = {
+      artifactId: 'artifact-1',
+      messageId: 'assistant-1',
+      actionId: 'a1',
+      action: { type: 'file', filePath: 'src/App.tsx', content: proposedContent },
+    };
+    store.addAction(action);
+    store.runAction(action);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:a1']?.status).toBe('pending'));
+    await expect(store.applyAutomaticAgentPatchProposal('artifact-1:a1')).resolves.toBe('failed');
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    expect(store.agentPatchProposals.get()['artifact-1:a1'].missingImport?.importSpecifier).toBe('./Widget');
+
+    runtimeFiles.set('src/Widget.tsx', 'export default function Widget() { return null; }');
+    await store.loadRuntimeFiles();
+    expect(store.agentPatchProposals.get()['artifact-1:a1']).toMatchObject({ status: 'pending', proposedContent });
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    await expect(store.applyAutomaticAgentPatchProposal('artifact-1:a1')).resolves.toBe('accepted');
+    expect(runtimeFiles.get('src/App.tsx')).toBe(proposedContent);
+    expect(store.agentPatchProposals.get()['artifact-1:a1'].missingImport).toBeUndefined();
+    await store.revertAgentPatchProposal('artifact-1:a1');
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    expect(store.agentPatchProposals.get()['artifact-1:a1'].status).toBe('reverted');
+  });
+
+  it.each([{ tronquee: true }, { conflit: true }, { relueDeLaBase: true }, { enFlux: true }])(
+    'an explicit automatic retry does not bypass unsafe provenance %j',
+    async (flags) => {
+      propositionsEnBase.push(propositionEnBase('failed'));
+
+      const store = await rouvrir();
+      const previous = store.agentPatchProposals.get()['artifact-1:a1'];
+      store.agentPatchProposals.setKey(previous.id, { ...previous, relueDeLaBase: false, ...flags });
+      await expect(store.applyAutomaticAgentPatchProposal(previous.id, true)).resolves.toBe('ignored');
+      await expect(store.retryAutomaticAgentPatchProposals([previous.id])).resolves.toEqual([]);
+      expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    },
+  );
+
+  it('retries a closed batch in dependency order and confirms both actual file contents', async () => {
+    runtimeFiles.set('src/App.tsx', ORIGINAL);
+
+    const store = new WorkbenchStore();
+    store.configureProject('projet-1');
+    await store.loadRuntimeFiles();
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact({
+      id: 'batch',
+      artifactId: 'batch',
+      messageId: 'assistant-batch',
+      title: 'Batch',
+      type: 'bundled',
+    });
+
+    const contents = [
+      ['app', 'src/App.tsx', "import Widget from './Widget';\nexport default Widget;\n"],
+      ['widget', 'src/Widget.tsx', 'export default function Widget() { return null; }'],
+    ];
+
+    for (const [actionId, filePath, content] of contents) {
+      const action: ActionCallbackData = {
+        artifactId: 'batch',
+        messageId: 'assistant-batch',
+        actionId,
+        action: { type: 'file', filePath, content },
+      };
+      store.addAction(action);
+      store.runAction(action);
+    }
+    await vi.waitFor(() => expect(Object.values(store.agentPatchProposals.get())).toHaveLength(2));
+
+    const apply = vi.spyOn(store, 'applyAutomaticAgentPatchProposal');
+    await expect(store.retryAutomaticAgentPatchProposals(['batch:app', 'batch:widget'])).resolves.toEqual([
+      { id: 'batch:widget', status: 'accepted' },
+      { id: 'batch:app', status: 'accepted' },
+    ]);
+    expect(apply.mock.calls.map(([id]) => id)).toEqual(['batch:widget', 'batch:app']);
+
+    for (const [, path, content] of contents) {
+      expect(runtimeFiles.get(path)).toBe(content);
+    }
+  });
+
+  it('preserves an unsaved user edit instead of applying an automatic proposal', async () => {
+    propositionsEnBase.push(propositionEnBase('pending', { proposedContent: ORIGINAL.replace('Bonjour', 'Agent') }));
+
+    const store = await rouvrir();
+    const proposal = store.agentPatchProposals.get()['artifact-1:a1'];
+    store.agentPatchProposals.setKey(proposal.id, { ...proposal, relueDeLaBase: false });
+
+    const userContent = ORIGINAL.replace('Bonjour', 'Édition utilisateur');
+    editeurs.at(-1)!.updateFile(proposal.filePath, userContent);
+    store.unsavedFiles.set(new Set([proposal.filePath]));
+    await expect(store.applyAutomaticAgentPatchProposal(proposal.id)).resolves.toBe('ignored');
+    expect(store.agentPatchProposals.get()[proposal.id].conflit).toBe(true);
+    expect(store.documents.get()[proposal.filePath].value).toBe(userContent);
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+    await expect(store.retryAutomaticAgentPatchProposals([proposal.id])).resolves.toEqual([]);
+  });
+
+  it('does not write a proposal invalidated after automatic application starts', async () => {
+    propositionsEnBase.push(propositionEnBase('pending', { proposedContent: ORIGINAL.replace('Bonjour', 'Agent') }));
+
+    const store = await rouvrir();
+    const proposal = store.agentPatchProposals.get()['artifact-1:a1'];
+    store.agentPatchProposals.setKey(proposal.id, { ...proposal, relueDeLaBase: false });
+
+    const unsubscribe = store.agentPatchProposals.listen((proposals) => {
+      const current = proposals[proposal.id];
+
+      if (current.status === 'applying') {
+        store.agentPatchProposals.setKey(proposal.id, { ...current, status: 'rejected' });
+      }
+    });
+
+    try {
+      await expect(store.applyAutomaticAgentPatchProposal(proposal.id)).resolves.toBe('ignored');
+      expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+      expect(store.agentPatchProposals.get()[proposal.id].status).toBe('rejected');
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('never loops on a dependency retry for the same emitted content', async () => {
+    propositionsEnBase.push(
+      propositionEnBase('failed', {
+        proposedContent: "import Widget from './Widget'; export default Widget;",
+        error: "Missing import in src/App.tsx: './Widget' does not resolve to a generated or existing file.",
+      }),
+    );
+
+    const store = await rouvrir();
+    const previous = store.agentPatchProposals.get()['artifact-1:a1'];
+    store.agentPatchProposals.setKey(previous.id, { ...previous, relueDeLaBase: false });
+    runtimeFiles.set('src/Widget.tsx', 'export default 1;');
+    await store.loadRuntimeFiles();
+
+    const retried = store.agentPatchProposals.get()[previous.id];
+    expect(retried.status).toBe('pending');
+    expect(retried.dependencyRetryFingerprint).toBeTruthy();
+    store.agentPatchProposals.setKey(previous.id, { ...retried, status: 'failed' });
+    await store.loadRuntimeFiles();
+    await store.loadRuntimeFiles();
+    expect(store.agentPatchProposals.get()[previous.id].status).toBe('failed');
+    expect(runtimeFiles.get('src/App.tsx')).toBe(ORIGINAL);
+  });
+
   it('une proposition créée DANS cette page, fermée, reste applicable automatiquement', async () => {
     runtimeFiles.set('src/App.tsx', ORIGINAL);
 
