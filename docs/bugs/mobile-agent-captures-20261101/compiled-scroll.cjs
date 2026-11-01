@@ -1,8 +1,9 @@
 const fs = require('fs');
 const { chromium, webkit, expect } = require('@playwright/test');
-const origin = 'http://127.0.0.1:18199';
+const origin = process.env.UI_BASE_URL || 'http://127.0.0.1:18199';
 const blocked = [];
-fs.mkdirSync('/workspace/mobile-matrix', { recursive: true });
+const output = process.env.MOBILE_SCROLL_EVIDENCE || '/workspace/mobile-scroll-verified';
+fs.mkdirSync(output, { recursive: true });
 async function setup(p) {
   await p.context().addCookies([
     { name: 'vc_session', value: 'synthetic-ui', url: origin },
@@ -72,10 +73,13 @@ async function setup(p) {
         rows.push(row);
         try {
           await setup(p);
-          await p.goto(origin + '/projects/synthetic-first/ide?panel=chat', { waitUntil: 'domcontentloaded' });
+          await p.goto(origin + '/projects/synthetic-first/ide?panel=agent', { waitUntil: 'domcontentloaded' });
           const input = p.locator('.bolt-project-agent-composer textarea').filter({ visible: true }).first();
           await expect(input).toBeVisible({ timeout: 30000 });
+          // Let the read-only fixture finish its initial history/provider hydration.
+          await p.waitForTimeout(1000);
           await input.fill('Synthetic UI measurement only');
+          await expect(input).toHaveValue('Synthetic UI measurement only');
           await p.locator('.bolt-composer-send-button').filter({ visible: true }).click();
           await expect.poll(() => p.evaluate(() => window.__syntheticCalls.length)).toBe(1);
           await p.evaluate(() => {
@@ -94,7 +98,7 @@ async function setup(p) {
           const card = p.getByTestId('agent-lane-qa');
           await expect(card).toBeVisible();
           row.running = await card.boundingBox();
-          await p.screenshot({ path: '/workspace/mobile-matrix/' + engine + '-' + width + '-running.png' });
+          await p.screenshot({ path: output + '/' + engine + '-' + width + '-running.png' });
           await p.evaluate(() => {
             const c = window.__syntheticCalls[0];
             c.push('8', [
@@ -126,7 +130,7 @@ async function setup(p) {
             .getByTestId('agent-lane-output')
             .evaluate((n) => ({ client: n.clientHeight, scroll: n.scrollHeight, text: n.textContent }));
           expect(row.metadata.client).toBe(row.metadata.scroll);
-          await p.screenshot({ path: '/workspace/mobile-matrix/' + engine + '-' + width + '-terminal.png' });
+          await p.screenshot({ path: output + '/' + engine + '-' + width + '-terminal.png' });
           const scroller = p.locator('.bolt-project-agent-transcript').locator('..');
           await scroller.evaluate((n) => {
             n.scrollTop = 100;
@@ -137,7 +141,7 @@ async function setup(p) {
           row.pill = await pill.boundingBox();
           row.scrollbox = await scroller.boundingBox();
           expect(row.pill.y).toBeGreaterThanOrEqual(row.scrollbox.y + row.scrollbox.height);
-          await p.screenshot({ path: '/workspace/mobile-matrix/' + engine + '-scroll-after.png' });
+          await p.screenshot({ path: output + '/' + engine + '-scroll-after.png' });
           await pill.click();
           await expect(pill).toBeHidden();
           row.jumpPassed = true;
@@ -145,12 +149,12 @@ async function setup(p) {
           expect(row.doc.scroll).toBe(row.doc.width);
           await p.setViewportSize({ width: 852, height: width });
           await expect(input).toBeVisible();
-          await p.screenshot({ path: '/workspace/mobile-matrix/' + engine + '-' + width + '-landscape.png' });
+          await p.screenshot({ path: output + '/' + engine + '-' + width + '-landscape.png' });
           await p.setViewportSize({ width, height: 450 });
           await input.focus();
           await expect(input).toBeFocused();
           row.keyboardSurrogate = true;
-          await p.screenshot({ path: '/workspace/mobile-matrix/' + engine + '-' + width + '-short-viewport.png' });
+          await p.screenshot({ path: output + '/' + engine + '-' + width + '-short-viewport.png' });
           await p.reload({ waitUntil: 'domcontentloaded' });
           await expect(
             p.locator('.bolt-project-agent-composer textarea').filter({ visible: true }).first(),
@@ -159,14 +163,18 @@ async function setup(p) {
         } catch (e) {
           row.error = String(e);
           row.body = (await p.locator('body').innerText()).slice(-2500);
-          await p.screenshot({ path: '/workspace/mobile-matrix/' + engine + '-' + width + '-failed.png' });
+          await p.screenshot({ path: output + '/' + engine + '-' + width + '-failed.png' });
         }
         await p.close();
-        fs.writeFileSync('/workspace/mobile-scroll-receipt.json', JSON.stringify(rows, null, 2));
+        fs.writeFileSync(output + '/receipt.json', JSON.stringify(rows, null, 2));
       }
     } finally {
       await b.close();
     }
   }
   console.log(JSON.stringify(rows, null, 2));
-})();
+  if (rows.some((row) => row.error)) process.exitCode = 1;
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
