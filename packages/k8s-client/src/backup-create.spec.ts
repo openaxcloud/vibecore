@@ -1,9 +1,11 @@
 /** Exercises command construction with a local executable fixture, never kubectl/cloud. */
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, rm, access } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { KubectlWorkspaceK8sClient } from './index.js';
 
 afterEach(() => vi.unstubAllEnvs());
 describe('atomic Kubernetes resource creation command', () => {
@@ -28,8 +30,6 @@ process.stdout.write(JSON.stringify(object));
 `;
     await writeFile(binary, source, { mode: 0o700 });
 
-    const client = new KubectlWorkspaceK8sClient(binary);
-
     const object = {
       apiVersion: 'postgresql.cnpg.io/v1',
       kind: 'Backup',
@@ -38,10 +38,24 @@ process.stdout.write(JSON.stringify(object));
     };
 
     try {
-      expect((await client.createResource(object)).metadata.uid).toBe('server-assigned-fixture-uid');
-      await expect(
-        client.createResource({ ...object, spec: { cluster: { name: 'must-not-replace' } } }),
-      ).rejects.toThrow();
+      const modulePath = fileURLToPath(new URL('./index.ts', import.meta.url));
+      const loader = createRequire(import.meta.url).resolve('tsx');
+
+      const script = `import(${JSON.stringify(modulePath)}).then(async ({ KubectlWorkspaceK8sClient }) => {
+        const client = new KubectlWorkspaceK8sClient(${JSON.stringify(binary)});
+        const object = ${JSON.stringify(object)};
+        const first = await client.createResource(object);
+        let duplicateRejected = false;
+        try { await client.createResource({ ...object, spec: { cluster: { name: 'must-not-replace' } } }); }
+        catch { duplicateRejected = true; }
+        process.stdout.write(JSON.stringify({ uid: first.metadata.uid, duplicateRejected }));
+      }).catch(() => { process.exitCode = 1; });`;
+
+      // Keep the actual Node process boundary: root Vite polyfills util.promisify for browsers.
+      const result = JSON.parse(
+        execFileSync(process.execPath, ['--import', loader, '-e', script], { encoding: 'utf8' }),
+      );
+      expect(result).toEqual({ uid: 'server-assigned-fixture-uid', duplicateRejected: true });
       expect(JSON.parse(await readFile(saved, 'utf8')).spec.cluster.name).toBe('db-test');
 
       const requests = (await readFile(calls, 'utf8'))
