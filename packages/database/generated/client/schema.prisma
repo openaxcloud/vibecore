@@ -1143,14 +1143,16 @@ model AiConversation {
 }
 
 model AiMessage {
-  id             String         @id @default(cuid())
-  conversationId String
-  role           String
-  content        String
-  createdAt      DateTime       @default(now())
-  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  toolCalls      AiToolCall[]
-  tokenUsage     AiTokenUsage?
+  id              String         @id @default(cuid())
+  conversationId  String
+  role            String
+  content         String
+  /// Validated stream outcome bound to normalized message content; not execution proof.
+  terminalReceipt Json?
+  createdAt       DateTime       @default(now())
+  conversation    AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  toolCalls       AiToolCall[]
+  tokenUsage      AiTokenUsage?
 
   // listAiMessages runs WHERE conversationId = ? ORDER BY createdAt DESC on the
   // highest-volume table in the product (one row per chat message) on every

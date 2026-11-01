@@ -63,9 +63,9 @@ async function twoTenants() {
 
 const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
 
-/** Tout sauf 2xx. Un 404 est un refus valide : il ne confirme pas l'existence. */
+/** A server error is not evidence of authorization enforcement. */
 function expectDenied(statusCode: number, label: string) {
-  expect(statusCode, `${label} — la ressource d'autrui a répondu ${statusCode}`).toBeGreaterThanOrEqual(400);
+  expect([401, 403, 404], `${label} — la ressource d'autrui a répondu ${statusCode}`).toContain(statusCode);
 }
 
 type Probe = {
@@ -98,14 +98,14 @@ const PROJECT_PROBES: Probe[] = [
   { label: 'lister les collaborateurs', method: 'GET', url: (v) => `/projects/${v.projectId}/collaborators` },
   {
     label: 'écrire un secret',
-    method: 'POST',
+    method: 'PUT',
     url: (v) => `/projects/${v.projectId}/secrets`,
     payload: { key: 'STOLEN', value: 'x' },
   },
   {
     label: 'renommer le projet',
     method: 'PATCH',
-    url: (v) => `/projects/${v.projectId}`,
+    url: (v) => `/projects/${v.projectId}/settings`,
     payload: { name: 'pwned' },
   },
   { label: 'supprimer le projet', method: 'DELETE', url: (v) => `/projects/${v.projectId}` },
@@ -113,7 +113,7 @@ const PROJECT_PROBES: Probe[] = [
 
 const ORG_PROBES: Probe[] = [
   { label: 'lire l’organisation', method: 'GET', url: (v) => `/orgs/${v.orgId}` },
-  { label: 'lister les membres', method: 'GET', url: (v) => `/orgs/${v.orgId}/members` },
+  { label: 'lister les membres', method: 'GET', url: (v) => `/orgs/${v.orgId}/memberships` },
   { label: 'lister les projets', method: 'GET', url: (v) => `/orgs/${v.orgId}/projects` },
   { label: 'lire les crédits', method: 'GET', url: (v) => `/orgs/${v.orgId}/credits` },
   { label: 'lire le journal d’audit', method: 'GET', url: (v) => `/orgs/${v.orgId}/audit-logs` },
@@ -182,10 +182,19 @@ describe('AUDX-013 jeu adversarial inter-locataires', () => {
         /*
          * On n'exige pas 2xx — certaines routes répondent 404 légitimement pour
          * une ressource absente (pas d'état IDE, pas de déploiement). On exige
-         * que le propriétaire n'obtienne PAS un refus d'AUTORISATION : c'est ce
+         * que la route existe, ne tombe pas en erreur serveur, et que le propriétaire
+         * n'obtienne PAS un refus d'AUTORISATION : c'est ce
          * qui distingue « la sonde vise la bonne chose » de « la sonde ne vise
          * rien ».
          */
+        expect(
+          app.hasRoute({
+            method: probe.method,
+            url: probe.url({ ...victim, projectId: ':projectId', orgId: ':orgId' }),
+          }),
+          probe.label,
+        ).toBe(true);
+        expect(response.statusCode, probe.label).toBeLessThan(500);
         expect([401, 403]).not.toContain(response.statusCode);
       });
     }

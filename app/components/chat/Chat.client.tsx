@@ -1216,7 +1216,10 @@ export const ChatImpl = memo(
         latestMessagesRef.current = fil;
         setMessages(fil);
 
-        // Server-only transcripts carry no terminal receipt. Text recovery is not completion proof.
+        /*
+         * A recovered transport receipt does not reconcile pending prompts or applied files.
+         * Keep the interrupted marker: clearing it could re-enable automatic prompt replay.
+         */
       },
     });
 

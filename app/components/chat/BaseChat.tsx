@@ -20,6 +20,7 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { totalAiUsage } from '~/lib/ai-usage-totals';
 import { latestTurnModelOutput } from '~/lib/model-output-evidence';
 import { SkillResources, type SkillResourceSnapshot } from './SkillResources';
 import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
@@ -16387,14 +16388,7 @@ function ProjectSettingsPanel({
 
   const limitEntries = Object.entries(billing.limits ?? {});
 
-  const aiUsageTotals = aiUsage.reduce(
-    (totals: any, item: any) => ({
-      inputTokens: totals.inputTokens + Number(item.inputTokens ?? item.promptTokens ?? 0),
-      outputTokens: totals.outputTokens + Number(item.outputTokens ?? item.completionTokens ?? 0),
-      cost: totals.cost + Number(item.costUsd ?? item.cost ?? 0),
-    }),
-    { inputTokens: 0, outputTokens: 0, cost: 0 },
-  );
+  const aiUsageTotals = totalAiUsage(aiUsage);
 
   return (
     <div className={`bolt-project-settings-hub ${settingsPanelStyles.panel}`} data-testid="settings-hub-panel">
@@ -16790,12 +16784,14 @@ function ProjectSettingsPanel({
                   </span>
                   <span>
                     <strong>
-                      {formatBaseChatAstNumber(language, aiUsageTotals.cost, {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 4,
-                        maximumFractionDigits: 4,
-                      })}
+                      {aiUsageTotals.costUsd === null
+                        ? t('chat.copy.aiCostUnavailable')
+                        : formatBaseChatAstNumber(language, aiUsageTotals.costUsd, {
+                            style: 'currency',
+                            currency: 'USD',
+                            minimumFractionDigits: 4,
+                            maximumFractionDigits: 4,
+                          })}
                     </strong>
                     <small>{t('chat.copy.estimatedCost_516cbee2')}</small>
                   </span>

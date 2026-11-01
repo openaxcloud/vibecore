@@ -1,0 +1,6 @@
+{
+  "unitTests": "\n RUN  v3.2.6 /workspace/vibecore/services/api\n\n \u2713 src/sustained-load-evidence.spec.ts (7 tests) 4ms\n\n Test Files  1 passed (1)\n      Tests  7 passed (7)\n   Start at  10:24:04\n   Duration  316ms (transform 52ms, setup 0ms, collect 43ms, tests 4ms, environment 0ms, prepare 74ms)\n\n",
+  "eslintExit": 0,
+  "strictTypecheckExit": 0,
+  "note": "Strict NodeNext typecheck includes both standalone harness entrypoints and imports. Seven verdict regressions pass. No external provider test executed."
+}

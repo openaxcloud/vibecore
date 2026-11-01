@@ -1,0 +1,8 @@
+{
+  "pass": false,
+  "submitted": false,
+  "errors": [],
+  "failure": "locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('db-carte').first()\u001b[22m\n",
+  "url": "http://127.0.0.1:5174/projects/project_8a3kmbvfwr8mvxpe976/ide?panel=database&lang=en",
+  "body": "Database\nConnection healthy\nThe IDE panel could not be loaded (HTTP 429).\nRetry\nAll databases\nLoading E-Code…"
+}

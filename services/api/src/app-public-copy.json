@@ -503,6 +503,14 @@
     "en": "AI conversation not found",
     "fr": "Conversation avec l’IA introuvable."
   },
+  "TRANSCRIPT_CONFLICT": {
+    "en": "The conversation changed during synchronization. The newer content was preserved.",
+    "fr": "La conversation a changé pendant la synchronisation. Le contenu plus récent a été conservé."
+  },
+  "TRANSCRIPT_RECEIPT_CONTENT_MISMATCH": {
+    "en": "The response completion record does not match this message. Its completion could not be confirmed.",
+    "fr": "Le constat de fin de réponse ne correspond pas à ce message. Sa fin n’a pas pu être confirmée."
+  },
   "USER_SPEND_LIMIT_REACHED": {
     "en": "You have reached your personal usage limit for this billing period.",
     "fr": "Vous avez atteint votre plafond d’utilisation personnel pour cette période de facturation."
@@ -2822,5 +2830,13 @@
   "CREDIT_PACK_PURCHASE_CONFLICT": {
     "en": "This payment needs manual verification before credits can be confirmed. Contact support; do not purchase again.",
     "fr": "Ce paiement nécessite une vérification manuelle avant confirmation des crédits. Contactez l’assistance ; ne refaites pas l’achat."
+  },
+  "DATABASE_ROW_INVALID": {
+    "en": "The row does not match the current table schema. Check required fields, types, constraints and generated columns.",
+    "fr": "La ligne ne correspond pas au schéma actuel. Vérifiez les champs requis, les types, les contraintes et les colonnes générées."
+  },
+  "DATABASE_ROW_POSTGRES_REQUIRED": {
+    "en": "Row forms require a PostgreSQL connection.",
+    "fr": "Les formulaires de ligne nécessitent une connexion PostgreSQL."
   }
 }

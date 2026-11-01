@@ -121,3 +121,25 @@ export function latestStreamTerminal(annotations: unknown, messageId?: string): 
 
   return undefined;
 }
+
+/** Copy only protocol fields; persistence must never carry arbitrary annotations or extra payloads. */
+export function persistedStreamTerminal(annotations: unknown, messageId?: string): StreamTerminal | undefined {
+  const value = latestStreamTerminal(annotations, messageId);
+
+  if (!value || typeof value.contentSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.contentSha256)) {
+    return undefined;
+  }
+
+  return {
+    type: 'streamTerminal',
+    contentSha256: value.contentSha256,
+    status: value.status,
+    finishReason: value.finishReason,
+    reason: value.reason,
+    segments: value.segments,
+    fileActions: value.fileActions,
+    openActions: value.openActions,
+    openArtifacts: value.openArtifacts,
+    ...(value.messageId ? { messageId: value.messageId } : {}),
+  };
+}

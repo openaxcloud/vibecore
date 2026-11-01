@@ -1,3 +1,5 @@
+import { persistedStreamTerminal, type StreamTerminal } from '~/lib/runtime/stream-terminal';
+
 /**
  * LE RATTRAPAGE À LA REPRISE.
  *
@@ -132,11 +134,12 @@ export interface MessageDuFil {
   id: string;
   role: string;
   content: string;
+  terminalReceipt?: unknown;
 }
 
 export type PlanDeRattrapage =
-  | { type: 'completer'; messageId: string; contenu: string }
-  | { type: 'ajouter'; message: MessageDuFil };
+  | { type: 'completer'; messageId: string; contenu: string; terminalReceipt?: StreamTerminal }
+  | { type: 'ajouter'; message: MessageDuFil; terminalReceipt?: StreamTerminal };
 
 /**
  * Ce que la conversation du serveur apporte au fil affiché, ou `null`.
@@ -195,15 +198,30 @@ export async function planDeRattrapage(
   if (reponseLocale) {
     const contenu = contenuARattraper(reponseLocale.content, reponseServeur.content);
 
-    return contenu ? { type: 'completer', messageId: reponseLocale.id, contenu } : null;
+    const receipt = persistedStreamTerminal([reponseServeur.terminalReceipt], reponseServeur.id);
+    const sameContent = sansReflexion(reponseLocale.content).texte === sansReflexion(reponseServeur.content).texte;
+
+    if (!contenu && !(receipt && sameContent)) {
+      return null;
+    }
+
+    return {
+      type: 'completer',
+      messageId: reponseLocale.id,
+      contenu: contenu ?? reponseLocale.content,
+      ...(receipt ? { terminalReceipt: { ...receipt, messageId: reponseLocale.id } } : {}),
+    };
   }
 
-  if (!reponseServeur.content.trim() || !estLaVersionDuServeur(reponseServeur.content)) {
+  const receipt = persistedStreamTerminal([reponseServeur.terminalReceipt], reponseServeur.id);
+
+  if ((!reponseServeur.content.trim() && !receipt) || !estLaVersionDuServeur(reponseServeur.content)) {
     return null;
   }
 
   return {
     type: 'ajouter',
+    ...(receipt ? { terminalReceipt: receipt } : {}),
     message: { id: reponseServeur.id, role: 'assistant', content: reponseServeur.content },
   };
 }

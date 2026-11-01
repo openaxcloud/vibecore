@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "submitted": false,
+  "errors": [],
+  "metrics": {
+    "width": 720,
+    "dpr": 2,
+    "cssZoom": "1"
+  },
+  "noOverflow": true
+}

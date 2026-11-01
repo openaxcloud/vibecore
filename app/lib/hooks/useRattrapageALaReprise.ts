@@ -29,7 +29,15 @@ interface Options {
  */
 export function filApresRattrapage(fil: Message[], plan: PlanDeRattrapage): Message[] {
   if (plan.type === 'ajouter') {
-    return [...fil, { id: plan.message.id, role: 'assistant', content: plan.message.content } as Message];
+    return [
+      ...fil,
+      {
+        id: plan.message.id,
+        role: 'assistant',
+        content: plan.message.content,
+        ...(plan.terminalReceipt ? { annotations: [plan.terminalReceipt] } : {}),
+      } as Message,
+    ];
   }
 
   return fil.map((message) => {
@@ -42,6 +50,16 @@ export function filApresRattrapage(fil: Message[], plan: PlanDeRattrapage): Mess
     return {
       ...message,
       content: plan.contenu,
+      annotations: [
+        ...(message.annotations ?? []).filter(
+          (annotation) =>
+            typeof annotation !== 'object' ||
+            annotation === null ||
+            !('type' in annotation) ||
+            annotation.type !== 'streamTerminal',
+        ),
+        ...(plan.terminalReceipt ? [plan.terminalReceipt] : []),
+      ],
       parts: [...autresParties, { type: 'text', text: plan.contenu }],
     } as Message;
   });
@@ -122,14 +140,21 @@ export function useRattrapageALaReprise({
         return;
       }
 
-      enCours.current = null;
+      // A longer snapshot is not a final receipt. Keep the existing bounded read window.
+      if (plan.terminalReceipt) {
+        enCours.current = null;
+      }
 
       const messageId = plan.type === 'ajouter' ? plan.message.id : plan.messageId;
       const contenu = plan.type === 'ajouter' ? plan.message.content : plan.contenu;
 
-      workbenchStore.autoriserLaReprise(messageId);
+      const changed = plan.type === 'ajouter' || fil.find((message) => message.id === messageId)?.content !== contenu;
 
-      if (plan.type === 'completer') {
+      if (changed) {
+        workbenchStore.autoriserLaReprise(messageId);
+      }
+
+      if (changed && plan.type === 'completer') {
         rejouerLeMessage(messageId, contenu);
       }
 

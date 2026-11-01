@@ -1,3 +1,10 @@
+import {
+  bindTranscriptTerminal,
+  readTranscriptTerminal,
+  terminalSnapshotDecision,
+  type TranscriptTerminal,
+} from './transcript-terminal.js';
+import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
@@ -5175,6 +5182,104 @@ export class PrismaApiStore implements ApiStore {
     return mapAiMessage(await this.prisma.aiMessage.create({ data: { ...input, createdAt } }));
   }
 
+  async syncAiTranscriptMessage(input: {
+    id: string;
+    conversationId: string;
+    role: AiMessageRecord['role'];
+    content: string;
+    terminalReceipt?: TranscriptTerminal;
+  }): Promise<{ message: AiMessageRecord; stale: boolean }> {
+    if (input.terminalReceipt) bindTranscriptTerminal(input.content, input.terminalReceipt, input.id);
+    try {
+      // Serializable protects insertion too. Only a terminal conflict can enter bounded, content-checked reconciliation.
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const current = await tx.aiMessage.findUnique({ where: { id: input.id } });
+
+          if (current && current.conversationId !== input.conversationId) {
+            throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+          }
+
+          if (current && !decisionEcritureMessage(current.content, input.content).ecrire) {
+            return { message: mapAiMessage(current), stale: true };
+          }
+
+          const decision =
+            current && input.terminalReceipt
+              ? terminalSnapshotDecision(current, { content: input.content, terminalReceipt: input.terminalReceipt })
+              : 'write';
+          if (decision === 'conflict')
+            throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+          if (decision === 'confirmed' && current) return { message: mapAiMessage(current), stale: false };
+          const retained = current && readTranscriptTerminal(input.content, current.terminalReceipt, input.id);
+          const receipt = input.role === 'assistant' ? (input.terminalReceipt ?? retained) : undefined;
+          const terminalReceipt = receipt ? bindTranscriptTerminal(input.content, receipt, input.id) : undefined;
+
+          const data = {
+            role: input.role,
+            content: decision === 'receipt-only' && current ? current.content : input.content,
+            terminalReceipt: terminalReceipt ? (terminalReceipt as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+          };
+          const row = current
+            ? await tx.aiMessage.update({ where: { id: input.id }, data })
+            : await tx.aiMessage.create({
+                data: {
+                  ...data,
+                  id: input.id,
+                  conversationId: input.conversationId,
+                  createdAt: horodatageMessageMonotone(),
+                },
+              });
+
+          return { message: mapAiMessage(row), stale: false };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code)) {
+        if (input.terminalReceipt && input.role === 'assistant')
+          return this.reconcileTerminalSnapshot({ ...input, terminalReceipt: input.terminalReceipt });
+        throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+      }
+
+      throw error;
+    }
+  }
+
+  private async reconcileTerminalSnapshot(input: {
+    id: string;
+    conversationId: string;
+    content: string;
+    terminalReceipt: TranscriptTerminal;
+  }): Promise<{ message: AiMessageRecord; stale: boolean }> {
+    const bound = bindTranscriptTerminal(input.content, input.terminalReceipt, input.id);
+    // One bounded reconciliation, not a replay of the losing snapshot. Lock only this existing row.
+    return this.prisma.$transaction(
+      async (tx) => {
+        const locked = await tx.$queryRaw<
+          Array<{ id: string }>
+        >`SELECT id FROM "AiMessage" WHERE id = ${input.id} AND "conversationId" = ${input.conversationId} FOR UPDATE`;
+        if (!locked.length)
+          throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+        const current = await tx.aiMessage.findUniqueOrThrow({ where: { id: input.id } });
+        const decision = terminalSnapshotDecision(current, input);
+        if (decision === 'conflict')
+          throw Object.assign(new Error(appPublicEnglish('TRANSCRIPT_CONFLICT')), { statusCode: 409, code: 'TRANSCRIPT_CONFLICT' });
+        if (decision === 'confirmed' || decision === 'stale')
+          return { message: mapAiMessage(current), stale: decision === 'stale' };
+        const row = await tx.aiMessage.update({
+          where: { id: input.id },
+          data: {
+            ...(decision === 'write' ? { content: input.content } : {}),
+            terminalReceipt: bound as unknown as Prisma.InputJsonValue,
+          },
+        });
+        return { message: mapAiMessage(row), stale: false };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 2000, timeout: 5000 },
+    );
+  }
+
   async listAiMessages(conversationId: string) {
     /*
      * Cap the number of messages loaded so a long-lived conversation can't pull
@@ -5362,28 +5467,31 @@ export class PrismaApiStore implements ApiStore {
 
     await this.ensureCreditWallet(input.organizationId);
 
-    const held = await this.prisma.$executeRaw`
-      UPDATE "CreditWallet"
-         SET "heldCents" = "heldCents" + ${amount}, "updatedAt" = NOW()
-       WHERE "organizationId" = ${input.organizationId}
-         AND "balanceCents" - "heldCents" >= ${amount}
-    `;
+    // Commit the hold and its reclaimable reservation together.
+    return this.prisma.$transaction(async (tx) => {
+      const held = await tx.$executeRaw`
+        UPDATE "CreditWallet"
+           SET "heldCents" = "heldCents" + ${amount}, "updatedAt" = NOW()
+         WHERE "organizationId" = ${input.organizationId}
+           AND "balanceCents" - "heldCents" >= ${amount}
+      `;
 
-    if (held !== 1) {
-      return undefined;
-    }
+      if (held !== 1) {
+        return undefined;
+      }
 
-    const reservation = await this.prisma.creditReservation.create({
-      data: {
-        organizationId: input.organizationId,
-        projectId: input.projectId,
-        conversationId: input.conversationId,
-        amountCents: amount,
-        expiresAt: new Date(input.expiresAtMs),
-      },
+      const reservation = await tx.creditReservation.create({
+        data: {
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          conversationId: input.conversationId,
+          amountCents: amount,
+          expiresAt: new Date(input.expiresAtMs),
+        },
+      });
+
+      return { id: reservation.id, amountCents: reservation.amountCents };
     });
-
-    return { id: reservation.id, amountCents: reservation.amountCents };
   }
 
   /*
@@ -5392,32 +5500,35 @@ export class PrismaApiStore implements ApiStore {
    * call matches no row and is a no-op.
    */
   async releaseCreditReservation(input: { id: string; status?: 'RELEASED' | 'EXPIRED' }): Promise<boolean> {
-    const reservation = await this.prisma.creditReservation.findUnique({ where: { id: input.id } });
+    // A terminal status and the wallet release must survive or roll back together.
+    return this.prisma.$transaction(async (tx) => {
+      const reservation = await tx.creditReservation.findUnique({ where: { id: input.id } });
 
-    if (!reservation || reservation.status !== 'HELD') {
-      return false;
-    }
+      if (!reservation || reservation.status !== 'HELD') {
+        return false;
+      }
 
-    const claimed = await this.prisma.creditReservation.updateMany({
-      where: { id: input.id, status: 'HELD' },
-      data: { status: input.status ?? 'RELEASED' },
+      const claimed = await tx.creditReservation.updateMany({
+        where: { id: input.id, status: 'HELD' },
+        data: { status: input.status ?? 'RELEASED' },
+      });
+
+      if (claimed.count !== 1) {
+        return false;
+      }
+
+      /*
+       * Clamp at 0: heldCents must never go negative, whatever bookkeeping drift
+       * an earlier crash left behind.
+       */
+      await tx.$executeRaw`
+        UPDATE "CreditWallet"
+           SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
+         WHERE "organizationId" = ${reservation.organizationId}
+      `;
+
+      return true;
     });
-
-    if (claimed.count !== 1) {
-      return false;
-    }
-
-    /*
-     * Clamp at 0: heldCents must never go negative, whatever bookkeeping drift
-     * an earlier crash left behind.
-     */
-    await this.prisma.$executeRaw`
-      UPDATE "CreditWallet"
-         SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
-       WHERE "organizationId" = ${reservation.organizationId}
-    `;
-
-    return true;
   }
 
   /*
@@ -5426,28 +5537,31 @@ export class PrismaApiStore implements ApiStore {
    * debit path, not two.
    */
   async settleCreditReservation(input: { id: string; actualCents: number }): Promise<boolean> {
-    const reservation = await this.prisma.creditReservation.findUnique({ where: { id: input.id } });
+    // A terminal status and the wallet release must survive or roll back together.
+    return this.prisma.$transaction(async (tx) => {
+      const reservation = await tx.creditReservation.findUnique({ where: { id: input.id } });
 
-    if (!reservation || reservation.status !== 'HELD') {
-      return false;
-    }
+      if (!reservation || reservation.status !== 'HELD') {
+        return false;
+      }
 
-    const claimed = await this.prisma.creditReservation.updateMany({
-      where: { id: input.id, status: 'HELD' },
-      data: { status: 'SETTLED', settledCents: Math.max(0, Math.ceil(input.actualCents)) },
+      const claimed = await tx.creditReservation.updateMany({
+        where: { id: input.id, status: 'HELD' },
+        data: { status: 'SETTLED', settledCents: Math.max(0, Math.ceil(input.actualCents)) },
+      });
+
+      if (claimed.count !== 1) {
+        return false;
+      }
+
+      await tx.$executeRaw`
+        UPDATE "CreditWallet"
+           SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
+         WHERE "organizationId" = ${reservation.organizationId}
+      `;
+
+      return true;
     });
-
-    if (claimed.count !== 1) {
-      return false;
-    }
-
-    await this.prisma.$executeRaw`
-      UPDATE "CreditWallet"
-         SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
-       WHERE "organizationId" = ${reservation.organizationId}
-    `;
-
-    return true;
   }
 
   /*
@@ -7796,6 +7910,7 @@ function mapAiMessage(message: any): AiMessageRecord {
     conversationId: message.conversationId,
     role: message.role,
     content: message.content,
+    ...(message.terminalReceipt ? { terminalReceipt: message.terminalReceipt } : {}),
     createdAt: toIso(message.createdAt)!,
   };
 }

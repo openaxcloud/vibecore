@@ -144,3 +144,42 @@ describe('buildSelfRepairPrompt', () => {
     expect(prompt).not.toContain('column');
   });
 });
+
+describe('stylesheet grammar before any formatting', () => {
+  it.each(['css', 'scss'])('rejects an unclosed %s block even with formatting disabled', async (extension) => {
+    expect(
+      await validateAndFormatHunk(`src/styles.${extension}`, '.panel { color: red;', { format: false }),
+    ).toMatchObject({
+      kind: 'error',
+      language: extension,
+      line: 1,
+    });
+  });
+  it.each(['css', 'scss'])('accepts complete %s source', async (extension) => {
+    expect(
+      await validateAndFormatHunk(`src/styles.${extension}`, '.panel { color: red; }', { format: false }),
+    ).toMatchObject({ kind: 'ok' });
+  });
+});
+
+describe('known JSONC configuration validation', () => {
+  it.each(['tsconfig.json', 'tsconfig.app.json', 'jsconfig.json', '.vscode/settings.json'])(
+    'accepts comments but rejects truncation for %s',
+    async (filePath) => {
+      expect((await validateAndFormatHunk(filePath, '{ /* config */ "strict": true, }', { format: false })).kind).toBe(
+        'ok',
+      );
+      expect((await validateAndFormatHunk(filePath, '{ /* config */ "strict":', { format: false })).kind).toBe('error');
+    },
+  );
+  it('keeps package.json strict', async () => {
+    expect(
+      (await validateAndFormatHunk('package.json', '{ /* invalid */ "name": "fixture" }', { format: false })).kind,
+    ).toBe('error');
+  });
+});
+
+it('preserves known JSONC configuration bytes after validation', async () => {
+  const source = '{ /* original comment */ "compilerOptions": { "noEmit": true, }, }';
+  expect(await validateAndFormatHunk('tsconfig.json', source)).toMatchObject({ kind: 'ok', formatted: source });
+});

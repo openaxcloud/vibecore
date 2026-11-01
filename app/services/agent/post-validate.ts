@@ -1,4 +1,5 @@
 import { parse, type ParserPlugin } from '@babel/parser';
+import { validateStyleSyntax } from '~/lib/runtime/style-validate';
 import { isJsoncFile, parseJsonc } from '~/utils/jsonc';
 
 export { parseJsonc } from '~/utils/jsonc';
@@ -418,6 +419,15 @@ export async function validateGeneratedFile(file: GeneratedFile, allFiles: Map<s
     }
 
     return;
+  }
+
+  const styleError = await validateStyleSyntax(normalizedPath, file.content);
+
+  if (styleError) {
+    throw new GeneratedFileSyntaxError(normalizedPath, {
+      message: styleError.message,
+      loc: styleError.line !== undefined ? { line: styleError.line, column: styleError.column ?? 0 } : undefined,
+    });
   }
 
   await validateImports(file, allFiles);

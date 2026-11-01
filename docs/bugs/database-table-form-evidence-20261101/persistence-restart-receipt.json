@@ -1,0 +1,11 @@
+{
+  "time": "2026-11-01T09:17:31.763Z",
+  "realNativePostgresRestart": true,
+  "productSqlGenerator": true,
+  "httpOrBrowserInThisExtraCase": false,
+  "readOnlyVerification": true,
+  "existingSyntheticRows": 1,
+  "identityAndRequiredColumnsPreserved": true,
+  "metadataPersistenceTested": false,
+  "production": false
+}

@@ -1,3 +1,4 @@
+import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -105,7 +106,6 @@ import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSec
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import { resolveProviderKeyPresence } from './provider-key-presence.js';
-import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import { refusalDetail } from './deploy-refus.js';
 import {
   redactSecrets,
@@ -405,6 +405,7 @@ import {
 import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
 import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import { statutConnexion } from './database-connection-status.js';
+import { databaseRowSchema, insertPostgresRow } from './database-row-insert.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -1956,11 +1957,19 @@ const aiMessageSchema = z.object({
   model: z.string().optional(),
   stream: z.boolean().default(false),
 });
-const aiTranscriptMessageSchema = z.object({
-  clientId: z.string().min(1).max(200),
-  role: z.enum(['system', 'user', 'assistant', 'tool']),
-  content: z.string().max(200_000),
-});
+const aiTranscriptMessageSchema = z
+  .object({
+    clientId: z.string().min(1).max(200),
+    role: z.enum(['system', 'user', 'assistant', 'tool']),
+    content: z.string().max(200_000),
+    terminalReceipt: transcriptTerminalSchema.optional(),
+  })
+  .refine(
+    (message) =>
+      !message.terminalReceipt ||
+      (message.role === 'assistant' &&
+        (!message.terminalReceipt.messageId || message.terminalReceipt.messageId === message.clientId)),
+  );
 const aiTranscriptSchema = z.object({
   messages: z.array(aiTranscriptMessageSchema).min(1).max(200),
 });
@@ -3581,7 +3590,7 @@ async function inspectPostgresSchema(connectionString: string) {
        * peuvent plus diverger.
        */
       client.query(
-        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable, exists (select 1 from information_schema.table_constraints pk join information_schema.key_column_usage k on k.constraint_catalog = pk.constraint_catalog and k.constraint_schema = pk.constraint_schema and k.constraint_name = pk.constraint_name and k.table_schema = pk.table_schema and k.table_name = pk.table_name where pk.constraint_type = 'PRIMARY KEY' and k.table_schema = c.table_schema and k.table_name = c.table_name and k.column_name = c.column_name) as is_primary_key from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
+        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable, c.is_identity, c.is_generated, (c.column_default IS NOT NULL) as has_default, exists (select 1 from information_schema.table_constraints pk join information_schema.key_column_usage k on k.constraint_catalog = pk.constraint_catalog and k.constraint_schema = pk.constraint_schema and k.constraint_name = pk.constraint_name and k.table_schema = pk.table_schema and k.table_name = pk.table_name where pk.constraint_type = 'PRIMARY KEY' and k.table_schema = c.table_schema and k.table_name = c.table_name and k.column_name = c.column_name) as is_primary_key from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
       ),
       client
         .query(
@@ -25946,6 +25955,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { schema };
   });
+  app.post('/projects/:projectId/databases/rows', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = databaseRowSchema.parse(request.body ?? {});
+    const connection = await requireDatabaseConnection(store, project.id, body.key);
+
+    if (connection.kind !== 'postgres') {
+      throw Object.assign(new Error(appPublicEnglish('DATABASE_ROW_POSTGRES_REQUIRED')), {
+        statusCode: 400,
+        code: 'DATABASE_ROW_POSTGRES_REQUIRED',
+      });
+    }
+
+    const client = new PgClient({ connectionString: connection.value, connectionTimeoutMillis: 5000 });
+
+    let result;
+
+    try {
+      await client.connect();
+      result = await insertPostgresRow(client, body);
+    } finally {
+      await client.end();
+    }
+
+    const metadata = { key: connection.key, kind: connection.kind, rowCount: result.rowCount };
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'database.row.insert',
+      metadata,
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'database.row.insert',
+      resourceType: 'projectDatabase',
+      resourceId: project.id,
+      metadata,
+    });
+
+    return { result };
+  });
   app.post('/projects/:projectId/databases/query', async (request) => {
     const project = await requireProject(
       request,
@@ -29486,6 +29541,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       messages: messages.map((message) => ({
         ...message,
+        terminalReceipt: readTranscriptTerminal(message.content, message.terminalReceipt, message.id),
         toolCalls: toolCallsByMessageId.get(message.id) ?? [],
       })),
     };
@@ -29512,58 +29568,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(aiTranscriptSchema, request.body ?? {});
     const existants = await store.listAiMessages(conversationId);
     const existingIds = new Set(existants.map((existant) => existant.id));
-    const contenuExistant = new Map(existants.map((existant) => [existant.id, existant.content]));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
+
+    const syncResults: Array<{ id: string; stale: boolean }> = [];
+
     let instantanesPerimes = 0;
     let caracteresProteges = 0;
 
     for (const message of body.messages) {
       const id = aiTranscriptMessageId(conversationId, message.clientId, existingIds);
-      const decision = decisionEcritureMessage(contenuExistant.get(id), message.content);
 
-      /*
-       * UN INSTANTANÉ PÉRIMÉ NE REMPLACE PAS CE QUI EST DÉJÀ ÉCRIT.
-       *
-       * La transcription est persistée PENDANT le flux, en `upsert` sur un
-       * identifiant stable. Quand la synchronisation s'arrête avant la fin —
-       * mesuré le 2026-09-08 sur `cmtt810ag…` : dernier PUT 84 s avant la fin du
-       * flux, 37 611 caractères persistés sur 83 703 produits — le message reste
-       * tronqué.
-       *
-       * À la réouverture, le client recharge cette version courte et la RÉÉCRIT
-       * (mesuré à 22:44:49 sur le même projet). La perte devient alors
-       * définitive : l'utilisateur qui rouvre son projet pour comprendre ce qui
-       * s'est passé détruit ce qu'il en restait.
-       *
-       * On refuse donc l'écriture, et on la COMPTE — sans ce journal, la
-       * fréquence réelle du défaut reste introuvable. Ceci ne corrige PAS la
-       * perte : ça l'empêche de s'aggraver.
-       */
-      if (!decision.ecrire) {
+      const result = await store.syncAiTranscriptMessage({
+        id,
+        conversationId,
+        role: message.role,
+        content: message.content,
+        terminalReceipt: message.terminalReceipt,
+      });
+
+      if (result.stale) {
         instantanesPerimes += 1;
-        caracteresProteges += decision.perdus ?? 0;
-        request.log.warn(
-          { conversationId, messageId: id, perdus: decision.perdus },
-          'transcript sync refused: a stale snapshot would have shortened a persisted message',
-        );
-
-        const conserve = existants.find((existant) => existant.id === id);
-
-        if (conserve) {
-          messages.push(conserve);
-        }
-
-        continue;
+        caracteresProteges += Math.max(0, result.message.content.length - message.content.length);
+        request.log.warn({ conversationId, messageId: id }, 'transcript sync refused: stale snapshot');
       }
 
-      messages.push(
-        await store.createAiMessage({
-          id,
-          conversationId,
-          role: message.role,
-          content: message.content,
-        }),
-      );
+      messages.push(result.message);
+      syncResults.push({ id, stale: result.stale });
     }
 
     await audit(request, store, {
@@ -29579,7 +29609,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     });
 
-    return { conversation, messages };
+    return {
+      conversation,
+      syncResults,
+      messages: messages.map((message) => ({
+        ...message,
+        terminalReceipt: readTranscriptTerminal(message.content, message.terminalReceipt, message.id),
+      })),
+    };
   });
 
   /*
@@ -30518,8 +30555,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(201).send({ toolMessage, toolCall, output: result.output, snapshotId: result.snapshotId });
   });
   app.get('/ai/usage', async (request) => {
-    const organization = await requireAnyOrgPermission(request, store, 'usage:read');
-
     /*
      * Bound this to a window (default: last 30 days, overridable via from/to) so
      * it can't load the org's entire — fastest-growing — AI cost ledger into
@@ -30530,13 +30565,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * `new Date('garbage')` — matching the sibling /orgs/:orgId/ai/cost-summary.
      */
     const query = parse(
-      z.object({ from: z.string().datetime().optional(), to: z.string().datetime().optional() }),
+      z.object({
+        organizationId: z.string().min(1).optional(),
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
+      }),
       request.query ?? {},
     );
 
+    const organizationId = query.organizationId ?? (await requireAnyOrgPermission(request, store, 'usage:read')).id;
+
+    if (query.organizationId) {
+      await requireOrg(request, store, organizationId, 'usage:read');
+    }
+
     const from = query.from ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    return { usage: await store.listAiCosts(organization.id, { from, to: query.to }) };
+    return { usage: await store.listAiCosts(organizationId, { from, to: query.to }) };
   });
 
   /*
