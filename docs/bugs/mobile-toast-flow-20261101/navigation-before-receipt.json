@@ -1,0 +1,50 @@
+[
+  {
+    "engine": "chromium",
+    "width": 390,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate"
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": false,
+      "open": true
+    },
+    "error": "Error: expect(locator).toBeVisible() failed\n\nLocator:  locator('.bolt-agent-applied-toast')\nExpected: visible\nReceived: hidden\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for locator('.bolt-agent-applied-toast')\n    8 × locator resolved to <div class=\"bolt-agent-applied-toast\">…</div>\n      - unexpected value \"hidden\"\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "direction": "global-to-agent",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": false,
+      "visible": true,
+      "open": true
+    },
+    "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "direction": "agent-to-global",
+    "afterSwitch": {
+      "count": 1,
+      "inDock": true,
+      "visible": false,
+      "open": true
+    },
+    "error": "Error: expect(locator).toBeVisible() failed\n\nLocator:  locator('.bolt-agent-applied-toast')\nExpected: visible\nReceived: hidden\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for locator('.bolt-agent-applied-toast')\n    8 × locator resolved to <div class=\"bolt-agent-applied-toast\">…</div>\n      - unexpected value \"hidden\"\n"
+  }
+]

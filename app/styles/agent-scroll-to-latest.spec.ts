@@ -162,7 +162,10 @@ describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
      * Le comportement d'apparition était déjà juste ; ce cas le fige pour qu'une
      * refonte de l'apparence ne l'emporte pas au passage.
      */
-    const fn = BASE_CHAT.slice(BASE_CHAT.indexOf('function ScrollToBottom()'));
+    const start = BASE_CHAT.indexOf('function ScrollToBottom(');
+    expect(start).toBeGreaterThanOrEqual(0);
+
+    const fn = BASE_CHAT.slice(start);
 
     expect(fn.slice(0, 1600)).toMatch(/if \(isAtBottom\) \{\s*return null;/);
   });

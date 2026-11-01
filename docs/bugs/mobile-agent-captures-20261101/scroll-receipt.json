@@ -1,0 +1,82 @@
+[
+  {
+    "engine": "chromium",
+    "width": 393,
+    "running": {
+      "x": 21.5,
+      "y": 375.75,
+      "width": 350,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 355.875,
+      "width": 350,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "pill": {
+      "x": 174.5,
+      "y": 610,
+      "width": 44,
+      "height": 44
+    },
+    "scrollbox": {
+      "x": 0,
+      "y": 48,
+      "width": 393,
+      "height": 561
+    },
+    "jumpPassed": true,
+    "doc": {
+      "width": 393,
+      "scroll": 393
+    },
+    "keyboardSurrogate": true,
+    "reload": true
+  },
+  {
+    "engine": "webkit",
+    "width": 393,
+    "running": {
+      "x": 21.5,
+      "y": 318.75,
+      "width": 350,
+      "height": 165.609375
+    },
+    "terminal": {
+      "x": 21.5,
+      "y": 355.875,
+      "width": 350,
+      "height": 185.484375
+    },
+    "metadata": {
+      "client": 40,
+      "scroll": 40,
+      "text": "Actions émises, sans rapport2 fichiers émis ; application non confirmée"
+    },
+    "pill": {
+      "x": 174.5,
+      "y": 610,
+      "width": 44,
+      "height": 44
+    },
+    "scrollbox": {
+      "x": 0,
+      "y": 48,
+      "width": 393,
+      "height": 561
+    },
+    "jumpPassed": true,
+    "doc": {
+      "width": 393,
+      "scroll": 393
+    },
+    "keyboardSurrogate": true,
+    "reload": true
+  }
+]

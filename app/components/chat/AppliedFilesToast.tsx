@@ -1,12 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
+import { AGENT_APPLIED_CONTAINER_ID } from './applied-files-notice-id';
 import {
   formatAppliedFilesToastCopy,
   formatAppliedFilesToastPlural,
   getAppliedFilesToastCopy,
 } from '~/lib/i18n/catalogs/applied-files-toast';
 import { generationEstHonnete, type ConstatDeGeneration } from '~/lib/runtime/generation-incomplete';
+
+export { AGENT_APPLIED_CONTAINER_ID } from './applied-files-notice-id';
 
 export const AGENT_APPLIED_TOAST_ID = 'agent-auto-applied-files';
 
@@ -46,7 +49,7 @@ export function AppliedFilesToast({
     <div className="bolt-agent-applied-toast">
       <div className="bolt-agent-applied-toast-head" role="status" aria-live="polite">
         <strong>{appliedTitle}</strong>
-        {constat && !generationEstHonnete(constat) ? (
+        {constat && !generationEstHonnete(constat) && (
           <span className="bolt-agent-applied-toast-incomplete">
             {copy['appliedFilesToast.incomplete']}
             {constat.entreesManquantes.length > 0
@@ -55,12 +58,11 @@ export function AppliedFilesToast({
                 })}`
               : ''}
           </span>
-        ) : (
-          <span>{copy['appliedFilesToast.description']}</span>
         )}
       </div>
       <details>
         <summary>{copy['appliedFilesToast.details']}</summary>
+        {(!constat || generationEstHonnete(constat)) && <p>{copy['appliedFilesToast.description']}</p>}
         <ul>
           {visibleFiles.map((file) => (
             <li key={file} title={file}>
@@ -111,19 +113,24 @@ export function showCoalescedAppliedToast(
    */
   const autoClose = honnete ? 4000 : (false as const);
 
-  if (toast.isActive(AGENT_APPLIED_TOAST_ID)) {
+  const active = toast.isActive(AGENT_APPLIED_TOAST_ID);
+  const containerId = AGENT_APPLIED_CONTAINER_ID;
+
+  if (active) {
     toast.update(AGENT_APPLIED_TOAST_ID, {
       render: content,
       type,
       autoClose,
-      closeButton: true,
+      containerId,
+      closeButton: false,
     });
   } else {
     toast(content, {
       toastId: AGENT_APPLIED_TOAST_ID,
       type,
       autoClose,
-      closeButton: true,
+      containerId,
+      closeButton: false,
     });
   }
 }

@@ -13,6 +13,7 @@ import { memo, Fragment, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
+import { AgentLaneList } from './AgentLaneList';
 import { AgentLaneSummary, AgentVerificationClaims, getAgentOutputLabel } from './AgentLaneSummary';
 import { Markdown } from './Markdown';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
@@ -1005,7 +1006,7 @@ export const AssistantMessage = memo(
                   ))}
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+              <AgentLaneList className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
                 {lanePanelRoles.map((role) => {
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
                   const stream = agentLaneStreams?.find((lane) => lane.roleId === role.id);
@@ -1050,7 +1051,10 @@ export const AssistantMessage = memo(
                           {role.title}
                         </span>
                       </div>
-                      <div className="mt-1 h-8 overflow-hidden text-[11px] text-bolt-elements-textSecondary">
+                      <div
+                        className="bolt-agent-lane-status mt-1 text-bolt-elements-textSecondary"
+                        data-streaming={state === 'running'}
+                      >
                         {outputLabel
                           ? state !== 'complete' && !interrupted
                             ? `${localizeAssistantEnum(copy, 'status', state)} · ${outputLabel}`
@@ -1062,6 +1066,7 @@ export const AssistantMessage = memo(
                               : localizeAssistantEnum(copy, 'status', state)}
                       </div>
                       <AgentLaneSummary
+                        streaming={state === 'running'}
                         copy={copy}
                         result={output}
                         value={
@@ -1074,7 +1079,7 @@ export const AssistantMessage = memo(
                     </div>
                   );
                 })}
-              </div>
+              </AgentLaneList>
               <p className="mt-2 text-[11px] text-bolt-elements-textSecondary">
                 {copy['assistantMessage.lanes.notValidated']}
               </p>

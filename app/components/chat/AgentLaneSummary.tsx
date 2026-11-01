@@ -5,10 +5,12 @@ export function AgentLaneSummary({
   value,
   copy,
   result,
+  streaming = false,
 }: {
   value: string;
   copy: AssistantMessageCopy;
   result?: unknown;
+  streaming?: boolean;
 }) {
   const outputLabel = getAgentOutputLabel(result, copy);
 
@@ -40,18 +42,19 @@ export function AgentLaneSummary({
     summary = copy['assistantMessage.lanes.emptyResponse'];
   }
 
+  if (summary.trim() === 'The agent emitted actions without a valid report. Execution has not been observed.') {
+    summary = copy['assistantMessage.lanes.actionsWithoutReport'];
+  }
+
   return (
-    <>
-      <div
-        data-testid="agent-lane-output"
-        className="h-8 overflow-hidden text-[11px] leading-4 text-bolt-elements-textSecondary"
-      >
-        {outputLabel && <div className="truncate">{outputLabel}</div>}
-        {emissionLabel && <div className="truncate">{emissionLabel}</div>}
+    <div className="bolt-agent-lane-summary" data-streaming={streaming}>
+      <div data-testid="agent-lane-output" className="bolt-agent-lane-output text-bolt-elements-textSecondary">
+        {outputLabel && <div className="break-words">{outputLabel}</div>}
+        {emissionLabel && <div className="break-words">{emissionLabel}</div>}
       </div>
       <div
         data-testid="agent-lane-apercu"
-        className="mt-1 h-12 overflow-hidden line-clamp-3 text-[11px] leading-4 text-bolt-elements-textSecondary"
+        className="bolt-agent-lane-preview mt-1 overflow-hidden line-clamp-3 text-bolt-elements-textSecondary"
       >
         {summary}
       </div>
@@ -74,7 +77,7 @@ export function AgentLaneSummary({
           {value}
         </pre>
       </details>
-    </>
+    </div>
   );
 }
 
