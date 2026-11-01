@@ -2846,5 +2846,9 @@
   "EXPLICIT_RUN_EXTENSION_UNAVAILABLE": {
     "en": "The current provider, plan or routing price does not permit this budget extension.",
     "fr": "Le fournisseur, le forfait ou le tarif actuel ne permet pas cette extension de budget."
+  },
+  "DATABASE_BACKUP_UNCONFIRMED": {
+    "en": "Database backup creation is unconfirmed.",
+    "fr": "La création de la sauvegarde de la base n’est pas confirmée."
   }
 }

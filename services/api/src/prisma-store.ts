@@ -5,6 +5,7 @@ import {
   type TranscriptTerminal,
 } from './transcript-terminal.js';
 import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
+import { PrismaDatabaseBackupProvenanceRepository } from './database-backup-provenance.js';
 import { matchesExplicitExtensionPolicy } from './explicit-budget-extension-policy.js';
 import { extensionPermit, stableExtensionApproval, explicitBudgetSnapshotDigest } from './explicit-budget-extension.js';
 import { promises as dnsPromises } from 'node:dns';
@@ -283,6 +284,8 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
 }
 
 export class PrismaApiStore implements ApiStore {
+  readonly backupProvenance: PrismaDatabaseBackupProvenanceRepository;
+
   constructor(
     readonly prisma: DatabaseClient = createDatabaseClient(),
 
@@ -292,7 +295,9 @@ export class PrismaApiStore implements ApiStore {
      * Node resolver in production.
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
-  ) {}
+  ) {
+    this.backupProvenance = new PrismaDatabaseBackupProvenanceRepository(prisma);
+  }
 
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.

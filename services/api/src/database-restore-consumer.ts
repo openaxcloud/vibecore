@@ -35,6 +35,10 @@ export class PostgresRestoreConsumer {
   private binding: ConsumerBinding;
   private pending: Promise<unknown> = Promise.resolve();
   private readonly queries = new Set<Promise<unknown>>();
+  private readonly usedAttemptTokens = new Set<string>();
+  private handoff:
+    | { previous: ConsumerAttempt; next: ConsumerAttempt; completed: boolean; promise: Promise<void> }
+    | undefined;
 
   private constructor(binding: ConsumerBinding) {
     this.binding = { ...binding };
@@ -110,6 +114,7 @@ export class PostgresRestoreConsumer {
       return Promise.reject(new RestoreConsumerError('RESTORE_CONSUMER_ALREADY_RELEASED'));
     }
     this.attempt = { ...attempt };
+    this.usedAttemptTokens.add(attempt.attemptToken);
     this.accepting = false;
     this.admissionGeneration += 1;
     return this.serialize(async () => {
@@ -121,6 +126,71 @@ export class PostgresRestoreConsumer {
         this.pool = undefined;
       }
     });
+  }
+
+  /**
+   * Fence ONE cooperating consumer, not other processes or a distributed worker.
+   * The caller must authenticate control messages and persist global fence debt.
+   * No timeout/lease authorizes adoption: all admitted work and the pool must end.
+   * After adoption admission remains closed; verify/reconnectVerified then release.
+   */
+  fenceAndAdopt(previous: ConsumerAttempt, next: ConsumerAttempt): Promise<void> {
+    previous = { ...previous };
+    next = { ...next };
+    if (
+      this.closed ||
+      !previous.operationId ||
+      previous.operationId !== next.operationId ||
+      !previous.attemptToken ||
+      !next.attemptToken ||
+      previous.attemptToken === next.attemptToken
+    ) {
+      return Promise.reject(new RestoreConsumerError('RESTORE_CONSUMER_ATTEMPT_MISMATCH'));
+    }
+    const existing = this.handoff;
+    if (
+      existing &&
+      existing.previous.operationId === previous.operationId &&
+      existing.previous.attemptToken === previous.attemptToken &&
+      existing.next.attemptToken === next.attemptToken &&
+      this.attempt?.operationId === previous.operationId &&
+      [previous.attemptToken, next.attemptToken].includes(this.attempt.attemptToken)
+    ) {
+      // A lost acknowledgement is replayable only while the adopted owner remains current.
+      return existing.promise;
+    }
+    if (
+      (existing && !existing.completed) ||
+      this.usedAttemptTokens.has(next.attemptToken) ||
+      this.attempt?.operationId !== previous.operationId ||
+      this.attempt.attemptToken !== previous.attemptToken
+    ) {
+      return Promise.reject(new RestoreConsumerError('RESTORE_CONSUMER_ATTEMPT_MISMATCH'));
+    }
+    this.accepting = false;
+    const generation = ++this.admissionGeneration;
+    const handoff = { previous, next, completed: false, promise: undefined as unknown as Promise<void> };
+    this.handoff = handoff;
+    handoff.promise = this.serialize(async () => {
+      this.assertAttempt(previous);
+      await Promise.allSettled([...this.queries]);
+      if (this.pool) {
+        await this.pool.end();
+        this.pool = undefined;
+      }
+      this.assertAttempt(previous);
+      if (generation !== this.admissionGeneration) {
+        throw new RestoreConsumerError('RESTORE_CONSUMER_ADMISSION_CHANGED');
+      }
+      this.attempt = next;
+      this.usedAttemptTokens.add(next.attemptToken);
+      handoff.completed = true;
+    });
+    void handoff.promise.catch(() => {
+      // An unconfirmed drain never changes owner; a deliberate retry may drain again.
+      if (this.handoff === handoff) this.handoff = undefined;
+    });
+    return handoff.promise;
   }
 
   verify(input: VerificationInput): Promise<Verification> {
@@ -146,6 +216,8 @@ export class PostgresRestoreConsumer {
   }
 
   reconnectVerified(input: VerificationInput): Promise<Verification> {
+    // A handoff may follow verification before release: revalidate that exact
+    // verified target/version, without treating it as another version increment.
     const previous = this.verified;
     if (
       !previous ||
@@ -160,14 +232,18 @@ export class PostgresRestoreConsumer {
   }
 
   private performVerification(input: VerificationInput, reconnecting: boolean): Promise<Verification> {
+    const generation = this.admissionGeneration;
     return this.serialize(async () => {
       this.assertAttempt(input);
+      if (generation !== this.admissionGeneration) {
+        throw new RestoreConsumerError('RESTORE_CONSUMER_ADMISSION_CHANGED');
+      }
       if (this.pool || this.accepting || (!reconnecting && this.verified))
         throw new RestoreConsumerError('RESTORE_CONSUMER_NOT_DRAINED');
       if (
         !input.targetId ||
         !Number.isSafeInteger(input.bindingVersion) ||
-        input.bindingVersion !== this.binding.bindingVersion + (reconnecting ? 0 : 1) ||
+        input.bindingVersion !== (reconnecting ? this.verified?.bindingVersion : this.binding.bindingVersion + 1) ||
         !/^[a-f0-9]{64}$/.test(input.expectedReadbackSha256)
       ) {
         throw new RestoreConsumerError('RESTORE_CONSUMER_BINDING_MISMATCH');
@@ -200,6 +276,10 @@ export class PostgresRestoreConsumer {
           };
         } finally {
           client.release();
+        }
+        this.assertAttempt(input);
+        if (generation !== this.admissionGeneration) {
+          throw new RestoreConsumerError('RESTORE_CONSUMER_ADMISSION_CHANGED');
         }
         this.pool = next;
         this.verified = result;

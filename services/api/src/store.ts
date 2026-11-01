@@ -11,6 +11,7 @@ import type {
   QuotaKey,
 } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { DatabaseBackupProvenanceRepository } from './database-backup-provenance.js';
 import { appPublicEnglish } from './app-public-copy.js';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
@@ -1371,6 +1372,9 @@ export function validateCreditPackReceipt(value: unknown, input: StripeCreditPac
 }
 
 export interface ApiStore {
+  /** Durable backup ownership metadata; absence must not authorize a provider backup. */
+  readonly backupProvenance?: DatabaseBackupProvenanceRepository;
+
   /**
    * Lightweight liveness probe that issues a trivial query against the backing
    * database. Resolves when the database is reachable, rejects otherwise.

@@ -6,6 +6,7 @@ import { CreateTableForm } from './CreateTableForm';
 import { InsertRowForm, hasInsertMetadata } from './InsertRowForm';
 import { QueryHistoryControl } from './QueryHistoryControl';
 import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
+import { formatQueryCell, normalizeRows, type QueryResult } from './query-result';
 import { columnLookupKey, quoteIdentifier, rowUpdateSql, tableSql } from './sql-grid';
 import { colonnesDuSchema, tablesDuSchema, type ColonneDuSchema, type TableDuSchema } from './tables-du-schema';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -29,14 +30,6 @@ type Conn = { key: string; label: string; kind: string; declaredKind?: string };
 
 /* La taille de page de Replit, reprise telle quelle : « 50 / 0 » sous la grille. */
 const LIGNES_PAR_PAGE = 50;
-
-type QueryResult = {
-  columns?: string[];
-  rows?: Array<Record<string, unknown> | unknown[]>;
-  rowCount?: number;
-  command?: string;
-  error?: string;
-};
 
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
@@ -150,24 +143,6 @@ function downloadCsv(columns: string[], rows: unknown[][]): void {
   anchor.download = 'query-result.csv';
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function normalizeRows(result: QueryResult): { columns: string[]; rows: unknown[][] } {
-  const rows = result.rows ?? [];
-
-  if (!rows.length) {
-    return { columns: result.columns ?? [], rows: [] };
-  }
-
-  const first = rows[0];
-
-  if (Array.isArray(first)) {
-    return { columns: result.columns ?? first.map((_, i) => `col_${i + 1}`), rows: rows as unknown[][] };
-  }
-
-  const columns = result.columns ?? Object.keys(first as Record<string, unknown>);
-
-  return { columns, rows: (rows as Array<Record<string, unknown>>).map((r) => columns.map((c) => r[c])) };
 }
 
 /*
@@ -487,12 +462,24 @@ function ConnectionStudio({
     }
   }, [queryFetcher.state, queryFetcher.data, projectId]);
 
-  const result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
-  const queryError = queryFetcher.data?.error ?? queryFetcher.data?.result?.error;
+  let result: ReturnType<typeof normalizeRows> | null = null;
+  let invalidResult = false;
+
+  try {
+    result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
+  } catch {
+    invalidResult = true;
+  }
+
+  const queryError =
+    queryFetcher.data?.error ?? queryFetcher.data?.result?.error ?? (invalidResult ? 'invalid-result' : undefined);
+
   const command = queryFetcher.data?.result?.command;
 
   const changedRows =
-    command && ['INSERT', 'UPDATE', 'DELETE'].includes(command) ? queryFetcher.data?.result?.rowCount : undefined;
+    !queryError && command && ['INSERT', 'UPDATE', 'DELETE'].includes(command)
+      ? queryFetcher.data?.result?.rowCount
+      : undefined;
 
   const visibleQueryError = queryError ? copy['databaseStudio.safeQueryError'] : undefined;
 
@@ -811,7 +798,7 @@ function ConnectionStudio({
                               ) : cell === null || cell === undefined ? (
                                 '∅'
                               ) : (
-                                <CellValue value={String(cell)} />
+                                <CellValue value={formatQueryCell(cell)} />
                               )}
                             </td>
                           ))}

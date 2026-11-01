@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-607 entrées.
+610 entrées.
 
 ## Sans section
 
@@ -835,10 +835,22 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-AI-USAGE-COST-CENTS-20261101](docs/bugs/BUG-AI-USAGE-COST-CENTS-20261101.md) — 📤 Dispatché : ☑ 01/11 — observation parent : 294781 jetons entrants, 696641 sortants, estimation $0.0000. Aucun nouveau prom · 💻 Codé : ☐ Non fusionné. Correctif sur branche audit/launch-evidence-20261101 : lire costCents, convertir en USD, disti · ✅ Testé live : ☐ Pas de recette production après correction. Contrat API et défaut UI reproduits localement ; 11 tests de cal
 - [BUG-DATABASE-NO-SQL-TABLE-20261101](docs/bugs/BUG-DATABASE-NO-SQL-TABLE-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-DATABASE-NO-SQL-INSERT-20261101](docs/bugs/BUG-DATABASE-NO-SQL-INSERT-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-DATABASE-SPECIAL-COLUMN-READ-20261101](docs/bugs/BUG-DATABASE-SPECIAL-COLUMN-READ-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Agent et budget
 
 - [BUG-PROJECT-EXPLICIT-BUDGET-EXTENSION-20261101](docs/bugs/BUG-PROJECT-EXPLICIT-BUDGET-EXTENSION-20261101.md) — 📤 Dispatché : ☑ 01/11 — préparer une extension autorisée de 10,52 USD, de 20 à 30,52 USD, · 💻 Codé : ☐ — branche isolée en préparation ; aucune livraison ni mutation de l'enveloppe réelle. · ✅ Testé live : ☐ — aucun run fournisseur ni activation production exécuté par ce chantier.
+
+## Agent et routage
+
+- [BUG-PROVIDER-ROUTING-SCOPE-20261101](docs/bugs/BUG-PROVIDER-ROUTING-SCOPE-20261101.md) — 📤 Dispatché : ☑ 01/11 — deux défauts reproduits sans réseau avec fournisseurs synthétiques. · 💻 Codé : ☐ — correctif séparé en validation, pas encore intégré à main. · ✅ Testé live : ☐ — aucun appel fournisseur réel, aucune causalité établie avec la capture utilisateur.
+
+## Sans section
+
+- [BUG-BACKUP-MIGRATION-MANAGER-ORDER-20261101](docs/bugs/BUG-BACKUP-MIGRATION-MANAGER-ORDER-20261101.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Agent et budget
+
 - [BUG-ASTER-BUDGET-ADMIN-TRANSPORT-20261101](docs/bugs/BUG-ASTER-BUDGET-ADMIN-TRANSPORT-20261101.md) — La PR #879 expose une API administrative limitée à Aster, mais aucun écran, — 📤 Dispatché : ☑ 01/11 — vérifier un parcours utilisable sans console navigateur ni copie de session. · 💻 Codé : ☐ — raccord local séparé de la PR API #879 ; non livré. · ✅ Testé live : ☐ — aucune connexion, activation ou invocation fournisseur réelle.
 
 ## Résidus non tabulaires — reportés mot pour mot

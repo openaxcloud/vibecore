@@ -739,6 +739,54 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     return true;
   };
 
+  // Same existing authenticated database bridge, narrowed to immutable Backup creation.
+  app.post('/databases/backups', async (request, reply) => {
+    const { manifest } = z
+      .object({
+        manifest: z
+          .object({
+            apiVersion: z.string(),
+            kind: z.string(),
+            metadata: z
+              .object({
+                name: z.string().regex(/^bkp-v2-[a-f0-9]{40}$/),
+                namespace: z.string(),
+                labels: z.record(z.string()),
+                annotations: z.record(z.string()),
+              })
+              .strict(),
+            spec: z.object({ cluster: z.object({ name: z.string().min(1) }).strict() }).strict(),
+          })
+          .strict(),
+      })
+      .strict()
+      .parse(request.body ?? {});
+    if (!dbResourceGuard(manifest.kind, manifest.metadata.namespace, reply)) return;
+    if (manifest.kind !== 'Backup' || manifest.apiVersion !== 'postgresql.cnpg.io/v1') {
+      return reply.code(403).send({ code: 'DB_RESOURCE_FORBIDDEN' });
+    }
+    if (!manager.k8s.createResource) {
+      return reply.code(503).send({ code: 'DB_BACKUP_CREATE_UNAVAILABLE' });
+    }
+    try {
+      const resource = await manager.k8s.createResource(manifest);
+      if (
+        resource.kind !== manifest.kind ||
+        resource.apiVersion !== manifest.apiVersion ||
+        resource.metadata?.name !== manifest.metadata.name ||
+        resource.metadata.namespace !== manifest.metadata.namespace ||
+        !resource.metadata.uid
+      ) {
+        return reply.code(502).send({ code: 'DB_BACKUP_CREATE_UNCONFIRMED' });
+      }
+      return reply.code(201).send(resource);
+    } catch {
+      // Includes conflicts/timeouts: the API reconciles the exact persisted intent
+      // using GET. Never turn uncertain create into apply, replace or delete.
+      return reply.code(502).send({ code: 'DB_BACKUP_CREATE_UNCONFIRMED' });
+    }
+  });
+
   app.post('/databases/apply', async (request, reply) => {
     const { manifest } = z
       .object({

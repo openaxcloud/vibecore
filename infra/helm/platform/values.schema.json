@@ -5,6 +5,16 @@
   "type": "object",
   "required": ["platformEnv"],
   "properties": {
+    "migrations": {
+      "type": "object",
+      "properties": {
+        "imageDigest": {
+          "type": "string",
+          "pattern": "^(|sha256:[0-9a-f]{64})$",
+          "description": "Optional verified API image digest for the migration hook only. Empty follows the API deployment image. Cleared by the final upgrade."
+        }
+      }
+    },
     "global": {
       "type": "object",
       "properties": {

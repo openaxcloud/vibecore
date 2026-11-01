@@ -2492,7 +2492,20 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           }),
         });
 
-        return json({ ok: true, ...(queryResult as any) });
+        const envelope = queryResult as { result?: { columns?: unknown; rows?: unknown } };
+        const result = envelope.result;
+
+        /*
+         * Keep arbitrary column names and nested JSON keys out of single-fetch's
+         * object-property assignment decoder. DatabaseStudio parses this payload.
+         */
+        if (result && Array.isArray(result.rows)) {
+          const { rows, ...metadata } = result;
+
+          return json({ ok: true, ...envelope, result: { ...metadata, rowsJson: JSON.stringify(rows) } });
+        }
+
+        return json({ ok: true, ...envelope });
       } catch (error) {
         /* A rejected SQL command must leave the form and its draft mounted. */
         const failure = panelEnvelopeError('database', null, error, language);

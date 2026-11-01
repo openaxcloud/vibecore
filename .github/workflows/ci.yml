@@ -128,6 +128,12 @@ jobs:
       - name: Image provenance roundtrip (real Helm, Bash and jq)
         run: node --test scripts/release-gate/image-provenance-roundtrip.checks.mjs
 
+      - name: Migration and manager ordering (real Helm, mandatory)
+        run: |
+          node scripts/build-staged-manager.mjs --check
+          node node_modules/vitest/vitest.mjs run scripts/deploy-manager-before-api.spec.mjs --maxWorkers=2
+          node --test scripts/release-gate/staged-manager-render.checks.mjs
+
       - name: From-scratch installation contracts (rendering and isolated commands)
         run: node --test infra/scripts/test-installation-neuve.mjs
 
@@ -230,12 +236,18 @@ jobs:
           pnpm --filter @vibecore/preview-proxy test
           pnpm --filter @vibecore/screenshotter test
 
-      # These two suites deliberately skip without a dedicated database.
+      # These suites deliberately skip without a dedicated database.
       # Create one only in this job's PostgreSQL service, apply every migration,
       # require every test to execute, and remove only the database we created.
       - name: PostgreSQL restore and ownership regressions
         timeout-minutes: 15
         run: node --import tsx scripts/qa/database-restore-ci.ts
+
+      # Dedicated database_audit, full migrations, exactly twelve passing tests.
+      # A new API/Prisma child reads over loopback HTTP; no browser claim.
+      - name: PostgreSQL row-form persistence regressions
+        timeout-minutes: 15
+        run: node --import tsx scripts/qa/database-panel-persistence-ci.ts
 
       - name: Build web
         timeout-minutes: 20

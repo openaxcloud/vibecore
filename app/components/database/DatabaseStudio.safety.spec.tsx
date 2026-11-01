@@ -286,3 +286,20 @@ it.each(['error', 'unknown', 'deleted'])(
     expect((screen.getByLabelText('Value — Name') as HTMLInputElement).value).toBe('keep exact draft');
   },
 );
+
+it('renders lossless nested JSON as readable JSON, not object coercion', async () => {
+  const value = JSON.parse('{"__proto__":{"marker":"nested"},"constructor":"c","prototype":"p"}');
+  mount(true, async () => ({
+    ok: true,
+    result: { columns: ['payload'], rowsJson: JSON.stringify([[value]]), rowCount: 1 },
+  }));
+  fireEvent.click(await screen.findByTestId('studio-table'));
+  expect(await screen.findByText(JSON.stringify(value))).toBeTruthy();
+  expect(screen.queryByText('[object Object]')).toBeNull();
+});
+it('shows a safe error for malformed encoded rows instead of an empty-success grid', async () => {
+  mount(true, async () => ({ ok: true, result: { columns: ['payload'], rowsJson: '{invalid', rowCount: 1 } }));
+  fireEvent.click(await screen.findByTestId('studio-table'));
+  await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+  expect(screen.queryByText('{invalid')).toBeNull();
+});
