@@ -2822,5 +2822,9 @@
   "CREDIT_PACK_PURCHASE_CONFLICT": {
     "en": "This payment needs manual verification before credits can be confirmed. Contact support; do not purchase again.",
     "fr": "Ce paiement nécessite une vérification manuelle avant confirmation des crédits. Contactez l’assistance ; ne refaites pas l’achat."
+  },
+  "DATABASE_BACKUP_UNCONFIRMED": {
+    "en": "Database backup creation is unconfirmed.",
+    "fr": "La création de la sauvegarde de la base n’est pas confirmée."
   }
 }

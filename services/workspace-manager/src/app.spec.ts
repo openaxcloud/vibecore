@@ -57,6 +57,7 @@ class TestWorkspaceStore implements WorkspaceStore {
 }
 
 class TestK8sClient implements WorkspaceK8sClient {
+  createResource?: (object: K8sObject) => Promise<K8sObject>;
   readonly namespaces: string[] = [];
   readonly objects = new Map<string, K8sObject>();
 
@@ -286,6 +287,61 @@ describe('workspace-manager app', () => {
       metadata: { name: 'db-p1', namespace: 'project-databases' },
       spec: { instances: 1 },
     };
+
+    const backup = {
+      apiVersion: 'postgresql.cnpg.io/v1', kind: 'Backup',
+      metadata: { name: `bkp-v2-${'a'.repeat(40)}`, namespace: 'project-databases', labels: {}, annotations: {} },
+      spec: { cluster: { name: 'db-p1' } },
+    };
+
+    it('creates once, returns the server UID, and never applies over an existing backup', async () => {
+      const runtime = manager();
+      let creates = 0;
+      runtime.k8s.createResource = async (object: K8sObject) => {
+        creates += 1;
+        const key = `${object.metadata.namespace}:${object.kind}:${object.metadata.name}`;
+        if (runtime.k8s.objects.has(key)) throw new Error('AlreadyExists');
+        const created = { ...object, metadata: { ...object.metadata, uid: 'immutable-uid' } };
+        runtime.k8s.objects.set(key, created);
+        return created;
+      };
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      try {
+        const first = await app.inject({ method: 'POST', url: '/databases/backups', payload: { manifest: backup } });
+        expect(first.statusCode).toBe(201);
+        expect(first.json().metadata.uid).toBe('immutable-uid');
+        const duplicate = await app.inject({ method: 'POST', url: '/databases/backups', payload: { manifest: { ...backup, metadata: { ...backup.metadata, labels: { changed: 'must-not-overwrite' } } } } });
+        expect(duplicate.statusCode).toBe(502);
+        expect(runtime.k8s.objects.values().next().value?.metadata.labels).toEqual({});
+        expect(creates).toBe(2);
+      } finally { await app.close(); }
+    });
+
+    it('refuses when atomic create capability is absent, without apply fallback', async () => {
+      const runtime = manager();
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      try {
+        const response = await app.inject({ method: 'POST', url: '/databases/backups', payload: { manifest: backup } });
+        expect(response.statusCode).toBe(503);
+        expect(runtime.k8s.objects.size).toBe(0);
+      } finally { await app.close(); }
+    });
+
+    it('keeps authentication and the Backup-only namespace boundary for atomic creation', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = 'synthetic-internal-fixture';
+      const app = buildWorkspaceManagerApp(manager().manager);
+      try {
+        expect((await app.inject({ method: 'POST', url: '/databases/backups', payload: { manifest: backup } })).statusCode).toBe(401);
+        for (const manifest of [
+          { ...backup, kind: 'Cluster' },
+          { ...backup, apiVersion: 'other.example/v1' },
+          { ...backup, metadata: { ...backup.metadata, namespace: 'default' } },
+        ]) {
+          expect((await app.inject({ method: 'POST', url: '/databases/backups', headers: { authorization: 'Bearer synthetic-internal-fixture' }, payload: { manifest } })).statusCode).toBe(403);
+        }
+        expect((await app.inject({ method: 'POST', url: '/databases/backups', headers: { authorization: 'Bearer synthetic-internal-fixture' }, payload: { manifest: { ...backup, metadata: { ...backup.metadata, uid: 'client-forged' } } } })).statusCode).toBe(400);
+      } finally { await app.close(); }
+    });
 
     it('applies a CNPG resource in the project-databases namespace', async () => {
       const runtime = manager();

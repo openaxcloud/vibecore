@@ -1,3 +1,4 @@
+import { PrismaDatabaseBackupProvenanceRepository } from './database-backup-provenance.js';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
@@ -271,6 +272,8 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
 }
 
 export class PrismaApiStore implements ApiStore {
+  readonly backupProvenance: PrismaDatabaseBackupProvenanceRepository;
+
   constructor(
     readonly prisma: DatabaseClient = createDatabaseClient(),
 
@@ -280,7 +283,9 @@ export class PrismaApiStore implements ApiStore {
      * Node resolver in production.
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
-  ) {}
+  ) {
+    this.backupProvenance = new PrismaDatabaseBackupProvenanceRepository(prisma);
+  }
 
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.

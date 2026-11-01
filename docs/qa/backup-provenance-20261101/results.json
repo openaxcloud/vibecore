@@ -1,0 +1,77 @@
+{
+  "scope": "Local disposable PostgreSQL and controlled CNPG metadata; not cloud recovery",
+  "tests": [
+    {
+      "name": "six mandatory PostgreSQL suites",
+      "passed": 99,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "name": "adapter, provisioner and integrity",
+      "passed": 84,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "name": "CI runner contract",
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "name": "i18n regressions",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "name": "workspace-manager app",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "kubectl create-only command",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "migration execution and publish routes",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "final new PostgreSQL suites after style and exact-source guards",
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "rollback routes corrected provider-absent refusal",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "checks": {
+    "globalTypecheck": "passed",
+    "i18nCatalogAndSource": "passed",
+    "lint": "passed; 0 errors, 52 existing warnings",
+    "newFileLint": "passed with 2 empty test callback warnings; frontend-only no-restricted-imports rule disabled for service-relative imports"
+  },
+  "fullApiFirstRun": {
+    "passed": 2726,
+    "failed": 1,
+    "skipped": 218,
+    "failure": "Legacy dormant snapshot test expected 202 without any provider. Updated to require 503 and retained request ID; rerun recorded separately.",
+    "skipReason": "Environment-gated suites; mandatory PostgreSQL subset executed separately with zero skips."
+  },
+  "cleanup": "Owned disposable PostgreSQL container stopped and auto-removed after tests; no external database used"
+}

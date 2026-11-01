@@ -102,8 +102,10 @@ describe('P0-V3-11 — chemin nominal', () => {
 
     const row = [...store.rows.values()][0];
     expect(row.state).toBe('COMMITTED');
+
     // Le verrou est RELÂCHÉ : une migration suivante doit pouvoir démarrer.
     expect(row.activeLock).toBeNull();
+
     // La vérification du backup nomme sa méthode, elle n'est pas un booléen nu.
     expect(row.backupVerificationMethod).toBe('cnpg-backup-cr-phase-completed');
     expect(row.backupVerifiedAt).toBeTruthy();
@@ -111,6 +113,7 @@ describe('P0-V3-11 — chemin nominal', () => {
 
   it("attend l'aboutissement du backup au lieu de se fier à la soumission", async () => {
     const store = new FakeStore();
+
     // running → running → completed : la vérification doit patienter.
     const input = base(store, { provisioner: provisionerWith(['running', 'running', 'completed']) });
 
@@ -123,6 +126,7 @@ describe('P0-V3-11 — chemin nominal', () => {
 describe('P0-V3-11 — NÉGATIF : sans backup vérifié, refus', () => {
   it("REFUSE d'appliquer quand le backup n'aboutit jamais (timeout)", async () => {
     const store = new FakeStore();
+
     const input = base(store, {
       provisioner: provisionerWith(['running']),
       backupTimeoutMs: 0, // deadline déjà dépassée
@@ -132,6 +136,7 @@ describe('P0-V3-11 — NÉGATIF : sans backup vérifié, refus', () => {
     const result = await runPublishMigration(input as any);
 
     expect(result).toMatchObject({ ok: false, code: 'MIGRATION_BACKUP_UNVERIFIED', state: 'FAILED_SAFE' });
+
     // LE point : AUCUNE instruction n'a été exécutée.
     expect(input.applySql).not.toHaveBeenCalled();
     expect([...store.rows.values()][0].activeLock).toBeNull();
@@ -147,7 +152,7 @@ describe('P0-V3-11 — NÉGATIF : sans backup vérifié, refus', () => {
     expect(input.applySql).not.toHaveBeenCalled();
   });
 
-  it("REFUSE quand le backup ne peut même pas être lancé", async () => {
+  it('REFUSE quand le backup ne peut même pas être lancé', async () => {
     const store = new FakeStore();
     const input = base(store, { provisioner: provisionerWith([undefined], false) });
 
@@ -179,10 +184,13 @@ describe('P0-V3-11 — NÉGATIF : concurrence', () => {
 
     // 1re migration : bloquée sur un backup qui n'aboutit pas encore.
     let releaseBackup!: () => void;
+
     const gate = new Promise<void>((resolve) => {
       releaseBackup = resolve;
     });
+
     let polls = 0;
+
     const slowProvisioner = {
       active: true,
       async takeSnapshot() {
@@ -238,9 +246,7 @@ describe('P0-V3-11 — NÉGATIF : concurrence', () => {
       forwardCompatible: 'UNKNOWN',
     });
 
-    const dev = await runPublishMigration(
-      base(store, { environment: 'development', idempotencyKey: 'dev-1' }) as any,
-    );
+    const dev = await runPublishMigration(base(store, { environment: 'development', idempotencyKey: 'dev-1' }) as any);
     expect(dev.ok).toBe(true);
   });
 });
@@ -255,6 +261,7 @@ describe('P0-V3-11 — idempotence', () => {
     const result = await runPublishMigration(replay as any);
 
     expect(result).toMatchObject({ ok: true, replayed: true });
+
     // Le second passage n'a exécuté aucune instruction.
     expect(replay.applySql).not.toHaveBeenCalled();
     expect(store.rows.size).toBe(1);
@@ -268,8 +275,9 @@ describe('P0-V3-11 — idempotence', () => {
 });
 
 describe('P0-V3-11 — échec pendant l application', () => {
-  it("échec applicatif → FAILED_SAFE, verrou libéré, base annoncée intacte", async () => {
+  it('échec applicatif → FAILED_SAFE, verrou libéré, base annoncée intacte', async () => {
     const store = new FakeStore();
+
     const input = base(store, {
       applySql: vi.fn(async () => {
         throw new Error('syntax error at or near "OOPS"');
@@ -308,6 +316,7 @@ describe('P0-V3-11 — moteur', () => {
 
     expect(result).toMatchObject({ ok: false, code: 'MIGRATION_ENGINE_UNSUPPORTED' });
     expect(input.applySql).not.toHaveBeenCalled();
+
     // Aucun verrou n'a été posé : le refus est antérieur.
     expect(store.rows.size).toBe(0);
   });
@@ -325,6 +334,7 @@ describe('P0-V3-11 — briques', () => {
       provisioner: provisionerWith(['weird-phase']),
       projectId: 'p',
       snapshotId: 's',
+      environment: 'development',
       timeoutMs: 0,
       pollIntervalMs: 0,
       sleep: async () => {},
@@ -333,4 +343,78 @@ describe('P0-V3-11 — briques', () => {
 
     expect(result.verified).toBe(false);
   });
+});
+
+describe('publish backup environment binding', () => {
+  it('rejects an invalid direct polling target without querying a provider', async () => {
+    const provisioner = provisionerWith(['completed']);
+    const status = vi.spyOn(provisioner, 'backupStatus');
+    expect(
+      await waitForVerifiedBackup({
+        provisioner,
+        projectId: 'p',
+        snapshotId: 's',
+        environment: 'staging' as never,
+        timeoutMs: 0,
+        pollIntervalMs: 0,
+        sleep: async () => {},
+        now: () => new Date(),
+      }),
+    ).toMatchObject({ verified: false });
+    expect(status).not.toHaveBeenCalled();
+  });
+
+  it('keeps the originally validated target across asynchronous journal access', async () => {
+    const store = new FakeStore();
+    const provisioner = provisionerWith(['completed']);
+    const kickoff = vi.spyOn(provisioner, 'takeSnapshot');
+    const status = vi.spyOn(provisioner, 'backupStatus');
+    const input = base(store, { provisioner });
+    vi.spyOn(store, 'getMigrationExecutionByIdempotencyKey').mockImplementation(async () => {
+      input.environment = 'development';
+      return undefined;
+    });
+    expect(await runPublishMigration(input as any)).toMatchObject({ ok: true });
+
+    const expected = { projectId: input.projectId, snapshotId: 'mig_mig-1', environment: 'production' };
+    expect(kickoff).toHaveBeenCalledExactlyOnceWith(expected);
+    expect(status).toHaveBeenCalledExactlyOnceWith(expected);
+    expect([...store.rows.values()][0].environment).toBe('production');
+  });
+
+  it.each(['development', 'production'] as const)(
+    'uses the exact %s target for kickoff and every status poll',
+    async (environment) => {
+      const store = new FakeStore();
+      const provisioner = provisionerWith(['running', 'completed']);
+      const kickoff = vi.spyOn(provisioner, 'takeSnapshot');
+      const status = vi.spyOn(provisioner, 'backupStatus');
+      const input = base(store, { environment, provisioner, backupPollIntervalMs: 0 });
+      expect(await runPublishMigration(input as any)).toMatchObject({ ok: true, state: 'COMMITTED' });
+
+      const expected = { projectId: input.projectId, snapshotId: 'mig_mig-1', environment };
+      expect(kickoff).toHaveBeenCalledExactlyOnceWith(expected);
+      expect(status).toHaveBeenCalledTimes(2);
+      expect(status.mock.calls.map(([request]) => request)).toEqual([expected, expected]);
+    },
+  );
+
+  it.each(['staging', '', 'Production', undefined])(
+    'refuses unsupported environment %s before touching store, backup or SQL',
+    async (environment) => {
+      const store = new FakeStore();
+      const read = vi.spyOn(store, 'getMigrationExecutionByIdempotencyKey');
+      const create = vi.spyOn(store, 'createMigrationExecution');
+      const provisioner = provisionerWith(['completed']);
+      const kickoff = vi.spyOn(provisioner, 'takeSnapshot');
+      const status = vi.spyOn(provisioner, 'backupStatus');
+      const input = base(store, { environment, provisioner });
+      expect(await runPublishMigration(input as any)).toMatchObject({ ok: false, code: 'MIGRATION_BACKUP_UNVERIFIED' });
+      expect(read).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+      expect(kickoff).not.toHaveBeenCalled();
+      expect(status).not.toHaveBeenCalled();
+      expect(input.applySql).not.toHaveBeenCalled();
+    },
+  );
 });

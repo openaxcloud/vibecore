@@ -1499,8 +1499,8 @@
       "id": "api-database-provisioner-internal",
       "path": "services/api/src/database-provisioner.ts",
       "rule": "*",
-      "textPattern": "^(?:\\{…\\}:production|provisionneur inactif : aucun backup réel|SHARED_TENANT_UNAVAILABLE|BACKUP_SOURCE_NAME_AMBIGUOUS|BACKUP_SOURCE_IDENTITY_MISMATCH|BACKUP_REPORTED_ERROR|Backup CR \\{…\\} introuvable|manager (?:apply|get|getSecret) failed: \\{…\\})$",
-      "justification": "Provisioner-internal identifiers and operator diagnostics (Kubernetes CR names, manager call failures, a resource key). They reach logs and audit, never a screen; the API converts provisioner failures into stable codes before answering. The three exact BACKUP_* refusal identifiers are stable operator/audit diagnostics; migration responses retain the catalogued MIGRATION_BACKUP_UNVERIFIED_MESSAGE. This does not permit arbitrary new copy.",
+      "textPattern": "^(?:\\{…\\}:production|provisionneur inactif : aucun backup réel|SHARED_TENANT_UNAVAILABLE|BACKUP_SOURCE_NAME_AMBIGUOUS|BACKUP_SOURCE_IDENTITY_MISMATCH|BACKUP_REPORTED_ERROR|BACKUP_PROVENANCE_UNAVAILABLE|BACKUP_PROVENANCE_UNCONFIRMED|BACKUP_CREATE_UNCONFIRMED|Backup CR \\{…\\} introuvable|manager (?:apply|get|getSecret) failed: \\{…\\})$",
+      "justification": "Provisioner-internal identifiers and operator diagnostics (Kubernetes CR names, manager call failures, a resource key). They reach logs and audit, never a screen; the API converts provisioner failures into stable codes before answering. The exact enumerated BACKUP_* refusal identifiers are stable operator/audit diagnostics; migration responses retain the catalogued MIGRATION_BACKUP_UNVERIFIED_MESSAGE. This does not permit arbitrary new copy. Provenance/create refusal identifiers preserve machine audit correlation; manual snapshot errors use DATABASE_BACKUP_UNCONFIRMED from the public catalogue.",
       "owner": "i18n",
       "expiresOn": "2027-08-04"
     },

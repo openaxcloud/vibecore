@@ -226,7 +226,7 @@ describe('database restore integrity', () => {
   });
 
   for (const environment of ['development', 'production'] as const) {
-    it(`${environment}: requests a manual backup from the selected instance`, async () => {
+    it(`${environment}: refuses manual backup without durable provenance instead of claiming kickoff`, async () => {
       const { project, instanceId } = await seed(environment);
       const response = await app!.inject({
         method: 'POST',
@@ -234,24 +234,23 @@ describe('database restore integrity', () => {
         headers: auth,
         payload: { environment },
       });
-      expect(response.statusCode).toBe(202);
-      expect(response.json().snapshot.databaseInstanceId).toBe(instanceId);
-      expect(manifests).toHaveLength(1);
-      expect(manifests[0]).toMatchObject({
-        kind: 'Backup',
-        spec: { cluster: { name: clusterName(project.id, environment) } },
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toMatchObject({ code: 'BACKUP_REQUEST_UNCONFIRMED' });
+      expect(typeof response.json().snapshotId).toBe('string');
+      expect(manifests).toEqual([]);
+      const snapshots = await store.listDatabaseSnapshots(instanceId);
+      expect(snapshots).toHaveLength(1);
+      expect(snapshots[0].id).toBe(response.json().snapshotId);
+      expect(
+        await resolveDefaultDatabaseProvisioner().backupStatus({
+          projectId: project.id,
+          snapshotId: snapshots[0].id,
+          environment,
+        }),
+      ).toMatchObject({
+        completed: false,
+        error: 'BACKUP_PROVENANCE_UNAVAILABLE',
       });
-      const snapshotId = response.json().snapshot.id as string;
-      const readsBeforeStatus = reads.length;
-      const status = await resolveDefaultDatabaseProvisioner().backupStatus({
-        projectId: project.id,
-        snapshotId,
-        environment,
-      });
-      // These real generated IDs are truncated in Kubernetes names. Kickoff is not provenance.
-      // Refuse verification rather than accepting a relabelled, colliding historical backup.
-      expect(status).toMatchObject({ completed: false, error: 'BACKUP_SOURCE_NAME_AMBIGUOUS' });
-      expect(reads).toHaveLength(readsBeforeStatus);
     });
 
     it(`${environment}: transports the selected backup source to CNPG`, async () => {
@@ -316,7 +315,8 @@ describe('database restore integrity', () => {
       expect(secretWrites).not.toHaveBeenCalled();
       expect(await store.listProjectSecrets(project.id)).toEqual(before);
       expect(reads.some((path) => path.startsWith('/databases/secret'))).toBe(false);
-      expect(manifests[0].spec).toMatchObject({ cluster: { name: clusterName(project.id, 'production') } });
+      expect(manifests).toEqual([]);
+      expect(response.json().snapshotted).toBe(0);
     });
   }
 

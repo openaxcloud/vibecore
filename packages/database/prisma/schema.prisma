@@ -2274,10 +2274,33 @@ model DatabaseInstance {
   project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
   snapshots      DatabaseSnapshot[]
   restores       DatabaseRestore[]
+  backupProvenance DatabaseBackupProvenance[]
 
   @@unique([projectId, environment])
   @@index([organizationId])
   @@index([status])
+}
+
+/// Immutable provenance reserved before creating a CNPG Backup. Snapshot IDs also
+/// cover migration/checkpoint backups that do not have DatabaseSnapshot rows.
+model DatabaseBackupProvenance {
+  id             String   @id @default(uuid())
+  nonce          String   @unique
+  projectId      String
+  organizationId String
+  instanceId     String
+  environment    String
+  bindingVersion Int
+  snapshotId     String
+  sourceName     String
+  sourceUid      String
+  backupName     String
+  backupUid      String?
+  createdAt      DateTime @default(now())
+  instance       DatabaseInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, environment, snapshotId])
+  @@index([instanceId])
 }
 
 /// A recovery point for a DatabaseInstance — either a scheduled automatic

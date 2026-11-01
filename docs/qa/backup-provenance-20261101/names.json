@@ -1,0 +1,62 @@
+[
+  {
+    "workflow": "manual/automatic",
+    "environment": "development",
+    "rawLength": 54,
+    "legacyName": "db-caaaaaaaaaaaaaaaaaaaaaaaa-cbbbbbbbbbbbbbbbbbbbbbbb",
+    "legacyTruncated": true,
+    "legacyDnsValid": true,
+    "v2Name": "bkp-v2-7715114bc95d80f0c7335643471eb10cb2fba152",
+    "v2Length": 47
+  },
+  {
+    "workflow": "manual/automatic",
+    "environment": "production",
+    "rawLength": 59,
+    "legacyName": "db-caaaaaaaaaaaaaaaaaaaaaaaa-prod-cbbbbbbbbbbbbbbbbbb",
+    "legacyTruncated": true,
+    "legacyDnsValid": true,
+    "v2Name": "bkp-v2-4ba9838337aa63d4686a2b150c42d362de2d2c4f",
+    "v2Length": 47
+  },
+  {
+    "workflow": "publish migration",
+    "environment": "development",
+    "rawLength": 58,
+    "legacyName": "db-caaaaaaaaaaaaaaaaaaaaaaaa-mig_cbbbbbbbbbbbbbbbbbbb",
+    "legacyTruncated": true,
+    "legacyDnsValid": false,
+    "v2Name": "bkp-v2-30b52221024ca151d8bd106f2c0d11e393382c84",
+    "v2Length": 47
+  },
+  {
+    "workflow": "publish migration",
+    "environment": "production",
+    "rawLength": 63,
+    "legacyName": "db-caaaaaaaaaaaaaaaaaaaaaaaa-prod-mig_cbbbbbbbbbbbbbb",
+    "legacyTruncated": true,
+    "legacyDnsValid": false,
+    "v2Name": "bkp-v2-176f3fbb541e4db3bb93b3379bb67fcf42889f86",
+    "v2Length": 47
+  },
+  {
+    "workflow": "checkpoint",
+    "environment": "development",
+    "rawLength": 47,
+    "legacyName": "db-caaaaaaaaaaaaaaaaaaaaaaaa-ckdb_12345678-abcd",
+    "legacyTruncated": false,
+    "legacyDnsValid": false,
+    "v2Name": "bkp-v2-a07a2387def3e8a9dfb26135cb96895e5d119255",
+    "v2Length": 47
+  },
+  {
+    "workflow": "checkpoint",
+    "environment": "production",
+    "rawLength": 52,
+    "legacyName": "db-caaaaaaaaaaaaaaaaaaaaaaaa-prod-ckdb_12345678-abcd",
+    "legacyTruncated": false,
+    "legacyDnsValid": false,
+    "v2Name": "bkp-v2-404d2cedd3fb46a1d9fc0a498c14024d4bd8f0d3",
+    "v2Length": 47
+  }
+]
