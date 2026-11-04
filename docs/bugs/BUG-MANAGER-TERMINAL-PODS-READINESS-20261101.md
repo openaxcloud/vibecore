@@ -101,3 +101,39 @@ Le parent a lu le reçu de l'artefact 13105703664 : phase
 mais n'identifie pas la commande fautive et ne démontre pas une erreur JSON en
 production. Aucun nouveau téléchargement, appel IA, push, CI ou déploiement dans
 ce complément local.
+
+
+## Échec observé af0ea860 — 4 novembre 2026
+
+Run41853078231, job126671968610, terminal failure. Le diagnostic à16:20:05
+rapporte trois pods Running/Ready au digest attendu et douze pods Failed du
+ReplicaSet6c9ccf8f84, sans suppression, non reconnus terminaux. Les compteurs du
+Deployment sont tous3 et sa génération observée17589 concorde. Rollback vers
+le contenu1345 confirmé16:21:14, étape réussie16:21:22. Aucun nouveau lot livré.
+La forme des conditions et états conteneurs des douze Failed n'a pas été
+collectée : aucune attribution à Evicted, NodeLost ou condition manquante.
+
+Correction locale ciblée : Ready est optionnel dans PodStatus. Un pod terminal
+avec tous les états courants explicitement arrêtés ne doit pas être compté
+simplement parce que Ready est absent. Absence, liste vide et autres conditions
+sont acceptées ; Ready=True, Unknown, malformé et tous états actifs restent
+bloquants. L'absence de containerStatuses reste bloquante. Init/ephemeral actifs,
+les pods en suppression actifs, compte exact, disponibilité et digests restent
+vérifiés. Aucun pod supprimé, aucune permission, commande ou durée modifiée.
+
+Le diagnostic ajoute uniquement des catégories fixes : phaseTerminal,
+readyCondition, regular, init, ephemeral. Il distingue champs absents, invalides,
+incomplets et états non arrêtés sans publier messages, valeurs ni raisons libres.
+Trois nouveaux contre-tests échouent avant correction ; la suite finale inclut
+également les variantes actives en suppression et Ready inconnu/malformé.
+
+Sources primaires :
+- https://github.com/kubernetes/api/blob/v0.34.0/core/v1/types.go#L4944-L4951
+- https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/kubelet/status/status_manager.go#L498-L566
+
+Limite : Kubernetes peut conserver des états Waiting pour des conteneurs jamais
+initialisés ; ce correctif conservateur ne les exclut pas. Une phase Failed seule
+ne prouve pas l'arrêt physique d'un processus sur un noeud perdu. Sans observation
+supplémentaire des douze pods, la correction locale n'est pas une preuve de
+résolution de cette livraison. Pas de nouvelle reconstruction de production
+lancée uniquement pour présumer la cause.
