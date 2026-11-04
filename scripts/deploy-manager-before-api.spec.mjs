@@ -146,6 +146,8 @@ function execute({
   migration = completedMigration,
   failCommandAt,
   commandError,
+  invalidJsonAt,
+  invalidJson,
 } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'stage-test-'));
   const envFile = join(directory, 'env');
@@ -155,6 +157,7 @@ function execute({
 
   let upgraded = false;
   let failedCommands = 0;
+  let invalidResponses = 0;
   let time = 0;
   let error;
 
@@ -175,6 +178,11 @@ function execute({
       },
       command: (bin, args) => {
         calls.push([bin, ...args]);
+
+        if (invalidJsonAt?.(bin, args, upgraded)) {
+          invalidResponses++;
+          return invalidJson;
+        }
 
         if (failCommandAt?.(bin, args, upgraded)) {
           failedCommands++;
@@ -242,7 +250,7 @@ function execute({
     rmSync(directory, { recursive: true, force: true });
   }
 
-  return { calls, error, failedCommands };
+  return { calls, error, failedCommands, invalidResponses };
 }
 
 describe('migration, manager, API sequencing', () => {
@@ -833,7 +841,10 @@ describe('manager readiness convergence deadline', () => {
   });
   it('does not retry malformed JSON', () => {
     const result = observe({ snapshots: [{ pods: [readyPod] }], brokenJson: true });
-    expect(result.error).toBeInstanceOf(SyntaxError);
+    expect(result.error.message).toBe(
+      'STAGED_MANAGER_JSON_INVALID ' +
+        JSON.stringify({ operation: 'observe-manager-deployment', phase: 'manager-readiness' }),
+    );
     expect(result.pauses).toEqual([]);
     expect(result.calls).toHaveLength(2);
   });
@@ -1017,5 +1028,35 @@ it('prints only safe command metadata from the actual delivered CLI failure path
     expect(result.stderr).not.toMatch(/PRIVATE_|release-manifest\.json|registry\.example|--|helm get/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+describe('safe JSON response diagnostics', () => {
+  const cases = [
+    [
+      'read-retained-deployment',
+      'preflight',
+      (bin, args, upgraded) => bin === 'kubectl' && args.includes('deployment') && !upgraded,
+    ],
+    ['read-migration-job', 'upgrade-returned', (bin, args) => bin === 'kubectl' && args.includes('job')],
+    [
+      'observe-manager-deployment',
+      'manager-readiness',
+      (bin, args, upgraded) => bin === 'kubectl' && args.includes('deployment') && upgraded,
+    ],
+    ['observe-manager-pods', 'manager-readiness', (bin, args) => bin === 'kubectl' && args.includes('pods')],
+  ];
+
+  for (const invalidJson of ['PRIVATE_JSON_SENTINEL', '{"token":"PRIVATE_JSON_SENTINEL",']) {
+    it.each(cases)(
+      'identifies malformed JSON from %s without disclosure or retry',
+      (operation, phase, invalidJsonAt) => {
+        const result = execute({ invalidJsonAt, invalidJson });
+        expect(result.error.message).toBe('STAGED_MANAGER_JSON_INVALID ' + JSON.stringify({ operation, phase }));
+        expect(result.error.message).not.toMatch(/PRIVATE_|SyntaxError|Unexpected|token|stdout|stderr/);
+        expect(result.calls.at(-1)).toEqual(expect.arrayContaining(['kubectl']));
+        expect(result.invalidResponses).toBe(1);
+      },
+    );
   }
 });

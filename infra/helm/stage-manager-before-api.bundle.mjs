@@ -7618,6 +7618,14 @@ function stageCommand(command, operation, args, options, lastObservation = null)
     );
   }
 }
+function stageJson(command, operation, args, options, lastObservation = null) {
+  const output = stageCommand(command, operation, args, options, lastObservation);
+  try {
+    return JSON.parse(output);
+  } catch {
+    return fail(`JSON_INVALID ${JSON.stringify({ operation, phase: stageOperations[operation][1] })}`);
+  }
+}
 function waitForManagerReady({ command, namespace, release, managerName, image, digest, now, pause }) {
   const deadline = now() + 22 * 60 * 1e3;
   stageCommand(
@@ -7638,42 +7646,38 @@ function waitForManagerReady({ command, namespace, release, managerName, image, 
     return left;
   };
   while (true) {
-    const deployment = JSON.parse(
-      stageCommand(
-        command,
-        "observe-manager-deployment",
-        [
-          "-n",
-          namespace,
-          "get",
-          "deployment",
-          managerName,
-          "-o",
-          "json",
-          `--request-timeout=${Math.ceil(remaining())}ms`
-        ],
-        { timeout: Math.ceil(remaining()) },
-        lastDiagnostic
-      )
+    const deployment = stageJson(
+      command,
+      "observe-manager-deployment",
+      [
+        "-n",
+        namespace,
+        "get",
+        "deployment",
+        managerName,
+        "-o",
+        "json",
+        `--request-timeout=${Math.ceil(remaining())}ms`
+      ],
+      { timeout: Math.ceil(remaining()) },
+      lastDiagnostic
     );
-    const pods = JSON.parse(
-      stageCommand(
-        command,
-        "observe-manager-pods",
-        [
-          "-n",
-          namespace,
-          "get",
-          "pods",
-          "-l",
-          `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
-          "-o",
-          "json",
-          `--request-timeout=${Math.ceil(remaining())}ms`
-        ],
-        { timeout: Math.ceil(remaining()) },
-        lastDiagnostic
-      )
+    const pods = stageJson(
+      command,
+      "observe-manager-pods",
+      [
+        "-n",
+        namespace,
+        "get",
+        "pods",
+        "-l",
+        `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
+        "-o",
+        "json",
+        `--request-timeout=${Math.ceil(remaining())}ms`
+      ],
+      { timeout: Math.ceil(remaining()) },
+      lastDiagnostic
     );
     remaining();
     observations++;
@@ -7756,17 +7760,15 @@ function runStage({
     fail("REGISTRY_MISMATCH");
   }
   for (const deployment of deployments(before)) {
-    const live = JSON.parse(
-      stageCommand(command, "read-retained-deployment", [
-        "-n",
-        namespace,
-        "get",
-        "deployment",
-        deployment.metadata.name,
-        "-o",
-        "json"
-      ])
-    );
+    const live = stageJson(command, "read-retained-deployment", [
+      "-n",
+      namespace,
+      "get",
+      "deployment",
+      deployment.metadata.name,
+      "-o",
+      "json"
+    ]);
     if (canonical(
       live.spec.template.spec.containers.map(({ name, image: image2 }) => ({
         name,
@@ -7800,9 +7802,15 @@ function runStage({
   receipt.phase = "upgrade-returned";
   record();
   const migrationName = `${release}-vibecore-platform-prisma-migrate`;
-  const migrationJob = JSON.parse(
-    stageCommand(command, "read-migration-job", ["-n", namespace, "get", "job", migrationName, "-o", "json"])
-  );
+  const migrationJob = stageJson(command, "read-migration-job", [
+    "-n",
+    namespace,
+    "get",
+    "job",
+    migrationName,
+    "-o",
+    "json"
+  ]);
   receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
   receipt.phase = "migration-job-verified";
   record();

@@ -84,3 +84,20 @@ Ce complément ne corrige pas une cause de panne encore inconnue et n’autorise
 pas un nouveau déploiement aveugle. Prochain point : PR diagnostic validée puis
 obtenir les preuves de l’opération réelle par un accès autorisé. Aucune nouvelle
 mutation cluster n’a été exécutée pour ces tests.
+
+
+## Complément local du 4 novembre — réponses JSON invalides
+
+Les quatre lectures JSON Kubernetes sont désormais associées à des identifiants
+fixes (déploiement conservé, Job de migration, Deployment manager, pods manager).
+Une réponse invalide produit `STAGED_MANAGER_JSON_INVALID` avec opération et phase,
+sans contenu brut ni message SyntaxError. Les erreurs de commande restent traitées
+avant le parsing ; aucune commande, permission, garde, durée ou politique de retry
+ne change. Huit contre-tests avec sentinelle privée échouent avant correction.
+Le test historique conserve l'arrêt immédiat, sans pause ni répétition.
+
+Le parent a lu le reçu de l'artefact 13105703664 : phase
+`migration-job-verified`, succeeded=1, Complete=true. Cela localise la progression
+mais n'identifie pas la commande fautive et ne démontre pas une erreur JSON en
+production. Aucun nouveau téléchargement, appel IA, push, CI ou déploiement dans
+ce complément local.
