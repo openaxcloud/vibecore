@@ -7575,11 +7575,67 @@ function assertMigrationComplete(job, expectedName, expectedImage) {
     complete: true
   };
 }
+var stageOperations = {
+  "read-release-manifest": ["helm", "preflight"],
+  "read-release-hooks": ["helm", "preflight"],
+  "preview-upgrade": ["helm", "preflight"],
+  "read-retained-deployment": ["kubectl", "preflight"],
+  "upgrade-manager": ["helm", "upgrade-requested"],
+  "read-migration-job": ["kubectl", "upgrade-returned"],
+  "rollout-manager": ["kubectl", "migration-job-verified"],
+  "observe-manager-deployment": ["kubectl", "manager-readiness"],
+  "observe-manager-pods": ["kubectl", "manager-readiness"]
+};
+var processSignals = /* @__PURE__ */ new Set(["SIGTERM", "SIGKILL", "SIGINT", "SIGABRT", "SIGHUP"]);
+var processCodes = /* @__PURE__ */ new Set([
+  "ETIMEDOUT",
+  "ENOENT",
+  "EACCES",
+  "EPERM",
+  "ENOBUFS",
+  "EPIPE",
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "EAI_AGAIN",
+  "ENOTFOUND"
+]);
+function stageCommand(command, operation, args, options, lastObservation = null) {
+  const [bin, phase] = stageOperations[operation];
+  try {
+    return command(bin, args, options);
+  } catch (error) {
+    return fail(
+      `COMMAND_FAILED ${JSON.stringify({
+        operation,
+        phase,
+        status: Number.isInteger(error?.status) && error.status >= 0 && error.status <= 255 ? error.status : null,
+        signal: processSignals.has(error?.signal) ? error.signal : null,
+        code: processCodes.has(error?.code) ? error.code : null,
+        lastObservation
+      })}`
+    );
+  }
+}
+function stageJson(command, operation, args, options, lastObservation = null) {
+  const output = stageCommand(command, operation, args, options, lastObservation);
+  try {
+    return JSON.parse(output);
+  } catch {
+    return fail(`JSON_INVALID ${JSON.stringify({ operation, phase: stageOperations[operation][1] })}`);
+  }
+}
 function waitForManagerReady({ command, namespace, release, managerName, image, digest, now, pause }) {
   const deadline = now() + 22 * 60 * 1e3;
-  command("kubectl", ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"], {
-    timeout: 22 * 60 * 1e3
-  });
+  stageCommand(
+    command,
+    "rollout-manager",
+    ["-n", namespace, "rollout", "status", `deployment/${managerName}`, "--timeout=22m"],
+    {
+      timeout: 22 * 60 * 1e3
+    }
+  );
   let lastDiagnostic = null;
   let observations = 0;
   const remaining = () => {
@@ -7590,38 +7646,38 @@ function waitForManagerReady({ command, namespace, release, managerName, image, 
     return left;
   };
   while (true) {
-    const deployment = JSON.parse(
-      command(
-        "kubectl",
-        [
-          "-n",
-          namespace,
-          "get",
-          "deployment",
-          managerName,
-          "-o",
-          "json",
-          `--request-timeout=${Math.ceil(remaining())}ms`
-        ],
-        { timeout: Math.ceil(remaining()) }
-      )
+    const deployment = stageJson(
+      command,
+      "observe-manager-deployment",
+      [
+        "-n",
+        namespace,
+        "get",
+        "deployment",
+        managerName,
+        "-o",
+        "json",
+        `--request-timeout=${Math.ceil(remaining())}ms`
+      ],
+      { timeout: Math.ceil(remaining()) },
+      lastDiagnostic
     );
-    const pods = JSON.parse(
-      command(
-        "kubectl",
-        [
-          "-n",
-          namespace,
-          "get",
-          "pods",
-          "-l",
-          `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
-          "-o",
-          "json",
-          `--request-timeout=${Math.ceil(remaining())}ms`
-        ],
-        { timeout: Math.ceil(remaining()) }
-      )
+    const pods = stageJson(
+      command,
+      "observe-manager-pods",
+      [
+        "-n",
+        namespace,
+        "get",
+        "pods",
+        "-l",
+        `app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=${release}`,
+        "-o",
+        "json",
+        `--request-timeout=${Math.ceil(remaining())}ms`
+      ],
+      { timeout: Math.ceil(remaining()) },
+      lastDiagnostic
     );
     remaining();
     observations++;
@@ -7665,7 +7721,7 @@ function runStage({
   }
   const managerName = `${release}-vibecore-platform-workspace-manager`;
   const image = `${registry}/workspace-manager@${plan.managerDigest}`;
-  const before = command("helm", ["get", "manifest", release, "-n", namespace]) + "\n---\n" + command("helm", ["get", "hooks", release, "-n", namespace]);
+  const before = stageCommand(command, "read-release-manifest", ["get", "manifest", release, "-n", namespace]) + "\n---\n" + stageCommand(command, "read-release-hooks", ["get", "hooks", release, "-n", namespace]);
   const oldApi = deployments(before).filter(
     (deployment) => deployment.metadata.name === `${release}-vibecore-platform-api`
   );
@@ -7696,15 +7752,23 @@ function runStage({
     "25m",
     ...overrides
   ];
-  const rendered = renderedRelease(command("helm", [...upgradeArgs, "--dry-run=server", "-o", "json"]));
+  const rendered = renderedRelease(
+    stageCommand(command, "preview-upgrade", [...upgradeArgs, "--dry-run=server", "-o", "json"])
+  );
   assertOnlyManagerChanges(before, rendered, managerName, `${registry}/api@${plan.migrationDigest}`);
   if (deployments(rendered).find((item) => item.metadata.name === managerName)?.spec.template.spec.containers[0].image !== image) {
     fail("REGISTRY_MISMATCH");
   }
   for (const deployment of deployments(before)) {
-    const live = JSON.parse(
-      command("kubectl", ["-n", namespace, "get", "deployment", deployment.metadata.name, "-o", "json"])
-    );
+    const live = stageJson(command, "read-retained-deployment", [
+      "-n",
+      namespace,
+      "get",
+      "deployment",
+      deployment.metadata.name,
+      "-o",
+      "json"
+    ]);
     if (canonical(
       live.spec.template.spec.containers.map(({ name, image: image2 }) => ({
         name,
@@ -7734,11 +7798,19 @@ function runStage({
   };
   record();
   appendFileSync(env.GITHUB_ENV, "STAGED_UPGRADE_STARTED=1\n");
-  command("helm", upgradeArgs);
+  stageCommand(command, "upgrade-manager", upgradeArgs);
   receipt.phase = "upgrade-returned";
   record();
   const migrationName = `${release}-vibecore-platform-prisma-migrate`;
-  const migrationJob = JSON.parse(command("kubectl", ["-n", namespace, "get", "job", migrationName, "-o", "json"]));
+  const migrationJob = stageJson(command, "read-migration-job", [
+    "-n",
+    namespace,
+    "get",
+    "job",
+    migrationName,
+    "-o",
+    "json"
+  ]);
   receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
   receipt.phase = "migration-job-verified";
   record();
