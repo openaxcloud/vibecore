@@ -47,6 +47,11 @@ class StructuralReadTests(unittest.TestCase):
         self.assertTrue(row['containerStatuses']['states'][0]['terminated'])
         del p['status']['containerStatuses']
         self.assertEqual(reader.sanitize({'items': [p]})['pods'][0]['containerStatuses']['shape'], 'absent')
+        p['status']['containerStatuses'] = None
+        p['status']['conditions'] = None
+        row = reader.sanitize({'items': [p]})['pods'][0]
+        self.assertEqual(row['containerStatuses']['shape'], 'invalid')
+        self.assertEqual(row['conditionsShape'], 'invalid')
 
     def test_bounds_and_untrusted_values(self):
         p = pod()

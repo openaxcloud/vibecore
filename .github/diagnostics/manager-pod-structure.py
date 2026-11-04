@@ -30,7 +30,7 @@ def identity(value):
 
 def container_states(status, field):
     values = status.get(field)
-    if values is None:
+    if field not in status:
         return {'shape': 'absent'}
     if not isinstance(values, list):
         return {'shape': 'invalid'}
@@ -69,7 +69,7 @@ def sanitize(data):
             'phase': status.get('phase') if status.get('phase') in ('Pending', 'Running', 'Succeeded', 'Failed', 'Unknown') else 'Other',
             'deleting': bool(meta.get('deletionTimestamp')),
             'specContainerCount': len(pod.get('spec', {}).get('containers', [])),
-            'conditionsShape': 'absent' if conditions is None else 'array' if isinstance(conditions, list) else 'invalid',
+            'conditionsShape': 'absent' if 'conditions' not in status else 'array' if isinstance(conditions, list) else 'invalid',
             'ready': ready[:4],
             **{field: container_states(status, field) for field in
                ('containerStatuses', 'initContainerStatuses', 'ephemeralContainerStatuses')},
