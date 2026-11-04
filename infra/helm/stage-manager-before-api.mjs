@@ -235,29 +235,65 @@ export function assertOnlyManagerChanges(beforeYaml, afterYaml, managerName, mig
   }
 }
 
-/** Kubernetes terminal phases describe stopped containers, not a deletion timestamp. */
-function terminalManagerPod(pod) {
+/** Optional Ready conditions do not override current, complete termination evidence. */
+function terminalManagerEvidence(pod) {
   const status = pod.status;
+  const conditions = status?.conditions;
+  const ready = Array.isArray(conditions) ? conditions.filter((condition) => condition?.type === 'Ready') : [];
 
-  const terminated = (container) =>
-    container?.state?.terminated &&
-    typeof container.state.terminated === 'object' &&
-    Number.isInteger(container.state.terminated.exitCode) &&
-    !container.state.running &&
-    !container.state.waiting;
+  const readyCondition =
+    conditions !== undefined && !Array.isArray(conditions)
+      ? 'Invalid'
+      : ready.some((condition) => condition.status === 'True')
+        ? 'True'
+        : ready.some((condition) => condition.status !== 'False')
+          ? 'Other'
+          : ready.length
+            ? 'False'
+            : 'Absent';
 
+  const stopped = (containers, regular = false) => {
+    if (containers === undefined) {
+      return regular ? 'Missing' : 'Absent';
+    }
+
+    if (!Array.isArray(containers)) {
+      return 'Invalid';
+    }
+
+    if (regular && (!containers.length || containers.length !== pod.spec?.containers?.length)) {
+      return 'Incomplete';
+    }
+
+    const terminated = containers.every(
+      (container) =>
+        container?.state?.terminated &&
+        typeof container.state.terminated === 'object' &&
+        Number.isInteger(container.state.terminated.exitCode) &&
+        !container.state.running &&
+        !container.state.waiting &&
+        (!regular || container.ready === false),
+    );
+
+    return terminated ? 'Stopped' : 'NotTerminated';
+  };
+
+  return {
+    phaseTerminal: ['Failed', 'Succeeded'].includes(status?.phase),
+    readyCondition,
+    regular: stopped(status?.containerStatuses, true),
+    init: stopped(status?.initContainerStatuses),
+    ephemeral: stopped(status?.ephemeralContainerStatuses),
+  };
+}
+
+function terminalManagerPod(pod) {
+  const evidence = terminalManagerEvidence(pod);
   return (
-    ['Failed', 'Succeeded'].includes(status?.phase) &&
-    Array.isArray(status.conditions) &&
-    status.conditions.some((condition) => condition.type === 'Ready' && condition.status === 'False') &&
-    !status.conditions.some((condition) => condition.type === 'Ready' && condition.status === 'True') &&
-    Array.isArray(status.containerStatuses) &&
-    status.containerStatuses.length > 0 &&
-    status.containerStatuses.length === pod.spec?.containers?.length &&
-    status.containerStatuses.every((container) => container.ready === false && terminated(container)) &&
-    [status.initContainerStatuses, status.ephemeralContainerStatuses].every(
-      (containers) => containers === undefined || (Array.isArray(containers) && containers.every(terminated)),
-    )
+    evidence.phaseTerminal &&
+    ['False', 'Absent'].includes(evidence.readyCondition) &&
+    evidence.regular === 'Stopped' &&
+    [evidence.init, evidence.ephemeral].every((state) => ['Stopped', 'Absent'].includes(state))
   );
 }
 
@@ -300,6 +336,7 @@ function managerReadinessDiagnostic(deployment, pods, expectedDigest) {
       deleting: Boolean(pod.metadata?.deletionTimestamp),
       ready: ready(pod),
       terminal: terminalManagerPod(pod),
+      terminalEvidence: terminalManagerEvidence(pod),
       targetDigestMatch:
         Array.isArray(pod.status?.containerStatuses) &&
         pod.status.containerStatuses.length === 1 &&

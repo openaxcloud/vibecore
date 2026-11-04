@@ -607,6 +607,39 @@ describe('manager pod lifecycle attestation', () => {
     expect(execute({ pods: [readyPod, terminal(phase)] }).error).toBeUndefined();
   });
 
+  it.each(['Failed', 'Succeeded'])('accepts stopped %s pods without optional Ready condition', (phase) => {
+    for (const conditions of [undefined, [], [{ type: 'PodScheduled', status: 'True' }]]) {
+      const pod = terminal(phase);
+      pod.status.conditions = conditions;
+      expect(() => verify([readyPod, pod])).not.toThrow();
+    }
+  });
+
+  it('explains missing terminal evidence without exposing arbitrary values', () => {
+    const pod = terminal('Failed');
+    pod.status.conditions = [{ type: 'Ready', status: 'PRIVATE_SENTINEL' }];
+    delete pod.status.containerStatuses;
+    pod.status.initContainerStatuses = [{ state: { running: { message: 'PRIVATE_SENTINEL' } } }];
+
+    let error;
+
+    try {
+      verify([readyPod, pod]);
+    } catch (e) {
+      error = e;
+    }
+
+    const diagnostic = JSON.parse(error.message.slice(error.message.indexOf('{')));
+    expect(diagnostic.pods[1].terminalEvidence).toEqual({
+      phaseTerminal: true,
+      readyCondition: 'Other',
+      regular: 'Missing',
+      init: 'NotTerminated',
+      ephemeral: 'Absent',
+    });
+    expect(error.message).not.toContain('PRIVATE_SENTINEL');
+  });
+
   it('does not ignore a deleting pod that can still serve or count it as the desired replica', () => {
     const deleting = structuredClone(readyPod);
     deleting.metadata.deletionTimestamp = '2026-11-01T00:00:00Z';
@@ -648,6 +681,28 @@ describe('manager pod lifecycle attestation', () => {
       expect(() => verify([readyPod, pod])).toThrow('MANAGER_POD_COUNT');
     }
   });
+
+  it.each(['containerStatuses', 'initContainerStatuses', 'ephemeralContainerStatuses'])(
+    'keeps active %s blocking even without Ready and during deletion',
+    (field) => {
+      for (const state of [{ running: {} }, { waiting: {} }, {}]) {
+        const pod = terminal('Failed');
+        delete pod.status.conditions;
+        pod.metadata.deletionTimestamp = '2026-11-04T16:00:00Z';
+        pod.status[field] = [{ ready: false, state }];
+        expect(() => verify([readyPod, pod])).toThrow('MANAGER_POD_COUNT');
+      }
+    },
+  );
+
+  it.each([null, {}, [{ type: 'Ready', status: 'Unknown' }]])(
+    'refuses invalid or unknown Ready evidence %j',
+    (conditions) => {
+      const pod = terminal('Failed');
+      pod.status.conditions = conditions;
+      expect(() => verify([readyPod, pod])).toThrow('MANAGER_POD_COUNT');
+    },
+  );
 
   it('retains live replica counts for HPA and refuses absent or extra nonterminal pods', () => {
     const deployment = structuredClone(prepared[1]);
