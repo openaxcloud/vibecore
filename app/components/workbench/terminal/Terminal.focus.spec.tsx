@@ -2,10 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Terminal } from './Terminal';
+import {
+  createWorkspaceTerminalReadiness,
+  workspaceTerminalReadinessContext,
+} from '~/lib/runtime/WorkspaceTerminalReadiness';
 
 /**
  * Reported from an iPhone: the mobile terminal connected (the PTY socket was
@@ -103,5 +108,80 @@ describe('Terminal focus on tap', () => {
     tap(container.querySelector('.h-full')!);
 
     expect(harness.focus).not.toHaveBeenCalled();
+  });
+});
+
+describe('Terminal attachment waits for the real project workspace', () => {
+  const tree = (gate: ReturnType<typeof createWorkspaceTerminalReadiness>, attach: () => void) => (
+    <workspaceTerminalReadinessContext.Provider value={gate}>
+      <Terminal id="startup-terminal" theme="dark" onTerminalReady={attach} />
+    </workspaceTerminalReadinessContext.Provider>
+  );
+
+  it('does not attach during cold startup, then attaches exactly once when readiness arrives', () => {
+    const gate = createWorkspaceTerminalReadiness();
+    const attach = vi.fn();
+    const created = vi.fn();
+    render(
+      <workspaceTerminalReadinessContext.Provider value={gate}>
+        <Terminal id="startup-feedback" theme="dark" onTerminalCreated={created} onTerminalReady={attach} />
+      </workspaceTerminalReadinessContext.Provider>,
+    );
+    expect(created).toHaveBeenCalledWith(harness.terminal);
+    expect(attach).not.toHaveBeenCalled();
+    act(() => gate.open());
+    expect(attach).toHaveBeenCalledWith(harness.terminal);
+    act(() => gate.open());
+    expect(attach).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels a disposed terminal rather than attaching it after a slow start', () => {
+    const gate = createWorkspaceTerminalReadiness();
+    const attach = vi.fn();
+    const ui = render(tree(gate, attach));
+    ui.unmount();
+    act(() => gate.open());
+    expect(attach).not.toHaveBeenCalled();
+  });
+
+  it('ignores the old project completion and attaches only after the replacement is ready', () => {
+    const oldGate = createWorkspaceTerminalReadiness();
+    const newGate = createWorkspaceTerminalReadiness();
+    const oldAttach = vi.fn();
+    const newAttach = vi.fn();
+    const ui = render(tree(oldGate, oldAttach));
+    ui.rerender(tree(newGate, newAttach));
+    act(() => oldGate.open());
+    expect(oldAttach).not.toHaveBeenCalled();
+    expect(newAttach).not.toHaveBeenCalled();
+    act(() => newGate.open());
+    expect(newAttach).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed startup stays unattached and a new readiness attempt can succeed', () => {
+    const failed = createWorkspaceTerminalReadiness();
+    const retry = createWorkspaceTerminalReadiness();
+    const attach = vi.fn();
+    const ui = render(tree(failed, attach));
+    act(() => failed.close());
+    expect(attach).not.toHaveBeenCalled();
+    ui.rerender(tree(retry, attach));
+    act(() => retry.open());
+    expect(attach).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retain the discarded StrictMode attachment during delayed startup', () => {
+    const gate = createWorkspaceTerminalReadiness();
+    const attach = vi.fn();
+    render(<StrictMode>{tree(gate, attach)}</StrictMode>);
+    expect(attach).not.toHaveBeenCalled();
+    act(() => gate.open());
+    expect(attach).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves immediate attachment outside a project workspace', () => {
+    const attach = vi.fn();
+    render(<Terminal id="local-terminal" theme="dark" onTerminalReady={attach} />);
+    expect(attach).toHaveBeenCalledTimes(1);
   });
 });

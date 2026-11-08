@@ -119,8 +119,9 @@ vi.mock('./Terminal', async () => {
       reloadStyles: () => undefined,
     }));
 
-    // Drive the ready callback so spawn-time behaviour (connecting notice) runs.
+    // Drive local creation and attachment callbacks in their real order.
     React.useEffect(() => {
+      props.onTerminalCreated?.(terminalHarness.xterm);
       props.onTerminalReady?.(terminalHarness.xterm);
     }, []);
 

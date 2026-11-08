@@ -1025,9 +1025,11 @@ export const TerminalTabs = memo((props: TerminalTabsProps) => {
                           terminalRefs.current.delete(index);
                         }
                       }}
-                      onTerminalReady={(terminal) => {
-                        // Immediate feedback so a 30–60s pod cold start never looks hung.
+                      onTerminalCreated={(terminal) => {
+                        // Immediate feedback while runtime attachment waits for the real workspace.
                         terminal.write(buildConnectingNotice('managed'));
+                      }}
+                      onTerminalReady={(terminal) => {
                         workbenchStore.attachBoltTerminal(terminal);
                       }}
                       onTerminalResize={(cols, rows) => {
@@ -1054,6 +1056,11 @@ export const TerminalTabs = memo((props: TerminalTabsProps) => {
                           terminalRefs.current.delete(index);
                         }
                       }}
+                      onTerminalCreated={(terminal) => {
+                        const paneProfileId = paneProfiles.current.get(index) ?? profile;
+                        paneProfiles.current.set(index, paneProfileId);
+                        terminal.write(buildConnectingNotice(paneProfileId));
+                      }}
                       onTerminalReady={(terminal) => {
                         /*
                          * Spawn with the profile this pane was created under, not the
@@ -1064,7 +1071,6 @@ export const TerminalTabs = memo((props: TerminalTabsProps) => {
                         const paneProfile =
                           terminalProfiles.find((item) => item.id === paneProfileId) ?? terminalProfiles[0];
                         paneProfiles.current.set(index, paneProfileId);
-                        terminal.write(buildConnectingNotice(paneProfileId));
                         workbenchStore.attachTerminal(terminal, paneProfile.command, index);
                       }}
                       onTerminalResize={(cols, rows) => {

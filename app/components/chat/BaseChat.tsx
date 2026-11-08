@@ -3768,6 +3768,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const initialBottomTerminalUiState = useMemo(readProjectBottomTerminalUiState, []);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState<boolean>(initialBottomTerminalUiState.open);
     const [terminalBottomHeight, setTerminalBottomHeight] = useState<number>(initialBottomTerminalUiState.height);
+
+    const lastBottomTerminalUiState = useRef({
+      height: initialBottomTerminalUiState.height,
+      open: initialBottomTerminalUiState.open,
+    });
+
     const [bottomTerminalView, setBottomTerminalView] = useState<ProjectBottomTerminalView>('terminal');
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
@@ -6640,10 +6646,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      /*
+       * Untouched mount defaults are not a saved preference. Writing them before
+       * async project restoration would override the project's actual layout.
+       * Real changes still persist immediately, including during restoration.
+       */
+      if (
+        lastBottomTerminalUiState.current.height === terminalBottomHeight &&
+        lastBottomTerminalUiState.current.open === terminalBottomOpen
+      ) {
+        return;
+      }
+
       window.localStorage.setItem(
         PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY,
         JSON.stringify({ height: terminalBottomHeight, open: terminalBottomOpen }),
       );
+      lastBottomTerminalUiState.current = { height: terminalBottomHeight, open: terminalBottomOpen };
     }, [terminalBottomHeight, terminalBottomOpen]);
 
     const openBottomTerminal = useCallback(
