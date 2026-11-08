@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
@@ -2372,3 +2374,6 @@ test('command palette entries navigate to real product routes', async ({ page })
    */
   await expect(page.getByRole('heading', { name: 'Import a Git repository' })).toBeVisible({ timeout: 30_000 });
 });
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

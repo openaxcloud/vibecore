@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
@@ -79,3 +81,6 @@ test('critical path: preview iframe loads imported app content', { tag: '@runtim
     { timeout: 90_000 },
   );
 });
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

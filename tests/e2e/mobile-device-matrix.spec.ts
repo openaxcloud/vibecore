@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { expect, test, type APIRequestContext, type Browser, type Page, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
 
@@ -974,3 +976,6 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
     expect(layout.managedPanelColumns, `${profileName} ${panel} managed panel columns`).not.toContain(2);
   }
 }
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

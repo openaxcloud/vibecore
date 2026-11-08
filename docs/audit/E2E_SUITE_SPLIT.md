@@ -80,3 +80,19 @@ faire.
 Estimation : **3–5 j** d'ingénierie, plus une dégradation de la durée du gate
 (un conteneur par workspace × ~14 tests, sur les 29 min actuelles). À faire, mais
 pas au prix de garder le gate rouge en attendant.
+
+
+## Diagnostic actuel — 8 novembre 2026 (correctif local)
+
+Le run42446502089 a encore18échecs et un audit sauté malgré un verdict global
+success. Le correctif local retire continue-on-error, conserve tous les scénarios
+et tente l'audit après une suite exécutée. Il n'ajoute pas encore le runtime.
+Le fallback local documenté plus haut ne prend pas en charge les commandes
+background et WORKSPACE_DEFAULT_RUNTIME_MODE concerne les tâches planifiées.
+Le nom accessible du statut a aussi changé. Le scénario de création IA ne doit
+pas recevoir de clés payantes dans une nightly sans budget autorisé.
+
+La liste actuelle, vérifiée par Playwright --list, est18tests : critical-paths1,
+dashboard4, mobile-device-matrix5, preview-runtime5, responsive-ide3. Les comptes
+et estimations historiques ci-dessus ne sont pas une preuve de couverture actuelle.
+Voir [le diagnostic et les étapes bloquées](../qa/runtime-ci-20261108/README.md).

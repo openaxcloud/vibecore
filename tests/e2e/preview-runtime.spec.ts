@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
@@ -359,3 +361,6 @@ test(
     await expect(menu.getByRole('button', { name: /Landscape mode/ })).toHaveAttribute('aria-pressed', 'true');
   },
 );
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

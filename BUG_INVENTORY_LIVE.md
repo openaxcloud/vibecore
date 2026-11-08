@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-617 entrées.
+618 entrées.
 
 ## Sans section
 
@@ -871,6 +871,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Déploiement et sécurité
 
 - [BUG-MANAGER-TERMINAL-PODS-READINESS-20261101](docs/bugs/BUG-MANAGER-TERMINAL-PODS-READINESS-20261101.md) — 📤 Dispatché : ☑ 01/11 — analyser le refus `STAGED_MANAGER_MANAGER_POD_COUNT` du déploiement · 💻 Codé : ☑ — correctif local préparé, pas encore livré. Exclure uniquement les pods · ✅ Testé live : ☐ — aucune mutation cluster ni recette production effectuée pour ce correctif.
+- [BUG-RUNTIME-CI-FALSE-SUCCESS-20261108](docs/bugs/BUG-RUNTIME-CI-FALSE-SUCCESS-20261108.md) — 📤 Dispatché : ☑ 08/11 — diagnostic demandé sur main af0ea860, run42446502089, · 💻 Codé : ☐ — correction locale seulement : retirer continue-on-error du job, tenter · ✅ Testé live : ☐ — trois contrats de configuration rouges avant, verts après ; aucune preuve
 
 ## Résidus non tabulaires — reportés mot pour mot
 
