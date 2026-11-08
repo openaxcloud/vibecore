@@ -40,8 +40,12 @@ All original 18 `@runtime` scenarios retain their coverage and intent. Original
 specs add guarded teardown and update only selectors/contracts verified against
 the current interface: running-workspace controls, canonical project URLs, the
 agent prompt, Shell controls and the actual queued default-model state.
-Two additional static/Vite preview preflight cases gather evidence against the
-current status-bar DOM; they do not replace the original cases. The full suite
+Two additional server-backed static/Vite preview preflight cases require an
+actual pod-hosted URL and exact application content; they do not replace the
+original cases. Raw package-free HTML intentionally uses the IDE’s local srcdoc
+preview, so the static runtime fixture declares a real Node HTTP dev server.
+The URL check waits for server readiness rather than treating an immediately
+visible local fallback as a running pod preview. The full suite
 uses zero retries and no failure-count short circuit. The IDE audit is attempted
 after an executed runtime suite even if it fails, and its report validator runs
 even when the audit command fails. Failure stays failure.

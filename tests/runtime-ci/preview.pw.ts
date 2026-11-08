@@ -2,11 +2,12 @@ import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
+import { serverBackedStaticFiles } from './server-backed-static-fixture';
 
 // Additional live evidence only. The original 18 @runtime cases remain separate and mandatory.
 for (const kind of ['static', 'vite'] as const) {
   test(
-    `ephemeral Kubernetes: real ${kind} application reaches the preview`,
+    `ephemeral Kubernetes: real ${kind === 'static' ? 'server-backed static' : kind} application reaches the preview`,
     { tag: '@ephemeral-smoke' },
     async ({ page }) => {
       test.setTimeout(300_000);
@@ -58,7 +59,9 @@ for (const kind of ['static', 'vite'] as const) {
         );
         zip.file('src/main.js', `document.querySelector('#app').textContent = ${JSON.stringify(marker)};`);
       } else {
-        zip.file('index.html', `<!doctype html><html><body><main id="app">${marker}</main></body></html>`);
+        for (const [filePath, content] of Object.entries(serverBackedStaticFiles(marker))) {
+          zip.file(filePath, content);
+        }
       }
 
       const imported = await page.request.post(`${api}/projects/${project.id}/files/import/zip`, {
@@ -77,6 +80,7 @@ for (const kind of ['static', 'vite'] as const) {
       await expect(page.locator('iframe[title="preview"]').first()).toHaveAttribute(
         'src',
         /^http:\/\/[a-z0-9-]+-[0-9]+\.localhost:3020\//,
+        { timeout: 180_000 },
       );
       await expect(page.frameLocator('iframe[title="preview"]').locator('#app')).toHaveText(marker, {
         timeout: 180_000,
