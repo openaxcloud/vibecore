@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   assertWorkspaceImageAllowed,
   controlledEgressNetworkPolicy,
@@ -265,15 +265,55 @@ describe('workspace Kubernetes manifests', () => {
   });
 
   it('injects the Vite HMR proxy env so the dev server HMR websocket targets 443/wss', () => {
-    const pod = workspacePod(input);
-    const env: Array<{ name: string; value?: string }> = (pod.spec?.containers as any[])[0].env;
-    const byName = (name: string) => env.filter((e) => e.name === name).map((e) => e.value);
+    vi.stubEnv('PREVIEW_URL_TEMPLATE', '');
 
-    expect(byName('VITE_HMR_CLIENT_PORT')).toContain('443');
-    expect(byName('VITE_HMR_PROTOCOL')).toContain('wss');
-    // Host is intentionally NOT injected: the client uses the page's own hostname.
-    expect(env.some((e) => e.name === 'VITE_HMR_HOST')).toBe(false);
+    try {
+      const pod = workspacePod(input);
+      const env: Array<{ name: string; value?: string }> = (pod.spec?.containers as any[])[0].env;
+      const byName = (name: string) => env.filter((e) => e.name === name).map((e) => e.value);
+
+      expect(byName('VITE_HMR_CLIENT_PORT')).toContain('443');
+      expect(byName('VITE_HMR_PROTOCOL')).toContain('wss');
+      // Host is intentionally NOT injected: the client uses the page's own hostname.
+      expect(env.some((e) => e.name === 'VITE_HMR_HOST')).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
+
+  it.each([
+    ['http://{workspaceId}-{port}.localhost:3020/', 'ws', '3020'],
+    ['https://{workspaceId}-{port}.preview.example/', 'wss', '443'],
+    ['https://{workspaceId}-{port}.preview.example:8443/', 'wss', '8443'],
+    ['http://{workspaceId}-{port}.preview.example/', 'ws', '80'],
+    ['http://{workspaceId}.localhost:{port}/', 'ws', '0'],
+    ['https://{workspaceId}.preview.example:{port}/', 'wss', '0'],
+  ])('derives pod HMR transport from public preview template %s', (template, protocol, port) => {
+    vi.stubEnv('PREVIEW_URL_TEMPLATE', template);
+
+    try {
+      const pod = workspacePod(input);
+      const env: Array<{ name: string; value?: string }> = (pod.spec?.containers as any[])[0].env;
+      expect(env.find((entry) => entry.name === 'VITE_HMR_PROTOCOL')?.value).toBe(protocol);
+      expect(env.find((entry) => entry.name === 'VITE_HMR_CLIENT_PORT')?.value).toBe(port);
+      expect(env.some((entry) => entry.name === 'VITE_HMR_HOST')).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it.each(['file:///tmp/preview', 'https://user:password@preview.example', 'not a URL'])(
+    'rejects unsafe or invalid public preview transport %s',
+    (template) => {
+      vi.stubEnv('PREVIEW_URL_TEMPLATE', template);
+
+      try {
+        expect(() => workspacePod(input)).toThrow(/PREVIEW_URL_TEMPLATE/);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
 
   describe('resolvePlanResourcesTable (env-configurable fallback plan resources)', () => {
     it('keeps free/pro at their unchanged defaults with no override', () => {

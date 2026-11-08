@@ -27,6 +27,12 @@ host DNS settings. Preview uses the actual preview-proxy service on loopback por
 workspace-specific localhost hostnames; this is not a production wildcard/TLS/HMR
 validation.
 
+The workspace pod derives Vite's browser HMR protocol and client port from the
+configured public preview URL. HTTPS retains WSS and its public port; the local
+HTTP proxy uses WS on port 3020. A dynamic public `{port}` leaves the port to
+Vite's browser-side URL inference. Without a custom template, the existing
+WSS/443 default is retained. No host override or production TLS bypass is added.
+
 The normal sandbox runtime scheduling remains enabled. Production network
 policies and cloud integrations are not installed: this is an isolated runner,
 not a proof of production networking or tenant isolation. A guarded after-test hook stops completed-test workspaces through the real manager

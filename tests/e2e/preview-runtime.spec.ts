@@ -214,13 +214,19 @@ test(
     await page.getByRole('button', { name: 'Webview' }).click();
 
     await expectPreviewIframe(page, 120_000);
-    await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible(
-      {
-        timeout: 180_000,
-      },
-    );
     await expect(
-      page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
+      page
+        .frameLocator('iframe[title="preview"]')
+        .locator('[data-gallery-app-id="react-saas"]')
+        .getByRole('heading', { name: 'Good morning, Morgan.', exact: true }),
+    ).toBeVisible({
+      timeout: 180_000,
+    });
+    await expect(
+      page
+        .frameLocator('iframe[title="preview"]')
+        .locator('[data-gallery-app-id="react-saas"]')
+        .getByText('Here is what needs your attention today.', { exact: true }),
     ).toBeVisible();
   },
 );

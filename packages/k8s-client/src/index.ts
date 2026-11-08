@@ -653,10 +653,42 @@ export function workspaceAgentSecret(input: WorkspaceRuntimeInput): K8sObject {
   };
 }
 
+/**
+ * Match browser HMR to the platform's public preview origin, not the pod port.
+ * Keep the existing TLS production default when no custom URL is configured.
+ */
+function previewHmrTransport(template = process.env.PREVIEW_URL_TEMPLATE) {
+  if (!template) {
+    return { protocol: 'wss', port: '443' };
+  }
+
+  // Zero keeps the preview env gate enabled while letting Vite's client use
+  // import.meta.url's public port. Never pin a dynamic {port} template to 5173.
+  const dynamicPublicPort = /^https?:\/\/[^/?#]*:\{port\}(?:[/?#]|$)/i.test(template);
+
+  let url: URL;
+
+  try {
+    url = new URL(template.replaceAll('{workspaceId}', 'workspace-probe').replaceAll('{port}', '5173'));
+  } catch {
+    throw new Error('PREVIEW_URL_TEMPLATE must be an absolute HTTP or HTTPS URL');
+  }
+
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+    throw new Error('PREVIEW_URL_TEMPLATE must use HTTP or HTTPS without credentials');
+  }
+
+  return {
+    protocol: url.protocol === 'https:' ? 'wss' : 'ws',
+    port: dynamicPublicPort ? '0' : url.port || (url.protocol === 'https:' ? '443' : '80'),
+  };
+}
+
 export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
   assertWorkspaceImageAllowed(input.image);
 
   const resources = resolveWorkspaceResources(input);
+  const previewHmr = previewHmrTransport();
   const sandboxSchedulingEnabled = process.env.WORKSPACE_DISABLE_SANDBOX_SCHEDULING !== '1';
 
   /*
@@ -732,17 +764,12 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
             { name: 'PROJECT_ID', value: input.projectId },
 
             /*
-             * Vite HMR behind the preview proxy: the dev server binds in-pod
-             * localhost:5173 but the browser reaches the preview over the TLS
-             * proxy, so Vite's HMR client must open its websocket against the
-             * public host on 443/wss (else it builds `wss://localhost:undefined`
-             * and HMR is dead for every proxied Vite project). The scaffolded
-             * vite.config reads these; VITE_HMR_HOST is deliberately unset so the
-             * client uses the page's own hostname (the per-project preview
-             * domain). Harmless for non-Vite projects (unused env).
+             * The browser connects to the public preview origin: preserve TLS
+             * in production and HTTP/explicit ports for local preview proxies.
+             * Leave HOST unset so Vite uses the per-workspace page hostname.
              */
-            { name: 'VITE_HMR_CLIENT_PORT', value: '443' },
-            { name: 'VITE_HMR_PROTOCOL', value: 'wss' },
+            { name: 'VITE_HMR_CLIENT_PORT', value: previewHmr.port },
+            { name: 'VITE_HMR_PROTOCOL', value: previewHmr.protocol },
             ...(input.objectStorage
               ? [
                   { name: 'OBJECT_STORAGE_API_URL', value: input.objectStorage.apiUrl },

@@ -102,6 +102,12 @@ async function snapshots(directory) {
       await save(`command-output-${manifest.length}.json`, await readFile(file, 'utf8'));
     }
 
+    if (entry.name === 'mobile-layout-evidence.json') {
+      // Capture failing compact-shell geometry before its browser context closes.
+      // This explicit projection still passes through redaction and byte budgets.
+      await save(`mobile-layout-${manifest.length}.json`, await readFile(file, 'utf8'));
+    }
+
     if (entry.name === 'error-context.md') {
       await save(`failure-${manifest.length}.md`, await readFile(file, 'utf8'));
     }

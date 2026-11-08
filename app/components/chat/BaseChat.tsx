@@ -3663,7 +3663,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const DEFAULT_RIGHT_PANEL_WIDTH = 280;
     const MIN_RIGHT_PANEL_WIDTH = 272;
     const MAX_RIGHT_PANEL_WIDTH = 360;
-    const [rightPanelOpen, setRightPanelOpen] = useState(true);
+    const [rightPanelOpen, setRestoredRightPanelOpen] = useState(true);
+    const rightPanelVisibilityChanged = useRef(false);
+
+    const setRightPanelOpen = useCallback((nextOpen: React.SetStateAction<boolean>) => {
+      // A late memory response must not undo a newer files-panel interaction.
+      rightPanelVisibilityChanged.current = true;
+      setRestoredRightPanelOpen(nextOpen);
+    }, []);
+
     const [rightPanelMode, setRightPanelMode] = useState<'files' | 'preview-logs'>('files');
     const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
@@ -4927,6 +4935,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       restoredProjectSelectionScope.current = undefined;
       pendingProjectSelectedFile.current = undefined;
       agentPanelWidthChanged.current = false;
+      rightPanelVisibilityChanged.current = false;
     }, [projectIdeMode, projectId]);
 
     useEffect(() => {
@@ -5356,8 +5365,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           const ui = memory.ui;
 
-          if (typeof ui?.rightPanelOpen === 'boolean') {
-            setRightPanelOpen(ui.rightPanelOpen);
+          if (typeof ui?.rightPanelOpen === 'boolean' && !rightPanelVisibilityChanged.current) {
+            setRestoredRightPanelOpen(ui.rightPanelOpen);
           }
 
           if (ui?.rightPanelMode === 'preview-logs') {
@@ -5760,7 +5769,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectIdeMode, rightPanelOpen]);
 
     useEffect(() => {
-      if (!projectIdeMode || !projectFilesPanelRequest) {
+      if (!projectIdeMode || !projectFilesPanelRequest || projectFilesPanelRequest.projectId !== projectId) {
         return;
       }
 
@@ -5778,7 +5787,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         return nextOpen;
       });
-    }, [projectFilesPanelRequest, projectIdeMode, setProjectPanelSearchParam]);
+    }, [projectFilesPanelRequest, projectId, projectIdeMode, setProjectPanelSearchParam]);
 
     useEffect(() => {
       if (!projectIdeMode) {
@@ -5786,7 +5795,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const handleToggleFilesPanel = (event: Event) => {
-        const requestedOpen = (event as CustomEvent<{ open?: boolean }>).detail?.open;
+        const detail = (event as CustomEvent<{ projectId: string; open?: boolean }>).detail;
+
+        if (detail?.projectId !== projectId) {
+          return;
+        }
+
+        const requestedOpen = detail.open;
 
         setRightPanelOpen((currentOpen) => {
           const nextOpen = typeof requestedOpen === 'boolean' ? requestedOpen : !currentOpen;
@@ -5806,7 +5821,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.addEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
 
       return () => window.removeEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
-    }, [projectIdeMode, setProjectPanelSearchParam]);
+    }, [projectId, projectIdeMode, setProjectPanelSearchParam]);
 
     useEffect(() => {
       if (!projectIdeMode || !projectStateReady || selectedFile || !firstProjectFile) {

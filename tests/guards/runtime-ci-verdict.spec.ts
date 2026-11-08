@@ -29,6 +29,15 @@ describe('runtime CI verdict must reflect actual coverage', () => {
 });
 
 describe('ephemeral real runtime boundaries', () => {
+  it('keeps additional mobile diagnostics under the same redaction and byte budgets', () => {
+    const collector = readFileSync('scripts/ci/collect-runtime-evidence.mjs', 'utf8');
+    expect(collector).toContain("entry.name === 'mobile-layout-evidence.json'");
+    expect(collector).toContain('await save(`mobile-layout-${manifest.length}.json`');
+    expect(collector).toContain('Buffer.from(redactRuntimeEvidence(data, credentials))');
+    expect(collector).toContain('const maxFile = 256 * 1024');
+    expect(collector).toContain('const maxTotal = 10 * 1024 * 1024');
+    expect(collector).toContain('maxTotal - 64 * 1024');
+  });
   it('keeps the test run read-only toward GitHub and never obtains cloud credentials', () => {
     expect(workflow.permissions).toEqual({ contents: 'read' });
 

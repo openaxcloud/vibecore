@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import { expect, test, type APIRequestContext, type Browser, type Page, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
@@ -489,6 +490,129 @@ async function assertCompactShellForProfile(
   }
 }
 
+// Keep failure evidence structural: never serialize URLs, input values, HTML, or browser errors.
+async function captureCompactLayoutEvidence(page: Page, testInfo: TestInfo, profileName: string) {
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    const capture = page.evaluate(
+      (allowedPanels: string[]) => {
+        const safePanel = (value: string | null) =>
+          value && (allowedPanels.includes(value) || value === 'chat' || value === 'deploy') ? value : null;
+        const selectors = [
+          '.bolt-responsive-ide-mobile',
+          '[data-testid="mobile-ide-header"]',
+          '[data-testid="mobile-bottom-navigation"]',
+          '[data-testid="tab-preview"]',
+          '[data-testid="mobile-workbench-keepalive"]',
+          '.bolt-workbench-mobile',
+          '.bolt-workbench-mobile > div.fixed',
+          '.bolt-project-webview-tool',
+          '.bolt-project-webview-toolbar',
+          '[data-testid="preview-splash-sequence"]',
+          '[data-testid="preview-not-running-state"]',
+          '[data-testid="ide-service-panel"]',
+          '[role="alert"]',
+        ];
+        const measure = (element: Element) => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+
+          return {
+            connected: element.isConnected,
+            tag: element.tagName,
+            classes: Array.from(element.classList)
+              .filter((name) => /^(bolt-[a-z0-9-]+|fixed|hidden|flex)$/.test(name))
+              .slice(0, 12)
+              .map((name) => name.slice(0, 80)),
+            rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+            area: rect.width * rect.height,
+            display: style.display,
+            visibility: style.visibility,
+            opacity: style.opacity,
+            active: element.getAttribute('data-active') === 'true',
+            ariaHidden: element.getAttribute('aria-hidden') === 'true',
+            mobilePanel: safePanel(element.getAttribute('data-mobile-panel')),
+            servicePanel: safePanel(element.getAttribute('data-panel')),
+            hasFrame: Boolean(element.querySelector('iframe')),
+            hasCanvas: Boolean(element.querySelector('canvas')),
+          };
+        };
+
+        const isVisible = (element: Element) => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+
+          return rect.width > 0 && rect.height > 0 && style.visibility === 'visible' && style.display !== 'none';
+        };
+
+        const visibleHeadings = Array.from(document.querySelectorAll('h1, h2, [role="heading"]')).filter(isVisible);
+
+        return {
+          fallbackState: {
+            rootErrorHeadingVisible: Array.from(document.querySelectorAll('#root-error-heading')).some(isVisible),
+            applicationErrorHeadingVisible: visibleHeadings.some((heading) =>
+              /^(?:Unexpected )?Application Error!?$/i.test((heading.textContent ?? '').trim()),
+            ),
+            routeErrorHeadingVisible: visibleHeadings.some((heading) =>
+              /^Route Error!?$/i.test((heading.textContent ?? '').trim()),
+            ),
+            signInFormVisible: Array.from(document.querySelectorAll('form')).some((form) => {
+              const email = form.querySelector('input[name="email"]');
+              const password = form.querySelector('input[name="password"][autocomplete="current-password"]');
+
+              return Boolean(email && password && isVisible(email) && isVisible(password));
+            }),
+          },
+          readyState: document.readyState,
+          selectedPanel: safePanel(new URL(window.location.href).searchParams.get('panel')),
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            visualWidth: window.visualViewport?.width ?? null,
+            visualHeight: window.visualViewport?.height ?? null,
+            coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+          },
+          surfaces: selectors.map((selector) => {
+            const elements = Array.from(document.querySelectorAll(selector));
+
+            return {
+              selector,
+              count: elements.length,
+              elements: elements.slice(0, 3).map((element) => ({
+                ...measure(element),
+                ancestors: [element.parentElement, element.parentElement?.parentElement]
+                  .filter((ancestor): ancestor is HTMLElement => Boolean(ancestor))
+                  .map(measure),
+              })),
+            };
+          }),
+        };
+      },
+      [...compactIdePanels],
+    );
+    const evidence = await Promise.race([
+      capture.catch(() => null),
+      new Promise<null>((resolve) => {
+        deadline = setTimeout(() => resolve(null), 3_000);
+      }),
+    ]);
+
+    const payload = JSON.stringify({ profile: profileName, evidence }, null, 2);
+
+    await writeFile(
+      testInfo.outputPath('mobile-layout-evidence.json'),
+      Buffer.byteLength(payload, 'utf8') <= 64 * 1024
+        ? payload
+        : JSON.stringify({ profile: profileName, evidence: null, omitted: 'size-limit' }),
+    );
+  } catch {
+    // Diagnostic capture must never replace the original test failure.
+  } finally {
+    clearTimeout(deadline);
+  }
+}
+
 async function assertEveryCompactPanelForProfile(
   browser: Browser,
   auth: AuthPayload,
@@ -535,6 +659,9 @@ async function assertEveryCompactPanelForProfile(
         });
       });
     }
+  } catch (error) {
+    await captureCompactLayoutEvidence(page, testInfo, profile.name);
+    throw error;
   } finally {
     await context.close();
   }
@@ -545,7 +672,8 @@ async function openCompactPanel(page: Page, panel: (typeof compactIdePanels)[num
   const visibleTab = bottomNav.getByTestId(`tab-${panel}`);
 
   if (await visibleTab.isVisible().catch(() => false)) {
-    await visibleTab.click({ force: true });
+    // The shell can change after isVisible; retain the click's actionability checks.
+    await visibleTab.click();
   } else {
     const toolsSheet = await openMobileToolsSheet(page, `panel ${panel}`);
     const toolItem = toolsSheet.getByTestId(`tool-item-${panel}`).first();

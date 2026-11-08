@@ -420,6 +420,9 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
     } else if (panel === 'locks') {
       locator = page.getByText(/Locked|lock/i).first();
       marker = 'locks';
+    } else if (panel === 'domains') {
+      locator = page.locator('[data-testid="ide-service-panel"][data-panel="deployments"] .bolt-project-domains-panel');
+      marker = 'service-panel:deployments/domains';
     } else {
       locator = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
       marker = `service-panel:${panel}`;
@@ -485,7 +488,12 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
 
     try {
       await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
-      await page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).waitFor({
+
+      const servicePanel =
+        panel === 'domains'
+          ? '[data-testid="ide-service-panel"][data-panel="deployments"] .bolt-project-domains-panel'
+          : `[data-testid="ide-service-panel"][data-panel="${panel}"]`;
+      await page.locator(servicePanel).waitFor({
         state: 'visible',
         timeout: 15_000,
       });
@@ -558,15 +566,13 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
     async (page) => {
       const key = `PANEL_AUDIT_UI_SECRET_${Date.now()}`;
       const value = `secret-ui-${Date.now()}`;
-      await page.getByPlaceholder('STRIPE_SECRET_KEY').fill(key);
-      await page.getByPlaceholder('Secret value').fill(value);
-      await Promise.all([
-        waitForPanelResponse(page, 'secrets', 'POST'),
-        page.getByRole('button', { name: '+ New secret' }).click(),
-      ]);
+      await page.getByTestId('secrets-new').click();
+      await page.getByTestId('secrets-form-key').fill(key);
+      await page.getByTestId('secrets-form-value').fill(value);
+      await Promise.all([waitForPanelResponse(page, 'secrets', 'POST'), page.getByTestId('secrets-form-add').click()]);
       await page.getByText(key).waitFor({ state: 'visible', timeout: 10_000 });
       page.once('dialog', (dialog) => void dialog.accept());
-      await page.getByRole('button', { name: `Reveal ${key}` }).click();
+      await page.getByRole('button', { name: `Reveal the value of ${key}`, exact: true }).click();
       await page.getByText(value).waitFor({ state: 'visible', timeout: 10_000 });
     },
     'create_secret_and_reveal_after_explicit_confirmation',
@@ -710,12 +716,16 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
         .locator('.bolt-project-integrations-tabs')
         .getByRole('button', { name: /Webhooks/ })
         .click();
-      await page.getByRole('button', { name: 'Create Webhook' }).click();
+      await page.getByTestId('card-webhooks-list').getByRole('button', { name: 'Create Webhook', exact: true }).click();
       await page.getByPlaceholder('Deployment Notifications').fill(`Integration Audit Webhook ${Date.now()}`);
       await page.getByPlaceholder('https://example.com/webhook').fill('https://example.com/integrations-audit');
       await Promise.all([
         waitForPanelResponse(page, 'integrations', 'POST'),
-        page.getByRole('button', { name: 'Create Webhook' }).last().click(),
+        page
+          .getByTestId('card-webhooks-list')
+          .locator('form')
+          .getByRole('button', { name: 'Create Webhook', exact: true })
+          .click(),
       ]);
       await page.getByText('https://example.com/integrations-audit').waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -941,7 +951,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
   await run(
     'locks',
     async (page) => {
-      await page.getByPlaceholder('Search...').fill('panel-audit');
+      await page.getByRole('textbox', { name: 'Search locked items', exact: true }).fill('panel-audit');
       await page.locator('select').selectOption('files');
       await page.getByText('No locked items found').waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -953,10 +963,12 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
     async (page) => {
       await page.locator('.bolt-project-webview-tool').first().waitFor({ state: 'visible', timeout: 30_000 });
       await page.getByLabel('Preview device').selectOption('mobile');
-      await page.locator('.bolt-project-webview-frame[data-preview-device="mobile"]').waitFor({
-        state: 'visible',
-        timeout: 10_000,
-      });
+      await page
+        .locator('.bolt-project-webview-tool > .bolt-project-webview-frame[data-preview-device="mobile"]')
+        .waitFor({
+          state: 'visible',
+          timeout: 10_000,
+        });
       await page.getByTitle('Webview logs').click();
       await page.locator('.bolt-preview-logs-panel').first().waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -967,10 +979,13 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
     'terminal',
     async (page) => {
       await page.locator('.bolt-project-terminal-direct-panel').first().waitFor({ state: 'visible', timeout: 30_000 });
-      await page.getByRole('button', { name: 'Vibecore Terminal' }).first().waitFor({
-        state: 'visible',
-        timeout: 30_000,
-      });
+      await page
+        .getByRole('button', { name: /^Open shell sessions\. Active session / })
+        .first()
+        .waitFor({
+          state: 'visible',
+          timeout: 30_000,
+        });
       await page.getByRole('button', { name: 'Runtime panels' }).click();
       await page.locator('[data-testid="terminal-hub-panel"]').first().waitFor({ state: 'visible', timeout: 30_000 });
       await page.getByTestId('tab-scripts').click();
