@@ -10,17 +10,57 @@ mkdir -p "$root/downloads" "$root/evidence"
 chmod 700 "$root"
 cd "$root/downloads"
 
+# Retry only transient transport/upstream failures, using the SAME official URL.
+# A fresh query avoids replaying a cached gateway failure; version and digest
+# verification below remain mandatory. Never install partial/error responses.
+download_release() {
+  local url="$1" output="$2" attempt status code retryable
+  local partial="${output}.partial.$$"
+  local separator='?'
+  [[ "$url" != *'?'* ]] || separator='&'
+
+  for attempt in 1 2 3 4; do
+    code=0
+    status="$(curl --fail --location --silent --show-error \
+      --proto '=https' --proto-redir '=https' \
+      --connect-timeout 15 --max-time 180 \
+      --output "$partial" --write-out '%{http_code}' \
+      "${url}${separator}ci_retry=${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}-${attempt}-$(date +%s%N)")" || code=$?
+    if [[ "$code" -eq 0 && "$status" == 200 ]]; then
+      mv -- "$partial" "$output"
+      return 0
+    fi
+    rm -f -- "$partial"
+    retryable=false
+    case "$code" in
+      5|6|7|16|18|28|35|52|55|56|92) retryable=true ;;
+      22)
+        case "$status" in
+          429|500|502|503|504|520|521|522|523|524) retryable=true ;;
+        esac
+        ;;
+    esac
+    printf 'Release download %s failed (attempt %s/4, curl=%s, HTTP=%s).\n' \
+      "$output" "$attempt" "$code" "${status:-unknown}" >&2
+    if [[ "$retryable" != true || "$attempt" -eq 4 ]]; then
+      return 1
+    fi
+    sleep "$((attempt * 10))"
+  done
+  return 1
+}
+
 # Official, versioned releases; verify each download against its release checksum.
 k3s_version='v1.37.2+k3s1'
 gvisor_version='release-20261102.0'
-curl --fail --location --retry 3 "https://github.com/k3s-io/k3s/releases/download/${k3s_version}/k3s" -o k3s
-curl --fail --location --retry 3 "https://github.com/k3s-io/k3s/releases/download/${k3s_version}/sha256sum-amd64.txt" -o k3s-checksums
+download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_version}/k3s" k3s
+download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_version}/sha256sum-amd64.txt" k3s-checksums
 awk '$2 == "k3s" || $2 == "./k3s" { print }' k3s-checksums > k3s.sha256
 [[ $(wc -l < k3s.sha256) -eq 1 ]]
 sha256sum --check k3s.sha256
 printf '%s  k3s\n' '265b3ee6a3198ef14033c63ef46cbb32370d83795199fb6d1b01f21575eddbda' | sha256sum --check -
-curl --fail --location --retry 3 "https://github.com/google/gvisor/releases/download/${gvisor_version}/gvisor-x86_64.tar.bz2" -o gvisor-x86_64.tar.bz2
-curl --fail --location --retry 3 "https://github.com/google/gvisor/releases/download/${gvisor_version}/SHA256SUMS" -o gvisor-checksums
+download_release "https://github.com/google/gvisor/releases/download/${gvisor_version}/gvisor-x86_64.tar.bz2" gvisor-x86_64.tar.bz2
+download_release "https://github.com/google/gvisor/releases/download/${gvisor_version}/SHA256SUMS" gvisor-checksums
 awk '$2 == "gvisor-x86_64.tar.bz2" || $2 == "./gvisor-x86_64.tar.bz2" { print }' gvisor-checksums > gvisor.sha256
 [[ $(wc -l < gvisor.sha256) -eq 1 ]]
 sha256sum --check gvisor.sha256
