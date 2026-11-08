@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
+import { capturePreviewCommandEvidence } from './preview-command-evidence';
 import { serverBackedStaticFiles } from './server-backed-static-fixture';
 
 // Additional live evidence only. The original 18 @runtime cases remain separate and mandatory.
@@ -94,4 +95,10 @@ for (const kind of ['static', 'vite'] as const) {
   );
 }
 
-test.afterEach(cleanupEphemeralRuntimeWorkspaces);
+test.afterEach(async ({ page }, testInfo) => {
+  try {
+    await capturePreviewCommandEvidence(page, testInfo.outputPath('runtime-command-output.json'));
+  } finally {
+    await cleanupEphemeralRuntimeWorkspaces();
+  }
+});

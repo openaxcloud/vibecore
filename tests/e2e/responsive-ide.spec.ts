@@ -878,8 +878,13 @@ test.describe('responsive IDE shell', () => {
     expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
 
-    await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').hover();
-    await expect(page.locator('.bolt-project-tooltip-content').filter({ hasText: /Files/ }).last()).toBeVisible({
+    await page.getByTestId('ide-dock-files').hover();
+    await expect(
+      page
+        .locator('.bolt-project-tooltip-content')
+        .filter({ hasText: /Library/ })
+        .last(),
+    ).toBeVisible({
       timeout: 5000,
     });
     await page.keyboard.press('Escape');
@@ -963,7 +968,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
 
-    await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').click();
+    await page.getByTestId('ide-dock-files').click();
     await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
     await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
   });

@@ -97,6 +97,11 @@ async function snapshots(directory) {
       continue;
     }
 
+    if (entry.name === 'runtime-command-output.json') {
+      // Only the preflight's bounded, redacted visible Server logs projection.
+      await save(`command-output-${manifest.length}.json`, await readFile(file, 'utf8'));
+    }
+
     if (entry.name === 'error-context.md') {
       await save(`failure-${manifest.length}.md`, await readFile(file, 'utf8'));
     }

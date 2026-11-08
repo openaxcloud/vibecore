@@ -1614,13 +1614,13 @@ test(
     await page.getByRole('button', { name: /New checkpoint/ }).click();
     await expect(page.getByText('E2E checkpoint', { exact: true }).first()).toBeVisible({ timeout: 15000 });
 
-    await openIdeTool(/Deployments/);
+    await openIdeTool(/Publish/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=deployments$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]')).toBeVisible({
       timeout: 15000,
     });
     await expect(page.getByRole('tab', { name: /Snapshots/ })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Publish/ }).first()).toBeVisible();
 
     /*
      * The deployments panel was redesigned: it is a deployments list with an
@@ -1629,7 +1629,7 @@ test(
      * rendered any more). Assert the surface it actually ships.
      */
     const deploymentsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]');
-    await expect(deploymentsPanel.getByRole('heading', { name: 'Deployments' })).toBeVisible();
+    await expect(deploymentsPanel.getByRole('heading', { name: 'Publish', exact: true })).toBeVisible();
 
     for (const section of ['Overview', 'Logs', 'Domains', 'Manage']) {
       await expect(deploymentsPanel.getByRole('button', { name: section, exact: true })).toBeVisible();
@@ -1807,7 +1807,7 @@ test(
     await expect(page.getByRole('button', { name: /Move to existing pane/ })).toHaveCount(0);
     await page.getByLabel('Tab actions').first().click();
     await page.getByRole('button', { name: 'Close to right' }).first().click();
-    await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Publish/ }).first()).toBeVisible();
 
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
 

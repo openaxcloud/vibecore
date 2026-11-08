@@ -565,7 +565,7 @@ async function openCompactPanel(page: Page, panel: (typeof compactIdePanels)[num
         message: `${panel} should update the compact IDE panel URL`,
         timeout: 15_000,
       })
-      .toBe(panel);
+      .toBe(panel === 'domains' ? 'deployments' : panel);
   } else if (panel === 'editor') {
     await expect
       .poll(
@@ -682,10 +682,22 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
     return;
   }
 
-  const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
+  // Domains is a shortcut into Publish's Domains view, not a second panel.
+  const servicePanelId = panel === 'domains' ? 'deployments' : panel;
+  const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${servicePanelId}"]`).first();
   await expect(servicePanel, `${profileName} ${panel} service panel`).toBeVisible({ timeout: 45_000 });
   await expect(servicePanel.getByText(/Loading .* from backend/i)).toHaveCount(0, { timeout: 45_000 });
   await expect(servicePanel.getByRole('alert')).toHaveCount(0);
+
+  if (panel === 'domains') {
+    const deployment = servicePanel.locator('.bolt-project-deploy-tool');
+    await expect(
+      deployment.locator('.bolt-project-tool-tabs').getByRole('button', { name: 'Domains', exact: true }),
+      `${profileName} Domains shortcut opens the Domains view`,
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(deployment.locator('.bolt-project-domains-panel input[name="domain"]')).toBeVisible();
+    await expect(deployment.getByTestId('project-domains-scope-notice')).toBeVisible();
+  }
 }
 
 function compactPanelScreenshotTarget(page: Page, panel: (typeof compactIdePanels)[number]) {
@@ -752,8 +764,10 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
     const statusRect = rect(status);
     const activeRect = rect(activeSurface);
 
+    const servicePanelId = panelName === 'domains' ? 'deployments' : panelName;
+
     const servicePanel =
-      Array.from(document.querySelectorAll(`[data-testid="ide-service-panel"][data-panel="${panelName}"]`)).find(
+      Array.from(document.querySelectorAll(`[data-testid="ide-service-panel"][data-panel="${servicePanelId}"]`)).find(
         isVisible,
       ) ?? null;
     const serviceContentViewport =
