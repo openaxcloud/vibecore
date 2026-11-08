@@ -19,7 +19,7 @@ accepted as sufficient evidence.
 
 The actual workspace-agent Dockerfile is built from this commit and loaded into
 the local containerd image store, never pushed to a registry. The normal API,
-Postgres-backed workspace manager and agent run unchanged. The manager provisions
+Postgres-backed workspace manager and agent run the product code under test. The manager provisions
 normal gVisor workspace pods, services, secrets and PVCs. A CI-only loopback
 transport router resolves each real Kubernetes Service and forwards HTTP and
 WebSocket bytes, without generating any runtime response. It avoids changing

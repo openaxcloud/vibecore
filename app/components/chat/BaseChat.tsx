@@ -79,7 +79,7 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Bar } from 'react-chartjs-2';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
 import {
   bringFloatingPaneToFront as engineBringFloatingPaneToFront,
   dockPane as engineDockPane,
@@ -3765,6 +3765,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
     );
 
+    const agentPanelRef = useRef<ImperativePanelHandle>(null);
+    const agentPanelResizeActive = useRef(false);
+    const agentPanelWidthChanged = useRef(false);
+
     const initialBottomTerminalUiState = useMemo(readProjectBottomTerminalUiState, []);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState<boolean>(initialBottomTerminalUiState.open);
     const [terminalBottomHeight, setTerminalBottomHeight] = useState<number>(initialBottomTerminalUiState.height);
@@ -4922,6 +4926,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       gardeDeRestauration.current.oublier();
       restoredProjectSelectionScope.current = undefined;
       pendingProjectSelectedFile.current = undefined;
+      agentPanelWidthChanged.current = false;
     }, [projectIdeMode, projectId]);
 
     useEffect(() => {
@@ -5436,7 +5441,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             );
           }
 
-          if (typeof ui?.agentWidth === 'number') {
+          if (typeof ui?.agentWidth === 'number' && !agentPanelWidthChanged.current) {
             setAgentWidth(clampProjectAgentPanelWidth(ui.agentWidth));
           }
 
@@ -9381,7 +9386,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const rightPanelDefaultSize = panelPixelsToPercent(rightPanelWidth);
     const rightPanelMinSize = panelPixelsToPercent(MIN_RIGHT_PANEL_WIDTH);
     const rightPanelMaxSize = panelPixelsToPercent(MAX_RIGHT_PANEL_WIDTH);
-    const agentPanelDefaultSize = 24;
+    const agentPanelDefaultSize = Math.min(36, Math.max(20, (agentWidth / getProjectPanelAvailableWidth()) * 100));
+
+    /*
+     * defaultSize only applies when the panel mounts. Restore the preferred
+     * width into the live panel too, without treating its initial/programmatic
+     * resize notifications as a user preference. Narrow viewports may constrain
+     * the rendered width; that must not erase the saved width for a wider one.
+     */
+    useEffect(() => {
+      if (projectIdeMode && !useMobileIde && projectAgentPanelOpen && !agentPanelResizeActive.current) {
+        agentPanelRef.current?.resize(agentPanelDefaultSize);
+      }
+    }, [agentPanelDefaultSize, projectAgentPanelOpen, projectIdeMode, useMobileIde]);
 
     const workspacePanelDefaultSize = rightPanelOpen
       ? projectAgentPanelOpen
@@ -9614,15 +9631,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-panel-resize-handle bolt-project-agent-resize-handle"
                 aria-label={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
                 title={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
+                onDragging={(dragging) => {
+                  agentPanelResizeActive.current = dragging;
+                }}
+                onKeyDownCapture={(event) => {
+                  agentPanelResizeActive.current = ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key);
+                }}
+                onKeyUpCapture={() => {
+                  agentPanelResizeActive.current = false;
+                }}
+                onBlur={() => {
+                  agentPanelResizeActive.current = false;
+                }}
               />
               <Panel
                 id="project-agent-panel"
+                ref={agentPanelRef}
                 order={1}
                 defaultSize={agentPanelDefaultSize}
                 minSize={20}
                 maxSize={36}
                 className="bolt-project-panel-slot bolt-project-panel-slot-agent"
-                onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
+                onResize={(size) => {
+                  if (agentPanelResizeActive.current) {
+                    agentPanelWidthChanged.current = true;
+                    setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)));
+                  }
+                }}
               >
                 <section
                   className="bolt-project-ide-panel bolt-project-agent-shell"

@@ -2041,14 +2041,14 @@ test(
     await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
     await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
 
-    const commandPalette = page.getByLabel('Command palette');
+    const commandPalette = page.getByRole('dialog', { name: 'Command palette', exact: true });
     await expect(commandPalette).toBeVisible();
 
     const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
