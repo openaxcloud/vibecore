@@ -254,10 +254,12 @@ async function startRuntimeServices(
     agentUnavailable?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
+    agentTokenDelayMs?: number;
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
+  const socketMessages: string[] = [];
   // Captures the parsed body of every POST /commands/run so tests can assert
   // the exact argv the API dispatched to the workspace pod.
   const commandBodies: Array<{ command: string; args?: string[]; timeoutMs?: number }> = [];
@@ -349,6 +351,7 @@ async function startRuntimeServices(
       socket.send(JSON.stringify({ type: 'stdout', data: 'hello from shell\r\n', timestamp: 'now' }));
       socket.on('message', (raw) => {
         const text = raw.toString();
+        socketMessages.push(text);
 
         // Echo back stdin the way a shell would, still JSON-framed.
         try {
@@ -378,7 +381,7 @@ async function startRuntimeServices(
       managerCalls.push({ pathname: url.pathname, body: body ? JSON.parse(body) : {} });
 
       if (url.pathname.endsWith('/agent-token')) {
-        response.end(JSON.stringify({ token: 'runtime-token' }));
+        setTimeout(() => response.end(JSON.stringify({ token: 'runtime-token' })), options.agentTokenDelayMs ?? 0);
       } else if (url.pathname.endsWith('/logs')) {
         response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
       } else if (
@@ -415,6 +418,7 @@ async function startRuntimeServices(
     files,
     calls,
     commandBodies,
+    socketMessages,
     managerCalls,
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
@@ -5609,6 +5613,102 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       await app.close();
     }
   });
+
+  it.each(['commands/stream', 'terminal'])(
+    'retains immediate input during delayed agent token for %s',
+    async (route) => {
+      const runtime = await startRuntimeServices({ agentTokenDelayMs: 150 });
+      const app = await buildTestApiApp({ store: new TestApiStore() });
+
+      const auth = await register(app, {
+        email: `early-${route.replace('/', '-')}@example.com`,
+        organizationName: 'Early Input Org',
+      });
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Early input' },
+      });
+
+      const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
+      const socket = new WebSocket(
+        `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${project.json().project.id}/${route}?managed=1&token=${encodeURIComponent(auth.token)}`,
+      );
+
+      const hello = JSON.stringify({ type: 'hello', payload: { command: 'echo', args: ['early'] } });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket.once('error', reject);
+          socket.once('open', () => {
+            socket.send(hello);
+            resolve();
+          });
+        });
+        await vi.waitFor(() => expect(runtime.socketMessages).toEqual([hello]), { timeout: 2000 });
+      } finally {
+        socket.terminate();
+        await app.close();
+        await runtime.close();
+      }
+    },
+  );
+
+  it.each(['commands/stream', 'terminal'])(
+    'does not forward immediate input when terminal access is revoked for %s',
+    async (route) => {
+      const runtime = await startRuntimeServices({ agentTokenDelayMs: 150 });
+      const app = await buildTestApiApp({ store: new TestApiStore() });
+
+      const auth = await register(app, {
+        email: `early-${route.replace('/', '-')}@example.com`,
+        organizationName: 'Early Input Org',
+      });
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Early input' },
+      });
+
+      const permission = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.json().project.id}/collaboration/terminal-permissions`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { userId: auth.user.id, sessionId: 'revoked-session', allowed: false },
+      });
+      expect(permission.statusCode).toBe(200);
+      const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
+      const socket = new WebSocket(
+        `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${project.json().project.id}/${route}?managed=1&token=${encodeURIComponent(auth.token)}`,
+      );
+
+      const received: string[] = [];
+      socket.on('message', (raw) => received.push(raw.toString()));
+      const hello = JSON.stringify({ type: 'hello', payload: { command: 'echo', args: ['early'] } });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket.once('error', reject);
+          socket.once('open', () => {
+            socket.send(hello);
+            resolve();
+          });
+        });
+        await vi.waitFor(() => expect(received.join('')).toContain('TERMINAL_ACCESS_DENIED'), { timeout: 2000 });
+        expect(runtime.socketMessages).toEqual([]);
+        expect(runtime.calls.some((call) => call.startsWith('WS '))).toBe(false);
+        expect(runtime.managerCalls.some((call) => call.pathname.endsWith('/agent-token'))).toBe(false);
+      } finally {
+        socket.terminate();
+        await app.close();
+        await runtime.close();
+      }
+    },
+  );
 
   it('passes terminal output through the proxy as single, unwrapped CommandEvent frames', async () => {
     // Regression: the workspace-agent frames terminal output as JSON CommandEvents,

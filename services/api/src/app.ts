@@ -1,3 +1,4 @@
+import { captureRuntimeSocketInput } from './runtime-socket-input.js';
 import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
 import { EXPLICIT_EXTENSION_POLICY, matchesExplicitExtensionPolicy } from './explicit-budget-extension-policy.js';
 import { extensionPermit, explicitBudgetSnapshotDigest, stableExtensionApproval } from './explicit-budget-extension.js';
@@ -20271,9 +20272,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     agentPath: string,
     wrapMessages = true,
     locale: TransactionalLocale = 'en',
-    clientQuery?: unknown,
+    clientQuery: unknown,
+    input: ReturnType<typeof captureRuntimeSocketInput>,
   ) => {
+    if (input.closed) {
+      return;
+    }
+
     const token = await agentToken(workspaceId);
+
+    if (input.closed) {
+      return;
+    }
+
     const client = normalizeRuntimeApiWebSocket(rawSocket);
 
     const upstream = new WebSocket(
@@ -20283,16 +20294,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       { headers: { 'accept-language': locale } },
     );
 
-    const pendingMessages: string[] = [];
-
     let upstreamOpened = false;
 
     upstream.addEventListener('open', () => {
       upstreamOpened = true;
 
-      for (const message of pendingMessages.splice(0)) {
-        upstream.send(message);
-      }
+      input.activate((message) => upstream.send(message));
     });
     upstream.addEventListener('message', async (event) => {
       /*
@@ -20369,21 +20376,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     /*
-     * Bound the pre-open buffer: if the upstream never opens, an active client
-     * could otherwise push unbounded input into memory. Drop oldest past the cap.
-     */
-    const MAX_PENDING_MESSAGES = 1000;
-    client.onMessage((message) => {
-      const text = message.toString();
-
-      if (upstream.readyState === WebSocket.OPEN) {
-        upstream.send(text);
-      } else if (pendingMessages.length < MAX_PENDING_MESSAGES) {
-        pendingMessages.push(text);
-      }
-    });
-
-    /*
      * Long-lived runtime sockets (terminal/logs/watch) can sit idle for minutes
      * while a shell waits for input. The browser client only pings the
      * browser→API direction, so the API→browser leg stays silent and an idle
@@ -20418,7 +20410,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const stopKeepAlive = () => clearInterval(keepAlive);
 
     upstream.addEventListener('close', stopKeepAlive);
-    client.onClose(() => {
+    input.onClose(() => {
       stopKeepAlive();
       upstream.close();
     });
@@ -20485,136 +20477,167 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
-    const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const input = captureRuntimeSocketInput(socket);
 
-    // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
-    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
-      return;
+    let handedOff = false;
+
+    try {
+      const { workspaceId } = parse(workspaceParams, request.params);
+      const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+      // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
+      if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+        return;
+      }
+
+      await proxyRuntimeSocket(
+        socket,
+        authorized.workspaceId,
+        '/commands/stream',
+        false,
+        transactionalLocaleForRequest(request),
+        request.query,
+        input,
+      );
+      handedOff = true;
+    } finally {
+      if (!handedOff) {
+        input.dispose();
+      }
     }
-
-    await proxyRuntimeSocket(
-      socket,
-      authorized.workspaceId,
-      '/commands/stream',
-      false,
-      transactionalLocaleForRequest(request),
-      request.query,
-    );
   });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
-    const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const input = captureRuntimeSocketInput(socket);
 
-    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
-      return;
-    }
+    let handedOff = false;
 
-    /*
-     * The IDE's always-on managed shell (the "bolt" terminal running the dev
-     * server / installs / agent commands) is workspace infrastructure — like
-     * Replit's built-in Console — not a user-opened interactive terminal, so it
-     * must NOT consume the user-facing `terminals.concurrent` quota. Without this,
-     * a free-tier org (limit 1) has that single slot permanently taken by the
-     * managed shell, and every user-opened terminal is 429'd on connect and
-     * flaps forever ("terminal never connects"). User terminals stay metered.
-     */
-    const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
+    try {
+      const { workspaceId } = parse(workspaceParams, request.params);
+      const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
-    if (authorized.organizationId && !isManagedTerminal) {
-      const organizationId = authorized.organizationId;
+      if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+        return;
+      }
 
-      /*
-       * BUG-QUOTA-001 — le créneau appartient à la SESSION, pas au socket. Un
-       * rattachement du même panneau (même `?sessionId`) ne doit pas consommer
-       * un second créneau : sur l'offre gratuite (limite 1), c'est ce qui
-       * rejetait en 429 toute reconnexion — 26× sur un seul `sessionId`, jauge
-       * à 1, un seul shell dans le pod.
-       *
-       * Sans `sessionId`, on retombe sur le décompte par connexion : un
-       * appelant sans identité de panneau stable ne peut pas se rattacher de
-       * toute façon, et lui offrir un créneau gratuit ouvrirait un contournement
-       * du quota (il suffirait d'omettre le paramètre).
-       */
-      const terminalSessionId = (request.query as { sessionId?: unknown } | undefined)?.sessionId;
-      const sessionSlotKey = typeof terminalSessionId === 'string' && terminalSessionId ? terminalSessionId : undefined;
-      const chargeSlot = sessionSlotKey ? acquireTerminalSlot(organizationId, sessionSlotKey) : true;
-
-      /*
-       * Serialize the concurrency check + the +1 so two concurrent terminal opens
-       * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
-       */
-      if (chargeSlot) {
-        try {
-          await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
-            await ensureQuota(request, organizationId, 'terminals.concurrent');
-            await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
-              workspaceId: authorized.workspaceId,
-              sessionId: sessionSlotKey,
-            });
-          });
-        } catch (error) {
-          /*
-           * Le quota refuse : ce socket n'aura jamais de `onClose` qui rembourse,
-           * il faut donc rendre la prise du registre tout de suite. Sans ça, une
-           * session refusée resterait marquée vivante et la reconnexion suivante
-           * se croirait en rattachement — elle passerait SANS être facturée.
-           */
-          if (sessionSlotKey) {
-            releaseTerminalSlot(organizationId, sessionSlotKey);
-          }
-
-          throw error;
-        }
+      if (input.closed) {
+        return;
       }
 
       /*
-       * `terminals.concurrent` is a live-concurrency gauge, but usage is stored
-       * as a lifetime SUM of usageEvent.quantity (computeUsageForQuota falls
-       * through to sumUsage for this key). Without a compensating -1 when the
-       * socket closes, the gauge only ever climbs and every terminal open
-       * eventually 429s for the org — permanently. Record the release exactly
-       * once on close so the running sum tracks actual concurrency.
+       * The IDE's always-on managed shell (the "bolt" terminal running the dev
+       * server / installs / agent commands) is workspace infrastructure — like
+       * Replit's built-in Console — not a user-opened interactive terminal, so it
+       * must NOT consume the user-facing `terminals.concurrent` quota. Without this,
+       * a free-tier org (limit 1) has that single slot permanently taken by the
+       * managed shell, and every user-opened terminal is 429'd on connect and
+       * flaps forever ("terminal never connects"). User terminals stay metered.
        */
-      let released = false;
-      normalizeRuntimeApiWebSocket(socket).onClose(() => {
-        if (released) {
-          return;
+      const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
+
+      if (authorized.organizationId && !isManagedTerminal) {
+        const organizationId = authorized.organizationId;
+
+        /*
+         * BUG-QUOTA-001 — le créneau appartient à la SESSION, pas au socket. Un
+         * rattachement du même panneau (même `?sessionId`) ne doit pas consommer
+         * un second créneau : sur l'offre gratuite (limite 1), c'est ce qui
+         * rejetait en 429 toute reconnexion — 26× sur un seul `sessionId`, jauge
+         * à 1, un seul shell dans le pod.
+         *
+         * Sans `sessionId`, on retombe sur le décompte par connexion : un
+         * appelant sans identité de panneau stable ne peut pas se rattacher de
+         * toute façon, et lui offrir un créneau gratuit ouvrirait un contournement
+         * du quota (il suffirait d'omettre le paramètre).
+         */
+        const terminalSessionId = (request.query as { sessionId?: unknown } | undefined)?.sessionId;
+
+        const sessionSlotKey =
+          typeof terminalSessionId === 'string' && terminalSessionId ? terminalSessionId : undefined;
+
+        const chargeSlot = sessionSlotKey ? acquireTerminalSlot(organizationId, sessionSlotKey) : true;
+
+        /*
+         * Serialize the concurrency check + the +1 so two concurrent terminal opens
+         * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
+         */
+        if (chargeSlot) {
+          try {
+            await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
+              await ensureQuota(request, organizationId, 'terminals.concurrent');
+              await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
+                workspaceId: authorized.workspaceId,
+                sessionId: sessionSlotKey,
+              });
+            });
+          } catch (error) {
+            /*
+             * Le quota refuse : ce socket n'aura jamais de `onClose` qui rembourse,
+             * il faut donc rendre la prise du registre tout de suite. Sans ça, une
+             * session refusée resterait marquée vivante et la reconnexion suivante
+             * se croirait en rattachement — elle passerait SANS être facturée.
+             */
+            if (sessionSlotKey) {
+              releaseTerminalSlot(organizationId, sessionSlotKey);
+            }
+
+            throw error;
+          }
         }
 
-        released = true;
+        /*
+         * `terminals.concurrent` is a live-concurrency gauge, but usage is stored
+         * as a lifetime SUM of usageEvent.quantity (computeUsageForQuota falls
+         * through to sumUsage for this key). Without a compensating -1 when the
+         * socket closes, the gauge only ever climbs and every terminal open
+         * eventually 429s for the org — permanently. Record the release exactly
+         * once on close so the running sum tracks actual concurrency.
+         */
+        let released = false;
+        input.onClose(() => {
+          if (released) {
+            return;
+          }
 
-        /* Symétrique de la prise : on ne rembourse qu'au DERNIER socket de la session. */
-        const refund = sessionSlotKey ? releaseTerminalSlot(organizationId, sessionSlotKey) : true;
+          released = true;
 
-        if (!refund) {
-          return;
-        }
+          /* Symétrique de la prise : on ne rembourse qu'au DERNIER socket de la session. */
+          const refund = sessionSlotKey ? releaseTerminalSlot(organizationId, sessionSlotKey) : true;
 
-        void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
-          workspaceId: authorized.workspaceId,
-          sessionId: sessionSlotKey,
-        }).catch(() => {
-          // Releasing the quota gauge must never crash socket teardown.
+          if (!refund) {
+            return;
+          }
+
+          void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
+            workspaceId: authorized.workspaceId,
+            sessionId: sessionSlotKey,
+          }).catch(() => {
+            // Releasing the quota gauge must never crash socket teardown.
+          });
         });
-      });
-    }
+      }
 
-    /*
-     * The workspace agent's /terminal socket now frames its own output as JSON
-     * `CommandEvent`s (stdout frames), exactly like /commands/stream. Pass them
-     * through unwrapped — wrapping here would double-encode every frame, so the
-     * client would render the inner JSON as literal text instead of shell output.
-     */
-    await proxyRuntimeSocket(
-      socket,
-      authorized.workspaceId,
-      '/terminal',
-      false,
-      transactionalLocaleForRequest(request),
-      request.query,
-    );
+      /*
+       * The workspace agent's /terminal socket now frames its own output as JSON
+       * `CommandEvent`s (stdout frames), exactly like /commands/stream. Pass them
+       * through unwrapped — wrapping here would double-encode every frame, so the
+       * client would render the inner JSON as literal text instead of shell output.
+       */
+      await proxyRuntimeSocket(
+        socket,
+        authorized.workspaceId,
+        '/terminal',
+        false,
+        transactionalLocaleForRequest(request),
+        request.query,
+        input,
+      );
+      handedOff = true;
+    } finally {
+      if (!handedOff) {
+        input.dispose();
+      }
+    }
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
