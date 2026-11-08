@@ -104,6 +104,7 @@ jobs:
           node --test scripts/terminal-warning-diagnostics.checks.mjs
           node --test scripts/audit-ide-panels-selectors.checks.mjs
           node --test scripts/ci/mobile-layout-evidence.checks.mjs
+          node --test scripts/ci/desktop-layout-evidence.checks.mjs
           node --test scripts/panel-persistence-diagnostics.checks.mjs
           python3 scripts/ci/stage-k3s-runtime.checks.py
           pnpm exec vitest run tests/guards/runtime-ci-verdict.spec.ts tests/runtime-ci/server-backed-static-fixture.spec.ts tests/runtime-ci/preview-command-evidence.spec.ts

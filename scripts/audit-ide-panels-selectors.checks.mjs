@@ -20,21 +20,36 @@ test('Domains requires its real subview, not merely the canonical Deploy host; b
   assert.ok(audit.includes("waitForPanelResponse(page, 'domains', 'GET')"));
 });
 
-test('preview selects the device-controlled outer frame unambiguously, rejects wrong device', () => {
-  const selector = '.bolt-project-webview-tool > .bolt-project-webview-frame[data-preview-device="mobile"]';
+test('preview targets the canonical device frame despite nested duplicate wrapper classes', () => {
+  const selector = '[data-testid="preview-device-frame"][data-preview-device="mobile"]';
   assert.ok(audit.includes(selector));
-  assert.ok(
-    baseChat.includes(
-      '<div className="bolt-project-webview-tool">\n              <div className="bolt-project-webview-frame" data-preview-device={previewDevice}>',
-    ),
+
+  const preview = read('app/components/workbench/Preview.tsx');
+  assert.equal(preview.split('data-testid="preview-device-frame"').length - 1, 1);
+  assert.match(
+    preview,
+    /data-testid="preview-device-frame"\s+data-preview-device=\{previewDevice\}[\s\S]*?width: previewViewportWidth/,
   );
 
   const document = new JSDOM(
-    '<div class="bolt-project-webview-tool"><div class="bolt-project-webview-frame" data-preview-device="mobile"><div class="bolt-project-webview-frame" data-preview-device="mobile"></div></div></div>',
+    '<div class="bolt-project-webview-tool"><div class="bolt-project-webview-frame" data-preview-device="mobile"><div class="bolt-project-webview-tool"><div class="bolt-project-webview-frame" data-testid="preview-device-frame" data-preview-device="mobile"></div></div></div></div>',
   ).window.document;
+  assert.equal(
+    document.querySelectorAll('.bolt-project-webview-tool > .bolt-project-webview-frame[data-preview-device="mobile"]')
+      .length,
+    2,
+  );
   assert.equal(document.querySelectorAll(selector).length, 1);
   document.querySelector(selector).setAttribute('data-preview-device', 'desktop');
   assert.equal(document.querySelectorAll(selector).length, 0);
+
+  const assertion = audit.slice(
+    audit.indexOf(`.locator('${selector}')`),
+    audit.indexOf("await page.getByTitle('Webview logs')"),
+  );
+  assert.ok(assertion.includes('.waitFor('));
+  assert.ok(!assertion.includes('.first()'));
+  assert.ok(assertion.includes("page.getByTestId('preview-device-frame').count()) !== 1"));
 });
 
 test('Secrets uses current form controls, explicit reveal action and unchanged security guard', () => {
@@ -134,4 +149,19 @@ test('workflow persistence requires a GET payload containing the actual added sh
   assert.ok(audit.includes('workflow?.tasks?.length === taskCountBefore + 1'));
   assert.ok(audit.includes("String(task.id) === addedTaskId && task.taskType === 'shell'"));
   assert.ok(audit.includes('const reloadPayload = await reloadResponse.json()'));
+});
+
+test('terminal environment saves the same variable through its actual embedded env panel', () => {
+  const action = audit.slice(
+    audit.indexOf("await page.getByTestId('tab-environment').click()"),
+    audit.indexOf("'reset_terminal_run_script_and_save_env'"),
+  );
+  assert.ok(action.includes("page.getByTestId('card-env-vars')"));
+  assert.ok(action.includes("name: 'New variable', exact: true"));
+  assert.ok(action.includes('const key = `TERMINAL_AUDIT_${Date.now()}`'));
+  assert.ok(action.includes("fill('enabled')"));
+  assert.ok(action.includes("waitForWorkspacePanelResponse(page, 'env', 'POST')"));
+  assert.ok(action.includes("name: 'Save variable', exact: true"));
+  assert.ok(action.includes("envPanel.getByText(key, { exact: true }).waitFor({ state: 'visible', timeout: 10_000 })"));
+  assert.ok(baseChat.includes("<ProjectEnvPanel data={{ envVars }} onSubmit={submitToPanel('env')} busy={busy} />"));
 });

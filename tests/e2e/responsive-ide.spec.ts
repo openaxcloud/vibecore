@@ -2,6 +2,7 @@ import { expect, test, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
+import { withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
 
 function isCompactIdeProject(testInfo: TestInfo) {
   return testInfo.project.name === 'mobile' || testInfo.project.name === 'tablet';
@@ -849,129 +850,137 @@ async function expectMobileWebviewStartupFitsViewport(
 }
 
 test.describe('responsive IDE shell', () => {
-  test('desktop keeps the full IDE workspace available', { tag: '@runtime' }, async ({ page }, testInfo) => {
-    test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
-    test.setTimeout(120_000);
+  test(
+    'desktop keeps the full IDE workspace available',
+    { tag: '@runtime' },
+    withDesktopLayoutEvidence(async ({ page }, testInfo) => {
+      test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
+      test.setTimeout(120_000);
 
-    const projectId = await createTestProject(page, 'Responsive desktop project');
+      const projectId = await createTestProject(page, 'Responsive desktop project');
 
-    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45000 });
-    await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
-    await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible();
-    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
-    await expect(
-      page.locator('.bolt-project-file-tree .bolt-file-tree-name', { hasText: /^src$/ }).first(),
-    ).toBeVisible({
-      timeout: 45000,
-    });
-    await expect(
-      page.locator('.bolt-project-file-tree .bolt-file-tree-name', { hasText: /^App\.tsx$/ }).first(),
-    ).toBeVisible({
-      timeout: 45000,
-    });
-
-    const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
-    const viewport = page.viewportSize();
-    expect(agentBox?.width).toBeGreaterThan(260);
-    expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
-
-    await page.getByTestId('ide-dock-files').hover();
-    await expect(
-      page
-        .locator('.bolt-project-tooltip-content')
-        .filter({ hasText: /Library/ })
-        .last(),
-    ).toBeVisible({
-      timeout: 5000,
-    });
-    await page.keyboard.press('Escape');
-
-    const desktopSizes = [
-      { width: 1200, height: 720 },
-      { width: 1440, height: 900 },
-      { width: 1728, height: 960 },
-    ];
-
-    for (const size of desktopSizes) {
-      await page.setViewportSize(size);
-      await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible({ timeout: 5000 });
-
-      const metrics = await page.locator('.bolt-project-ide-panels').evaluate(() => {
-        const readRect = (selector: string) => {
-          const element = document.querySelector(selector);
-
-          if (!element) {
-            throw new Error(`Missing ${selector}`);
-          }
-
-          const box = element.getBoundingClientRect();
-
-          return {
-            top: Math.round(box.top),
-            right: Math.round(box.right),
-            bottom: Math.round(box.bottom),
-            left: Math.round(box.left),
-            width: Math.round(box.width),
-            height: Math.round(box.height),
-          };
-        };
-
-        return {
-          viewport: { width: window.innerWidth, height: window.innerHeight },
-          documentWidth: document.documentElement.scrollWidth,
-          panelGroup: readRect('.bolt-project-panel-group'),
-          rail: readRect('.bolt-project-ide-rail'),
-          statusbar: readRect('.bolt-project-statusbar'),
-          agent: readRect('.bolt-project-agent-shell'),
-          workspace: readRect('.bolt-project-workspace-shell'),
-          rightPanel: readRect('.bolt-project-right-panel-shell'),
-        };
+      await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45000 });
+      await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
+      await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible();
+      await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
+      await expect(
+        page.locator('.bolt-project-file-tree .bolt-file-tree-name', { hasText: /^src$/ }).first(),
+      ).toBeVisible({
+        timeout: 45000,
+      });
+      await expect(
+        page.locator('.bolt-project-file-tree .bolt-file-tree-name', { hasText: /^App\.tsx$/ }).first(),
+      ).toBeVisible({
+        timeout: 45000,
       });
 
-      expect(metrics.documentWidth).toBeLessThanOrEqual(metrics.viewport.width + 1);
-      expect(metrics.panelGroup.bottom).toBeLessThanOrEqual(metrics.statusbar.top);
-      expect(metrics.rail.bottom).toBeLessThanOrEqual(metrics.statusbar.top);
-      expect(metrics.statusbar.left).toBe(metrics.panelGroup.left);
-      expect(metrics.workspace.width).toBeGreaterThan(320);
-      expect(metrics.rightPanel.width).toBeGreaterThanOrEqual(160);
-    }
-  });
+      const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
+      const viewport = page.viewportSize();
+      expect(agentBox?.width).toBeGreaterThan(260);
+      expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
 
-  test('desktop can collapse and restore the right preview panel', { tag: '@runtime' }, async ({ page }, testInfo) => {
-    test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
-    test.setTimeout(120_000);
+      await page.getByTestId('ide-dock-files').hover();
+      await expect(
+        page
+          .locator('.bolt-project-tooltip-content')
+          .filter({ hasText: /Library/ })
+          .last(),
+      ).toBeVisible({
+        timeout: 5000,
+      });
+      await page.keyboard.press('Escape');
 
-    const projectId = await createTestProject(page, 'Responsive files toggle project');
+      const desktopSizes = [
+        { width: 1200, height: 720 },
+        { width: 1440, height: 900 },
+        { width: 1728, height: 960 },
+      ];
 
-    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
+      for (const size of desktopSizes) {
+        await page.setViewportSize(size);
+        await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible({ timeout: 5000 });
 
-    const filesPanelToggle = page.getByTestId('ide-files-panel-toggle');
-    await expect(filesPanelToggle).toBeVisible();
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
+        const metrics = await page.locator('.bolt-project-ide-panels').evaluate(() => {
+          const readRect = (selector: string) => {
+            const element = document.querySelector(selector);
 
-    await filesPanelToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
+            if (!element) {
+              throw new Error(`Missing ${selector}`);
+            }
 
-    await filesPanelToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
+            const box = element.getBoundingClientRect();
 
-    await page.getByRole('button', { name: 'Close right panel' }).click();
-    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
-    await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
+            return {
+              top: Math.round(box.top),
+              right: Math.round(box.right),
+              bottom: Math.round(box.bottom),
+              left: Math.round(box.left),
+              width: Math.round(box.width),
+              height: Math.round(box.height),
+            };
+          };
 
-    await page.getByTestId('ide-dock-files').click();
-    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
-  });
+          return {
+            viewport: { width: window.innerWidth, height: window.innerHeight },
+            documentWidth: document.documentElement.scrollWidth,
+            panelGroup: readRect('.bolt-project-panel-group'),
+            rail: readRect('.bolt-project-ide-rail'),
+            statusbar: readRect('.bolt-project-statusbar'),
+            agent: readRect('.bolt-project-agent-shell'),
+            workspace: readRect('.bolt-project-workspace-shell'),
+            rightPanel: readRect('.bolt-project-right-panel-shell'),
+          };
+        });
+
+        expect(metrics.documentWidth).toBeLessThanOrEqual(metrics.viewport.width + 1);
+        expect(metrics.panelGroup.bottom).toBeLessThanOrEqual(metrics.statusbar.top);
+        expect(metrics.rail.bottom).toBeLessThanOrEqual(metrics.statusbar.top);
+        expect(metrics.statusbar.left).toBe(metrics.panelGroup.left);
+        expect(metrics.workspace.width).toBeGreaterThan(320);
+        expect(metrics.rightPanel.width).toBeGreaterThanOrEqual(160);
+      }
+    }),
+  );
+
+  test(
+    'desktop can collapse and restore the right preview panel',
+    { tag: '@runtime' },
+    withDesktopLayoutEvidence(async ({ page }, testInfo) => {
+      test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
+      test.setTimeout(120_000);
+
+      const projectId = await createTestProject(page, 'Responsive files toggle project');
+
+      await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
+
+      const filesPanelToggle = page.getByTestId('ide-files-panel-toggle');
+      await expect(filesPanelToggle).toBeVisible();
+      await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
+
+      await filesPanelToggle.click();
+      await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
+      await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
+
+      await filesPanelToggle.click();
+      await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
+      await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
+
+      await page.getByRole('button', { name: 'Close right panel' }).click();
+      await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
+      await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
+      await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
+
+      await page.getByTestId('ide-dock-files').click();
+      await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
+      await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
+    }),
+  );
 
   test(
     'desktop opens terminal as a workspace panel from the panel URL',

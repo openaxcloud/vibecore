@@ -1017,12 +1017,15 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
     async (page) => {
       await page.locator('.bolt-project-webview-tool').first().waitFor({ state: 'visible', timeout: 30_000 });
       await page.getByLabel('Preview device').selectOption('mobile');
-      await page
-        .locator('.bolt-project-webview-tool > .bolt-project-webview-frame[data-preview-device="mobile"]')
-        .waitFor({
-          state: 'visible',
-          timeout: 10_000,
-        });
+      await page.locator('[data-testid="preview-device-frame"][data-preview-device="mobile"]').waitFor({
+        state: 'visible',
+        timeout: 10_000,
+      });
+
+      if ((await page.getByTestId('preview-device-frame').count()) !== 1) {
+        throw new Error('Expected exactly one canonical preview device frame');
+      }
+
       await page.getByTitle('Webview logs').click();
       await page.locator('.bolt-preview-logs-panel').first().waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -1053,15 +1056,17 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
       ]);
       await page.getByText('Terminal audit script').waitFor({ state: 'visible', timeout: 20_000 });
       await page.getByTestId('tab-environment').click();
-      await page.getByTestId('button-add-env-var').click();
+
+      const envPanel = page.getByTestId('card-env-vars');
+      await envPanel.getByRole('button', { name: 'New variable', exact: true }).click();
       const key = `TERMINAL_AUDIT_${Date.now()}`;
-      await page.getByTestId('input-env-key').fill(key);
-      await page.getByTestId('input-env-value').fill('enabled');
+      await envPanel.getByPlaceholder('VITE_API_URL', { exact: true }).fill(key);
+      await envPanel.locator('input[name="value"]').fill('enabled');
       await Promise.all([
-        waitForWorkspacePanelResponse(page, 'terminal', 'POST'),
-        page.getByTestId('button-save-env').click(),
+        waitForWorkspacePanelResponse(page, 'env', 'POST'),
+        envPanel.getByRole('button', { name: 'Save variable', exact: true }).click(),
       ]);
-      await page.getByText(key).waitFor({ state: 'visible', timeout: 10_000 });
+      await envPanel.getByText(key, { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
     },
     'reset_terminal_run_script_and_save_env',
   );

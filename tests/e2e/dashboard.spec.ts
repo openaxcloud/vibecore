@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { readIdeUiDetailStyles } from './helpers/ide-ui-detail-styles';
+import { withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
 
 import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
 
@@ -188,21 +189,7 @@ async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
 }
 
 async function clickIdeToolMenuItem(toolMenu: import('@playwright/test').Locator, name: RegExp) {
-  const clicked = await toolMenu.evaluate((menu, pattern) => {
-    const matcher = new RegExp(pattern);
-    const buttons = Array.from(menu.querySelectorAll<HTMLButtonElement>('button'));
-    const button = buttons.find((item) => matcher.test(item.textContent?.replace(/\s+/g, ' ').trim() ?? ''));
-
-    if (!button) {
-      return false;
-    }
-
-    button.click();
-
-    return true;
-  }, name.source);
-
-  expect(clicked, `Tool menu item ${name.toString()} should exist`).toBeTruthy();
+  await toolMenu.getByRole('button', { name }).click();
 }
 
 async function createTestProject(page: import('@playwright/test').Page, name: string) {
@@ -1566,7 +1553,7 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
 test(
   'IDE project services open as in-place panels instead of legacy project pages',
   { tag: '@runtime' },
-  async ({ page, isMobile }) => {
+  withDesktopLayoutEvidence(async ({ page, isMobile }) => {
     test.setTimeout(120_000);
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
@@ -1931,7 +1918,7 @@ test(
     expect(page.url()).not.toContain('/snapshots');
     expect(page.url()).not.toContain('/deployments');
     expect(page.url()).not.toContain('/env-vars');
-  },
+  }),
 );
 
 test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMobile }) => {

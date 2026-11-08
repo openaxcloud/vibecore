@@ -108,6 +108,11 @@ async function snapshots(directory) {
       await save(`mobile-layout-${manifest.length}.json`, await readFile(file, 'utf8'));
     }
 
+    if (entry.name === 'desktop-layout-evidence.json') {
+      // Structural hydration/layout evidence only, captured before teardown.
+      await save(`desktop-layout-${manifest.length}.json`, await readFile(file, 'utf8'));
+    }
+
     if (entry.name === 'error-context.md') {
       await save(`failure-${manifest.length}.md`, await readFile(file, 'utf8'));
     }

@@ -40,6 +40,8 @@ describe('ephemeral real runtime boundaries', () => {
     const collector = readFileSync('scripts/ci/collect-runtime-evidence.mjs', 'utf8');
     expect(collector).toContain("entry.name === 'mobile-layout-evidence.json'");
     expect(collector).toContain('await save(`mobile-layout-${manifest.length}.json`');
+    expect(collector).toContain("entry.name === 'desktop-layout-evidence.json'");
+    expect(collector).toContain('await save(`desktop-layout-${manifest.length}.json`');
     expect(collector).toContain('Buffer.from(redactRuntimeEvidence(data, credentials))');
     expect(collector).toContain('const maxFile = 256 * 1024');
     expect(collector).toContain('const maxTotal = 10 * 1024 * 1024');
