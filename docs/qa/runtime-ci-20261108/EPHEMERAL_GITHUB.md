@@ -9,7 +9,11 @@ It does not include or change PR #892. Nothing is merged or deployed by this wor
 
 The dedicated Ubuntu GitHub-hosted VM runs a fresh single-node k3s cluster with
 local-path persistent volumes and the actual gVisor runtime. Official versioned
-k3s and gVisor downloads are checksum-verified before execution. A real sandbox
+k3s comes from its official `rancher/k3s` OCI image pinned by digest. The image is
+never started: its runtime files are extracted and verified against a complete
+release-derived manifest (file hashes, modes and symlink targets), then staged with
+the launcher’s required PATH and CNI layout. gVisor release downloads are verified
+against both official checksums and a pinned digest before execution. A real sandbox
 probe must expose the gVisor kernel banner; a RuntimeClass declaration is not
 accepted as sufficient evidence.
 
@@ -19,8 +23,9 @@ Postgres-backed workspace manager and agent run unchanged. The manager provision
 normal gVisor workspace pods, services, secrets and PVCs. A CI-only loopback
 transport router resolves each real Kubernetes Service and forwards HTTP and
 WebSocket bytes, without generating any runtime response. It avoids changing
-host DNS settings. Preview uses the API's existing authenticated per-workspace
-preview proxy; this is not a production wildcard/TLS/HMR validation.
+host DNS settings. Preview uses the actual preview-proxy service on loopback port 3020 with
+workspace-specific localhost hostnames; this is not a production wildcard/TLS/HMR
+validation.
 
 The normal sandbox runtime scheduling remains enabled. Production network
 policies and cloud integrations are not installed: this is an isolated runner,
@@ -31,18 +36,19 @@ requests renew activity.
 
 ## Verdict and coverage
 
-All original 18 `@runtime` scenarios and their assertions remain unchanged. The
-only original-spec edits add the guarded teardown import and hook.
+All original 18 `@runtime` scenarios retain their coverage and intent. Original
+specs add guarded teardown and update only selectors/contracts verified against
+the current interface: running-workspace controls, canonical project URLs, the
+agent prompt, Shell controls and the actual queued default-model state.
 Two additional static/Vite preview preflight cases gather evidence against the
 current status-bar DOM; they do not replace the original cases. The full suite
 uses zero retries and no failure-count short circuit. The IDE audit is attempted
 after an executed runtime suite even if it fails, and its report validator runs
 even when the audit command fails. Failure stays failure.
 
-The previous running-status selectors are known to differ from the current UI.
-They deliberately remain unchanged for the first real run so its failure evidence
-can be inspected before any assertion update. A successful preflight does not
-mean the 18-case suite or full IDE audit passed.
+Selector repairs follow failure evidence and current source contracts. They do
+not skip tests, relax timeouts or supply synthetic success. A successful preflight
+does not mean the 18-case suite or full IDE audit passed.
 
 No paid provider keys are passed to this job. Because opening the draft PR also
 triggers ordinary E2E, the existing provider-key expressions there explicitly

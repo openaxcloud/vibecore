@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 
-// Additional live evidence only. The original 18 @runtime cases stay unchanged.
+// Additional live evidence only. The original 18 @runtime cases remain separate and mandatory.
 for (const kind of ['static', 'vite'] as const) {
   test(
     `ephemeral Kubernetes: real ${kind} application reaches the preview`,

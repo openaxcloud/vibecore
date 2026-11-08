@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
+import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 let appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
@@ -374,7 +375,7 @@ async function auditBackendPanels(projectId, cookie) {
   return results;
 }
 
-async function auditPanelRender(projectId, token) {
+async function auditPanelRender(projectId, token, terminalDiagnostics) {
   const browser = await chromium.launch({ headless: true });
   const errors = [];
   const results = [];
@@ -383,6 +384,8 @@ async function auditPanelRender(projectId, token) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     page.on('pageerror', (error) => errors.push(`[${panel}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[${panel}] ${message.text()}`);
       }
@@ -436,6 +439,7 @@ async function auditPanelRender(projectId, token) {
       url: page.url(),
       applicationError,
     });
+    await terminalDiagnostics.flush();
     await page.close();
   }
 
@@ -444,7 +448,7 @@ async function auditPanelRender(projectId, token) {
   return { results, errors };
 }
 
-async function auditCriticalUiInteractions(projectId, token) {
+async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics) {
   const browser = await chromium.launch({ headless: true });
   const errors = [];
   const results = [];
@@ -455,6 +459,8 @@ async function auditCriticalUiInteractions(projectId, token) {
 
     page.on('pageerror', (error) => errors.push(`[ui:${panel}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[ui:${panel}] ${message.text()}`);
       }
@@ -488,6 +494,7 @@ async function auditCriticalUiInteractions(projectId, token) {
       const applicationError = (await page.getByText('Application Error').count()) > 0;
       return { ok: !applicationError, applicationError, backendCalls };
     } finally {
+      await terminalDiagnostics.flush();
       await page.close();
     }
   }
@@ -822,7 +829,7 @@ async function auditCriticalUiInteractions(projectId, token) {
   return { results, errors };
 }
 
-async function auditWorkspaceUiInteractions(projectId, token) {
+async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostics) {
   const browser = await chromium.launch({ headless: true });
   const errors = [];
   const results = [];
@@ -831,6 +838,8 @@ async function auditWorkspaceUiInteractions(projectId, token) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     page.on('pageerror', (error) => errors.push(`[workspace:${panel}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[workspace:${panel}] ${message.text()}`);
       }
@@ -847,6 +856,7 @@ async function auditWorkspaceUiInteractions(projectId, token) {
       const applicationError = (await page.getByText('Application Error').count()) > 0;
       return { ok: !applicationError, applicationError };
     } finally {
+      await terminalDiagnostics.flush();
       await page.close();
     }
   }
@@ -992,7 +1002,7 @@ async function auditWorkspaceUiInteractions(projectId, token) {
   return { results, errors };
 }
 
-async function auditResponsiveViewports(projectId, token) {
+async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
   const browser = await chromium.launch({ headless: true });
   const errors = [];
   const results = [];
@@ -1041,6 +1051,8 @@ async function auditResponsiveViewports(projectId, token) {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
     page.on('pageerror', (error) => errors.push(`[responsive:${viewport.name}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[responsive:${viewport.name}] ${message.text()}`);
       }
@@ -1100,6 +1112,7 @@ async function auditResponsiveViewports(projectId, token) {
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
+      await terminalDiagnostics.flush();
       await page.close();
     }
   }
@@ -1140,14 +1153,15 @@ function networkEvidence(results) {
 }
 
 async function runAuditPass() {
+  const terminalDiagnostics = createTerminalWarningDiagnostics();
   const auth = await registerAuditUser();
   const project = await createAuditProject(auth.token, auth.organization.id);
   const cookie = `vc_session=${auth.token}`;
   const endpointResults = await auditBackendPanels(project.id, cookie);
-  const renderAudit = await auditPanelRender(project.id, auth.token);
-  const interactionAudit = await auditCriticalUiInteractions(project.id, auth.token);
-  const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token);
-  const responsiveAudit = await auditResponsiveViewports(project.id, auth.token);
+  const renderAudit = await auditPanelRender(project.id, auth.token, terminalDiagnostics);
+  const interactionAudit = await auditCriticalUiInteractions(project.id, auth.token, terminalDiagnostics);
+  const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token, terminalDiagnostics);
+  const responsiveAudit = await auditResponsiveViewports(project.id, auth.token, terminalDiagnostics);
   const pageErrors = [
     ...renderAudit.errors,
     ...interactionAudit.errors,
@@ -1180,6 +1194,7 @@ async function runAuditPass() {
     networkEvidence: networkEvidence(results),
     results,
     pageErrors,
+    terminalDiagnostics: terminalDiagnostics.snapshot(),
   };
 }
 

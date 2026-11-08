@@ -101,6 +101,7 @@ jobs:
           node --test scripts/ci/runtime-agent-router.checks.mjs
           node --test scripts/ci/runtime-evidence-redaction.checks.mjs
           node --test scripts/ci/runtime-api-evidence.checks.mjs
+          node --test scripts/terminal-warning-diagnostics.checks.mjs
           python3 scripts/ci/stage-k3s-runtime.checks.py
           pnpm exec vitest run tests/guards/runtime-ci-verdict.spec.ts
           bash -n scripts/ci/provision-runtime-kubernetes.sh scripts/ci/probe-runtime-gvisor.sh

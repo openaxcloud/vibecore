@@ -6,7 +6,8 @@ pinned official OCI image contains its unpacked runtime. Every bundled file,
 mode and symlink below was derived from the SHA256-pinned release ELF's embedded
 archive, and compared with the official linux/amd64 OCI image. Source reference:
 https://github.com/k3s-io/k3s/blob/f6973cb850e9b245585363d15bde80904ac862fd/cmd/k3s/main.go
-The inner cmd/server/main.go explicitly implements the kubectl subcommand.
+Linux tool adapters keep os.Args unchanged: use bundled multicall symlinks,
+just as the outer launcher does, rather than passing a redundant subcommand.
 """
 import hashlib
 import json
@@ -64,13 +65,24 @@ def stage(source, data, commands, manifest):
     # remain intact for containerd/reexec, unlike these explicit host wrappers.
     path_prefix = shlex.quote(f'{cni}:{bundle}/bin:')
     path_suffix = shlex.quote(f':{bundle}/bin/aux')
-    for command, args in [('k3s', ''), ('kubectl', 'kubectl ')]:
+    for command in ['k3s', 'kubectl']:
         wrapper = commands / command
         if wrapper.is_symlink():
             wrapper.unlink()
+        dispatch = ''
+        if command == 'k3s':
+            # cmd/server's reexec.Init selects these tools by argv[0]. Their
+            # Linux adapters do not remove a tool name from os.Args; dispatch
+            # through the official symlink and consume exactly one selector.
+            dispatch = ('case "${1-}" in\n'
+                        '  kubectl|ctr|crictl)\n'
+                        '    tool="$1"; shift\n'
+                        f'    exec {shlex.quote(str(bundle / "bin"))}/"$tool" "$@" ;;\n'
+                        'esac\n')
         wrapper.write_text('#!/bin/sh\n'
                            f'export PATH={path_prefix}"$PATH"{path_suffix}\n'
-                           f'exec {shlex.quote(str(bundle / "bin/k3s"))} {args}"$@"\n')
+                           + dispatch +
+                           f'exec {shlex.quote(str(bundle / "bin" / command))} "$@"\n')
         wrapper.chmod(0o755)
 
 
