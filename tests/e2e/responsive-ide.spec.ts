@@ -1,7 +1,7 @@
-// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
-import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { expect, test, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 
 function isCompactIdeProject(testInfo: TestInfo) {
   return testInfo.project.name === 'mobile' || testInfo.project.name === 'tablet';
@@ -978,8 +978,10 @@ test.describe('responsive IDE shell', () => {
       const projectId = await createTestProject(page, 'Responsive terminal panel project');
 
       await page.goto(`/projects/${projectId}/ide?panel=terminal`, { waitUntil: 'domcontentloaded' });
-      await expect(page.getByRole('tab', { name: /Terminal/ })).toBeVisible({ timeout: 15000 });
-      await expect(page.getByRole('button', { name: 'Vibecore Terminal' })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByRole('tab', { name: 'Shell', exact: true })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByRole('button', { name: /^Open shell sessions\. Active session / })).toBeVisible({
+        timeout: 15000,
+      });
       await expect(page).toHaveURL(/panel=terminal/);
     },
   );

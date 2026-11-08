@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { summarizeRuntimeApi } from './runtime-api-evidence.mjs';
 import { redactRuntimeEvidence } from './runtime-evidence-redaction.mjs';
 
 const exec = promisify(execFile);
@@ -39,7 +40,12 @@ async function save(name, data) {
 
 for (const service of ['api', 'web', 'admin', 'manager', 'router', 'preview', 'gc']) {
   try {
-    await save(`${service}.log`, await readFile(`/tmp/vibecore-${service}.log`, 'utf8'));
+    const data = await readFile(`/tmp/vibecore-${service}.log`, 'utf8');
+    await save(`${service}.log`, data);
+
+    if (service === 'api') {
+      await save('runtime-api-summary.json', JSON.stringify(summarizeRuntimeApi(data), null, 2));
+    }
   } catch {
     manifest.push({ name: `${service}.log`, missing: true });
   }

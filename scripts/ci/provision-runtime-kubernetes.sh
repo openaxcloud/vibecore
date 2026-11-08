@@ -5,6 +5,7 @@ set -euo pipefail
 [[ ${VIBECORE_CI_EPHEMERAL_RUNTIME:-} == 1 ]]
 [[ ${KUBECONFIG:-} == "$RUNNER_TEMP/vibecore-runtime/kubeconfig" ]]
 [[ ! -e "$KUBECONFIG" ]]
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 root="$RUNNER_TEMP/vibecore-runtime"
 mkdir -p "$root/downloads" "$root/evidence"
 chmod 700 "$root"
@@ -54,16 +55,32 @@ download_release() {
   return 1
 }
 
-# Official, versioned releases; verify each download against its release checksum.
+# Official OCI distribution of the exact unpacked pinned release payload.
+# The release launcher and OCI inner ELF have different hashes by design.
+# Validate ALL release-derived files/links/modes, not just the inner binary.
 k3s_version='v1.37.2+k3s1'
-k3s_release_tag=${k3s_version//+/%2B}
 gvisor_version='release-20261102.0'
-download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_release_tag}/k3s" k3s
-download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_release_tag}/sha256sum-amd64.txt" k3s-checksums
-awk '$2 == "k3s" || $2 == "./k3s" { print }' k3s-checksums > k3s.sha256
-[[ $(wc -l < k3s.sha256) -eq 1 ]]
-sha256sum --check k3s.sha256
-printf '%s  k3s\n' '265b3ee6a3198ef14033c63ef46cbb32370d83795199fb6d1b01f21575eddbda' | sha256sum --check -
+k3s_image='docker.io/rancher/k3s@sha256:bc340b84540f351ae23a1cef63b93d05bab20e12318d8186d60ce127c10d2124'
+[[ $(uname -m) == x86_64 ]]
+docker pull --platform linux/amd64 "$k3s_image"
+[[ $(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$k3s_image") == linux/amd64 ]]
+# Create/copy only: never start or run this image. Remove its anonymous volumes.
+container_id=''
+cleanup_k3s_container() {
+  if [[ -n "$container_id" ]]; then docker rm -v "$container_id" >/dev/null; fi
+}
+trap cleanup_k3s_container EXIT
+container_id=$(docker create --platform linux/amd64 "$k3s_image")
+mkdir -p k3s-bundle/bin k3s-bundle/etc
+chmod 755 k3s-bundle/bin k3s-bundle/etc
+docker cp "$container_id:/bin/." k3s-bundle/bin/
+docker rm -v "$container_id" >/dev/null
+container_id=''
+trap - EXIT
+# The release bundle's etc directory is empty; image-generated OS/cert files
+# are intentionally not installed over the Ubuntu runner's /etc.
+sudo python3 "$script_dir/stage-k3s-runtime.py" "$PWD/k3s-bundle" \
+  /var/lib/rancher/k3s/data /usr/local/bin "$script_dir/k3s-runtime-bundle.json"
 download_release "https://github.com/google/gvisor/releases/download/${gvisor_version}/gvisor-x86_64.tar.bz2" gvisor-x86_64.tar.bz2
 download_release "https://github.com/google/gvisor/releases/download/${gvisor_version}/SHA256SUMS" gvisor-checksums
 awk '$2 == "gvisor-x86_64.tar.bz2" || $2 == "./gvisor-x86_64.tar.bz2" { print }' gvisor-checksums > gvisor.sha256
@@ -82,8 +99,6 @@ done
 [[ -f gvisor/gvisor-bin/gvisor_sentry ]]
 sudo install -d -m 0755 /usr/local/bin/gvisor-bin
 sudo install -m 0755 gvisor/gvisor-bin/* /usr/local/bin/gvisor-bin/
-sudo install -m 0755 k3s /usr/local/bin/k3s
-sudo ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl
 sudo mkdir -p /var/lib/rancher/k3s/agent/etc/containerd /etc/containerd
 sudo tee /etc/containerd/vibecore-runsc.toml >/dev/null <<'TOML'
 [runsc_config]
@@ -120,6 +135,8 @@ YAML
 kubectl -n kube-system wait --for=create deployment/local-path-provisioner --timeout=180s
 kubectl -n kube-system rollout status deployment/local-path-provisioner --timeout=180s
 printf 'k3s=%s\ngvisor=%s\n' "$k3s_version" "$gvisor_version" > "$root/evidence/versions.txt"
-cat k3s.sha256 gvisor.sha256 >> "$root/evidence/versions.txt"
+printf 'k3s_image=%s\n' "$k3s_image" >> "$root/evidence/versions.txt"
+sha256sum k3s-bundle/bin/k3s >> "$root/evidence/versions.txt"
+cat gvisor.sha256 >> "$root/evidence/versions.txt"
 runsc --version >> "$root/evidence/versions.txt"
 kubectl version -o json > "$root/evidence/kubernetes-version.json"

@@ -1,7 +1,7 @@
-// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
-import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { expect, test, type APIRequestContext, type Browser, type Page, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 
 type AuthPayload = { token: string; organization: { id: string } };
 
@@ -589,7 +589,7 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
 
   if (panel === 'agent') {
     await expect(
-      page.getByPlaceholder(/Describe what you want the agent to build/i),
+      page.getByRole('textbox', { name: 'Agent prompt', exact: true }),
       `${profileName} agent input`,
     ).toBeVisible({
       timeout: 45_000,

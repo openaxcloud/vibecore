@@ -1,8 +1,8 @@
-// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
-import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { readIdeUiDetailStyles } from './helpers/ide-ui-detail-styles';
 
 import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
@@ -384,11 +384,11 @@ test(
   async ({ page }) => {
     await authenticate(page);
     await page.goto('/dashboard/templates');
-    await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Templates', exact: true })).toBeVisible();
     await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
     await page.getByRole('button', { name: 'Use template' }).first().click();
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30000 });
-    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveURL(/\/@[^/?]+\/[^/?]+$/, { timeout: 30000 });
+    await expect(page.getByRole('button', { name: /^Running workspace(?:\s*\||$)/i })).toBeVisible({ timeout: 15000 });
   },
 );
 
@@ -1713,7 +1713,9 @@ test(
     // The trailing segment is now the active file's language, not 'Project'.
     await expect(statusbar).toContainText('Markdown');
 
-    const workspaceStatusButton = statusbar.getByRole('button', { name: /Running on|Building|Crashed|Stopped/ });
+    const workspaceStatusButton = statusbar.getByRole('button', {
+      name: /^(Running|Building|Crashed|Stopped) workspace(?:\s*\||$)/i,
+    });
     await expect(workspaceStatusButton).toBeVisible();
     await workspaceStatusButton.click();
     await expect(page.getByRole('tab', { name: /Webview/ }).first()).toBeVisible({ timeout: 15000 });
@@ -2033,7 +2035,9 @@ test(
     const projectId = await createTestProject(page, 'E2E edit workflow project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.getByRole('button', { name: /^(Running|Building|Stopped|Crashed) workspace(?:\s*\||$)/i }),
+    ).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
     await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
@@ -2137,7 +2141,7 @@ test(
 
     expect(saveState.ok(), await saveState.text()).toBeTruthy();
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /^Running workspace(?:\s*\||$)/i })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(firstUserMessage)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(assistantMessage)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(secondUserMessage)).toBeVisible({ timeout: 15000 });
