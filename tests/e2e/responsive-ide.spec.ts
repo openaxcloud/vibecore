@@ -1015,7 +1015,7 @@ test.describe('responsive IDE shell', () => {
   test(
     'desktop opens terminal as a workspace panel from the panel URL',
     { tag: '@runtime' },
-    async ({ page }, testInfo) => {
+    withDesktopLayoutEvidence(async ({ page }, testInfo) => {
       test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
       test.setTimeout(120_000);
 
@@ -1027,7 +1027,7 @@ test.describe('responsive IDE shell', () => {
         timeout: 15000,
       });
       await expect(page).toHaveURL(/panel=terminal/);
-    },
+    }),
   );
 
   test('mobile exposes icon-only tab navigation for core IDE panels', async ({ page, isMobile }) => {

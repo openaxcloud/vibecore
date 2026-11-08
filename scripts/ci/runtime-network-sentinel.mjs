@@ -42,23 +42,54 @@ export function guard(env) {
     throw new Error('sentinel_guard');
   }
 }
+
+/** Fixed local module payload; no caller data is reflected or executed. */
+export function sentinelPayload(path) {
+  if (/^\/sentinel-module\/\d{1,5}\.mjs$/.test(path)) {
+    return { type: 'text/javascript', body: 'export const sentinel = "sentinel";' };
+  }
+
+  return { type: 'text/plain', body: 'sentinel' };
+}
+
+/** Serialized into Chromium; injectable importer only supports data-only unit checks. */
+export async function sampleModule(path, importer = (target) => import(target), timeout = 3000) {
+  let timer;
+
+  try {
+    return await Promise.race([
+      Promise.resolve()
+        .then(() => importer(path))
+        .then((module) => module.sentinel === 'sentinel')
+        .catch(() => false),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(false), timeout);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 export function phaseReport() {
   return {
     startedAt: Date.now(),
     endedAt: null,
     node: { attempted: 0, succeeded: 0, failed: 0 },
     chromium: { attempted: 0, succeeded: 0, failed: 0, networkChanged: 0 },
+    chromiumModule: { attempted: 0, succeeded: 0, failed: 0, networkChanged: 0 },
     network: { address: 0, link: 0 },
     events: [],
     omittedEvents: 0,
   };
 }
 export function recordEvent(phase, type, time = Date.now()) {
-  if (!phase || !['address', 'link', 'networkChanged'].includes(type)) {
+  if (!phase || !['address', 'link', 'networkChanged', 'moduleNetworkChanged'].includes(type)) {
     return;
   }
 
-  if (type === 'networkChanged') {
+  if (type === 'moduleNetworkChanged') {
+    phase.chromiumModule.networkChanged++;
+  } else if (type === 'networkChanged') {
     phase.chromium.networkChanged++;
   } else {
     phase.network[type]++;
@@ -196,8 +227,6 @@ export async function run(env = process.env) {
   let monitorStopping = false;
 
   const server = http.createServer((request, response) => {
-    response.setHeader('connection', 'close');
-
     if (request.url === '/') {
       response.end('<!doctype html><title>Loopback sentinel</title>');
       return;
@@ -206,7 +235,10 @@ export async function run(env = process.env) {
     setTimeout(() => {
       if (!response.destroyed) {
         response.setHeader('cache-control', 'no-store');
-        response.end('sentinel');
+
+        const payload = sentinelPayload(request.url);
+        response.setHeader('content-type', payload.type);
+        response.end(payload.body);
       }
     }, 400);
   });
@@ -231,9 +263,16 @@ export async function run(env = process.env) {
 
     const page = await browser.newPage();
     await page.goto(origin, { timeout: 5000 });
+
+    const requestPhases = new WeakMap();
+    page.on('request', (request) => requestPhases.set(request, phase));
     page.on('requestfailed', (request) => {
       if (request.failure()?.errorText === 'net::ERR_NETWORK_CHANGED') {
-        recordEvent(phase, 'networkChanged');
+        const kind = request.resourceType();
+
+        if (kind === 'script' || kind === 'fetch') {
+          recordEvent(requestPhases.get(request), kind === 'script' ? 'moduleNetworkChanged' : 'networkChanged');
+        }
       }
     });
     monitor = spawn('ip', ['-o', 'monitor', 'address', 'link'], { stdio: ['ignore', 'pipe', 'ignore'] });
@@ -253,7 +292,12 @@ export async function run(env = process.env) {
       monitorProjection((type) => recordEvent(phase, type)),
     );
 
+    let moduleSequence = 0;
+
     async function sample(current) {
+      const modulePath = `/sentinel-module/${moduleSequence++}.mjs`;
+      current.chromiumModule.attempted++;
+
       for (const client of ['node', 'chromium']) {
         current[client].attempted++;
       }
@@ -276,6 +320,12 @@ export async function run(env = process.env) {
           .catch(() => false)
           .then((ok) => {
             current.chromium[ok ? 'succeeded' : 'failed']++;
+          }),
+        page
+          .evaluate(sampleModule, modulePath)
+          .catch(() => false)
+          .then((ok) => {
+            current.chromiumModule[ok ? 'succeeded' : 'failed']++;
           }),
       ]);
     }

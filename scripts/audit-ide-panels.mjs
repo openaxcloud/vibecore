@@ -388,6 +388,7 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
 
   for (const panel of workspacePanels) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     page.on('pageerror', (error) => errors.push(`[${panel}] ${error.message}`));
     page.on('console', (message) => {
@@ -465,6 +466,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
 
   async function withPanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     const backendCalls = [];
 
@@ -673,11 +675,10 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
       }
 
       const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]');
-      const workbench = databasePanel.locator('.bolt-database-workbench');
 
       // An unprefixed DATABASE_URL has environment shared, so its card displays the exact key.
       // Do not open the card: configuration persistence does not require contacting audit.local.
-      await workbench
+      await databasePanel
         .getByTestId('db-carte')
         .getByText('DATABASE_URL', { exact: true })
         .waitFor({ state: 'visible', timeout: 10_000 });
@@ -951,6 +952,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
 
   async function withWorkspacePanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     page.on('pageerror', (error) => errors.push(`[workspace:${panel}] ${error.message}`));
     page.on('console', (message) => {
@@ -1178,6 +1180,7 @@ async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
 
   for (const viewport of viewports) {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
+    browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     page.on('pageerror', (error) => errors.push(`[responsive:${viewport.name}] ${error.message}`));
     page.on('console', (message) => {

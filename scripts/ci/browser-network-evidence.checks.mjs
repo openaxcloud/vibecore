@@ -16,6 +16,8 @@ test('retains only fixed classifications and timestamps for actual failed reques
     resource: 'script',
     origin: 'app',
     route: 'builtScript',
+    ageMs: null,
+    phase: 'unknown',
   });
   assert.doesNotMatch(JSON.stringify(output), /PRIVATE|http|token/);
   assert.equal(
@@ -61,13 +63,13 @@ test('passive IP timeline coalesces seconds and remains bounded without raw line
   timeline.capture('PRIVATE_INTERFACE', 1);
 
   for (let i = 0; i < 10000; i++) {
-    timeline.capture('address', i * 1000);
-    timeline.capture('link', i * 1000);
+    timeline.capture('address', 1794161000000 + i * 1000);
+    timeline.capture('link', 1794161000000 + i * 1000);
   }
 
   const result = timeline.snapshot();
   assert.deepEqual(result.counts, { address: 10000, link: 10000 });
-  assert.equal(result.events.length, 384);
+  assert.equal(result.events.length, 256);
   assert.ok(Buffer.byteLength(JSON.stringify(result)) < 28 * 1024);
   assert.doesNotMatch(JSON.stringify(result), /PRIVATE/);
 });
@@ -127,4 +129,51 @@ test('observer shutdown exits cleanly once and forcibly bounds a blocked final w
   void blocked();
   assert.equal(await exited, 1);
   assert.ok(Date.now() - started < 1000);
+});
+
+test('preserves exact bucket boundaries and bounded age without arbitrary phase text', async () => {
+  const { createNetworkTimeline } = await import('./runtime-network-observer.mjs');
+  const timeline = createNetworkTimeline();
+  timeline.capture('address', 1234);
+  timeline.capture('address', 1999);
+  timeline.capture('address', 1100);
+  assert.deepEqual(timeline.snapshot().events, [
+    { time: 1000, type: 'address', count: 3, firstAt: 1100, lastAt: 1999 },
+  ]);
+
+  const timed = { ...request('http://127.0.0.1:5173/api/private'), timing: () => ({ startTime: 100 }) };
+  assert.equal(projectRequestFailure(timed, 1234, 'loaded').ageMs, 1134);
+  assert.equal(projectRequestFailure(timed, 1e12, 'PRIVATE').ageMs, 4500000);
+  assert.equal(projectRequestFailure(timed, 99).ageMs, null);
+  assert.doesNotMatch(JSON.stringify(projectRequestFailure(timed, 200, 'PRIVATE')), /PRIVATE/);
+});
+
+test('tracks fixed page lifecycle and detaches without changing navigation', async () => {
+  const { EventEmitter } = await import('node:events');
+  const page = new EventEmitter();
+  const frame = {};
+  page.mainFrame = () => frame;
+
+  const evidence = createBrowserNetworkEvidence();
+  const stop = evidence.trackPage(page);
+
+  const req = {
+    ...request('http://localhost:5173/assets/private.js'),
+    frame: () => frame,
+    isNavigationRequest: () => true,
+  };
+  evidence.capture(req);
+  page.emit('request', req);
+  evidence.capture(req);
+  page.emit('domcontentloaded');
+  evidence.capture(req);
+  page.emit('load');
+  evidence.capture(req);
+  stop();
+  evidence.capture(req);
+  assert.deepEqual(
+    evidence.snapshot().events.map((e) => e.phase),
+    ['initial', 'loading', 'interactive', 'loaded', 'closed'],
+  );
+  assert.equal(page.eventNames().length, 0);
 });

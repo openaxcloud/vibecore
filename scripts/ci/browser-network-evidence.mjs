@@ -1,9 +1,20 @@
 /** Classify in memory; never retain arbitrary URLs, errors, IDs or request data. */
-export function projectRequestFailure(request, time = Date.now()) {
+export function projectRequestFailure(request, time = Date.now(), phase = 'unknown') {
   let error = 'other';
   let resource = 'other';
   let origin = 'other';
   let route = 'other';
+  let ageMs = null;
+
+  try {
+    const start = request.timing().startTime;
+
+    if (Number.isFinite(start) && start > 0 && Number.isFinite(time) && time >= start) {
+      ageMs = Math.min(75 * 60_000, Math.floor(time - start));
+    }
+  } catch {
+    /* Timing may be unavailable for a closed request. */
+  }
 
   try {
     const errors = {
@@ -54,14 +65,62 @@ export function projectRequestFailure(request, time = Date.now()) {
     /* Missing/closed request data stays in fixed unknown categories. */
   }
 
-  return { time: Number.isFinite(time) ? time : null, error, resource, origin, route };
+  return {
+    time: Number.isFinite(time) ? time : null,
+    error,
+    resource,
+    origin,
+    route,
+    ageMs,
+    phase: ['initial', 'loading', 'interactive', 'loaded', 'closed'].includes(phase) ? phase : 'unknown',
+  };
 }
 export function createBrowserNetworkEvidence() {
   const events = [];
+  const phases = new WeakMap();
 
   let total = 0;
 
   return {
+    trackPage(page) {
+      let frame;
+
+      try {
+        frame = page.mainFrame();
+      } catch {
+        return () => {};
+      }
+
+      const set = (phase) => phases.set(frame, phase);
+      set('initial');
+
+      const onRequest = (request) => {
+        try {
+          if (request.isNavigationRequest() && request.frame() === frame) {
+            set('loading');
+          }
+        } catch {
+          /* Detached frames have no usable lifecycle. */
+        }
+      };
+
+      const onDom = () => set('interactive');
+      const onLoad = () => set('loaded');
+
+      const stop = () => {
+        set('closed');
+        page.off('request', onRequest);
+        page.off('domcontentloaded', onDom);
+        page.off('load', onLoad);
+        page.off('close', stop);
+      };
+      page.on('request', onRequest);
+      page.on('domcontentloaded', onDom);
+      page.on('load', onLoad);
+      page.on('close', stop);
+
+      return stop;
+    },
     capture(request) {
       total++;
 
@@ -69,7 +128,14 @@ export function createBrowserNetworkEvidence() {
         events.splice(32, 1);
       }
 
-      events.push(projectRequestFailure(request));
+      let phase = 'unknown';
+
+      try {
+        phase = phases.get(request.frame()) ?? 'unknown';
+      } catch {
+        /* Detached request. */
+      }
+      events.push(projectRequestFailure(request, Date.now(), phase));
     },
     snapshot() {
       return { total, omitted: Math.max(0, total - events.length), events: [...events] };

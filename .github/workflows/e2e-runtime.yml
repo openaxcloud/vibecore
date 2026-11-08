@@ -123,6 +123,7 @@ jobs:
           app/components/chat/project-right-width-restore.spec.tsx
           app/components/database/DatabaseWorkbench.renders-databases.spec.tsx
           tests/guards/runtime-agent-geometry.spec.ts
+          tests/guards/runtime-preview-measurement.spec.ts
           tests/guards/runtime-workspace-status-navigation.spec.ts
           tests/guards/runtime-ui-panel-bounds.spec.ts
           tests/guards/runtime-tool-menu-click.spec.tsx

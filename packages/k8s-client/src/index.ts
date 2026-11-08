@@ -653,6 +653,14 @@ export function workspaceAgentSecret(input: WorkspaceRuntimeInput): K8sObject {
   };
 }
 
+// Configuration diagnostics remain machine-readable; the manager localizes public failures.
+class PreviewUrlTemplateError extends Error {
+  constructor(readonly code: 'PREVIEW_URL_TEMPLATE_INVALID_URL' | 'PREVIEW_URL_TEMPLATE_UNSAFE_URL') {
+    super(code);
+    this.name = 'PreviewUrlTemplateError';
+  }
+}
+
 /**
  * Match browser HMR to the platform's public preview origin, not the pod port.
  * Keep the existing TLS production default when no custom URL is configured.
@@ -671,11 +679,11 @@ function previewHmrTransport(template = process.env.PREVIEW_URL_TEMPLATE) {
   try {
     url = new URL(template.replaceAll('{workspaceId}', 'workspace-probe').replaceAll('{port}', '5173'));
   } catch {
-    throw new Error('PREVIEW_URL_TEMPLATE must be an absolute HTTP or HTTPS URL');
+    throw new PreviewUrlTemplateError('PREVIEW_URL_TEMPLATE_INVALID_URL');
   }
 
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
-    throw new Error('PREVIEW_URL_TEMPLATE must use HTTP or HTTPS without credentials');
+    throw new PreviewUrlTemplateError('PREVIEW_URL_TEMPLATE_UNSAFE_URL');
   }
 
   return {

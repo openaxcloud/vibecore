@@ -2,7 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DatabaseWorkbench } from './DatabaseWorkbench';
 
@@ -74,7 +75,31 @@ describe('DatabaseWorkbench — ce que le panneau AFFICHE réellement', () => {
       makeFetcher(),
     ];
 
-    render(<DatabaseWorkbench projectId="audit-project" />);
+    const { container } = render(
+      <section data-testid="ide-service-panel" data-panel="database">
+        <DatabaseWorkbench projectId="audit-project" />
+      </section>,
+    );
+
+    // Read the audit's actual full root scope, not a card-only approximation.
+    const audit = readFileSync('scripts/audit-ide-panels.mjs', 'utf8');
+    const scope = audit.match(/const databasePanel = page\.locator\('([^']+)'\);/);
+    expect(scope).not.toBeNull();
+
+    const panel = container.querySelector(scope![1]);
+    expect(panel).not.toBeNull();
+
+    const card = within(panel as HTMLElement).getByTestId('db-carte');
+    expect(within(card).getByText('DATABASE_URL', { exact: true })).toBeTruthy();
+
+    const action = audit.slice(
+      audit.indexOf('const databasePanel'),
+      audit.indexOf("'save_database_url_visible_after_backend_reload'"),
+    );
+    expect(action).toMatch(
+      /await databasePanel\s*\.getByTestId\('db-carte'\)\s*\.getByText\('DATABASE_URL', \{ exact: true \}\)/,
+    );
+    expect(action.slice(action.indexOf(';'))).not.toContain('.locator(');
 
     expect(screen.getByTestId('db-carte').textContent).toContain('DATABASE_URL');
     expect(fetchers[2].load).not.toHaveBeenCalled();

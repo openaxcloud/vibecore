@@ -302,18 +302,32 @@ describe('workspace Kubernetes manifests', () => {
     }
   });
 
-  it.each(['file:///tmp/preview', 'https://user:password@preview.example', 'not a URL'])(
-    'rejects unsafe or invalid public preview transport %s',
-    (template) => {
-      vi.stubEnv('PREVIEW_URL_TEMPLATE', template);
+  it.each([
+    ['not a URL', 'PREVIEW_URL_TEMPLATE_INVALID_URL'],
+    ['file:///tmp/preview', 'PREVIEW_URL_TEMPLATE_UNSAFE_URL'],
+    ['https://user:password@preview.example', 'PREVIEW_URL_TEMPLATE_UNSAFE_URL'],
+    ['http://user@preview.example', 'PREVIEW_URL_TEMPLATE_UNSAFE_URL'],
+    ['https://:password@preview.example', 'PREVIEW_URL_TEMPLATE_UNSAFE_URL'],
+  ])('rejects unsafe or invalid public preview transport %s', (template, code) => {
+    vi.stubEnv('PREVIEW_URL_TEMPLATE', template);
+
+    try {
+      let caught: unknown;
 
       try {
-        expect(() => workspacePod(input)).toThrow(/PREVIEW_URL_TEMPLATE/);
-      } finally {
-        vi.unstubAllEnvs();
+        workspacePod(input);
+      } catch (error) {
+        caught = error;
       }
-    },
-  );
+
+      expect(caught).toBeInstanceOf(Error);
+      expect(caught).toMatchObject({ name: 'PreviewUrlTemplateError', code, message: code });
+      expect((caught as Error).message).not.toContain(template);
+      expect((caught as Error).stack).not.toContain('user:password');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 
   describe('resolvePlanResourcesTable (env-configurable fallback plan resources)', () => {
     it('keeps free/pro at their unchanged defaults with no override', () => {

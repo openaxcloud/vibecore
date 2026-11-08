@@ -3,6 +3,7 @@ import { expect, test, type APIRequestContext, type Browser, type Page, type Tes
 import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
+import { withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
 
 type AuthPayload = { token: string; organization: { id: string } };
 
@@ -641,24 +642,26 @@ async function assertEveryCompactPanelForProfile(
   const page = await context.newPage();
 
   try {
-    await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.bolt-responsive-ide-mobile'), `${profile.name} compact shell`).toBeVisible({
-      timeout: 90_000,
-    });
-
-    for (const panel of compactIdePanels) {
-      await test.step(`${profile.name} ${panel}`, async () => {
-        await openCompactPanel(page, panel);
-        await assertCompactPanelRendered(page, profile.name, panel);
-        await assertCompactPanelLayout(page, profile.name, panel);
-
-        const screenshotTarget = compactPanelScreenshotTarget(page, panel);
-        await testInfo.attach(`${profile.name}-${panel}`, {
-          body: await screenshotTarget.screenshot({ animations: 'disabled' }),
-          contentType: 'image/png',
-        });
+    await withDesktopLayoutEvidence(async () => {
+      await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('.bolt-responsive-ide-mobile'), `${profile.name} compact shell`).toBeVisible({
+        timeout: 90_000,
       });
-    }
+
+      for (const panel of compactIdePanels) {
+        await test.step(`${profile.name} ${panel}`, async () => {
+          await openCompactPanel(page, panel);
+          await assertCompactPanelRendered(page, profile.name, panel);
+          await assertCompactPanelLayout(page, profile.name, panel);
+
+          const screenshotTarget = compactPanelScreenshotTarget(page, panel);
+          await testInfo.attach(`${profile.name}-${panel}`, {
+            body: await screenshotTarget.screenshot({ animations: 'disabled' }),
+            contentType: 'image/png',
+          });
+        });
+      }
+    })({ page, isMobile: true }, testInfo);
   } catch (error) {
     await captureCompactLayoutEvidence(page, testInfo, profile.name);
     throw error;
@@ -741,16 +744,52 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
     await expect(previewSurface, `${profileName} preview surface`).toBeVisible({ timeout: 45_000 });
     await expect(previewControls, `${profileName} preview controls`).toBeVisible({ timeout: 45_000 });
 
-    const previewState = await previewSurface.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const textLength = (element.textContent ?? '').replace(/\s+/g, '').length;
+    /*
+     * Resolve :visible:first and measure in one turn. A shell handoff can detach
+     * a locator's resolved handle before evaluate runs; the exact CI interleaving
+     * is not known. A missing/hidden current surface must still fail immediately.
+     */
+    const previewState = await page.evaluate(() => {
+      for (const element of document.querySelectorAll<HTMLElement>('.bolt-workbench-mobile > div.fixed')) {
+        if (!element.isConnected) {
+          continue;
+        }
 
-      return {
-        area: rect.width * rect.height,
-        hasFrame: Boolean(element.querySelector('iframe')),
-        hasCanvas: Boolean(element.querySelector('canvas')),
-        textLength,
-      };
+        const style = getComputedStyle(element);
+
+        /*
+         * Playwright can count visible children of display:contents as :visible.
+         * Do not skip its zero-sized box and pass using a later matching surface.
+         */
+        if (style.display === 'contents') {
+          throw new Error('Expected the Preview surface to own a layout box');
+        }
+
+        if (
+          style.display === 'none' ||
+          style.visibility !== 'visible' ||
+          (typeof element.checkVisibility === 'function' && !element.checkVisibility())
+        ) {
+          continue;
+        }
+
+        const rect = element.getBoundingClientRect();
+
+        if (rect.width <= 0 || rect.height <= 0) {
+          continue;
+        }
+
+        const textLength = (element.textContent ?? '').replace(/\s+/g, '').length;
+
+        return {
+          area: rect.width * rect.height,
+          hasFrame: Boolean(element.querySelector('iframe')),
+          hasCanvas: Boolean(element.querySelector('canvas')),
+          textLength,
+        };
+      }
+
+      throw new Error('Expected a connected visible Preview surface');
     });
 
     expect(previewState.area, `${profileName} preview area`).toBeGreaterThan(80_000);

@@ -5,6 +5,8 @@ import {
   guard,
   monitorProjection,
   phaseReport,
+  sentinelPayload,
+  sampleModule,
   recordEvent,
   serializeReport,
   cycles,
@@ -49,7 +51,7 @@ test('bounds events and serialized evidence, redacting generated credentials', (
   const report = phaseReport();
 
   for (let i = 0; i < 10000; i++) {
-    recordEvent(report, 'link', i);
+    recordEvent(report, 'link', 1794162000000 + i);
   }
   recordEvent(report, 'PRIVATE_SECRET', 1);
   assert.equal(report.events.length, 128);
@@ -163,4 +165,45 @@ test('cycle boundaries retain only three numeric indexes and fixed timestamp fie
       serializeReport({ cycleBoundaries: records, phases: { baseline: phase, mutation: phase, recovery: phase } }),
     ) < MAX_BYTES,
   );
+});
+
+test('module sampling uses fixed same-origin content and retains original bounded lifecycle', () => {
+  assert.deepEqual(sentinelPayload('/sentinel-module/12.mjs'), {
+    type: 'text/javascript',
+    body: 'export const sentinel = "sentinel";',
+  });
+  assert.doesNotMatch(JSON.stringify(sentinelPayload('/PRIVATE?secret=PRIVATE')), /PRIVATE/);
+  assert.deepEqual(phaseReport().chromiumModule, { attempted: 0, succeeded: 0, failed: 0, networkChanged: 0 });
+
+  const source = readFileSync(new URL('./runtime-network-sentinel.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /setHeader\('connection', 'close'\)/);
+  assert.match(source, /server.listen\(0, '127.0.0.1'\)/);
+  assert.match(source, /const modulePath = `\/sentinel-module\/\$\{moduleSequence\+\+\}\.mjs`/);
+  assert.match(source, /module\.sentinel === 'sentinel'/);
+});
+
+test('module timeouts and late responses never become successes or fetch network failures', async () => {
+  assert.equal(await sampleModule('/fixed', async () => ({ sentinel: 'sentinel' })), true);
+  assert.equal(await sampleModule('/fixed', async () => ({ sentinel: 'wrong' })), false);
+
+  let resolve;
+
+  const pending = new Promise((done) => {
+    resolve = done;
+  });
+
+  const started = Date.now();
+  const result = await sampleModule('/fixed', () => pending, 20);
+  assert.equal(result, false);
+  assert.ok(Date.now() - started < 1000);
+  resolve({ sentinel: 'sentinel' });
+  await Promise.resolve();
+  assert.equal(result, false);
+
+  const phase = phaseReport();
+  recordEvent(phase, 'moduleNetworkChanged', 1794162000123);
+  assert.equal(phase.chromium.networkChanged, 0);
+  assert.equal(phase.chromiumModule.networkChanged, 1);
+  recordEvent(phase, 'networkChanged', 1794162000124);
+  assert.equal(phase.chromium.networkChanged, 1);
 });

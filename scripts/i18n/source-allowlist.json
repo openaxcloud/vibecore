@@ -785,15 +785,6 @@
       "expiresOn": "2027-08-05"
     },
     {
-      "id": "dormant-workspace-sdk-client-diagnostic",
-      "path": "packages/workspace-sdk/src/index.ts",
-      "rule": "error-message",
-      "textPattern": "^Workspace agent request failed: \\{…\\}$",
-      "justification": "WorkspaceAgentClient has no production instantiation; workspace-manager/agent import only token/event helpers. Active agent calls use localized service contracts, so this private SDK exception cannot render.",
-      "owner": "workspace-platform",
-      "expiresOn": "2026-11-05"
-    },
-    {
       "id": "workspace-agent-secret-derivation-invariants",
       "path": "packages/workspace-sdk/src/index.ts",
       "rule": "error-message",
@@ -801,15 +792,6 @@
       "justification": "Programmer-error invariants on a server-internal function. Both call sites are in services/workspace-manager (manager.ts:670 and :1506); rootSecret comes from the manager's configured token secret and workspaceId from an internal identifier, so neither argument is reachable from user input. Throwing here means a misconfigured deployment, not a user action, and the message never crosses a rendered surface.",
       "owner": "workspace-platform",
       "expiresOn": "2027-08-05"
-    },
-    {
-      "id": "skill-audit-proof-cli-diagnostics",
-      "path": "services/api/scripts/skill-audit-proof.ts",
-      "rule": "error-message",
-      "textPattern": "^(?:real skill failed to parse: \\{…\\}|fixture failed to parse: \\{…\\})$",
-      "justification": "This executable is an operator/CI proof script, not imported by the API. Its parse assertions print only to the invoking terminal.",
-      "owner": "agent-security",
-      "expiresOn": "2026-11-05"
     },
     {
       "id": "app-image-build-private-failures",
@@ -864,15 +846,6 @@
       "justification": "These uppercase values are stable stream state-machine codes, introduced to prevent upstream/English exception text from entering localized deployment logs. The surrounding deployment log frame is localized at response time.",
       "owner": "deploy-platform-and-i18n",
       "expiresOn": "2027-08-05"
-    },
-    {
-      "id": "dormant-deployment-provider-guard",
-      "path": "services/api/src/deployments.ts",
-      "rule": "error-message",
-      "textPattern": "^Deployment provider \"\\{…\\}\" is not configured for production use$",
-      "justification": "assertDeploymentProviderConfigured has no production caller; active deployment creation uses deployProviderConfigError(locale) and returns catalogued provider-specific copy.",
-      "owner": "deploy-platform-and-i18n",
-      "expiresOn": "2026-11-05"
     },
     {
       "id": "email-provider-private-diagnostics",
@@ -936,15 +909,6 @@
       "justification": "Audit codes are source-defined alongside complete EN/FR JSON copy and validated by tests. A missing entry is a programmer invariant before any audit record/response is built.",
       "owner": "agent-security-and-i18n",
       "expiresOn": "2027-08-05"
-    },
-    {
-      "id": "dormant-api-skill-disclosure-invariants",
-      "path": "services/api/src/skill-disclosure.ts",
-      "rule": "error-message",
-      "textPattern": "^(?:Unknown skill \"\\{…\\}\"\\.|Skill \"\\{…\\}\" declares no resource \"\\{…\\}\"\\.)$",
-      "justification": "This proof-oriented disclosure session has no production import; only its spec and operator proof script instantiate it. The exceptions cannot enter an API response.",
-      "owner": "agent-platform",
-      "expiresOn": "2026-11-05"
     },
     {
       "id": "worker-notification-localized-fallback",
@@ -1055,15 +1019,6 @@
       "expiresOn": "2027-08-05"
     },
     {
-      "id": "dormant-agent-auto-accept-decisions",
-      "path": "app/utils/agent-auto-accept.ts",
-      "rule": "visible-object-copy",
-      "textPattern": "^(?:Auto-accept is disabled\\.|\\{…\\} diagnostic error\\(s\\) must be fixed first\\.|Run a real test command before auto-accept can apply all proposals\\.|Run tests again after the latest AI proposal before auto-accept can continue\\.|Latest test run is \\{…\\}\\.|Latest test run passed\\.)$",
-      "justification": "The decision helper has no production import; only its unit spec calls it. This short-lived exception prevents dormant code from being mistaken for rendered copy while removal or reintegration is coordinated.",
-      "owner": "agent-platform-and-i18n",
-      "expiresOn": "2026-11-05"
-    },
-    {
       "id": "prompt-moderation-machine-reasons",
       "path": "app/utils/prompt-moderation.server.ts",
       "rule": "visible-object-copy",
@@ -1071,15 +1026,6 @@
       "justification": "These are ModerationResult discriminants used for fail-open control flow and telemetry. Routes expose localized moderation codes/messages, not these internal reason identifiers.",
       "owner": "trust-safety-and-i18n",
       "expiresOn": "2027-08-05"
-    },
-    {
-      "id": "dormant-mobile-biometric-reasons",
-      "path": "apps/mobile/src/biometric.ts",
-      "rule": "visible-object-copy",
-      "textPattern": "^(?:unsupported|cancelled|failed)$",
-      "justification": "verifyBiometricUnlock has no production caller in the mobile package; these are typed result discriminants asserted only by tests. Reuse must add catalogued user copy before this exception expires.",
-      "owner": "mobile-and-i18n",
-      "expiresOn": "2026-11-05"
     },
     {
       "id": "billing-agent-mode-machine-reasons",
@@ -1244,15 +1190,6 @@
       "expiresOn": "2027-08-05"
     },
     {
-      "id": "dormant-lifecycle-state-machine-diagnostics",
-      "path": "services/api/src/lifecycle-state-machines.ts",
-      "rule": "visible-object-copy",
-      "textPattern": "^(?:no components|\\{…\\} component snapshot\\(s\\) unverified|components snapshotted under different logical barriers \\(not the same instant\\)|promotion \\{…\\} is \\{…\\}, not PROMOTION_COMMITTED — an incomplete promotion can never become a release|\\{…\\} attachment\\(s\\) not relinked into the tenant repo|Binary Authorization is \\{…\\}, not PASSED)$",
-      "justification": "checkpointManifestVisible and releaseMayBeCut have no production caller; only state-machine specs exercise these programmer/audit diagnostics. Reintegration must add a localized boundary before this exception expires.",
-      "owner": "release-platform-and-i18n",
-      "expiresOn": "2026-11-05"
-    },
-    {
       "id": "deploy-target-private-summary-copy",
       "path": "services/api/src/server-runtime-detect.ts",
       "rule": "visible-object-copy",
@@ -1296,15 +1233,6 @@
       "justification": "These values appear only in structured startup logs explaining the selected development store. They are never part of an HTTP response or UI state.",
       "owner": "workspace-platform",
       "expiresOn": "2027-08-05"
-    },
-    {
-      "id": "dormant-capacity-policy-estimates",
-      "path": "services/api/src/capacity-policy.ts",
-      "rule": "visible-object-copy",
-      "textPattern": "^(?:folder-per-tenant needs \\{…\\} min of pure folder-creation rate-limit|folder-per-tenant disabled by policy \\(default\\); enable only on a measured contractual requirement)$",
-      "justification": "estimateProvisioning has no production caller; only capacity-policy specs inspect these operator planning diagnostics. A future admin surface must add catalogue copy before this exception expires.",
-      "owner": "database-platform-and-i18n",
-      "expiresOn": "2026-11-05"
     },
     {
       "id": "localized-marketing-meta-title-variables",

@@ -251,6 +251,7 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
     ) as Record<ResourceKind, { started: number; finished: number; failed: number }>;
 
     const networkFailures = createBrowserNetworkEvidence();
+    const stopNetworkPhases = networkFailures.trackPage(page);
     const statuses = { success: 0, redirect: 0, clientError: 0, serverError: 0, other: 0 };
     const errors: Record<string, number> = {};
     const onRequest = (request: Request) => requests[resourceKind(request)].started++;
@@ -340,6 +341,7 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
 
       throw error;
     } finally {
+      stopNetworkPhases();
       page.off('request', onRequest);
       page.off('requestfinished', onFinished);
       page.off('requestfailed', onFailed);

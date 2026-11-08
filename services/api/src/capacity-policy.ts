@@ -20,6 +20,9 @@
  * Pure module — no GCP SDK — so the arithmetic is unit-testable.
  */
 
+import { appPublicCopy } from './app-public-copy.js';
+import type { TransactionalLocale } from './transactional-i18n.js';
+
 /** Verified Resource Manager limits. Overridable for tests / future changes. */
 export const GCP_MAX_FOLDERS_PER_PARENT = 300;
 export const GCP_MAX_HIERARCHY_DEPTH = 10;
@@ -106,6 +109,7 @@ export interface ProvisioningEstimate {
 export function estimateProvisioning(
   tenantCount: number,
   policy: CapacityPolicy = DEFAULT_CAPACITY_POLICY,
+  locale: TransactionalLocale = 'en',
 ): { sharded: ProvisioningEstimate; folderPerTenant: ProvisioningEstimate } {
   const shardCount = requiredShardCount(tenantCount, policy);
 
@@ -124,9 +128,9 @@ export function estimateProvisioning(
     admissible: policy.folderPerTenant && fptSeconds <= 900,
     reason: policy.folderPerTenant
       ? fptSeconds > 900
-        ? `folder-per-tenant needs ${Math.round(fptSeconds / 60)} min of pure folder-creation rate-limit`
+        ? appPublicCopy('CAPACITY_FOLDER_RATE_LIMIT', locale, { minutes: Math.round(fptSeconds / 60) })
         : undefined
-      : 'folder-per-tenant disabled by policy (default); enable only on a measured contractual requirement',
+      : appPublicCopy('CAPACITY_FOLDER_POLICY_DISABLED', locale),
   };
 
   return { sharded, folderPerTenant };

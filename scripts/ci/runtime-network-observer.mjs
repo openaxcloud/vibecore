@@ -22,15 +22,18 @@ export function createNetworkTimeline() {
 
       if (existing) {
         existing.count++;
+        existing.firstAt = Math.min(existing.firstAt, now);
+        existing.lastAt = Math.max(existing.lastAt, now);
+
         return;
       }
 
-      if (events.length === 384) {
-        events.splice(64, 1);
+      if (events.length === 256) {
+        events.splice(48, 1);
         omitted++;
       }
 
-      events.push({ time, type, count: 1 });
+      events.push({ time, type, count: 1, firstAt: now, lastAt: now });
     },
     snapshot() {
       return { counts: { ...counts }, omittedBuckets: omitted, events: events.map((event) => ({ ...event })) };

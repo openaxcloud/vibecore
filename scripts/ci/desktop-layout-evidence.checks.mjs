@@ -496,8 +496,9 @@ function visit(node, inspect) {
   ts.forEachChild(node, (child) => visit(child, inspect));
 }
 
-test('diagnostics wrap exactly the three reviewed runtime scenarios without increasing their budgets', () => {
+test('diagnostics wrap the reviewed desktop and compact runtime scenarios without increasing their budgets', () => {
   const expected = new Map([
+    ['mobile-device-matrix.spec.ts:assertEveryCompactPanelForProfile', [90_000]],
     [
       'dashboard.spec.ts:IDE project services open as in-place panels instead of legacy project pages',
       [30_000, ...Array(16).fill(15_000)],
@@ -510,6 +511,7 @@ test('diagnostics wrap exactly the three reviewed runtime scenarios without incr
       'responsive-ide.spec.ts:desktop can collapse and restore the right preview panel',
       [15_000, 15_000, 15_000, 15_000],
     ],
+    ['responsive-ide.spec.ts:desktop opens terminal as a workspace panel from the panel URL', [15_000, 15_000]],
   ]);
 
   const actual = new Map();
@@ -525,17 +527,38 @@ test('diagnostics wrap exactly the three reviewed runtime scenarios without incr
 
       const testCall = node.parent;
       assert.ok(ts.isCallExpression(testCall));
-      assert.equal(testCall.expression.getText(tree), 'test');
-      assert.equal(testCall.arguments.length, 3);
-      assert.ok(ts.isStringLiteral(testCall.arguments[0]));
-      assert.match(testCall.arguments[1].getText(tree), /tag:\s*'@runtime'/);
-      assert.equal(testCall.arguments[2], node);
       assert.equal(node.arguments.length, 1);
 
       const scenario = node.arguments[0];
       assert.ok(ts.isArrowFunction(scenario));
 
-      const key = `${filename}:${testCall.arguments[0].text}`;
+      let key;
+
+      const compact = filename === 'mobile-device-matrix.spec.ts';
+
+      if (compact) {
+        assert.equal(testCall.expression, node);
+        assert.equal(testCall.arguments.length, 2);
+        assert.equal(testCall.arguments[0].getText(tree), '{ page, isMobile: true }');
+        assert.equal(testCall.arguments[1].getText(tree), 'testInfo');
+        assert.ok(ts.isAwaitExpression(testCall.parent));
+
+        let owner = testCall.parent;
+
+        while (owner && !ts.isFunctionDeclaration(owner)) {
+          owner = owner.parent;
+        }
+        assert.equal(owner?.name?.text, 'assertEveryCompactPanelForProfile');
+        key = `${filename}:${owner.name.text}`;
+      } else {
+        assert.equal(testCall.expression.getText(tree), 'test');
+        assert.equal(testCall.arguments.length, 3);
+        assert.ok(ts.isStringLiteral(testCall.arguments[0]));
+        assert.match(testCall.arguments[1].getText(tree), /tag:\s*'@runtime'/);
+        assert.equal(testCall.arguments[2], node);
+        key = `${filename}:${testCall.arguments[0].text}`;
+      }
+
       assert.ok(!actual.has(key), 'No duplicate wrappers');
 
       const timeouts = [];
@@ -551,9 +574,118 @@ test('diagnostics wrap exactly the three reviewed runtime scenarios without incr
           testBudgets.push(Number(child.arguments[0].text));
         }
       });
-      assert.deepEqual(testBudgets, [120_000], key);
+      assert.deepEqual(testBudgets, compact ? [] : [120_000], key);
       actual.set(key, timeouts);
     });
   }
   assert.deepEqual(actual, expected);
 });
+
+for (const failure of [false, true]) {
+  test(`compact context installs startup evidence before navigation and closes after diagnostics (failure=${failure})`, async () => {
+    const contents = readFileSync(new URL('../../tests/e2e/mobile-device-matrix.spec.ts', import.meta.url), 'utf8');
+    const tree = ts.createSourceFile('mobile-device-matrix.spec.ts', contents, ts.ScriptTarget.Latest, true);
+
+    const scenarios = tree.statements.filter(
+      (node) => ts.isFunctionDeclaration(node) && node.name?.text === 'assertEveryCompactPanelForProfile',
+    );
+    assert.equal(scenarios.length, 1, 'Execute the actual explicit-context scenario');
+
+    const events = [];
+    const original = new Error('PRIVATE_SCENARIO_FAILURE');
+    const instance = await harness({ write: async () => events.push('desktop evidence') });
+    const { page } = instance;
+
+    const context = {
+      addCookies: async () => events.push('cookies'),
+      newPage: async () => {
+        events.push('page');
+        return page;
+      },
+      close: async () => {
+        assertClean(instance);
+        events.push('close');
+      },
+    };
+
+    page.goto = async () => {
+      assert.equal(instance.initScripts.length, 1, 'Startup hook installed before goto');
+
+      for (const event of pageEvents) {
+        assert.equal(page.listenerCount(event), 1);
+      }
+      events.push('goto');
+    };
+
+    page.locator = (selector) => {
+      assert.equal(selector, '.bolt-responsive-ide-mobile');
+      return selector;
+    };
+
+    const testInfo = { ...instance.testInfo, attach: async () => events.push('attach') };
+
+    const bindings = {
+      withDesktopLayoutEvidence: instance.helper.withDesktopLayoutEvidence,
+      appBaseUrl: 'https://fixture.invalid',
+      expect: () => ({
+        toBeVisible: async ({ timeout }) => {
+          assert.equal(timeout, 90_000);
+          events.push('shell assertion');
+        },
+      }),
+      compactIdePanels: ['preview'],
+      test: { step: async (_title, body) => body() },
+      openCompactPanel: async () => events.push('open'),
+      assertCompactPanelRendered: async () => {
+        events.push('render assertion');
+
+        if (failure) {
+          throw original;
+        }
+      },
+      assertCompactPanelLayout: async () => events.push('layout assertion'),
+      compactPanelScreenshotTarget: () => ({
+        screenshot: async () => {
+          events.push('screenshot');
+          return Buffer.alloc(0);
+        },
+      }),
+      captureCompactLayoutEvidence: async (capturedPage) => {
+        assert.equal(capturedPage, page);
+        assert.ok(!events.includes('close'));
+        events.push('mobile evidence');
+      },
+    };
+    const compiledScenario = ts.transpileModule(
+      scenarios[0].getText(tree) + '\nreturn assertEveryCompactPanelForProfile;',
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    ).outputText;
+
+    const run = new Function(...Object.keys(bindings), compiledScenario)(...Object.values(bindings));
+
+    const result = run(
+      { newContext: async () => context },
+      { token: 'fixture-token' },
+      'fixture-project',
+      { name: 'fixture-profile', viewport: { width: 768, height: 1024 }, userAgent: 'fixture' },
+      testInfo,
+    );
+
+    if (failure) {
+      await assert.rejects(result, (error) => error === original);
+    } else {
+      await result;
+    }
+
+    assert.deepEqual(events, [
+      'cookies',
+      'page',
+      'goto',
+      'shell assertion',
+      'open',
+      'render assertion',
+      ...(failure ? ['desktop evidence', 'mobile evidence'] : ['layout assertion', 'screenshot', 'attach']),
+      'close',
+    ]);
+  });
+}

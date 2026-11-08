@@ -199,6 +199,8 @@ test('Database audit edits the same encrypted connection through Secrets and ret
 
   const databaseView = action.slice(action.indexOf('const databasePanel'));
   assert.ok(!databaseView.includes('.click('));
+  assert.ok(!databaseView.includes('.bolt-database-workbench'));
+  assert.ok(databaseView.includes('await databasePanel\n        .getByTestId'));
   assert.ok(!action.includes('selectOption'));
   assert.ok(!action.includes("name: 'Settings'"));
   assert.ok(!action.includes('schemaKey='));
