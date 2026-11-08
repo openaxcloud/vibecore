@@ -58,7 +58,8 @@ must be reported honestly, never mocked into success.
   stack, masked in logs and never persisted outside the runner.
 - Artifacts retain for one day and include only an explicit allowlist of redacted
   text diagnostics, safe Kubernetes summaries and UI error snapshots. Each file
-  is capped at 256 KiB and total output at 20 MiB. Raw network traces, secrets and
+  is capped at 256 KiB, each of the preflight/final artifacts at 10 MiB, and their
+  combined output at 20 MiB. Raw network traces, secrets and
   kubeconfig are excluded.
 - Cluster namespace and local dependency volumes are removed at job completion.
   The GitHub-hosted VM is disposable even if a job is cancelled.

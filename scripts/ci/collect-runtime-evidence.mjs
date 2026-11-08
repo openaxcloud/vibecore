@@ -5,11 +5,15 @@ import { promisify } from 'node:util';
 import { redactRuntimeEvidence } from './runtime-evidence-redaction.mjs';
 
 const exec = promisify(execFile);
-const output = 'tmp/runtime-evidence';
+
+const output =
+  process.env.RUNTIME_EVIDENCE_PHASE === 'preflight' ? 'tmp/runtime-preflight-evidence' : 'tmp/runtime-evidence';
 await mkdir(output, { recursive: true });
 
 const maxFile = 256 * 1024;
-const maxTotal = 20 * 1024 * 1024;
+
+// Two phase artifacts, at most 10 MiB each, preserve the 20 MiB run budget.
+const maxTotal = 10 * 1024 * 1024;
 
 let total = 0;
 
@@ -23,7 +27,7 @@ async function save(name, data) {
   const buffer = Buffer.from(redactRuntimeEvidence(data, credentials));
   const bounded = buffer.subarray(Math.max(0, buffer.length - maxFile));
 
-  if (total + bounded.length > maxTotal) {
+  if (total + bounded.length > maxTotal - 64 * 1024) {
     manifest.push({ name, omitted: 'total limit' });
     return;
   }

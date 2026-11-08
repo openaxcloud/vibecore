@@ -39,7 +39,7 @@ for (const kind of ['static', 'vite'] as const) {
       expect(created.ok(), `Create project HTTP ${created.status()}`).toBeTruthy();
 
       const { project } = (await created.json()) as { project: { id: string } };
-      const marker = `real-kubernetes-preview-${kind}`;
+      const marker = `real-kubernetes-preview-${suffix}`;
       const zip = new JSZip();
 
       if (kind === 'vite') {
@@ -69,14 +69,22 @@ for (const kind of ['static', 'vite'] as const) {
       await page.goto(`/projects/${project.id}/ide`, { waitUntil: 'domcontentloaded' });
 
       const runtime = page.locator('.bolt-project-statusbar-workspace');
-      await expect(runtime.locator('.bolt-project-statusbar-runtime-dot')).toHaveAttribute('data-state', 'running', {
-        timeout: 180_000,
-      });
-      await expect(runtime).toContainText(/running/i);
+      await expect(runtime).toContainText(/running/i, { timeout: 180_000 });
       await page.getByRole('button', { name: 'Webview', exact: true }).click();
       await expect(page.locator('iframe[title="preview"]').first()).toBeVisible({ timeout: 90_000 });
+
+      // A client-side srcdoc/static fallback must never count as real pod evidence.
+      await expect(page.locator('iframe[title="preview"]').first()).toHaveAttribute(
+        'src',
+        /^http:\/\/[a-z0-9-]+-[0-9]+\.localhost:3020\//,
+      );
       await expect(page.frameLocator('iframe[title="preview"]').locator('#app')).toHaveText(marker, {
         timeout: 180_000,
+      });
+
+      // The dot includes app/port readiness, so verify it after opening the preview.
+      await expect(runtime.locator('.bolt-project-statusbar-runtime-dot')).toHaveAttribute('data-state', 'running', {
+        timeout: 15_000,
       });
     },
   );

@@ -200,8 +200,23 @@ jobs:
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
 
       - name: Real static and Vite preview preflight
+        id: runtime-preflight
         if: ${{ !cancelled() && steps.web.outcome == 'success' }}
         run: pnpm exec playwright test --config=playwright.runtime-ci.config.ts --project=chromium --retries=0 --max-failures=0
+
+      - name: Collect early runtime diagnostics
+        if: ${{ !cancelled() && (steps.runtime-preflight.outcome == 'success' || steps.runtime-preflight.outcome == 'failure') }}
+        run: RUNTIME_EVIDENCE_PHASE=preflight node scripts/ci/collect-runtime-evidence.mjs
+
+      - name: Upload preflight evidence
+        if: ${{ !cancelled() && (steps.runtime-preflight.outcome == 'success' || steps.runtime-preflight.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: runtime-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tmp/runtime-preflight-evidence
+          retention-days: 1
+          compression-level: 9
+          if-no-files-found: error
 
       # No provider credentials: this workflow must not spend AI credits.
       - name: Playwright @runtime suite
