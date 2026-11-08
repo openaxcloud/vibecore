@@ -2206,7 +2206,13 @@ test(
         };
       });
       expect(persistedMetrics.agentWidth).toBe('520px');
-      expect(persistedMetrics.rightPanelWidth).toBe('300px');
+
+      /*
+       * Keep the oversized 512px seed: reload must clamp it to the current bound.
+       * MAX changed 300→260 in fc2bfb1846e936dbd3f9bfbe052798c0086c56ad,
+       * then 260→360 in c162ac3d86284bbc72e33237d6f1c109e3b100c8; this assertion was left at 300.
+       */
+      expect(persistedMetrics.rightPanelWidth).toBe('360px');
     }
   },
 );

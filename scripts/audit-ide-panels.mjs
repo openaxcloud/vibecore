@@ -964,7 +964,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
       if ((await saveButton.count()) > 0 && (await saveButton.isEnabled().catch(() => false))) {
         await saveButton.click();
       } else {
-        await page.getByRole('button', { name: 'Open Files' }).click();
+        await page.getByTestId('ide-dock-files').click();
         await page.locator('.bolt-project-files-tool').first().waitFor({ state: 'visible', timeout: 10_000 });
       }
     },

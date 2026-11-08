@@ -165,3 +165,17 @@ test('terminal environment saves the same variable through its actual embedded e
   assert.ok(action.includes("envPanel.getByText(key, { exact: true }).waitFor({ state: 'visible', timeout: 10_000 })"));
   assert.ok(baseChat.includes("<ProjectEnvPanel data={{ envVars }} onSubmit={submitToPanel('env')} busy={busy} />"));
 });
+
+test('editor opens Files through the persistent tool control, not the transient welcome card', () => {
+  const action = audit.slice(
+    audit.indexOf("const saveButton = page.getByRole('button', { name: 'Save' })"),
+    audit.indexOf("'editor_save_or_open_files_action'"),
+  );
+  assert.ok(action.includes("page.getByTestId('ide-dock-files').click()"));
+  assert.ok(
+    action.includes("locator('.bolt-project-files-tool').first().waitFor({ state: 'visible', timeout: 10_000 })"),
+  );
+  assert.ok(baseChat.includes('data-testid={`ide-dock-${item.panel}`}'));
+  assert.ok(baseChat.includes('onClick={() => openIdeTool(item.panel)}'));
+  assert.ok(baseChat.includes('workbenchStore.setSelectedFile(firstProjectFile)'));
+});

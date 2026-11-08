@@ -1,3 +1,4 @@
+import { podChangeDiagnostic } from './pod-change-diagnostic.js';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -2101,11 +2102,26 @@ export class WorkspaceManager {
         throw error;
       }
 
+      let diagnostic: ReturnType<typeof podChangeDiagnostic> = { baselineAvailable: false, categories: [] };
+
+      try {
+        // Diagnostic-only read: cancel kubectl after one second, never hold
+        // immutable-pod recovery behind the ordinary 30-second read timeout.
+        diagnostic = podChangeDiagnostic(
+          await this.k8s.getPod(namespace, podName, { signal: AbortSignal.timeout(1_000) }),
+          pod,
+        );
+      } catch {
+        // Diagnostics must not change recovery or log raw Kubernetes errors.
+      }
+
       console.warn(
         JSON.stringify({
           level: 'warn',
           service: 'workspace-manager',
           event: 'workspace.pod.recreate_for_immutable_change',
+          timestamp: new Date().toISOString(),
+          ...diagnostic,
           namespace,
           podName,
           message: 'Pod spec changed in an immutable field (e.g. added secret / DATABASE_URL); recreating the pod.',

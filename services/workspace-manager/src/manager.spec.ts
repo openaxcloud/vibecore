@@ -274,7 +274,7 @@ describe('WorkspaceManager', () => {
     });
   });
 
-  it('recreates the pod when reopening with a changed (immutable) spec instead of failing the start', async () => {
+  it.each([false, true])('recreates an immutable pod even when diagnostics time out: %s', async (diagnosticTimeout) => {
     /*
      * Reproduces the live bug: a user adds a project secret / DATABASE_URL, the
      * api folds it into the pod env, and the next start re-applies the Pod. K8s
@@ -283,6 +283,16 @@ describe('WorkspaceManager', () => {
      * delete + recreate the pod so the new env takes effect.
      */
     class ImmutableOnUpdateK8sClient extends TestWorkspaceK8sClient {
+      async getPod(namespace: string, name: string, options?: { signal?: AbortSignal }) {
+        if (diagnosticTimeout && options?.signal) {
+          const signal = options.signal;
+          return new Promise<never>((_resolve, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          });
+        }
+        return super.getPod(namespace, name);
+      }
+
       async apply(object: K8sObject) {
         const key = `${object.metadata.namespace ?? 'default'}:${object.kind}:${object.metadata.name}`;
 
@@ -310,6 +320,11 @@ describe('WorkspaceManager', () => {
     // First open: pod is created normally.
     await manager.startWorkspace(input);
 
+    const oldPod = k8s.objects.get('workspaces:Pod:workspace-workspace_1')!;
+    const applied = JSON.stringify(oldPod);
+    oldPod.metadata.annotations = { 'kubectl.kubernetes.io/last-applied-configuration': applied };
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
     // Reopen with a newly-added secret → pod spec (env) changes → apply is forbidden.
     const reopened = await manager.startWorkspace({
       ...input,
@@ -317,6 +332,16 @@ describe('WorkspaceManager', () => {
     });
 
     expect(reopened.status).toBe('RUNNING');
+    const diagnostic = JSON.parse(warning.mock.calls[0][0] as string);
+    warning.mockRestore();
+    expect(diagnostic).toMatchObject({
+      event: 'workspace.pod.recreate_for_immutable_change',
+      baselineAvailable: !diagnosticTimeout,
+      categories: diagnosticTimeout ? [] : ['env'],
+    });
+    expect(diagnostic.timestamp).toMatch(/^\d{4}-/);
+    expect(JSON.stringify(diagnostic)).not.toContain('postgres://db');
+    expect(JSON.stringify(diagnostic.categories)).not.toContain('DATABASE_URL');
 
     // The pod was recreated (delete then a fresh apply), not left un-updated.
     const podApplies = k8s.events.filter((event) => event === 'apply:Pod:workspace-workspace_1').length;

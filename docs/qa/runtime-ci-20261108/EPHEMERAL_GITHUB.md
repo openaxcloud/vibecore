@@ -80,6 +80,19 @@ must be reported honestly, never mocked into success.
 - Cluster namespace and local dependency volumes are removed at job completion.
   The GitHub-hosted VM is disposable even if a job is cancelled.
 
+Desktop failure evidence records bounded structural state, startup phases and
+categorized resource/error counts before page cleanup, without raw URLs, input
+values or page text. It is limited to 64 KiB and a three-second capture deadline;
+the original test failure is always rethrown.
+
+Immutable-pod recreation diagnostics expose only fixed changed-field categories
+and an environment-ordering boolean. They never expose environment names,
+values, hashes or manifests. The extra Kubernetes read is cancelled after one
+second and cannot prevent normal recovery. API evidence separately retains at
+most 60 recent IDE-state failures, using a fixed route category, method, status
+and timestamp, without project identifiers or query strings. These observations
+do not suppress browser errors or turn failed audit controls into passes.
+
 Local checks and the exact remote run/result will be recorded after execution.
 No browser runtime pass or production readiness is claimed by this document.
 

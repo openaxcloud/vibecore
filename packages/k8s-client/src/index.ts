@@ -363,7 +363,7 @@ export interface WorkspaceK8sClient {
   createResource?(object: K8sObject): Promise<K8sObject>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
   get(kind: string, namespace: string, name: string): Promise<K8sObject | undefined>;
-  getPod(namespace: string, name: string): Promise<K8sObject | undefined>;
+  getPod(namespace: string, name: string, options?: { signal?: AbortSignal }): Promise<K8sObject | undefined>;
   streamPodLogs(namespace: string, name: string): AsyncIterable<string>;
   scale(kind: string, namespace: string, name: string, replicas: number): Promise<void>;
   annotate(kind: string, namespace: string, name: string, key: string, value: string): Promise<void>;
@@ -1408,8 +1408,8 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
     );
   }
 
-  async getPod(namespace: string, name: string) {
-    return this.getResource('pod', namespace, name);
+  async getPod(namespace: string, name: string, options?: { signal?: AbortSignal }) {
+    return this.getResource('pod', namespace, name, options);
   }
 
   /*
@@ -1429,7 +1429,12 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
    * a bound PVC → shrink-forbidden wedge). Inspect stderr and rethrow anything
    * that isn't an explicit NotFound.
    */
-  private async getResource(kind: string, namespace: string, name: string): Promise<K8sObject | undefined> {
+  private async getResource(
+    kind: string,
+    namespace: string,
+    name: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<K8sObject | undefined> {
     const { stdout } = await execFile(
       this.kubectl,
       [
@@ -1443,7 +1448,10 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
         'json',
         `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
       ],
-      { timeout: KUBECTL_TIMEOUT_MS },
+      {
+        timeout: KUBECTL_TIMEOUT_MS,
+        ...(options?.signal ? { signal: options.signal, killSignal: 'SIGKILL' as const } : {}),
+      },
     ).catch((error: any) => {
       const stderr = String(error?.stderr ?? '');
 

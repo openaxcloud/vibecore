@@ -4,6 +4,7 @@ export function summarizeRuntimeApi(log) {
   const counts = new Map();
   const firstErrors = [];
   const recentErrors = [];
+  const ideStateFailures = [];
 
   let completed = 0;
   let failed = 0;
@@ -24,16 +25,26 @@ export function summarizeRuntimeApi(log) {
       continue;
     }
 
-    if (typeof entry.req?.url === 'string' && entry.req.url.startsWith('/api/runtime/')) {
+    const url = typeof entry.req?.url === 'string' ? entry.req.url.split('?')[0] : '';
+
+    const ideCategory = /^\/(?:api\/)?projects\/[^/]+\/ide-state$/.test(url)
+      ? 'project-ide-state'
+      : /^\/(?:api\/)?workspaces\/[^/]+\/ide-state$/.test(url)
+        ? 'workspace-ide-state'
+        : undefined;
+
+    if (typeof entry.req?.url === 'string' && (entry.req.url.startsWith('/api/runtime/') || ideCategory)) {
       if (pending.size >= 5000) {
         pending.delete(pending.keys().next().value);
       }
 
       pending.set(id, {
-        method: String(entry.req.method).slice(0, 12),
+        method: ['GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'].includes(entry.req.method)
+          ? entry.req.method
+          : 'OTHER',
 
         // No headers, bodies or query tokens enter this projection.
-        path: entry.req.url.split('?')[0].slice(0, 300),
+        ...(ideCategory ? { category: ideCategory } : { path: url.slice(0, 300) }),
       });
     }
 
@@ -45,6 +56,19 @@ export function summarizeRuntimeApi(log) {
     }
 
     pending.delete(id); // Fastify emits two completion records; count once.
+
+    if (request.category) {
+      if (status >= 400) {
+        ideStateFailures.push({ ...request, status, time: Number.isFinite(entry.time) ? entry.time : null });
+
+        if (ideStateFailures.length > 60) {
+          ideStateFailures.shift();
+        }
+      }
+
+      continue;
+    }
+
     completed++;
 
     const key = `${request.method} ${request.path} ${status}`;
@@ -73,6 +97,7 @@ export function summarizeRuntimeApi(log) {
   }
 
   return {
+    ideStateFailures,
     completed,
     failed,
     ungrouped,
