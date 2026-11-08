@@ -37,6 +37,8 @@ jobs:
       HUSKY: 0
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       VIBECORE_CI_EPHEMERAL_RUNTIME: '1'
+      VITE_RUNTIME_MODE: remote-kubernetes
+      RUNTIME_MODE: remote-kubernetes
       WORKSPACE_RUNTIME_NAMESPACE: workspaces
       WORKSPACE_STORAGE_CLASS: local-path
       WORKSPACE_AGENT_IMAGE: vibecore/workspace-agent:ci-${{ github.sha }}
@@ -92,6 +94,7 @@ jobs:
       - name: Validate runtime harness
         run: |
           node --test scripts/ci/runtime-agent-router.checks.mjs
+          node --test scripts/ci/runtime-evidence-redaction.checks.mjs
           pnpm exec vitest run tests/guards/runtime-ci-verdict.spec.ts
           bash -n scripts/ci/provision-runtime-kubernetes.sh scripts/ci/probe-runtime-gvisor.sh
 

@@ -32,6 +32,11 @@ for binary in runsc containerd-shim-runsc-v1; do
   [[ ${#matches[@]} -eq 1 ]]
   sudo install -m 0755 "${matches[0]}" "/usr/local/bin/$binary"
 done
+# This release splits sentry and helpers out of runsc. Preserve the official
+# sibling directory layout so runsc can start a sandbox, not merely print a version.
+[[ -f gvisor/gvisor-bin/gvisor_sentry ]]
+sudo install -d -m 0755 /usr/local/bin/gvisor-bin
+sudo install -m 0755 gvisor/gvisor-bin/* /usr/local/bin/gvisor-bin/
 sudo install -m 0755 k3s /usr/local/bin/k3s
 sudo ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl
 sudo mkdir -p /var/lib/rancher/k3s/agent/etc/containerd /etc/containerd

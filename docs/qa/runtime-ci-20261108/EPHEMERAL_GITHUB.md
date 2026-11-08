@@ -96,3 +96,13 @@ and for the local-path deployment to exist.
 
 Preflight files use a dedicated `.pw.ts` extension and config so neither ordinary
 Playwright E2E nor root Vitest accidentally discovers these cluster-only tests.
+
+Run 42461328168 successfully provisioned Kubernetes and built/imported the real
+workspace-agent image. The gVisor probe could not create its sandbox: the pinned
+release has split helper binaries, and `gvisor-bin/gvisor_sentry` was not installed
+beside runsc. The complete verified release layout is now installed. No browser
+test ran; the bounded diagnostic artifact was 25,348 bytes with one-day retention.
+Evidence redaction also now covers K3s join tokens and private-key blocks, with
+seven dedicated regression tests, before any diagnostic text is uploaded.
+The web build explicitly selects `remote-kubernetes`; without this setting the
+development default would exercise WebContainer rather than the provisioned pods.

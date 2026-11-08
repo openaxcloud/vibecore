@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { redactRuntimeEvidence } from './runtime-evidence-redaction.mjs';
 
 const exec = promisify(execFile);
 const output = 'tmp/runtime-evidence';
@@ -18,18 +19,8 @@ const credentials = ['WORKSPACE_AGENT_TOKEN_SECRET', 'WORKSPACE_MANAGER_SHARED_S
   .map((key) => process.env[key])
   .filter(Boolean);
 
-function redact(text) {
-  for (const value of credentials) {
-    text = text.replaceAll(value, '[REDACTED]');
-  }
-  return text
-    .replace(/Bearer\s+[A-Za-z0-9._~+/-]+/gi, 'Bearer [REDACTED]')
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED_JWT]')
-    .replace(/([?&](?:token|ticket|key)=)[^&\s"']+/gi, '$1[REDACTED]');
-}
-
 async function save(name, data) {
-  const buffer = Buffer.from(redact(String(data)));
+  const buffer = Buffer.from(redactRuntimeEvidence(data, credentials));
   const bounded = buffer.subarray(Math.max(0, buffer.length - maxFile));
 
   if (total + bounded.length > maxTotal) {
