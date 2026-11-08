@@ -1273,6 +1273,9 @@ async function persistWithRetry(scope: string): Promise<void> {
         const serverMemory = serverEnvelope.ideState?.state;
 
         if (serverMemory && typeof serverMemory === 'object') {
+          // Saves may have queued newer edits while fetch or response.json was pending.
+          const currentDirty = pendingDirty.get(scope) ?? dirty;
+
           /*
            * Re-merge: take the server's current state as the base and
            * layer our pending local patch back on top. This preserves
@@ -1281,22 +1284,24 @@ async function persistWithRetry(scope: string): Promise<void> {
            * conflicting session added (so a second tab's terminal-open
            * toggle isn't lost when we save a panel resize, for example).
            */
-          const merged = mergeProjectIdeMemory(serverMemory, dirty);
+          const merged = mergeProjectIdeMemory(serverMemory, currentDirty);
           entreesFaisantAutorite.add(scope);
           memoryCache.set(scope, merged);
           writeLocalProjectIdeMemory(scope, merged);
-          notifyCrossTabListeners(scope, merged);
 
           /*
            * `mergeProjectIdeMemory` strips `chat.clearMessages` (the server only
-           * honours it on the wire). If the original `dirty` was an authoritative
+           * honours it on the wire). If the current dirty payload is an authoritative
            * chat replace (rewind / message-delete), re-attach the flag to the
            * re-PUT payload so the conflict retry still REPLACES the message list
            * instead of silently downgrading to a union-merge — otherwise losing a
            * version race to another tab resurrects the removed messages. The cache
            * keeps the flag-free `merged` so local reads aren't polluted.
            */
-          pendingDirty.set(scope, memoryForServerSave(merged, dirty));
+          pendingDirty.set(scope, memoryForServerSave(merged, currentDirty));
+
+          // A listener can synchronously save again, so publish the pending state first.
+          notifyCrossTabListeners(scope, merged);
         }
 
         const conflictError = new Error(getPersistenceRuntimeCopy()['persistence.ide.concurrentChange']);

@@ -179,3 +179,70 @@ test('editor opens Files through the persistent tool control, not the transient 
   assert.ok(baseChat.includes('onClick={() => openIdeTool(item.panel)}'));
   assert.ok(baseChat.includes('workbenchStore.setSelectedFile(firstProjectFile)'));
 });
+
+test('Database audit edits the same encrypted connection through Secrets and returns to Database without exposing payloads', () => {
+  const action = audit.slice(
+    audit.indexOf('const value = `postgres://audit.local/ui-'),
+    audit.indexOf("'save_database_url_visible_after_backend_reload'"),
+  );
+  assert.ok(action.includes('secret-menu-DATABASE_URL'));
+  assert.ok(action.includes("keyInput.inputValue()) !== 'DATABASE_URL'"));
+  assert.ok(action.includes("getByTestId('secrets-form-value').fill(value)"));
+  assert.ok(action.includes("waitForPanelResponse(page, 'secrets', 'POST')"));
+  assert.ok(action.includes("waitForPanelResponse(page, 'secrets', 'GET')"));
+  assert.ok(action.includes("waitForPanelResponse(page, 'database', 'GET')"));
+  assert.ok(action.includes("connection.key === 'DATABASE_URL'"));
+  assert.ok(action.includes("getByTestId('secret-row-DATABASE_URL')"));
+  assert.ok(action.includes("name: 'Reveal the value of DATABASE_URL', exact: true"));
+  assert.ok(action.indexOf("waitForPanelResponse(page, 'secrets', 'GET')") < action.indexOf('const secretRow'));
+  assert.ok(action.includes(".getByTestId('db-carte')\n        .getByText('DATABASE_URL', { exact: true })"));
+
+  const databaseView = action.slice(action.indexOf('const databasePanel'));
+  assert.ok(!databaseView.includes('.click('));
+  assert.ok(!action.includes('selectOption'));
+  assert.ok(!action.includes("name: 'Settings'"));
+  assert.ok(!action.includes('schemaKey='));
+  assert.ok(action.includes("getByText(value, { exact: true }).waitFor({ state: 'visible', timeout: 10_000 })"));
+  assert.ok(!action.includes('console.'));
+  assert.ok(!action.includes('JSON.stringify'));
+
+  const route = read('app/routes/api.projects.$projectId.ide-panel.$panel.ts');
+
+  const secrets = route.slice(
+    route.indexOf("} else if (panel === 'secrets')"),
+    route.indexOf("} else if (panel === 'debugger')"),
+  );
+  assert.match(
+    secrets,
+    /`\/projects\/\$\{projectId\}\/secrets`[\s\S]*?method: 'PUT'[\s\S]*?key: body.key, value: body.value/,
+  );
+
+  const api = read('services/api/src/app.ts');
+
+  const save = api.slice(
+    api.indexOf("app.put('/projects/:projectId/secrets'"),
+    api.indexOf("app.delete('/projects/:projectId/secrets'"),
+  );
+  assert.ok(save.includes('valueEncrypted: encryptJson({ value: body.value })'));
+  assert.ok(save.includes('projectId: project.id'));
+
+  const connections = api.slice(
+    api.indexOf('async function listDatabaseConnections'),
+    api.indexOf('async function listDatabaseConnections') + 3500,
+  );
+  assert.ok(connections.includes('store.getProjectSecret(projectId, secret.key)'));
+  assert.ok(connections.includes('decryptJson<{ value: string }>(full.valueEncrypted).value'));
+
+  const workbench = read('app/components/database/DatabaseWorkbench.tsx');
+  assert.ok(workbench.includes('reveler={() => revelerUnSecret(projectId, active.key)}'));
+  assert.ok(workbench.includes('const [openKey, setOpenKey] = useState<string | null>(null)'));
+  assert.ok(workbench.includes('const cleDuSchema = active?.key ?? null'));
+  assert.match(workbench, /if \(!cleDuSchema\) \{\s*return;\s*\}/);
+  assert.ok(workbench.includes('{env.name}'));
+
+  const names = read('app/components/database/tables-du-schema.ts');
+  assert.ok(names.includes("return libelle ?? (typeof entree.key === 'string' ? entree.key : '')"));
+
+  const secretsPanel = read('app/components/chat/ProjectSecretsPanel.tsx');
+  assert.ok(secretsPanel.includes('return revelerUnSecret(projectId, key)'));
+});

@@ -4,6 +4,9 @@ import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
+import { createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
+
+const browserNetworkDiagnostics = createBrowserNetworkEvidence();
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 let appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
@@ -385,6 +388,7 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
 
   for (const panel of workspacePanels) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     page.on('pageerror', (error) => errors.push(`[${panel}] ${error.message}`));
     page.on('console', (message) => {
       terminalDiagnostics.capture(message);
@@ -461,6 +465,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
 
   async function withPanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     const backendCalls = [];
 
     page.on('pageerror', (error) => errors.push(`[ui:${panel}] ${error.message}`));
@@ -474,7 +479,13 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
     page.on('response', (response) => {
       const url = response.url();
 
-      if (!url.includes(`/api/projects/${projectId}/ide-panel/${panel}`)) {
+      // Database connection editing now lives in this project's Secrets panel.
+      const isPanelResponse = url.includes(`/api/projects/${projectId}/ide-panel/${panel}`);
+
+      const isDatabaseSecretResponse =
+        panel === 'database' && url.includes(`/api/projects/${projectId}/ide-panel/secrets`);
+
+      if (!isPanelResponse && !isDatabaseSecretResponse) {
         return;
       }
 
@@ -604,29 +615,72 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
     'database',
     async (page) => {
       const value = `postgres://audit.local/ui-${Date.now()}`;
-      const onboardingInput = page.getByPlaceholder('postgresql://user:password@host/db?sslmode=require');
 
-      if ((await onboardingInput.count()) > 0 && (await onboardingInput.first().isVisible())) {
-        await onboardingInput.first().fill(value);
-        await Promise.all([
-          waitForPanelResponse(page, 'database', 'POST'),
-          page.getByRole('button', { name: 'Add your first database' }).click(),
-        ]);
-      } else {
-        const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]');
-        await databasePanel.getByRole('button', { name: 'Secrets' }).click();
-        await databasePanel.locator('input[name="key"]:visible').last().fill('DATABASE_URL');
-        await databasePanel.locator('input[name="value"]:visible').last().fill(value);
-        await Promise.all([
-          waitForPanelResponse(page, 'database', 'POST'),
-          databasePanel.getByRole('button', { name: 'Save encrypted secret' }).click(),
-        ]);
+      // Same DATABASE_URL and synthetic value, now edited through the project's encrypted Secrets UI.
+      await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=secrets`, { waitUntil: 'domcontentloaded' });
+
+      const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]');
+      await secretsPanel.getByTestId('secret-menu-DATABASE_URL').click();
+      await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+
+      const keyInput = secretsPanel.getByTestId('secrets-form-key');
+
+      if ((await keyInput.inputValue()) !== 'DATABASE_URL') {
+        throw new Error('Database connection edit targeted the wrong secret key');
       }
 
-      await page.getByText('DATABASE_URL').first().waitFor({
-        state: 'visible',
-        timeout: 10_000,
-      });
+      await secretsPanel.getByTestId('secrets-form-value').fill(value);
+
+      const [saved] = await Promise.all([
+        waitForPanelResponse(page, 'secrets', 'POST'),
+        secretsPanel.getByTestId('secrets-form-add').click(),
+      ]);
+
+      if (!saved.ok()) {
+        throw new Error('Synthetic database connection save failed');
+      }
+
+      const [secretsReload] = await Promise.all([
+        waitForPanelResponse(page, 'secrets', 'GET'),
+        page.reload({ waitUntil: 'domcontentloaded' }),
+      ]);
+
+      if (!secretsReload.ok()) {
+        throw new Error('Saved database secret could not be reloaded');
+      }
+
+      await secretsPanel.getByText('DATABASE_URL', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+
+      // Explicitly reveal only the synthetic value written above, after a real Secrets reload.
+      const secretRow = secretsPanel.getByTestId('secret-row-DATABASE_URL');
+      await secretRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
+      await secretRow.getByText(value, { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+
+      // The Database root lists configuration without opening a connection (which would request schema).
+      const [databaseReload] = await Promise.all([
+        waitForPanelResponse(page, 'database', 'GET'),
+        page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' }),
+      ]);
+
+      if (!databaseReload.ok()) {
+        throw new Error('Database connections could not be reloaded');
+      }
+
+      const databasePayload = await databaseReload.json();
+
+      if (!databasePayload.data?.connections?.some((connection) => connection.key === 'DATABASE_URL')) {
+        throw new Error('Saved DATABASE_URL is missing from Database connections');
+      }
+
+      const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]');
+      const workbench = databasePanel.locator('.bolt-database-workbench');
+
+      // An unprefixed DATABASE_URL has environment shared, so its card displays the exact key.
+      // Do not open the card: configuration persistence does not require contacting audit.local.
+      await workbench
+        .getByTestId('db-carte')
+        .getByText('DATABASE_URL', { exact: true })
+        .waitFor({ state: 'visible', timeout: 10_000 });
     },
     'save_database_url_visible_after_backend_reload',
   );
@@ -897,6 +951,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
 
   async function withWorkspacePanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     page.on('pageerror', (error) => errors.push(`[workspace:${panel}] ${error.message}`));
     page.on('console', (message) => {
       terminalDiagnostics.capture(message);
@@ -1123,6 +1178,7 @@ async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
 
   for (const viewport of viewports) {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     page.on('pageerror', (error) => errors.push(`[responsive:${viewport.name}] ${error.message}`));
     page.on('console', (message) => {
       terminalDiagnostics.capture(message);
@@ -1279,6 +1335,7 @@ async function runAuditPass() {
     pageErrors,
     terminalDiagnostics: terminalDiagnostics.snapshot(),
     persistenceDiagnostics: persistenceDiagnostics.snapshot(),
+    browserNetworkDiagnostics: browserNetworkDiagnostics.snapshot(),
   };
 }
 

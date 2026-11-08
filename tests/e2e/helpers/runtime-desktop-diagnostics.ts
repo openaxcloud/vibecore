@@ -1,6 +1,10 @@
 import { writeFile } from 'node:fs/promises';
 import type { ConsoleMessage, Page, Request, Response, TestInfo } from '@playwright/test';
 
+// Node-only test observer shared with the audit; outside the frontend ~/ alias.
+// eslint-disable-next-line no-restricted-imports
+import { createBrowserNetworkEvidence } from '../../../scripts/ci/browser-network-evidence.mjs';
+
 const RESOURCE_KINDS = ['document', 'script', 'stylesheet', 'image', 'font', 'xhr', 'fetch', 'other'] as const;
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 type RuntimeCase = (fixtures: { page: Page; isMobile: boolean }, testInfo: TestInfo) => Promise<void>;
@@ -246,11 +250,16 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
       RESOURCE_KINDS.map((kind) => [kind, { started: 0, finished: 0, failed: 0 }]),
     ) as Record<ResourceKind, { started: number; finished: number; failed: number }>;
 
+    const networkFailures = createBrowserNetworkEvidence();
     const statuses = { success: 0, redirect: 0, clientError: 0, serverError: 0, other: 0 };
     const errors: Record<string, number> = {};
     const onRequest = (request: Request) => requests[resourceKind(request)].started++;
     const onFinished = (request: Request) => requests[resourceKind(request)].finished++;
-    const onFailed = (request: Request) => requests[resourceKind(request)].failed++;
+
+    const onFailed = (request: Request) => {
+      requests[resourceKind(request)].failed++;
+      networkFailures.capture(request);
+    };
 
     const onResponse = (response: Response) => {
       const status = response.status();
@@ -302,12 +311,25 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
             }),
           ]);
 
-          const payload = JSON.stringify({ browser, requests, statuses, errors });
+          const payload = JSON.stringify({
+            browser,
+            requests,
+            statuses,
+            errors,
+            networkFailures: networkFailures.snapshot(),
+          });
           await writeFile(
             testInfo.outputPath('desktop-layout-evidence.json'),
             Buffer.byteLength(payload, 'utf8') <= 64 * 1024
               ? payload
-              : JSON.stringify({ browser: null, requests, statuses, errors, omitted: 'size-limit' }),
+              : JSON.stringify({
+                  browser: null,
+                  requests,
+                  statuses,
+                  errors,
+                  networkFailures: networkFailures.snapshot(),
+                  omitted: 'size-limit',
+                }),
           );
         }
       } catch {

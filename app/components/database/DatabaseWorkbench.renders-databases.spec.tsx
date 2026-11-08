@@ -65,6 +65,23 @@ describe('DatabaseWorkbench — ce que le panneau AFFICHE réellement', () => {
     fetcherCall = 0;
   });
 
+  it('shows the exact shared DATABASE_URL card without opening a schema connection', () => {
+    fetchers = [
+      makeFetcher({
+        connections: [{ key: 'DATABASE_URL', source: 'secret', kind: 'postgres', environment: 'shared' }],
+      }),
+      makeFetcher(),
+      makeFetcher(),
+    ];
+
+    render(<DatabaseWorkbench projectId="audit-project" />);
+
+    expect(screen.getByTestId('db-carte').textContent).toContain('DATABASE_URL');
+    expect(fetchers[2].load).not.toHaveBeenCalled();
+    expect(fetchers.every((fetcher) => fetcher.submit.mock.calls.length === 0)).toBe(true);
+    expect(screen.queryByRole('tab', { name: 'Settings' })).toBeNull();
+  });
+
   it('affiche la base du projet au lieu de l’état vide', () => {
     fetchers = [makeFetcher(CHARGE_API), makeFetcher()];
 

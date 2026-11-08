@@ -110,6 +110,7 @@ test('a stalled sampling promise rejects within a bounded interval and cannot st
   }, /sentinel_sampling_timeout/);
   assert.equal(nextPhase, false);
   assert.ok(Date.now() - start < 1000);
+  assert.equal(LIMITS.podHold, 5000);
   assert.ok(LIMITS.main + LIMITS.settle + 2 * LIMITS.close + LIMITS.cleanup < 180000);
 });
 

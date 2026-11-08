@@ -10,7 +10,7 @@ import { redactRuntimeEvidence } from './runtime-evidence-redaction.mjs';
 export const OUTPUT = 'tmp/runtime-network-sentinel.json';
 export const MAX_BYTES = 32 * 1024;
 
-export const LIMITS = Object.freeze({ main: 145000, settle: 4000, close: 2000, cleanup: 18000 });
+export const LIMITS = Object.freeze({ main: 145000, settle: 4000, close: 2000, cleanup: 18000, podHold: 5000 });
 
 const sleep = (ms, signal) => delay(ms, undefined, { signal });
 
@@ -378,7 +378,7 @@ export async function run(env = process.env) {
             13000,
           );
           recordCycleBoundary(report.cycleBoundaries, index, 'ready');
-          await sleep(1000, controller.signal);
+          await sleep(LIMITS.podHold, controller.signal);
         },
         remove,
         controller.signal,

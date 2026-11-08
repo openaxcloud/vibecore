@@ -34,7 +34,14 @@ async function importHelper(io) {
     `);
 
     return await import(
-      dataModule(compiled.replace(ioImport, `import { writeFile, setTimeout, clearTimeout } from '${adapter}';`))
+      dataModule(
+        compiled
+          .replace(
+            "'../../../scripts/ci/browser-network-evidence.mjs'",
+            JSON.stringify(new URL('./browser-network-evidence.mjs', import.meta.url).href),
+          )
+          .replace(ioImport, `import { writeFile, setTimeout, clearTimeout } from '${adapter}';`),
+      )
     );
   } finally {
     delete globalThis[key];
@@ -384,7 +391,7 @@ test('real observer and projection record replacement IDs, phases, counts, and c
     assert.ok(!serialized.includes('https://'));
     assert.ok(!serialized.includes('example.invalid'));
     assert.ok(Buffer.byteLength(serialized, 'utf8') <= 64 * 1024);
-    assert.deepEqual(Object.keys(payload), ['browser', 'requests', 'statuses', 'errors']);
+    assert.deepEqual(Object.keys(payload), ['browser', 'requests', 'statuses', 'errors', 'networkFailures']);
     assert.equal(payload.browser.selectedPanel, 'snapshots');
     assert.equal(payload.browser.themeReady, true);
     assert.deepEqual(payload.browser.scripts, { elements: 1, resources: 1 });

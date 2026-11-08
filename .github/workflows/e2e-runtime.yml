@@ -102,6 +102,7 @@ jobs:
           node --test scripts/ci/runtime-evidence-redaction.checks.mjs
           node --test scripts/ci/runtime-api-evidence.checks.mjs
           node --test scripts/ci/runtime-network-sentinel.checks.mjs
+          node --test scripts/ci/browser-network-evidence.checks.mjs
           node --test scripts/terminal-warning-diagnostics.checks.mjs
           node --test scripts/audit-ide-panels-selectors.checks.mjs
           node --test scripts/ci/mobile-layout-evidence.checks.mjs
@@ -110,6 +111,21 @@ jobs:
           python3 scripts/ci/stage-k3s-runtime.checks.py
           pnpm exec vitest run tests/guards/runtime-ci-verdict.spec.ts tests/runtime-ci/server-backed-static-fixture.spec.ts tests/runtime-ci/preview-command-evidence.spec.ts
           bash -n scripts/ci/provision-runtime-kubernetes.sh scripts/ci/probe-runtime-gvisor.sh
+
+      - name: Verify IDE persistence and interaction regressions
+        run: >-
+          pnpm exec vitest run
+          app/lib/persistence/projectIdeMemory*.spec.ts
+          app/components/chat/ProjectMetadataForm.spec.tsx
+          app/components/chat/SnapshotCreateForm.spec.tsx
+          app/components/chat/BaseChat.preview-startup.spec.tsx
+          app/components/chat/ProjectIdeApiServicePanel.loading.spec.tsx
+          app/components/chat/project-right-width-restore.spec.tsx
+          app/components/database/DatabaseWorkbench.renders-databases.spec.tsx
+          tests/guards/runtime-agent-geometry.spec.ts
+          tests/guards/runtime-workspace-status-navigation.spec.ts
+          tests/guards/runtime-ui-panel-bounds.spec.ts
+          tests/guards/runtime-tool-menu-click.spec.tsx
 
       - name: Provision temporary Kubernetes and gVisor
         run: bash scripts/ci/provision-runtime-kubernetes.sh
@@ -229,6 +245,12 @@ jobs:
           compression-level: 9
           if-no-files-found: error
 
+      - name: Observe runner network events read-only
+        if: ${{ !cancelled() && steps.web.outcome == 'success' }}
+        run: |
+          node scripts/ci/runtime-network-observer.mjs > /dev/null 2>&1 &
+          echo "$!" > /tmp/vibecore-network-observer.pid
+
       # No provider credentials: this workflow must not spend AI credits.
       - name: Playwright @runtime suite
         id: runtime-suite
@@ -248,6 +270,15 @@ jobs:
           pnpm run ide:panel-audit:validate
           validate_status=$?
           test "$audit_status" -eq 0 && test "$validate_status" -eq 0
+
+      - name: Stop passive network observer
+        if: always()
+        run: |
+          if test -f /tmp/vibecore-network-observer.pid; then
+            pid=$(cat /tmp/vibecore-network-observer.pid)
+            if [[ "$pid" =~ ^[0-9]+$ ]]; then kill "$pid" 2>/dev/null || true; fi
+            sleep 1
+          fi
 
       # Separate transport experiment; does not replace or relax runtime/audit verdicts.
       - name: Diagnose runner network notifications

@@ -11855,7 +11855,9 @@ function ProjectIdeApiServicePanel({
   const [payload, setPayload] = useState<any>(() => initialPayload ?? seededCache?.payload);
   const [error, setError] = useState<string>();
   const [actionNotice, setActionNotice] = useState<string>();
-  const [busy, setBusy] = useState(false);
+
+  // A cold panel is already loading before its first fetch effect runs.
+  const [busy, setBusy] = useState(() => Boolean(projectId) && !(initialPayload ?? seededCache?.payload));
   const [slowLoad, setSlowLoad] = useState(false);
 
   // One-time share link returned by the share-link action; the raw token is never re-listed afterwards.
