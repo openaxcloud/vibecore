@@ -33,7 +33,7 @@ async function save(name, data) {
   manifest.push({ name, bytes: bounded.length, truncated: buffer.length > bounded.length });
 }
 
-for (const service of ['api', 'web', 'admin', 'manager', 'router', 'gc']) {
+for (const service of ['api', 'web', 'admin', 'manager', 'router', 'preview', 'gc']) {
   try {
     await save(`${service}.log`, await readFile(`/tmp/vibecore-${service}.log`, 'utf8'));
   } catch {

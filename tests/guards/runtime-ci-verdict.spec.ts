@@ -40,6 +40,10 @@ describe('ephemeral real runtime boundaries', () => {
     expect(job.env.KUBECONFIG).toBeUndefined();
     expect(job.env.VITE_RUNTIME_MODE).toBe('remote-kubernetes');
     expect(job.env.RUNTIME_MODE).toBe('remote-kubernetes');
+    expect(job.env.VITE_RUNTIME_API_BASE_URL).toBe('http://127.0.0.1:3001/api/runtime');
+    expect(job.env.API_CORS_ORIGINS).toBe('http://127.0.0.1:5173');
+    expect(job.env.PREVIEW_URL_TEMPLATE).toBe('http://{workspaceId}-{port}.localhost:3020/');
+    expect(source).toContain('pnpm --filter @vibecore/preview-proxy exec tsx src/server.ts');
     expect(source).toContain('KUBECONFIG=$RUNNER_TEMP/vibecore-runtime/kubeconfig');
     expect(readFileSync('scripts/ci/provision-runtime-kubernetes.sh', 'utf8')).toContain('kubectl get nodes -o name');
     expect(readFileSync('scripts/ci/provision-runtime-kubernetes.sh', 'utf8')).toContain(

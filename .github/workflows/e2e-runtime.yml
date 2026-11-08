@@ -39,6 +39,11 @@ jobs:
       VIBECORE_CI_EPHEMERAL_RUNTIME: '1'
       VITE_RUNTIME_MODE: remote-kubernetes
       RUNTIME_MODE: remote-kubernetes
+      VITE_RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+      API_CORS_ORIGINS: http://127.0.0.1:5173
+      PREVIEW_DOMAIN: localhost
+      PREVIEW_PROXY_PORT: 3020
+      PREVIEW_URL_TEMPLATE: http://{workspaceId}-{port}.localhost:3020/
       WORKSPACE_RUNTIME_NAMESPACE: workspaces
       WORKSPACE_STORAGE_CLASS: local-path
       WORKSPACE_AGENT_IMAGE: vibecore/workspace-agent:ci-${{ github.sha }}
@@ -133,6 +138,9 @@ jobs:
           done
           pnpm exec playwright install chromium
 
+      - name: Verify preview localhost browser routing
+        run: node --test scripts/ci/runtime-localhost-browser.checks.mjs
+
       - name: Start local dependencies
         run: |
           trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
@@ -159,6 +167,8 @@ jobs:
           node scripts/ci/runtime-agent-router.mjs > /tmp/vibecore-router.log 2>&1 &
           pnpm --filter @vibecore/workspace-manager exec tsx src/server.ts > /tmp/vibecore-manager.log 2>&1 &
           npx wait-on --timeout 180000 tcp:127.0.0.1:18081 http://127.0.0.1:3010/health
+          pnpm --filter @vibecore/preview-proxy exec tsx src/server.ts > /tmp/vibecore-preview.log 2>&1 &
+          npx wait-on --timeout 180000 http://127.0.0.1:3020/health
           # The same production manager GC path reclaims workspaces left by closed test pages.
           # Live IDE requests renew activity; no in-flight test workspace is force-deleted.
           (while sleep 30; do
