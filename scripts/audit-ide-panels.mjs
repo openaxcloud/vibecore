@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
+import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -326,7 +327,9 @@ async function auditBackendPanels(projectId, cookie) {
       'deployments',
       form({ provider: 'static', environment: 'preview', buildCommand: 'npm run build', outputDirectory: 'dist' }),
     ],
-    ['database', form({ key: 'DATABASE_URL', value: 'postgres://audit.local/db' })],
+
+    // The database contract now saves connection URLs as encrypted secrets; default is deliberately rejected.
+    ['database', form({ intent: 'upsert-secret', key: 'DATABASE_URL', value: 'postgres://audit.local/db' })],
     ['object-storage', form({ key: 'OBJECT_STORAGE_BUCKET', value: 'audit-bucket' })],
     ['packages', form({ packages: 'zod react-router-dom' })],
     ['extensions', form({ extension: 'prettier' })],
@@ -451,7 +454,7 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
   return { results, errors };
 }
 
-async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics) {
+async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics, persistenceDiagnostics) {
   const browser = await chromium.launch({ headless: true });
   const errors = [];
   const results = [];
@@ -475,6 +478,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
         return;
       }
 
+      persistenceDiagnostics.capture(panel, response);
       backendCalls.push({
         method: response.request().method(),
         status: response.status(),
@@ -582,6 +586,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
     'snapshots',
     async (page) => {
       const label = `Panel audit UI checkpoint ${Date.now()}`;
+      persistenceDiagnostics.expect('snapshots', label);
       await page.getByPlaceholder('Manual checkpoint').fill(label);
       await Promise.all([
         waitForPanelResponse(page, 'snapshots', 'POST'),
@@ -647,6 +652,8 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
     'settings',
     async (page) => {
       const projectName = `IDE Panel Audit UI ${Date.now()}`;
+      persistenceDiagnostics.expect('settings', projectName);
+
       const panel = page.locator('[data-testid="ide-service-panel"][data-panel="settings"]');
       await panel.locator('input[name="name"]').fill(projectName);
       await panel.locator('input[name="description"]').fill('Updated by UI interaction audit');
@@ -749,12 +756,56 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
       await workflowCard.locator('header button').first().click();
       await Promise.all([
         waitForPanelResponse(page, 'workflows', 'POST'),
-        workflowCard.getByRole('button', { name: 'Run', exact: true }).click(),
+        workflowCard.locator('header').getByRole('button', { name: 'Run now', exact: true }).click(),
       ]);
       await workflowCard.locator('.bolt-project-workflow-runs').waitFor({ state: 'visible', timeout: 20_000 });
-      await workflowCard.getByRole('button', { name: 'Shell Command' }).click();
-      await waitForPanelResponse(page, 'workflows', 'POST');
-      await workflowCard.getByText('Shell Command').first().waitFor({ state: 'visible', timeout: 10_000 });
+
+      const taskCountBefore = await workflowCard.locator('[data-testid^="workflow-task-"]').count();
+
+      // Observe the real reload before clicking; an optimistic row alone is not persistence evidence.
+
+      const reloadedWorkflow = page.waitForResponse(
+        async (response) => {
+          if (
+            !response.url().includes(`/api/projects/${projectId}/ide-panel/workflows`) ||
+            response.request().method() !== 'GET' ||
+            response.status() >= 500
+          ) {
+            return false;
+          }
+
+          const payload = await response.json().catch(() => null);
+          const workflow = payload?.data?.workflowsState?.workflows?.find((item) => item.name === workflowName);
+
+          return (
+            workflow?.tasks?.length === taskCountBefore + 1 && workflow.tasks.some((task) => task.taskType === 'shell')
+          );
+        },
+        { timeout: 15_000 },
+      );
+      const [reloadResponse] = await Promise.all([
+        reloadedWorkflow,
+        waitForPanelResponse(page, 'workflows', 'POST'),
+        workflowCard.locator('[data-testid^="add-task-"]').click(),
+      ]);
+
+      const reloadPayload = await reloadResponse.json();
+
+      const persistedTasks = reloadPayload.data.workflowsState.workflows.find(
+        (item) => item.name === workflowName,
+      ).tasks;
+
+      const addedTask = workflowCard.locator('[data-testid^="workflow-task-"]').nth(taskCountBefore);
+      await addedTask.waitFor({ state: 'visible', timeout: 10_000 });
+
+      const addedTaskId = (await addedTask.getAttribute('data-testid'))?.replace('workflow-task-', '');
+
+      if (
+        (await addedTask.locator('select[name="taskType"]').inputValue()) !== 'shell' ||
+        !persistedTasks.some((task) => String(task.id) === addedTaskId && task.taskType === 'shell')
+      ) {
+        throw new Error('New workflow task did not persist as a shell task');
+      }
     },
     'create_run_workflow_and_add_task_visible_after_backend_reload',
   );
@@ -928,8 +979,11 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
       await filesPanel.waitFor({ state: 'visible', timeout: 15_000 });
       await page.getByLabel('Refresh files').click();
       await page.getByLabel('Collapse all files').click();
-      page.once('dialog', (dialog) => void dialog.accept(fileName));
       await page.getByLabel('New file').click();
+
+      const createFileDialog = page.getByRole('dialog', { name: 'New file', exact: true });
+      await createFileDialog.getByLabel('File path', { exact: true }).fill(fileName);
+      await createFileDialog.getByRole('button', { name: 'Create', exact: true }).click();
       await page
         .locator('[data-testid="responsive-code-editor"]')
         .first()
@@ -1169,14 +1223,23 @@ function networkEvidence(results) {
 
 async function runAuditPass() {
   const terminalDiagnostics = createTerminalWarningDiagnostics();
+  const persistenceDiagnostics = createPanelPersistenceDiagnostics();
   const auth = await registerAuditUser();
   const project = await createAuditProject(auth.token, auth.organization.id);
   const cookie = `vc_session=${auth.token}`;
   const endpointResults = await auditBackendPanels(project.id, cookie);
   const renderAudit = await auditPanelRender(project.id, auth.token, terminalDiagnostics);
-  const interactionAudit = await auditCriticalUiInteractions(project.id, auth.token, terminalDiagnostics);
+  const interactionAudit = await auditCriticalUiInteractions(
+    project.id,
+    auth.token,
+    terminalDiagnostics,
+    persistenceDiagnostics,
+  );
+
   const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token, terminalDiagnostics);
   const responsiveAudit = await auditResponsiveViewports(project.id, auth.token, terminalDiagnostics);
+  await persistenceDiagnostics.flush();
+
   const pageErrors = [
     ...renderAudit.errors,
     ...interactionAudit.errors,
@@ -1210,6 +1273,7 @@ async function runAuditPass() {
     results,
     pageErrors,
     terminalDiagnostics: terminalDiagnostics.snapshot(),
+    persistenceDiagnostics: persistenceDiagnostics.snapshot(),
   };
 }
 

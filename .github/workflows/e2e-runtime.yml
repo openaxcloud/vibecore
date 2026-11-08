@@ -104,6 +104,7 @@ jobs:
           node --test scripts/terminal-warning-diagnostics.checks.mjs
           node --test scripts/audit-ide-panels-selectors.checks.mjs
           node --test scripts/ci/mobile-layout-evidence.checks.mjs
+          node --test scripts/panel-persistence-diagnostics.checks.mjs
           python3 scripts/ci/stage-k3s-runtime.checks.py
           pnpm exec vitest run tests/guards/runtime-ci-verdict.spec.ts tests/runtime-ci/server-backed-static-fixture.spec.ts tests/runtime-ci/preview-command-evidence.spec.ts
           bash -n scripts/ci/provision-runtime-kubernetes.sh scripts/ci/probe-runtime-gvisor.sh
@@ -166,6 +167,9 @@ jobs:
         run: |
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
+
+      - name: Verify workspace IDE migration on PostgreSQL
+        run: NODE_ENV=test WORKSPACE_IDE_POSTGRES_PROOF=1 pnpm --filter @vibecore/api exec vitest run --config vitest.config.ts src/workspace-ide-postgres.integration.spec.ts
 
       - name: Start real workspace manager and local agent transport
         run: |

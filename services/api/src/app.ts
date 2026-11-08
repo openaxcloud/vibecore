@@ -1195,6 +1195,39 @@ function mergeIdeMessages(existing: any[] | undefined, incoming: any[] | undefin
   return order.map((key) => byKey.get(key)).filter(Boolean);
 }
 
+async function readWorkspaceIdeStateWithLegacyUi(store: ApiStore, workspace: WorkspaceRecord) {
+  const existing = await store.getWorkspaceIdeState(workspace.id);
+
+  if (existing || (workspace.environment ?? 'development') !== 'development') {
+    return existing;
+  }
+
+  const primary = (await store.listWorkspaces(workspace.projectId))
+    .filter((candidate) => (candidate.environment ?? 'development') === 'development')
+    .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))[0];
+
+  if (primary?.id !== workspace.id) {
+    return undefined;
+  }
+
+  // Read at first use, not workspace creation: the original project-scoped
+  // editor can still save its layout after the runtime creates this workspace.
+  const legacy = await store.getProjectIdeState(workspace.projectId);
+  const ui = ideStateRecord(legacy?.state).ui;
+
+  if (!ui || typeof ui !== 'object' || Array.isArray(ui)) {
+    return undefined;
+  }
+
+  // Chat and other project-owned data stay at project scope. Return the actual
+  // stored winner so ETag and subsequent conditional writes use its version.
+  return store.createWorkspaceIdeStateIfAbsent({
+    workspaceId: workspace.id,
+    state: { ui },
+    updatedByUserId: legacy?.updatedByUserId,
+  });
+}
+
 function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
   const existing = ideStateRecord(existingState);
   const incoming = ideStateRecord(incomingState);
@@ -24509,7 +24542,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const ideState = (await store.getWorkspaceIdeState(workspace.id)) ?? null;
+    const ideState = (await readWorkspaceIdeStateWithLegacyUi(store, workspace)) ?? null;
 
     if (ideState) {
       reply.header('etag', `"${ideState.version}"`);
@@ -24526,7 +24559,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(projectIdeStateSchema, request.body ?? {});
-    const existingState = await store.getWorkspaceIdeState(workspace.id);
+    const existingState = await readWorkspaceIdeStateWithLegacyUi(store, workspace);
 
     /*
      * Same optimistic-concurrency contract as PUT /projects/:projectId/ide-state.

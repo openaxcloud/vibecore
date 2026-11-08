@@ -29,6 +29,13 @@ describe('runtime CI verdict must reflect actual coverage', () => {
 });
 
 describe('ephemeral real runtime boundaries', () => {
+  it('executes the real PostgreSQL migration proof after database preparation', () => {
+    const proofIndex = steps.findIndex((step) => step.name === 'Verify workspace IDE migration on PostgreSQL');
+    expect(proofIndex).toBeGreaterThan(steps.findIndex((step) => step.name === 'Prepare database'));
+    expect(steps[proofIndex].run).toBe(
+      'NODE_ENV=test WORKSPACE_IDE_POSTGRES_PROOF=1 pnpm --filter @vibecore/api exec vitest run --config vitest.config.ts src/workspace-ide-postgres.integration.spec.ts',
+    );
+  });
   it('keeps additional mobile diagnostics under the same redaction and byte budgets', () => {
     const collector = readFileSync('scripts/ci/collect-runtime-evidence.mjs', 'utf8');
     expect(collector).toContain("entry.name === 'mobile-layout-evidence.json'");

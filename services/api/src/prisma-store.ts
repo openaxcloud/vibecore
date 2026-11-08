@@ -2158,6 +2158,19 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async createWorkspaceIdeStateIfAbsent(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
+    // INSERT ... ON CONFLICT DO NOTHING preserves a concurrent workspace save,
+    // including its version and an intentionally empty state.
+    await this.prisma.workspaceIdeState.createMany({
+      data: { workspaceId: input.workspaceId, state: input.state as any, updatedByUserId: input.updatedByUserId },
+      skipDuplicates: true,
+    });
+
+    const state = await this.prisma.workspaceIdeState.findUniqueOrThrow({ where: { workspaceId: input.workspaceId } });
+
+    return mapWorkspaceIdeState(state);
+  }
+
   async getWorkspaceIdeState(workspaceId: string) {
     const state = await this.prisma.workspaceIdeState.findUnique({ where: { workspaceId } });
     return state ? mapWorkspaceIdeState(state) : undefined;

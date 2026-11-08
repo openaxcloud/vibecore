@@ -2035,6 +2035,8 @@ test(
     const projectId = await createTestProject(page, 'E2E edit workflow project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    // The palette color assertions below describe dark tokens, not the light default.
+    await forceDarkTheme(page);
     await expect(
       page.getByRole('button', { name: /^(Running|Building|Stopped|Crashed) workspace(?:\s*\||$)/i }),
     ).toBeVisible({ timeout: 15000 });

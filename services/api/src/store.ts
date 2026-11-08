@@ -1816,12 +1816,15 @@ export interface ApiStore {
     expectedVersion?: number;
   }): Promise<ProjectIdeStateRecord>;
 
-  /*
-   * Workspace-scoped IDE state. Callers that pass a workspaceId can read the
-   * working tree's own editor state; when nothing is persisted yet they should
-   * fall back to getProjectIdeState for backward compatibility with workspaces
-   * created before the per-workspace state existed.
+  /* Workspace state takes precedence, including an explicitly empty state.
+   * Only the primary development workspace may inherit legacy project UI.
+   * Migration must use create-if-absent, never an unconditional upsert.
    */
+  createWorkspaceIdeStateIfAbsent(input: {
+    workspaceId: string;
+    state: unknown;
+    updatedByUserId?: string;
+  }): Promise<WorkspaceIdeStateRecord>;
   getWorkspaceIdeState(workspaceId: string): Promise<WorkspaceIdeStateRecord | undefined>;
   upsertWorkspaceIdeState(input: {
     workspaceId: string;

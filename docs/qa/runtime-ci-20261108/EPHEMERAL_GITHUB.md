@@ -83,6 +83,19 @@ must be reported honestly, never mocked into success.
 Local checks and the exact remote run/result will be recorded after execution.
 No browser runtime pass or production readiness is claimed by this document.
 
+## Legacy project layout compatibility
+
+When the first development workspace has no IDE state, its first authorized
+state read or write initializes only the saved project UI. An existing workspace
+state, including an intentionally empty state, wins. Secondary and production
+workspaces do not inherit it; chat remains project-scoped. The insertion ignores
+conflicts and rereads the stored winner for its version and ETag. Subsequent
+project-only windows do not overwrite an initialized workspace layout.
+
+The runtime job exercises this storage path against its migrated local PostgreSQL
+before starting the app, including concurrent initializers and an uncommitted
+competing writer. That proof uses an isolated UUID fixture and removes it afterward.
+
 ## Local validation before first launch
 
 - Frozen pnpm 9.14.4 install succeeded on Node 24.22.1.
