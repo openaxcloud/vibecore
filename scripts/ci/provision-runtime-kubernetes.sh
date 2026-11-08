@@ -14,18 +14,22 @@ cd "$root/downloads"
 # A fresh query avoids replaying a cached gateway failure; version and digest
 # verification below remain mandatory. Never install partial/error responses.
 download_release() {
-  local url="$1" output="$2" attempt status code retryable
+  local url="$1" output="$2" attempt status code retryable request_url
   local partial="${output}.partial.$$"
   local separator='?'
   [[ "$url" != *'?'* ]] || separator='&'
 
   for attempt in 1 2 3 4; do
     code=0
+    request_url="$url"
+    if [[ "$attempt" -gt 1 ]]; then
+      request_url="${url}${separator}ci_retry=${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}-${attempt}-$(date +%s%N)"
+    fi
     status="$(curl --fail --location --silent --show-error \
       --proto '=https' --proto-redir '=https' \
       --connect-timeout 15 --max-time 180 \
       --output "$partial" --write-out '%{http_code}' \
-      "${url}${separator}ci_retry=${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}-${attempt}-$(date +%s%N)")" || code=$?
+      "$request_url")" || code=$?
     if [[ "$code" -eq 0 && "$status" == 200 ]]; then
       mv -- "$partial" "$output"
       return 0
@@ -52,9 +56,10 @@ download_release() {
 
 # Official, versioned releases; verify each download against its release checksum.
 k3s_version='v1.37.2+k3s1'
+k3s_release_tag=${k3s_version//+/%2B}
 gvisor_version='release-20261102.0'
-download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_version}/k3s" k3s
-download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_version}/sha256sum-amd64.txt" k3s-checksums
+download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_release_tag}/k3s" k3s
+download_release "https://github.com/k3s-io/k3s/releases/download/${k3s_release_tag}/sha256sum-amd64.txt" k3s-checksums
 awk '$2 == "k3s" || $2 == "./k3s" { print }' k3s-checksums > k3s.sha256
 [[ $(wc -l < k3s.sha256) -eq 1 ]]
 sha256sum --check k3s.sha256
