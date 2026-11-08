@@ -37,7 +37,6 @@ jobs:
       HUSKY: 0
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       VIBECORE_CI_EPHEMERAL_RUNTIME: '1'
-      KUBECONFIG: ${{ runner.temp }}/vibecore-runtime/kubeconfig
       WORKSPACE_RUNTIME_NAMESPACE: workspaces
       WORKSPACE_STORAGE_CLASS: local-path
       WORKSPACE_AGENT_IMAGE: vibecore/workspace-agent:ci-${{ github.sha }}
@@ -80,6 +79,7 @@ jobs:
 
       - name: Generate temporary internal credentials
         run: |
+          echo "KUBECONFIG=$RUNNER_TEMP/vibecore-runtime/kubeconfig" >> "$GITHUB_ENV"
           for key in WORKSPACE_AGENT_TOKEN_SECRET WORKSPACE_MANAGER_SHARED_SECRET PREVIEW_PROXY_SHARED_SECRET; do
             value="$(openssl rand -hex 32)"
             echo "::add-mask::$value"

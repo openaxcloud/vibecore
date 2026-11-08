@@ -37,6 +37,8 @@ describe('ephemeral real runtime boundaries', () => {
     expect(source).not.toContain('WORKSPACE_DISABLE_SANDBOX_SCHEDULING');
     expect(source).toContain('bash scripts/ci/probe-runtime-gvisor.sh');
     expect(source).toContain('retention-days: 1');
+    expect(job.env.KUBECONFIG).toBeUndefined();
+    expect(source).toContain('KUBECONFIG=$RUNNER_TEMP/vibecore-runtime/kubeconfig');
   });
   it('preserves all original runtime scenarios without short-circuiting failures', () => {
     const runtime = steps.find((step) => step.id === 'runtime-suite');
