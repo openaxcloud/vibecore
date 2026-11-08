@@ -25,6 +25,7 @@ export function parseMemoryTags(value: string) {
 }
 
 type SettingsFormField =
+  | 'snapshots.label'
   | 'project.name'
   | 'project.description'
   | 'project.gitRepositoryUrl'

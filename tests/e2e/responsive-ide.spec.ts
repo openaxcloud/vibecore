@@ -876,7 +876,37 @@ test.describe('responsive IDE shell', () => {
         timeout: 45000,
       });
 
-      const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
+      /*
+       * Startup replaces the pending shell. Query and measure in one browser task,
+       * without retaining a handle that can detach before a separate box request.
+       */
+      const agentBox = await page.evaluate(() => {
+        const agent = document.querySelector<HTMLElement>('[data-testid="ide-agent-panel"]');
+
+        if (!agent?.isConnected) {
+          return null;
+        }
+
+        for (let element: HTMLElement | null = agent; element; element = element.parentElement) {
+          const style = window.getComputedStyle(element);
+
+          if (
+            element.hidden ||
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            style.visibility === 'collapse' ||
+            style.contentVisibility === 'hidden' ||
+            Number.parseFloat(style.opacity) === 0
+          ) {
+            return null;
+          }
+        }
+
+        const { x, y, width, height } = agent.getBoundingClientRect();
+
+        return width > 0 && height > 0 ? { x, y, width, height } : null;
+      });
+
       const viewport = page.viewportSize();
       expect(agentBox?.width).toBeGreaterThan(260);
       expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);

@@ -51,7 +51,7 @@ for (const service of ['api', 'web', 'admin', 'manager', 'router', 'preview', 'g
   }
 }
 
-for (const file of ['tmp/ide-panel-audit.json']) {
+for (const file of ['tmp/ide-panel-audit.json', 'tmp/runtime-network-sentinel.json']) {
   try {
     await save(path.basename(file), await readFile(file, 'utf8'));
   } catch {

@@ -24,6 +24,7 @@ import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { totalAiUsage } from '~/lib/ai-usage-totals';
 import { latestTurnModelOutput } from '~/lib/model-output-evidence';
 import { SkillResources, type SkillResourceSnapshot } from './SkillResources';
+import { SnapshotCreateForm } from './SnapshotCreateForm';
 import { ProjectMetadataForm } from './ProjectMetadataForm';
 import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
 import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
@@ -3014,7 +3015,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
     >(() =>
       projectIdeMode &&
-      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
+      (activeProjectPanel === 'search' ||
+        activeProjectPanel === 'editor' ||
+        activeProjectPanel === 'terminal' ||
+        activeProjectPanel === 'preview')
         ? activeProjectPanel
         : 'chat',
     );
@@ -3407,7 +3411,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState(() =>
       projectIdeMode &&
-      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
+      (activeProjectPanel === 'search' ||
+        activeProjectPanel === 'editor' ||
+        activeProjectPanel === 'terminal' ||
+        activeProjectPanel === 'preview')
         ? activeProjectPanel
         : 'agent',
     );
@@ -14957,11 +14964,13 @@ function ProjectIdePanelContent({
             <h3>{t('chat.copy.checkpoints_a2b3a59a')}</h3>
             <p>{t('chat.copy.restoreAKnownGoodProjectState_ae594c01')}</p>
           </div>
-          <form onSubmit={onSubmit} className="bolt-project-snapshots-create">
-            <input name="intent" value="create" type="hidden" />
-            <PanelInput name="label" placeholder={t('chat.copy.manualCheckpoint_b29f671a')} />
-            <PanelButton disabled={busy}>{t('chat.copy.newCheckpoint_3480863c')}</PanelButton>
-          </form>
+          <SnapshotCreateForm
+            projectId={projectId}
+            paneId={paneId}
+            snapshots={snapshots}
+            onSubmit={onSubmit}
+            busy={busy}
+          />
         </div>
         {snapshots.length ? (
           <div className="bolt-project-snapshots-timeline">

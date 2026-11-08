@@ -1701,11 +1701,28 @@ test(
     await expect(statusbar).toContainText('Markdown');
 
     const workspaceStatusButton = statusbar.getByRole('button', {
-      name: /^(Running|Building|Crashed|Stopped) workspace(?:\s*\||$)/i,
+      name: /^(Running|Starting|Building|Crashed|Stopped) workspace(?:\s*\||$)/i,
     });
     await expect(workspaceStatusButton).toBeVisible();
     await workspaceStatusButton.click();
+
+    // Status opens the pinned Shell, including while the workspace is still Starting.
+
+    const statusTerminal = page.locator('.bolt-project-bottom-terminal');
+    await expect(statusTerminal).toBeVisible();
+    await expect(statusTerminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await statusTerminal.getByRole('button', { name: 'Close terminal panel', exact: true }).click();
+    await expect(statusTerminal).toBeHidden();
     await expect(page.getByRole('tab', { name: /Webview/ }).first()).toBeVisible({ timeout: 15000 });
+
+    // Webview is a separate tool; the status control no longer navigates there.
+
+    const webviewTab = page.getByRole('tab', { name: /^(?:Pinned tab: )?Webview$/ });
+    await webviewTab.getByRole('button', { name: 'Webview', exact: true }).click();
+    await expect(webviewTab).toHaveAttribute('aria-selected', 'true');
 
     const webviewToolbar = page.locator('.bolt-project-webview-toolbar').first();
     await expect(webviewToolbar).toBeVisible();
