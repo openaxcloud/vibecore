@@ -79,3 +79,20 @@ No browser runtime pass or production readiness is claimed by this document.
   in a separate config. Listing is not browser execution.
 - No local Docker/kubectl is available, so cluster provisioning, image build,
   full web build and browser behavior remain for the authorized remote run.
+
+## First remote observations
+
+Run 42460924763 was rejected before runner allocation because `runner.temp` is not
+available in job-level env. Corrected by writing KUBECONFIG to GITHUB_ENV after
+runner allocation; actionlint then passed.
+
+Run 42461071358 installed dependencies and passed all 13 harness checks (7 transport
+and 6 workflow). Both official Kubernetes and gVisor binaries passed release and
+pinned digest checks. Bootstrap reached the Kubernetes API but `get nodes` returned
+an empty successful list before node registration, and `kubectl wait --all` failed
+with no matching resources. No browser test ran. Artifact upload succeeded (6,807
+bytes, one-day retention). Bootstrap now explicitly waits for a nonempty node list
+and for the local-path deployment to exist.
+
+Preflight files use a dedicated `.pw.ts` extension and config so neither ordinary
+Playwright E2E nor root Vitest accidentally discovers these cluster-only tests.

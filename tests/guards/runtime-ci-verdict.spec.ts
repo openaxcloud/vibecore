@@ -39,6 +39,7 @@ describe('ephemeral real runtime boundaries', () => {
     expect(source).toContain('retention-days: 1');
     expect(job.env.KUBECONFIG).toBeUndefined();
     expect(source).toContain('KUBECONFIG=$RUNNER_TEMP/vibecore-runtime/kubeconfig');
+    expect(readFileSync('scripts/ci/provision-runtime-kubernetes.sh', 'utf8')).toContain('kubectl get nodes -o name');
   });
   it('preserves all original runtime scenarios without short-circuiting failures', () => {
     const runtime = steps.find((step) => step.id === 'runtime-suite');

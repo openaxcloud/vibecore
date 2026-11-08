@@ -53,7 +53,7 @@ sudo nohup /usr/local/bin/k3s server --disable traefik --disable servicelb \
 for attempt in $(seq 1 120); do
   if sudo test -s "$KUBECONFIG"; then
     sudo chown "$(id -u):$(id -g)" "$KUBECONFIG"
-    if kubectl get nodes >/dev/null 2>&1; then break; fi
+    if [[ -n "$(kubectl get nodes -o name 2>/dev/null)" ]]; then break; fi
   fi
   sleep 2
 done
@@ -67,6 +67,7 @@ metadata:
   name: gvisor
 handler: gvisor
 YAML
+kubectl -n kube-system wait --for=create deployment/local-path-provisioner --timeout=180s
 kubectl -n kube-system rollout status deployment/local-path-provisioner --timeout=180s
 printf 'k3s=%s\ngvisor=%s\n' "$k3s_version" "$gvisor_version" > "$root/evidence/versions.txt"
 cat k3s.sha256 gvisor.sha256 >> "$root/evidence/versions.txt"
