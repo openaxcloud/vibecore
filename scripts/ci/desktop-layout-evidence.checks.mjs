@@ -514,6 +514,19 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
     ['responsive-ide.spec.ts:desktop opens terminal as a workspace panel from the panel URL', [15_000, 15_000]],
   ]);
 
+  /*
+   * Keep the original 30s + sixteen 15s waits pinned separately. The equivalent
+   * Secrets/Database/Domains flows add exactly four 15s waits, not larger budgets:
+   * Domains GET, Domains form, Domains scope notice, and the edited secret reveal.
+   */
+  const addedServicesWaits = new Map([
+    ['domains-backend', 15_000],
+    ['domains-form', 15_000],
+    ['domains-scope', 15_000],
+    ['updated-secret-reveal', 15_000],
+  ]);
+
+  const actualAddedServicesWaits = new Map();
   const actual = new Map();
   const directory = new URL('../../tests/e2e/', import.meta.url);
 
@@ -566,7 +579,41 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
       visit(scenario.body, (child) => {
         if (ts.isPropertyAssignment(child) && child.name.getText(tree) === 'timeout') {
           assert.ok(ts.isNumericLiteral(child.initializer));
-          timeouts.push(Number(child.initializer.text));
+
+          const value = Number(child.initializer.text);
+
+          let addedWait;
+
+          if (
+            key === 'dashboard.spec.ts:IDE project services open as in-place panels instead of legacy project pages'
+          ) {
+            const call = child.parent.parent;
+            assert.ok(ts.isCallExpression(call));
+
+            const expression = call.expression.getText(tree).replace(/\s+/g, ' ');
+
+            if (expression === 'page.waitForResponse' && call.getText(tree).includes('/ide-panel/domains`')) {
+              addedWait = 'domains-backend';
+            } else if (
+              expression ===
+              `expect(deployment.locator('.bolt-project-domains-panel input[name="domain"]')).toBeVisible`
+            ) {
+              addedWait = 'domains-form';
+            } else if (expression === "expect(deployment.getByTestId('project-domains-scope-notice')).toBeVisible") {
+              addedWait = 'domains-scope';
+            } else if (
+              expression === 'expect(connectionRow.getByText(updatedDatabaseValue, { exact: true })).toBeVisible'
+            ) {
+              addedWait = 'updated-secret-reveal';
+            }
+          }
+
+          if (addedWait) {
+            assert.ok(!actualAddedServicesWaits.has(addedWait), 'No duplicated additional wait');
+            actualAddedServicesWaits.set(addedWait, value);
+          } else {
+            timeouts.push(value);
+          }
         }
 
         if (ts.isCallExpression(child) && child.expression.getText(tree) === 'test.setTimeout') {
@@ -579,6 +626,13 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
     });
   }
   assert.deepEqual(actual, expected);
+  assert.deepEqual(actualAddedServicesWaits, addedServicesWaits);
+
+  const runtimeWorkflow = readFileSync(new URL('../../.github/workflows/e2e-runtime.yml', import.meta.url), 'utf8');
+  assert.match(
+    runtimeWorkflow,
+    /playwright test tests\/e2e --project=chromium --grep @runtime --retries=0 --max-failures=0/,
+  );
 });
 
 for (const failure of [false, true]) {

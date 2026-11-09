@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { parse } from 'yaml';
 import { browserEndpoint, launchRuntimeChromium } from './runtime-browser-client.mjs';
 import {
   containerArguments,
@@ -25,6 +26,140 @@ const env = {
 };
 
 const source = () => readFileSync(new URL('./runtime-browser-isolation.mjs', import.meta.url), 'utf8');
+
+const workflowSteps = () =>
+  parse(readFileSync(new URL('../../.github/workflows/e2e-runtime.yml', import.meta.url), 'utf8')).jobs['e2e-runtime']
+    .steps;
+
+test('workflow skips transport cleanup only when startup was not attempted', () => {
+  const steps = workflowSteps();
+  const start = steps.find((step) => step.name === 'Start isolated Chromium transport');
+  const stop = steps.find((step) => step.name === 'Stop isolated Chromium transport');
+
+  /*
+   * Evaluate only this narrow expression grammar, using the documented outcome
+   * values and always() semantics, not a generic JavaScript expression evaluator.
+   * https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#steps-context
+   * https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#always
+   */
+  const shouldCleanup = (outcome) => {
+    if (stop.if === 'always()') {
+      return true;
+    }
+
+    const expression = stop.if.match(/^\$\{\{ always\(\) && \((.+)\) \}\}$/);
+    assert.ok(expression, 'cleanup must retain always(), including cancellation');
+
+    return expression[1]
+      .split(' || ')
+      .map((clause) => {
+        const comparison = clause.match(/^steps\.browser-isolation\.outcome == '(success|failure|cancelled)'$/);
+        assert.ok(comparison, 'gate only on the startup outcome, never readiness or later steps');
+
+        return outcome === comparison[1];
+      })
+      .some(Boolean);
+  };
+
+  for (const [outcome, expected] of [
+    ['skipped', false],
+    ['', false],
+    ['success', true],
+    ['failure', true],
+    ['cancelled', true],
+  ]) {
+    assert.equal(shouldCleanup(outcome), expected, `startup outcome: ${outcome || 'not in context'}`);
+  }
+  assert.equal(start.id, 'browser-isolation');
+  assert.equal(steps.filter((step) => step.id === start.id).length, 1);
+  assert.ok(steps.indexOf(start) < steps.indexOf(stop));
+  assert.equal(start['continue-on-error'], undefined);
+  assert.equal(stop['continue-on-error'], undefined);
+  assert.equal(stop['timeout-minutes'], 1);
+});
+
+test('startup exports cleanup ownership before any supervisor can create resources', () => {
+  const start = workflowSteps().find((step) => step.name === 'Start isolated Chromium transport');
+  const launch = start.run.indexOf('node scripts/ci/runtime-browser-isolation.mjs > /dev/null 2>&1 &');
+  assert.ok(launch > 0);
+  assert.equal(start.env.VIBECORE_CI_BROWSER_ISOLATION, '1');
+
+  for (const declaration of [
+    'echo "RUNTIME_BROWSER_OWNER=$RUNTIME_BROWSER_OWNER" >> "$GITHUB_ENV"',
+    'echo \'VIBECORE_CI_BROWSER_ISOLATION=1\' >> "$GITHUB_ENV"',
+  ]) {
+    const index = start.run.indexOf(declaration);
+    assert.ok(index >= 0 && index < launch, declaration);
+  }
+  assert.ok(start.run.indexOf('test "$ready" = true') > launch);
+
+  const code = source();
+  const stopBranch = code.indexOf("if (process.argv[2] === '--stop-supervisor')");
+  const cleanupBranch = code.indexOf("if (process.argv[2] === '--cleanup')");
+
+  for (const check of [
+    'guard(process.env)',
+    "throw new Error('runtime_browser_guard')",
+    "throw new Error('runtime_browser_owner')",
+  ]) {
+    const index = code.indexOf(check);
+    assert.ok(index >= 0 && index < stopBranch && index < cleanupBranch, check);
+  }
+});
+
+test('workflow still attempts CID cleanup after failed supervisor stop and preserves both failures', () => {
+  const stop = workflowSteps().find((step) => step.name === 'Stop isolated Chromium transport');
+  assert.equal(
+    stop.run,
+    [
+      'set +e',
+      'node scripts/ci/runtime-browser-isolation.mjs --stop-supervisor',
+      'stop_status=$?',
+      'timeout 15s node scripts/ci/runtime-browser-isolation.mjs --cleanup',
+      'cleanup_status=$?',
+      'test "$stop_status" -eq 0 && test "$cleanup_status" -eq 0',
+      '',
+    ].join('\n'),
+  );
+
+  /*
+   * The actual workflow shell runs with inert functions replacing both external
+   * commands. No isolation script, Docker, signal or socket operation executes.
+   */
+  for (const [stopStatus, cleanupStatus] of [
+    [0, 0],
+    [23, 0],
+    [0, 24],
+    [23, 24],
+  ]) {
+    const result = spawnSync(
+      'bash',
+      [
+        '--noprofile',
+        '--norc',
+        '-e',
+        '-c',
+        `node() {
+          test "$1" = scripts/ci/runtime-browser-isolation.mjs || return 99
+          printf '%s\\n' "$2"
+          case "$2" in
+            --stop-supervisor) return ${stopStatus} ;;
+            --cleanup) return ${cleanupStatus} ;;
+            *) return 99 ;;
+          esac
+        }
+        timeout() { test "$1" = 15s || return 99; shift; "$@"; }
+        ${stop.run}`,
+      ],
+      { encoding: 'utf8', env: { PATH: process.env.PATH } },
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.signal, null);
+    assert.equal(result.stdout, '--stop-supervisor\n--cleanup\n');
+    assert.equal(result.status, stopStatus || cleanupStatus ? 1 : 0);
+  }
+});
+
 test('remote transport is explicit, isolated-workflow-only and preserves launch settings', async () => {
   const calls = [];
 

@@ -169,6 +169,7 @@ jobs:
 
       # Apply only to this approved disposable GitHub runner, never production.
       - name: Start isolated Chromium transport
+        id: browser-isolation
         timeout-minutes: 6
         env:
           VIBECORE_CI_BROWSER_ISOLATION: '1'
@@ -320,7 +321,8 @@ jobs:
         run: node scripts/ci/runtime-network-sentinel.mjs
 
       - name: Stop isolated Chromium transport
-        if: always()
+        # Partial or cancelled startup still needs cleanup; a skipped step created nothing.
+        if: ${{ always() && (steps.browser-isolation.outcome == 'success' || steps.browser-isolation.outcome == 'failure' || steps.browser-isolation.outcome == 'cancelled') }}
         timeout-minutes: 1
         run: |
           set +e
