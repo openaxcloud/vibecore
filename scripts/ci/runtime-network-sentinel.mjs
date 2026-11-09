@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
+import { browserEndpoint, launchRuntimeChromium } from './runtime-browser-client.mjs';
 import { redactRuntimeEvidence } from './runtime-evidence-redaction.mjs';
 
 export const OUTPUT = 'tmp/runtime-network-sentinel.json';
@@ -247,12 +248,12 @@ export async function run(env = process.env) {
   let stopSampling = false;
 
   try {
-    server.listen(0, '127.0.0.1');
+    server.listen(browserEndpoint() ? 18083 : 0, '127.0.0.1');
     await once(server, 'listening');
 
     const origin = `http://127.0.0.1:${server.address().port}`;
     const { chromium } = await import('@playwright/test');
-    browser = await chromium.launch({ headless: true, timeout: 10000 });
+    browser = await launchRuntimeChromium(chromium, { headless: true, timeout: 10000 });
     controller.signal.addEventListener(
       'abort',
       () => {

@@ -98,6 +98,7 @@ jobs:
 
       - name: Validate runtime harness
         run: |
+          node --test scripts/ci/runtime-browser-relay.checks.mjs scripts/ci/runtime-browser-isolation.checks.mjs
           node --test scripts/ci/runtime-agent-router.checks.mjs
           node --test scripts/ci/runtime-evidence-redaction.checks.mjs
           node --test scripts/ci/runtime-api-evidence.checks.mjs
@@ -163,6 +164,30 @@ jobs:
           done
           pnpm exec playwright install chromium
 
+      # Apply only to this approved disposable GitHub runner, never production.
+      - name: Start isolated Chromium transport
+        timeout-minutes: 6
+        env:
+          VIBECORE_CI_BROWSER_ISOLATION: '1'
+        run: |
+          export RUNTIME_BROWSER_OWNER="$(node --input-type=module -e "import {randomUUID} from 'node:crypto'; console.log(randomUUID())")"
+          echo "RUNTIME_BROWSER_OWNER=$RUNTIME_BROWSER_OWNER" >> "$GITHUB_ENV"
+          echo 'VIBECORE_CI_BROWSER_ISOLATION=1' >> "$GITHUB_ENV"
+          node scripts/ci/runtime-browser-isolation.mjs > /dev/null 2>&1 &
+          echo "$!" > /tmp/vibecore-browser-isolation.pid
+          root="$RUNNER_TEMP/runtime-browser-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          ready=false
+          for attempt in $(seq 1 120); do
+            if test -f "$root/started"; then ready=true; break; fi
+            kill -0 "$(cat /tmp/vibecore-browser-isolation.pid)" || exit 1
+            sleep 2
+          done
+          test "$ready" = true
+          export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser
+          node scripts/ci/runtime-browser-lifecycle.checks.mjs
+          echo 'VIBECORE_CI_BROWSER_ISOLATION=1' >> "$GITHUB_ENV"
+          echo 'PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser' >> "$GITHUB_ENV"
+
       - name: Verify preview localhost browser routing
         run: node --test scripts/ci/runtime-localhost-browser.checks.mjs
 
@@ -227,6 +252,10 @@ jobs:
           echo $! > /tmp/vibecore-admin.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
 
+      - name: Verify isolated browser service requests
+        timeout-minutes: 2
+        run: node scripts/ci/runtime-browser-lifecycle.checks.mjs --services
+
       - name: Real static and Vite preview preflight
         id: runtime-preflight
         if: ${{ !cancelled() && steps.web.outcome == 'success' }}
@@ -286,6 +315,17 @@ jobs:
         if: ${{ !cancelled() && (steps.runtime-suite.outcome == 'success' || steps.runtime-suite.outcome == 'failure') }}
         timeout-minutes: 3
         run: node scripts/ci/runtime-network-sentinel.mjs
+
+      - name: Stop isolated Chromium transport
+        if: always()
+        timeout-minutes: 1
+        run: |
+          set +e
+          node scripts/ci/runtime-browser-isolation.mjs --stop-supervisor
+          stop_status=$?
+          timeout 15s node scripts/ci/runtime-browser-isolation.mjs --cleanup
+          cleanup_status=$?
+          test "$stop_status" -eq 0 && test "$cleanup_status" -eq 0
 
       - name: Collect bounded diagnostics
         if: always()

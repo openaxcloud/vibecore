@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
+import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
 import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
 import { createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
@@ -382,7 +383,7 @@ async function auditBackendPanels(projectId, cookie) {
 }
 
 async function auditPanelRender(projectId, token, terminalDiagnostics) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
 
@@ -460,7 +461,7 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
 }
 
 async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics, persistenceDiagnostics) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
 
@@ -946,7 +947,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
 }
 
 async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostics) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
 
@@ -1134,7 +1135,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
 }
 
 async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
   const viewports = [

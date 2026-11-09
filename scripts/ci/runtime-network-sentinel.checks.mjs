@@ -177,7 +177,7 @@ test('module sampling uses fixed same-origin content and retains original bounde
 
   const source = readFileSync(new URL('./runtime-network-sentinel.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /setHeader\('connection', 'close'\)/);
-  assert.match(source, /server.listen\(0, '127.0.0.1'\)/);
+  assert.match(source, /server.listen\(browserEndpoint\(\) \? 18083 : 0, '127.0.0.1'\)/);
   assert.match(source, /const modulePath = `\/sentinel-module\/\$\{moduleSequence\+\+\}\.mjs`/);
   assert.match(source, /module\.sentinel === 'sentinel'/);
 });

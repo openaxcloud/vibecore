@@ -3,6 +3,7 @@ import { once } from 'node:events';
 import http from 'node:http';
 import test from 'node:test';
 import { chromium } from '@playwright/test';
+import { browserEndpoint, launchRuntimeChromium } from './runtime-browser-client.mjs';
 
 /*
  * Transport guard only: proves browser wildcard-localhost DNS/loopback routing.
@@ -26,11 +27,11 @@ test('Chromium resolves a per-preview localhost host to the local HTTP listener'
   let browser;
 
   try {
-    server.listen(0, '127.0.0.1');
+    server.listen(browserEndpoint() ? 18084 : 0, '127.0.0.1');
     await once(server, 'listening');
 
     const host = `ws-check-5173.localhost:${server.address().port}`;
-    browser = await chromium.launch({ headless: true, timeout: 10000 });
+    browser = await launchRuntimeChromium(chromium, { headless: true, timeout: 10000 });
 
     const page = await browser.newPage();
 
