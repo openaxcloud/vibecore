@@ -142,3 +142,114 @@ export function createBrowserNetworkEvidence() {
     },
   };
 }
+
+/** HTTP status evidence is separate from transport failures and never reads bodies/headers. */
+export function projectHttpFailure(response, time = Date.now(), scenario = 'unknown') {
+  try {
+    const status = response.status();
+
+    if (!Number.isInteger(status) || status < 400 || status > 599) {
+      return null;
+    }
+
+    const request = response.request();
+    const projected = projectRequestFailure(request, time);
+    const method = request.method();
+    const pathname = new URL(request.url()).pathname;
+
+    let route = projected.route;
+
+    const runtime = pathname.match(
+      /^\/api\/runtime\/workspaces\/[^/]+\/(files\/read|files|resources|logs\/snapshot|processes|ports)$/,
+    );
+
+    if (runtime) {
+      route = {
+        'files/read': 'runtimeFileRead',
+        files: 'runtimeFiles',
+        resources: 'runtimeResources',
+        'logs/snapshot': 'runtimeLogs',
+        processes: 'runtimeProcesses',
+        ports: 'runtimePorts',
+      }[runtime[1]];
+    } else if (pathname === '/api/runtime/workspaces') {
+      route = 'runtimeWorkspaceCreate';
+    } else if (/\/projects\/[^/]+\/ide-state$/.test(pathname)) {
+      route = 'projectIdeState';
+    } else if (/\/workspaces\/[^/]+\/ide-state$/.test(pathname)) {
+      route = 'workspaceIdeState';
+    } else {
+      const panel = pathname.match(/^\/api\/projects\/[^/]+\/ide-panel\/([^/]+)$/)?.[1];
+
+      if (
+        ['packages', 'snapshots', 'database', 'secrets', 'object-storage', 'logs', 'extensions', 'settings'].includes(
+          panel,
+        )
+      ) {
+        route = 'panel:' + panel;
+      } else if (panel) {
+        route = 'panel:other';
+      }
+    }
+
+    return {
+      scenario: [
+        'snapshots',
+        'database',
+        'packages',
+        'object-storage',
+        'logs',
+        'files',
+        'terminal',
+        'extensions',
+        'settings',
+        'responsive',
+      ].includes(scenario)
+        ? scenario
+        : 'other',
+      time: projected.time,
+      status,
+      method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(method) ? method : 'other',
+      origin: projected.origin,
+      route,
+    };
+  } catch {
+    return null;
+  }
+}
+export function createBrowserHttpEvidence() {
+  const events = [];
+
+  let total = 0;
+
+  return {
+    capture(response, scenario) {
+      const event = projectHttpFailure(response, Date.now(), scenario);
+
+      if (!event) {
+        return;
+      }
+
+      total = Math.min(Number.MAX_SAFE_INTEGER, total + 1);
+
+      if (events.length === 128) {
+        events.splice(32, 1);
+      }
+
+      events.push(event);
+
+      // Reserve the largest counter encoding even before omissions accumulate.
+      while (
+        Buffer.byteLength(
+          JSON.stringify({ total: Number.MAX_SAFE_INTEGER, omitted: Number.MAX_SAFE_INTEGER, events }),
+        ) >
+        32 * 1024
+      ) {
+        events.splice(events.length > 32 ? 32 : 0, 1);
+      }
+    },
+    snapshot() {
+      return { total, omitted: total - events.length, events: events.map((event) => ({ ...event })) };
+    },
+  };
+}

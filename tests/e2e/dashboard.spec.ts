@@ -1778,12 +1778,97 @@ test(
     await openIdeTool(/Database/);
 
     const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
-    await expect(databasePanel.locator('.bolt-project-database-tool')).toBeVisible({ timeout: 15000 });
-    await expect(databasePanel.getByText('Database status')).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Connection' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Environment' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Activity' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Save DATABASE_URL' })).toBeVisible();
+    await expect(databasePanel.getByRole('heading', { name: 'All databases', exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(databasePanel.getByText('No database yet', { exact: true })).toBeVisible();
+    await expect(databasePanel.getByRole('button', { name: 'Create database', exact: true })).toBeVisible();
+
+    /*
+     * Before 11e1bfe9d, Connection saved DATABASE_URL, Environment showed key/date,
+     * and Activity showed backend env mutations. Preserve each via current secure controls.
+     */
+    const databaseValue = `postgres://audit.local/services-${Date.now()}`;
+
+    const panelResponse = (panel: string, method: string) =>
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === `/api/projects/${projectId}/ide-panel/${panel}` &&
+          response.request().method() === method,
+      );
+    await openIdeTool(/Secrets/);
+
+    const connectionSecretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]');
+    await connectionSecretsPanel.getByTestId('secrets-new').click();
+    await connectionSecretsPanel.getByTestId('secrets-form-key').fill('DATABASE_URL');
+    await connectionSecretsPanel.getByTestId('secrets-form-value').fill(databaseValue);
+
+    const [savedConnection] = await Promise.all([
+      panelResponse('secrets', 'POST'),
+      connectionSecretsPanel.getByTestId('secrets-form-add').click(),
+    ]);
+    expect(savedConnection.ok()).toBeTruthy();
+
+    const [reloadedSecrets] = await Promise.all([
+      panelResponse('secrets', 'GET'),
+      page.reload({ waitUntil: 'domcontentloaded' }),
+    ]);
+    expect(reloadedSecrets.ok()).toBeTruthy();
+
+    const secretMetadata = (await reloadedSecrets.json()).data.secrets.find(
+      (secret: { key: string }) => secret.key === 'DATABASE_URL',
+    );
+    expect(secretMetadata).toBeTruthy();
+    expect(Number.isFinite(Date.parse(secretMetadata.updatedAt))).toBeTruthy();
+
+    const connectionRow = connectionSecretsPanel.getByTestId('secret-row-DATABASE_URL');
+    await expect(connectionRow.getByText('DATABASE_URL', { exact: true })).toBeVisible();
+    await expect(connectionRow.getByTestId('secret-updated-at')).toBeVisible();
+    await expect(connectionRow.getByTestId('secret-updated-at')).toHaveAttribute('datetime', secretMetadata.updatedAt);
+    await expect(connectionRow.getByText(databaseValue, { exact: true })).toHaveCount(0);
+    await connectionRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
+    await expect(connectionRow.getByText(databaseValue, { exact: true })).toBeVisible();
+
+    const [reloadedDatabase] = await Promise.all([panelResponse('database', 'GET'), openIdeTool(/Database/)]);
+    expect(reloadedDatabase.ok()).toBeTruthy();
+    expect(
+      (await reloadedDatabase.json()).data.connections.some(
+        (connection: { key: string }) => connection.key === 'DATABASE_URL',
+      ),
+    ).toBeTruthy();
+
+    // Stay on root: opening a card would initiate schema/connection requests to the synthetic URL.
+    await expect(databasePanel.getByTestId('db-carte').getByText('DATABASE_URL', { exact: true })).toBeVisible();
+
+    const [activityResponse] = await Promise.all([
+      panelResponse('activity', 'GET'),
+      (async () => {
+        const toolMenu = await openVisibleIdeToolMenu(page);
+        await toolMenu.getByTestId('feature-activity').click();
+      })(),
+    ]);
+    expect(activityResponse.ok()).toBeTruthy();
+
+    const connectionEvent = (await activityResponse.json()).data.activity.find(
+      (event: { action: string; metadata?: { key?: string } }) =>
+        event.action === 'project.secret.upsert' && event.metadata?.key === 'DATABASE_URL',
+    );
+    expect(connectionEvent).toBeTruthy();
+    expect(Number.isFinite(Date.parse(connectionEvent.createdAt))).toBeTruthy();
+
+    const activityPanel = page.locator('[data-testid="ide-service-panel"][data-panel="activity"]');
+    await activityPanel.getByLabel('Type', { exact: true }).selectOption('project.secret.upsert');
+
+    const eventRow = activityPanel.locator('.bolt-project-activity-event');
+    await expect(eventRow).toHaveCount(1);
+    await expect(eventRow.locator('small')).toBeVisible();
+    await eventRow.locator('.bolt-project-activity-event-main').click();
+
+    const displayedEvent = JSON.parse(await eventRow.locator('.bolt-project-activity-payload').innerText());
+    expect(displayedEvent.id).toBe(connectionEvent.id);
+    expect(displayedEvent.action).toBe('project.secret.upsert');
+    expect(displayedEvent.createdAt).toBe(connectionEvent.createdAt);
+    expect(displayedEvent.metadata.key).toBe('DATABASE_URL');
 
     await openIdeTool(/Secrets/);
 
@@ -1892,11 +1977,36 @@ test(
     ] as const;
 
     for (const [label, panel] of inIdePanels) {
+      // Domains keeps its backend API but opens the Domains view owned by Deployments.
+      const renderedPanel = panel === 'domains' ? resolveProjectEditorToolOpen(panel).panel : panel;
+
+      const domainsResponse =
+        panel === 'domains'
+          ? page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname === `/api/projects/${projectId}/ide-panel/domains` &&
+                response.request().method() === 'GET',
+              { timeout: 15000 },
+            )
+          : undefined;
       await openIdeTool(new RegExp(label));
-      await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${panel}$`));
-      await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first()).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${renderedPanel}$`));
+
+      const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${renderedPanel}"]`).first();
+      await expect(servicePanel).toBeVisible({ timeout: 15000 });
+
+      if (domainsResponse) {
+        expect((await domainsResponse).ok()).toBeTruthy();
+
+        const deployment = servicePanel.locator('.bolt-project-deploy-tool');
+        await expect(
+          deployment.locator('.bolt-project-tool-tabs').getByRole('button', { name: 'Domains', exact: true }),
+        ).toHaveAttribute('aria-current', 'page');
+        await expect(deployment.locator('.bolt-project-domains-panel input[name="domain"]')).toBeVisible({
+          timeout: 15000,
+        });
+        await expect(deployment.getByTestId('project-domains-scope-notice')).toBeVisible({ timeout: 15000 });
+      }
     }
 
     await openIdeTool(/Settings/);
@@ -1915,18 +2025,41 @@ test(
       page.locator('[data-testid="ide-service-panel"][data-panel="env"]').filter({ hasText: 'E2E_FLAG' }).last(),
     ).toBeVisible({ timeout: 15000 });
 
-    await openIdeTool(/Database/);
-    await page.getByPlaceholder('postgres://user:pass@host:5432/db').fill('postgres://local/test');
-    await page
-      .locator('[data-testid="ide-service-panel"][data-panel="database"]')
-      .getByRole('button', { name: 'Save DATABASE_URL' })
-      .click();
-    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]')).toContainText(
-      'DATABASE_URL',
-      {
-        timeout: 15000,
-      },
-    );
+    // Preserve the later connection update as a separate real edit, not just the initial creation above.
+    const updatedDatabaseValue = 'postgres://local/test';
+    await openIdeTool(/Secrets/);
+    await connectionSecretsPanel.getByTestId('secret-menu-DATABASE_URL').click();
+    await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+    await expect(connectionSecretsPanel.getByTestId('secrets-form-key')).toHaveValue('DATABASE_URL');
+    await connectionSecretsPanel.getByTestId('secrets-form-value').fill(updatedDatabaseValue);
+
+    const [updatedConnection] = await Promise.all([
+      panelResponse('secrets', 'POST'),
+      connectionSecretsPanel.getByTestId('secrets-form-add').click(),
+    ]);
+    expect(updatedConnection.ok()).toBeTruthy();
+
+    const [updatedSecrets] = await Promise.all([
+      panelResponse('secrets', 'GET'),
+      page.reload({ waitUntil: 'domcontentloaded' }),
+    ]);
+    expect(updatedSecrets.ok()).toBeTruthy();
+    expect(
+      (await updatedSecrets.json()).data.secrets.some((secret: { key: string }) => secret.key === 'DATABASE_URL'),
+    ).toBeTruthy();
+    await connectionRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
+    await expect(connectionRow.getByText(updatedDatabaseValue, { exact: true })).toBeVisible({ timeout: 15000 });
+
+    const [updatedDatabase] = await Promise.all([panelResponse('database', 'GET'), openIdeTool(/Database/)]);
+    expect(updatedDatabase.ok()).toBeTruthy();
+    expect(
+      (await updatedDatabase.json()).data.connections.some(
+        (connection: { key: string }) => connection.key === 'DATABASE_URL',
+      ),
+    ).toBeTruthy();
+    await expect(databasePanel.getByTestId('db-carte').getByText('DATABASE_URL', { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
 
     const exportResponse = await page.request.get(`/api/projects/${projectId}/project-action?intent=export`);
     expect(exportResponse.ok(), await exportResponse.text()).toBeTruthy();

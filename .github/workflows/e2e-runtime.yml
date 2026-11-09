@@ -106,6 +106,7 @@ jobs:
           node --test scripts/ci/browser-network-evidence.checks.mjs
           node --test scripts/terminal-warning-diagnostics.checks.mjs
           node --test scripts/audit-ide-panels-selectors.checks.mjs
+          node --test scripts/database-services-metadata.checks.mjs
           node --test scripts/ci/mobile-layout-evidence.checks.mjs
           node --test scripts/ci/desktop-layout-evidence.checks.mjs
           node --test scripts/panel-persistence-diagnostics.checks.mjs
@@ -120,6 +121,8 @@ jobs:
           app/components/chat/ProjectMetadataForm.spec.tsx
           app/components/chat/SnapshotCreateForm.spec.tsx
           app/components/chat/BaseChat.preview-startup.spec.tsx
+          app/components/chat/ProjectInteractiveTerminalPanel.handoff.spec.tsx
+          app/components/chat/ProjectSecretsPanel.metadata.spec.tsx
           app/components/chat/ProjectIdeApiServicePanel.loading.spec.tsx
           app/components/chat/project-right-width-restore.spec.tsx
           app/components/database/DatabaseWorkbench.renders-databases.spec.tsx

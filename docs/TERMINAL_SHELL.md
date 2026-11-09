@@ -16,6 +16,17 @@ behind the Shell actions menu (`Kill Shell`, `Clear conversation`,
 Do not reintroduce a permanent `Vibecore Terminal` tab label inside the panel;
 the terminal content should start directly below the compact shell toolbar.
 
+## Runtime panels during startup
+
+The Runtime panels hub keeps its open/closed state while the pending IDE shell
+is replaced by the active chat. This transient state belongs to the current
+project, workspace, window and pane. An explicit close remains closed; leaving
+the route or changing its project/workspace/window scope discards the state.
+Legacy terminal instances without an identified pane keep local state.
+
+Only the visibility boolean is retained in memory. No environment values,
+secrets, commands or script content are added to this handoff or browser storage.
+
 ## Known quirk: obsolete short flags
 
 `head` and `tail` ship without support for the deprecated obsolete short

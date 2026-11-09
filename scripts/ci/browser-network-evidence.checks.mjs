@@ -177,3 +177,77 @@ test('tracks fixed page lifecycle and detaches without changing navigation', asy
   );
   assert.equal(page.eventNames().length, 0);
 });
+
+test('HTTP evidence separates statuses, projects routes and retains no arbitrary data', async () => {
+  const { projectHttpFailure } = await import('./browser-network-evidence.mjs');
+
+  const response = (status, path) => ({
+    status: () => status,
+    request: () => ({
+      url: () => 'http://127.0.0.1:3001' + path,
+      method: () => 'GET',
+      resourceType: () => 'fetch',
+      failure: () => null,
+      timing: () => ({ startTime: 1 }),
+    }),
+    body: () => {
+      throw new Error('must not read');
+    },
+    headers: () => {
+      throw new Error('must not read');
+    },
+  });
+  const event = projectHttpFailure(
+    response(502, '/api/runtime/workspaces/SECRET/files/read?token=SECRET'),
+    1794214126475,
+    'SECRET',
+  );
+  assert.equal(event.route, 'runtimeFileRead');
+  assert.equal(event.scenario, 'other');
+  assert.equal(event.status, 502);
+  assert.equal(JSON.stringify(event).includes('SECRET'), false);
+  assert.equal(projectHttpFailure(response(200, '/'), 1), null);
+  assert.equal(
+    projectHttpFailure({
+      status() {
+        throw new Error('SECRET');
+      },
+    }),
+    null,
+  );
+
+  for (const [path, category] of [
+    ['/api/runtime/workspaces', 'runtimeWorkspaceCreate'],
+    ['/api/projects/private/ide-panel/packages', 'panel:packages'],
+    ['/api/projects/private/ide-panel/SECRET', 'panel:other'],
+    ['/projects/private/ide-state', 'projectIdeState'],
+  ]) {
+    assert.equal(projectHttpFailure(response(404, path)).route, category);
+  }
+});
+test('HTTP evidence is bounded to 128 events and 32KiB with independent snapshots', async () => {
+  const { createBrowserHttpEvidence } = await import('./browser-network-evidence.mjs');
+  const evidence = createBrowserHttpEvidence();
+
+  const response = {
+    status: () => 502,
+    request: () => ({
+      url: () => 'http://127.0.0.1:3001/api/runtime/workspaces/private/files/read',
+      method: () => 'GET',
+      resourceType: () => 'fetch',
+      failure: () => null,
+    }),
+  };
+
+  for (let i = 0; i < 10000; i++) {
+    evidence.capture(response, 'object-storage');
+  }
+
+  const report = evidence.snapshot();
+  assert.equal(report.total, 10000);
+  assert.equal(report.events.length, 128);
+  assert.equal(report.omitted, 9872);
+  assert.ok(Buffer.byteLength(JSON.stringify(report)) <= 32768);
+  report.events[0].route = 'tampered';
+  assert.equal(evidence.snapshot().events[0].route, 'runtimeFileRead');
+});

@@ -299,7 +299,10 @@ import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
-import { TerminalInteractionHandoffBoundary } from '~/components/workbench/terminal/TerminalInteractionHandoff';
+import {
+  TerminalInteractionHandoffBoundary,
+  useTerminalRuntimePanels,
+} from '~/components/workbench/terminal/TerminalInteractionHandoff';
 import { editorKindForLayout, useResponsiveLayout, EditorFocusHandoffBoundary } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
@@ -12890,7 +12893,7 @@ function ProjectProblemsPanel() {
 
 function ProjectInteractiveTerminalPanel({ projectId, paneId }: { projectId?: string; paneId?: string }) {
   const { t } = useTranslation();
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useTerminalRuntimePanels(paneId);
 
   return (
     <section className="bolt-project-terminal-direct-panel" aria-label={t('chat.copy.interactiveTerminal_a0b76f34')}>

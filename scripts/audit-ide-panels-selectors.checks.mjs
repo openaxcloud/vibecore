@@ -248,3 +248,106 @@ test('Database audit edits the same encrypted connection through Secrets and ret
   const secretsPanel = read('app/components/chat/ProjectSecretsPanel.tsx');
   assert.ok(secretsPanel.includes('return revelerUnSecret(projectId, key)'));
 });
+
+test('Packages requires successful installation and an installed row after real reload', () => {
+  const start = audit.indexOf("const packageName = 'is-odd'");
+  const end = audit.indexOf("'create_package_install_plan_visible_after_backend_reload'", start);
+  const source = audit.slice(start, end);
+  assert.ok(source.includes("waitForPanelResponse(page, 'packages', 'POST', 60_000)"));
+  assert.ok(source.includes('if (!installed.ok())'));
+  assert.ok(source.includes("page.reload({ waitUntil: 'domcontentloaded' })"));
+  assert.ok(source.includes('if (!reloaded.ok())'));
+  assert.ok(source.includes("locator('.bolt-project-package-list')"));
+  assert.ok(source.includes('getByText(packageName, { exact: true })'));
+  assert.equal(source.includes('getByText(/add package/i)'), false);
+
+  const doc = new JSDOM('<div>Add package</div><div class="bolt-project-package-list"></div>').window.document;
+  assert.equal(doc.querySelector('.bolt-project-package-list').textContent.includes('is-odd'), false);
+});
+test('HTTP response diagnostics supplement, never replace, error collection', () => {
+  assert.equal(audit.split("page.on('response', (response) => browserHttpDiagnostics.capture").length - 1, 4);
+  assert.equal(
+    audit.split("page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request))").length - 1,
+    4,
+  );
+  assert.ok(audit.includes('browserHttpDiagnostics: browserHttpDiagnostics.snapshot()'));
+  assert.ok(audit.includes('const browserErrorResults = pageErrors.map'));
+});
+
+test('actual Packages audit callback rejects failed actions/reloads/missing installation', async () => {
+  const start = audit.indexOf('    async (page) => {', audit.indexOf("  await run(\n    'packages',"));
+  const end = audit.indexOf("\n    },\n    'create_package_install_plan_visible_after_backend_reload'", start);
+  assert.ok(start >= 0 && end > start);
+
+  const callbackSource = audit.slice(start, end) + '\n    }';
+
+  for (const scenario of [
+    { post: false, get: true, row: true, error: /Package installation did not succeed/, reloads: 0, rows: 0 },
+    { post: true, get: false, row: true, error: /Installed packages could not be reloaded/, reloads: 1, rows: 0 },
+    { post: true, get: true, row: false, error: /installed row absent/, reloads: 1, rows: 1 },
+    { post: true, get: true, row: true, error: null, reloads: 1, rows: 1 },
+  ]) {
+    let reloads = 0;
+    let rows = 0;
+
+    const callback = new Function('waitForPanelResponse', `return (${callbackSource});`)(
+      async (_page, panel, method, timeout) => {
+        assert.equal(panel, 'packages');
+        assert.equal(timeout, method === 'POST' ? 60_000 : 20_000);
+
+        return { ok: () => (method === 'POST' ? scenario.post : scenario.get) };
+      },
+    );
+    const page = {
+      getByPlaceholder(value) {
+        assert.equal(value, '@scope/name, react-query, vite@latest');
+
+        return {
+          async fill(name) {
+            assert.equal(name, 'is-odd');
+          },
+        };
+      },
+      getByRole(role, options) {
+        assert.equal(role, 'button');
+        assert.deepEqual(options, { name: 'Install package' });
+
+        return { async click() {} };
+      },
+      async reload(options) {
+        assert.deepEqual(options, { waitUntil: 'domcontentloaded' });
+        reloads++;
+      },
+      locator(selector) {
+        assert.equal(selector, '.bolt-project-package-list');
+
+        return {
+          getByText(name, options) {
+            assert.equal(name, 'is-odd');
+            assert.deepEqual(options, { exact: true });
+
+            return {
+              async waitFor(options) {
+                rows++;
+                assert.deepEqual(options, { state: 'visible', timeout: 20_000 });
+
+                if (!scenario.row) {
+                  throw new Error('installed row absent');
+                }
+              },
+            };
+          },
+        };
+      },
+    };
+
+    if (scenario.error) {
+      await assert.rejects(callback(page), scenario.error);
+    } else {
+      await callback(page);
+    }
+
+    assert.equal(reloads, scenario.reloads);
+    assert.equal(rows, scenario.rows);
+  }
+});

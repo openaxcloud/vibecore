@@ -17,6 +17,7 @@ import {
 } from './secrets-panel';
 import { PanelEmptyState } from '~/components/project-ide/PanelPrimitives';
 import { rechercheDemandee } from '~/components/workbench/recherche-demandee';
+import { formatBaseChatAstDateTime } from '~/lib/i18n/catalogs/base-chat-ast';
 import { formatSecretsPanelCopy, getSecretsPanelCopy } from '~/lib/i18n/catalogs/secrets-panel';
 import { revelerUnSecret } from '~/lib/reveler-un-secret';
 import { classNames } from '~/utils/classNames';
@@ -457,6 +458,7 @@ export function ProjectSecretsPanel({
           {visibles.map((secret) => {
             const key = secret.key;
             const revele = revealed[key];
+            const updatedAt = secret.updatedAt ? formatBaseChatAstDateTime(language, secret.updatedAt) : null;
 
             return (
               <li key={key} className="bolt-secrets-row" data-testid={`secret-row-${key}`}>
@@ -510,6 +512,15 @@ export function ProjectSecretsPanel({
                 >
                   <span className="i-ph:dots-three-vertical-bold" aria-hidden />
                 </button>
+                {updatedAt ? (
+                  <time
+                    dateTime={secret.updatedAt!}
+                    data-testid="secret-updated-at"
+                    className="col-span-3 min-w-0 break-words text-xs text-bolt-elements-textSecondary"
+                  >
+                    {updatedAt}
+                  </time>
+                ) : null}
                 <form
                   ref={(element) => {
                     formulairesSuppressionRef.current[key] = element;

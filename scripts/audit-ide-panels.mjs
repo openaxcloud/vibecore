@@ -5,9 +5,10 @@ import { chromium } from '@playwright/test';
 import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
 import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
-import { createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
+import { createBrowserHttpEvidence, createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
 
 const browserNetworkDiagnostics = createBrowserNetworkEvidence();
+const browserHttpDiagnostics = createBrowserHttpEvidence();
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 let appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
@@ -391,6 +392,7 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
     page.on('pageerror', (error) => errors.push(`[${panel}] ${error.message}`));
     page.on('console', (message) => {
       terminalDiagnostics.capture(message);
@@ -469,6 +471,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
     const backendCalls = [];
 
     page.on('pageerror', (error) => errors.push(`[ui:${panel}] ${error.message}`));
@@ -692,13 +695,28 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
     async (page) => {
       const packageName = 'is-odd';
       await page.getByPlaceholder('@scope/name, react-query, vite@latest').fill(packageName);
-      await Promise.all([
+
+      const [installed] = await Promise.all([
         waitForPanelResponse(page, 'packages', 'POST', 60_000),
         page.getByRole('button', { name: 'Install package' }).click(),
       ]);
+
+      if (!installed.ok()) {
+        throw new Error('Package installation did not succeed');
+      }
+
+      const [reloaded] = await Promise.all([
+        waitForPanelResponse(page, 'packages', 'GET', 20_000),
+        page.reload({ waitUntil: 'domcontentloaded' }),
+      ]);
+
+      if (!reloaded.ok()) {
+        throw new Error('Installed packages could not be reloaded');
+      }
+
       await page
-        .getByText(/add package/i)
-        .first()
+        .locator('.bolt-project-package-list')
+        .getByText(packageName, { exact: true })
         .waitFor({ state: 'visible', timeout: 20_000 });
     },
     'create_package_install_plan_visible_after_backend_reload',
@@ -955,6 +973,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
     page.on('pageerror', (error) => errors.push(`[workspace:${panel}] ${error.message}`));
     page.on('console', (message) => {
       terminalDiagnostics.capture(message);
@@ -1183,6 +1202,7 @@ async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, 'responsive'));
     page.on('pageerror', (error) => errors.push(`[responsive:${viewport.name}] ${error.message}`));
     page.on('console', (message) => {
       terminalDiagnostics.capture(message);
@@ -1340,6 +1360,7 @@ async function runAuditPass() {
     terminalDiagnostics: terminalDiagnostics.snapshot(),
     persistenceDiagnostics: persistenceDiagnostics.snapshot(),
     browserNetworkDiagnostics: browserNetworkDiagnostics.snapshot(),
+    browserHttpDiagnostics: browserHttpDiagnostics.snapshot(),
   };
 }
 
