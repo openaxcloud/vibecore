@@ -4196,6 +4196,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
+
+    // Readiness fallback may precede memory: it must not seed a new desktop layout from the URL.
+    const [projectLayoutReadyFor, setProjectLayoutReadyFor] = useState<string | undefined>(undefined);
     const gardeDeRestauration = useRef(creerGardeDeRestauration());
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const restoredProjectSelectionScope = useRef<{ projectId: string; workspaceId?: string } | undefined>(undefined);
@@ -4945,6 +4948,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         : t('baseChatAst.mobile.workspaceReady');
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
+      setProjectLayoutReadyFor(undefined);
       gardeDeRestauration.current.oublier();
       restoredProjectSelectionScope.current = undefined;
       pendingProjectSelectedFile.current = undefined;
@@ -5566,6 +5570,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (!cancelled) {
             setProjectStateReady(true);
+            setProjectLayoutReadyFor(projectId);
           }
         });
 
@@ -6474,7 +6479,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const appliedDeployAliasRef = useRef<string>();
 
     useEffect(() => {
-      if (!projectIdeMode || !mobileNavigationReady || (!projectStateReady && !activeProjectPanel)) {
+      if (
+        !projectIdeMode ||
+        !mobileNavigationReady ||
+        (!projectStateReady && !activeProjectPanel) ||
+        (!useMobileIde && projectId && projectLayoutReadyFor !== projectId)
+      ) {
         return;
       }
 
@@ -6559,6 +6569,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectId,
       projectIdeMode,
       projectStateReady,
+      projectLayoutReadyFor,
       setMobileIdePanel,
       setProjectAgentPanelOpen,
       useMobileIde,
@@ -6664,6 +6675,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           nextHeight = Math.min(720, Math.max(320, startHeight + startY - moveEvent.clientY));
           terminalShell?.style.setProperty('--project-terminal-height', `${nextHeight}px`);
           mainPanes?.style.setProperty('--project-terminal-bottom-height', `${nextHeight}px`);
+
+          const sizeReadout = terminalShell?.querySelector('.bolt-project-bottom-terminal-size');
+
+          if (sizeReadout) {
+            sizeReadout.textContent = `${nextHeight}px`;
+          }
         };
 
         const onUp = () => {
@@ -9858,6 +9875,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           <ProjectBottomTerminal
                             projectId={projectId}
                             active={bottomTerminalView}
+                            height={terminalBottomHeight}
                             runtimeWorkspace={projectRuntimeState.workspace}
                             initialIdePanels={initialIdePanels}
                             onActiveChange={setBottomTerminalView}
@@ -12522,6 +12540,7 @@ function formatProjectPanelActionNotice(t: TFunction, intent: string) {
 function ProjectBottomTerminal({
   projectId,
   active,
+  height,
   runtimeWorkspace,
   initialIdePanels,
   onActiveChange,
@@ -12529,6 +12548,7 @@ function ProjectBottomTerminal({
 }: {
   projectId?: string;
   active: ProjectBottomTerminalView;
+  height: number;
   runtimeWorkspace?: ProjectIdeBackendState['workspace'];
   initialIdePanels?: Record<string, any>;
   onActiveChange: (view: ProjectBottomTerminalView) => void;
@@ -12608,6 +12628,9 @@ function ProjectBottomTerminal({
           ))}
         </div>
         <div className="bolt-project-bottom-terminal-meta">
+          <output className="bolt-project-bottom-terminal-size" aria-label={t('chat.copy.pinnedTerminal_c8fe22f6')}>
+            {`${height}px`}
+          </output>
           <span
             className="bolt-project-bottom-terminal-status"
             data-state={effectiveWorkspace ? runtimeUiState : 'offline'}

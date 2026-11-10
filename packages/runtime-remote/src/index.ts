@@ -156,6 +156,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
    * perdre ces fichiers-là serait le même défaut par un autre chemin.
    */
   #demarrageEnVol: Promise<unknown> | null = null;
+  #startGeneration = 0;
   #fetch: typeof fetch;
   #WebSocket?: WebSocketConstructor;
   #session?: WorkspaceSession;
@@ -222,6 +223,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
+    this.#startGeneration += 1;
+
     const demarrage = this.#demarrer(session);
     this.#demarrageEnVol = demarrage;
 
@@ -565,21 +568,49 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     // `reparer=1` : l'API force la réconciliation stockage → pod avant de lister (BUG-IDE-007).
     const reparation = options?.reparer ? '&reparer=1' : '';
 
-    return this.#request<FileNode[]>(
-      `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}${reparation}`,
-      {},
-      { retryReads: true },
+    return this.#readAfterKnownStart((workspaceId) =>
+      this.#request<FileNode[]>(
+        `/workspaces/${workspaceId}/files?path=${encodeURIComponent(path)}${reparation}`,
+        {},
+        { retryReads: true },
+      ),
     );
   }
 
   async readFile(path: string): Promise<{ content: string; encoding?: 'utf8' | 'base64' }> {
-    const result = await this.#request<{ content: string; encoding?: 'utf8' | 'base64' }>(
-      `/workspaces/${this.#requireWorkspaceId()}/files/read?path=${encodeURIComponent(path)}`,
-      {},
-      { retryReads: true },
+    const result = await this.#readAfterKnownStart((workspaceId) =>
+      this.#request<{ content: string; encoding?: 'utf8' | 'base64' }>(
+        `/workspaces/${workspaceId}/files/read?path=${encodeURIComponent(path)}`,
+        {},
+        { retryReads: true },
+      ),
     );
 
     return { content: result.content, encoding: result.encoding };
+  }
+
+  /** Only file reads wait here; the start's own status probes must remain independent. */
+  async #readAfterKnownStart<T>(read: (workspaceId: string) => Promise<T>): Promise<T> {
+    const pending = this.#demarrageEnVol;
+
+    if (pending) {
+      const generation = this.#startGeneration;
+      const workspaceId = this.#workspaceId;
+      const projectId = this.#projectId;
+
+      // Preserve the original refusal/cancellation rather than reading a stale pod.
+      await pending;
+
+      if (
+        generation !== this.#startGeneration ||
+        (workspaceId !== undefined && workspaceId !== this.#workspaceId) ||
+        (projectId !== undefined && projectId !== this.#projectId)
+      ) {
+        throw new RuntimeError('WORKSPACE_CONTEXT_CHANGED', { code: 'WORKSPACE_CONTEXT_CHANGED' });
+      }
+    }
+
+    return read(this.#requireWorkspaceId());
   }
 
   /*

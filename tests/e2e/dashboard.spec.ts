@@ -1879,11 +1879,13 @@ test(
     await openIdeTool(/Git/);
 
     const gitPanel = page.locator('[data-testid="ide-service-panel"][data-panel="git"]').first();
-    await expect(gitPanel.locator('.bolt-project-git-tool')).toBeVisible({ timeout: 15000 });
-    await expect(gitPanel.getByRole('heading', { name: 'Changes' })).toBeVisible();
+
+    // Canonical GitTab: Working tree lists changes; Commit graph contains history.
+    await expect(gitPanel.locator('.bolt-git-tab')).toBeVisible({ timeout: 15000 });
+    await expect(gitPanel.getByRole('heading', { name: 'Working tree' })).toBeVisible();
     await expect(gitPanel.getByRole('heading', { name: 'Staged' })).toBeVisible();
-    await expect(gitPanel.getByRole('heading', { name: 'History' })).toBeVisible();
-    await expect(gitPanel.getByRole('button', { name: 'Commit & Push' })).toBeVisible();
+    await expect(gitPanel.getByRole('heading', { name: 'Commit graph' })).toBeVisible();
+    await expect(gitPanel.getByRole('button', { name: 'Commit & push' })).toBeVisible();
 
     await expect(page.getByLabel('Split right')).toHaveCount(0);
     await expect(page.getByLabel('Split down')).toHaveCount(0);
@@ -1892,8 +1894,8 @@ test(
     await expect(page.locator('.bolt-project-context-menu')).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Move to new pane/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Move to existing pane/ })).toHaveCount(0);
-    await page.getByLabel('Tab actions').first().click();
-    await page.getByRole('button', { name: 'Close to right' }).first().click();
+    await page.getByLabel('Options for Git').first().click();
+    await page.getByRole('menuitem', { name: 'Close to right' }).first().click();
     await expect(page.getByRole('tab', { name: /Publish/ }).first()).toBeVisible();
 
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
@@ -1906,48 +1908,103 @@ test(
       const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
       const tabbar = element.querySelector('.bolt-project-bottom-terminal-tabs')!;
-      const tabbarRect = tabbar.getBoundingClientRect();
       const tabbarStyle = window.getComputedStyle(tabbar);
-      const status = element.querySelector('.bolt-project-bottom-terminal-status');
-      const terminalMeta = element.querySelector('.bolt-project-bottom-terminal-meta');
-      const activeTab = element.querySelector('.bolt-project-bottom-terminal-tabs button[aria-current="page"]');
-      const activeTabStyle = activeTab ? window.getComputedStyle(activeTab) : null;
+      const activeTab = element.querySelector('.bolt-project-bottom-terminal-tabs button[aria-current="page"]')!;
+      const activeTabStyle = window.getComputedStyle(activeTab);
+      // Resolve semantic tokens independently, on a neutral probe in the same inheritance scope.
+      // No terminal class or computed terminal property is copied onto this probe.
+      const probe = document.createElement('span');
+      probe.style.cssText =
+        'position:absolute;visibility:hidden;border:1px solid var(--vc-ide-border-subtle);background:var(--vc-ide-bg-app);color:var(--vc-ide-accent-action)';
+      element.appendChild(probe);
+      const probeStyle = window.getComputedStyle(probe);
+      const expectedBorder = probeStyle.borderTopColor;
+      const expectedBackground = probeStyle.backgroundColor;
+      const expectedAccent = probeStyle.color;
+      probe.style.background = 'var(--vc-ide-bg-panel)';
+      probe.style.borderColor = 'var(--vc-ide-border-visible)';
+      const expectedTabbarBackground = window.getComputedStyle(probe).backgroundColor;
+      const expectedActiveBorder = window.getComputedStyle(probe).borderTopColor;
+      probe.remove();
 
       return {
         height: rect.height,
         borderTop: style.borderTopColor,
         background: style.backgroundColor,
-        tabbarHeight: tabbarRect.height,
+        tabbarHeight: tabbar.getBoundingClientRect().height,
         tabbarBackground: tabbarStyle.backgroundColor,
-        hasStatus: Boolean(status),
-        hasTerminalMeta: Boolean(terminalMeta),
-        activeTabBorder: activeTabStyle?.borderTopColor,
+        tabbarImage: tabbarStyle.backgroundImage,
+        hasStatus: Boolean(element.querySelector('.bolt-project-bottom-terminal-status')),
+        hasTerminalMeta: Boolean(element.querySelector('.bolt-project-bottom-terminal-meta')),
+        activeTabBorder: activeTabStyle.borderTopColor,
+        activeTabShadow: activeTabStyle.boxShadow,
+        expectedBorder,
+        expectedBackground,
+        expectedTabbarBackground,
+        expectedActiveBorder,
+        expectedAccent,
+        tokens: [
+          '--vc-ide-border-subtle',
+          '--vc-ide-bg-app',
+          '--vc-ide-bg-panel',
+          '--vc-ide-border-visible',
+          '--vc-ide-accent-action',
+        ].map((token) => style.getPropertyValue(token).trim()),
       };
     });
-    expect(terminalMetrics.height).toBe(240);
-    expect(terminalMetrics.borderTop).toBe('rgb(26, 32, 48)');
-    expect(terminalMetrics.background).toBe('rgb(10, 15, 28)');
+    // Production readProjectBottomTerminalUiState defaults to 420, constrained to 320–720.
+    // This assertion deliberately requires real browser geometry, not an inline-style value.
+    expect(terminalMetrics.height).toBe(420);
+    expect(terminalMetrics.height).toBeGreaterThanOrEqual(320);
+    expect(terminalMetrics.height).toBeLessThanOrEqual(720);
+    for (const token of terminalMetrics.tokens) expect(token).not.toBe('');
+    for (const color of [terminalMetrics.expectedBackground, terminalMetrics.expectedTabbarBackground]) {
+      expect(color).not.toBe('rgba(0, 0, 0, 0)');
+    }
+    expect(terminalMetrics.borderTop).toBe(terminalMetrics.expectedBorder);
+    expect(terminalMetrics.background).toBe(terminalMetrics.expectedBackground);
     expect(terminalMetrics.tabbarHeight).toBe(38);
-    expect(terminalMetrics.tabbarBackground).toBe('rgb(14, 21, 37)');
+    expect(terminalMetrics.tabbarBackground).toBe(terminalMetrics.expectedTabbarBackground);
+    // index.scss defines a gradient initially, but its later IDE-scoped !important
+    // background override uses --vc-ide-bg-panel and resets background-image to none.
+    expect(terminalMetrics.tabbarImage).toBe('none');
     expect(terminalMetrics.hasStatus).toBe(true);
     expect(terminalMetrics.hasTerminalMeta).toBe(true);
-    expect(terminalMetrics.activeTabBorder).toBe('rgb(43, 50, 69)');
-    await expect(pinnedTerminal.getByRole('button', { name: 'Terminal', exact: true })).toBeVisible();
+    expect(terminalMetrics.activeTabBorder).toBe(terminalMetrics.expectedActiveBorder);
+    expect(terminalMetrics.activeTabShadow).toBe(`${terminalMetrics.expectedAccent} 0px 2px 0px 0px inset`);
+    await expect(pinnedTerminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toBeVisible();
     await expect(pinnedTerminal.getByRole('button', { name: 'Output' })).toBeVisible();
-    await expect(pinnedTerminal.getByRole('button', { name: 'Problems' })).toBeVisible();
+    await expect(pinnedTerminal.getByRole('button', { name: /Open problems/i })).toBeVisible();
     await expect(pinnedTerminal.getByRole('button', { name: 'Debug Console' })).toBeVisible();
     await expect(pinnedTerminal.getByLabel('Refresh runtime logs')).toBeVisible();
-    await expect(pinnedTerminal.locator('.bolt-project-bottom-terminal-size')).toHaveText('240px');
-    await expect(pinnedTerminal.getByText('Vibecore Terminal')).toBeVisible({ timeout: 15000 });
+    await expect(pinnedTerminal.getByRole('status', { name: 'Pinned terminal', exact: true })).toHaveText(
+      `${terminalMetrics.height}px`,
+    );
+    await expect(
+      pinnedTerminal.locator('[data-testid="terminal-tabs-bar"][aria-label="Shell (Terminal)"]'),
+    ).toBeVisible({ timeout: 15000 });
     await pinnedTerminal.getByRole('button', { name: 'Output' }).click();
     await expect(pinnedTerminal.locator('[data-testid="ide-service-panel"][data-panel="logs"]')).toBeVisible({
       timeout: 15000,
     });
+    await pinnedTerminal.getByRole('button', { name: /Open problems/i }).click();
+    await expect(pinnedTerminal.locator('.bolt-project-problems-panel')).toBeVisible();
     await pinnedTerminal.getByRole('button', { name: 'Debug Console' }).click();
-    await expect(pinnedTerminal.locator('.bolt-project-monitoring-panel')).toBeVisible({ timeout: 15000 });
-    await page.getByLabel('Toggle terminal').click();
+    await expect(pinnedTerminal.locator('[data-testid="ide-service-panel"][data-panel="debugger"]')).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(pinnedTerminal.locator('.bolt-project-debugger-panel')).toBeVisible();
+    await pinnedTerminal.getByLabel('Refresh runtime logs').click();
+    await expect(pinnedTerminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(
+      pinnedTerminal.locator('[data-testid="terminal-tabs-bar"][aria-label="Shell (Terminal)"]'),
+    ).toBeVisible();
+    await page.getByLabel('Toggle Shell (Terminal)', { exact: true }).click();
     await expect(pinnedTerminal).toBeHidden();
-    await page.getByLabel('Toggle terminal').click();
+    await page.getByLabel('Toggle Shell (Terminal)', { exact: true }).click();
     await expect(pinnedTerminal).toBeVisible();
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
     await expect(page.getByLabel('Command palette')).toBeVisible();

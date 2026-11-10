@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,6 +52,62 @@ describe('Git panel async recovery', () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it('matches every Services E2E Git selector against the canonical rendered panel', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      Response.json({
+        ...state,
+        data: { ...state.data, status: { branch: 'main', fileStatuses: [{ path: 'isolated.txt', status: 'M' }] } },
+      }),
+    );
+
+    const view = render(mount());
+    await screen.findByText('Isolated test commit');
+
+    /*
+     * Read the actual E2E assertion block, so stale selectors fail this regression.
+     * This is component DOM coverage, not a substitute for the runtime E2E run.
+     */
+    const source = readFileSync('tests/e2e/dashboard.spec.ts', 'utf8');
+
+    const block = source.slice(
+      source.indexOf('    await expect(gitPanel.locator('),
+      source.indexOf("    await expect(page.getByLabel('Split right'))"),
+    );
+
+    const selectors = [...block.matchAll(/gitPanel\.locator\('([^']+)'\)/g)];
+    const roles = [...block.matchAll(/gitPanel\.getByRole\('(heading|button)', \{ name: '([^']+)' \}\)/g)];
+    expect(selectors).toHaveLength(1);
+    expect(roles).toHaveLength(4);
+    expect(block.match(/\.toBeVisible\(/g)).toHaveLength(5);
+    expect(block).toContain('timeout: 15000');
+
+    for (const [, selector] of selectors) {
+      expect(view.container.querySelector(selector), selector).not.toBeNull();
+    }
+
+    for (const [, role, name] of roles) {
+      expect(within(view.container).getByRole(role, { name })).toBeTruthy();
+    }
+
+    /*
+     * Commit graph is the actual commit history, and the renamed button retains
+     * the same commit-push action rather than substituting a different control.
+     */
+    const workingTree = screen.getByRole('heading', { name: 'Working tree' }).parentElement!.parentElement!
+      .parentElement!;
+
+    const stageFile = within(workingTree).getByRole('checkbox', { name: 'Stage isolated.txt' });
+    fireEvent.click(stageFile);
+
+    const staged = screen.getByRole('heading', { name: 'Staged' }).parentElement!;
+    expect(within(staged).getByText('isolated.txt')).toBeTruthy();
+    expect(view.container.querySelector<HTMLInputElement>('input[name="stagedFiles"]')?.value).toBe('isolated.txt');
+
+    const history = screen.getByRole('heading', { name: 'Commit graph' }).parentElement!;
+    expect(within(history).getByTestId('git-commit-row').textContent).toContain('Isolated test commit');
+    expect(screen.getByRole('button', { name: 'Commit & push' }).getAttribute('value')).toBe('commit-push');
   });
 
   it('serializes rapid submissions before React renders busy state', async () => {

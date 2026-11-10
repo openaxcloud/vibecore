@@ -89,6 +89,7 @@ const code = ts.transpileModule(
   const persistMobilePanel = noop, openWorkspacePanel = noop, setProjectAgentPanelOpen = noop;
   const projectId = 'preview-startup', currentWorkspaceId = 'workspace', projectEditorWindowId = 'window-main';
   const appliedPanelNavigationId = 'route', projectStateReady = true, mobilePopRevision = 0;
+  const projectLayoutReadyFor = projectId;
   const findLeaf = noop, findFloatingLeaf = noop, requestDeployPanelView = noop;
   const renderLogger = { trace: noop }, description = {};
   const useStore = () => '';

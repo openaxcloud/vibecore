@@ -129,13 +129,17 @@ jobs:
           app/components/chat/ProjectSecretsPanel.metadata.spec.tsx
           app/components/chat/ProjectIdeApiServicePanel.loading.spec.tsx
           app/components/chat/project-right-width-restore.spec.tsx
+          app/components/chat/project-layout-url-restore.spec.tsx
           app/components/database/DatabaseWorkbench.renders-databases.spec.tsx
+          app/components/git/GitTab.async.spec.tsx
           'app/routes/api.projects.$projectId.ide-panel.execution-outcomes.spec.ts'
           tests/guards/runtime-agent-geometry.spec.ts
           tests/guards/runtime-preview-measurement.spec.ts
           tests/guards/runtime-workspace-status-navigation.spec.ts
           tests/guards/runtime-ui-panel-bounds.spec.ts
           tests/guards/runtime-tool-menu-click.spec.tsx
+          tests/guards/runtime-services-tab-options.spec.tsx
+          tests/guards/runtime-services-terminal.spec.tsx
 
       - name: Verify runtime recovery regressions
         working-directory: packages/runtime-remote
