@@ -2626,7 +2626,7 @@ async function runCommand(
       flushDecoders();
       options.rememberTerminal(record, code, signal);
       options.processes.delete(id);
-      resolvePromise({ id, code, signal, stdout, stderr, truncated });
+      resolvePromise({ id, code, signal, timedOut: record.timedOut === true, stdout, stderr, truncated });
     });
 
     /*
@@ -2644,6 +2644,7 @@ async function runCommand(
         id,
         code: 1,
         signal: null,
+        timedOut: record.timedOut === true,
         stdout,
         stderr: `${stderr}${error instanceof Error ? error.message : String(error)}`,
         truncated,

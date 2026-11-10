@@ -148,3 +148,17 @@ test('maximum retained projection remains below 512 bytes independently of raw b
   assert.ok(Buffer.byteLength(error.message, 'utf8') < 512);
   assert.doesNotMatch(error.message, /PRIVATE/);
 });
+
+for (const termination of ['timeout', 'interrupted']) {
+  test(`retains explicit ${termination} without inferring it from exit 1`, async () => {
+    const error = await packageInstallFailure(
+      response({
+        code: 'PACKAGE_RUN_FAILED',
+        run: { exitCode: -1, termination },
+      }),
+    );
+    assert.match(error.message, new RegExp(`"termination":"${termination}"`));
+    assert.match(error.message, /"outcome":"failed"/);
+    assert.ok(Buffer.byteLength(error.message, 'utf8') < 512);
+  });
+}

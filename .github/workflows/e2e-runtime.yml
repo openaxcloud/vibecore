@@ -98,7 +98,7 @@ jobs:
 
       - name: Validate runtime harness
         run: |
-          node --test scripts/ci/runtime-browser-relay.checks.mjs scripts/ci/runtime-browser-isolation.checks.mjs
+          node --test scripts/ci/runtime-localhost-deadline.checks.mjs scripts/ci/package-termination.checks.mjs scripts/ci/runtime-browser-relay.checks.mjs scripts/ci/runtime-browser-isolation.checks.mjs
           node --test scripts/ci/runtime-agent-router.checks.mjs
           node --test scripts/ci/runtime-evidence-redaction.checks.mjs
           node --test scripts/ci/runtime-api-evidence.checks.mjs
@@ -206,6 +206,7 @@ jobs:
           echo 'PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser' >> "$GITHUB_ENV"
 
       - name: Verify preview localhost browser routing
+        timeout-minutes: 1
         run: node --test scripts/ci/runtime-localhost-browser.checks.mjs
 
       - name: Start local dependencies

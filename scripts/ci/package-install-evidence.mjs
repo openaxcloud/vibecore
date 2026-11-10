@@ -38,12 +38,17 @@ export async function packageInstallFailure(response) {
           Number.isInteger(body?.run?.exitCode) && body.run.exitCode >= -1 && body.run.exitCode <= 255
             ? body.run.exitCode
             : null;
+        evidence.termination = ['timeout', 'interrupted', 'unknown'].includes(body?.run?.termination)
+          ? body.run.termination
+          : null;
         evidence.outcome =
-          evidence.code === 'PACKAGE_RUN_OUTCOME_UNKNOWN' || evidence.exitCode === null || evidence.exitCode === -1
-            ? 'unknown'
-            : evidence.exitCode !== 0
-              ? 'failed'
-              : 'rejected';
+          evidence.termination === 'timeout' || evidence.termination === 'interrupted'
+            ? 'failed'
+            : evidence.code === 'PACKAGE_RUN_OUTCOME_UNKNOWN' || evidence.exitCode === null || evidence.exitCode === -1
+              ? 'unknown'
+              : evidence.exitCode !== 0
+                ? 'failed'
+                : 'rejected';
 
         // These are only reported cause hints, never proof of a root cause.
         const message = typeof body?.error === 'string' ? body.error : '';

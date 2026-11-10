@@ -521,6 +521,7 @@ import {
   type ThumbnailLogger,
 } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { packageInstallResult } from './package-install-result.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import { RuntimeLogReplay, runtimeLogEvents } from './runtime-log-replay.js';
@@ -17178,7 +17179,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const parsedTimeoutMs = Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000);
     const configuredTimeoutMs = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0 ? parsedTimeoutMs : 30_000;
     const timeoutMs = Math.min(body.timeoutMs ?? 30_000, configuredTimeoutMs);
-    const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
+
+    let timedOut = false;
+    let signal: string | null = null;
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+    }, timeoutMs);
 
     const append = (target: 'stdout' | 'stderr', chunk: Buffer) => {
       const value = chunk.toString('utf8');
@@ -17204,7 +17212,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         record.exitCode = 127;
         resolvePromise(127);
       });
-      child.on('close', (exitCode) => {
+      child.on('close', (exitCode, exitSignal) => {
+        signal = exitSignal;
         clearTimeout(timer);
         record.status = 'exited';
 
@@ -17222,7 +17231,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     });
 
-    return { code, stdout, stderr, localRuntime: true };
+    return { code, signal, timedOut, stdout, stderr, localRuntime: true };
   };
 
   /*
@@ -24288,10 +24297,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Déclarer `code: number` faisait passer ce cas pour impossible, et les
      * `?? 0` plus bas le transformaient en réussite.
      */
-    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
+    let result: {
+      code: number | null;
+      signal?: string | null;
+      timedOut?: boolean;
+      stdout?: string;
+      stderr?: string;
+      localRuntime?: boolean;
+    };
 
     try {
-      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
+      result = await agentRequest<typeof result>(
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(commandBody) },
@@ -24314,20 +24330,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    /*
-     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
-     *
-     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
-     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
-     * `node_modules` à moitié installé : exactement le scénario que
-     * `foldCommandExitCode` documente déjà pour l'événement `error`.
-     *
-     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
-     * par des appelants qui attendent un nombre, et un `null` y serait retombé
-     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
-     * bout à l'autre de la chaîne.
-     */
-    const exitCode = result.code ?? 1;
+    const outcome = packageInstallResult(result);
+    const { exitCode } = outcome;
 
     return reply.code(201).send({
       projectId: authorized.projectId,
@@ -24336,7 +24340,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       packages,
       command: [command, ...args].join(' '),
       exitCode,
-      success: exitCode === 0,
+      success: outcome.success,
+      termination: outcome.termination,
       output,
       localRuntime: result.localRuntime === true,
       events: [

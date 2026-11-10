@@ -140,6 +140,10 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.sshKeyAmbiguous': 'Several SSH keys are configured, but none matches the origin host ({host}).',
   'apiRuntime.panel.sshOperationFailed': 'The Git {operation} operation over SSH failed (exit {exitCode}).',
   'apiRuntime.panel.scriptRequired': 'Enter a script to run.',
+  'apiRuntime.panel.packageRunTimedOut':
+    'The installation exceeded its runtime time limit. Check the workspace before retrying.',
+  'apiRuntime.panel.packageRunInterrupted':
+    'The installation was interrupted by a signal. Check the workspace before retrying.',
   'apiRuntime.panel.packageRunOutcomeUnknown':
     'The installation outcome is unknown because completion could not be confirmed. The command may still be running. Check the workspace terminal and installed packages before retrying; this request was not replayed.',
   'apiRuntime.panel.packageRunFailed': 'The package command failed (exit code {code}). Nothing was installed.',
@@ -336,6 +340,10 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
     'Plusieurs clés SSH sont configurées, mais aucune ne correspond à l’hôte d’origine ({host}).',
   'apiRuntime.panel.sshOperationFailed': 'L’opération Git {operation} via SSH a échoué (code de sortie {exitCode}).',
   'apiRuntime.panel.scriptRequired': 'Saisissez un script à exécuter.',
+  'apiRuntime.panel.packageRunTimedOut':
+    'L’installation a dépassé sa limite de temps. Vérifiez l’espace de travail avant de réessayer.',
+  'apiRuntime.panel.packageRunInterrupted':
+    'L’installation a été interrompue par un signal. Vérifiez l’espace de travail avant de réessayer.',
   'apiRuntime.panel.packageRunOutcomeUnknown':
     'Le résultat de l’installation est inconnu car sa fin n’a pas pu être confirmée. La commande peut encore être en cours. Vérifiez le terminal et les paquets installés avant de réessayer ; cette requête n’a pas été relancée.',
   'apiRuntime.panel.packageRunFailed':

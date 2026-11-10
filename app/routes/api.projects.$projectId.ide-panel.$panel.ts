@@ -2878,9 +2878,17 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     if ((isInstall && run.exitCode !== 0) || run.status !== 'succeeded') {
       throw json(
         {
-          error: 'outcomeUnknown' in run && run.outcomeUnknown ? run.output : messageDEchecDInstallation(run, language),
+          error:
+            ('outcomeUnknown' in run && run.outcomeUnknown) || ('termination' in run && run.termination)
+              ? run.output
+              : messageDEchecDInstallation(run, language),
           code: 'outcomeUnknown' in run && run.outcomeUnknown ? 'PACKAGE_RUN_OUTCOME_UNKNOWN' : 'PACKAGE_RUN_FAILED',
-          run: { id: run.id, exitCode: run.exitCode, status: run.status },
+          run: {
+            id: run.id,
+            exitCode: run.exitCode,
+            status: run.status,
+            ...('termination' in run ? { termination: run.termination } : {}),
+          },
         },
         { status: 422 },
       );
@@ -5265,6 +5273,7 @@ async function runPackageInstall(
       exitCode?: number;
       output?: string;
       success?: boolean;
+      termination?: 'timeout' | 'interrupted' | 'unknown' | null;
     }>(request, `/projects/${encodeURIComponent(projectId)}/packages/install`, {
       method: 'POST',
 
@@ -5282,16 +5291,31 @@ async function runPackageInstall(
       }),
     });
 
+    const termination = ['timeout', 'interrupted', 'unknown'].includes(result.termination ?? '')
+      ? result.termination
+      : null;
+
+    const outcomeUnknown = termination === 'unknown' || (!termination && !Number.isInteger(result.exitCode));
+    const copy = getApiRuntimeRoutesCopy(input.language);
+
+    const terminationMessage =
+      termination === 'timeout'
+        ? copy['apiRuntime.panel.packageRunTimedOut']
+        : termination === 'interrupted'
+          ? copy['apiRuntime.panel.packageRunInterrupted']
+          : null;
+
     return {
       id: randomUUID(),
       name: input.name,
       script: result.command ?? `${input.packageManager} install`,
       exitCode: Number.isInteger(result.exitCode) ? result.exitCode! : -1,
-      status: result.success !== false && result.exitCode === 0 ? 'succeeded' : 'failed',
-      outcomeUnknown: !Number.isInteger(result.exitCode),
-      output: Number.isInteger(result.exitCode)
-        ? (result.output ?? '')
-        : getApiRuntimeRoutesCopy(input.language)['apiRuntime.panel.packageRunOutcomeUnknown'],
+      status: !termination && result.success !== false && result.exitCode === 0 ? 'succeeded' : 'failed',
+      termination,
+      outcomeUnknown,
+      output:
+        terminationMessage ??
+        (outcomeUnknown ? copy['apiRuntime.panel.packageRunOutcomeUnknown'] : (result.output ?? '')),
       startedAt: input.startedAt,
       finishedAt: finishedAt(),
     };

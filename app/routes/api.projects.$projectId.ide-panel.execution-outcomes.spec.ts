@@ -291,3 +291,22 @@ it('does not invent a command exit for an upstream validation rejection', async 
   expect(stored.VIBECORE_PACKAGES_STATE.runs[0].outcomeUnknown).toBe(false);
   expect(commandIndex).toBe(1);
 });
+
+for (const termination of ['timeout', 'interrupted'] as const) {
+  it(`preserves known ${termination} without reporting an unknown result or success`, async () => {
+    result = { exitCode: -1, success: false, termination, output: 'fixture' } as typeof result;
+    await expect(execute('packages')).rejects.toMatchObject({
+      data: { code: 'PACKAGE_RUN_FAILED', run: { exitCode: -1, termination, status: 'failed' } },
+    });
+    expect(stored.VIBECORE_PACKAGES_STATE.runs[0].outcomeUnknown).toBe(false);
+    expect(stored.VIBECORE_PACKAGES_STATE.runs[0].output).toMatch(/time limit|interrupted/);
+    expect(commandIndex).toBe(1);
+  });
+}
+
+it('does not accept a timeout that happened to exit zero as install success', async () => {
+  result = { exitCode: 0, success: false, termination: 'timeout', output: 'fixture' } as typeof result;
+  await expect(execute('packages')).rejects.toMatchObject({
+    data: { run: { termination: 'timeout', status: 'failed', exitCode: 0 } },
+  });
+});
