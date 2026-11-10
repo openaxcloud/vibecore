@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { act, cleanup, fireEvent, render, within } from '@testing-library/react';
 import React from 'react';
@@ -6,6 +7,8 @@ import { createPortal } from 'react-dom';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+// eslint-disable-next-line no-restricted-imports -- Test-only helper is outside the application alias.
+import { createServiceProgress, SERVICE_PHASES } from '../e2e/helpers/runtime-service-progress';
 import { IdePaletteProvider, useIdePalette } from '~/components/chat/IdePaletteState';
 import {
   TAB_DRAG_PANE_MIME,
@@ -330,4 +333,83 @@ describe('runtime Services catalog navigation', () => {
       );
     },
   );
+});
+
+describe('bounded Services progress evidence', () => {
+  it('records only allowed phases, elapsed time and remaining budget with bounded copies', () => {
+    let now = 1000;
+
+    const progress = createServiceProgress(
+      1000,
+      () => 120_000,
+      () => now,
+    );
+    progress.mark('setup');
+    now = 121_500;
+    progress.mark('edit-secret-open-menu');
+    progress.mark('private URL or secret' as never);
+    expect(progress.snapshot().events).toEqual([
+      { phase: 'setup', elapsedMs: 0, remainingBudgetEstimateMs: 120_000 },
+      { phase: 'edit-secret-open-menu', elapsedMs: 120_500, remainingBudgetEstimateMs: 0 },
+    ]);
+
+    const copy = progress.snapshot();
+    copy.events[0].elapsedMs = -1;
+    expect(progress.snapshot().events[0].elapsedMs).toBe(0);
+
+    for (let index = 0; index < 100; index++) {
+      progress.mark('complete');
+    }
+    expect(progress.snapshot().events).toHaveLength(32);
+    expect(progress.snapshot().omitted).toBe(70);
+    expect(JSON.stringify(progress.snapshot()).length).toBeLessThan(4096);
+    expect(JSON.stringify(progress.snapshot())).not.toContain('private');
+  });
+
+  it('keeps the useful phase order and all pre-diagnostic assertions and budgets', () => {
+    const dashboard = readFileSync('tests/e2e/dashboard.spec.ts', 'utf8');
+    const phases = [...dashboard.matchAll(/progress\.mark\('([^']+)'\)/g)].map((match) => match[1]);
+    expect(phases).toEqual(SERVICE_PHASES);
+
+    for (const phase of ['edit-secret-open-panel', 'edit-secret-open-menu', 'edit-secret-select-edit']) {
+      expect(dashboard).toContain(`await test.step('${phase}', async () => {`);
+    }
+
+    const services = dashboard.slice(
+      dashboard.indexOf("test(\n  'IDE project services open"),
+      dashboard.indexOf("\ntest('IDE light theme"),
+    );
+
+    const tree = ts.createSourceFile('dashboard.spec.ts', services, ts.ScriptTarget.Latest, true);
+    const assertionsAndBudgets: string[] = [];
+
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        (/^expect\(/.test(node.getText(tree)) || node.expression.getText(tree) === 'test.setTimeout')
+      ) {
+        assertionsAndBudgets.push(node.getText(tree).replace(/\s/g, ''));
+      }
+
+      ts.forEachChild(node, visit);
+    };
+    visit(tree);
+
+    /*
+     * Baseline HEAD 528ff6d: every Services expect call (including matcher arguments) and test budget,
+     * in traversal order. Intentional future assertion changes must update this baseline.
+     */
+    expect(assertionsAndBudgets).toHaveLength(319);
+    expect(createHash('sha256').update(JSON.stringify(assertionsAndBudgets)).digest('hex')).toBe(
+      '4298240d2036ceb8b534375eaab631e737d6a9ad53161ee98e4159f20053e4b0',
+    );
+
+    const diagnostics = readFileSync('tests/e2e/helpers/runtime-desktop-diagnostics.ts', 'utf8');
+
+    /*
+     * The Node-side progress survives even if the timed-out browser cannot be evaluated,
+     * including the existing 64 KiB fallback, without another browser call or delay.
+     */
+    expect(diagnostics.match(/serviceProgress: serviceProgress.get\(testInfo\)\?\.snapshot\(\)/g)).toHaveLength(2);
+  });
 });

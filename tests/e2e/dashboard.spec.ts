@@ -5,7 +5,7 @@ import JSZip from 'jszip';
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { readIdeUiDetailStyles } from './helpers/ide-ui-detail-styles';
 import { reloadPanelJson } from './helpers/reload-panel-json';
-import { withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
+import { runtimeServiceProgress, withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
 
 import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
 
@@ -1554,9 +1554,12 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
 test(
   'IDE project services open as in-place panels instead of legacy project pages',
   { tag: '@runtime' },
-  withDesktopLayoutEvidence(async ({ page, isMobile }) => {
+  withDesktopLayoutEvidence(async ({ page, isMobile }, testInfo) => {
     test.setTimeout(120_000);
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+
+    const progress = runtimeServiceProgress(testInfo);
+    progress.mark('setup');
 
     const auth = await authenticate(page);
     const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -1585,6 +1588,7 @@ test(
       await clickIdeToolMenuItem(toolMenu, name);
     }
 
+    progress.mark('snapshots');
     await openIdeTool(/Snapshots/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=snapshots$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
@@ -1602,6 +1606,7 @@ test(
     await page.getByRole('button', { name: /New checkpoint/ }).click();
     await expect(page.getByText('E2E checkpoint', { exact: true }).first()).toBeVisible({ timeout: 15000 });
 
+    progress.mark('publish');
     await openIdeTool(/Publish/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=deployments$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]')).toBeVisible({
@@ -1742,6 +1747,7 @@ test(
     await expect(webviewToolbar.getByRole('button', { name: 'Refresh preview' })).toBeVisible();
     await expect(webviewToolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
 
+    progress.mark('library');
     await openIdeTool(/Library/);
 
     const filesHeader = page.locator('.bolt-project-files-header');
@@ -1760,6 +1766,7 @@ test(
     await expect(filesHeader.getByRole('button', { name: 'Refresh files' })).toBeVisible();
     await expect(filesHeader.getByRole('button', { name: 'Collapse all files' })).toBeVisible();
 
+    progress.mark('logs');
     await openIdeTool(/Logs/);
 
     const consolePanel = page.locator('[data-testid="ide-service-panel"][data-panel="logs"]').first();
@@ -1776,6 +1783,7 @@ test(
     expect(consoleBodyMetrics.background).toBe('rgb(10, 15, 28)');
     expect(consoleBodyMetrics.fontSize).toBe('12px');
 
+    progress.mark('database');
     await openIdeTool(/Database/);
 
     const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
@@ -1797,6 +1805,7 @@ test(
           new URL(response.url()).pathname === `/api/projects/${projectId}/ide-panel/${panel}` &&
           response.request().method() === method,
       );
+    progress.mark('create-secret');
     await openIdeTool(/Secrets/);
 
     const connectionSecretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]');
@@ -1838,6 +1847,8 @@ test(
     // Stay on root: opening a card would initiate schema/connection requests to the synthetic URL.
     await expect(databasePanel.getByTestId('db-carte').getByText('DATABASE_URL', { exact: true })).toBeVisible();
 
+    progress.mark('activity');
+
     const [activityResponse] = await Promise.all([
       panelResponse('activity', 'GET'),
       (async () => {
@@ -1870,12 +1881,16 @@ test(
 
     await openIdeTool(/Secrets/);
 
+    progress.mark('secrets-panel');
+
     const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]').first();
+
     // RP-SEC-01 : le panneau Replit — en-tête « Secrets », ⋮, « + New Secret », filtre.
     await expect(secretsPanel.getByTestId('secrets-panel')).toBeVisible({ timeout: 15000 });
     await expect(secretsPanel.getByTestId('secrets-new')).toBeVisible();
     await expect(secretsPanel.getByTestId('secrets-filter')).toBeVisible();
 
+    progress.mark('git');
     await openIdeTool(/Git/);
 
     const gitPanel = page.locator('[data-testid="ide-service-panel"][data-panel="git"]').first();
@@ -1911,18 +1926,23 @@ test(
       const tabbarStyle = window.getComputedStyle(tabbar);
       const activeTab = element.querySelector('.bolt-project-bottom-terminal-tabs button[aria-current="page"]')!;
       const activeTabStyle = window.getComputedStyle(activeTab);
-      // Resolve semantic tokens independently, on a neutral probe in the same inheritance scope.
-      // No terminal class or computed terminal property is copied onto this probe.
+
+      /*
+       * Resolve semantic tokens independently, on a neutral probe in the same inheritance scope.
+       * No terminal class or computed terminal property is copied onto this probe.
+       */
       const probe = document.createElement('span');
       probe.style.cssText =
         'position:absolute;visibility:hidden;border:1px solid var(--vc-ide-border-subtle);background:var(--vc-ide-bg-app);color:var(--vc-ide-accent-action)';
       element.appendChild(probe);
+
       const probeStyle = window.getComputedStyle(probe);
       const expectedBorder = probeStyle.borderTopColor;
       const expectedBackground = probeStyle.backgroundColor;
       const expectedAccent = probeStyle.color;
       probe.style.background = 'var(--vc-ide-bg-panel)';
       probe.style.borderColor = 'var(--vc-ide-border-visible)';
+
       const expectedTabbarBackground = window.getComputedStyle(probe).backgroundColor;
       const expectedActiveBorder = window.getComputedStyle(probe).borderTopColor;
       probe.remove();
@@ -1952,12 +1972,19 @@ test(
         ].map((token) => style.getPropertyValue(token).trim()),
       };
     });
-    // Production readProjectBottomTerminalUiState defaults to 420, constrained to 320–720.
-    // This assertion deliberately requires real browser geometry, not an inline-style value.
+
+    /*
+     * Production readProjectBottomTerminalUiState defaults to 420, constrained to 320–720.
+     * This assertion deliberately requires real browser geometry, not an inline-style value.
+     */
     expect(terminalMetrics.height).toBe(420);
     expect(terminalMetrics.height).toBeGreaterThanOrEqual(320);
     expect(terminalMetrics.height).toBeLessThanOrEqual(720);
-    for (const token of terminalMetrics.tokens) expect(token).not.toBe('');
+
+    for (const token of terminalMetrics.tokens) {
+      expect(token).not.toBe('');
+    }
+
     for (const color of [terminalMetrics.expectedBackground, terminalMetrics.expectedTabbarBackground]) {
       expect(color).not.toBe('rgba(0, 0, 0, 0)');
     }
@@ -1965,8 +1992,11 @@ test(
     expect(terminalMetrics.background).toBe(terminalMetrics.expectedBackground);
     expect(terminalMetrics.tabbarHeight).toBe(38);
     expect(terminalMetrics.tabbarBackground).toBe(terminalMetrics.expectedTabbarBackground);
-    // index.scss defines a gradient initially, but its later IDE-scoped !important
-    // background override uses --vc-ide-bg-panel and resets background-image to none.
+
+    /*
+     * index.scss defines a gradient initially, but its later IDE-scoped !important
+     * background override uses --vc-ide-bg-panel and resets background-image to none.
+     */
     expect(terminalMetrics.tabbarImage).toBe('none');
     expect(terminalMetrics.hasStatus).toBe(true);
     expect(terminalMetrics.hasTerminalMeta).toBe(true);
@@ -2031,6 +2061,8 @@ test(
       ['Domains', 'domains'],
     ] as const;
 
+    progress.mark('service-panels');
+
     for (const [label, panel] of inIdePanels) {
       // Domains keeps its backend API but opens the Domains view owned by Deployments.
       const renderedPanel = panel === 'domains' ? resolveProjectEditorToolOpen(panel).panel : panel;
@@ -2073,12 +2105,14 @@ test(
       }
     }
 
+    progress.mark('settings');
     await openIdeTool(/Settings/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=settings$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="settings"]')).toBeVisible({
       timeout: 15000,
     });
 
+    progress.mark('environment');
     await openIdeTool(/Environment variables/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=env$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="env"]')).toBeVisible();
@@ -2091,11 +2125,23 @@ test(
 
     // Preserve the later connection update as a separate real edit, not just the initial creation above.
     const updatedDatabaseValue = 'postgres://local/test';
-    await openIdeTool(/Secrets/);
-    await connectionSecretsPanel.getByTestId('secret-menu-DATABASE_URL').click();
-    await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+    progress.mark('edit-secret-open-panel');
+    await test.step('edit-secret-open-panel', async () => {
+      await openIdeTool(/Secrets/);
+    });
+    progress.mark('edit-secret-open-menu');
+    await test.step('edit-secret-open-menu', async () => {
+      await connectionSecretsPanel.getByTestId('secret-menu-DATABASE_URL').click();
+    });
+    progress.mark('edit-secret-select-edit');
+    await test.step('edit-secret-select-edit', async () => {
+      await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+    });
+    progress.mark('edit-secret-fill');
     await expect(connectionSecretsPanel.getByTestId('secrets-form-key')).toHaveValue('DATABASE_URL');
     await connectionSecretsPanel.getByTestId('secrets-form-value').fill(updatedDatabaseValue);
+
+    progress.mark('edit-secret-save');
 
     const [updatedConnection] = await Promise.all([
       panelResponse('secrets', 'POST'),
@@ -2103,13 +2149,18 @@ test(
     ]);
     expect(updatedConnection.ok()).toBeTruthy();
 
+    progress.mark('edit-secret-reload');
+
     const updatedSecrets = await reloadPanelJson(page, projectId, 'secrets');
     expect(updatedSecrets.ok).toBeTruthy();
     expect(
       updatedSecrets.body.data.secrets.some((secret: { key: string }) => secret.key === 'DATABASE_URL'),
     ).toBeTruthy();
+    progress.mark('edit-secret-reveal');
     await connectionRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
     await expect(connectionRow.getByText(updatedDatabaseValue, { exact: true })).toBeVisible({ timeout: 15000 });
+
+    progress.mark('database-refresh');
 
     const [updatedDatabase] = await Promise.all([panelResponse('database', 'GET'), openIdeTool(/Database/)]);
     expect(updatedDatabase.ok()).toBeTruthy();
@@ -2122,6 +2173,8 @@ test(
       timeout: 15000,
     });
 
+    progress.mark('export');
+
     const exportResponse = await page.request.get(`/api/projects/${projectId}/project-action?intent=export`);
     expect(exportResponse.ok(), await exportResponse.text()).toBeTruthy();
     expect(exportResponse.headers()['content-type']).toContain('application/zip');
@@ -2129,6 +2182,7 @@ test(
     expect(page.url()).not.toContain('/snapshots');
     expect(page.url()).not.toContain('/deployments');
     expect(page.url()).not.toContain('/env-vars');
+    progress.mark('complete');
   }),
 );
 

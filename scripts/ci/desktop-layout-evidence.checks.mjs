@@ -37,6 +37,17 @@ async function importHelper(io) {
       dataModule(
         compiled
           .replace(
+            "'./runtime-service-progress'",
+            JSON.stringify(
+              dataModule(
+                ts.transpileModule(
+                  readFileSync(new URL('../../tests/e2e/helpers/runtime-service-progress.ts', import.meta.url), 'utf8'),
+                  { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } },
+                ).outputText,
+              ),
+            ),
+          )
+          .replace(
             "'../../../scripts/ci/browser-network-evidence.mjs'",
             JSON.stringify(new URL('./browser-network-evidence.mjs', import.meta.url).href),
           )
@@ -124,7 +135,7 @@ async function harness({ dom, evaluate, write, timers = {}, expectedStatus = 'pa
     return execute(callback);
   };
 
-  const testInfo = { expectedStatus, outputPath: (name) => `/test/${name}` };
+  const testInfo = { timeout: 120_000, expectedStatus, outputPath: (name) => `/test/${name}` };
 
   return {
     helper,
@@ -391,7 +402,14 @@ test('real observer and projection record replacement IDs, phases, counts, and c
     assert.ok(!serialized.includes('https://'));
     assert.ok(!serialized.includes('example.invalid'));
     assert.ok(Buffer.byteLength(serialized, 'utf8') <= 64 * 1024);
-    assert.deepEqual(Object.keys(payload), ['browser', 'requests', 'statuses', 'errors', 'networkFailures']);
+    assert.deepEqual(Object.keys(payload), [
+      'browser',
+      'serviceProgress',
+      'requests',
+      'statuses',
+      'errors',
+      'networkFailures',
+    ]);
     assert.equal(payload.browser.selectedPanel, 'snapshots');
     assert.equal(payload.browser.themeReady, true);
     assert.deepEqual(payload.browser.scripts, { elements: 1, resources: 1 });
@@ -743,3 +761,43 @@ for (const failure of [false, true]) {
     ]);
   });
 }
+
+test('retains bounded Node-side Services progress when browser capture fails or exceeds size limit', async () => {
+  for (const oversized of [false, true]) {
+    const instance = await harness({
+      evaluate: async () => {
+        if (oversized) {
+          return 'é'.repeat(40_000);
+        }
+
+        throw new Error('PRIVATE_CAPTURE_FAILURE');
+      },
+    });
+
+    const original = new Error('PRIVATE_SCENARIO_FAILURE');
+    await assert.rejects(
+      instance.run(async (_fixtures, testInfo) => {
+        const progress = instance.helper.runtimeServiceProgress(testInfo);
+        progress.mark('setup');
+        progress.mark('edit-secret-open-menu');
+        throw original;
+      }),
+      (error) => error === original,
+    );
+
+    const payload = JSON.parse(instance.writes[0].data);
+    assert.equal(payload.browser, null);
+    assert.deepEqual(
+      payload.serviceProgress.events.map(({ phase }) => phase),
+      ['setup', 'edit-secret-open-menu'],
+    );
+    assert.equal(payload.serviceProgress.omitted, 0);
+
+    for (const event of payload.serviceProgress.events) {
+      assert.ok(Number.isFinite(event.elapsedMs));
+      assert.ok(Number.isFinite(event.remainingBudgetEstimateMs));
+    }
+    assert.ok(!instance.writes[0].data.includes('PRIVATE'));
+    assertClean(instance);
+  }
+});

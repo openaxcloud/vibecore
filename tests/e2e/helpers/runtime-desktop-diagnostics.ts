@@ -5,6 +5,21 @@ import type { ConsoleMessage, Page, Request, Response, TestInfo } from '@playwri
 // eslint-disable-next-line no-restricted-imports
 import { createBrowserNetworkEvidence } from '../../../scripts/ci/browser-network-evidence.mjs';
 
+import { createServiceProgress } from './runtime-service-progress';
+
+const serviceProgress = new WeakMap<TestInfo, ReturnType<typeof createServiceProgress>>();
+
+export function runtimeServiceProgress(testInfo: TestInfo) {
+  let progress = serviceProgress.get(testInfo);
+
+  if (!progress) {
+    progress = createServiceProgress(Date.now(), () => testInfo.timeout);
+    serviceProgress.set(testInfo, progress);
+  }
+
+  return progress;
+}
+
 const RESOURCE_KINDS = ['document', 'script', 'stylesheet', 'image', 'font', 'xhr', 'fetch', 'other'] as const;
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 type RuntimeCase = (fixtures: { page: Page; isMobile: boolean }, testInfo: TestInfo) => Promise<void>;
@@ -297,6 +312,9 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
     page.on('pageerror', onError);
     page.on('console', onConsole);
 
+    // Starts at wrapper entry, not Playwright fixture setup. Remaining time is an estimate.
+    runtimeServiceProgress(testInfo);
+
     try {
       await page.addInitScript(installDesktopBrowserProbe).catch(() => undefined);
       await run({ page, isMobile }, testInfo);
@@ -314,6 +332,7 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
 
           const payload = JSON.stringify({
             browser,
+            serviceProgress: serviceProgress.get(testInfo)?.snapshot(),
             requests,
             statuses,
             errors,
@@ -325,6 +344,7 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
               ? payload
               : JSON.stringify({
                   browser: null,
+                  serviceProgress: serviceProgress.get(testInfo)?.snapshot(),
                   requests,
                   statuses,
                   errors,
