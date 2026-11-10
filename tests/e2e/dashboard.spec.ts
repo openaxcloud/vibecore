@@ -2022,7 +2022,7 @@ test(
       ['Packages', 'packages'],
       ['Monitoring', 'monitoring'],
       ['Extensions', 'extensions'],
-      ['Env vars', 'env'],
+      ['Environment variables', 'env'],
       ['Secrets', 'secrets'],
       ['Git', 'git'],
       ['Activity', 'activity'],
@@ -2044,7 +2044,16 @@ test(
               { timeout: 15000 },
             )
           : undefined;
-      await openIdeTool(new RegExp(label));
+
+      if (panel === 'domains') {
+        // Aliased tools are searchable shortcuts, not cards in the unfiltered palette.
+        const toolMenu = await openVisibleIdeToolMenu(page);
+        await toolMenu.getByRole('textbox', { name: 'Search commands, tools, or files', exact: true }).fill(label);
+        await toolMenu.getByTestId('feature-domains').click();
+      } else {
+        await openIdeTool(new RegExp(label));
+      }
+
       await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${renderedPanel}$`));
 
       const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${renderedPanel}"]`).first();

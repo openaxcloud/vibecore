@@ -16,6 +16,7 @@ import {
 import {
   PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS,
   projectEditorToolsByCategory,
+  resolveProjectEditorToolOpen,
 } from '~/components/chat/project-editor-tool-catalog';
 import { PanelEmptyState } from '~/components/project-ide/PanelPrimitives';
 import { getBaseChatAstCopy } from '~/lib/i18n/catalogs/base-chat-ast';
@@ -110,7 +111,7 @@ const clickIdeToolMenuItem = new Function(
 
 afterEach(cleanup);
 
-function mountPalette() {
+function mountPalette(open = true) {
   const i18n = createI18nInstance('en');
   const onOpenTool = vi.fn<(panel: string) => void>();
   const onSelect = vi.fn();
@@ -131,7 +132,10 @@ function mountPalette() {
   );
 
   const view = render(layout('loading-shell'));
-  fireEvent.click(view.getByTestId('tab-add'));
+
+  if (open) {
+    fireEvent.click(view.getByTestId('tab-add'));
+  }
 
   return {
     view,
@@ -201,4 +205,129 @@ describe('runtime tool menu selection across shell replacement', () => {
     expect(fixture.onOpenTool.mock.calls).toEqual([['snapshots']]);
     expect(fixture.view.queryByRole('dialog', { name: 'Add tab command palette' })).toBeNull();
   });
+});
+
+function findNode(root: ts.Node, predicate: (node: ts.Node) => boolean): ts.Node {
+  const matches: ts.Node[] = [];
+
+  const visit = (node: ts.Node) => {
+    if (predicate(node)) {
+      matches.push(node);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+  visit(root);
+  expect(matches).toHaveLength(1);
+
+  return matches[0];
+}
+
+const services = findNode(
+  dashboardTree,
+  (node) =>
+    ts.isCallExpression(node) &&
+    node.expression.getText(dashboardTree) === 'test' &&
+    ts.isStringLiteral(node.arguments[0]) &&
+    node.arguments[0].text === 'IDE project services open as in-place panels instead of legacy project pages',
+);
+const panels = findNode(
+  services,
+  (node) => ts.isVariableDeclaration(node) && node.name.getText(dashboardTree) === 'inIdePanels',
+) as ts.VariableDeclaration;
+const panelLoop = findNode(
+  services,
+  (node) => ts.isForOfStatement(node) && node.expression.getText(dashboardTree) === 'inIdePanels',
+) as ts.ForOfStatement;
+const navigation = (panelLoop.statement as ts.Block).statements.filter((node) =>
+  node.getText(dashboardTree).includes('await openIdeTool('),
+);
+expect(navigation).toHaveLength(1);
+
+function evaluate<T>(code: string, bindings: Record<string, unknown> = {}): T {
+  return new Function(
+    ...Object.keys(bindings),
+    ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText,
+  )(...Object.values(bindings));
+}
+
+const servicePanels = evaluate<readonly (readonly [string, string])[]>(
+  `return ${panels.initializer!.getText(dashboardTree)};`,
+);
+const openIdeTool = findNode(
+  services,
+  (node) => ts.isFunctionDeclaration(node) && node.name?.text === 'openIdeTool',
+).getText(dashboardTree);
+
+async function runServicesNavigation(fixture: ReturnType<typeof mountPalette>, panel: string) {
+  const entry = servicePanels.find(([, id]) => id === panel);
+  expect(entry).toBeDefined();
+
+  /*
+   * Run the actual E2E loop's selection and helper against the production menu.
+   * This DOM driver only covers accessible lookup, search and click handlers;
+   * HTTP, URL, browser actionability and panel assertions remain in Playwright.
+   */
+  const menu = {
+    getByRole: (role: 'button' | 'textbox', options: { name: string | RegExp; exact?: boolean }) => ({
+      click: async () => fireEvent.click(within(fixture.menu()).getByRole(role, options)),
+      fill: async (value: string) =>
+        fireEvent.change(within(fixture.menu()).getByRole(role, options), { target: { value } }),
+    }),
+    getByTestId: (testId: string) => ({
+      click: async () => fireEvent.click(within(fixture.menu()).getByTestId(testId)),
+    }),
+  };
+
+  const page = {};
+
+  await evaluate<Promise<void>>(`return (async () => { ${openIdeTool}\n${navigation[0].getText(dashboardTree)} })();`, {
+    page,
+    label: entry![0],
+    panel,
+    clickIdeToolMenuItem,
+    openVisibleIdeToolMenu: async (target: unknown) => {
+      expect(target).toBe(page);
+      fireEvent.click(fixture.view.getByTestId('tab-add'));
+      expect(fixture.menu().isConnected).toBe(true);
+
+      return menu;
+    },
+  });
+}
+
+describe('runtime Services catalog navigation', () => {
+  it('reproduces the obsolete Env vars name and unsearched Domains lookup failures', () => {
+    const fixture = mountPalette();
+    const menu = within(fixture.menu());
+
+    expect(menu.queryByRole('button', { name: /Env vars/ })).toBeNull();
+    expect(menu.getByRole('button', { name: 'Environment variables Environment variables' })).toBe(
+      menu.getByTestId('feature-env'),
+    );
+    expect(menu.queryByRole('button', { name: /Domains/ })).toBeNull();
+    expect(menu.queryByTestId('feature-domains')).toBeNull();
+    expect(projectEditorToolsByCategory().flatMap(([, tools]) => tools.map((tool) => tool.id))).not.toContain(
+      'domains',
+    );
+
+    fireEvent.change(menu.getByRole('textbox', { name: 'Search commands, tools, or files' }), {
+      target: { value: 'Domains' },
+    });
+    expect(menu.getByRole('button', { name: /Domains/ })).toBe(menu.getByTestId('feature-domains'));
+  });
+
+  it.each(['env', 'domains'] as const)(
+    'executes the Services loop navigation for %s through the real catalog and dismisses the menu',
+    async (panel) => {
+      const fixture = mountPalette(false);
+      await runServicesNavigation(fixture, panel);
+
+      expect(fixture.onOpenTool).toHaveBeenCalledExactlyOnceWith(panel);
+      expect(fixture.view.queryByRole('dialog', { name: 'Add tab command palette' })).toBeNull();
+      expect(resolveProjectEditorToolOpen(panel)).toEqual(
+        panel === 'domains' ? { panel: 'deployments', deployView: 'domains' } : { panel: 'env' },
+      );
+    },
+  );
 });
