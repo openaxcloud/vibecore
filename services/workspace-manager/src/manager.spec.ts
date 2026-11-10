@@ -181,6 +181,106 @@ const input = {
 };
 
 describe('WorkspaceManager', () => {
+  it.each([false, true])(
+    'captures terminal pod state before cleanup without changing failure behavior: logger throws %s',
+    async (loggerThrows) => {
+      const k8s = new TestWorkspaceK8sClient();
+
+      const store = Object.assign(new TestWorkspaceStore(), {
+        reserveAdmission: async () => {
+          throw new Error('legacy failure path must not reserve admission');
+        },
+        compareAdmission: async () => false,
+        listAdmissions: async () => [],
+        listByProject: async () => [],
+      });
+
+      const events = new TestEventBus();
+      const manager = new WorkspaceManager(store, k8s, events, 'test-workspace-agent-secret');
+
+      const getPod = vi.spyOn(k8s, 'getPod').mockImplementation(async (namespace, name) => {
+        const pod = k8s.objects.get(`${namespace}:Pod:${name}`);
+
+        return pod
+          ? ({
+              ...pod,
+              metadata: { ...pod.metadata, deletionTimestamp: '2026-11-09T11:41:53Z' },
+              status: {
+                phase: 'Failed',
+                reason: 'Evicted',
+                message: 'PRIVATE',
+                containerStatuses: [
+                  {
+                    name: 'PRIVATE',
+                    restartCount: 0,
+                    state: { terminated: { reason: 'OOMKilled', exitCode: 137, signal: 9 } },
+                  },
+                ],
+              },
+            } as K8sObject)
+          : undefined;
+      });
+
+      const warning = vi.spyOn(console, 'warn').mockImplementation(() => {
+        k8s.events.push('diagnostic:terminal');
+
+        if (loggerThrows) {
+          throw new Error('diagnostic unavailable');
+        }
+      });
+
+      const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      const readiness = vi.spyOn(
+        manager as unknown as { waitForReadiness(namespace: string, podName: string): Promise<void> },
+        'waitForReadiness',
+      );
+
+      const timer = vi.spyOn(globalThis, 'setTimeout');
+
+      try {
+        const result = await manager.startWorkspace(input);
+
+        await expect(readiness.mock.results[0].value).rejects.toMatchObject({
+          message: 'Workspace pod failed to start',
+          code: 'WORKSPACE_POD_FAILED',
+        });
+        expect(result.status).toBe('FAILED');
+        expect(result.error).toBe('Workspace pod failed to start');
+        expect(events.events.map((event) => event.type)).toEqual(['workspace.failed']);
+        expect(getPod).toHaveBeenCalledTimes(2); // Existing pre-apply observation and readiness observation only.
+        expect(timer).not.toHaveBeenCalled(); // Terminal failure still throws on the first readiness observation.
+        expect(warning).toHaveBeenCalledTimes(1);
+
+        const diagnostic = JSON.parse(warning.mock.calls[0][0] as string);
+        expect(diagnostic).toMatchObject({
+          event: 'workspace.pod.terminal_failure',
+          phase: 'Failed',
+          deletionTimestampPresent: true,
+          containers: [{ current: { reason: 'OOMKilled', exitCode: 137, signal: 9 } }],
+        });
+        expect(diagnostic.timestamp).toMatch(/^\d{4}-/);
+        expect(JSON.stringify(diagnostic)).not.toMatch(/PRIVATE|workspace_1|org_1|project_1|namespace/);
+        expect(Buffer.byteLength(JSON.stringify(diagnostic))).toBeLessThanOrEqual(4096);
+        expect(k8s.events.indexOf('diagnostic:terminal')).toBeLessThan(
+          k8s.events.indexOf('delete:Pod:workspace-workspace_1'),
+        );
+        expect(k8s.events.filter((event) => event.startsWith('delete:'))).toEqual([
+          'delete:Pod:workspace-workspace_1',
+          'delete:Service:workspace-workspace_1',
+        ]);
+        expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
+        expect(k8s.objects.has('workspaces:Secret:agent-token-workspace_1')).toBe(true);
+      } finally {
+        timer.mockRestore();
+        readiness.mockRestore();
+        errorLog.mockRestore();
+        warning.mockRestore();
+        getPod.mockRestore();
+      }
+    },
+  );
+
   it('creates PVC, agent secret, Pod and Service with lifecycle events', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const events = new TestEventBus();

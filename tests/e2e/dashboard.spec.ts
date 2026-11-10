@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 // eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { readIdeUiDetailStyles } from './helpers/ide-ui-detail-styles';
+import { reloadPanelJson } from './helpers/reload-panel-json';
 import { withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
 
 import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
@@ -1809,13 +1810,10 @@ test(
     ]);
     expect(savedConnection.ok()).toBeTruthy();
 
-    const [reloadedSecrets] = await Promise.all([
-      panelResponse('secrets', 'GET'),
-      page.reload({ waitUntil: 'domcontentloaded' }),
-    ]);
-    expect(reloadedSecrets.ok()).toBeTruthy();
+    const reloadedSecrets = await reloadPanelJson(page, projectId, 'secrets');
+    expect(reloadedSecrets.ok).toBeTruthy();
 
-    const secretMetadata = (await reloadedSecrets.json()).data.secrets.find(
+    const secretMetadata = reloadedSecrets.body.data.secrets.find(
       (secret: { key: string }) => secret.key === 'DATABASE_URL',
     );
     expect(secretMetadata).toBeTruthy();
@@ -2039,13 +2037,10 @@ test(
     ]);
     expect(updatedConnection.ok()).toBeTruthy();
 
-    const [updatedSecrets] = await Promise.all([
-      panelResponse('secrets', 'GET'),
-      page.reload({ waitUntil: 'domcontentloaded' }),
-    ]);
-    expect(updatedSecrets.ok()).toBeTruthy();
+    const updatedSecrets = await reloadPanelJson(page, projectId, 'secrets');
+    expect(updatedSecrets.ok).toBeTruthy();
     expect(
-      (await updatedSecrets.json()).data.secrets.some((secret: { key: string }) => secret.key === 'DATABASE_URL'),
+      updatedSecrets.body.data.secrets.some((secret: { key: string }) => secret.key === 'DATABASE_URL'),
     ).toBeTruthy();
     await connectionRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
     await expect(connectionRow.getByText(updatedDatabaseValue, { exact: true })).toBeVisible({ timeout: 15000 });

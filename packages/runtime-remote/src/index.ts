@@ -235,7 +235,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async #demarrer(session: Partial<WorkspaceSession>): Promise<WorkspaceSession> {
-    const requestedId = session.id ?? this.#workspaceId;
+    const metadataProjectId = (session.metadata as { projectId?: unknown } | undefined)?.projectId;
+    const explicitProjectId = typeof metadataProjectId === 'string' ? metadataProjectId.trim() || undefined : undefined;
+    const knownSession = !session.id || session.id === this.#workspaceId || session.id === this.#projectId;
+    const projectId = explicitProjectId ?? (knownSession ? this.#projectId : undefined);
+
+    // A metadata-only project switch must not carry the previous project's workspace.
+    const switchingProject = explicitProjectId !== undefined && explicitProjectId !== this.#projectId;
+    const requestedId = session.id ?? (switchingProject ? undefined : this.#workspaceId);
 
     /*
      * BUG-GIT-002 — NE PAS ENVOYER UNE REQUÊTE QUI NE PEUT PAS ABOUTIR.
@@ -253,7 +260,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      */
     const projectIdDesMetadonnees = String((session.metadata as { projectId?: unknown } | undefined)?.projectId ?? '');
 
-    if (!requestedId && !projectIdDesMetadonnees) {
+    if (!requestedId && !projectIdDesMetadonnees && !projectId) {
       /*
        * Le message EST le code, et il n'y a qu'une seule source pour les deux.
        * Les mots destinés à l'utilisateur vivent dans le catalogue
@@ -265,8 +272,13 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     }
 
     let payload: WorkspaceSession | undefined;
+    let unverifiedWorkspaceId: string | undefined;
 
-    const corpsDuDemarrage = JSON.stringify({ workspaceId: requestedId, metadata: session.metadata });
+    /*
+     * The API otherwise interprets workspaceId as a project ID. Preserve the
+     * explicit project identity across initial start, adopted sessions and recovery.
+     */
+    const corpsDuDemarrage = JSON.stringify({ workspaceId: requestedId, projectId, metadata: session.metadata });
 
     /*
      * BUG-QA0928-RUNTIME-ID-PROJET — l'identifiant « demandé » est souvent celui du
@@ -296,7 +308,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
 
       if (requestedId && !idDemandeEstLeProjet) {
-        this.#workspaceId = requestedId;
+        // Poll this candidate without pairing it with the previous verified project.
+        unverifiedWorkspaceId = requestedId;
       } else {
         /*
          * On n'ADOPTE PAS l'identifiant du projet : chaque sonde de statut, chaque
@@ -309,6 +322,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
     if (payload) {
       this.#workspaceId = payload.id;
+      this.#projectId = projectId;
       this.#session = payload;
 
       if (payload.status === 'running') {
@@ -321,7 +335,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
     }
 
-    const pollId = this.#workspaceId ?? requestedId;
+    const pollId = unverifiedWorkspaceId ?? this.#workspaceId ?? requestedId;
 
     if (!pollId) {
       throw new RuntimeError('Cannot wait for workspace readiness without a workspace id', {
@@ -334,7 +348,25 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * (freshly provisioned / STARTING) pod, not a warm reuse. Mark reused:false
      * so the IDE cold-seeds it rather than reattaching to a possibly-empty tree.
      */
-    return { ...(await this.#waitForWorkspaceRunning(pollId)), reused: false };
+    const previousSession = this.#session;
+    const previousWorkspaceId = this.#workspaceId;
+
+    let readySession: WorkspaceSession;
+
+    try {
+      readySession = await this.#waitForWorkspaceRunning(pollId);
+    } catch (error) {
+      if (unverifiedWorkspaceId && unverifiedWorkspaceId !== previousWorkspaceId) {
+        this.#session = previousSession;
+      }
+
+      throw error;
+    }
+
+    this.#workspaceId = readySession.id;
+    this.#projectId = projectId;
+
+    return { ...readySession, reused: false };
   }
 
   /**
@@ -500,7 +532,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
       const deterministicClientError = typeof status === 'number' && status >= 400 && status < 500 && status !== 404;
 
-      if (deterministicClientError) {
+      if (deterministicClientError || !this.#projectId || workspaceId !== this.#workspaceId) {
         throw error;
       }
 
@@ -1228,7 +1260,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
    * dozens of provisions). Resolves when the pod is RUNNING again.
    */
   async #ensureWorkspaceReprovisioned(): Promise<void> {
-    if (!this.#workspaceId) {
+    if (!this.#workspaceId || !this.#projectId) {
       return;
     }
 
@@ -1270,7 +1302,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     try {
       return await this.#requestOnce<T>(path, init, options);
     } catch (error) {
-      if (canReprovision && !init.signal?.aborted && this.#isAgentUnavailable(error)) {
+      if (canReprovision && this.#projectId && !init.signal?.aborted && this.#isAgentUnavailable(error)) {
         await this.#ensureWorkspaceReprovisioned();
 
         return await this.#requestOnce<T>(path, init, options);
@@ -1336,6 +1368,15 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         lastError = error;
 
         const provisioning = this.#isRetryableProvisioningError(error);
+
+        /*
+         * Missing infrastructure cannot be provisioned from a workspace ID alone.
+         * Keep ordinary WORKSPACE_STARTING polling intact when no provision is needed.
+         */
+        if (provisioning && this.#isAgentUnavailable(error) && !this.#projectId) {
+          throw error;
+        }
+
         const budget = provisioning ? maxProvisioningAttempts : maxAttempts;
 
         if (init.signal?.aborted || attempt >= budget || !(this.#isTransientStartError(error) || provisioning)) {

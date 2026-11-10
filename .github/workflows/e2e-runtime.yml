@@ -107,6 +107,8 @@ jobs:
           node --test scripts/terminal-warning-diagnostics.checks.mjs
           node --test scripts/audit-ide-panels-selectors.checks.mjs
           node --test scripts/database-services-metadata.checks.mjs
+          node --test scripts/ci/reload-panel-json.checks.mjs
+          node --test scripts/ci/package-install-lifecycle.checks.mjs
           node --test scripts/ci/mobile-layout-evidence.checks.mjs
           node --test scripts/ci/desktop-layout-evidence.checks.mjs
           node --test scripts/panel-persistence-diagnostics.checks.mjs
@@ -126,11 +128,20 @@ jobs:
           app/components/chat/ProjectIdeApiServicePanel.loading.spec.tsx
           app/components/chat/project-right-width-restore.spec.tsx
           app/components/database/DatabaseWorkbench.renders-databases.spec.tsx
+          'app/routes/api.projects.$projectId.ide-panel.execution-outcomes.spec.ts'
           tests/guards/runtime-agent-geometry.spec.ts
           tests/guards/runtime-preview-measurement.spec.ts
           tests/guards/runtime-workspace-status-navigation.spec.ts
           tests/guards/runtime-ui-panel-bounds.spec.ts
           tests/guards/runtime-tool-menu-click.spec.tsx
+
+      - name: Verify runtime recovery regressions
+        working-directory: packages/runtime-remote
+        run: pnpm exec vitest run --config vitest.config.ts
+
+      - name: Verify workspace startup diagnostics
+        working-directory: services/workspace-manager
+        run: pnpm exec vitest run --config vitest.config.ts src/manager.spec.ts src/pod-failure-diagnostic.spec.ts src/pod-change-diagnostic.spec.ts
 
       - name: Provision temporary Kubernetes and gVisor
         run: bash scripts/ci/provision-runtime-kubernetes.sh

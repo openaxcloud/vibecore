@@ -2878,8 +2878,8 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     if ((isInstall && run.exitCode !== 0) || run.status !== 'succeeded') {
       throw json(
         {
-          error: messageDEchecDInstallation(run, language),
-          code: 'PACKAGE_RUN_FAILED',
+          error: 'outcomeUnknown' in run && run.outcomeUnknown ? run.output : messageDEchecDInstallation(run, language),
+          code: 'outcomeUnknown' in run && run.outcomeUnknown ? 'PACKAGE_RUN_OUTCOME_UNKNOWN' : 'PACKAGE_RUN_FAILED',
           run: { id: run.id, exitCode: run.exitCode, status: run.status },
         },
         { status: 422 },
@@ -5267,7 +5267,14 @@ async function runPackageInstall(
       success?: boolean;
     }>(request, `/projects/${encodeURIComponent(projectId)}/packages/install`, {
       method: 'POST',
+
+      /*
+       * Five-minute command, plus agent response and API preparation overhead.
+       * Do not inherit the 30s deadline for ordinary API reads. Never replay this POST.
+       */
+      signal: AbortSignal.timeout(360_000),
       body: JSON.stringify({
+        timeoutMs: 300_000,
         packages: input.packages,
         dev: input.dev,
         packageManager: input.packageManager,
@@ -5281,20 +5288,36 @@ async function runPackageInstall(
       script: result.command ?? `${input.packageManager} install`,
       exitCode: Number.isInteger(result.exitCode) ? result.exitCode! : -1,
       status: result.success !== false && result.exitCode === 0 ? 'succeeded' : 'failed',
-      output: result.output ?? '',
+      outcomeUnknown: !Number.isInteger(result.exitCode),
+      output: Number.isInteger(result.exitCode)
+        ? (result.output ?? '')
+        : getApiRuntimeRoutesCopy(input.language)['apiRuntime.panel.packageRunOutcomeUnknown'],
       startedAt: input.startedAt,
       finishedAt: finishedAt(),
     };
   } catch (error) {
-    console.error('Package installation failed:', error);
+    console.error('Package installation response failed:', error);
+
+    // A lost response does not prove that the command failed or stopped.
+    const outcomeUnknown = !(
+      error instanceof Response &&
+      error.status >= 400 &&
+      error.status < 500 &&
+      ![408, 499].includes(error.status)
+    );
+
+    const copy = getApiRuntimeRoutesCopy(input.language);
 
     return {
       id: randomUUID(),
       name: input.name,
       script: `${input.packageManager} install`,
-      exitCode: 1,
+      exitCode: -1,
       status: 'failed',
-      output: panelErrorMessage(error, input.language),
+      outcomeUnknown,
+      output: outcomeUnknown
+        ? copy['apiRuntime.panel.packageRunOutcomeUnknown']
+        : panelErrorMessage(error, input.language),
       startedAt: input.startedAt,
       finishedAt: finishedAt(),
     };

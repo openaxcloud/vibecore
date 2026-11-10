@@ -15510,6 +15510,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     init: RequestInit = {},
     contexteRequete?: any,
     maxAttempts = AGENT_REQUEST_ATTEMPTS,
+    timeoutMs?: number,
   ) => {
     const token = await agentToken(workspaceId);
     const headers = new Headers(init.headers);
@@ -15534,7 +15535,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      const { init: timedInit, done } = withRequestTimeout({ ...init, headers });
+      const { init: timedInit, done } = withRequestTimeout({ ...init, headers }, timeoutMs);
 
       let response: Response;
 
@@ -24294,9 +24295,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(commandBody) },
+        undefined,
+
+        // A timeout/reset can arrive AFTER the install started. Never replay it.
+        1,
+        commandBody.timeoutMs! + 30_000,
       );
     } catch (error) {
-      if (!shouldUseLocalRuntimeFallback(error)) {
+      /*
+       * Only manager failure before agent dispatch permits local fallback. An
+       * agent transport failure has an unknown outcome and must not run twice.
+       */
+      if (!localRuntimeFallbackEnabled() || !isRuntimeManagerUnavailable(error)) {
         throw error;
       }
 

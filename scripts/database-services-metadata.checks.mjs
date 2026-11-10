@@ -13,7 +13,7 @@ test('services scenario separately preserves secure configuration, server metada
 
   for (const evidence of [
     "panelResponse('secrets', 'POST')",
-    "panelResponse('secrets', 'GET')",
+    "reloadPanelJson(page, projectId, 'secrets')",
     "panelResponse('database', 'GET')",
     "panelResponse('activity', 'GET')",
     "'datetime', secretMetadata.updatedAt",
@@ -62,8 +62,8 @@ test('the entire services scenario retains the later connection edit without obs
     "name: 'Edit', exact: true",
     "toHaveValue('DATABASE_URL')",
     "panelResponse('secrets', 'POST')",
-    "panelResponse('secrets', 'GET')",
-    'page.reload',
+    "reloadPanelJson(page, projectId, 'secrets')",
+    'updatedSecrets.body.data.secrets',
     'getByText(updatedDatabaseValue, { exact: true })',
     "panelResponse('database', 'GET')",
     "getByTestId('db-carte').getByText('DATABASE_URL', { exact: true })",

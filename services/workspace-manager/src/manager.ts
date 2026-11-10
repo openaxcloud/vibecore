@@ -32,6 +32,7 @@ import {
   type AdmissionGuard,
   type WorkspaceAdmission,
 } from './admission.js';
+import { podFailureDiagnostic } from './pod-failure-diagnostic.js';
 import {
   workspaceManagerError,
   workspaceManagerMessage,
@@ -2197,6 +2198,25 @@ export class WorkspaceManager {
         const failure = detectPodTerminalFailure(typedPod);
 
         if (failure) {
+          /*
+           * Preserve bounded status evidence before existing cleanup deletes the
+           * pod. A deletion timestamp or signal does not identify who asked to
+           * stop it. Diagnostic failure must never replace the original error.
+           */
+          try {
+            console.warn(
+              JSON.stringify({
+                level: 'warn',
+                service: 'workspace-manager',
+                event: 'workspace.pod.terminal_failure',
+                timestamp: new Date().toISOString(),
+                ...podFailureDiagnostic(pod),
+              }),
+            );
+          } catch {
+            // Diagnostic output is best-effort; the terminal failure below is not.
+          }
+
           throw workspaceManagerError(failure.messageKey, { code: failure.code });
         }
 

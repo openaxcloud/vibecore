@@ -462,6 +462,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
        * re-provisionnement — ne dépend pas de l'absence de liaison.
        */
       workspaceId: 'ws-1',
+      projectId: 'project-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -520,6 +521,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
        * re-provisionnement — ne dépend pas de l'absence de liaison.
        */
       workspaceId: 'ws-1',
+      projectId: 'project-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -1621,6 +1623,7 @@ describe('BUG-AGENT-006 — 425 WORKSPACE_NOT_STARTED déclenche le provisionnem
       baseUrl: 'https://runtime.example.com',
       authToken: 'token',
       workspaceId: 'ws-1',
+      projectId: 'project-1',
       fetchImpl: fetchMock as unknown as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -1635,5 +1638,9 @@ describe('BUG-AGENT-006 — 425 WORKSPACE_NOT_STARTED déclenche le provisionnem
 
     // le point du ticket : au moins UN provisionnement a été demandé
     expect(provisions.length).toBeGreaterThanOrEqual(1);
+
+    for (const [, init] of provisions) {
+      expect(JSON.parse(String(init?.body))).toEqual({ workspaceId: 'ws-1', projectId: 'project-1' });
+    }
   });
 });
