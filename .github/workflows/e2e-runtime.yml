@@ -139,6 +139,7 @@ jobs:
           tests/guards/runtime-ui-panel-bounds.spec.ts
           tests/guards/runtime-tool-menu-click.spec.tsx
           tests/guards/runtime-services-tab-options.spec.tsx
+          tests/guards/runtime-services-command-palette.spec.tsx
           tests/guards/runtime-services-terminal.spec.tsx
 
       - name: Verify runtime recovery regressions

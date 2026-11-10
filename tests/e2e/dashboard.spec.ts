@@ -2007,7 +2007,7 @@ test(
     await page.getByLabel('Toggle Shell (Terminal)', { exact: true }).click();
     await expect(pinnedTerminal).toBeVisible();
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
 
     await page.getByRole('tab', { name: /Snapshots/ }).click();

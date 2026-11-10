@@ -6679,7 +6679,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const sizeReadout = terminalShell?.querySelector('.bolt-project-bottom-terminal-size');
 
           if (sizeReadout) {
-            sizeReadout.textContent = `${nextHeight}px`;
+            sizeReadout.textContent = t('chat.terminal.heightPixels', { height: nextHeight });
           }
         };
 
@@ -6692,7 +6692,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onUp);
       },
-      [terminalBottomHeight],
+      [terminalBottomHeight, t],
     );
 
     useEffect(() => {
@@ -12629,7 +12629,7 @@ function ProjectBottomTerminal({
         </div>
         <div className="bolt-project-bottom-terminal-meta">
           <output className="bolt-project-bottom-terminal-size" aria-label={t('chat.copy.pinnedTerminal_c8fe22f6')}>
-            {`${height}px`}
+            {t('chat.terminal.heightPixels', { height })}
           </output>
           <span
             className="bolt-project-bottom-terminal-status"

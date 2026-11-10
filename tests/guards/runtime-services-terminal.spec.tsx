@@ -49,115 +49,135 @@ it('preserves the production default and persisted 320–720px bounds', () => {
   }
 });
 
-it('renders the actual height, tabs, debugger/output mapping, refresh and close controls', () => {
-  const refreshRuntimePorts = vi.fn().mockResolvedValue(undefined);
-  const onActiveChange = vi.fn();
-  const onClose = vi.fn();
+it.each(['en', 'fr'] as const)(
+  'renders the actual height, tabs, debugger/output mapping, refresh and close controls in %s',
+  (language) => {
+    const refreshRuntimePorts = vi.fn().mockResolvedValue(undefined);
+    const onActiveChange = vi.fn();
+    const onClose = vi.fn();
 
-  const Component = evaluate(`${declaration('ProjectBottomTerminal')}\nreturn ProjectBottomTerminal;`, {
-    React,
-    useTranslation: () => ({ t: createI18nInstance('en').t }),
-    useStore: () => null,
-    workbenchStore: { refreshRuntimePorts },
-    useDiagnosticsStore: () => 0,
-    workspaceUiState: () => 'offline',
-    SHELL_TERMINAL_LABEL: 'Shell (Terminal)',
+    const Component = evaluate(`${declaration('ProjectBottomTerminal')}\nreturn ProjectBottomTerminal;`, {
+      React,
+      useTranslation: () => ({
+        t: (key: string, values?: Record<string, unknown>) =>
+          createI18nInstance(key === 'chat.terminal.heightPixels' ? language : 'en').t(key, values),
+      }),
+      useStore: () => null,
+      workbenchStore: { refreshRuntimePorts },
+      useDiagnosticsStore: () => 0,
+      workspaceUiState: () => 'offline',
+      SHELL_TERMINAL_LABEL: 'Shell (Terminal)',
 
-    // Controlled child boundaries, not a runtime/PTY test. The parent JSX and callbacks are production code.
-    ClientOnly: () => <div data-testid="controlled-shell" />,
-    TerminalTabsFallback: () => null,
-    ProjectIdeServicePanel: ({ panel }: { panel: string }) => <div data-testid={`service-${panel}`} />,
-    ProjectProblemsPanel: () => <div data-testid="controlled-problems" />,
-  });
+      // Controlled child boundaries, not a runtime/PTY test. The parent JSX and callbacks are production code.
+      ClientOnly: () => <div data-testid="controlled-shell" />,
+      TerminalTabsFallback: () => null,
+      ProjectIdeServicePanel: ({ panel }: { panel: string }) => <div data-testid={`service-${panel}`} />,
+      ProjectProblemsPanel: () => <div data-testid="controlled-problems" />,
+    });
 
-  const props = { height: 420, active: 'terminal', onActiveChange, onClose };
-  const view = render(<Component {...props} />);
-  expect(screen.getByRole('status', { name: 'Pinned terminal' }).textContent).toBe('420px');
-  expect(screen.getByTestId('controlled-shell')).toBeTruthy();
+    const props = { height: 420, active: 'terminal', onActiveChange, onClose };
+    const view = render(<Component {...props} />);
+    expect(screen.getByRole('status', { name: 'Pinned terminal' }).textContent).toBe(
+      language === 'fr' ? '420 px' : '420px',
+    );
+    expect(screen.getByTestId('controlled-shell')).toBeTruthy();
 
-  for (const [label, active] of [
-    ['Shell (Terminal)', 'terminal'],
-    ['Output', 'output'],
-    ['Debug Console', 'debug'],
-  ]) {
-    fireEvent.click(screen.getByRole('button', { name: label }));
-    expect(onActiveChange).toHaveBeenLastCalledWith(active);
-  }
-  fireEvent.click(screen.getByRole('button', { name: /Open problems/i }));
-  expect(onActiveChange).toHaveBeenLastCalledWith('problems');
-
-  for (const [active, testId] of [
-    ['output', 'service-logs'],
-    ['debug', 'service-debugger'],
-    ['problems', 'controlled-problems'],
-  ]) {
-    view.rerender(<Component {...props} height={540} active={active} />);
-    expect(screen.getByTestId(testId)).toBeTruthy();
-    expect(screen.getByRole('status', { name: 'Pinned terminal' }).textContent).toBe('540px');
-  }
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh runtime logs' }));
-  expect(refreshRuntimePorts).toHaveBeenCalledOnce();
-  expect(onActiveChange).toHaveBeenLastCalledWith('terminal');
-  fireEvent.click(screen.getByRole('button', { name: 'Close terminal panel' }));
-  expect(onClose).toHaveBeenCalledOnce();
-});
-
-it('keeps the readout and CSS height synchronized throughout a real resize callback and clamps both limits', () => {
-  let callback = '';
-
-  const visit = (node: ts.Node) => {
-    if (
-      ts.isVariableDeclaration(node) &&
-      node.name.getText(tree) === 'startTerminalResize' &&
-      node.initializer &&
-      ts.isCallExpression(node.initializer)
-    ) {
-      callback = node.initializer.arguments[0].getText(tree);
+    for (const [label, active] of [
+      ['Shell (Terminal)', 'terminal'],
+      ['Output', 'output'],
+      ['Debug Console', 'debug'],
+    ]) {
+      fireEvent.click(screen.getByRole('button', { name: label }));
+      expect(onActiveChange).toHaveBeenLastCalledWith(active);
     }
+    fireEvent.click(screen.getByRole('button', { name: /Open problems/i }));
+    expect(onActiveChange).toHaveBeenLastCalledWith('problems');
 
-    ts.forEachChild(node, visit);
-  };
-  visit(tree);
-  expect(callback).not.toBe('');
+    for (const [active, testId] of [
+      ['output', 'service-logs'],
+      ['debug', 'service-debugger'],
+      ['problems', 'controlled-problems'],
+    ]) {
+      view.rerender(<Component {...props} height={540} active={active} />);
+      expect(screen.getByTestId(testId)).toBeTruthy();
+      expect(screen.getByRole('status', { name: 'Pinned terminal' }).textContent).toBe(
+        language === 'fr' ? '540 px' : '540px',
+      );
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh runtime logs' }));
+    expect(refreshRuntimePorts).toHaveBeenCalledOnce();
+    expect(onActiveChange).toHaveBeenLastCalledWith('terminal');
+    fireEvent.click(screen.getByRole('button', { name: 'Close terminal panel' }));
+    expect(onClose).toHaveBeenCalledOnce();
+  },
+);
 
-  const setTerminalBottomHeight = vi.fn();
-  const handler = evaluate(`return (${callback});`, { terminalBottomHeight: 420, setTerminalBottomHeight });
+it.each(['en', 'fr'] as const)(
+  'keeps localized readout and CSS height synchronized throughout a real resize callback and clamps both limits in %s',
+  (language) => {
+    let callback = '';
 
-  const { container } = render(
-    <div>
-      <div className="bolt-project-main-panes" />
-      <div className="bolt-project-bottom-terminal-shell">
-        <div data-testid="resize" onMouseDown={handler} />
-        <output className="bolt-project-bottom-terminal-size">420px</output>
-      </div>
-    </div>,
-  );
-  fireEvent.mouseDown(screen.getByTestId('resize'), { clientY: 500 });
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        node.name.getText(tree) === 'startTerminalResize' &&
+        node.initializer &&
+        ts.isCallExpression(node.initializer)
+      ) {
+        callback = node.initializer.arguments[0].getText(tree);
+      }
 
-  for (const [clientY, expected] of [
-    [380, 540],
-    [900, 320],
-    [0, 720],
-  ]) {
-    fireEvent.mouseMove(window, { clientY });
-    expect(container.querySelector('output')?.textContent).toBe(`${expected}px`);
-    expect(
-      (container.querySelector('.bolt-project-bottom-terminal-shell') as HTMLElement).style.getPropertyValue(
-        '--project-terminal-height',
-      ),
-    ).toBe(`${expected}px`);
-    expect(
-      (container.querySelector('.bolt-project-main-panes') as HTMLElement).style.getPropertyValue(
-        '--project-terminal-bottom-height',
-      ),
-    ).toBe(`${expected}px`);
-    expect(setTerminalBottomHeight).not.toHaveBeenCalled();
-  }
-  fireEvent.mouseUp(window);
-  expect(setTerminalBottomHeight).toHaveBeenCalledExactlyOnceWith(720);
-  fireEvent.mouseMove(window, { clientY: 380 });
-  expect(container.querySelector('output')?.textContent).toBe('720px');
-});
+      ts.forEachChild(node, visit);
+    };
+    visit(tree);
+    expect(callback).not.toBe('');
+
+    const setTerminalBottomHeight = vi.fn();
+
+    const handler = evaluate(`return (${callback});`, {
+      terminalBottomHeight: 420,
+      setTerminalBottomHeight,
+      t: createI18nInstance(language).t,
+    });
+
+    const { container } = render(
+      <div>
+        <div className="bolt-project-main-panes" />
+        <div className="bolt-project-bottom-terminal-shell">
+          <div data-testid="resize" onMouseDown={handler} />
+          <output className="bolt-project-bottom-terminal-size">420px</output>
+        </div>
+      </div>,
+    );
+    fireEvent.mouseDown(screen.getByTestId('resize'), { clientY: 500 });
+
+    for (const [clientY, expected] of [
+      [380, 540],
+      [900, 320],
+      [0, 720],
+    ]) {
+      fireEvent.mouseMove(window, { clientY });
+      expect(container.querySelector('output')?.textContent).toBe(
+        language === 'fr' ? `${expected} px` : `${expected}px`,
+      );
+      expect(
+        (container.querySelector('.bolt-project-bottom-terminal-shell') as HTMLElement).style.getPropertyValue(
+          '--project-terminal-height',
+        ),
+      ).toBe(`${expected}px`);
+      expect(
+        (container.querySelector('.bolt-project-main-panes') as HTMLElement).style.getPropertyValue(
+          '--project-terminal-bottom-height',
+        ),
+      ).toBe(`${expected}px`);
+      expect(setTerminalBottomHeight).not.toHaveBeenCalled();
+    }
+    fireEvent.mouseUp(window);
+    expect(setTerminalBottomHeight).toHaveBeenCalledExactlyOnceWith(720);
+    fireEvent.mouseMove(window, { clientY: 380 });
+    expect(container.querySelector('output')?.textContent).toBe(language === 'fr' ? '720 px' : '720px');
+  },
+);
 
 /*
  * Execute the E2E's actual assertions, not a duplicate implementation of its contract.
