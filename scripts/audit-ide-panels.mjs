@@ -4,9 +4,10 @@ import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { packageInstallFailure } from './ci/package-install-evidence.mjs';
 import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
+import { createBrowserHttpEvidence, createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
+import { attachSecretsLifecycleEvidence, createSecretsLifecycleEvidence } from './ci/secrets-lifecycle-evidence.mjs';
 import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
-import { createBrowserHttpEvidence, createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
 
 const browserNetworkDiagnostics = createBrowserNetworkEvidence();
 const browserHttpDiagnostics = createBrowserHttpEvidence();
@@ -463,13 +464,22 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
   return { results, errors };
 }
 
-async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics, persistenceDiagnostics) {
+async function auditCriticalUiInteractions(
+  projectId,
+  token,
+  terminalDiagnostics,
+  persistenceDiagnostics,
+  secretsDiagnostics,
+) {
   const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
 
   async function withPanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const secretsTrace =
+      panel === 'secrets' ? await attachSecretsLifecycleEvidence(page, secretsDiagnostics) : undefined;
+
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
     page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
@@ -524,6 +534,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
       const applicationError = (await page.getByText('Application Error').count()) > 0;
       return { ok: !applicationError, applicationError, backendCalls };
     } finally {
+      secretsTrace?.stop();
       await terminalDiagnostics.flush();
       await page.close();
     }
@@ -1310,6 +1321,7 @@ function networkEvidence(results) {
 async function runAuditPass() {
   const terminalDiagnostics = createTerminalWarningDiagnostics();
   const persistenceDiagnostics = createPanelPersistenceDiagnostics();
+  const secretsDiagnostics = createSecretsLifecycleEvidence();
   const auth = await registerAuditUser();
   const project = await createAuditProject(auth.token, auth.organization.id);
   const cookie = `vc_session=${auth.token}`;
@@ -1320,6 +1332,7 @@ async function runAuditPass() {
     auth.token,
     terminalDiagnostics,
     persistenceDiagnostics,
+    secretsDiagnostics,
   );
 
   const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token, terminalDiagnostics);
@@ -1360,6 +1373,7 @@ async function runAuditPass() {
     pageErrors,
     terminalDiagnostics: terminalDiagnostics.snapshot(),
     persistenceDiagnostics: persistenceDiagnostics.snapshot(),
+    secretsLifecycle: secretsDiagnostics.snapshot(),
     browserNetworkDiagnostics: browserNetworkDiagnostics.snapshot(),
     browserHttpDiagnostics: browserHttpDiagnostics.snapshot(),
   };

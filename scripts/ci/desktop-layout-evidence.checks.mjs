@@ -51,6 +51,10 @@ async function importHelper(io) {
             "'../../../scripts/ci/browser-network-evidence.mjs'",
             JSON.stringify(new URL('./browser-network-evidence.mjs', import.meta.url).href),
           )
+          .replace(
+            "'../../../scripts/ci/secrets-lifecycle-evidence.mjs'",
+            JSON.stringify(new URL('./secrets-lifecycle-evidence.mjs', import.meta.url).href),
+          )
           .replace(ioImport, `import { writeFile, setTimeout, clearTimeout } from '${adapter}';`),
       )
     );
@@ -800,4 +804,50 @@ test('retains bounded Node-side Services progress when browser capture fails or 
     assert.ok(!instance.writes[0].data.includes('PRIVATE'));
     assertClean(instance);
   }
+});
+
+test('streams Secrets events into failure evidence even with no final browser access, then disables capture', async () => {
+  const instance = await harness({
+    evaluate: async () => {
+      throw new Error('PRIVATE_CAPTURE_FAILURE');
+    },
+  });
+
+  const frame = {};
+
+  let receive;
+  instance.page.mainFrame = () => frame;
+
+  instance.page.exposeBinding = async (_name, callback) => {
+    receive = callback;
+  };
+
+  const original = new Error('PRIVATE_SCENARIO_FAILURE');
+
+  const event = {
+    event: 'click',
+    target: 'new-secret',
+    panel: true,
+    menu: false,
+    form: false,
+    panelReplaced: false,
+    trusted: true,
+  };
+  await assert.rejects(
+    instance.run(async ({ page }, testInfo) => {
+      await instance.helper.startSecretsLifecycleEvidence(page, testInfo);
+      receive({ frame }, { ...event, value: 'PRIVATE_SECRET' });
+      throw original;
+    }),
+    (error) => error === original,
+  );
+
+  const payload = JSON.parse(instance.writes[0].data);
+  assert.equal(payload.browser, null);
+  assert.equal(payload.secretsLifecycle.installed, true);
+  assert.equal(payload.secretsLifecycle.events.length, 1);
+  assert.equal(payload.secretsLifecycle.events[0].target, 'new-secret');
+  assert.ok(!instance.writes[0].data.includes('PRIVATE'));
+  receive({ frame }, event);
+  assertClean(instance);
 });

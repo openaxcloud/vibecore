@@ -5,7 +5,11 @@ import JSZip from 'jszip';
 import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { readIdeUiDetailStyles } from './helpers/ide-ui-detail-styles';
 import { reloadPanelJson } from './helpers/reload-panel-json';
-import { runtimeServiceProgress, withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
+import {
+  runtimeServiceProgress,
+  startSecretsLifecycleEvidence,
+  withDesktopLayoutEvidence,
+} from './helpers/runtime-desktop-diagnostics';
 
 import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
 
@@ -1560,6 +1564,7 @@ test(
 
     const progress = runtimeServiceProgress(testInfo);
     progress.mark('setup');
+    await startSecretsLifecycleEvidence(page, testInfo);
 
     const auth = await authenticate(page);
     const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';

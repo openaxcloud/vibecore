@@ -5,7 +5,15 @@ import type { ConsoleMessage, Page, Request, Response, TestInfo } from '@playwri
 // eslint-disable-next-line no-restricted-imports
 import { createBrowserNetworkEvidence } from '../../../scripts/ci/browser-network-evidence.mjs';
 
+// eslint-disable-next-line no-restricted-imports -- Shared test-only observer.
+import { attachSecretsLifecycleEvidence } from '../../../scripts/ci/secrets-lifecycle-evidence.mjs';
 import { createServiceProgress } from './runtime-service-progress';
+
+const secretsLifecycle = new WeakMap<TestInfo, Awaited<ReturnType<typeof attachSecretsLifecycleEvidence>>>();
+
+export async function startSecretsLifecycleEvidence(page: Page, testInfo: TestInfo) {
+  secretsLifecycle.set(testInfo, await attachSecretsLifecycleEvidence(page));
+}
 
 const serviceProgress = new WeakMap<TestInfo, ReturnType<typeof createServiceProgress>>();
 
@@ -333,6 +341,7 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
           const payload = JSON.stringify({
             browser,
             serviceProgress: serviceProgress.get(testInfo)?.snapshot(),
+            secretsLifecycle: secretsLifecycle.get(testInfo)?.snapshot(),
             requests,
             statuses,
             errors,
@@ -345,6 +354,7 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
               : JSON.stringify({
                   browser: null,
                   serviceProgress: serviceProgress.get(testInfo)?.snapshot(),
+                  secretsLifecycle: secretsLifecycle.get(testInfo)?.snapshot(),
                   requests,
                   statuses,
                   errors,
@@ -361,6 +371,7 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
 
       throw error;
     } finally {
+      secretsLifecycle.get(testInfo)?.stop();
       stopNetworkPhases();
       page.off('request', onRequest);
       page.off('requestfinished', onFinished);
