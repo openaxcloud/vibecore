@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { JSDOM } from 'jsdom';
+import { packageInstallFailure } from './ci/package-install-evidence.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const audit = read('scripts/audit-ide-panels.mjs');
@@ -290,13 +291,20 @@ test('actual Packages audit callback rejects failed actions/reloads/missing inst
     let reloads = 0;
     let rows = 0;
 
-    const callback = new Function('waitForPanelResponse', `return (${callbackSource});`)(
+    const callback = new Function('waitForPanelResponse', 'packageInstallFailure', `return (${callbackSource});`)(
       async (_page, panel, method, timeout) => {
         assert.equal(panel, 'packages');
         assert.equal(timeout, method === 'POST' ? 60_000 : 20_000);
 
-        return { ok: () => (method === 'POST' ? scenario.post : scenario.get) };
+        const ok = method === 'POST' ? scenario.post : scenario.get;
+
+        return {
+          ok: () => ok,
+          status: () => (ok ? 200 : 422),
+          text: async () => JSON.stringify({ code: 'PACKAGE_RUN_FAILED', run: { exitCode: 1 } }),
+        };
       },
+      packageInstallFailure,
     );
     const page = {
       getByPlaceholder(value) {

@@ -14,3 +14,11 @@ Regression checks:
 - `node --test scripts/ci/package-install-lifecycle.checks.mjs`
 
 The latter executes the actual extracted agent-request implementation with controlled dependencies and also guards install call-site policy. It does not execute an installation or substitute for live Kubernetes acceptance.
+
+## Audit failure evidence
+
+A failed Packages UI install keeps the existing 60-second POST wait and fails the same acceptance assertion. Its diagnostic now records only HTTP status, an allowlisted result code, bounded exit code, outcome category, and an allowlisted error-code hint. It never retains raw response messages, command output, IDs, or URLs. Diagnostic waiting is bounded to one second; it does not cancel the underlying Playwright response-body read. A declared Content-Length above 64 KiB skips that read. Otherwise response.text() materializes the body before the 64 KiB parsing/retention check, so absent, compressed, or inaccurate length metadata does not provide a memory/read-size bound. The retained projection contains only fixed categories and bounded numbers and stays below 512 UTF-8 bytes. Unavailable diagnostics still fail the install check. A reported error-code hint is not a proven root cause. No retry or additional install is performed.
+
+Run `node --test scripts/ci/package-install-evidence.checks.mjs scripts/audit-ide-panels-selectors.checks.mjs` to check the projection and actual audit callback with controlled responses. These checks do not establish a successful live installation.
+
+The normal Packages 422 branch contains only a run ID/status/exit code and localized error text (command output tail limited to 400 characters, or a fixed unknown-outcome message). This is not a universal HTTP body bound: other errors and intermediary responses can bypass that branch. The diagnostic therefore does not assume all responses satisfy the normal branch shape.

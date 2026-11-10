@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
+import { packageInstallFailure } from './ci/package-install-evidence.mjs';
 import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
 import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
@@ -702,7 +703,7 @@ async function auditCriticalUiInteractions(projectId, token, terminalDiagnostics
       ]);
 
       if (!installed.ok()) {
-        throw new Error('Package installation did not succeed');
+        throw await packageInstallFailure(installed);
       }
 
       const [reloaded] = await Promise.all([

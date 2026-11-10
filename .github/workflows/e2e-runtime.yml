@@ -108,7 +108,9 @@ jobs:
           node --test scripts/audit-ide-panels-selectors.checks.mjs
           node --test scripts/database-services-metadata.checks.mjs
           node --test scripts/ci/reload-panel-json.checks.mjs
+          node --test scripts/ci/services-activity-selector.checks.mjs
           node --test scripts/ci/package-install-lifecycle.checks.mjs
+          node --test scripts/ci/package-install-evidence.checks.mjs
           node --test scripts/ci/mobile-layout-evidence.checks.mjs
           node --test scripts/ci/desktop-layout-evidence.checks.mjs
           node --test scripts/panel-persistence-diagnostics.checks.mjs

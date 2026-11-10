@@ -1855,7 +1855,7 @@ test(
     expect(Number.isFinite(Date.parse(connectionEvent.createdAt))).toBeTruthy();
 
     const activityPanel = page.locator('[data-testid="ide-service-panel"][data-panel="activity"]');
-    await activityPanel.getByLabel('Type', { exact: true }).selectOption('project.secret.upsert');
+    await activityPanel.getByRole('combobox', { name: 'Type', exact: true }).selectOption('project.secret.upsert');
 
     const eventRow = activityPanel.locator('.bolt-project-activity-event');
     await expect(eventRow).toHaveCount(1);
