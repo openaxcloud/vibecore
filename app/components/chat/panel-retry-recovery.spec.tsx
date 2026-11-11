@@ -110,7 +110,12 @@ const databaseHeading = () =>
     ['All databases', 'Toutes les bases de données'].includes(node.textContent ?? ''),
   );
 type Extracted = {
-  Panel: React.ComponentType<{ projectId?: string; panel: string; initialPayload?: unknown }>;
+  Panel: React.ComponentType<{
+    projectId?: string;
+    panel: string;
+    initialPayload?: unknown;
+    requestedWorkspaceId?: string;
+  }>;
   extractedFetch: typeof fetch;
   slowLoadMs: number;
 };
@@ -141,8 +146,8 @@ function wrapper(fetcher: typeof fetch): Extracted {
     panelIcon: () => '',
     isPanelAuthError: () => false,
     PanelErrorBoundary: ({ children }: React.PropsWithChildren) => <>{children}</>,
-    ProjectIdePanelContent: ({ data }: { data: { attempt?: string } }) => (
-      <div data-panel-content data-attempt={data.attempt} />
+    ProjectIdePanelContent: ({ data, busy }: { data: { attempt?: string }; busy: boolean }) => (
+      <div data-panel-content data-attempt={data.attempt} data-busy={String(busy)} />
     ),
     PanelEmptyState: () => <div data-empty />,
     fetch: fetcher,
@@ -503,5 +508,308 @@ describe('database context before an initial response', () => {
     expect(document.querySelector('[data-attempt="cached"]')).not.toBeNull();
     expect(databaseHeading()).toBeUndefined();
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+});
+
+describe('panel cache arriving between render and effect', () => {
+  const cached = (attempt: string) => ({
+    payload: { status: 'ok', data: { attempt } },
+    lastLoadedAt: new Date().toISOString(),
+  });
+
+  /*
+   * Force the real interleaving without sleeps or changing the wrapper hooks:
+   * another consumer populates the shared cache after this instance's render,
+   * but before its initial passive effect chooses foreground/silent loading.
+   */
+  function SeedAfterRender({ children, cacheKey }: React.PropsWithChildren<{ cacheKey: string }>) {
+    React.useLayoutEffect(() => {
+      writeProjectPanelCache(cacheKey, cached('other-consumer'));
+    }, [cacheKey]);
+    return <>{children}</>;
+  }
+
+  function deferredResponse() {
+    let resolve!: (response: Response) => void;
+
+    const promise = new Promise<Response>((done) => {
+      resolve = done;
+    });
+
+    return { promise, resolve };
+  }
+
+  function mount(children: React.ReactNode) {
+    document.body.innerHTML = '<div id="root"></div>';
+    root = createRoot(document.getElementById('root')!);
+
+    return act(async () => root!.render(children));
+  }
+
+  const loaded = (attempt: string) =>
+    new Response(JSON.stringify(cached(attempt).payload), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+
+  it('clears cold-instance busy after a successful load despite another consumer warming the cache', async () => {
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    await mount(
+      <SeedAfterRender cacheKey="fixture:security">
+        <Panel projectId="fixture" panel="security" />
+      </SeedAfterRender>,
+    );
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(document.querySelector('[data-panel-content]')).toBeNull();
+    await act(async () => response.resolve(loaded('fresh')));
+
+    const content = document.querySelector('[data-attempt="fresh"]');
+    expect(content).not.toBeNull();
+    expect(content?.getAttribute('data-busy')).toBe('false');
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(readProjectPanelCache('fixture:security')?.payload.data.attempt).toBe('fresh');
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves Retry actionable after a failed cold load despite the late cache entry', async () => {
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    await mount(
+      <SeedAfterRender cacheKey="fixture:security">
+        <Panel projectId="fixture" panel="security" />
+      </SeedAfterRender>,
+    );
+    await act(async () => response.resolve(new Response('{}', { status: 400 })));
+
+    const retry = document.querySelector<HTMLButtonElement>('[role="alert"] button');
+    expect(retry).not.toBeNull();
+    expect(retry?.disabled).toBe(false);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares a cold request across consumers and keeps the survivor usable after one unmounts', async () => {
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    await mount(
+      <SeedAfterRender cacheKey="fixture:security">
+        <Panel key="first" projectId="fixture" panel="security" />
+        <Panel key="second" projectId="fixture" panel="security" />
+      </SeedAfterRender>,
+    );
+    expect(transport).toHaveBeenCalledTimes(1);
+    await act(async () =>
+      root!.render(
+        <SeedAfterRender cacheKey="fixture:security">
+          <Panel key="second" projectId="fixture" panel="security" />
+        </SeedAfterRender>,
+      ),
+    );
+    await act(async () => response.resolve(loaded('shared')));
+    expect(document.querySelectorAll('[data-attempt="shared"]')).toHaveLength(1);
+    expect(document.querySelector('[data-attempt="shared"]')?.getAttribute('data-busy')).toBe('false');
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['other', 'security'],
+    ['fixture', 'logs'],
+  ])('keeps a keyed switch to %s/%s independent from the abandoned request', async (projectId, panel) => {
+    const oldResponse = deferredResponse();
+    const nextResponse = deferredResponse();
+
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockReturnValueOnce(oldResponse.promise)
+      .mockReturnValueOnce(nextResponse.promise);
+
+    const { Panel } = wrapper(transport);
+    await mount(
+      <SeedAfterRender cacheKey="fixture:security">
+        <Panel key="fixture:security" projectId="fixture" panel="security" />
+      </SeedAfterRender>,
+    );
+    await act(async () => root!.render(<Panel key={`${projectId}:${panel}`} projectId={projectId} panel={panel} />));
+    expect(transport).toHaveBeenCalledTimes(2);
+    await act(async () => oldResponse.resolve(loaded('old')));
+    expect(document.querySelector('[data-panel-content]')).toBeNull();
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(readProjectPanelCache(`${projectId}:${panel}`)).toBeUndefined();
+    await act(async () => nextResponse.resolve(loaded('next')));
+    expect(document.querySelector('[data-attempt="next"]')?.getAttribute('data-busy')).toBe('false');
+    expect(readProjectPanelCache('fixture:security')?.payload.data.attempt).toBe('old');
+    expect(readProjectPanelCache(`${projectId}:${panel}`)?.payload.data.attempt).toBe('next');
+  });
+
+  it('keeps a genuinely seeded stale view usable while its refresh is pending and after failure', async () => {
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    writeProjectPanelCache('fixture:security', cached('stale'));
+    await mount(<Panel projectId="fixture" panel="security" />);
+    expect(document.querySelector('[data-attempt="stale"]')?.getAttribute('data-busy')).toBe('false');
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    await act(async () => response.resolve(new Response('{}', { status: 400 })));
+    expect(document.querySelector('[data-attempt="stale"]')?.getAttribute('data-busy')).toBe('false');
+    expect(document.querySelector<HTMLButtonElement>('[role="alert"] button')?.disabled).toBe(false);
+    expect(readProjectPanelCache('fixture:security')?.payload.data.attempt).toBe('stale');
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('survives StrictMode replay with one SSR consumer and one cold consumer of the same request', async () => {
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    await mount(
+      <React.StrictMode>
+        <SeedAfterRender cacheKey="fixture:security">
+          <Panel projectId="fixture" panel="security" initialPayload={cached('ssr').payload} />
+          <Panel projectId="fixture" panel="security" />
+        </SeedAfterRender>
+      </React.StrictMode>,
+    );
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-attempt="ssr"]')?.getAttribute('data-busy')).toBe('false');
+    expect(document.querySelectorAll('[aria-busy="true"]')).toHaveLength(1);
+    await act(async () => response.resolve(loaded('strict-shared')));
+    expect(document.querySelectorAll('[data-attempt="strict-shared"][data-busy="false"]')).toHaveLength(2);
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['security', 400],
+    ['database', 200],
+  ])('recovers %s through explicit Retry after HTTP %i with a late cache entry', async (panel, status) => {
+    const first = deferredResponse();
+    const second = deferredResponse();
+    const transport = vi.fn<typeof fetch>().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const { Panel } = wrapper(transport);
+    const key = `fixture:${panel}`;
+    await mount(
+      <SeedAfterRender cacheKey={key}>
+        <Panel projectId="fixture" panel={panel} />
+      </SeedAfterRender>,
+    );
+    await act(async () =>
+      first.resolve(
+        new Response(
+          JSON.stringify({
+            status: 'error',
+            data: null,
+            error: { code: 'UPSTREAM', message: 'fixture', retryable: true },
+          }),
+          { status },
+        ),
+      ),
+    );
+
+    const retry = document.querySelector<HTMLButtonElement>('[role="alert"] button');
+    expect(retry).not.toBeNull();
+    expect(retry?.disabled).toBe(false);
+    expect(readProjectPanelCache(key)?.payload.data.attempt).toBe('other-consumer');
+    await act(async () => retry!.click());
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    await act(async () => second.resolve(loaded('retry-recovered')));
+    expect(document.querySelector('[data-attempt="retry-recovered"]')?.getAttribute('data-busy')).toBe('false');
+    expect(document.querySelector('[role="alert"], [aria-busy="true"]')).toBeNull();
+    expect(readProjectPanelCache(key)?.payload.data.attempt).toBe('retry-recovered');
+    expect(transport).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps committed cached content usable when the shared cache is evicted before passive effects', async () => {
+    function EvictAfterRender({ children }: React.PropsWithChildren) {
+      React.useLayoutEffect(() => {
+        __resetProjectPanelCacheForTests();
+      }, []);
+      return <>{children}</>;
+    }
+
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    writeProjectPanelCache('fixture:security', cached('committed-before-eviction'));
+    await mount(
+      <EvictAfterRender>
+        <Panel projectId="fixture" panel="security" />
+      </EvictAfterRender>,
+    );
+    expect(readProjectPanelCache('fixture:security')).toBeUndefined();
+    expect(document.querySelector('[data-attempt="committed-before-eviction"]')?.getAttribute('data-busy')).toBe(
+      'false',
+    );
+    await act(async () => response.resolve(new Response('{}', { status: 400 })));
+    expect(document.querySelector('[data-attempt="committed-before-eviction"]')?.getAttribute('data-busy')).toBe(
+      'false',
+    );
+    expect(document.querySelector<HTMLButtonElement>('[role="alert"] button')?.disabled).toBe(false);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the replacement latest-wins when the aborted transport ignores cancellation', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    const first = deferredResponse();
+    const replacement = deferredResponse();
+    const transport = vi.fn<typeof fetch>().mockReturnValueOnce(first.promise).mockReturnValueOnce(replacement.promise);
+    const { Panel, slowLoadMs } = wrapper(transport);
+    await mount(
+      <SeedAfterRender cacheKey="fixture:security">
+        <Panel projectId="fixture" panel="security" />
+      </SeedAfterRender>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(slowLoadMs));
+
+    const retry = [...document.querySelectorAll('button')].find(
+      (button) => button.textContent === 'chat.copy.retry_9f5cd8a2',
+    );
+    expect(retry).toBeDefined();
+    expect(retry?.disabled).toBe(false);
+    await act(async () => retry!.click());
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(transport.mock.calls[0][1]?.signal?.aborted).toBe(true);
+    expect(transport.mock.calls[1][1]?.signal?.aborted).toBe(false);
+    await act(async () => replacement.resolve(loaded('replacement')));
+    expect(document.querySelector('[data-attempt="replacement"]')?.getAttribute('data-busy')).toBe('false');
+    await act(async () => first.resolve(loaded('obsolete-ignores-abort')));
+    expect(document.querySelector('[data-attempt="replacement"]')?.getAttribute('data-busy')).toBe('false');
+    expect(document.querySelector('[data-attempt="obsolete-ignores-abort"], [aria-busy="true"]')).toBeNull();
+    expect(readProjectPanelCache('fixture:security')?.payload.data.attempt).toBe('replacement');
+    expect(transport).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ['other', 'security', undefined],
+    ['fixture', 'logs', undefined],
+    ['fixture', 'security', 'other-workspace'],
+  ])('keeps return navigation isolated from late %s/%s/%s results', async (projectId, panel, workspaceId) => {
+    const first = deferredResponse();
+    const other = deferredResponse();
+    const transport = vi.fn<typeof fetch>().mockReturnValueOnce(first.promise).mockReturnValueOnce(other.promise);
+    const { Panel } = wrapper(transport);
+    const otherKey = `${projectId}:${panel}${workspaceId ? `:${workspaceId}` : ''}`;
+    const initial = <Panel key="fixture:security" projectId="fixture" panel="security" />;
+    await mount(<SeedAfterRender cacheKey="fixture:security">{initial}</SeedAfterRender>);
+    await act(async () =>
+      root!.render(<Panel key={otherKey} projectId={projectId} panel={panel} requestedWorkspaceId={workspaceId} />),
+    );
+    expect(String(transport.mock.calls[1][0])).toBe(
+      `/api/projects/${projectId}/ide-panel/${panel}${workspaceId ? `?workspaceId=${workspaceId}` : ''}`,
+    );
+    await act(async () => root!.render(initial));
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('[data-attempt="other-consumer"]')?.getAttribute('data-busy')).toBe('false');
+    await act(async () => first.resolve(loaded('returned-first-scope')));
+    expect(document.querySelector('[data-attempt="returned-first-scope"]')?.getAttribute('data-busy')).toBe('false');
+    await act(async () => other.resolve(loaded('abandoned-other-scope')));
+    expect(document.querySelector('[data-attempt="abandoned-other-scope"], [aria-busy="true"]')).toBeNull();
+    expect(readProjectPanelCache('fixture:security')?.payload.data.attempt).toBe('returned-first-scope');
+    expect(readProjectPanelCache(otherKey)?.payload.data.attempt).toBe('abandoned-other-scope');
+    expect(transport).toHaveBeenCalledTimes(2);
   });
 });

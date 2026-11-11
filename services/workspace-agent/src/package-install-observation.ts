@@ -200,7 +200,8 @@ export function observePackageInstall(cwd: string, command: string, args: readon
 
           startIdentity ??= currentIdentity;
 
-          const sched = await boundedFile(`/proc/${pid}/schedstat`, 1024);
+          // Some supported kernels (including gVisor) omit schedstat. Keep independently validated state.
+          const sched = await boundedFile(`/proc/${pid}/schedstat`, 1024).catch(() => undefined);
 
           if (!active) {
             return;

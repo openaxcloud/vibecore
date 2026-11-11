@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-626 entrées.
+627 entrées.
 
 ## Sans section
 
@@ -895,6 +895,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-RUNTIME-RELAY-TRANSPORT-001](docs/bugs/BUG-RUNTIME-RELAY-TRANSPORT-001.md) — Les erreurs de transport du relais CI échappent à la récupération des lectures. — 📤 Dispatché : Proposition locale sur le produit de 9e8e4db, inchangé par la correction trace da4bab7. · 💻 Codé : Patch local seulement, non publié. · ✅ Testé live : Non validé.
+- [BUG-PANEL-CACHE-BUSY-HANDOFF-20261111](docs/bugs/BUG-PANEL-CACHE-BUSY-HANDOFF-20261111.md) — `ProjectIdeApiServicePanel` initialise `busy` depuis le cache lu pendant son rendu. Son effet initial relisait ensuite — 📤 Dispatché : Diagnostic et correctif local préparés le 11 novembre 2026, revus indépendamment sur la base 8335f9ba. · 💻 Codé : Correctif local uniquement, non publié à la rédaction de cette fiche. · ✅ Testé live : Non validé. Pas de recette applicative ou production.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

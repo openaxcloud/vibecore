@@ -12008,6 +12008,12 @@ function ProjectIdeApiServicePanel({
 
   const seededCache = readProjectPanelCache(panelCacheKey);
   const [payload, setPayload] = useState<any>(() => initialPayload ?? seededCache?.payload);
+  const hasCommittedPayloadRef = useRef(Boolean(payload));
+
+  useEffect(() => {
+    hasCommittedPayloadRef.current = Boolean(payload);
+  }, [payload]);
+
   const [error, setError] = useState<string>();
   const [actionNotice, setActionNotice] = useState<string>();
 
@@ -12229,8 +12235,12 @@ function ProjectIdeApiServicePanel({
      * Silent (no skeleton) whenever we already have content to show — an SSR
      * payload or a cached payload from a previous visit to this tab — so the
      * refresh happens in the background instead of re-flashing the loader.
+     *
+     * A different instance can warm the shared cache between render and this
+     * effect. Only content committed by this instance makes its load silent;
+     * otherwise its initial busy state would never be cleared.
      */
-    const seeded = Boolean(initialPayload) || Boolean(readProjectPanelCache(panelCacheKey)?.payload);
+    const seeded = Boolean(initialPayload) || hasCommittedPayloadRef.current;
 
     if (initialPayload) {
       setPayload(initialPayload);
