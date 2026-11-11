@@ -24,7 +24,7 @@ import { useEffect, useLayoutEffect } from 'react';
  * forme que le passe-plat du composeur (#552), qui traite la frappe faite
  * dans la même fenêtre.
  *
- * Elle est PORTÉE PAR SA PORTÉE (projet + fenêtre d'édition) et PÉRIMÉE au-delà
+ * Elle est PORTÉE PAR SA PORTÉE (projet + workspace + fenêtre d'édition) et PÉRIMÉE au-delà
  * de quelques secondes : une bascule dure des dixièmes de seconde, jamais une
  * minute. Au-delà, ce n'est plus une bascule, c'est un retour sur le projet, et
  * l'état persisté fait foi.
@@ -33,6 +33,18 @@ export const useLayoutHandoffEffect = typeof window !== 'undefined' ? useLayoutE
 
 export interface DispositionTransmise<Arbre, Flottant> {
   paneTree: Arbre;
+
+  /** Layout produced only by automatic URL openings, still eligible for saved-memory restoration. */
+  provisionalPaneTree?: Arbre;
+
+  /** The pending URL already applied before a shell handoff, not a later navigation. */
+  provisionalPanelNavigation?: {
+    navigationId: string;
+    projectId?: string;
+    workspaceId?: string;
+    windowId: string;
+    panel?: string;
+  };
   activePaneId: string;
   floatingPanes: Flottant[];
 }
@@ -43,9 +55,11 @@ type Entree = { portee: string; disposition: DispositionTransmise<unknown, unkno
 
 let enAttente: Entree | null = null;
 
-/** Portée stable de part et d'autre de la bascule : le projet ET la fenêtre d'édition. */
-export function porteeDisposition(projectId: string | undefined, fenetre: string): string {
-  return `${projectId ?? ''}:${fenetre}`;
+/** Portée stable de part et d'autre de la bascule : projet, workspace et fenêtre. */
+export function porteeDisposition(projectId: string | undefined, fenetre: string, workspaceId?: string): string {
+  return workspaceId === undefined
+    ? `${projectId ?? ''}:${fenetre}`
+    : JSON.stringify([projectId ?? '', fenetre, workspaceId]);
 }
 
 export function deposerDisposition<Arbre, Flottant>(

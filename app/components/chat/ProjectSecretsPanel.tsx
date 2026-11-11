@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { useIdeSettingsFormDraft } from './IdeSettingsDraftState';
+import { useIdeSecretFormDraft, useIdeSettingsFormDraft } from './IdeSettingsDraftState';
 import { cibleFeuilleMobile } from './feuille-mobile';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import {
@@ -51,7 +51,7 @@ interface ProjectSecretsPanelProps {
   projectId?: string;
   paneId?: string;
   data: { secrets?: SecretDuProjet[] } | null | undefined;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void | boolean | Promise<void | boolean>;
   busy: boolean;
   reload?: () => void | Promise<void>;
   language: string;
@@ -80,10 +80,8 @@ export function ProjectSecretsPanel({
   const [message, setMessage] = useState('');
 
   // Le formulaire en ligne : fermé, ou ouvert en ajout (clé vide) / en modification.
-  const [formulaireOuvert, setFormulaireOuvert] = useState(false);
-  const [cleEnEdition, setCleEnEdition] = useState<string | null>(null);
-  const [cle, setCle] = useState('');
-  const [valeur, setValeur] = useState('');
+  const formulaire = useIdeSecretFormDraft(projectId ?? '', paneId);
+  const { open: formulaireOuvert, editingKey: cleEnEdition, key: cle, value: valeur } = formulaire;
   const [valeurVisible, setValeurVisible] = useState(false);
   const champCleRef = useRef<HTMLInputElement>(null);
   const champValeurRef = useRef<HTMLInputElement>(null);
@@ -108,19 +106,14 @@ export function ProjectSecretsPanel({
   }, [formulaireOuvert, cleEnEdition]);
 
   function ouvrirLeFormulaire(cleAModifier: string | null) {
-    setCleEnEdition(cleAModifier);
-    setCle(cleAModifier ?? '');
-    setValeur('');
+    formulaire.openForm(cleAModifier);
     setValeurVisible(false);
-    setFormulaireOuvert(true);
     setMenuLigne(null);
   }
 
   function fermerLeFormulaire() {
-    setFormulaireOuvert(false);
-    setCleEnEdition(null);
-    setCle('');
-    setValeur('');
+    formulaire.close();
+    setValeurVisible(false);
   }
 
   async function soumettre(event: React.FormEvent<HTMLFormElement>) {
@@ -129,8 +122,20 @@ export function ProjectSecretsPanel({
       return;
     }
 
-    await onSubmit(event);
-    fermerLeFormulaire();
+    const finish = formulaire.beginSubmission();
+
+    if (!finish) {
+      event.preventDefault();
+      return;
+    }
+
+    try {
+      const saved = await onSubmit(event);
+      finish(saved !== false);
+    } catch {
+      finish(false);
+      setMessage(t('baseChatAst.panel.actionFailed'));
+    }
   }
 
   async function lireLaValeur(key: string): Promise<string | undefined> {
@@ -304,7 +309,7 @@ export function ProjectSecretsPanel({
     }
   }
 
-  const ajoutPossible = peutAjouter(cle, valeur) && !busy;
+  const ajoutPossible = peutAjouter(cle, valeur) && !busy && !formulaire.pending;
   const cleInvalide = cle.length > 0 && !cleValide(cle);
   const idFiltre = useId();
 
@@ -397,7 +402,7 @@ export function ProjectSecretsPanel({
               spellCheck={false}
               aria-invalid={cleInvalide || undefined}
               data-testid="secrets-form-key"
-              onChange={(event) => setCle(event.target.value)}
+              onChange={(event) => formulaire.setField('key', event.target.value)}
             />
           </label>
           <label className="bolt-secrets-field bolt-secrets-field--value">
@@ -421,7 +426,7 @@ export function ProjectSecretsPanel({
               autoComplete="off"
               spellCheck={false}
               data-testid="secrets-form-value"
-              onChange={(event) => setValeur(event.target.value)}
+              onChange={(event) => formulaire.setField('value', event.target.value)}
             />
           </label>
           {cleInvalide ? <p className="bolt-secrets-form-error">{copy['secretsPanel.form.invalidKey']}</p> : null}
@@ -590,7 +595,8 @@ export function ProjectSecretsPanel({
  * Un menu flottant sous son bouton, aligné à droite, rendu hors du panneau
  * (racine du gabarit mobile, sinon le corps) : le panneau défile et borne
  * ses descendants. Se ferme au toucher dehors, à Échap (en capture — le
- * gestionnaire de raccourcis du projet consomme la touche), au défilement.
+ * gestionnaire de raccourcis du projet consomme la touche), au redimensionnement
+ * ou quand le défilement déplace son ancre. Un scroll sans rapport ne le ferme pas.
  */
 function MenuFlottant({
   ancre,
@@ -604,6 +610,7 @@ function MenuFlottant({
   children: React.ReactNode;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const ancrePositionneeRef = useRef<DOMRect | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -615,6 +622,7 @@ function MenuFlottant({
 
     const rect = ancre.getBoundingClientRect();
     const taille = menu.getBoundingClientRect();
+    ancrePositionneeRef.current = rect;
 
     setPosition(
       placerSousLeBouton(
@@ -655,15 +663,39 @@ function MenuFlottant({
       }
     };
 
+    const surDefilement = () => {
+      const origine = ancrePositionneeRef.current;
+
+      if (!ancre?.isConnected || !origine) {
+        onFermer();
+        return;
+      }
+
+      const actuelle = ancre.getBoundingClientRect();
+
+      /*
+       * Captured scrolls also come from unrelated panes and queued scroll restoration.
+       * Only dismiss when this menu's anchor no longer matches its positioned bounds.
+       */
+      if (
+        actuelle.left !== origine.left ||
+        actuelle.top !== origine.top ||
+        actuelle.right !== origine.right ||
+        actuelle.bottom !== origine.bottom
+      ) {
+        onFermer();
+      }
+    };
+
     document.addEventListener('pointerdown', surPointeur, true);
     window.addEventListener('keydown', surClavier, true);
-    window.addEventListener('scroll', onFermer, true);
+    window.addEventListener('scroll', surDefilement, true);
     window.addEventListener('resize', onFermer);
 
     return () => {
       document.removeEventListener('pointerdown', surPointeur, true);
       window.removeEventListener('keydown', surClavier, true);
-      window.removeEventListener('scroll', onFermer, true);
+      window.removeEventListener('scroll', surDefilement, true);
       window.removeEventListener('resize', onFermer);
     };
   }, [ancre, onFermer]);

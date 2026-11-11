@@ -213,7 +213,11 @@ export default function ProjectIdeRoute() {
                 workspaceId={currentWorkspaceId}
                 windowId={searchParams.get('peWindow') || 'window-main'}
               >
-                <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
+                <IdePaletteProvider
+                  projectId={projectId}
+                  workspaceId={currentWorkspaceId}
+                  windowId={searchParams.get('peWindow') || 'window-main'}
+                >
                   <SearchDraftProvider
                     projectId={projectId}
                     workspaceId={currentWorkspaceId}

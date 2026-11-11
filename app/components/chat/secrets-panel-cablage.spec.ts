@@ -37,7 +37,7 @@ describe('onglet Secrets — le panneau branché est le nouveau', () => {
     expect(composant).toContain('data-testid="secrets-filter"');
     expect(composant).toContain('filtrerLesSecrets(secrets, filtre)');
     expect(composant).toContain('disabled={!ajoutPossible}');
-    expect(composant).toContain('const ajoutPossible = peutAjouter(cle, valeur) && !busy;');
+    expect(composant).toContain('const ajoutPossible = peutAjouter(cle, valeur) && !busy && !formulaire.pending;');
   });
 
   it('une ligne = puce clé, puce valeur masquée avec œil, ⋮ → Modifier / Trouver les usages / Supprimer', () => {

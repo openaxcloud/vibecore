@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-618 entrées.
+623 entrées.
 
 ## Sans section
 
@@ -875,6 +875,14 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-E2E-WAIVER-RETIREMENT-2026-11-11](docs/bugs/BUG-E2E-WAIVER-RETIREMENT-2026-11-11.md) — 📤 Dispatché : ☑ 11/11/2026 — correctif proposé pour validation. · 💻 Codé : ☐ Non fusionné dans main ; correctif présent sur la branche de validation. · ✅ Testé live : ☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
+
+## Promotion IDE locale du 11 novembre 2026
+
+- [BUG-IDE-PANE-RESTORE-20261111](docs/bugs/BUG-IDE-PANE-RESTORE-20261111.md) — La normalisation remplaçait les identifiants des feuilles par pane-main, faisant perdre la cible active et l’identité distincte des panneaux restaurés. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
+- [BUG-IDE-URL-MEMORY-HANDOFF-20261111](docs/bugs/BUG-IDE-URL-MEMORY-HANDOFF-20261111.md) — Une ouverture automatique depuis l’URL pouvait empêcher le retour de la disposition enregistrée, être rejouée dans un panneau nouvellement ciblé ou fuiter entre — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
+- [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — Le formulaire Secrets et les champs non enregistrés disparaissaient quand la coquille de chargement était remplacée. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
+- [BUG-SECRETS-MENU-SCROLL-20261111](docs/bugs/BUG-SECRETS-MENU-SCROLL-20261111.md) — Un défilement interne du menu ne doit pas le fermer; le déplacement de son bouton d’ancrage doit le fermer sans dérober le focus. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
+- [BUG-WORKSPACE-ENV-METADATA-20261111](docs/bugs/BUG-WORKSPACE-ENV-METADATA-20261111.md) — Les neuf états internes *_STATE étaient projetés dans l’environnement du workspace, pouvant changer son manifeste lors d’une édition de panneau. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
