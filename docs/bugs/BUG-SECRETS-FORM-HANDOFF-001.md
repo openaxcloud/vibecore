@@ -1,3 +1,7 @@
+---
+id: BUG-SECRETS-FORM-HANDOFF-001
+---
+
 # Secrets form lost during shell replacement
 
 ## Status
@@ -56,3 +60,15 @@ The Vitest executable, full repository dependency graph, production build, origi
 and deployment validation are not available in this local subset. Run the repository Vitest/lint/typecheck/build and
 unchanged runtime acceptance audit on the composed commit before promotion. Existing audit waits, actions, assertions,
 and retry counts are untouched.
+
+## 📤 Dispatché
+
+☑ 11/11/2026 — correctif proposé pour validation.
+
+## 💻 Codé
+
+☐ Non fusionné dans main ; correctif présent sur la branche de validation.
+
+## ✅ Testé live
+
+☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.

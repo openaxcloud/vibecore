@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-618 entrées.
+620 entrées.
 
 ## Sans section
 
@@ -872,6 +872,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-MANAGER-TERMINAL-PODS-READINESS-20261101](docs/bugs/BUG-MANAGER-TERMINAL-PODS-READINESS-20261101.md) — 📤 Dispatché : ☑ 01/11 — analyser le refus `STAGED_MANAGER_MANAGER_POD_COUNT` du déploiement · 💻 Codé : ☑ — correctif local préparé, pas encore livré. Exclure uniquement les pods · ✅ Testé live : ☐ — aucune mutation cluster ni recette production effectuée pour ce correctif.
 - [BUG-RUNTIME-CI-FALSE-SUCCESS-20261108](docs/bugs/BUG-RUNTIME-CI-FALSE-SUCCESS-20261108.md) — 📤 Dispatché : ☑ 08/11 — diagnostic demandé sur main af0ea860, run42446502089, · 💻 Codé : ☐ — correction locale seulement : retirer continue-on-error du job, tenter · ✅ Testé live : ☐ — trois contrats de configuration rouges avant, verts après ; aucune preuve
+
+## Sans section
+
+- [BUG-E2E-WAIVER-RETIREMENT-2026-11-11](docs/bugs/BUG-E2E-WAIVER-RETIREMENT-2026-11-11.md) — 📤 Dispatché : ☑ 11/11/2026 — correctif proposé pour validation. · 💻 Codé : ☐ Non fusionné dans main ; correctif présent sur la branche de validation. · ✅ Testé live : ☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
+- [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — 📤 Dispatché : ☑ 11/11/2026 — correctif proposé pour validation. · 💻 Codé : ☐ Non fusionné dans main ; correctif présent sur la branche de validation. · ✅ Testé live : ☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

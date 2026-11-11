@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import ts from 'typescript';
 import { afterEach, expect, it } from 'vitest';
+import { porteeDisposition } from './ide-layout-handoff';
 import * as keepalive from './mobile-workbench-keepalive';
 import { resolveProjectEditorToolOpen } from './project-editor-tool-catalog';
 import * as registry from '~/lib/ide/panel-registry';
@@ -13,6 +14,9 @@ const source = readFileSync(join(__dirname, 'BaseChat.tsx'), 'utf8');
 const tree = ts.createSourceFile('BaseChat.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
 const names = [
+  'PROJECT_EDITOR_WINDOW_PARAM',
+  'DEFAULT_PROJECT_EDITOR_WINDOW',
+  'porteeDeLaDisposition',
   'projectPanelResolution',
   'activeProjectPanel',
   '[mobilePanel, setMobilePanel]',
@@ -74,7 +78,9 @@ let ready = false;
 /*
  * Execute the actual state initializers, navigation callback, complete URL
  * effect and keepalive effect inside the actual Chat startup branch. The
- * expensive editor/runtime leaves and persistence are isolated. Different
+ * desktop handoff scope is computed with its actual constants and helper,
+ * because it is a dependency of the complete URL effect even in mobile mode.
+ * The expensive editor/runtime leaves and persistence are isolated. Different
  * PendingComposerShell/ChatImpl types preserve React's real subtree replacement.
  *
  * JSDOM does not perform layout. We assert the missing-workbench commit that
@@ -136,6 +142,7 @@ const bindings = {
   useLayoutEffect: React.useLayoutEffect,
   ...registry,
   ...keepalive,
+  porteeDisposition,
   resolveProjectEditorToolOpen,
   useChatHistory: () => ({ ready, initialMessages: [] }),
   record: (commit: Commit) => {
