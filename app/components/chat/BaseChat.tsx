@@ -1809,6 +1809,7 @@ function normalizePaneTree(node: any): IdePaneNode {
 
   const normalize = (entry: any): IdePaneNode => {
     const preferredId = validId(entry?.id) ? entry.id : entry?.type === 'split' ? 'pane-split-root' : 'pane-main';
+
     let id = preferredId;
     let suffix = 2;
 
@@ -1838,7 +1839,9 @@ function normalizePaneTree(node: any): IdePaneNode {
 
     const tabs = ensureCorePaneTabs(collectPaneTabs(entry));
     const legacyActiveTabId = typeof entry?.activeTabId === 'string' ? entry.activeTabId : undefined;
-    const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId) ? legacyActiveTabId : tabs[tabs.length - 1]?.id;
+    const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId)
+      ? legacyActiveTabId
+      : tabs[tabs.length - 1]?.id;
 
     return { type: 'leaf', id, tabs, activeTabId };
   };
@@ -3730,29 +3733,41 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const porteeDeLaDisposition = porteeDisposition(
       projectId,
       searchParams.get(PROJECT_EDITOR_WINDOW_PARAM) || DEFAULT_PROJECT_EDITOR_WINDOW,
+      currentWorkspaceId,
     );
 
     const [dispositionTransmise] = useState(() =>
       lireDispositionTransmise<IdePaneNode, IdeFloatingPane>(porteeDeLaDisposition),
     );
 
-    const [paneTree, setPaneTree] = useState<IdePaneNode>(
-      () => dispositionTransmise?.paneTree ?? cloneDefaultPaneTree(),
-    );
+    const [paneLayout, setPaneLayout] = useState(() => ({
+      paneTree: dispositionTransmise?.paneTree ?? cloneDefaultPaneTree(),
+      provisionalPaneTree: dispositionTransmise?.provisionalPaneTree ?? cloneDefaultPaneTree(),
+    }));
+    const { paneTree } = paneLayout;
+    const setPaneTree = useCallback((update: React.SetStateAction<IdePaneNode>) => {
+      setPaneLayout((current) => {
+        const nextTree = typeof update === 'function' ? update(current.paneTree) : update;
+
+        return nextTree === current.paneTree ? current : { ...current, paneTree: nextTree };
+      });
+    }, []);
 
     /*
      * Miroir de la disposition COURANTE, lisible depuis une réponse asynchrone.
      * La valeur capturée dans la fermeture de l'effet date de son lancement ;
      * or c'est précisément l'écart entre les deux qui nous intéresse.
      */
-    const paneTreeRef = useRef(paneTree);
+    // Automatic URL opening is interactive but is not a user-edited layout.
+    // Carry its baseline across shell handoffs so delayed memory may still restore saved tabs.
+    const provisionalPaneTreeRef = useRef(paneLayout.provisionalPaneTree);
+    const provisionalPaneScopeRef = useRef(porteeDeLaDisposition);
+    const provisionalPanelNavigationRef = useRef(dispositionTransmise?.provisionalPanelNavigation);
 
-    paneTreeRef.current = paneTree;
+    const paneTreeRef = useRef(paneTree);
 
     const [activePaneId, setActivePaneId] = useState(dispositionTransmise?.activePaneId ?? 'pane-main');
     const activePaneIdRef = useRef(activePaneId);
-
-    activePaneIdRef.current = activePaneId;
 
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
@@ -3762,7 +3777,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const floatingPanesRef = useRef(floatingPanes);
-    floatingPanesRef.current = floatingPanes;
 
     const palettePaneIds = useMemo(
       () => [...flattenPaneLeafIds(paneTree), ...floatingPanes.map((floating) => floating.pane.id)],
@@ -3791,9 +3805,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * démontage lit la disposition COURANTE via un miroir, pas celle capturée
      * au lancement de l'effet.
      */
-    const dispositionCouranteRef = useRef({ paneTree, activePaneId, floatingPanes });
-
-    dispositionCouranteRef.current = { paneTree, activePaneId, floatingPanes };
+    const dispositionCouranteRef = useRef({
+      paneTree,
+      activePaneId,
+      floatingPanes,
+      provisionalPaneTree: provisionalPaneTreeRef.current,
+      provisionalPanelNavigation: provisionalPanelNavigationRef.current,
+    });
 
     /*
      * Le dépôt se fait À CHAQUE changement, pas seulement au démontage : le vrai
@@ -3803,16 +3821,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * démontage reste pour la dernière valeur, celle que le rendu a pu manquer.
      */
     useLayoutHandoffEffect(() => {
+      // Only committed layouts may drive asynchronous restore or a later shell.
+      paneTreeRef.current = paneTree;
+      activePaneIdRef.current = activePaneId;
+      floatingPanesRef.current = floatingPanes;
+      provisionalPaneTreeRef.current = paneLayout.provisionalPaneTree;
+      dispositionCouranteRef.current = {
+        paneTree,
+        activePaneId,
+        floatingPanes,
+        provisionalPaneTree: paneLayout.provisionalPaneTree,
+        provisionalPanelNavigation: provisionalPanelNavigationRef.current,
+      };
+
       if (!projectIdeMode) {
         return undefined;
       }
 
-      deposerDisposition(porteeDeLaDisposition, { paneTree, activePaneId, floatingPanes });
+      deposerDisposition(porteeDeLaDisposition, dispositionCouranteRef.current);
 
       return () => {
         deposerDisposition(porteeDeLaDisposition, dispositionCouranteRef.current);
       };
-    }, [activePaneId, floatingPanes, paneTree, porteeDeLaDisposition, projectIdeMode]);
+    }, [activePaneId, floatingPanes, paneTree, paneLayout.provisionalPaneTree, porteeDeLaDisposition, projectIdeMode]);
 
     const [agentWidth, setAgentWidth] = useState(() =>
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
@@ -4228,7 +4259,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
 
-    // Readiness fallback may precede memory: it must not seed a new desktop layout from the URL.
+    // Memory completion distinguishes provisional URL openings from the restored desktop layout.
     const [projectLayoutReadyFor, setProjectLayoutReadyFor] = useState<string | undefined>(undefined);
     const gardeDeRestauration = useRef(creerGardeDeRestauration());
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
@@ -4980,6 +5011,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
       setProjectLayoutReadyFor(undefined);
+
+      if (provisionalPaneScopeRef.current !== porteeDeLaDisposition) {
+        provisionalPaneScopeRef.current = porteeDeLaDisposition;
+        setPaneLayout((current) => ({ ...current, provisionalPaneTree: cloneDefaultPaneTree() }));
+        provisionalPanelNavigationRef.current = undefined;
+      }
+
       gardeDeRestauration.current.oublier();
       restoredProjectSelectionScope.current = undefined;
       pendingProjectSelectedFile.current = undefined;
@@ -5468,10 +5506,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * restauration n'aboutissait jamais, le défaut restait invisible ;
            * la réparer l'a mis au jour.
            */
-          const dispositionIntacte = laDispositionPeutEtreRestauree(paneTreeRef.current, cloneDefaultPaneTree());
+          const dispositionIntacte =
+            laDispositionPeutEtreRestauree(paneTreeRef.current, provisionalPaneTreeRef.current) &&
+            activePaneIdRef.current === 'pane-main' &&
+            floatingPanesRef.current.length === 0;
 
           if (restoredTree && dispositionIntacte) {
             setPaneTree(restoredTree);
+            provisionalPanelNavigationRef.current = undefined;
           }
 
           const restoredFloating = normalizeFloatingPanes(windowSlice?.floatingPanes);
@@ -6084,7 +6126,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const openWorkspacePanel = useCallback(
       (
         requestedPanel: IdeWorkspacePanel,
-        options: { replaceUrl?: boolean; paneId?: string; filePath?: string; preview?: boolean } = {},
+        options: {
+          replaceUrl?: boolean;
+          paneId?: string;
+          filePath?: string;
+          preview?: boolean;
+          provisional?: boolean;
+        } = {},
       ) => {
         /*
          * An aliased tool names a screen that lives as a tab inside another
@@ -6110,17 +6158,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const targetPaneId = options.paneId ?? activePaneIdRef.current;
         setActivePaneId(targetPaneId);
 
+        // Allocate identity once, outside the pure state updater that React may replay.
+        const requestedTab = {
+          ...makePaneTab(panel, {
+            pinned: panel === 'preview' ? true : undefined,
+            filePath: options.filePath,
+          }),
+          preview: options.preview,
+        };
         const openTab = (windowState: ProjectEditorWindowState) =>
-          engineOpenTabInPane(windowState, {
-            paneId: targetPaneId,
-            tab: {
-              ...makePaneTab(panel, {
-                pinned: panel === 'preview' ? true : undefined,
-                filePath: options.filePath,
-              }),
-              preview: options.preview,
-            },
-          });
+          engineOpenTabInPane(windowState, { paneId: targetPaneId, tab: requestedTab });
 
         /*
          * A floating target belongs to floatingPanes, not the docked tree.
@@ -6136,13 +6183,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ).floatingPanes,
           );
         } else {
-          setPaneTree((currentTree) => {
+          setPaneLayout((current) => {
             const next = runProjectEditorWindowOp(
-              { root: currentTree, floatingPanes: floatingPanesRef.current, activePaneId: targetPaneId },
+              { root: current.paneTree, floatingPanes: floatingPanesRef.current, activePaneId: targetPaneId },
               openTab,
             );
+            const nextTree = next.root ?? current.paneTree;
+            const advanceBaseline =
+              options.provisional && laDispositionPeutEtreRestauree(current.paneTree, current.provisionalPaneTree);
 
-            return next.root ?? currentTree;
+            return {
+              paneTree: nextTree,
+              provisionalPaneTree: advanceBaseline ? nextTree : current.provisionalPaneTree,
+            };
           });
         }
 
@@ -6510,12 +6563,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const appliedDeployAliasRef = useRef<string>();
 
     useEffect(() => {
-      if (
-        !projectIdeMode ||
-        !mobileNavigationReady ||
-        (!projectStateReady && !activeProjectPanel) ||
-        (!useMobileIde && projectId && projectLayoutReadyFor !== projectId)
-      ) {
+      if (!projectIdeMode || !mobileNavigationReady || (!projectStateReady && !activeProjectPanel)) {
         return;
       }
 
@@ -6537,6 +6585,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         // Consume only the URL echo of a move that actually reached its target.
         if (destination?.tabs.some((tab) => tab.id === appliedPanelUrl.tabId && tab.panel === activeProjectPanel)) {
+          if (projectId && projectLayoutReadyFor !== projectId) {
+            provisionalPanelNavigationRef.current = {
+              navigationId: appliedPanelNavigationId,
+              projectId,
+              workspaceId: currentWorkspaceId,
+              windowId: projectEditorWindowId,
+              panel: activeProjectPanel,
+            };
+
+            // This acknowledgement changes no React state, so publish its receipt now.
+            // Keep the committed layout snapshot; never read a speculative render here.
+            dispositionCouranteRef.current = {
+              ...dispositionCouranteRef.current,
+              provisionalPanelNavigation: provisionalPanelNavigationRef.current,
+            };
+            deposerDisposition(porteeDeLaDisposition, dispositionCouranteRef.current);
+          }
+
           return;
         }
       }
@@ -6587,7 +6653,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        openWorkspacePanel(opening.panel as IdeWorkspacePanel, { replaceUrl: false });
+        const provisionalNavigation = provisionalPanelNavigationRef.current;
+
+        // Readiness and shell handoffs must not replay a pending URL into a newly focused pane.
+        // A real saved-tree adoption clears this receipt so the URL is applied to that layout.
+        if (
+          provisionalNavigation?.navigationId === appliedPanelNavigationId &&
+          provisionalNavigation.projectId === projectId &&
+          provisionalNavigation.workspaceId === currentWorkspaceId &&
+          provisionalNavigation.windowId === projectEditorWindowId &&
+          provisionalNavigation.panel === activeProjectPanel
+        ) {
+          return;
+        }
+
+        const provisional = Boolean(projectId && projectLayoutReadyFor !== projectId);
+
+        openWorkspacePanel(opening.panel as IdeWorkspacePanel, { replaceUrl: false, provisional });
+        provisionalPanelNavigationRef.current = provisional
+          ? {
+              navigationId: appliedPanelNavigationId,
+              projectId,
+              workspaceId: currentWorkspaceId,
+              windowId: projectEditorWindowId,
+              panel: activeProjectPanel,
+            }
+          : undefined;
       }
     }, [
       activeProjectPanel,
@@ -6596,6 +6687,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       mobilePopRevision,
       currentWorkspaceId,
       openWorkspacePanel,
+      porteeDeLaDisposition,
       projectEditorWindowId,
       projectId,
       projectIdeMode,
@@ -12225,7 +12317,7 @@ function ProjectIdeApiServicePanel({
     }
 
     if (!projectId) {
-      return;
+      return false;
     }
 
     setBusy(true);
@@ -12288,7 +12380,7 @@ function ProjectIdeApiServicePanel({
           setError(message);
         }
 
-        return;
+        return false;
       }
 
       if (result.shareLink?.url) {
@@ -12308,6 +12400,8 @@ function ProjectIdeApiServicePanel({
 
       window.dispatchEvent(new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: true } }));
       void loadPanel({ silent: true });
+
+      return true;
     } catch (requestError) {
       console.error('IDE panel action request failed', { panel, intent, requestError });
 
@@ -12326,6 +12420,8 @@ function ProjectIdeApiServicePanel({
         await loadPanel({ silent: true });
         setError(message);
       }
+
+      return false;
     } finally {
       setBusy(false);
     }
@@ -13069,7 +13165,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       event.preventDefault();
 
       if (!projectId) {
-        return;
+        return false;
       }
 
       const form = event.currentTarget;
@@ -13085,7 +13181,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
 
         const result = (await response.json().catch(() => ({}))) as any;
 
-        if (!response.ok) {
+        if (!response.ok || result.ok === false) {
           console.warn('Environment action request failed', {
             panel,
             status: response.status,
@@ -13093,7 +13189,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
           });
           setError(t('baseChatAst.terminal.actionFailedHttp', { status: response.status }));
 
-          return;
+          return false;
         }
 
         form.reset();
@@ -13108,9 +13204,13 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
         );
         setMessage(t('baseChatAst.terminal.actionApplied'));
         await loadPanel();
+
+        return true;
       } catch (requestError) {
         console.error('Environment action request failed', requestError);
         setError(t('baseChatAst.terminal.actionFailed'));
+
+        return false;
       } finally {
         setBusy(false);
       }
@@ -14937,7 +15037,7 @@ function ProjectIdePanelContent({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void | boolean | Promise<void | boolean>;
   busy: boolean;
   reload?: (options?: { silent?: boolean }) => void | Promise<void>;
   lastLoadedAt?: string;

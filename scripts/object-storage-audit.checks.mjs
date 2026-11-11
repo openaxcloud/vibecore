@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
+  readStorageStatusAfterReload,
   auditStorageBackendStatus,
   auditStorageUiCapability,
   matchesStorageStatusRequest,
@@ -101,7 +103,7 @@ test('selectors and read-only probe match the existing component instead of the 
   assert.match(component, /bolt-project-object-storage-panel/);
   assert.doesNotMatch(audit, /getByPlaceholder\('vibecore-project-assets'\)|Save storage config/);
   assert.match(audit, /\['object-storage', form\(\{ intent: 'status' \}\)\]/);
-  assert.match(helper, /page.reload\(\{ waitUntil: 'domcontentloaded' \}\)/);
+  assert.match(helper, /page.reload\(\{ waitUntil: 'domcontentloaded', timeout \}\)/);
   assert.match(helper, /page.request.get\(backendUrl/);
   assert.doesNotMatch(helper, /\.click\(|\.setInputFiles\(|\.route\(|\.fulfill\(/);
   assert.doesNotMatch(helper, /intent: '(?:ensure-bucket|upload-url|delete-bucket|delete-object|move)'/);
@@ -223,31 +225,22 @@ for (const capability of [
 ]) {
   test(`read-only UI reload proof stays incomplete for ${JSON.stringify(capability)}`, async () => {
     let reads = 0;
-    let reloads = 0;
-    let waits = 0;
     const visible = { waitFor: async () => {}, count: async () => 0 };
-    const page = {
-      request: { get: async () => {
-        reads += 1;
-        return { status: () => capability.enabled ? 200 : 404,
-          json: async () => capability.enabled ? capability : { code: 'FEATURE_NOT_ENABLED' } };
-      } },
-      reload: async () => { reloads += 1; },
-      waitForRequest: async (predicate) => {
-        waits += 1;
-        const request = statusRequest({ response: async () => ({ status: () => 200, json: async () => capability }) });
-        assert.equal(predicate(request), true);
-        return request;
-      },
-      locator: () => ({ ...visible, getByText: () => visible, getByRole: () => visible }),
-    };
+    const { page, evidence } = reloadFixture({ body: capability });
+    page.request = { get: async () => {
+      reads += 1;
+      return { status: () => capability.enabled ? 200 : 404,
+        json: async () => capability.enabled ? capability : { code: 'FEATURE_NOT_ENABLED' } };
+    } };
+    page.locator = () => ({ ...visible, getByText: () => visible, getByRole: () => visible });
     await assert.rejects(auditStorageUiCapability(page, panelUrl, 'https://api.test/status', 'test-token'), (error) => {
       assert.ok(error instanceof StorageLifecycleUnverified);
       assert.equal(error.evidence.reloadVerified, true);
       assert.equal(error.evidence.activeLifecycle, 'not_verified');
       return true;
     });
-    assert.deepEqual([reads, reloads, waits], [2, 2, 2]);
+    assert.deepEqual([reads, evidence.reloads, evidence.newBodyReads], [2, 2, 2]);
+    assertNoReloadListeners(page);
   });
 }
 
@@ -256,3 +249,115 @@ test('runtime harness mandates the Node checks immediately after MCP checks', ()
   assert.match(workflow, /node --test scripts\/mcp-extension-audit.checks.mjs\n\s+node --test scripts\/object-storage-audit.checks.mjs/);
   assert.doesNotMatch(workflow, /object-storage-audit.spec.mjs/);
 });
+
+// Event ordering models a late old-document status fetch, reload commit,
+// new-document status fetch/response, then DOMContentLoaded. No live browser.
+function reloadFixture({ body = { enabled: false, provisioned: false }, mode = 'normal' } = {}) {
+  const page = new EventEmitter();
+  const main = {};
+  const child = {};
+  const evidence = { reloads: 0, oldBodyReads: 0, newBodyReads: 0, immediateBodyReads: 0 };
+  page.mainFrame = () => main;
+  page.reload = async () => {
+    evidence.reloads += 1;
+    let committed = false;
+    let domLoaded = false;
+    const request = (frame = main) => statusRequest({ frame: () => frame, isNavigationRequest: () => false });
+    const old = request();
+    const oldResponse = {
+      request: () => old,
+      status: () => 200,
+      json: async () => {
+        evidence.oldBodyReads += 1;
+        if (committed) {
+          throw new Error('Protocol error (Network.getResponseBody): No resource with given identifier found');
+        }
+        return { enabled: true, provisioned: true };
+      },
+    };
+    old.response = async () => oldResponse;
+    page.emit('request', old);
+    if (mode === 'reload-fails') {
+      throw new Error('reload failed');
+    }
+    const navigation = { frame: () => main, isNavigationRequest: () => true };
+    page.emit('request', navigation);
+    // A status request before commit still belongs to the old document.
+    page.emit('request', request());
+    page.emit('framenavigated', child);
+    committed = true;
+    page.emit('framenavigated', main);
+    page.emit('response', oldResponse);
+    const fresh = request(mode === 'child-only' ? child : main);
+    if (mode !== 'missing-status') {
+      page.emit('request', fresh);
+      if (mode === 'request-fails') {
+        page.emit('requestfailed', fresh);
+      } else {
+        page.emit('response', {
+          request: () => fresh,
+          status: () => 200,
+          json: async () => {
+            evidence.newBodyReads += 1;
+            if (!domLoaded) {
+              evidence.immediateBodyReads += 1;
+            }
+            if (mode === 'body-fails') {
+              throw new Error('new-document response body unavailable');
+            }
+            return body;
+          },
+        });
+      }
+    }
+    // Body capture settles before another navigation: failure must still win.
+    await Promise.resolve();
+    if (mode === 'second-navigation') {
+      page.emit('request', { frame: () => main, isNavigationRequest: () => true });
+    }
+    domLoaded = true;
+    return { request: () => mode === 'wrong-navigation' ? {} : navigation };
+  };
+  return { page, evidence };
+}
+
+function assertNoReloadListeners(page) {
+  for (const event of ['request', 'response', 'framenavigated', 'requestfailed']) {
+    assert.equal(page.listenerCount(event), 0, event);
+  }
+}
+
+test('reload captures only new main-document status and starts body read before DOMContentLoaded', async () => {
+  const { page, evidence } = reloadFixture();
+  assert.deepEqual(await readStorageStatusAfterReload(page, panelUrl), {
+    status: 200, body: { enabled: false, provisioned: false },
+  });
+  assert.deepEqual(evidence, { reloads: 1, oldBodyReads: 0, newBodyReads: 1, immediateBodyReads: 1 });
+  assertNoReloadListeners(page);
+});
+
+test('same event schedule reproduces missing-body failure in historical pre-reload waiter', async () => {
+  const { page, evidence } = reloadFixture();
+  const firstRequest = new Promise((resolve) => page.once('request', resolve));
+  const [request] = await Promise.all([firstRequest, page.reload({ waitUntil: 'domcontentloaded' })]);
+  const response = await request.response();
+  await assert.rejects(response.json(), /Network.getResponseBody.*No resource/);
+  assert.equal(evidence.oldBodyReads, 1);
+  assert.equal(evidence.newBodyReads, 0);
+});
+
+for (const [mode, error] of [
+  ['body-fails', /new-document response body unavailable/],
+  ['request-fails', /request failed/],
+  ['reload-fails', /reload failed/],
+  ['second-navigation', /interrupted by another navigation/],
+  ['wrong-navigation', /not tied to the completed reload/],
+  ['missing-status', /new-document status timed out/],
+  ['child-only', /new-document status timed out/],
+]) {
+  test(`reload proof fails honestly and removes observers: ${mode}`, async () => {
+    const { page } = reloadFixture({ mode });
+    await assert.rejects(readStorageStatusAfterReload(page, panelUrl, 25), error);
+    assertNoReloadListeners(page);
+  });
+}

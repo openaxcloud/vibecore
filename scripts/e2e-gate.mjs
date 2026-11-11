@@ -2,15 +2,10 @@
 /**
  * Production E2E gate.
  *
- * Reads Playwright's JSON report and decides whether the gate passes, applying
- * the bounded waiver in tests/e2e/e2e-waivers.json.
- *
- * The waiver cannot rot and cannot be widened at runtime:
- *   - the policy path is hard-coded here (no CLI override, no env var);
- *   - past `expires` the gate fails ON THE WAIVER, whatever the tests did;
- *   - a waived test that starts PASSING fails the gate until it is removed
- *     from the policy;
- *   - anything failing that is not listed fails the gate normally.
+ * Reads Playwright's JSON reports without failure waivers. Every unexpected
+ * failure blocks, including tests formerly covered by the retired policy.
+ * Explicit skips, expected failures and successful retries retain Playwright's
+ * existing semantics. Report completeness and spec coverage remain mandatory.
  *
  * Usage: node scripts/e2e-gate.mjs <playwright-report.json>
  */
@@ -19,7 +14,6 @@ import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const WAIVER_PATH = resolve(repoRoot, 'tests/e2e/e2e-waivers.json');
 
 function fail(message) {
   console.error(`\n✖ E2E gate: ${message}\n`);
@@ -70,41 +64,7 @@ for (const reportPath of reportPaths) {
   }
 }
 
-let policy;
-
-try {
-  policy = JSON.parse(readFileSync(WAIVER_PATH, 'utf8'));
-} catch (error) {
-  fail(`could not read waiver policy at ${WAIVER_PATH}: ${error.message}`);
-}
-
-/* ---- 1. The waiver must carry a valid, short, unexpired date. ---- */
-
-const expires = policy.expires;
-
-if (typeof expires !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(expires)) {
-  fail(`waiver "expires" must be an ISO date (YYYY-MM-DD); got ${JSON.stringify(expires)}`);
-}
-
-const expiryMs = Date.parse(`${expires}T23:59:59Z`);
-
-if (Number.isNaN(expiryMs)) {
-  fail(`waiver "expires" is not a real date: ${expires}`);
-}
-
-const now = Date.now();
-const MAX_WINDOW_DAYS = 30;
-const daysLeft = Math.ceil((expiryMs - now) / 86_400_000);
-
-if (expiryMs < now) {
-  fail(`the E2E waiver expired on ${expires}. Fix the tests below or re-scope the waiver — it does not renew itself.`);
-}
-
-if (daysLeft > MAX_WINDOW_DAYS) {
-  fail(`waiver window is ${daysLeft} days; the maximum is ${MAX_WINDOW_DAYS}. Shorten "expires".`);
-}
-
-/* ---- 2. Collect outcomes from the report. ---- */
+/* ---- 1. Collect outcomes from the report. ---- */
 
 const results = new Map();
 const flaky = [];
@@ -256,7 +216,9 @@ const racineSpecs = resolve(repoRoot, 'tests/e2e');
 
 function porteUnTestNonRuntime(chemin) {
   const source = readFileSync(chemin, 'utf8');
-  const appels = source.split(/\btest(?:\.describe)?\s*\(/u).slice(1);
+  // RegExp.test(...) is not a Playwright declaration. Keep runtime-only specs
+  // excluded when their bodies use a regular expression to inspect a URL.
+  const appels = source.split(/(?<!\.)\btest(?:\.describe)?\s*\(/u).slice(1);
 
   if (appels.length === 0) {
     return false;
@@ -300,40 +262,12 @@ if (fichiersManquants.length > 0) {
 }
 
 const failed = [...results.entries()].filter(([, status]) => status === 'failed').map(([key]) => key);
-const waived = policy.waived ?? [];
 
-/** Normalise a policy entry to the same basename-keyed shape as the report. */
-function normaliseKey(key) {
-  const [location, ...rest] = key.split(' › ');
+/* ---- 2. Decide. No policy file or runtime option can exempt a failure. ---- */
 
-  // Tolerate legacy `path:line:col` entries by dropping the position.
-  return [basename(location.split(':')[0]), ...rest].join(' › ');
-}
-
-const waivedKeys = new Set(waived.map((entry) => normaliseKey(entry.test)));
-
-/* ---- 3. Decide. ---- */
-
-const unwaivedFailures = failed.filter((key) => !waivedKeys.has(key));
-
-/*
- * A waiver must not outlive its problem, so a waived test that PASSES fails the
- * gate until it is removed. The exception is entries explicitly marked
- * `unstable: true` — those are waived *because* they flap, so a green run
- * proves nothing and must not itself break the build. Every unstable entry
- * still carries a reason and dies with the same expiry as the rest.
- */
-const staleWaivers = waived
-  .filter((entry) => !entry.unstable && results.get(normaliseKey(entry.test)) === 'passed')
-  .map((entry) => entry.test);
-
-const unknownWaivers = waived.filter((entry) => !results.has(normaliseKey(entry.test))).map((entry) => entry.test);
-
-console.log(`E2E gate — waiver expires ${expires} (${daysLeft} day(s) left)`);
+console.log('E2E gate — no failure waivers');
 console.log(`  tests reported : ${results.size}`);
 console.log(`  failing        : ${failed.length}`);
-console.log(`  waiver policy entries: ${waived.length}`);
-console.log(`  waived failures      : ${failed.filter((key) => waivedKeys.has(key)).length}`);
 console.log(`  flaky (passed on retry): ${flaky.length}`);
 
 if (globalErrors.length) {
@@ -351,23 +285,13 @@ if (flaky.length) {
   flaky.forEach((key) => console.log(`    - ${key}`));
 }
 
-if (unknownWaivers.length) {
-  console.log('\n⚠ waived entries that did not appear in this report (renamed or moved?):');
-  unknownWaivers.forEach((key) => console.log(`    - ${key}`));
-}
-
-if (staleWaivers.length) {
-  console.error('\n✖ these tests are waived but PASSED — remove them from tests/e2e/e2e-waivers.json:');
-  staleWaivers.forEach((key) => console.error(`    - ${key}`));
-}
-
-if (unwaivedFailures.length) {
+if (failed.length) {
   console.error('\n✖ failing tests that are NOT waived:');
-  unwaivedFailures.forEach((key) => console.error(`    - ${key}`));
+  failed.forEach((key) => console.error(`    - ${key}`));
 }
 
-if (globalErrors.length || incomplete.length || staleWaivers.length || unwaivedFailures.length) {
+if (globalErrors.length || incomplete.length || failed.length) {
   process.exit(1);
 }
 
-console.log(`\n✔ gate passes: ${failed.length} failure(s), all covered by the waiver expiring ${expires}.`);
+console.log('\n✔ gate passes: no unexpected failures and no failure waivers.');

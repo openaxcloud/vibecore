@@ -1,4 +1,13 @@
-import { createContext, useContext, useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface ProjectMemory {
@@ -69,12 +78,13 @@ const initialLogsView: LogsViewState = {
 };
 type LogsViews = Record<string, LogsViewState>;
 
-/** Ephemeral route state only. No credentials or persistent browser storage. */
+/** Ephemeral route state only. Nothing is written to persistent browser storage. */
 function useSettingsState(projectId: string) {
   const { t } = useTranslation();
   const [settingsTab, setSettingsTab] = useState('project');
   const [logsViews, setLogsViews] = useState<LogsViews>({});
   const [formDrafts, setFormDrafts] = useState<SettingsFormDrafts>({});
+  const [secretForms] = useState(createSecretFormStore);
   const [memoryDraft, setMemoryDraft] = useState('');
   const [memoryType, setMemoryType] = useState('semantic');
   const [memoryTags, setMemoryTags] = useState('');
@@ -393,6 +403,8 @@ function useSettingsState(projectId: string) {
   const saveEditedMemory = (id: string) => run(() => saveEditedMemoryRequest(id));
 
   return {
+    projectId,
+    secretForms,
     formDrafts,
     setFormDrafts,
     logsViews,
@@ -567,4 +579,93 @@ export function useIdeLogsView(projectId: string, paneId?: string) {
     ] as const;
 
   return { field };
+}
+
+interface SecretFormDraft {
+  open: boolean;
+  editingKey: string | null;
+  key: string;
+  value: string;
+}
+
+type SecretFormEntry = { draft: SecretFormDraft; submission?: object };
+const emptySecretForm: SecretFormEntry = { draft: { open: false, editingKey: null, key: '', value: '' } };
+
+/**
+ * Only user-entered, unsaved form fields. Owned by the route provider, never a
+ * module singleton, browser storage, panel cache, or telemetry payload. Revealed
+ * secrets and visibility stay local to their panel. Leaving the route drops it.
+ */
+function createSecretFormStore() {
+  const entries = new Map<string, SecretFormEntry>();
+  const listeners = new Set<() => void>();
+
+  return {
+    get: (scope: string) => entries.get(scope) ?? emptySecretForm,
+    set: (scope: string, entry: SecretFormEntry) => {
+      if (entry === emptySecretForm) {
+        entries.delete(scope);
+      } else {
+        entries.set(scope, entry);
+      }
+
+      listeners.forEach((notify) => notify());
+    },
+    subscribe: (notify: () => void) => {
+      listeners.add(notify);
+      return () => {
+        listeners.delete(notify);
+      };
+    },
+  };
+}
+
+/** The provider is project/workspace/window scoped; each form also has its own pane. */
+export function useIdeSecretFormDraft(projectId: string, paneId?: string) {
+  const shared = useContext(SettingsContext);
+  const scope = JSON.stringify([projectId, paneId ?? 'local']);
+  const [local, setLocal] = useState(() => ({ scope, store: createSecretFormStore() }));
+
+  // A standalone panel can change project without remounting. Reset its local
+  // lifetime atomically, without mutating the committed store during render.
+  let scopedLocal = local;
+
+  if (local.scope !== scope) {
+    scopedLocal = { scope, store: createSecretFormStore() };
+    setLocal(scopedLocal);
+  }
+
+  const store = shared && shared.projectId === projectId && paneId ? shared.secretForms : scopedLocal.store;
+  const entry = useSyncExternalStore(store.subscribe, () => store.get(scope), () => emptySecretForm);
+  const close = () => store.set(scope, emptySecretForm);
+  const open = (editingKey: string | null) => {
+    store.set(scope, { draft: { open: true, editingKey, key: editingKey ?? '', value: '' } });
+  };
+  const setField = (field: 'key' | 'value', value: string) => {
+    const current = store.get(scope);
+    store.set(scope, { ...current, draft: { ...current.draft, [field]: value } });
+  };
+  const beginSubmission = () => {
+    const current = store.get(scope);
+
+    if (!current.draft.open || current.submission) {
+      return null;
+    }
+
+    const submission = {};
+    store.set(scope, { ...current, submission });
+
+    return (saved: boolean) => {
+      const latest = store.get(scope);
+
+      // A completion from an old form must not close a canceled/reopened draft.
+      if (latest.submission !== submission) {
+        return;
+      }
+
+      store.set(scope, saved && latest.draft === current.draft ? emptySecretForm : { draft: latest.draft });
+    };
+  };
+
+  return { ...entry.draft, pending: Boolean(entry.submission), openForm: open, close, setField, beginSubmission };
 }

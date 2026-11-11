@@ -82,6 +82,90 @@ export function storageLifecycleEvidence(capability, completedProbes) {
   };
 }
 
+// Install observers before reload, but accept status only after the new main
+// document commits. Read its body on response, not after DOMContentLoaded.
+export async function readStorageStatusAfterReload(page, panelUrl, timeout = 15_000) {
+  const mainFrame = page.mainFrame();
+  let navigationRequest;
+  let committed = false;
+  let statusRequest;
+  let resolveStatus;
+  let rejectStatus;
+  let failure;
+  const status = new Promise((resolve, reject) => {
+    resolveStatus = resolve;
+    rejectStatus = reject;
+  });
+  const fail = (error) => {
+    failure = error;
+    rejectStatus(error);
+  };
+  const onRequest = (request) => {
+    if (request.serviceWorker?.() || request.frame() !== mainFrame) {
+      return;
+    }
+    if (request.isNavigationRequest()) {
+      if (committed) {
+        fail(new Error('Object Storage reload was interrupted by another navigation'));
+      } else {
+        navigationRequest = request;
+      }
+    } else if (committed && !statusRequest && matchesStorageStatusRequest(request, panelUrl)) {
+      statusRequest = request;
+    }
+  };
+  const onNavigated = (frame) => {
+    if (frame !== mainFrame) {
+      return;
+    }
+    if (!navigationRequest || committed) {
+      fail(new Error('Object Storage reload has an unexpected main-document commit'));
+      return;
+    }
+    committed = true;
+  };
+  const onResponse = (response) => {
+    if (statusRequest && response.request() === statusRequest) {
+      // Calling json now starts capture immediately and propagates missing-body
+      // failures. No fallback to another request or an API-synthesized body.
+      response.json().then(
+        (body) => resolveStatus({ status: response.status(), body }),
+        fail,
+      );
+    }
+  };
+  const onFailed = (request) => {
+    if (request === statusRequest || request === navigationRequest) {
+      fail(new Error('Object Storage reload/status request failed'));
+    }
+  };
+  page.on('request', onRequest);
+  page.on('framenavigated', onNavigated);
+  page.on('response', onResponse);
+  page.on('requestfailed', onFailed);
+  const timer = setTimeout(() => fail(new Error('Object Storage new-document status timed out')), timeout);
+
+  try {
+    const [result, navigation] = await Promise.all([
+      status,
+      page.reload({ waitUntil: 'domcontentloaded', timeout }),
+    ]);
+    if (failure) {
+      throw failure;
+    }
+    if (!committed || !navigation || navigation.request() !== navigationRequest) {
+      throw new Error('Object Storage status is not tied to the completed reload');
+    }
+    return result;
+  } finally {
+    clearTimeout(timer);
+    page.off('request', onRequest);
+    page.off('framenavigated', onNavigated);
+    page.off('response', onResponse);
+    page.off('requestfailed', onFailed);
+  }
+}
+
 // Read-only proof suitable for this disposable stack. It deliberately fails the
 // full UI acceptance result after recording limited capability-state evidence.
 // Never click Enable, request signed URLs, or provision external storage here.
@@ -92,18 +176,8 @@ export async function auditStorageUiCapability(page, panelUrl, backendUrl, token
     const upstream = await page.request.get(backendUrl, { headers: { authorization: `Bearer ${token}` } });
     capability = classifyStorageBackend(upstream.status(), await upstream.json());
 
-    // Observe the actual browser POST emitted by the component after reload.
-    const [request] = await Promise.all([
-      page.waitForRequest((req) => matchesStorageStatusRequest(req, panelUrl)),
-      page.reload({ waitUntil: 'domcontentloaded' }),
-    ]);
-    const response = await request.response();
-
-    if (!response) {
-      throw new Error('Object Storage status request after reload received no response');
-    }
-
-    assertStorageProxy(response.status(), await response.json(), capability);
+    const response = await readStorageStatusAfterReload(page, panelUrl);
+    assertStorageProxy(response.status, response.body, capability);
 
     const panel = page.locator(STORAGE_PANEL_SELECTOR);
     await panel.waitFor({ state: 'visible', timeout: 15_000 });

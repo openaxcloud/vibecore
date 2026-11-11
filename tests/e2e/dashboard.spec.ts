@@ -2286,7 +2286,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
 test(
   'edit file workflow surfaces editor, files, terminal and preview affordances',
   { tag: '@runtime' },
-  async ({ page, isMobile }) => {
+  withDesktopLayoutEvidence(async ({ page, isMobile }) => {
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
     const projectId = await createTestProject(page, 'E2E edit workflow project');
@@ -2331,13 +2331,13 @@ test(
     await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
-  },
+  }),
 );
 
 test(
   'reopens project IDE with persisted agent memory and panel state',
   { tag: '@runtime' },
-  async ({ page, isMobile }) => {
+  withDesktopLayoutEvidence(async ({ page, isMobile }) => {
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
     const auth = await authenticate(page);
@@ -2484,7 +2484,7 @@ test(
        */
       expect(persistedMetrics.rightPanelWidth).toBe('360px');
     }
-  },
+  }),
 );
 
 test('billing upgrade flow is reachable without frontend-only quota bypass', async ({ page }) => {

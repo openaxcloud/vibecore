@@ -14,8 +14,8 @@ import { describe, expect, it } from 'vitest';
  *
  * La porte est jouée telle quelle, sur de vrais rapports au format Playwright.
  * Le script réel est copié sans modification dans un dépôt temporaire avec
- * une politique de test bornée et deux specs attendus. Aucun changement à la
- * dérogation de production. Les assertions vérifient aussi le code de sortie.
+ * deux specs attendus, sans politique de dérogation. Les assertions vérifient
+ * aussi le code de sortie.
  */
 
 const RACINE = join(__dirname, '..', '..');
@@ -52,9 +52,6 @@ function porte(rapports: unknown[], env: Record<string, string> = {}) {
   mkdirSync(join(dossier, 'scripts'));
   mkdirSync(join(dossier, 'tests/e2e'), { recursive: true });
   copyFileSync(join(RACINE, 'scripts/e2e-gate.mjs'), join(dossier, 'scripts/e2e-gate.mjs'));
-
-  const expires = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
-  writeFileSync(join(dossier, 'tests/e2e/e2e-waivers.json'), JSON.stringify({ expires, waived: [] }));
 
   for (const spec of [SPEC, 'autre.spec.ts']) {
     writeFileSync(join(dossier, 'tests/e2e', spec), "test('témoin', () => {});\n");
