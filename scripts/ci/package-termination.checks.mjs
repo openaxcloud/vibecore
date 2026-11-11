@@ -16,6 +16,10 @@ const exports = {};
 new Function('exports', compile(readFileSync('services/api/src/package-install-result.ts', 'utf8')))(exports);
 
 const { packageInstallResult } = exports;
+const diagnosticExports = {};
+new Function('exports', compile(readFileSync('services/workspace-agent/src/command-execution-diagnostic.ts', 'utf8')))(
+  diagnosticExports,
+);
 
 const agent =
   process.env.PACKAGE_TERMINATION_BASELINE === '1'
@@ -33,6 +37,7 @@ async function command() {
   const child = Object.assign(new EventEmitter(), { pid: 123, stdout: new EventEmitter(), stderr: new EventEmitter() });
 
   const deps = {
+    commandExecutionDiagnostic: diagnosticExports.commandExecutionDiagnostic,
     normalizeShellCommandArgs: (_command, args) => args,
     detectCommandAbuse: () => null,
     pinViteDevArgs: (_cwd, _command, args) => args,
@@ -172,4 +177,22 @@ test('legacy agent responses preserve real zero/nonzero exits and do not guess a
     termination: 'interrupted',
     success: false,
   });
+});
+
+test('actual agent projects byte counts and effective budget, never output text', async () => {
+  const { child, result } = await command();
+  const stdout = Buffer.from('é npm http fetch GET https://PRIVATE.registry/SECRET');
+  const stderr = Buffer.from('npm error code EAI_AGAIN PRIVATE_PACKAGE');
+  child.stdout.emit('data', stdout);
+  child.stderr.emit('data', stderr);
+  child.emit('close', 1, null);
+
+  const observed = await result;
+  assert.equal(observed.executionDiagnostic.stdoutBytes, stdout.length);
+  assert.equal(observed.executionDiagnostic.stderrBytes, stderr.length);
+  assert.equal(observed.executionDiagnostic.effectiveBudgetMs, 30_000);
+  assert.ok(observed.executionDiagnostic.elapsedMs >= 0);
+  assert.equal(observed.executionDiagnostic.observedPhase, 'fetch');
+  assert.equal(observed.executionDiagnostic.errorCode, 'EAI_AGAIN');
+  assert.doesNotMatch(JSON.stringify(observed.executionDiagnostic), /PRIVATE|SECRET|https/);
 });

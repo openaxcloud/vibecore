@@ -44,6 +44,7 @@ afterEach(async () => {
 });
 
 type Props = {
+  terminal?: boolean;
   shell?: string;
   project?: string;
   workspace?: string;
@@ -70,20 +71,24 @@ function tree(props: Props) {
     <section key={shell}>
       {show && (
         <>
-          <ProjectSecretsPanel
-            projectId={project}
-            paneId={pane}
-            language="en"
-            busy={false}
-            data={{ secrets: props.existingSecret ? [{ key: 'SYNTHETIC_KEY' }] : [] }}
-            onSubmit={
-              props.submit ??
-              ((event) => {
-                event.preventDefault();
-                return true;
-              })
-            }
-          />
+          {props.terminal ? (
+            <ActualTerminal projectId={project} paneId={pane} />
+          ) : (
+            <ProjectSecretsPanel
+              projectId={project}
+              paneId={pane}
+              language="en"
+              busy={false}
+              data={{ secrets: props.existingSecret ? [{ key: 'SYNTHETIC_KEY' }] : [] }}
+              onSubmit={
+                props.submit ??
+                ((event) => {
+                  event.preventDefault();
+                  return true;
+                })
+              }
+            />
+          )}
           <ProjectMetadataForm
             paneId={pane}
             settings={{ id: project, name: props.metadataName ?? 'Server name' }}
@@ -547,4 +552,103 @@ it('preserves the edit-mode key and newly typed value, never the old revealed va
   await view.click(cancel);
   await view.render({ shell: 'third' });
   assert.equal(Boolean(view.query(key)), false);
+});
+
+/*
+ * Execute the complete production outer terminal and both actual JSX prop hops.
+ * The large terminal tool body's unrelated networking/views are isolated, not its
+ * signature or Secrets call site; this catches a dropped pane at either boundary.
+ * The unrelated terminal-tools visibility hook uses local state in this fixture.
+ */
+const terminalSource = readFileSync('app/components/chat/BaseChat.tsx', 'utf8');
+
+const terminalAst = ts.createSourceFile(
+  'BaseChat.tsx',
+  terminalSource,
+  ts.ScriptTarget.Latest,
+  true,
+  ts.ScriptKind.TSX,
+);
+
+let outerTerminal = '';
+let terminalParameters = '';
+let terminalSecretsJsx = '';
+
+function inspectTerminal(node: ts.Node) {
+  if (ts.isFunctionDeclaration(node) && node.name?.text === 'ProjectInteractiveTerminalPanel') {
+    outerTerminal = node.getText(terminalAst);
+  }
+
+  if (ts.isFunctionDeclaration(node) && node.name?.text === 'ProjectTerminalPanel') {
+    terminalParameters = node.parameters.map((parameter) => parameter.getText(terminalAst)).join(', ');
+
+    const inspectJsx = (child: ts.Node) => {
+      if (ts.isJsxSelfClosingElement(child) && child.tagName.getText(terminalAst) === 'ProjectSecretsPanel') {
+        terminalSecretsJsx = child.getText(terminalAst);
+      }
+
+      ts.forEachChild(child, inspectJsx);
+    };
+    inspectJsx(node);
+  }
+
+  ts.forEachChild(node, inspectTerminal);
+}
+inspectTerminal(terminalAst);
+assert.ok(outerTerminal && terminalParameters && terminalSecretsJsx);
+
+const terminalCode = ts.transpileModule(
+  `${outerTerminal}
+function ProjectTerminalPanel(${terminalParameters}) {
+    const secrets = [], busy = false, loadPanel = () => {};
+    const submitToPanel = () => (event) => { event.preventDefault(); return true; };
+    return (${terminalSecretsJsx});
+  }
+return ProjectInteractiveTerminalPanel;`,
+  { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React }, fileName: 'terminal.tsx' },
+).outputText;
+
+const emptyLeaf = () => null;
+const passChildren = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
+const ActualTerminal = new Function(
+  'React',
+  'useState',
+  'useTranslation',
+  'ClientOnly',
+  'TerminalTabsFallback',
+  'PanelBoundary',
+  'Suspense',
+  'PanelGroup',
+  'LazyTerminalTabs',
+  'SHELL_TERMINAL_LABEL',
+  'ProjectSecretsPanel',
+  'useTerminalRuntimePanels',
+  terminalCode,
+)(
+  React,
+  React.useState,
+  () => ({ t: (key: string) => key }),
+  emptyLeaf,
+  emptyLeaf,
+  passChildren,
+  React.Suspense,
+  passChildren,
+  emptyLeaf,
+  'Terminal',
+  ProjectSecretsPanel,
+  () => React.useState(false),
+) as React.ComponentType<{ projectId: string; paneId?: string }>;
+
+it('actual terminal prop chain retains the scoped Secrets draft after shell replacement', async () => {
+  const view = await mount({ terminal: true });
+  await view.click('.bolt-project-terminal-direct-tools button');
+  await draft(view);
+  await view.render({ shell: 'loaded-chat' });
+  await view.click('.bolt-project-terminal-direct-tools button');
+  assert.equal(view.get<HTMLInputElement>(value).value, 'synthetic-unsaved-value');
+  await view.render({ pane: 'other-terminal-pane' });
+  assert.equal(Boolean(view.query(value)), false);
+  await view.render({ pane: 'pane-main' });
+  assert.equal(view.get<HTMLInputElement>(value).value, 'synthetic-unsaved-value');
 });

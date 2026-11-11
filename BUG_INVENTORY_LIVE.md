@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-620 entrées.
+621 entrées.
 
 ## Sans section
 
@@ -877,6 +877,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-E2E-WAIVER-RETIREMENT-2026-11-11](docs/bugs/BUG-E2E-WAIVER-RETIREMENT-2026-11-11.md) — 📤 Dispatché : ☑ 11/11/2026 — correctif proposé pour validation. · 💻 Codé : ☐ Non fusionné dans main ; correctif présent sur la branche de validation. · ✅ Testé live : ☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
 - [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — 📤 Dispatché : ☑ 11/11/2026 — correctif proposé pour validation. · 💻 Codé : ☐ Non fusionné dans main ; correctif présent sur la branche de validation. · ✅ Testé live : ☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
+- [BUG-RUNTIME-READ-STARTING-001](docs/bugs/BUG-RUNTIME-READ-STARTING-001.md) — 📤 Dispatché : Correctif préparé localement pour PR893. · 💻 Codé : Non fusionné et non déployé ; patch local uniquement. · ✅ Testé live : Non validé ; tests locaux contrôlés seulement.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

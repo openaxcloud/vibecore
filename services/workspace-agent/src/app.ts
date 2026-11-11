@@ -15,6 +15,7 @@ import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
+import { commandExecutionDiagnostic } from './command-execution-diagnostic.js';
 import { registerDebuggerEngine } from './debugger-engine.js';
 import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
 import {
@@ -2534,6 +2535,10 @@ async function runCommand(
   };
   options.processes.set(id, record);
 
+  const diagnosticStartedAt = performance.now();
+
+  let stdoutBytes = 0;
+  let stderrBytes = 0;
   let stdout = '';
   let stderr = '';
   let truncated = false;
@@ -2587,8 +2592,14 @@ async function runCommand(
     record.output = `${stdout}\n${stderr}`.slice(-options.maxOutputBytes);
   };
 
-  child.stdout.on('data', (chunk: Buffer) => append('stdout', decoders.stdout.write(chunk)));
-  child.stderr.on('data', (chunk: Buffer) => append('stderr', decoders.stderr.write(chunk)));
+  child.stdout.on('data', (chunk: Buffer) => {
+    stdoutBytes = Math.min(1_073_741_824, stdoutBytes + chunk.length);
+    append('stdout', decoders.stdout.write(chunk));
+  });
+  child.stderr.on('data', (chunk: Buffer) => {
+    stderrBytes = Math.min(1_073_741_824, stderrBytes + chunk.length);
+    append('stderr', decoders.stderr.write(chunk));
+  });
 
   // Flush any incomplete multi-byte tail buffered in the decoders when the child exits.
   const flushDecoders = () => {
@@ -2626,7 +2637,23 @@ async function runCommand(
       flushDecoders();
       options.rememberTerminal(record, code, signal);
       options.processes.delete(id);
-      resolvePromise({ id, code, signal, timedOut: record.timedOut === true, stdout, stderr, truncated });
+      resolvePromise({
+        id,
+        code,
+        signal,
+        timedOut: record.timedOut === true,
+        stdout,
+        stderr,
+        truncated,
+        executionDiagnostic: commandExecutionDiagnostic({
+          effectiveBudgetMs: options.timeoutMs,
+          elapsedMs: performance.now() - diagnosticStartedAt,
+          stdoutBytes,
+          stderrBytes,
+          stdout,
+          stderr,
+        }),
+      });
     });
 
     /*

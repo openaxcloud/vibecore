@@ -1,5 +1,6 @@
 /** Bounded diagnostic projection of actual API logs, never a runtime verdict. */
 export function summarizeRuntimeApi(log) {
+  const packageExecutions = [];
   const pending = new Map();
   const counts = new Map();
   const firstErrors = [];
@@ -16,6 +17,44 @@ export function summarizeRuntimeApi(log) {
     try {
       entry = JSON.parse(line);
     } catch {
+      continue;
+    }
+
+    if (entry?.event === 'package.install.execution') {
+      const bounded = (value, max) => (Number.isSafeInteger(value) && value >= 0 && value <= max ? value : null);
+      const category = (value, allowed) => (typeof value === 'string' && allowed.includes(value) ? value : 'unknown');
+      packageExecutions.push({
+        requestedBudgetMs: bounded(entry.requestedBudgetMs, 600_000),
+        effectiveBudgetMs: bounded(entry.effectiveBudgetMs, 86_400_000),
+        elapsedMs: bounded(entry.elapsedMs, 86_400_000),
+        stdoutBytes: bounded(entry.stdoutBytes, 1_073_741_824),
+        stderrBytes: bounded(entry.stderrBytes, 1_073_741_824),
+        observedPhase: category(entry.observedPhase, ['fetch', 'extract', 'lifecycle']),
+        errorCode: category(entry.errorCode, [
+          'EAI_AGAIN',
+          'ENOTFOUND',
+          'ECONNREFUSED',
+          'ECONNRESET',
+          'ETIMEDOUT',
+          'ENOSPC',
+          'EACCES',
+          'ERESOLVE',
+          'E404',
+          'E401',
+          'E403',
+        ]),
+        timedOut: typeof entry.timedOut === 'boolean' ? entry.timedOut : null,
+        signal:
+          entry.signal === null
+            ? null
+            : category(entry.signal, ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGHUP', 'SIGABRT', 'SIGSEGV']),
+        exitCode: bounded(entry.exitCode, 255),
+      });
+
+      if (packageExecutions.length > 60) {
+        packageExecutions.shift();
+      }
+
       continue;
     }
 
@@ -97,6 +136,7 @@ export function summarizeRuntimeApi(log) {
   }
 
   return {
+    packageExecutions,
     ideStateFailures,
     completed,
     failed,

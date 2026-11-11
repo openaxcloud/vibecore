@@ -57,7 +57,12 @@ async function openTool(page: Page, id: string) {
 
 for (const width of [390, 1180]) {
   test.describe(`panel visibility ${width}px`, () => {
-    test.use({ viewport: { width, height: width === 390 ? 844 : 757 }, hasTouch: width === 390 });
+    // Keep the failing attempt itself: first-retry traces only record the successful retry.
+    test.use({
+      viewport: { width, height: width === 390 ? 844 : 757 },
+      hasTouch: width === 390,
+      trace: 'retain-on-failure',
+    });
     for (const overlay of ['panels', 'tabs', 'tools'] as const) {
       test(`${overlay} closes with Escape and restores focus`, async ({ page, baseURL }, info) => {
         test.setTimeout(90_000);

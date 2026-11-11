@@ -13077,12 +13077,12 @@ function ProjectInteractiveTerminalPanel({ projectId, paneId }: { projectId?: st
           {t('chat.copy.runtimePanels_8560a91c')}
         </button>
       </div>
-      {toolsOpen ? <ProjectTerminalPanel projectId={projectId} /> : null}
+      {toolsOpen ? <ProjectTerminalPanel projectId={projectId} paneId={paneId} /> : null}
     </section>
   );
 }
 
-function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
+function ProjectTerminalPanel({ projectId, paneId }: { projectId?: string; paneId?: string }) {
   const { t, i18n } = useTranslation();
   const language = resolvedBaseChatLanguage(i18n);
   const [activeTab, setActiveTab] = useState<'shell' | 'environment' | 'scripts' | 'connections'>('shell');
@@ -13589,6 +13589,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
               <ProjectEnvPanel data={{ envVars }} onSubmit={submitToPanel('env')} busy={busy} />
               <ProjectSecretsPanel
                 projectId={projectId}
+                paneId={paneId}
                 data={{ secrets }}
                 onSubmit={submitToPanel('secrets')}
                 busy={busy}

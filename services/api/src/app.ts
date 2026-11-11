@@ -522,10 +522,12 @@ import {
   type ThumbnailLogger,
 } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { packageExecutionDiagnostic } from './package-execution-diagnostic.js';
 import { packageInstallResult } from './package-install-result.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import { RuntimeLogReplay, runtimeLogEvents } from './runtime-log-replay.js';
+import { recoverStartingWorkspaceRead, withRuntimeReadCancellation } from './runtime-read-recovery.js';
 import { monthlyUsagePeriodStart } from './usage-period.js';
 import { WorkspaceAdmissionClient, type WorkspaceAdmission } from './workspace-admission.js';
 import {
@@ -15390,16 +15392,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    // Respect a caller-supplied signal too: aborting it aborts our fetch.
-    if (init.signal) {
-      if (init.signal.aborted) {
-        controller.abort();
-      } else {
-        init.signal.addEventListener('abort', () => controller.abort(), { once: true });
-      }
-    }
+    /*
+     * Native signal composition avoids retaining one explicit parent listener
+     * per manager poll. Caller cancellation must still reach response bodies
+     * after done() clears the header timeout.
+     */
+    const signal = init.signal ? AbortSignal.any([controller.signal, init.signal]) : controller.signal;
 
-    return { init: { ...init, signal: controller.signal }, done: () => clearTimeout(timer) };
+    return { init: { ...init, signal }, done: () => clearTimeout(timer) };
   };
 
   const managerRequest = async <T = unknown>(
@@ -15518,8 +15518,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     contexteRequete?: any,
     maxAttempts = AGENT_REQUEST_ATTEMPTS,
     timeoutMs?: number,
-  ) => {
-    const token = await agentToken(workspaceId);
+    allowReadRecovery = true,
+  ): Promise<T> => {
+    const readDeadline = Date.now() + (timeoutMs ?? RUNTIME_PROXY_TIMEOUT_MS);
+
+    if (init.signal?.aborted) {
+      throw Object.assign(new Error(appPublicEnglish('STREAM_ABORTED')), { statusCode: 499, code: 'STREAM_ABORTED' });
+    }
+
+    const { token } = await managerRequest<{ token: string }>(
+      `/workspaces/${workspaceId}/agent-token`,
+      { signal: init.signal },
+      timeoutMs,
+    );
+
     const headers = new Headers(init.headers);
     headers.set('authorization', `Bearer ${token}`);
     headers.set('accept', headers.get('accept') ?? 'application/json');
@@ -15571,6 +15583,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           continue;
         }
 
+        if (allowReadRecovery && ['GET', 'HEAD'].includes(method)) {
+          const recovery = await recoverStartingWorkspaceRead<T>({
+            method,
+            deadline: readDeadline,
+            signal: init.signal,
+            observe: (signal) =>
+              managerRequest<{ status?: string }>(
+                `/workspaces/${workspaceId}`,
+                { signal },
+                Math.max(1, readDeadline - Date.now()),
+              ),
+            healthy: async (signal) => {
+              const fresh = await managerRequest<{ token: string }>(
+                `/workspaces/${workspaceId}/agent-token`,
+                { signal },
+                Math.max(1, readDeadline - Date.now()),
+              );
+
+              try {
+                const health = await fetch(`${agentBaseUrl(workspaceId)}/health`, {
+                  headers: { authorization: `Bearer ${fresh.token}` },
+                  signal,
+                });
+                await health.body?.cancel();
+
+                return health.ok;
+              } catch (error) {
+                if (signal.aborted) {
+                  throw error;
+                }
+
+                return false;
+              }
+            },
+            read: (signal, remainingMs) =>
+              agentRequest<T>(workspaceId, path, { ...init, signal }, contexteRequete, 1, remainingMs, false),
+          });
+
+          if (recovery.recovered) {
+            return recovery.value;
+          }
+        }
+
         /*
          * A DNS failure on the workspace Service name is NOT a server error: the
          * Service and its endpoints are created with the pod, and there is a
@@ -15593,7 +15648,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * `agentMutateEnsuring`, qui ATTEND le démarrage au lieu de le
            * déclencher en arrière-plan.
            */
-          if (method === 'GET' || method === 'HEAD') {
+          if (allowReadRecovery && (method === 'GET' || method === 'HEAD')) {
             declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
           }
 
@@ -15616,7 +15671,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * absent ou éteint », pas « fichier illisible ». Le pod ne se rallumera
          * jamais tout seul si personne ne le demande.
          */
-        if (method === 'GET' || method === 'HEAD') {
+        if (allowReadRecovery && (method === 'GET' || method === 'HEAD')) {
           declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
         }
 
@@ -16163,10 +16218,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const agentFileRead = async (workspaceId: string, path: string) => {
+  const agentFileRead = async (workspaceId: string, path: string, signal?: AbortSignal) => {
     return agentRequest<{ content: string; encoding?: 'utf8' | 'base64' }>(
       workspaceId,
       `/files/read?path=${encodeURIComponent(path)}`,
+      { signal },
     );
   };
 
@@ -18377,6 +18433,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         method: 'POST',
         body: JSON.stringify({ command: input.command, args: input.args, timeoutMs: 120_000 }),
       });
+
+      /*
+       * Packages execution metadata is internal, not AI conversation/tool output.
+       * Preserve every existing command field and legacy non-object response.
+       */
+      if (output && typeof output === 'object' && !Array.isArray(output)) {
+        const { executionDiagnostic: _executionDiagnostic, ...publicOutput } = output as Record<string, unknown>;
+        output = publicOutput;
+      }
     } else if (toolName === 'get_terminal_output') {
       const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${workspaceId}/logs`);
       output = { logs: (logs?.logs ?? []).slice(-200) };
@@ -19069,7 +19134,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
-  app.get('/api/runtime/workspaces/:workspaceId/files', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/files', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
 
     const { path = '.', reparer } = parse(
@@ -19116,9 +19181,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ]);
     }
 
-    const nodes = await agentRequest<AgentNode[]>(
-      authorized.workspaceId,
-      `/files/tree?path=${encodeURIComponent(path)}`,
+    const nodes = await withRuntimeReadCancellation(request.raw, reply.raw, (signal) =>
+      agentRequest<AgentNode[]>(
+        authorized.workspaceId,
+        `/files/tree?path=${encodeURIComponent(path)}`,
+        { signal },
+        request,
+      ),
     );
 
     /*
@@ -19144,11 +19213,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return mapRuntimeNodes(nodes);
   });
-  app.get('/api/runtime/workspaces/:workspaceId/files/read', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/files/read', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const file = await agentFileRead(authorized.workspaceId, path);
+
+    const file = await withRuntimeReadCancellation(request.raw, reply.raw, (signal) =>
+      agentFileRead(authorized.workspaceId, path, signal),
+    );
 
     return { path, content: file.content, encoding: file.encoding };
   });
@@ -24307,6 +24379,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       code: number | null;
       signal?: string | null;
       timedOut?: boolean;
+      executionDiagnostic?: unknown;
       stdout?: string;
       stderr?: string;
       localRuntime?: boolean;
@@ -24334,6 +24407,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       result = await runLocalRuntimeCommand(authorized, commandBody);
     }
+
+    // A fixed allowlisted projection only; raw agent output never enters this event.
+    app.log.info(packageExecutionDiagnostic(commandBody.timeoutMs, result));
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     const outcome = packageInstallResult(result);
