@@ -1790,29 +1790,60 @@ function ensureCorePaneTabs(tabs: IdePaneTab[]) {
 }
 
 function normalizePaneTree(node: any): IdePaneNode {
-  if (node?.type === 'split') {
-    return {
-      type: 'split',
-      id: typeof node.id === 'string' ? node.id : 'pane-split-root',
-      direction: node.direction === 'vertical' ? 'vertical' : 'horizontal',
-      ...(typeof node.ratio === 'number' && Number.isFinite(node.ratio)
-        ? { ratio: Math.min(0.9, Math.max(0.1, node.ratio)) }
-        : {}),
-      first: normalizePaneTree(node.first),
-      second: normalizePaneTree(node.second),
-    };
-  }
+  const reservedIds = new Set<string>();
+  const usedIds = new Set<string>();
+  const validId = (id: unknown): id is string => typeof id === 'string' && id.trim().length > 0;
 
-  const tabs = ensureCorePaneTabs(collectPaneTabs(node));
-  const legacyActiveTabId = typeof node?.activeTabId === 'string' ? node.activeTabId : undefined;
-  const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId) ? legacyActiveTabId : tabs[tabs.length - 1]?.id;
+  const reserveIds = (entry: any) => {
+    if (validId(entry?.id)) {
+      reservedIds.add(entry.id);
+    }
 
-  return {
-    type: 'leaf',
-    id: 'pane-main',
-    tabs,
-    activeTabId,
+    if (entry?.type === 'split') {
+      reserveIds(entry.first);
+      reserveIds(entry.second);
+    }
   };
+
+  reserveIds(node);
+
+  const normalize = (entry: any): IdePaneNode => {
+    const preferredId = validId(entry?.id) ? entry.id : entry?.type === 'split' ? 'pane-split-root' : 'pane-main';
+    let id = preferredId;
+    let suffix = 2;
+
+    // Preserve valid identities; repair legacy collisions without stealing a later pane's ID.
+    while (usedIds.has(id) || (!validId(entry?.id) && reservedIds.has(id))) {
+      id = `${preferredId}-${suffix++}`;
+
+      while (reservedIds.has(id)) {
+        id = `${preferredId}-${suffix++}`;
+      }
+    }
+
+    usedIds.add(id);
+
+    if (entry?.type === 'split') {
+      return {
+        type: 'split',
+        id,
+        direction: entry.direction === 'vertical' ? 'vertical' : 'horizontal',
+        ...(typeof entry.ratio === 'number' && Number.isFinite(entry.ratio)
+          ? { ratio: Math.min(0.9, Math.max(0.1, entry.ratio)) }
+          : {}),
+        first: normalize(entry.first),
+        second: normalize(entry.second),
+      };
+    }
+
+    const tabs = ensureCorePaneTabs(collectPaneTabs(entry));
+    const legacyActiveTabId = typeof entry?.activeTabId === 'string' ? entry.activeTabId : undefined;
+    const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId) ? legacyActiveTabId : tabs[tabs.length - 1]?.id;
+
+    return { type: 'leaf', id, tabs, activeTabId };
+  };
+
+  return normalize(node);
 }
 
 function normalizeFloatingPanes(input: unknown): IdeFloatingPane[] {

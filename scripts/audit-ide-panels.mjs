@@ -1,4 +1,9 @@
 import fs from 'node:fs';
+import {
+  auditStorageBackendStatus,
+  auditStorageUiCapability,
+  StorageLifecycleUnverified,
+} from './object-storage-audit.mjs';
 import { auditMcpBackendInstallation, auditMcpUiLifecycle } from './mcp-extension-audit.mjs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -309,7 +314,7 @@ function form(values) {
   return new URLSearchParams(values);
 }
 
-async function auditBackendPanels(projectId, cookie) {
+async function auditBackendPanels(projectId, cookie, token) {
   const results = [];
 
   for (const panel of backendPanels) {
@@ -338,7 +343,7 @@ async function auditBackendPanels(projectId, cookie) {
 
     // The database contract now saves connection URLs as encrypted secrets; default is deliberately rejected.
     ['database', form({ intent: 'upsert-secret', key: 'DATABASE_URL', value: 'postgres://audit.local/db' })],
-    ['object-storage', form({ key: 'OBJECT_STORAGE_BUCKET', value: 'audit-bucket' })],
+    ['object-storage', form({ intent: 'status' })],
     ['packages', form({ packages: 'zod react-router-dom' })],
     ['extensions', null],
     [
@@ -361,6 +366,19 @@ async function auditBackendPanels(projectId, cookie) {
           http,
           `${appBaseUrl}/api/projects/${projectId}/ide-panel/extensions`,
           { accept: 'application/json', cookie },
+        );
+      } catch (error) {
+        results.push({ kind: 'panel_action', panel, ok: false, error: String(error) });
+        continue;
+      }
+    } else if (panel === 'object-storage') {
+      try {
+        result = await auditStorageBackendStatus(
+          http,
+          `${appBaseUrl}/api/projects/${projectId}/ide-panel/object-storage`,
+          `${apiBaseUrl}/projects/${projectId}/object-storage/status`,
+          token,
+          cookie,
         );
       } catch (error) {
         results.push({ kind: 'panel_action', panel, ok: false, error: String(error) });
@@ -588,6 +606,7 @@ async function auditCriticalUiInteractions(
         action: check,
         ok: false,
         error: error instanceof Error ? error.message : String(error),
+        ...(error instanceof StorageLifecycleUnverified ? { storageEvidence: error.evidence } : {}),
       });
     }
   }
@@ -775,18 +794,14 @@ async function auditCriticalUiInteractions(
   await run(
     'object-storage',
     async (page) => {
-      const value = `audit-bucket-${Date.now()}`;
-      await page.getByPlaceholder('vibecore-project-assets').fill(value);
-      await Promise.all([
-        waitForPanelResponse(page, 'object-storage', 'POST'),
-        page.getByRole('button', { name: 'Save storage config' }).click(),
-      ]);
-      await page.locator('.text-sm.font-medium', { hasText: 'OBJECT_STORAGE_BUCKET' }).first().waitFor({
-        state: 'visible',
-        timeout: 10_000,
-      });
+      await auditStorageUiCapability(
+        page,
+        `${appBaseUrl}/api/projects/${projectId}/ide-panel/object-storage`,
+        `${apiBaseUrl}/projects/${projectId}/object-storage/status`,
+        token,
+      );
     },
-    'save_object_storage_config_visible_after_backend_reload',
+    'verify_storage_capability_ui_and_reload_active_lifecycle_unverified',
   );
 
   await run(
@@ -1331,7 +1346,7 @@ async function runAuditPass() {
   const auth = await registerAuditUser();
   const project = await createAuditProject(auth.token, auth.organization.id);
   const cookie = `vc_session=${auth.token}`;
-  const endpointResults = await auditBackendPanels(project.id, cookie);
+  const endpointResults = await auditBackendPanels(project.id, cookie, auth.token);
   const renderAudit = await auditPanelRender(project.id, auth.token, terminalDiagnostics);
   const interactionAudit = await auditCriticalUiInteractions(
     project.id,

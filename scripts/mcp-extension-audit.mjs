@@ -70,6 +70,32 @@ export function requireMcpRemoved(data, id, alias) {
   }
 }
 
+// ProjectExtensionsPanel renders one toggle form and one Remove form. Both
+// contain installId, so checking the whole card's input is ambiguous. Validate
+// each button's own form without hiding duplicate cards, forms, or fields.
+export async function assertMcpInstalledActionForms(page, card, { id, enabled }) {
+  await card.waitFor({ state: 'visible' });
+  for (const [action, buttonName] of [
+    [enabled ? 'disable' : 'enable', enabled ? 'Disable' : 'Enable'],
+    ['remove', 'Remove'],
+  ]) {
+    const form = card.locator('form').filter({
+      has: page.getByRole('button', { name: buttonName, exact: true }),
+    });
+    await form.waitFor({ state: 'visible' });
+    for (const [name, value] of [
+      ['installId', id],
+      ['extensionAction', action],
+    ]) {
+      const input = form.locator(`input[name="${name}"]`);
+      await input.waitFor({ state: 'attached' });
+      if ((await input.inputValue()) !== value) {
+        throw new Error(`MCP ${action} form has an unexpected ${name}`);
+      }
+    }
+  }
+}
+
 // Exercise the project-scoped action, then independently reload persisted data.
 // Remove this API-only installation so the UI must perform its own install.
 export async function auditMcpBackendInstallation(http, panelUrl, headers) {
@@ -124,14 +150,7 @@ export async function auditMcpUiLifecycle(page, panelUrl) {
     page.locator(MCP_INSTALLED_SELECTOR).locator('.bolt-project-extension-card', { hasText: MCP_AUDIT_NAME });
   const assertRenderedState = async (enabled) => {
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await installedCard()
-      .locator(`input[name="installId"][value="${install.id}"]`)
-      .waitFor({ state: 'attached' });
-    await installedCard()
-      .filter({
-        has: page.locator(`input[name="extensionAction"][value="${enabled ? 'disable' : 'enable'}"]`),
-      })
-      .waitFor({ state: 'visible' });
+    await assertMcpInstalledActionForms(page, installedCard(), { id: install.id, enabled });
   };
 
   const before = await read();

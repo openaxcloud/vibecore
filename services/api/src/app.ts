@@ -1,3 +1,4 @@
+import { isIdeMetadataEnvKey } from './workspace-env-metadata.js';
 import { captureRuntimeSocketInput } from './runtime-socket-input.js';
 import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
 import { EXPLICIT_EXTENSION_POLICY, matchesExplicitExtensionPolicy } from './explicit-budget-extension-policy.js';
@@ -1361,6 +1362,11 @@ function collapseEnvForWorkspace(
   const winners = new Map<string, { value: string; rank: number }>();
 
   for (const record of records) {
+    // Panel JSON is persisted here, but must not mutate the pod environment.
+    if (isIdeMetadataEnvKey(record.key)) {
+      continue;
+    }
+
     const rank = priority[record.scope ?? 'production'] ?? 2;
     const current = winners.get(record.key);
 

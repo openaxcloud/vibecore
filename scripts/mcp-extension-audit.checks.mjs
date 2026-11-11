@@ -13,6 +13,7 @@ import {
   readMcpAuditData,
   requireMcpInstall,
   requireMcpRemoved,
+  assertMcpInstalledActionForms,
 } from './mcp-extension-audit.mjs';
 
 // The override permits source-contract checks on a verified read-only snapshot.
@@ -130,6 +131,16 @@ test('UI selectors and submitted fields match the actual current Extensions comp
   assert.match(component, /name="installId" value=\{install.id\}/);
   assert.match(component, /value=\{install.enabled \? 'disable' : 'enable'\}/);
   assert.match(component, /name="extensionAction" value="remove"/);
+  const installedForms = component
+    .match(/<form onSubmit=\{onSubmit\}>[\s\S]*?<\/form>/g)
+    .filter((form) => form.includes('name="installId"'));
+  assert.equal(installedForms.length, 2);
+  assert.match(installedForms[0], /name="installId" value=\{install.id\}/);
+  assert.match(installedForms[0], /value=\{install.enabled \? 'disable' : 'enable'\}/);
+  assert.match(installedForms[0], /chat.copy.disable_9a7d4e06[\s\S]*chat.copy.enable_20063ad9/);
+  assert.match(installedForms[1], /name="installId" value=\{install.id\}/);
+  assert.match(installedForms[1], /name="extensionAction" value="remove"/);
+  assert.match(installedForms[1], /chat.copy.remove_e963907d/);
 });
 
 test('backend installation persists a record without invoking an MCP server', () => {
@@ -148,10 +159,150 @@ test('audit wires real MCP lifecycle helpers and retains separate Storage and HT
   assert.match(audit, /await auditMcpBackendInstallation\(/);
   assert.match(audit, /await auditMcpUiLifecycle\(/);
   assert.doesNotMatch(audit, /Material Icon Theme|Theme, language, linter|extension: 'prettier'/);
-  assert.match(audit, /'save_object_storage_config_visible_after_backend_reload'/);
+  assert.match(audit, /'verify_storage_capability_ui_and_reload_active_lifecycle_unverified'/);
   assert.match(audit, /browserHttpDiagnostics.capture\(response, panel\)/);
   assert.match(helper, /for \(const enabled of \[false, true\]\)/);
   assert.match(helper, /page.reload\(/);
   assert.match(helper, /page.request.get\(panelUrl\)/);
+  assert.match(helper, /await assertMcpInstalledActionForms\(page, installedCard\(\), \{ id: install.id, enabled \}\)/);
+  assert.doesNotMatch(helper, /\.first\(/);
   assert.doesNotMatch(helper, /\.route\(|\.fulfill\(|\/mcp\/.*(?:invoke|connect|tools)/);
+});
+
+// A minimal strict-locator test double keeps these Node contracts browser-free.
+// It models the component's two forms and enforces cardinality like Playwright,
+// rather than making every wait succeed regardless of the selector's scope.
+function actionFormsFixture(enabled = true) {
+  const input = (name, value) => ({ tag: 'input', name, value, children: [] });
+  const form = (action, buttonName) => ({
+    tag: 'form',
+    children: [
+      input('installId', install.id),
+      input('extensionAction', action),
+      { tag: 'button', text: buttonName, children: [] },
+    ],
+  });
+  const toggle = form(enabled ? 'disable' : 'enable', enabled ? 'Disable' : 'Enable');
+  const remove = form('remove', 'Remove');
+  const card = { tag: 'article', children: [toggle, remove] };
+  const descendants = (node) => node.children.flatMap((child) => [child, ...descendants(child)]);
+
+  class StrictLocator {
+    constructor(nodes) {
+      this.nodes = nodes;
+    }
+
+    locator(selector) {
+      const match = /^(form|input)(?:\[name="([^"]+)"\])?$/.exec(selector);
+      assert.ok(match, `Unsupported test selector: ${selector}`);
+      return new StrictLocator(
+        this.nodes.flatMap(descendants).filter((node) => node.tag === match[1] && (!match[2] || node.name === match[2])),
+      );
+    }
+
+    filter({ has }) {
+      return new StrictLocator(this.nodes.filter((node) => descendants(node).some(has)));
+    }
+
+    async waitFor({ state }) {
+      assert.equal(this.nodes.length, 1, 'strict locator must resolve to exactly one element');
+      assert.ok(state === 'attached' || state === 'visible');
+      if (state === 'visible') {
+        assert.notEqual(this.nodes[0].visible, false, 'element must be visible');
+      }
+    }
+
+    async inputValue() {
+      assert.equal(this.nodes.length, 1, 'strict input must resolve to exactly one element');
+      return this.nodes[0].value;
+    }
+  }
+
+  return {
+    toggle,
+    remove,
+    card,
+    locator(cards = [card]) {
+      return new StrictLocator(cards);
+    },
+    page: {
+      getByRole(role, { name, exact }) {
+        assert.equal(role, 'button');
+        assert.equal(exact, true, 'action buttons must be matched exactly');
+        return (node) => node.tag === 'button' && node.text === name;
+      },
+    },
+  };
+}
+
+test('rendered MCP action forms accept the two legitimate installId fields in both enabled states', async () => {
+  for (const enabled of [true, false]) {
+    const fixture = actionFormsFixture(enabled);
+    // This reproduces the old card-wide locator's strict-mode failure.
+    await assert.rejects(fixture.locator().locator('input[name="installId"]').waitFor({ state: 'attached' }));
+    await assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled });
+  }
+});
+
+for (const formName of ['toggle', 'remove']) {
+  for (const fieldName of ['installId', 'extensionAction']) {
+    test(`rendered MCP ${formName} form rejects a wrong ${fieldName}`, async () => {
+      const fixture = actionFormsFixture();
+      fixture[formName].children.find((node) => node.name === fieldName).value = 'wrong';
+      await assert.rejects(
+        assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled: true }),
+        new RegExp(`unexpected ${fieldName}`),
+      );
+    });
+
+    test(`rendered MCP ${formName} form rejects a missing ${fieldName}`, async () => {
+      const fixture = actionFormsFixture();
+      fixture[formName].children = fixture[formName].children.filter((node) => node.name !== fieldName);
+      await assert.rejects(assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled: true }));
+    });
+
+    test(`rendered MCP ${formName} form rejects duplicate ${fieldName} fields even if one is correct`, async () => {
+      const fixture = actionFormsFixture();
+      const field = fixture[formName].children.find((node) => node.name === fieldName);
+      fixture[formName].children.push({ ...field, value: 'wrong' });
+      await assert.rejects(assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled: true }));
+    });
+  }
+
+  test(`rendered MCP action forms reject duplicate ${formName} forms`, async () => {
+    const fixture = actionFormsFixture();
+    fixture.card.children.push(structuredClone(fixture[formName]));
+    await assert.rejects(assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled: true }));
+  });
+
+  test(`rendered MCP action forms reject a missing ${formName} form`, async () => {
+    const fixture = actionFormsFixture();
+    fixture.card.children = fixture.card.children.filter((node) => node !== fixture[formName]);
+    await assert.rejects(assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled: true }));
+  });
+}
+
+test('rendered MCP action forms reject ambiguous cards before narrowing to a valid action', async () => {
+  const fixture = actionFormsFixture();
+  const unrelatedCard = { tag: 'article', children: [] };
+  await assert.rejects(
+    assertMcpInstalledActionForms(fixture.page, fixture.locator([fixture.card, unrelatedCard]), {
+      id: install.id,
+      enabled: true,
+    }),
+  );
+});
+
+test('rendered MCP action forms reject a missing card and a stale enabled state', async () => {
+  const fixture = actionFormsFixture(false);
+  await assert.rejects(assertMcpInstalledActionForms(fixture.page, fixture.locator([]), { id: install.id, enabled: false }));
+  await assert.rejects(assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled: true }));
+});
+
+test('rendered MCP action forms require visible cards and forms', async () => {
+  for (const name of ['card', 'toggle', 'remove']) {
+    const fixture = actionFormsFixture();
+    fixture[name].visible = false;
+    await assert.rejects(assertMcpInstalledActionForms(fixture.page, fixture.locator(), { id: install.id, enabled: true }));
+  }
 });
