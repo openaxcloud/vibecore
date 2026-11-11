@@ -48,7 +48,7 @@ with patch.object(module.platform, 'machine', return_value=sys.argv[3]):
   }
 }
 
-describe('canonical Ubuntu mirror scoped to WebKit preparation', () => {
+describe('canonical Ubuntu mirror scoped to hosted Ubuntu preparation', () => {
   it.each(['http', 'https'])('rewrites only exact %s archive URIs in mirrorlists', (scheme) => {
     const source = `${scheme}://azure.archive.ubuntu.com/ubuntu/\nhttps://security.ubuntu.com/ubuntu\n`;
     expect(runFixture('apt-mirrors.txt', source)).toBe(
@@ -93,16 +93,16 @@ describe('canonical Ubuntu mirror scoped to WebKit preparation', () => {
     expect(runFixture('apt-mirrors.txt', source, 'ubuntu', 'aarch64')).toBe(source);
   });
 
-  it('runs before dependency installation only for the existing x64 WebKit canary input', () => {
+  it('runs before dependency installation only for hosted Linux x64 runners', () => {
     const action = parse(readFileSync(join(root, '.github/actions/preparer-pile-e2e/action.yml'), 'utf8'));
     const steps = action.runs.steps;
 
     const index = steps.findIndex(
-      (step: { name?: string }) => step.name === 'Select Ubuntu archive for WebKit dependencies',
+      (step: { name?: string }) => step.name === 'Prepare temporary Ubuntu sources',
     );
     expect(index).toBeGreaterThan(-1);
-    expect(steps[index].if).toBe("inputs.navigateurs == 'chromium,webkit' && runner.arch == 'X64'");
-    expect(steps[index].run).toBe('sudo python3 .github/scripts/preparer-miroir-ubuntu.py');
+    expect(steps[index].if).toBe("runner.environment == 'github-hosted' && runner.os == 'Linux' && runner.arch == 'X64'");
+    expect(steps[index].run).toBe('python3 .github/scripts/preparer-miroir-ubuntu.py --temporary');
     expect(steps.findIndex((step: { name?: string }) => step.name === 'Install Playwright browsers')).toBeGreaterThan(
       index,
     );

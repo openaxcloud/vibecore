@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { auditMcpBackendInstallation, auditMcpUiLifecycle } from './mcp-extension-audit.mjs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
@@ -339,7 +340,7 @@ async function auditBackendPanels(projectId, cookie) {
     ['database', form({ intent: 'upsert-secret', key: 'DATABASE_URL', value: 'postgres://audit.local/db' })],
     ['object-storage', form({ key: 'OBJECT_STORAGE_BUCKET', value: 'audit-bucket' })],
     ['packages', form({ packages: 'zod react-router-dom' })],
-    ['extensions', form({ extension: 'prettier' })],
+    ['extensions', null],
     [
       'integrations',
       form({ intent: 'connect', integrationId: 'slack', organization: 'audit', apiToken: 'slack-token' }),
@@ -353,11 +354,25 @@ async function auditBackendPanels(projectId, cookie) {
   ];
 
   for (const [panel, body] of safeActions) {
-    const result = await http(`${appBaseUrl}/api/projects/${projectId}/ide-panel/${panel}`, {
-      method: 'POST',
-      headers: { accept: 'application/json', cookie },
-      body,
-    });
+    let result;
+    if (panel === 'extensions') {
+      try {
+        result = await auditMcpBackendInstallation(
+          http,
+          `${appBaseUrl}/api/projects/${projectId}/ide-panel/extensions`,
+          { accept: 'application/json', cookie },
+        );
+      } catch (error) {
+        results.push({ kind: 'panel_action', panel, ok: false, error: String(error) });
+        continue;
+      }
+    } else {
+      result = await http(`${appBaseUrl}/api/projects/${projectId}/ide-panel/${panel}`, {
+        method: 'POST',
+        headers: { accept: 'application/json', cookie },
+        body,
+      });
+    }
 
     results.push({
       kind: 'panel_action',
@@ -777,18 +792,9 @@ async function auditCriticalUiInteractions(
   await run(
     'extensions',
     async (page) => {
-      await page.getByPlaceholder('Theme, language, linter, debugger...').fill('Material Icon Theme');
-      const extensionCard = page.locator('.bolt-project-extension-card', { hasText: 'Material Icon Theme' }).first();
-      await Promise.all([
-        waitForPanelResponse(page, 'extensions', 'POST'),
-        extensionCard.getByRole('button', { name: 'Install' }).click(),
-      ]);
-      await page
-        .locator('.bolt-project-installed-extensions', { hasText: 'Material Icon Theme' })
-        .first()
-        .waitFor({ state: 'visible', timeout: 10_000 });
+      await auditMcpUiLifecycle(page, `${appBaseUrl}/api/projects/${projectId}/ide-panel/extensions`);
     },
-    'persist_extension_visible_after_backend_reload',
+    'install_disable_enable_remove_mcp_extension_persisted_after_reload',
   );
 
   await run(
