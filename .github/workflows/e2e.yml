@@ -206,7 +206,7 @@ jobs:
       # They run in the separate, non-blocking `E2E Runtime` workflow.
       #
       # The run itself is allowed to exit non-zero; the gate step below is what
-      # decides, applying the bounded waiver in tests/e2e/e2e-waivers.json.
+      # decides, rejecting every unexpected failure without a waiver.
       - name: Playwright auth, project, IDE, terminal, billing mock flows
         run: |
           set +e
@@ -437,7 +437,7 @@ jobs:
 
       # La porte EXIGE ses quatre rapports. Une tranche manquante la fait
       # rougir : un vert sur trois quarts des specs serait un vert menteur.
-      - name: E2E gate (bounded waiver)
+      - name: E2E gate (no failure waivers)
         if: needs.perimetre.outputs.code == 'true'
         env:
           E2E_EXPECTED_REPORTS: '4'

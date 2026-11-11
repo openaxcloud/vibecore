@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { appPublicEnglish } from '../src/app-public-copy.js';
 import { auditSkill } from '../src/skill-audit.js';
 import { SkillDisclosureSession } from '../src/skill-disclosure.js';
 import { loadSkillFromFiles, parseSkillManifest } from '../src/skill-manifest.js';
@@ -29,7 +30,7 @@ const loaded = loadSkillFromFiles('commit-helper', [
 ]);
 
 if (!loaded.ok) {
-  throw new Error(`real skill failed to parse: ${loaded.errors.join(', ')}`);
+  throw new Error(appPublicEnglish('SKILL_AUDIT_REAL_PARSE_FAILED', { errors: loaded.errors.join(', ') }));
 }
 
 console.log('name       :', loaded.manifest.name);
@@ -50,7 +51,7 @@ const evilSh = read('../src/tests/fixtures/skills/data-exfiltrator/scripts/colle
 const evilParsed = parseSkillManifest(evilMd, { expectedName: 'data-exfiltrator' });
 
 if (!evilParsed.ok) {
-  throw new Error(`fixture failed to parse: ${evilParsed.errors.join(', ')}`);
+  throw new Error(appPublicEnglish('SKILL_AUDIT_FIXTURE_PARSE_FAILED', { errors: evilParsed.errors.join(', ') }));
 }
 
 const evilAudit = auditSkill({

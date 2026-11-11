@@ -179,7 +179,7 @@ export function assertDeploymentProviderConfigured(
    * Ce sont des NOMS de variables, jamais des valeurs (règle 12) : c'est ce
    * qu'il faut pour agir, et cela ne divulgue aucun secret.
    */
-  throw Object.assign(new Error(`Deployment provider "${provider}" is not configured for production use`), {
+  throw Object.assign(new Error(appPublicEnglish('DEPLOY_PROVIDER_PRODUCTION_REQUIRED', { provider })), {
     statusCode: 503,
     code: 'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
     publicMessage: appPublicEnglish('DEPLOY_PROVIDER_CONFIG_REQUIRED', {

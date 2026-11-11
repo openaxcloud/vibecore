@@ -26,13 +26,13 @@ function gate(reports: unknown[], waived: { test: string; unstable?: boolean }[]
     mkdirSync(join(directory, 'scripts'));
     mkdirSync(join(directory, 'tests/e2e'), { recursive: true });
     copyFileSync(join(root, 'scripts/e2e-gate.mjs'), join(directory, 'scripts/e2e-gate.mjs'));
-    writeFileSync(
-      join(directory, 'tests/e2e/e2e-waivers.json'),
-      JSON.stringify({
-        expires: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10),
-        waived,
-      }),
-    );
+    // A legacy policy must never restore an exception, even if left behind.
+    if (waived.length > 0) {
+      writeFileSync(
+        join(directory, 'tests/e2e/e2e-waivers.json'),
+        JSON.stringify({ expires: '2026-11-04', waived }),
+      );
+    }
 
     const paths = reports.map((report, index) => {
       const path = join(directory, `${index}.json`);
@@ -98,7 +98,7 @@ it('accepts actual explicit skips, expected failures and a retry success', () =>
   expect(result.output).toContain('flaky (passed on retry): 1');
 });
 
-it('preserves an explicit waiver for an executed failure and reports matched counts', () => {
+it('rejects an executed failure even if a legacy policy lists it', () => {
   const report = only('serial', 'fails before dependent test');
 
   const result = gate(
@@ -108,9 +108,9 @@ it('preserves an explicit waiver for an executed failure and reports matched cou
       { test: 'sample.spec.cjs › absent policy entry', unstable: true },
     ],
   );
-  expect(result.status).toBe(0);
-  expect(result.output).toContain('waiver policy entries: 2');
-  expect(result.output).toContain('waived failures      : 1');
+  expect(result.status).toBe(1);
+  expect(result.output).toContain('failing tests that are NOT waived');
+  expect(result.output).toContain('sample.spec.cjs › fails before dependent test');
 });
 
 it('does not treat a spec with no reported test variants as executed', () => {
