@@ -364,6 +364,89 @@ jobs:
           node scripts/release-gate/validate-deploy-gate-wired.mjs
           echo "::endgroup::"
 
+      - name: Reject obsolete automatic deployment before cloud access
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          EXPLICIT_TARGET: ${{ inputs.target_sha }}
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${TARGET_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::deployment target must be a full commit SHA"
+            exit 1
+          fi
+          EXPLICIT_REDEPLOY=0
+          case "${EVENT_NAME}" in
+            workflow_dispatch)
+              if [ -n "${EXPLICIT_TARGET:-}" ]; then
+                if [ "${EXPLICIT_TARGET}" != "${TARGET_SHA}" ]; then
+                  echo "::error::explicit deployment target does not match the resolved SHA"
+                  exit 1
+                fi
+                EXPLICIT_REDEPLOY=1
+              fi
+              ;;
+            push)
+              if [ -n "${EXPLICIT_TARGET:-}" ]; then
+                echo "::error::a push cannot claim an explicit deployment override"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::unsupported deployment event"
+              exit 1
+              ;;
+          esac
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::missing read-only repository credential"
+            exit 1
+          fi
+          # Read exactly main without persisting credentials or relying on the 300-file
+          # REST comparison limit. The URL is fixed to GitHub, not an arbitrary git remote.
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
+          # Reset the multi-valued header for this command, then add exactly one.
+          # checkout may already have saved an Authorization header in local config.
+          GIT_TERMINAL_PROMPT=0 GIT_CONFIG_COUNT=2 \
+            GIT_CONFIG_KEY_0=http.https://github.com/.extraheader GIT_CONFIG_VALUE_0= \
+            GIT_CONFIG_KEY_1=http.https://github.com/.extraheader \
+            GIT_CONFIG_VALUE_1="${AUTH_HEADER}" \
+            git fetch --no-tags --filter=blob:none "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/main
+          unset AUTH_HEADER
+          CURRENT_MAIN="$(git rev-parse --verify 'FETCH_HEAD^{commit}')"
+          if [[ ! "${CURRENT_MAIN}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::could not verify the current main commit"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "${TARGET_SHA}" "${CURRENT_MAIN}"; then
+            echo "::error::deployment target is no longer an ancestor of main"
+            exit 1
+          fi
+          # An explicit target bypasses only material freshness, never a fresh ancestry
+          # check. A force-push removing the target or a transport failure still refuses.
+          if [ "${EXPLICIT_REDEPLOY}" = "1" ]; then
+            echo "Explicit exact-SHA deployment: preserving the selected target after fresh ancestry verification."
+            exit 0
+          fi
+          # Use the complete NUL-delimited tree diff, including deletions and both sides
+          # of renames. A failed producer must fail the step, not look like an empty diff.
+          CHANGED_FILES="$(mktemp)"
+          trap 'rm -f "${CHANGED_FILES}"' EXIT
+          git diff --no-renames --name-only -z "${TARGET_SHA}" "${CURRENT_MAIN}" > "${CHANGED_FILES}"
+          while IFS= read -r -d '' changed; do
+            # Exact expansion of this workflow's paths-ignore. Tests pin this mapping to
+            # on.push.paths-ignore so future trigger changes cannot silently drift.
+            case "${changed}" in
+              *.md|docs/*|.github/*|tests/*|*.spec.ts|*.spec.tsx|*.spec.mjs|*.spec.js) continue ;;
+            esac
+            if [[ "${changed}" != */* && "${changed}" == playwright*.config.ts ]]; then
+              continue
+            fi
+            echo "::error::main contains newer deployable changes; refusing this obsolete automatic target"
+            exit 1
+          done < "${CHANGED_FILES}"
+          echo "Automatic target has no newer deployable changes on main."
+
   build-and-deploy:
     name: Build tiers sequentially, then helm upgrade by digest
     # The exact-SHA check and all preflight policies must succeed before build.
@@ -1584,6 +1667,89 @@ jobs:
       # The previous revision above is captured ONCE, before either upgrade.
       # The migration hook uses the scanned/signed new API digest, while API and
       # all other service templates remain unchanged until the manager is ready.
+      - name: Reject obsolete automatic deployment before first production mutation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          EXPLICIT_TARGET: ${{ inputs.target_sha }}
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${TARGET_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::deployment target must be a full commit SHA"
+            exit 1
+          fi
+          EXPLICIT_REDEPLOY=0
+          case "${EVENT_NAME}" in
+            workflow_dispatch)
+              if [ -n "${EXPLICIT_TARGET:-}" ]; then
+                if [ "${EXPLICIT_TARGET}" != "${TARGET_SHA}" ]; then
+                  echo "::error::explicit deployment target does not match the resolved SHA"
+                  exit 1
+                fi
+                EXPLICIT_REDEPLOY=1
+              fi
+              ;;
+            push)
+              if [ -n "${EXPLICIT_TARGET:-}" ]; then
+                echo "::error::a push cannot claim an explicit deployment override"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::unsupported deployment event"
+              exit 1
+              ;;
+          esac
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::missing read-only repository credential"
+            exit 1
+          fi
+          # Read exactly main without persisting credentials or relying on the 300-file
+          # REST comparison limit. The URL is fixed to GitHub, not an arbitrary git remote.
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
+          # Reset the multi-valued header for this command, then add exactly one.
+          # checkout may already have saved an Authorization header in local config.
+          GIT_TERMINAL_PROMPT=0 GIT_CONFIG_COUNT=2 \
+            GIT_CONFIG_KEY_0=http.https://github.com/.extraheader GIT_CONFIG_VALUE_0= \
+            GIT_CONFIG_KEY_1=http.https://github.com/.extraheader \
+            GIT_CONFIG_VALUE_1="${AUTH_HEADER}" \
+            git fetch --no-tags --filter=blob:none "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/main
+          unset AUTH_HEADER
+          CURRENT_MAIN="$(git rev-parse --verify 'FETCH_HEAD^{commit}')"
+          if [[ ! "${CURRENT_MAIN}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::could not verify the current main commit"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "${TARGET_SHA}" "${CURRENT_MAIN}"; then
+            echo "::error::deployment target is no longer an ancestor of main"
+            exit 1
+          fi
+          # An explicit target bypasses only material freshness, never a fresh ancestry
+          # check. A force-push removing the target or a transport failure still refuses.
+          if [ "${EXPLICIT_REDEPLOY}" = "1" ]; then
+            echo "Explicit exact-SHA deployment: preserving the selected target after fresh ancestry verification."
+            exit 0
+          fi
+          # Use the complete NUL-delimited tree diff, including deletions and both sides
+          # of renames. A failed producer must fail the step, not look like an empty diff.
+          CHANGED_FILES="$(mktemp)"
+          trap 'rm -f "${CHANGED_FILES}"' EXIT
+          git diff --no-renames --name-only -z "${TARGET_SHA}" "${CURRENT_MAIN}" > "${CHANGED_FILES}"
+          while IFS= read -r -d '' changed; do
+            # Exact expansion of this workflow's paths-ignore. Tests pin this mapping to
+            # on.push.paths-ignore so future trigger changes cannot silently drift.
+            case "${changed}" in
+              *.md|docs/*|.github/*|tests/*|*.spec.ts|*.spec.tsx|*.spec.mjs|*.spec.js) continue ;;
+            esac
+            if [[ "${changed}" != */* && "${changed}" == playwright*.config.ts ]]; then
+              continue
+            fi
+            echo "::error::main contains newer deployable changes; refusing this obsolete automatic target"
+            exit 1
+          done < "${CHANGED_FILES}"
+          echo "Automatic target has no newer deployable changes on main."
+
       - name: Migrate and prepare manager before API
         timeout-minutes: 55
         env:
