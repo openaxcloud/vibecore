@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-623 entrées.
+624 entrées.
 
 ## Sans section
 
@@ -883,6 +883,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — Le formulaire Secrets et les champs non enregistrés disparaissaient quand la coquille de chargement était remplacée. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
 - [BUG-SECRETS-MENU-SCROLL-20261111](docs/bugs/BUG-SECRETS-MENU-SCROLL-20261111.md) — Un défilement interne du menu ne doit pas le fermer; le déplacement de son bouton d’ancrage doit le fermer sans dérober le focus. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
 - [BUG-WORKSPACE-ENV-METADATA-20261111](docs/bugs/BUG-WORKSPACE-ENV-METADATA-20261111.md) — Les neuf états internes *_STATE étaient projetés dans l’environnement du workspace, pouvant changer son manifeste lors d’une édition de panneau. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
+
+## Chargement des panneaux de l'IDE, 11 novembre 2026
+
+- [BUG-PANEL-CACHE-BUSY-HANDOFF-20261111](docs/bugs/BUG-PANEL-CACHE-BUSY-HANDOFF-20261111.md) — Un cache rempli après le rendu froid supprime le chargement et son Retry lent. Une éviction après rendu rend le contenu commité occupé, puis son échec peut l’ef — 📤 Dispatché : Port ciblé préparé et vérifié le 12 novembre 2026 sur le contenu exact de main après PR896. · 💻 Codé : Correctif local uniquement, non publié à la rédaction de cette fiche. · ✅ Testé live : Non validé. Pas de recette applicative ou production.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
