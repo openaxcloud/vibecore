@@ -98,7 +98,7 @@ jobs:
 
       - name: Validate runtime harness
         run: |
-          node --test scripts/ci/runtime-localhost-deadline.checks.mjs scripts/ci/package-termination.checks.mjs scripts/ci/package-execution-diagnostic.checks.mjs scripts/ci/package-execution-boundaries.checks.mjs scripts/ci/runtime-browser-relay.checks.mjs scripts/ci/runtime-browser-isolation.checks.mjs
+          node --test scripts/ci/runtime-localhost-deadline.checks.mjs scripts/ci/package-termination.checks.mjs scripts/ci/package-install-observation.checks.mjs scripts/ci/package-observation-review.checks.mjs scripts/ci/package-execution-diagnostic.checks.mjs scripts/ci/package-execution-boundaries.checks.mjs scripts/ci/runtime-browser-relay.checks.mjs scripts/ci/runtime-browser-isolation.checks.mjs
           node --test scripts/ci/runtime-agent-router.checks.mjs
           node --test scripts/ci/runtime-evidence-redaction.checks.mjs
           node --test scripts/ci/runtime-api-evidence.checks.mjs

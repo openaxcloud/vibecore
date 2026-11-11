@@ -188,19 +188,28 @@ describe('debugger control transport — lost-response regression', () => {
       (node): node is ts.FunctionDeclaration =>
         ts.isFunctionDeclaration(node) && node.name?.text === 'shouldRetryAgentHop',
     )!;
+
+    const connectionReset = Object.assign(new Error('response lost'), { code: 'ECONNRESET' });
+
     const binding = {
       AGENT_REQUEST_ATTEMPTS: 3,
-      agentToken: async () => 'synthetic-token',
+      managerRequest: vi.fn().mockResolvedValue({ token: 'synthetic-token' }),
       agentBaseUrl: () => 'http://synthetic.invalid',
       withRequestTimeout: (init: RequestInit) => ({ init, done: () => undefined }),
-      fetch: vi.fn().mockRejectedValue(Object.assign(new Error('response lost'), { code: 'ECONNRESET' })),
+      fetch: vi.fn().mockRejectedValue(connectionReset),
       agentSleep: vi.fn(),
       agentRetryDelay: () => 0,
+      recoverStartingWorkspaceRead: vi.fn(),
+      declencherDemarrageDepuisLecture: vi.fn(),
       isWorkspaceDnsNotResolvedYet: () => false,
       appPublicEnglish: (key: string) => key,
     };
+
+    // Keep the default deadline aligned with the production transport.
+    const timeout = `const RUNTIME_PROXY_TIMEOUT_MS = ${declarations.get('RUNTIME_PROXY_TIMEOUT_MS')!.getText(tree)};`;
+
     const compiled = ts.transpileModule(
-      `${retry.getText(tree).replace(/^export\s+/, '')}\nreturn (${declarations.get('agentRequest')!.getText(tree)});`,
+      `${timeout}\n${retry.getText(tree).replace(/^export\s+/, '')}\nreturn (${declarations.get('agentRequest')!.getText(tree)});`,
       {
         compilerOptions: { target: ts.ScriptTarget.ES2022 },
       },
@@ -215,8 +224,23 @@ describe('debugger control transport — lost-response regression', () => {
         undefined,
         1,
       ),
-    ).rejects.toMatchObject({ code: 'WORKSPACE_AGENT_REQUEST_FAILED' });
+    ).rejects.toMatchObject({ statusCode: 502, code: 'WORKSPACE_AGENT_REQUEST_FAILED', cause: connectionReset });
+    expect(binding.managerRequest).toHaveBeenCalledExactlyOnceWith(
+      '/workspaces/authorized/agent-token',
+      { signal: undefined },
+      undefined,
+    );
     expect(binding.fetch).toHaveBeenCalledTimes(1);
+    expect(binding.fetch).toHaveBeenCalledWith(`http://synthetic.invalid/debugger/v1/${id}/control`, {
+      method: 'POST',
+      body: '{"action":"step-over"}',
+      headers: expect.any(Headers),
+    });
+
+    const [, request] = binding.fetch.mock.calls[0];
+    expect(request.headers.get('authorization')).toBe('Bearer synthetic-token');
     expect(binding.agentSleep).not.toHaveBeenCalled();
+    expect(binding.recoverStartingWorkspaceRead).not.toHaveBeenCalled();
+    expect(binding.declencherDemarrageDepuisLecture).not.toHaveBeenCalled();
   });
 });

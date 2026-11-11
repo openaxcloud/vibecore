@@ -527,7 +527,11 @@ import { packageInstallResult } from './package-install-result.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import { RuntimeLogReplay, runtimeLogEvents } from './runtime-log-replay.js';
-import { recoverStartingWorkspaceRead, withRuntimeReadCancellation } from './runtime-read-recovery.js';
+import {
+  recoverStartingWorkspaceRead,
+  withRuntimeReadCancellation,
+  isEphemeralRelayTransportFailure,
+} from './runtime-read-recovery.js';
 import { monthlyUsagePeriodStart } from './usage-period.js';
 import { WorkspaceAdmissionClient, type WorkspaceAdmission } from './workspace-admission.js';
 import {
@@ -15543,6 +15547,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const method = (init.method ?? 'GET').toUpperCase();
     const url = `${agentBaseUrl(workspaceId)}${path}`;
 
+    const recoverRead = () =>
+      recoverStartingWorkspaceRead<T>({
+        method,
+        deadline: readDeadline,
+        signal: init.signal,
+        observe: (signal) =>
+          managerRequest<{ status?: string }>(
+            `/workspaces/${workspaceId}`,
+            { signal },
+            Math.max(1, readDeadline - Date.now()),
+          ),
+        healthy: async (signal) => {
+          const fresh = await managerRequest<{ token: string }>(
+            `/workspaces/${workspaceId}/agent-token`,
+            { signal },
+            Math.max(1, readDeadline - Date.now()),
+          );
+
+          try {
+            const health = await fetch(`${agentBaseUrl(workspaceId)}/health`, {
+              headers: { authorization: `Bearer ${fresh.token}` },
+              signal,
+            });
+            await health.body?.cancel();
+
+            return health.ok;
+          } catch (error) {
+            if (signal.aborted) {
+              throw error;
+            }
+
+            return false;
+          }
+        },
+        read: (signal, remainingMs) =>
+          agentRequest<T>(workspaceId, path, { ...init, signal }, contexteRequete, 1, remainingMs, false),
+      });
+
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -15584,42 +15626,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         if (allowReadRecovery && ['GET', 'HEAD'].includes(method)) {
-          const recovery = await recoverStartingWorkspaceRead<T>({
-            method,
-            deadline: readDeadline,
-            signal: init.signal,
-            observe: (signal) =>
-              managerRequest<{ status?: string }>(
-                `/workspaces/${workspaceId}`,
-                { signal },
-                Math.max(1, readDeadline - Date.now()),
-              ),
-            healthy: async (signal) => {
-              const fresh = await managerRequest<{ token: string }>(
-                `/workspaces/${workspaceId}/agent-token`,
-                { signal },
-                Math.max(1, readDeadline - Date.now()),
-              );
-
-              try {
-                const health = await fetch(`${agentBaseUrl(workspaceId)}/health`, {
-                  headers: { authorization: `Bearer ${fresh.token}` },
-                  signal,
-                });
-                await health.body?.cancel();
-
-                return health.ok;
-              } catch (error) {
-                if (signal.aborted) {
-                  throw error;
-                }
-
-                return false;
-              }
-            },
-            read: (signal, remainingMs) =>
-              agentRequest<T>(workspaceId, path, { ...init, signal }, contexteRequete, 1, remainingMs, false),
-          });
+          const recovery = await recoverRead();
 
           if (recovery.recovered) {
             return recovery.value;
@@ -15702,6 +15709,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await response.body?.cancel().catch(() => undefined);
           await agentSleep(agentRetryDelay(attempt));
           continue;
+        }
+
+        /*
+         * A genuine agent HTTP error is not a transport exception. Only the
+         * explicitly identified, non-spoofable CI relay transport failure may
+         * enter the same bounded STARTING recovery after existing HTTP retries.
+         */
+        if (
+          allowReadRecovery &&
+          ['GET', 'HEAD'].includes(method) &&
+          isEphemeralRelayTransportFailure(response, url, process.env)
+        ) {
+          await response.body?.cancel().catch(() => undefined);
+
+          const recovery = await recoverRead();
+
+          if (recovery.recovered) {
+            return recovery.value;
+          }
         }
 
         /*

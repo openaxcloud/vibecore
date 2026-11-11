@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
 import { commandExecutionDiagnostic } from './command-execution-diagnostic.js';
 import { registerDebuggerEngine } from './debugger-engine.js';
+import { observePackageInstall } from './package-install-observation.js';
 import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
 import {
   localizedWorkspaceAgentError,
@@ -2535,6 +2536,11 @@ async function runCommand(
   };
   options.processes.set(id, record);
 
+  const installObservation = observePackageInstall(cwd, command, spawnArgs, child.pid);
+  child.once('exit', () => installObservation.stop(true));
+
+  let installDeadlineObservation: ReturnType<typeof installObservation.snapshot> | undefined;
+
   const diagnosticStartedAt = performance.now();
 
   let stdoutBytes = 0;
@@ -2546,6 +2552,7 @@ async function runCommand(
   const timer = setTimeout(() => {
     record.timedOut = true;
     killGroup('SIGTERM');
+    installDeadlineObservation = installObservation.snapshot();
   }, options.timeoutMs);
 
   /*
@@ -2634,6 +2641,7 @@ async function runCommand(
     child.on('close', (code, signal) => {
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
+      installObservation.stop();
       flushDecoders();
       options.rememberTerminal(record, code, signal);
       options.processes.delete(id);
@@ -2645,14 +2653,17 @@ async function runCommand(
         stdout,
         stderr,
         truncated,
-        executionDiagnostic: commandExecutionDiagnostic({
-          effectiveBudgetMs: options.timeoutMs,
-          elapsedMs: performance.now() - diagnosticStartedAt,
-          stdoutBytes,
-          stderrBytes,
-          stdout,
-          stderr,
-        }),
+        executionDiagnostic: {
+          ...commandExecutionDiagnostic({
+            effectiveBudgetMs: options.timeoutMs,
+            elapsedMs: performance.now() - diagnosticStartedAt,
+            stdoutBytes,
+            stderrBytes,
+            stdout,
+            stderr,
+          }),
+          installObservation: installDeadlineObservation ?? installObservation.snapshot(),
+        },
       });
     });
 
@@ -2663,6 +2674,7 @@ async function runCommand(
      * hanging the request. Surface it as a normal failed-command result.
      */
     child.on('error', (error) => {
+      installObservation.stop();
       options.rememberTerminal(record, 1, null);
       clearTimeout(timer);
       clearTimeout(sigkillTimer);

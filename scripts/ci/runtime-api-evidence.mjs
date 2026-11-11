@@ -49,6 +49,27 @@ export function summarizeRuntimeApi(log) {
             ? null
             : category(entry.signal, ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGHUP', 'SIGABRT', 'SIGSEGV']),
         exitCode: bounded(entry.exitCode, 255),
+        ...(entry.installObservation &&
+        typeof entry.installObservation === 'object' &&
+        !Array.isArray(entry.installObservation)
+          ? {
+              installObservation: {
+                lockfile: category(entry.installObservation.lockfile, ['present', 'absent']),
+                nodeModules: category(entry.installObservation.nodeModules, ['present', 'absent']),
+                dependencyCount: bounded(entry.installObservation.dependencyCount, 1000),
+                devDependencyCount: bounded(entry.installObservation.devDependencyCount, 1000),
+                processActivity: category(entry.installObservation.processActivity, [
+                  'running',
+                  'sleeping',
+                  'uninterruptible',
+                  'zombie',
+                  'exited',
+                ]),
+                leaderCpuMs: bounded(entry.installObservation.leaderCpuMs, 86_400_000),
+                activitySampleAgeMs: bounded(entry.installObservation.activitySampleAgeMs, 86_400_000),
+              },
+            }
+          : {}),
       });
 
       if (packageExecutions.length > 60) {

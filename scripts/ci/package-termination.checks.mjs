@@ -31,13 +31,22 @@ const source = agent.slice(
   agent.indexOf('async function runCommandStream('),
 );
 
-async function command() {
+async function command(observationFactory) {
   const timers = [];
   const killed = [];
   const child = Object.assign(new EventEmitter(), { pid: 123, stdout: new EventEmitter(), stderr: new EventEmitter() });
 
   const deps = {
     commandExecutionDiagnostic: diagnosticExports.commandExecutionDiagnostic,
+    observePackageInstall: () =>
+      observationFactory
+        ? observationFactory(killed)
+        : {
+            stop() {},
+            snapshot() {
+              return undefined;
+            },
+          },
     normalizeShellCommandArgs: (_command, args) => args,
     detectCommandAbuse: () => null,
     pinViteDevArgs: (_cwd, _command, args) => args,
@@ -195,4 +204,28 @@ test('actual agent projects byte counts and effective budget, never output text'
   assert.equal(observed.executionDiagnostic.observedPhase, 'fetch');
   assert.equal(observed.executionDiagnostic.errorCode, 'EAI_AGAIN');
   assert.doesNotMatch(JSON.stringify(observed.executionDiagnostic), /PRIVATE|SECRET|https/);
+});
+
+test('deadline snapshots are latched after TERM without waiting and survive later leader exit', async () => {
+  let exited = false;
+
+  const { child, result, timers } = await command((killed) => ({
+    stop(value) {
+      if (value) {
+        exited = true;
+      }
+    },
+    snapshot() {
+      assert.deepEqual(killed, ['SIGTERM']);
+      return { processActivity: exited ? 'exited' : 'sleeping', leaderCpuMs: 12, activitySampleAgeMs: 5000 };
+    },
+  }));
+  timers.find((t) => t.delay === 30_000).callback();
+  child.emit('exit', null, 'SIGTERM');
+  child.emit('close', null, 'SIGTERM');
+
+  const observed = await result;
+  assert.equal(observed.executionDiagnostic.installObservation.processActivity, 'sleeping');
+  assert.equal(observed.executionDiagnostic.installObservation.activitySampleAgeMs, 5000);
+  assert.equal(observed.timedOut, true);
 });

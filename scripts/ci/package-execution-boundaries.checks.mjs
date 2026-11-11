@@ -110,6 +110,20 @@ async function agentResult(background = false) {
 
   const run = declaration(agent, 'runCommand', {
     commandExecutionDiagnostic,
+    observePackageInstall: () => ({
+      stop() {},
+      snapshot() {
+        return {
+          lockfile: 'present',
+          nodeModules: 'absent',
+          dependencyCount: 7,
+          devDependencyCount: 0,
+          processActivity: 'sleeping',
+          leaderCpuMs: 23,
+          activitySampleAgeMs: 40,
+        };
+      },
+    }),
     normalizeShellCommandArgs: (_command, args) => args,
     detectCommandAbuse: () => null,
     pinViteDevArgs: (_cwd, _command, args) => args,

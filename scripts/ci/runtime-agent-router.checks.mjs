@@ -130,59 +130,70 @@ test('lookup errors fail as transport errors, never fake runtime success', async
   assert.equal(result.body, 'Workspace transport unavailable');
 });
 
-test('WebSocket handshake and bidirectional bytes reach actual upstream', { timeout: 5000 }, async (t) => {
-  const upstream = http.createServer();
-  upstream.on('upgrade', (request, socket, head) => {
-    assert.equal(request.url, '/terminal?cols=80');
-    assert.equal(request.headers.authorization, 'Bearer test-only-token');
-    assert.equal(request.headers['sec-websocket-protocol'], 'terminal');
-    socket.write(
-      'HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Protocol: terminal\r\n\r\n',
+test(
+  'WebSocket handshake and bidirectional bytes reach actual upstream with all transport markers stripped',
+  { timeout: 5000 },
+  async (t) => {
+    let upstreamMarker;
+
+    const upstream = http.createServer();
+    upstream.on('upgrade', (request, socket, head) => {
+      upstreamMarker = request.headers['x-vibecore-ci-transport-error'];
+      assert.equal(request.url, '/terminal?cols=80');
+      assert.equal(request.headers.authorization, 'Bearer test-only-token');
+      assert.equal(request.headers['sec-websocket-protocol'], 'terminal');
+      socket.write(
+        'HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Protocol: terminal\r\nX-Vibecore-Ci-Transport-Error: upstream-unavailable\r\n\r\n',
+      );
+
+      if (head.length) {
+        socket.write(head);
+      }
+
+      socket.on('data', (data) => socket.write(data));
+    });
+
+    const target = await listen(upstream, t);
+
+    const proxy = await listen(
+      createRuntimeAgentRouter({
+        lookup: async (id) => {
+          assert.equal(id, 'ws-123');
+          return target;
+        },
+      }),
+      t,
     );
 
-    if (head.length) {
-      socket.write(head);
-    }
+    const socket = net.connect(proxy.port, proxy.hostname);
+    t.after(() => socket.destroy());
+    await once(socket, 'connect');
 
-    socket.on('data', (data) => socket.write(data));
-  });
+    let received = Buffer.alloc(0);
 
-  const target = await listen(upstream, t);
+    const complete = new Promise((resolve, reject) => {
+      socket.on('error', reject);
+      socket.on('data', (data) => {
+        received = Buffer.concat([received, data]);
 
-  const proxy = await listen(
-    createRuntimeAgentRouter({
-      lookup: async (id) => {
-        assert.equal(id, 'ws-123');
-        return target;
-      },
-    }),
-    t,
-  );
-
-  const socket = net.connect(proxy.port, proxy.hostname);
-  t.after(() => socket.destroy());
-  await once(socket, 'connect');
-
-  let received = Buffer.alloc(0);
-
-  const complete = new Promise((resolve, reject) => {
-    socket.on('error', reject);
-    socket.on('data', (data) => {
-      received = Buffer.concat([received, data]);
-
-      if (received.includes(Buffer.from('frame-bytes'))) {
-        resolve();
-      }
+        if (received.includes(Buffer.from('frame-bytes'))) {
+          resolve();
+        }
+      });
     });
-  });
-  socket.write(
-    'GET /ws-123/terminal?cols=80 HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nAuthorization: Bearer test-only-token\r\nSec-WebSocket-Protocol: terminal\r\n\r\nframe-bytes',
-  );
-  await complete;
-  assert.match(received.toString(), /^HTTP\/1.1 101/);
-  assert.match(received.toString(), /sec-websocket-protocol: terminal/i);
-  assert.match(received.toString(), /frame-bytes$/);
-});
+    socket.write(
+      'GET /ws-123/terminal?cols=80 HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nAuthorization: Bearer test-only-token\r\nSec-WebSocket-Protocol: terminal\r\nX-Vibecore-Ci-Transport-Error: upstream-unavailable\r\n\r\nframe-bytes',
+    );
+    await complete;
+    assert.match(received.toString(), /^HTTP\/1.1 101/);
+    assert.match(received.toString(), /sec-websocket-protocol: terminal/i);
+    assert.match(received.toString(), /frame-bytes$/);
+    assert.deepEqual(
+      { upstreamMarker, downstreamMarker: /x-vibecore-ci-transport-error/i.test(received.toString()) },
+      { upstreamMarker: undefined, downstreamMarker: false },
+    );
+  },
+);
 
 test('malformed WebSocket workspace route rejects before lookup', { timeout: 5000 }, async (t) => {
   let calls = 0;

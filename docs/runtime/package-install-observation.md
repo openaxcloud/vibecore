@@ -1,0 +1,17 @@
+# Bounded install context observation
+
+The internal execution diagnostic can include installObservation, independently projected by Packages API logging and the runtime evidence collector. It never changes authorization, command arguments, dispatch count, deadlines, termination, fallback or success classification. The existing AI boundary removes the entire executionDiagnostic before public response/persistence. Other public consumers keep explicit projections.
+
+Fields:
+
+- lockfile, nodeModules: present/absent/unknown. Fixed basenames only; symlinks or denied access mean unknown. Presence is not completeness or cache warmth.
+- dependencyCount, devDependencyCount: null or integer0–1000, saturated counts from at most64KiB of package.json. No names, scripts, values or paths retained. Malformed or unavailable manifest gives null.
+- processActivity: running/sleeping/uninterruptible/zombie/exited/unknown. Only the spawned leader is observed, not its descendants. Exited is an observed child exit event, useful for distinguishing an exited leader from delayed pipe closure.
+- leaderCpuMs: null or bounded cumulative scheduled CPU milliseconds for the leader, derived from Linux /proc/<pid>/schedstat nanoseconds. Not whole-tree CPU. Low leader CPU does NOT mean npm did no work, nor prove network waiting. Unavailable/malformed/denied reads give null.
+- activitySampleAgeMs: null or bounded age of the process observation. At timeout, the latest observation is latched immediately after the existing SIGTERM dispatch without awaiting collection; later SIGKILL/close cannot replace it with an exited state. No claim of exact state at deadline. All duration fields cap at86400000ms.
+
+Collection starts alongside recognized direct package-manager install/add/ci commands, not shell text. It is never awaited before execution, kill or response. There are at most six leader samples at0/5/10/15/20/25seconds, one in flight at a time. Sampling stops on child exit/error/close. Kernel PID and start-time identity are checked, including a second identity read around CPU observation. Identity changes invalidate the sample. Pending reads may finish but cannot update a stopped observation. No PID/start identity or process name is logged.
+
+Manifest reads use fixed paths, O_NOFOLLOW/O_NONBLOCK, file-type checks and a65537-byte buffer. Missing protection flags or short sized-file reads remain unknown. O_NOFOLLOW applies to the final path component; workspace cwd containment remains the caller’s responsibility. Linux stat/schedstat reads are bounded to4096/1024bytes with the same restrictions. Complete newline-terminated stat records (at least52fields) and three-counter schedstat records are required; partial or unsupported formats remain unknown/null. No argv, environ, fd destinations, arbitrary logs, npmrc, network request or additional process is read/executed. A blocked filesystem operation is not forcibly cancelled; bounded in-flight work can remain pending, but execution does not wait for it. Cross-platform unsupported access yields unknown.
+
+Context is observed asynchronously near command start and can race installation mutations; it is not an atomic pre-install snapshot. Output hints and filesystem context can be tenant-controlled. Bounds limit retained data, not authenticity. No field may serve as authorization, success or causal verdict. No cgroup throttling is attributed to this command because the cgroup is shared with other pod activity. Dedicated asynchronous installation remains a separate design, not implemented here.

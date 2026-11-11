@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import test from 'node:test';
+import { createRuntimeAgentRouter } from './runtime-agent-router.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require(process.env.TYPESCRIPT_PATH ?? 'typescript');
@@ -211,13 +212,13 @@ test('reply disconnect cancels read and event observers are removed', async () =
   assert.equal(reply.listenerCount('close'), 0);
 });
 
-test('actual API invokes recovery only inside transport catch, after existing retries', () => {
+test('actual API recovers transport failures only, including explicitly identified CI relay failures', () => {
   const api = readFileSync(new URL('../../services/api/src/app.ts', import.meta.url), 'utf8');
   const start = api.indexOf('  const agentRequest = async');
   const end = api.indexOf('   * Cold-start guard', start);
   const body = api.slice(start, end);
   assert.match(body, /allowReadRecovery && \['GET', 'HEAD'\]\.includes\(method\)/);
-  assert.ok(body.indexOf('recoverStartingWorkspaceRead<T>') > body.indexOf("kind: 'connection'"));
+  assert.ok(body.indexOf('const recovery = await recoverRead();') > body.indexOf("kind: 'connection'"));
   assert.ok(body.indexOf('recoverStartingWorkspaceRead<T>') < body.indexOf('if (!response.ok)'));
   assert.match(body, /contexteRequete, 1, remainingMs, false/);
   assert.match(body, /statusCode: response.status/);
@@ -264,6 +265,7 @@ function actualAgentRequest(base, options, { disconnects = 3, overrides = {} } =
     },
     readJsonBody: (response) => response.text(),
     recoverStartingWorkspaceRead,
+    isEphemeralRelayTransportFailure: exports.isEphemeralRelayTransportFailure,
     fetch: async (url, init) => {
       if (url.endsWith('/file') && failedHops < disconnects) {
         failedHops += 1;
@@ -506,4 +508,352 @@ test('actual timeout wrapper still propagates caller abort after headers/done', 
   timed.done();
   parent.abort();
   assert.equal(timed.init.signal.aborted, true);
+});
+
+async function relayFixture(run, { initialReady = false, fileStatus = 200, spoof = false } = {}) {
+  let reads = 0;
+  let health = 0;
+  let requestMarker;
+  let fileAuthorization;
+  let healthAuthorization;
+
+  const upstream = createServer((request, response) => {
+    requestMarker = request.headers['x-vibecore-ci-transport-error'];
+
+    if (request.url === '/health') {
+      healthAuthorization = request.headers.authorization;
+      health++;
+      response.end('ok');
+    } else {
+      reads++;
+      fileAuthorization = request.headers.authorization;
+      response.statusCode = fileStatus;
+
+      if (spoof) {
+        response.setHeader('x-vibecore-ci-transport-error', 'upstream-unavailable');
+      }
+
+      response.end('real-upstream-body');
+    }
+  });
+
+  const reservation = createServer();
+  await new Promise((resolve) => reservation.listen(0, '127.0.0.1', resolve));
+
+  const port = reservation.address().port;
+  await new Promise((resolve) => reservation.close(resolve));
+
+  const start = async () => {
+    await new Promise((resolve) => upstream.listen(port, '127.0.0.1', resolve));
+  };
+
+  if (initialReady) {
+    await start();
+  }
+
+  const relay = createRuntimeAgentRouter({ lookup: async () => ({ hostname: '127.0.0.1', port }) });
+  await new Promise((resolve) => relay.listen(0, '127.0.0.1', resolve));
+
+  const origin = `http://127.0.0.1:${relay.address().port}`;
+
+  try {
+    await run({
+      base: `${origin}/fixture`,
+      start,
+      ready: () => upstream.listening,
+      env: { VIBECORE_CI_EPHEMERAL_RUNTIME: '1', WORKSPACE_AGENT_URL_TEMPLATE: `${origin}/{workspaceId}` },
+      counts: () => ({ reads, health, requestMarker, fileAuthorization, healthAuthorization }),
+    });
+  } finally {
+    relay.closeAllConnections();
+    await new Promise((resolve) => relay.close(resolve));
+    upstream.closeAllConnections();
+
+    if (upstream.listening) {
+      await new Promise((resolve) => upstream.close(resolve));
+    }
+  }
+}
+
+const httpRetry = ({ kind, status, method, attempt, maxAttempts }) =>
+  attempt < maxAttempts &&
+  (kind === 'connection' || (kind === 'http' && ['GET', 'HEAD'].includes(method) && [502, 503, 504].includes(status)));
+
+for (const method of ['GET', 'HEAD']) {
+  test(`real relay transport marker enters STARTING recovery then one healthy fresh-token ${method}`, async () => {
+    await relayFixture(async ({ base, start, ready, env, counts }) => {
+      let observed = 0;
+      let minted = 0;
+
+      const observe = async () => {
+        observed++;
+
+        if (observed === 1) {
+          await start();
+          return { status: 'STARTING' };
+        }
+
+        return { status: ready() ? 'RUNNING' : 'STARTING' };
+      };
+      const { agent, starts } = actualAgentRequest(
+        base,
+        { observe },
+        {
+          disconnects: 0,
+          overrides: {
+            process: { env },
+            shouldRetryAgentHop: httpRetry,
+            managerRequest: async (path) =>
+              path.endsWith('/agent-token') ? { token: `local-contract-${++minted}` } : observe(),
+          },
+        },
+      );
+      assert.equal(await agent('fixture', '/file', { method }), method === 'HEAD' ? '' : 'real-upstream-body');
+      assert.ok(observed >= 2);
+      assert.equal(counts().reads, 1);
+      assert.equal(counts().health, 1);
+      assert.equal(counts().fileAuthorization, 'Bearer local-contract-3');
+      assert.equal(counts().healthAuthorization, 'Bearer local-contract-2');
+      assert.equal(minted, 3);
+      assert.equal(starts(), 0);
+    });
+  });
+}
+
+for (const fileStatus of [401, 403, 404, 502, 503, 504]) {
+  test(`real upstream HTTP${fileStatus} with spoofed marker cannot authorize recovery`, async () => {
+    await relayFixture(
+      async ({ base, env, counts }) => {
+        let observed = 0;
+
+        const { agent } = actualAgentRequest(
+          base,
+          {
+            observe: async () => {
+              observed++;
+              return { status: 'STARTING' };
+            },
+          },
+          {
+            disconnects: 0,
+            overrides: { process: { env }, shouldRetryAgentHop: httpRetry },
+          },
+        );
+        await assert.rejects(
+          agent('fixture', '/file', { headers: { 'x-vibecore-ci-transport-error': 'upstream-unavailable' } }),
+          {
+            statusCode: fileStatus >= 500 ? 502 : fileStatus,
+          },
+        );
+        assert.equal(observed, 0);
+        assert.equal(counts().health, 0);
+        assert.equal(counts().reads, fileStatus >= 500 ? 3 : 1);
+        assert.equal(counts().requestMarker, undefined);
+      },
+      { initialReady: true, fileStatus, spoof: true },
+    );
+  });
+}
+
+for (const mode of ['no-ci-opt-in', 'write', 'put', 'patch', 'delete', 'options', 'already-running']) {
+  test(`marked relay failure does not recover in mode ${mode}`, async () => {
+    await relayFixture(async ({ base, env, counts }) => {
+      let observed = 0;
+
+      const { agent } = actualAgentRequest(
+        base,
+        {
+          observe: async () => {
+            observed++;
+            return { status: 'RUNNING' };
+          },
+        },
+        {
+          disconnects: 0,
+          overrides: { process: { env: mode === 'no-ci-opt-in' ? {} : env }, shouldRetryAgentHop: httpRetry },
+        },
+      );
+      await assert.rejects(
+        agent('fixture', '/file', {
+          method: { write: 'POST', put: 'PUT', patch: 'PATCH', delete: 'DELETE', options: 'OPTIONS' }[mode] ?? 'GET',
+        }),
+        {
+          statusCode: 502,
+        },
+      );
+      assert.equal(observed, mode === 'already-running' ? 1 : 0);
+      assert.equal(counts().reads, 0);
+      assert.equal(counts().health, 0);
+    });
+  });
+}
+
+test('marker guard requires exact configured loopback origin, unredirected URL and opt-in', () => {
+  const url = 'http://127.0.0.1:18081/fixture/files/read?path=x';
+
+  const env = {
+    VIBECORE_CI_EPHEMERAL_RUNTIME: '1',
+    WORKSPACE_AGENT_URL_TEMPLATE: 'http://127.0.0.1:18081/{workspaceId}',
+  };
+  const response = {
+    status: 502,
+    url,
+    redirected: false,
+    headers: new Headers({ 'x-vibecore-ci-transport-error': 'upstream-unavailable' }),
+  };
+  assert.equal(exports.isEphemeralRelayTransportFailure(response, url, env), true);
+
+  for (const candidate of [
+    { ...response, status: 404 },
+    { ...response, redirected: true },
+    { ...response, headers: new Headers() },
+    { ...response, url: `${url}&redirected=1` },
+  ]) {
+    assert.equal(exports.isEphemeralRelayTransportFailure(candidate, url, env), false);
+  }
+
+  for (const template of [
+    'https://external.test/{workspaceId}',
+    'http://localhost:18081/{workspaceId}',
+    'http://127.0.0.1:9999/{workspaceId}',
+    'http://user@127.0.0.1:18081/{workspaceId}',
+  ]) {
+    assert.equal(
+      exports.isEphemeralRelayTransportFailure(response, url, { ...env, WORKSPACE_AGENT_URL_TEMPLATE: template }),
+      false,
+    );
+  }
+});
+
+for (const mode of ['deadline', 'cancel']) {
+  test(`identified relay recovery still enforces ${mode} without a final read`, async () => {
+    await relayFixture(async ({ base, env, counts }) => {
+      const controller = new AbortController();
+
+      let timer;
+
+      const { agent, starts } = actualAgentRequest(
+        base,
+        {
+          observe: async () => {
+            if (mode === 'cancel') {
+              timer = setTimeout(() => controller.abort(), 10);
+            }
+
+            return { status: 'STARTING' };
+          },
+        },
+        { disconnects: 0, overrides: { process: { env }, shouldRetryAgentHop: httpRetry } },
+      );
+
+      try {
+        await assert.rejects(agent('fixture', '/file', { signal: controller.signal }, undefined, 3, 120), {
+          code: mode === 'cancel' ? 'STREAM_ABORTED' : 'WORKSPACE_READ_RECOVERY_DEADLINE',
+        });
+        assert.equal(counts().reads, 0);
+        assert.equal(counts().health, 0);
+        assert.equal(starts(), 0);
+      } finally {
+        clearTimeout(timer);
+      }
+    });
+  });
+}
+
+test('same-URL redirect to a relay transport error cannot authorize recovery', async () => {
+  let base;
+  let lookups = 0;
+  let observed = 0;
+  let finalResponse;
+
+  const upstream = createServer((_request, response) => {
+    response.writeHead(302, { location: `${base}/file` }).end();
+  });
+  await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+
+  const relay = createRuntimeAgentRouter({
+    lookup: async () => {
+      if (++lookups > 1) {
+        throw new Error('Controlled transport loss after redirect');
+      }
+
+      return { hostname: '127.0.0.1', port: upstream.address().port };
+    },
+  });
+  await new Promise((resolve) => relay.listen(0, '127.0.0.1', resolve));
+
+  const origin = `http://127.0.0.1:${relay.address().port}`;
+  base = `${origin}/fixture`;
+
+  try {
+    const { agent, starts } = actualAgentRequest(
+      base,
+      {
+        observe: async () => {
+          observed++;
+          return { status: 'RUNNING' };
+        },
+      },
+      {
+        disconnects: 0,
+        overrides: {
+          process: {
+            env: { VIBECORE_CI_EPHEMERAL_RUNTIME: '1', WORKSPACE_AGENT_URL_TEMPLATE: `${origin}/{workspaceId}` },
+          },
+          fetch: async (url, init) => {
+            finalResponse = await fetch(url, init);
+            return finalResponse;
+          },
+        },
+      },
+    );
+    await assert.rejects(agent('fixture', '/file', {}, undefined, 1), { statusCode: 502 });
+    assert.equal(finalResponse.url, `${base}/file`);
+    assert.equal(finalResponse.redirected, true);
+    assert.equal(finalResponse.headers.get('x-vibecore-ci-transport-error'), 'upstream-unavailable');
+    assert.equal(observed, 0);
+    assert.equal(starts(), 0);
+  } finally {
+    relay.closeAllConnections();
+    await new Promise((resolve) => relay.close(resolve));
+    upstream.closeAllConnections();
+    await new Promise((resolve) => upstream.close(resolve));
+  }
+});
+
+test('cancellation after marked relay response preserves STREAM_ABORTED before admission', async () => {
+  await relayFixture(async ({ base, env, counts }) => {
+    const controller = new AbortController();
+
+    let observed = 0;
+
+    const { agent } = actualAgentRequest(
+      base,
+      {
+        observe: async () => {
+          observed++;
+          return { status: 'STARTING' };
+        },
+      },
+      {
+        disconnects: 0,
+        overrides: {
+          process: { env },
+          fetch: async (url, init) => {
+            const response = await fetch(url, init);
+            controller.abort();
+            await new Promise((resolve) => setImmediate(resolve));
+
+            return response;
+          },
+        },
+      },
+    );
+    await assert.rejects(agent('fixture', '/file', { signal: controller.signal }, undefined, 1), {
+      code: 'STREAM_ABORTED',
+    });
+    assert.equal(observed, 0);
+    assert.equal(counts().health, 0);
+    assert.equal(counts().reads, 0);
+  });
 });

@@ -21,9 +21,11 @@ imposer ce remplacement. Les courts retries de transport des lectures ne couvren
 ## Correction
 
 Après l'épuisement des retries de transport, une lecture GET/HEAD peut attendre uniquement si le manager
-confirme STARTING. La reprise exige ensuite RUNNING et un health check authentifié réussi, puis autorise une
-seule nouvelle lecture, sans provisioning supplémentaire ni récupération récursive. Cela inclut également
-un premier démarrage confirmé : STARTING ne distingue pas les générations de pods.
+confirme STARTING. La reprise exige ensuite RUNNING et une réponse réussie du health check interne, puis
+autorise une seule nouvelle lecture, sans provisioning supplémentaire ni récupération récursive. La sonde
+/health est exemptée de vérification du token : elle prouve la joignabilité, pas l’authentification. La lecture
+fichiers suivante vérifie réellement le bearer et son lien avec le workspace. Cela inclut également un premier
+démarrage confirmé : STARTING ne distingue pas les générations de pods.
 
 L'attente ajoutée, ses sondes et sa lecture partagent une deadline absolue calculée depuis l'entrée dans
 agentRequest et son budget existant. Ce n'est pas une nouvelle borne globale sur les anciennes tentatives,

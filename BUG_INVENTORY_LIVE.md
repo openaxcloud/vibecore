@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-625 entrées.
+626 entrées.
 
 ## Sans section
 
@@ -891,6 +891,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-URL-MEMORY-HANDOFF-20261111](docs/bugs/BUG-IDE-URL-MEMORY-HANDOFF-20261111.md) — Une ouverture automatique depuis l’URL pouvait empêcher le retour de la disposition enregistrée, être rejouée dans un panneau nouvellement ciblé ou fuiter entre — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
 - [BUG-SECRETS-MENU-SCROLL-20261111](docs/bugs/BUG-SECRETS-MENU-SCROLL-20261111.md) — Un défilement interne du menu ne doit pas le fermer; le déplacement de son bouton d’ancrage doit le fermer sans dérober le focus. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
 - [BUG-WORKSPACE-ENV-METADATA-20261111](docs/bugs/BUG-WORKSPACE-ENV-METADATA-20261111.md) — Les neuf états internes \*\_STATE étaient projetés dans l’environnement du workspace, pouvant changer son manifeste lors d’une édition de panneau. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+
+## Sans section
+
+- [BUG-RUNTIME-RELAY-TRANSPORT-001](docs/bugs/BUG-RUNTIME-RELAY-TRANSPORT-001.md) — Les erreurs de transport du relais CI échappent à la récupération des lectures. — 📤 Dispatché : Proposition locale sur le produit de 9e8e4db, inchangé par la correction trace da4bab7. · 💻 Codé : Patch local seulement, non publié. · ✅ Testé live : Non validé.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

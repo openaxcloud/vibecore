@@ -91,6 +91,9 @@ function route(url) {
 function headersFor(headers, websocket) {
   const result = { ...headers };
 
+  // Never trust a tenant/client marker, including either WebSocket handshake.
+  delete result['x-vibecore-ci-transport-error'];
+
   if (!websocket) {
     for (const name of String(headers.connection ?? '').split(',')) {
       delete result[name.trim().toLowerCase()];
@@ -152,7 +155,9 @@ export function createRuntimeAgentRouter({ lookup, timeoutMs = 120000 } = {}) {
       upstream.setTimeout(timeoutMs, () => upstream.destroy(new Error('Upstream timeout')));
       upstream.on('error', () => {
         if (!response.headersSent) {
-          response.writeHead(502).end('Workspace transport unavailable');
+          response
+            .writeHead(502, { 'x-vibecore-ci-transport-error': 'upstream-unavailable' })
+            .end('Workspace transport unavailable');
         } else {
           response.destroy();
         }
@@ -162,7 +167,9 @@ export function createRuntimeAgentRouter({ lookup, timeoutMs = 120000 } = {}) {
       request.pipe(upstream);
     } catch {
       if (!response.headersSent) {
-        response.writeHead(502).end('Workspace transport unavailable');
+        response
+          .writeHead(502, { 'x-vibecore-ci-transport-error': 'upstream-unavailable' })
+          .end('Workspace transport unavailable');
       } else {
         response.destroy();
       }

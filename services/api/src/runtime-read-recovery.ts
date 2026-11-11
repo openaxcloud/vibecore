@@ -158,3 +158,41 @@ export async function withRuntimeReadCancellation<T>(
     reply.off('close', closed);
   }
 }
+
+/*
+ * This marker is emitted only by the opt-in, loopback CI relay on its own
+ * transport failures. The relay strips this header from real agent responses.
+ */
+export function isEphemeralRelayTransportFailure(
+  response: { status: number; url: string; redirected: boolean; headers: { get(name: string): string | null } },
+  requestUrl: string,
+  env: Record<string, string | undefined>,
+): boolean {
+  if (
+    env.VIBECORE_CI_EPHEMERAL_RUNTIME !== '1' ||
+    response.status !== 502 ||
+    response.redirected !== false ||
+    response.headers.get('x-vibecore-ci-transport-error') !== 'upstream-unavailable' ||
+    !env.WORKSPACE_AGENT_URL_TEMPLATE
+  ) {
+    return false;
+  }
+
+  try {
+    const expected = new URL(env.WORKSPACE_AGENT_URL_TEMPLATE.replaceAll('{workspaceId}', 'ci-workspace'));
+    const target = new URL(requestUrl);
+
+    return (
+      expected.protocol === 'http:' &&
+      ['127.0.0.1', '[::1]'].includes(expected.hostname) &&
+      !expected.username &&
+      !expected.password &&
+      !target.username &&
+      !target.password &&
+      target.origin === expected.origin &&
+      response.url === requestUrl
+    );
+  } catch {
+    return false;
+  }
+}
