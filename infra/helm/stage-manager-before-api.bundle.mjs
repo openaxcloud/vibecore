@@ -7351,6 +7351,34 @@ var chart = "infra/helm/platform";
 var fail = (reason) => {
   throw new Error(`STAGED_MANAGER_${reason}`);
 };
+var failureEvidence = /* @__PURE__ */ new WeakMap();
+var failWithEvidence = (code, diagnostic) => {
+  const error = new Error(`STAGED_MANAGER_${code} ${JSON.stringify(diagnostic)}`);
+  const observation = (value) => value && {
+    expected: value.expected,
+    observed: value.observed,
+    total: value.total,
+    terminal: value.terminal,
+    deleting: value.deleting,
+    ready: value.ready,
+    generation: value.generation,
+    observedGeneration: value.observedGeneration,
+    updatedReplicas: value.updatedReplicas,
+    readyReplicas: value.readyReplicas,
+    availableReplicas: value.availableReplicas,
+    truncated: value.truncated,
+    pods: value.pods.map(({ phase, deleting, ready, terminal, targetDigestMatch }) => ({
+      phase,
+      deleting,
+      ready,
+      terminal,
+      targetDigestMatch
+    }))
+  };
+  const safeDiagnostic = Object.hasOwn(diagnostic, "pods") ? observation(diagnostic) : Object.hasOwn(diagnostic, "lastObservation") ? { ...diagnostic, lastObservation: observation(diagnostic.lastObservation) } : diagnostic;
+  failureEvidence.set(error, { reason: code, diagnostic: safeDiagnostic });
+  throw error;
+};
 var canonical = (value) => JSON.stringify(
   value,
   (_key, item) => item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item
@@ -7546,7 +7574,7 @@ function managerReadinessDiagnostic(deployment, pods, expectedDigest) {
 function assertManagerReady(deployment, pods, expectedImage, expectedDigest) {
   const desired = deployment.spec.replicas ?? 1;
   const status = deployment.status ?? {};
-  const reject = (code) => fail(`${code} ${JSON.stringify(managerReadinessDiagnostic(deployment, pods, expectedDigest))}`);
+  const reject = (code) => failWithEvidence(code, managerReadinessDiagnostic(deployment, pods, expectedDigest));
   if (!Number.isInteger(desired) || desired < 1 || !Number.isInteger(deployment.metadata.generation) || deployment.metadata.generation < 1 || !Number.isInteger(status.observedGeneration) || status.observedGeneration < deployment.metadata.generation || status.updatedReplicas !== desired || status.readyReplicas !== desired || status.availableReplicas !== desired || deployment.spec.template.spec.containers.length !== 1 || deployment.spec.template.spec.containers[0].image !== expectedImage) {
     reject("MANAGER_NOT_READY");
   }
@@ -7606,16 +7634,14 @@ function stageCommand(command, operation, args, options, lastObservation = null)
   try {
     return command(bin, args, options);
   } catch (error) {
-    return fail(
-      `COMMAND_FAILED ${JSON.stringify({
-        operation,
-        phase,
-        status: Number.isInteger(error?.status) && error.status >= 0 && error.status <= 255 ? error.status : null,
-        signal: processSignals.has(error?.signal) ? error.signal : null,
-        code: processCodes.has(error?.code) ? error.code : null,
-        lastObservation
-      })}`
-    );
+    return failWithEvidence("COMMAND_FAILED", {
+      operation,
+      phase,
+      status: Number.isInteger(error?.status) && error.status >= 0 && error.status <= 255 ? error.status : null,
+      signal: processSignals.has(error?.signal) ? error.signal : null,
+      code: processCodes.has(error?.code) ? error.code : null,
+      lastObservation
+    });
   }
 }
 function stageJson(command, operation, args, options, lastObservation = null) {
@@ -7623,7 +7649,7 @@ function stageJson(command, operation, args, options, lastObservation = null) {
   try {
     return JSON.parse(output);
   } catch {
-    return fail(`JSON_INVALID ${JSON.stringify({ operation, phase: stageOperations[operation][1] })}`);
+    return failWithEvidence("JSON_INVALID", { operation, phase: stageOperations[operation][1] });
   }
 }
 function waitForManagerReady({ command, namespace, release, managerName, image, digest, now, pause }) {
@@ -7641,7 +7667,7 @@ function waitForManagerReady({ command, namespace, release, managerName, image, 
   const remaining = () => {
     const left = deadline - now();
     if (left <= 0) {
-      fail(`MANAGER_READINESS_TIMEOUT ${JSON.stringify({ lastObservation: lastDiagnostic })}`);
+      failWithEvidence("MANAGER_READINESS_TIMEOUT", { lastObservation: lastDiagnostic });
     }
     return left;
   };
@@ -7814,16 +7840,26 @@ function runStage({
   receipt.migrationJob = assertMigrationComplete(migrationJob, migrationName, receipt.migrationImage);
   receipt.phase = "migration-job-verified";
   record();
-  receipt.managerReadiness = waitForManagerReady({
-    command,
-    namespace,
-    release,
-    managerName,
-    image,
-    digest: plan.managerDigest,
-    now,
-    pause
-  });
+  try {
+    receipt.managerReadiness = waitForManagerReady({
+      command,
+      namespace,
+      release,
+      managerName,
+      image,
+      digest: plan.managerDigest,
+      now,
+      pause
+    });
+  } catch (error) {
+    receipt.phase = "manager-readiness-failed";
+    receipt.managerReadinessFailure = failureEvidence.get(error) ?? { reason: "UNEXPECTED_FAILURE" };
+    try {
+      record();
+    } catch {
+    }
+    throw error;
+  }
   receipt.phase = "manager-ready";
   record();
   return {

@@ -12,6 +12,48 @@ const chart = 'infra/helm/platform';
 const fail = (reason) => {
   throw new Error(`STAGED_MANAGER_${reason}`);
 };
+
+// Evidence is attached only to errors constructed here, never parsed from provider text.
+
+const failureEvidence = new WeakMap();
+
+const failWithEvidence = (code, diagnostic) => {
+  const error = new Error(`STAGED_MANAGER_${code} ${JSON.stringify(diagnostic)}`);
+
+  /*
+   * Receipt evidence needs no pod/owner identity strings. Keep only the already
+   * bounded counts, enums and booleans; the existing thrown message is unchanged.
+   */
+  const observation = (value) =>
+    value && {
+      expected: value.expected,
+      observed: value.observed,
+      total: value.total,
+      terminal: value.terminal,
+      deleting: value.deleting,
+      ready: value.ready,
+      generation: value.generation,
+      observedGeneration: value.observedGeneration,
+      updatedReplicas: value.updatedReplicas,
+      readyReplicas: value.readyReplicas,
+      availableReplicas: value.availableReplicas,
+      truncated: value.truncated,
+      pods: value.pods.map(({ phase, deleting, ready, terminal, targetDigestMatch }) => ({
+        phase,
+        deleting,
+        ready,
+        terminal,
+        targetDigestMatch,
+      })),
+    };
+  const safeDiagnostic = Object.hasOwn(diagnostic, 'pods')
+    ? observation(diagnostic)
+    : Object.hasOwn(diagnostic, 'lastObservation')
+      ? { ...diagnostic, lastObservation: observation(diagnostic.lastObservation) }
+      : diagnostic;
+  failureEvidence.set(error, { reason: code, diagnostic: safeDiagnostic });
+  throw error;
+};
 const canonical = (value) =>
   JSON.stringify(value, (_key, item) =>
     item && typeof item === 'object' && !Array.isArray(item)
@@ -320,8 +362,7 @@ export function assertManagerReady(deployment, pods, expectedImage, expectedDige
   const desired = deployment.spec.replicas ?? 1;
   const status = deployment.status ?? {};
 
-  const reject = (code) =>
-    fail(`${code} ${JSON.stringify(managerReadinessDiagnostic(deployment, pods, expectedDigest))}`);
+  const reject = (code) => failWithEvidence(code, managerReadinessDiagnostic(deployment, pods, expectedDigest));
 
   if (
     !Number.isInteger(desired) ||
@@ -430,16 +471,14 @@ function stageCommand(command, operation, args, options, lastObservation = null)
   try {
     return command(bin, args, options);
   } catch (error) {
-    return fail(
-      `COMMAND_FAILED ${JSON.stringify({
-        operation,
-        phase,
-        status: Number.isInteger(error?.status) && error.status >= 0 && error.status <= 255 ? error.status : null,
-        signal: processSignals.has(error?.signal) ? error.signal : null,
-        code: processCodes.has(error?.code) ? error.code : null,
-        lastObservation,
-      })}`,
-    );
+    return failWithEvidence('COMMAND_FAILED', {
+      operation,
+      phase,
+      status: Number.isInteger(error?.status) && error.status >= 0 && error.status <= 255 ? error.status : null,
+      signal: processSignals.has(error?.signal) ? error.signal : null,
+      code: processCodes.has(error?.code) ? error.code : null,
+      lastObservation,
+    });
   }
 }
 
@@ -450,7 +489,7 @@ function stageJson(command, operation, args, options, lastObservation = null) {
   try {
     return JSON.parse(output);
   } catch {
-    return fail(`JSON_INVALID ${JSON.stringify({ operation, phase: stageOperations[operation][1] })}`);
+    return failWithEvidence('JSON_INVALID', { operation, phase: stageOperations[operation][1] });
   }
 }
 
@@ -473,7 +512,7 @@ export function waitForManagerReady({ command, namespace, release, managerName, 
     const left = deadline - now();
 
     if (left <= 0) {
-      fail(`MANAGER_READINESS_TIMEOUT ${JSON.stringify({ lastObservation: lastDiagnostic })}`);
+      failWithEvidence('MANAGER_READINESS_TIMEOUT', { lastObservation: lastDiagnostic });
     }
 
     return left;
@@ -696,16 +735,29 @@ export function runStage({
    * Helm's availability threshold can be weaker than complete rollout. Keep
    * the established drain budget before the stricter replica/image attestation.
    */
-  receipt.managerReadiness = waitForManagerReady({
-    command,
-    namespace,
-    release,
-    managerName,
-    image,
-    digest: plan.managerDigest,
-    now,
-    pause,
-  });
+  try {
+    receipt.managerReadiness = waitForManagerReady({
+      command,
+      namespace,
+      release,
+      managerName,
+      image,
+      digest: plan.managerDigest,
+      now,
+      pause,
+    });
+  } catch (error) {
+    receipt.phase = 'manager-readiness-failed';
+    receipt.managerReadinessFailure = failureEvidence.get(error) ?? { reason: 'UNEXPECTED_FAILURE' };
+
+    try {
+      record();
+    } catch {
+      // A diagnostic write failure must not replace the original deployment failure.
+    }
+
+    throw error;
+  }
   receipt.phase = 'manager-ready';
   record();
 
