@@ -1,3 +1,5 @@
+import { detectMobileLanguage, getMobileCopy, type MobileLanguage } from './i18n';
+
 export interface BiometricChallenge {
   userId: string;
   username: string;
@@ -6,7 +8,10 @@ export interface BiometricChallenge {
 
 export interface BiometricUnlockResult {
   ok: boolean;
+
+  /** Stable machine code, never translated. Use message for display. */
   reason?: 'unsupported' | 'cancelled' | 'failed';
+  message?: string;
 }
 
 export interface BiometricCapabilityHost {
@@ -17,9 +22,27 @@ export function supportsPlatformBiometrics(win: BiometricCapabilityHost = window
   return typeof win.PublicKeyCredential !== 'undefined';
 }
 
-export async function verifyBiometricUnlock(challenge: BiometricChallenge): Promise<BiometricUnlockResult> {
+function biometricFailure(
+  reason: NonNullable<BiometricUnlockResult['reason']>,
+  language: MobileLanguage,
+): BiometricUnlockResult {
+  const copy = getMobileCopy(language);
+
+  const messages = {
+    unsupported: copy.biometricUnsupported,
+    cancelled: copy.biometricCancelled,
+    failed: copy.biometricFailed,
+  };
+
+  return { ok: false, reason, message: messages[reason] };
+}
+
+export async function verifyBiometricUnlock(
+  challenge: BiometricChallenge,
+  language: MobileLanguage = detectMobileLanguage(),
+): Promise<BiometricUnlockResult> {
   if (!supportsPlatformBiometrics()) {
-    return { ok: false, reason: 'unsupported' };
+    return biometricFailure('unsupported', language);
   }
 
   try {
@@ -35,6 +58,9 @@ export async function verifyBiometricUnlock(challenge: BiometricChallenge): Prom
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, reason: error instanceof DOMException && error.name === 'NotAllowedError' ? 'cancelled' : 'failed' };
+    return biometricFailure(
+      error instanceof DOMException && error.name === 'NotAllowedError' ? 'cancelled' : 'failed',
+      language,
+    );
   }
 }

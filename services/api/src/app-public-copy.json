@@ -595,6 +595,10 @@
     "en": "Database storage",
     "fr": "Stockage de la base de données"
   },
+  "DEPLOY_PROVIDER_PRODUCTION_REQUIRED": {
+    "en": "Deployment provider \"{provider}\" is not configured for production use",
+    "fr": "Le fournisseur de déploiement « {provider} » n’est pas configuré pour la production"
+  },
   "CREDIT_LEDGER_DEPLOYMENT": {
     "en": "Deployment {kind}",
     "fr": "Déploiement {kind}"
@@ -2850,5 +2854,53 @@
   "DATABASE_BACKUP_UNCONFIRMED": {
     "en": "Database backup creation is unconfirmed.",
     "fr": "La création de la sauvegarde de la base n’est pas confirmée."
+  },
+  "SKILL_AUDIT_REAL_PARSE_FAILED": {
+    "en": "real skill failed to parse: {errors}",
+    "fr": "Impossible d’analyser la compétence installée : {errors}"
+  },
+  "SKILL_AUDIT_FIXTURE_PARSE_FAILED": {
+    "en": "fixture failed to parse: {errors}",
+    "fr": "Impossible d’analyser la fixture : {errors}"
+  },
+  "SKILL_DISCLOSURE_UNKNOWN": {
+    "en": "Unknown skill \"{skill}\".",
+    "fr": "Compétence « {skill} » inconnue."
+  },
+  "SKILL_DISCLOSURE_RESOURCE_UNDECLARED": {
+    "en": "Skill \"{skill}\" declares no resource \"{resource}\".",
+    "fr": "La compétence « {skill} » ne déclare aucune ressource « {resource} »."
+  },
+  "CHECKPOINT_NO_COMPONENTS": {
+    "en": "no components",
+    "fr": "aucun composant"
+  },
+  "CHECKPOINT_COMPONENTS_UNVERIFIED": {
+    "en": "{count} component snapshot(s) unverified",
+    "fr": "{count} instantané(s) de composant non vérifié(s)"
+  },
+  "CHECKPOINT_COMPONENTS_DIFFERENT_BARRIERS": {
+    "en": "components snapshotted under different logical barriers (not the same instant)",
+    "fr": "composants capturés sous des barrières logiques différentes (pas au même instant)"
+  },
+  "RELEASE_PROMOTION_INCOMPLETE": {
+    "en": "promotion {promotionId} is {state}, not PROMOTION_COMMITTED — an incomplete promotion can never become a release",
+    "fr": "la promotion {promotionId} est dans l’état {state}, et non PROMOTION_COMMITTED — une promotion incomplète ne peut jamais devenir une version publiée"
+  },
+  "RELEASE_ATTACHMENTS_NOT_RELINKED": {
+    "en": "{count} attachment(s) not relinked into the tenant repo",
+    "fr": "{count} pièce(s) jointe(s) non reliée(s) au dépôt du locataire"
+  },
+  "RELEASE_BINARY_AUTHORIZATION_NOT_PASSED": {
+    "en": "Binary Authorization is {result}, not PASSED",
+    "fr": "L’autorisation binaire est dans l’état {result}, et non PASSED"
+  },
+  "CAPACITY_FOLDER_RATE_LIMIT": {
+    "en": "folder-per-tenant needs {minutes} min of pure folder-creation rate-limit",
+    "fr": "un dossier par locataire nécessite {minutes} min pour respecter la limite de création des dossiers"
+  },
+  "CAPACITY_FOLDER_POLICY_DISABLED": {
+    "en": "folder-per-tenant disabled by policy (default); enable only on a measured contractual requirement",
+    "fr": "un dossier par locataire est désactivé par défaut par la politique ; activer uniquement sur la base d’une exigence contractuelle mesurée"
   }
 }

@@ -15,6 +15,9 @@
  * Pure module — no I/O — so the ordering guarantees are unit-testable.
  */
 
+import { appPublicCopy } from './app-public-copy.js';
+import type { TransactionalLocale } from './transactional-i18n.js';
+
 /* ==================== Checkpoint (two-phase barrier) ==================== */
 
 export type CheckpointState =
@@ -148,21 +151,25 @@ export interface CheckpointComponentSnapshot {
 export function checkpointManifestVisible(
   components: CheckpointComponentSnapshot[],
   barrierId: string,
+  locale: TransactionalLocale = 'en',
 ): { visible: boolean; reason?: string } {
   if (components.length === 0) {
-    return { visible: false, reason: 'no components' };
+    return { visible: false, reason: appPublicCopy('CHECKPOINT_NO_COMPONENTS', locale) };
   }
 
   const unverified = components.filter((c) => !c.verified);
 
   if (unverified.length > 0) {
-    return { visible: false, reason: `${unverified.length} component snapshot(s) unverified` };
+    return {
+      visible: false,
+      reason: appPublicCopy('CHECKPOINT_COMPONENTS_UNVERIFIED', locale, { count: unverified.length }),
+    };
   }
 
   const wrongBarrier = components.filter((c) => c.logicalBarrierId !== barrierId);
 
   if (wrongBarrier.length > 0) {
-    return { visible: false, reason: 'components snapshotted under different logical barriers (not the same instant)' };
+    return { visible: false, reason: appPublicCopy('CHECKPOINT_COMPONENTS_DIFFERENT_BARRIERS', locale) };
   }
 
   return { visible: true };
@@ -341,22 +348,36 @@ export interface ReleaseManifest {
  * I-PROMO-STATE-1 gate: a ReleaseManifest may ONLY be cut from a promotion that
  * reached PROMOTION_COMMITTED. Returns the reason it is refused otherwise.
  */
-export function releaseMayBeCut(promotion: PromotionManifest): { allowed: boolean; reason?: string } {
+export function releaseMayBeCut(
+  promotion: PromotionManifest,
+  locale: TransactionalLocale = 'en',
+): { allowed: boolean; reason?: string } {
   if (promotion.state !== 'PROMOTION_COMMITTED') {
     return {
       allowed: false,
-      reason: `promotion ${promotion.promotionId} is ${promotion.state}, not PROMOTION_COMMITTED — an incomplete promotion can never become a release`,
+      reason: appPublicCopy('RELEASE_PROMOTION_INCOMPLETE', locale, {
+        promotionId: promotion.promotionId,
+        state: promotion.state,
+      }),
     };
   }
 
   const missing = promotion.attachments.filter((a) => !a.relinked);
 
   if (missing.length > 0) {
-    return { allowed: false, reason: `${missing.length} attachment(s) not relinked into the tenant repo` };
+    return {
+      allowed: false,
+      reason: appPublicCopy('RELEASE_ATTACHMENTS_NOT_RELINKED', locale, { count: missing.length }),
+    };
   }
 
   if (promotion.binaryAuthorizationResult !== 'PASSED') {
-    return { allowed: false, reason: `Binary Authorization is ${promotion.binaryAuthorizationResult}, not PASSED` };
+    return {
+      allowed: false,
+      reason: appPublicCopy('RELEASE_BINARY_AUTHORIZATION_NOT_PASSED', locale, {
+        result: promotion.binaryAuthorizationResult,
+      }),
+    };
   }
 
   return { allowed: true };

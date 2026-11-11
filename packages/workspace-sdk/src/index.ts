@@ -1,4 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { workspaceAgentRequestFailure, type WorkspaceAgentLocale } from './agent-client-copy.js';
+
+export type { WorkspaceAgentLocale } from './agent-client-copy.js';
 
 export interface WorkspaceEvent {
   type: string;
@@ -136,6 +139,7 @@ export class WorkspaceAgentClient {
   constructor(
     readonly baseUrl: string,
     readonly token: string,
+    readonly locale: WorkspaceAgentLocale = 'en',
   ) {}
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -153,7 +157,7 @@ export class WorkspaceAgentClient {
     if (!response.ok) {
       // Drain the body so the socket is released instead of leaking until GC.
       await response.body?.cancel().catch(() => undefined);
-      throw new Error(`Workspace agent request failed: ${response.status}`);
+      throw new Error(workspaceAgentRequestFailure(response.status, this.locale));
     }
 
     return (await response.json()) as T;

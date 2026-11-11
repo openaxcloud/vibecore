@@ -29,6 +29,9 @@ export const mobileCopyEn = {
   shareTitle: 'E-Code project',
   shareText: 'Open project {projectId} on E-Code',
   shareDialogTitle: 'Share project',
+  biometricUnsupported: 'Biometric unlock is not supported on this device.',
+  biometricCancelled: 'Biometric unlock was cancelled.',
+  biometricFailed: 'Biometric unlock failed. Please try again.',
 } as const;
 
 export type MobileCopy = Readonly<Record<keyof typeof mobileCopyEn, string>>;
@@ -66,6 +69,9 @@ export const mobileCopyFr: MobileCopy = {
   shareTitle: 'Projet E-Code',
   shareText: 'Ouvrir le projet {projectId} sur E-Code',
   shareDialogTitle: 'Partager le projet',
+  biometricUnsupported: 'Le déverrouillage biométrique n’est pas pris en charge sur cet appareil.',
+  biometricCancelled: 'Le déverrouillage biométrique a été annulé.',
+  biometricFailed: 'Le déverrouillage biométrique a échoué. Veuillez réessayer.',
 };
 
 export type MobileLanguage = 'en' | 'fr';
