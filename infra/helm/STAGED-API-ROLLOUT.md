@@ -47,3 +47,11 @@ On unrelated drift the error reports bounded resource identities and field paths
 never values. Secret data and dynamic annotation/label keys are redacted. At most
 16 resources and 32 paths per resource are reported; truncation remains an error.
 Do not publish stored Helm values or raw rendered manifests for diagnosis.
+
+If the post-migration manager readiness wait fails, `manager-stage.json` records
+`phase: manager-readiness-failed` and `managerReadinessFailure`. This contains only
+internally constructed reason codes and bounded diagnostics, never provider error
+text, stderr, labels, full specs or pod/owner identities. Unknown thrown values receive the fixed
+`UNEXPECTED_FAILURE` reason. The original error is rethrown, even if writing the
+failure receipt fails; a missing final receipt is not proof of manager readiness.
+This diagnostic capture changes no timeout, retry, rollout or rollback policy.

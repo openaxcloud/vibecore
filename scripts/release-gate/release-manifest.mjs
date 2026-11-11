@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * RELEASE MANIFEST — the record of what a production rollout actually shipped, and
- * the tool that proves the cluster is running exactly that.
+ * RELEASE MANIFEST — the candidate image and provenance plan prepared before rollout,
+ * plus a separate verifier for the imageIDs actually observed in the cluster.
+ * Building this manifest does not attest that deployment or rollback succeeded.
  *
  * The manifest binds, per service, the four things that must agree for a release to
  * be traceable at all:
@@ -77,7 +78,7 @@ export function buildManifest(input) {
     if (s.rebuilt && s.sourceSha && s.sourceSha !== input.targetSha) {
       problems.push(`${where}: built from '${s.sourceSha}' but the release targets '${input.targetSha}'`);
     }
-    // A manifest entry is a claim about what shipped. `sourceSha` and `sbom` were
+    // A manifest entry binds the intended image to its provenance. `sourceSha` and `sbom` were
     // once optional and therefore routinely absent, which made the manifest
     // unfalsifiable: "built from some commit, we don't record which".
     //
@@ -115,7 +116,8 @@ export function buildManifest(input) {
       image: s.image ?? s.service,
       // Not every image this release ships is a Deployment that gets rolled:
       //   chartService — has a `services.<key>` entry, so its digest is set on the chart
-      //   rolled       — this workflow waits for its rollout and verifies its imageIDs
+      //   rolled       — selects services whose rollout/imageIDs MUST be verified later
+      // This legacy field is a verification requirement, not a deployment outcome.
       // The workspace-agent is not a chart service (it is an image reference the
       // api hands to workspace pods). It is still built, scanned, signature-
       // verified and recorded — dropping them from the manifest to keep the rollout
@@ -198,7 +200,7 @@ export function verifyImageIds(manifest, observed) {
   const mismatches = [];
   let checked = 0;
 
-  // Only services this release actually rolled can be checked against running pods.
+  // Check every service selected for rollout verification, including missing observations.
   // The filter lives here rather than in the caller so a workflow cannot quietly
   // narrow it: dropping a rolled service from the check is then a manifest change,
   // visible in the artifact, not an invisible edit to a jq expression.
@@ -272,7 +274,11 @@ function renderManifestSummary(manifest) {
         ]
       : [];
   return [
-    `### Release manifest — \`${manifest.targetSha}\``,
+    `### Release manifest (candidate) — \`${manifest.targetSha}\``,
+    '',
+    'Prepared before rollout. This manifest records intended images and verified provenance, not deployment success.',
+    '`rolled` selects services requiring rollout and imageID checks; it is not evidence those checks passed.',
+    'Use the actual rollout/rollback result and observed imageID evidence to assess the live release.',
     '',
     '| service | source SHA | Cloud Build id | image digest | signature | SBOM |',
     '| --- | --- | --- | --- | --- | --- |',
@@ -306,7 +312,9 @@ function main() {
       console.error(`::error::imageID mismatch — ${m}`);
     }
     if (!result.ok) {
-      console.error('::error::The cluster is NOT running the digests this release built. Investigate before trusting the rollout.');
+      console.error(
+        '::error::The cluster is NOT running the digests this release built. Investigate before trusting the rollout.',
+      );
       return 2;
     }
     console.log('✅ every running container matches its manifest digest');

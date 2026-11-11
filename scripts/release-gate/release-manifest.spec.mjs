@@ -1,3 +1,9 @@
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import { buildManifest, verifyImageIds } from './release-manifest.mjs';
@@ -132,9 +138,7 @@ describe('release manifest — build', () => {
     });
 
     it('exige toujours un digest sur une image reprise', () => {
-      expect(() => buildManifest(input([svc(), { ...carried(), digest: 'latest' }]))).toThrow(
-        /digest must be sha256:/,
-      );
+      expect(() => buildManifest(input([svc(), { ...carried(), digest: 'latest' }]))).toThrow(/digest must be sha256:/);
     });
   });
 
@@ -165,7 +169,10 @@ describe('release manifest — build', () => {
 
   it('carries a non-rebuilt service forward with its own source sha, never restamped', () => {
     const m = buildManifest(
-      input([svc(), svc({ service: 'web', digest: DIGEST2, rebuilt: false, cloudBuildId: null, sourceSha: OTHER_SHA })]),
+      input([
+        svc(),
+        svc({ service: 'web', digest: DIGEST2, rebuilt: false, cloudBuildId: null, sourceSha: OTHER_SHA }),
+      ]),
     );
     const web = m.services.find((s) => s.service === 'web');
     expect(web.sourceSha).toBe(OTHER_SHA);
@@ -250,5 +257,63 @@ describe('release manifest — verify-imageids', () => {
     });
     expect(result.ok).toBe(false);
     expect(result.mismatches).toHaveLength(1);
+  });
+});
+
+describe('release manifest — candidate evidence wording', () => {
+  it('labels the real build CLI and job summary as a plan without changing manifest data', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'release-manifest-wording-'));
+    const data = { ...input(), generatedAt: '2026-11-11T21:01:50.378Z' };
+    const expected = buildManifest(data);
+    const inputPath = join(dir, 'input.json');
+    const outputPath = join(dir, 'manifest.json');
+    const summaryPath = join(dir, 'summary.md');
+
+    try {
+      writeFileSync(inputPath, JSON.stringify(data));
+
+      const stdout = execFileSync(
+        process.execPath,
+        [
+          fileURLToPath(new URL('./release-manifest.mjs', import.meta.url)),
+          'build',
+          '--input',
+          inputPath,
+          '--out',
+          outputPath,
+        ],
+        { encoding: 'utf8', env: { ...process.env, GITHUB_STEP_SUMMARY: summaryPath } },
+      );
+
+      for (const text of [stdout, readFileSync(summaryPath, 'utf8')]) {
+        expect(text).toContain('Release manifest (candidate)');
+        expect(text).toContain('Prepared before rollout.');
+        expect(text).toContain('not deployment success');
+        expect(text).toContain('`rolled` selects services requiring rollout and imageID checks');
+        expect(text).toContain('it is not evidence those checks passed');
+      }
+      expect(JSON.parse(readFileSync(outputPath, 'utf8'))).toEqual(expected);
+      expect(expected.services[0].rolled).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps rolled as a required verification selector rather than a success assertion', () => {
+    const manifest = buildManifest(input());
+    const before = JSON.stringify(manifest);
+
+    expect(manifest.services[0].rolled).toBe(true);
+    expect(verifyImageIds(manifest, {})).toEqual({
+      ok: false,
+      mismatches: ['api: no running pod reported an imageID'],
+      checked: 0,
+    });
+    expect(verifyImageIds(manifest, { api: [`${REGISTRY}/api@${DIGEST}`] })).toEqual({
+      ok: true,
+      mismatches: [],
+      checked: 1,
+    });
+    expect(JSON.stringify(manifest)).toBe(before);
   });
 });

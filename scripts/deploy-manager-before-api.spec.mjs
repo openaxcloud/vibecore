@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -148,6 +148,8 @@ function execute({
   commandError,
   invalidJsonAt,
   invalidJson,
+  pauseFailure,
+  beforePause,
 } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'stage-test-'));
   const envFile = join(directory, 'env');
@@ -160,12 +162,19 @@ function execute({
   let invalidResponses = 0;
   let time = 0;
   let error;
+  let receipt;
 
   try {
     runStage({
       manifest,
       now: () => time,
       pause: (milliseconds) => {
+        beforePause?.(directory);
+
+        if (pauseFailure) {
+          throw pauseFailure.error;
+        }
+
         time += milliseconds;
       },
       env: {
@@ -175,6 +184,7 @@ function execute({
         HELM_RELEASE: 'test',
         HELM_NAMESPACE: 'test',
         GITHUB_ENV: envFile,
+        RUNNER_TEMP: directory,
       },
       command: (bin, args) => {
         calls.push([bin, ...args]);
@@ -247,10 +257,16 @@ function execute({
   } catch (caught) {
     error = caught;
   } finally {
+    const receiptFile = join(directory, 'manager-stage.json');
+
+    if (existsSync(receiptFile)) {
+      receipt = JSON.parse(readFileSync(receiptFile, 'utf8'));
+    }
+
     rmSync(directory, { recursive: true, force: true });
   }
 
-  return { calls, error, failedCommands, invalidResponses };
+  return { calls, error, receipt, failedCommands, invalidResponses };
 }
 
 describe('migration, manager, API sequencing', () => {
@@ -799,7 +815,10 @@ describe('manager readiness convergence deadline', () => {
     old.metadata.deletionTimestamp = '2026-11-01T00:00:00Z';
     old.status.containerStatuses[0].imageID = oldDigest;
 
-    const result = observe({ snapshots: [{ pods: [readyPod, old] }, { pods: [readyPod] }], rolloutTime: limit - 2000 });
+    const result = observe({
+      snapshots: [{ pods: [readyPod, old] }, { pods: [readyPod] }],
+      rolloutTime: limit - 2000,
+    });
     expect(result.error).toBeUndefined();
     expect(result.time).toBe(limit - 1000);
     expect(result.observation).toBe(2);
@@ -895,7 +914,14 @@ describe('safe command failure diagnostics', () => {
     expect(result.error.message).toMatch(/^STAGED_MANAGER_COMMAND_FAILED /);
 
     const diagnostic = JSON.parse(result.error.message.slice(result.error.message.indexOf('{')));
-    expect(diagnostic).toEqual({ operation, phase, status: 1, signal: null, code: null, lastObservation: null });
+    expect(diagnostic).toEqual({
+      operation,
+      phase,
+      status: 1,
+      signal: null,
+      code: null,
+      lastObservation: null,
+    });
     expect(result.error.message).not.toMatch(/PRIVATE_|Forbidden|helm get|kubectl/);
 
     expect(result.failedCommands).toBe(1);
@@ -1059,4 +1085,185 @@ describe('safe JSON response diagnostics', () => {
       },
     );
   }
+});
+
+describe('persisted final manager readiness evidence', () => {
+  const notReady = () => {
+    const pod = structuredClone(readyPod);
+    pod.status.conditions = [{ type: 'Ready', status: 'False', message: 'PRIVATE_MESSAGE' }];
+    pod.metadata.labels = { secret: 'PRIVATE_LABEL' };
+    pod.metadata.annotations = { token: 'PRIVATE_ANNOTATION', url: 'https://PRIVATE_URL' };
+    pod.metadata.name = 'private-credential-canary';
+    pod.metadata.uid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    pod.metadata.ownerReferences = [{ kind: 'ReplicaSet', name: 'private-owner-canary', controller: true }];
+    pod.spec.secret = 'PRIVATE_SPEC';
+
+    return pod;
+  };
+
+  it.each([
+    ['rollout-manager', (bin, args) => args.includes('rollout')],
+    ['observe-manager-deployment', (bin, args, upgraded) => upgraded && args.includes('deployment')],
+    ['observe-manager-pods', (bin, args) => args.includes('pods')],
+  ])('persists the final %s failure without provider content or retries', (operation, failCommandAt) => {
+    const commandError = Object.assign(new Error('STAGED_MANAGER_PRIVATE_MESSAGE'), {
+      status: 7,
+      signal: 'PRIVATE_SIGNAL',
+      code: 'PRIVATE_CODE',
+      stdout: 'PRIVATE_STDOUT',
+      stderr: 'PRIVATE_STDERR',
+    });
+
+    const result = execute({ failCommandAt, commandError });
+    expect(result.receipt.phase).toBe('manager-readiness-failed');
+    expect(result.receipt.migrationJob).toBeDefined();
+    expect(result.receipt.managerReadiness).toBeUndefined();
+    expect(result.receipt.managerReadinessFailure).toEqual({
+      reason: 'COMMAND_FAILED',
+      diagnostic: {
+        operation,
+        phase: operation === 'rollout-manager' ? 'migration-job-verified' : 'manager-readiness',
+        status: 7,
+        signal: null,
+        code: null,
+        lastObservation: null,
+      },
+    });
+    expect(JSON.stringify(result.receipt)).not.toContain('PRIVATE_');
+    expect(result.failedCommands).toBe(1);
+    expect(result.error.message).toMatch(/^STAGED_MANAGER_COMMAND_FAILED /);
+  });
+
+  it.each(['exit', 'timeout'])('captures a real child-process %s without its output', (mode) => {
+    let commandError;
+
+    try {
+      execFileSync(
+        process.execPath,
+        [
+          '-e',
+          mode === 'exit'
+            ? "process.stderr.write('Authorization: Bearer PRIVATE_TOKEN\\nhttps://user:PRIVATE_PASSWORD@example.invalid/?token=PRIVATE_TOKEN\\nAPI_KEY=PRIVATE_KEY'); process.exit(7)"
+            : 'setInterval(() => {}, 1000)',
+        ],
+        { timeout: mode === 'exit' ? 5000 : 50, stdio: ['ignore', 'pipe', 'pipe'] },
+      );
+    } catch (error) {
+      commandError = error;
+    }
+
+    expect(commandError).toBeDefined();
+
+    const result = execute({ failCommandAt: (bin, args) => args.includes('rollout'), commandError });
+    const failure = result.receipt.managerReadinessFailure;
+    expect(failure.reason).toBe('COMMAND_FAILED');
+    expect(failure.diagnostic.status).toBe(mode === 'exit' ? 7 : null);
+    expect(failure.diagnostic.code).toBe(mode === 'exit' ? null : 'ETIMEDOUT');
+    expect(JSON.stringify(failure)).not.toMatch(/PRIVATE_|Authorization|Bearer|https:|API_KEY|stderr|stdout/);
+    expect(result.failedCommands).toBe(1);
+  });
+
+  it('persists the final timeout with the last bounded readiness observation', () => {
+    const result = execute({ pod: notReady() });
+    expect(result.error.message).toMatch(/^STAGED_MANAGER_MANAGER_READINESS_TIMEOUT /);
+
+    const failure = result.receipt.managerReadinessFailure;
+    expect(failure.reason).toBe('MANAGER_READINESS_TIMEOUT');
+    expect(failure.diagnostic.lastObservation.ready).toBe(0);
+    expect(failure.diagnostic.lastObservation.pods).toHaveLength(1);
+    expect(JSON.stringify(failure)).not.toMatch(/PRIVATE_|private-|labels|spec|message|aaaaaaaa|owners|name|uid/);
+    expect(JSON.stringify(failure).length).toBeLessThan(2000);
+    expect(result.calls.filter((args) => args.includes('rollout'))).toHaveLength(1);
+  });
+
+  it('bounds persisted observations even with many private pod identities', () => {
+    const result = execute({ pods: Array.from({ length: 20 }, notReady) });
+    const observation = result.receipt.managerReadinessFailure.diagnostic.lastObservation;
+    expect(observation.truncated).toBe(true);
+    expect(observation.pods).toHaveLength(16);
+    expect(JSON.stringify(observation).length).toBeLessThan(3000);
+    expect(JSON.stringify(observation)).not.toMatch(
+      /PRIVATE_|private-|aaaaaaaa|owners|name|uid|labels|annotations|https:/,
+    );
+  });
+
+  it('rejects arbitrary process fields in persisted evidence', () => {
+    const commandError = Object.assign(new Error('PRIVATE_MESSAGE'), {
+      status: 'PRIVATE_STATUS',
+      signal: 'Authorization: Bearer PRIVATE_TOKEN',
+      code: 'https://user:PRIVATE_PASSWORD@example.invalid/?token=PRIVATE_TOKEN',
+      env: { API_KEY: 'PRIVATE_KEY' },
+      stdout: 'PRIVATE_STDOUT',
+      stderr: 'PRIVATE_STDERR',
+    });
+
+    const result = execute({ failCommandAt: (bin, args) => args.includes('rollout'), commandError });
+    expect(result.receipt.managerReadinessFailure.diagnostic).toMatchObject({ status: null, signal: null, code: null });
+    expect(JSON.stringify(result.receipt.managerReadinessFailure)).not.toMatch(
+      /PRIVATE_|Authorization|https:|API_KEY|env|stdout|stderr/,
+    );
+  });
+
+  it('persists invalid JSON without copying the response', () => {
+    const result = execute({
+      invalidJsonAt: (bin, args) => args.includes('pods'),
+      invalidJson: 'PRIVATE_JSON',
+    });
+    expect(result.receipt.managerReadinessFailure).toEqual({
+      reason: 'JSON_INVALID',
+      diagnostic: { operation: 'observe-manager-pods', phase: 'manager-readiness' },
+    });
+    expect(result.invalidResponses).toBe(1);
+  });
+
+  it('persists a non-retryable readiness rejection', () => {
+    const result = execute({ invalidJsonAt: (bin, args) => args.includes('pods'), invalidJson: '{}' });
+    expect(result.receipt.managerReadinessFailure.reason).toBe('MANAGER_PODS_INVALID');
+    expect(result.error.message).toMatch(/^STAGED_MANAGER_MANAGER_PODS_INVALID /);
+    expect(result.invalidResponses).toBe(1);
+  });
+
+  it.each([
+    new Error('STAGED_MANAGER_COMMAND_FAILED {"reason":"PRIVATE_FORGED"}'),
+    new Error(
+      'Authorization: Bearer PRIVATE_TOKEN https://user:PRIVATE_PASSWORD@example.invalid/?token=PRIVATE_TOKEN API_KEY=PRIVATE_KEY',
+    ),
+    Object.assign(new Error('PRIVATE_MESSAGE'), {
+      reason: 'COMMAND_FAILED',
+      diagnostic: { secret: 'PRIVATE_TOKEN' },
+    }),
+    {
+      get message() {
+        throw new Error('PRIVATE_GETTER');
+      },
+    },
+    'PRIVATE_STRING',
+    null,
+    17,
+  ])('classifies unexpected thrown values without reading their text %#', (error) => {
+    const result = execute({ pod: notReady(), pauseFailure: { error } });
+    expect(result.error).toBe(error);
+    expect(result.receipt.managerReadinessFailure).toEqual({ reason: 'UNEXPECTED_FAILURE' });
+    expect(JSON.stringify(result.receipt)).not.toContain('PRIVATE_');
+  });
+
+  it('does not replace the original error when persisting the failure fails', () => {
+    const error = new Error('PRIVATE_ORIGINAL');
+
+    const result = execute({
+      pod: notReady(),
+      pauseFailure: { error },
+      beforePause: (directory) => rmSync(directory, { recursive: true, force: true }),
+    });
+    expect(result.error).toBe(error);
+    expect(result.receipt).toBeUndefined();
+  });
+
+  it('does not add failure evidence to successful receipts', () => {
+    const result = execute();
+    expect(result.error).toBeUndefined();
+    expect(result.receipt.phase).toBe('manager-ready');
+    expect(result.receipt.managerReadiness).toBeDefined();
+    expect(result.receipt.managerReadinessFailure).toBeUndefined();
+  });
 });
