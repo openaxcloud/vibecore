@@ -105,16 +105,23 @@ def prepare_temporary(source_root: Path, temp_root: Path) -> Path:
             "mirror+file:/etc/apt/apt-mirrors.txt": "https://archive.ubuntu.com/ubuntu",
         }))
     config = directory / "apt.conf"
-    # Leave system apt.conf.d, trusted keys and Signed-By untouched. APT_CONFIG
-    # is passed only to the installer, never exported to later build steps.
-    config.write_text(
-        f'Dir::Etc::sourcelist "{apt}/sources.list";\n'
-        f'Dir::Etc::sourceparts "{apt}/sources.list.d";\n'
-        'Acquire::Retries "2";\n'
-        'Acquire::http::Timeout "30";\n'
-        'Acquire::https::Timeout "30";\n'
-        'APT::Update::Error-Mode "any";\n'
+    # APT_CONFIG is loaded BEFORE system apt.conf.d fragments. Load our narrow
+    # overrides as the main config AFTER those fragments instead, retaining the
+    # original main config first if present. Do not disable system fragments or
+    # replace their trust/security settings.
+    final_config = directory / "apt-final.conf"
+    system_main = source_apt / "apt.conf"
+    inherited_main = f'#include "{system_main}";\n' if system_main.is_file() else ""
+    final_config.write_text(
+        inherited_main
+        + f'Dir::Etc::sourcelist "{apt}/sources.list";\n'
+        + f'Dir::Etc::sourceparts "{apt}/sources.list.d";\n'
+        + 'Acquire::Retries "2";\n'
+        + 'Acquire::http::Timeout "30";\n'
+        + 'Acquire::https::Timeout "30";\n'
+        + 'APT::Update::Error-Mode "any";\n'
     )
+    config.write_text(f'Dir::Etc::main "{final_config}";\n')
     return config
 
 if __name__ == "__main__":
