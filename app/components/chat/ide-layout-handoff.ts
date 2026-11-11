@@ -33,8 +33,10 @@ export const useLayoutHandoffEffect = typeof window !== 'undefined' ? useLayoutE
 
 export interface DispositionTransmise<Arbre, Flottant> {
   paneTree: Arbre;
+
   /** Layout produced only by automatic URL openings, still eligible for saved-memory restoration. */
   provisionalPaneTree?: Arbre;
+
   /** The pending URL already applied before a shell handoff, not a later navigation. */
   provisionalPanelNavigation?: {
     navigationId: string;

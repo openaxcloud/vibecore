@@ -47,6 +47,7 @@ let handoffMirror = '';
 let restoreWindow = '';
 let layoutScope = '';
 let initialHandoff = '';
+
 const layoutState: string[] = [];
 const openingHelpers: string[] = [];
 
@@ -87,6 +88,7 @@ function visit(node: ts.Node) {
     if (text.startsWith('const restoredFloating =') && ts.isBlock(node.parent)) {
       const statements = node.parent.statements;
       const start = statements.indexOf(node);
+
       const end = statements.findIndex(
         (statement, index) =>
           index > start && ts.isIfStatement(statement) && statement.expression.getText(tree) === 'restoredTree',
@@ -469,6 +471,7 @@ describe('initial URL and delayed layout restoration', () => {
   });
   it('keeps automatic opening and restoration safe under StrictMode replay', async () => {
     const memory = deferred();
+
     const view = render(
       <React.StrictMode>
         <Harness memory={memory.promise} />
@@ -490,6 +493,7 @@ describe('initial URL and delayed layout restoration', () => {
     const startup = render(<Harness memory={memory.promise} />);
     const handoff = lireDispositionTransmise(porteeDisposition('project-a', 'window-main'))!;
     startup.unmount();
+
     const view = render(<Harness memory={memory.promise} handoff={handoff} />);
     await act(async () => memory.resolve(saved));
     expect(read(view).tabs.map((tab: { panel: string }) => tab.panel)).toEqual([
@@ -505,8 +509,10 @@ describe('initial URL and delayed layout restoration', () => {
     const memory = deferred();
     const startup = render(<Harness memory={memory.promise} />);
     fireEvent.click(startup.getByRole('button', { name: 'Split' }));
+
     const handoff = lireDispositionTransmise(porteeDisposition('project-a', 'window-main'))!;
     startup.unmount();
+
     const view = render(<Harness memory={memory.promise} handoff={handoff} />);
     await act(async () => memory.resolve(saved));
     expect(read(view)).toMatchObject({ id: 'user-split', second: { id: 'user-pane' } });
@@ -519,6 +525,7 @@ describe('initial URL and delayed layout restoration', () => {
       const memory = deferred();
       const view = render(<Harness memory={memory.promise} />);
       fireEvent.click(view.getByRole('button', { name: 'Split editor' }));
+
       const before = read(view);
 
       if (complete) {
@@ -537,8 +544,10 @@ describe('initial URL and delayed layout restoration', () => {
     fireEvent.click(startup.getByRole('button', { name: 'Split editor' }));
     fireEvent.click(startup.getByRole('button', { name: 'Focus main' }));
     fireEvent.click(startup.getByRole('button', { name: 'Focus editor' }));
+
     const handoff = lireDispositionTransmise(porteeDisposition('project-a', 'window-main'))!;
     startup.unmount();
+
     const view = render(<Harness memory={memory.promise} handoff={handoff} />);
     expect(read(view)).toEqual(handoff.paneTree);
     await act(async () => memory.resolve(saved));
@@ -551,6 +560,7 @@ describe('initial URL and delayed layout restoration', () => {
     const view = render(<Harness memory={memory.promise} />);
     fireEvent.click(view.getByRole('button', { name: 'Split editor' }));
     view.rerender(<Harness memory={memory.promise} panel="git" navigationId="new-location" />);
+
     const before = read(view);
     expect(before.second.tabs.map((tab: { panel: string }) => tab.panel)).toEqual(['editor', 'git']);
     await act(async () => memory.resolve(saved));
@@ -559,11 +569,13 @@ describe('initial URL and delayed layout restoration', () => {
 
   it('does not expose an uncommitted transition through the restoration baseline or handoff', async () => {
     const memory = deferred();
+
     const view = render(
       <React.Suspense fallback={<div>Pending transition</div>}>
         <Harness memory={memory.promise} suspendOnGit />
       </React.Suspense>,
     );
+
     const before = lireDispositionTransmise(porteeDisposition('project-a', 'window-main'));
     fireEvent.click(view.getByRole('button', { name: 'Transition Git' }));
     expect(lireDispositionTransmise(porteeDisposition('project-a', 'window-main'))).toEqual(before);
@@ -583,6 +595,7 @@ describe('initial URL and delayed layout restoration', () => {
     const view = render(<Harness memory={memory.promise} />);
     fireEvent.click(view.getByRole('button', { name: 'Split editor' }));
     view.rerender(<Harness memory={memory.promise} navigationId="new-secrets-location" />);
+
     const before = read(view);
     expect(before.second.tabs.map((tab: { panel: string }) => tab.panel)).toEqual(['editor', 'secrets']);
     await act(async () => memory.resolve(saved));
@@ -596,6 +609,7 @@ describe('initial URL and delayed layout restoration', () => {
     fireEvent.click(view.getByRole('button', { name: 'Move secrets' }));
     view.rerender(<Harness memory={memory.promise} navigationId="move-location" />);
     fireEvent.click(view.getByRole('button', { name: 'Focus main' }));
+
     const before = read(view);
     expect(before.first.tabs.map((tab: { panel: string }) => tab.panel)).toEqual(['preview']);
     await act(async () => memory.resolve(saved));
@@ -607,9 +621,11 @@ describe('initial URL and delayed layout restoration', () => {
     const view = render(<Harness memory={memory.promise} />);
     fireEvent.click(view.getByRole('button', { name: 'Split editor' }));
     fireEvent.click(view.getByRole('button', { name: 'Move secrets' }));
+
     const scope = porteeDisposition('project-a', 'window-main');
     const before = lireDispositionTransmise(scope);
     view.rerender(<Harness memory={memory.promise} navigationId="move-location" />);
+
     const acknowledged = lireDispositionTransmise(scope);
     expect(acknowledged?.provisionalPanelNavigation?.navigationId).toBe('move-location');
     expect(acknowledged?.paneTree).toBe(before?.paneTree);
@@ -624,9 +640,11 @@ describe('initial URL and delayed layout restoration', () => {
     fireEvent.click(startup.getByRole('button', { name: 'Move secrets' }));
     fireEvent.click(startup.getByRole('button', { name: 'Focus main' }));
     startup.rerender(<Harness memory={memory.promise} navigationId="move-location" />);
+
     const before = read(startup);
     expect(before.first.tabs.map((tab: { panel: string }) => tab.panel)).toEqual(['preview']);
     startup.unmount();
+
     const view = render(<Harness memory={memory.promise} navigationId="move-location" />);
     expect(read(view)).toEqual(before);
     await act(async () => memory.resolve(saved));
@@ -637,6 +655,7 @@ describe('initial URL and delayed layout restoration', () => {
     const first = deferred();
     const view = render(<Harness key="workspace-a" memory={first.promise} currentWorkspaceId="workspace-a" />);
     fireEvent.click(view.getByRole('button', { name: 'Split editor' }));
+
     const second = deferred();
     view.rerender(<Harness key="workspace-b" memory={second.promise} currentWorkspaceId="workspace-b" />);
     expect(read(view).type).toBe('leaf');

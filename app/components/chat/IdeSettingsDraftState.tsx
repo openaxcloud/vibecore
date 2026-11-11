@@ -589,6 +589,7 @@ interface SecretFormDraft {
 }
 
 type SecretFormEntry = { draft: SecretFormDraft; submission?: object };
+
 const emptySecretForm: SecretFormEntry = { draft: { open: false, editingKey: null, key: '', value: '' } };
 
 /**
@@ -613,6 +614,7 @@ function createSecretFormStore() {
     },
     subscribe: (notify: () => void) => {
       listeners.add(notify);
+
       return () => {
         listeners.delete(notify);
       };
@@ -626,8 +628,10 @@ export function useIdeSecretFormDraft(projectId: string, paneId?: string) {
   const scope = JSON.stringify([projectId, paneId ?? 'local']);
   const [local, setLocal] = useState(() => ({ scope, store: createSecretFormStore() }));
 
-  // A standalone panel can change project without remounting. Reset its local
-  // lifetime atomically, without mutating the committed store during render.
+  /*
+   * A standalone panel can change project without remounting. Reset its local
+   * lifetime atomically, without mutating the committed store during render.
+   */
   let scopedLocal = local;
 
   if (local.scope !== scope) {
@@ -636,8 +640,15 @@ export function useIdeSecretFormDraft(projectId: string, paneId?: string) {
   }
 
   const store = shared && shared.projectId === projectId && paneId ? shared.secretForms : scopedLocal.store;
-  const entry = useSyncExternalStore(store.subscribe, () => store.get(scope), () => emptySecretForm);
+
+  const entry = useSyncExternalStore(
+    store.subscribe,
+    () => store.get(scope),
+    () => emptySecretForm,
+  );
+
   const close = () => store.set(scope, emptySecretForm);
+
   const open = (editingKey: string | null) => {
     store.set(scope, { draft: { open: true, editingKey, key: editingKey ?? '', value: '' } });
   };

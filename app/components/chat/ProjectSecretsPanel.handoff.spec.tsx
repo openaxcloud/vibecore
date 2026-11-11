@@ -1,15 +1,15 @@
 /** @vitest-environment jsdom */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
-import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
-import { panelActionFailureMessage } from '~/lib/panel-action-failure';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import ts from 'typescript';
 import { afterAll, afterEach, it, vi } from 'vitest';
 import { IdePaletteProvider } from './IdePaletteState';
-import { ProjectSecretsPanel } from './ProjectSecretsPanel';
 import { ProjectMetadataForm } from './ProjectMetadataForm';
+import { ProjectSecretsPanel } from './ProjectSecretsPanel';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
+import { panelActionFailureMessage } from '~/lib/panel-action-failure';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('~/components/project-ide/PanelPrimitives', () => ({
@@ -56,6 +56,7 @@ type Props = {
   existingSecret?: boolean;
   submit?: (event: React.FormEvent<HTMLFormElement>) => void | boolean | Promise<void | boolean>;
 };
+
 function tree(props: Props) {
   const {
     shell = 'warm-shell',
@@ -112,6 +113,7 @@ async function mount(initial: Props = {}) {
   mounted.push({ root, host });
 
   let props = initial;
+
   const render = async (next: Props) => {
     props = { ...props, ...next };
     await act(async () => root.render(tree(props)));
@@ -119,6 +121,7 @@ async function mount(initial: Props = {}) {
   await render(initial);
 
   const query = <T extends Element = HTMLElement>(selector: string) => host.querySelector<T>(selector);
+
   const get = <T extends Element = HTMLElement>(selector: string) => {
     const node = query<T>(selector);
     assert.ok(node, `Missing ${selector}`);
@@ -148,13 +151,16 @@ const key = '[data-testid=secrets-form-key]';
 const value = '[data-testid=secrets-form-value]';
 const add = '[data-testid=secrets-new]';
 const cancel = '.bolt-secrets-cancel';
+
 async function draft(view: Awaited<ReturnType<typeof mount>>) {
   await view.click(add);
   await view.input(key, 'SYNTHETIC_KEY');
   await view.input(value, 'synthetic-unsaved-value');
 }
+
 function deferred() {
   let resolve!: (saved: boolean) => void;
+
   const promise = new Promise<boolean>((done) => {
     resolve = done;
   });
@@ -165,6 +171,7 @@ function deferred() {
 it('preserves the actual just-opened form across immediate warm shell replacement', async () => {
   const view = await mount();
   await view.click(add);
+
   const previous = view.get('[data-testid=secrets-panel]');
   await view.render({ shell: 'real-chat' });
   assert.equal(previous.isConnected, false);
@@ -225,11 +232,13 @@ for (const action of ['cancel', 'toggle', 'save']) {
   it(`does not resurrect fields after ${action} then replacement`, async () => {
     const view = await mount();
     await draft(view);
+
     if (action === 'save') {
       await view.submit();
     } else {
       await view.click(action === 'cancel' ? cancel : add);
     }
+
     await view.render({ shell: 'next' });
     assert.equal(Boolean(view.query(key)), false);
     await view.click(add);
@@ -240,10 +249,12 @@ for (const action of ['cancel', 'toggle', 'save']) {
 
 it('retains fields on failed save through replacement, with no synthetic retry', async () => {
   let calls = 0;
+
   const view = await mount({
     submit: (event) => {
       event.preventDefault();
       calls++;
+
       return false;
     },
   });
@@ -256,11 +267,14 @@ it('retains fields on failed save through replacement, with no synthetic retry',
 
 it('keeps a pending submit across replacement and prevents a duplicate request', async () => {
   const pending = deferred();
+
   let calls = 0;
+
   const view = await mount({
     submit: (event) => {
       event.preventDefault();
       calls++;
+
       return pending.promise;
     },
   });
@@ -278,6 +292,7 @@ it('keeps a pending submit across replacement and prevents a duplicate request',
 
 it('does not clear newer edits after an older save resolves, even across replacement', async () => {
   const pending = deferred();
+
   const view = await mount({
     submit: (event) => {
       event.preventDefault();
@@ -294,6 +309,7 @@ it('does not clear newer edits after an older save resolves, even across replace
 
 it('does not close a canceled/reopened form on stale success even with identical text', async () => {
   const pending = deferred();
+
   const view = await mount({
     submit: (event) => {
       event.preventDefault();
@@ -325,9 +341,11 @@ function actualSubmit(
   const source = readFileSync('app/components/chat/BaseChat.tsx', 'utf8');
   const ast = ts.createSourceFile('BaseChat.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const functions: Record<string, string> = {};
+
   function visit(node: ts.Node) {
     if (ts.isFunctionDeclaration(node) && node.name) {
       const name = node.name.text;
+
       if (
         name === 'submitToPanel' ||
         name === 'shouldResetIdePanelFormAfterSubmit' ||
@@ -337,9 +355,11 @@ function actualSubmit(
         functions[name] = node.getText(ast);
       }
     }
+
     ts.forEachChild(node, visit);
   }
   visit(ast);
+
   for (const name of [
     'submit',
     'submitToPanel',
@@ -348,15 +368,20 @@ function actualSubmit(
   ]) {
     assert.ok(functions[name], `Production callback ${name} must be present`);
   }
+
   let requests = 0;
+
   const request = async (_url: string, init: RequestInit) => {
     requests++;
     assert.equal(init.method, 'POST');
     assert.equal((init.body as FormData).get('intent'), 'upsert');
     assert.equal((init.body as FormData).get('key'), 'SYNTHETIC_KEY');
+
     return response;
   };
+
   const noop = () => undefined;
+
   const context = {
     projectId: 'p1',
     panel: 'secrets',
@@ -380,12 +405,15 @@ function actualSubmit(
   const submit = new Function(...Object.keys(context), output)(...Object.values(context)) as NonNullable<
     Props['submit']
   >;
+
   return { submit, requests: () => requests };
 }
+
 for (const kind of ['service', 'terminal'] as const) {
   for (const outcome of ['success', 'http-failure', 'error-envelope', 'network-failure'] as const) {
     it(`actual ${kind} caller preserves or clears fields correctly on ${outcome} across replacement`, async () => {
       let finish!: () => void;
+
       const response = new Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>((resolve, reject) => {
         finish = () =>
           outcome === 'network-failure'
@@ -396,6 +424,7 @@ for (const kind of ['service', 'terminal'] as const) {
                 json: async () => ({ ok: outcome !== 'error-envelope' }),
               });
       });
+
       const caller = actualSubmit(kind, response);
       const view = await mount({ submit: caller.submit });
       await draft(view);
@@ -403,6 +432,7 @@ for (const kind of ['service', 'terminal'] as const) {
       await view.render({ shell: 'loaded-chat' });
       assert.equal(caller.requests(), 1);
       await act(async () => finish());
+
       if (outcome === 'success') {
         assert.equal(Boolean(view.query(key)), false);
       } else {
@@ -414,6 +444,7 @@ for (const kind of ['service', 'terminal'] as const) {
 
 it('drops standalone drafts on project changes and cannot resurrect them on return', async () => {
   const pending = deferred();
+
   const view = await mount({
     local: true,
     submit: (event) => {
@@ -456,6 +487,7 @@ for (const kind of ['sync', 'async'] as const) {
         : async (event) => {
             event.preventDefault();
           };
+
     const view = await mount({ submit });
     await draft(view);
     await view.submit();
@@ -468,9 +500,11 @@ for (const kind of ['service', 'terminal'] as const) {
   for (const remount of [false, true]) {
     it(`actual ${kind} caller retains newer text on late success with remount=${remount}`, async () => {
       let finish!: () => void;
+
       const response = new Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>((resolve) => {
         finish = () => resolve({ ok: true, status: 200, json: async () => ({ ok: true }) });
       });
+
       const caller = actualSubmit(kind, response);
       const view = await mount({ submit: caller.submit });
       await draft(view);

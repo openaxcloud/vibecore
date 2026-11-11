@@ -1839,6 +1839,7 @@ function normalizePaneTree(node: any): IdePaneNode {
 
     const tabs = ensureCorePaneTabs(collectPaneTabs(entry));
     const legacyActiveTabId = typeof entry?.activeTabId === 'string' ? entry.activeTabId : undefined;
+
     const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId)
       ? legacyActiveTabId
       : tabs[tabs.length - 1]?.id;
@@ -3744,7 +3745,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       paneTree: dispositionTransmise?.paneTree ?? cloneDefaultPaneTree(),
       provisionalPaneTree: dispositionTransmise?.provisionalPaneTree ?? cloneDefaultPaneTree(),
     }));
+
     const { paneTree } = paneLayout;
+
     const setPaneTree = useCallback((update: React.SetStateAction<IdePaneNode>) => {
       setPaneLayout((current) => {
         const nextTree = typeof update === 'function' ? update(current.paneTree) : update;
@@ -3758,8 +3761,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * La valeur capturée dans la fermeture de l'effet date de son lancement ;
      * or c'est précisément l'écart entre les deux qui nous intéresse.
      */
-    // Automatic URL opening is interactive but is not a user-edited layout.
-    // Carry its baseline across shell handoffs so delayed memory may still restore saved tabs.
+    /*
+     * Automatic URL opening is interactive but is not a user-edited layout.
+     * Carry its baseline across shell handoffs so delayed memory may still restore saved tabs.
+     */
     const provisionalPaneTreeRef = useRef(paneLayout.provisionalPaneTree);
     const provisionalPaneScopeRef = useRef(porteeDeLaDisposition);
     const provisionalPanelNavigationRef = useRef(dispositionTransmise?.provisionalPanelNavigation);
@@ -6188,7 +6193,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               { root: current.paneTree, floatingPanes: floatingPanesRef.current, activePaneId: targetPaneId },
               openTab,
             );
+
             const nextTree = next.root ?? current.paneTree;
+
             const advanceBaseline =
               options.provisional && laDispositionPeutEtreRestauree(current.paneTree, current.provisionalPaneTree);
 
@@ -6594,8 +6601,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               panel: activeProjectPanel,
             };
 
-            // This acknowledgement changes no React state, so publish its receipt now.
-            // Keep the committed layout snapshot; never read a speculative render here.
+            /*
+             * This acknowledgement changes no React state, so publish its receipt now.
+             * Keep the committed layout snapshot; never read a speculative render here.
+             */
             dispositionCouranteRef.current = {
               ...dispositionCouranteRef.current,
               provisionalPanelNavigation: provisionalPanelNavigationRef.current,
@@ -6655,8 +6664,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         const provisionalNavigation = provisionalPanelNavigationRef.current;
 
-        // Readiness and shell handoffs must not replay a pending URL into a newly focused pane.
-        // A real saved-tree adoption clears this receipt so the URL is applied to that layout.
+        /*
+         * Readiness and shell handoffs must not replay a pending URL into a newly focused pane.
+         * A real saved-tree adoption clears this receipt so the URL is applied to that layout.
+         */
         if (
           provisionalNavigation?.navigationId === appliedPanelNavigationId &&
           provisionalNavigation.projectId === projectId &&

@@ -534,7 +534,28 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
       [15_000, 15_000, 15_000, 15_000],
     ],
     ['responsive-ide.spec.ts:desktop opens terminal as a workspace panel from the panel URL', [15_000, 15_000]],
+    [
+      'dashboard.spec.ts:edit file workflow surfaces editor, files, terminal and preview affordances',
+      [15_000, 15_000],
+    ],
+    [
+      'dashboard.spec.ts:reopens project IDE with persisted agent memory and panel state',
+      Array(6).fill(15_000),
+    ],
   ]);
+  // These two existing dashboard scenarios inherit their test budget. Wrapping
+  // diagnostics must not add setTimeout or relax any of their original waits.
+  // Every wrapped scenario has an explicit contract; no fallback accepts new ones.
+  const expectedTestBudgets = new Map([
+    ['mobile-device-matrix.spec.ts:assertEveryCompactPanelForProfile', []],
+    ['dashboard.spec.ts:IDE project services open as in-place panels instead of legacy project pages', [120_000]],
+    ['responsive-ide.spec.ts:desktop keeps the full IDE workspace available', [120_000]],
+    ['responsive-ide.spec.ts:desktop can collapse and restore the right preview panel', [120_000]],
+    ['responsive-ide.spec.ts:desktop opens terminal as a workspace panel from the panel URL', [120_000]],
+    ['dashboard.spec.ts:edit file workflow surfaces editor, files, terminal and preview affordances', []],
+    ['dashboard.spec.ts:reopens project IDE with persisted agent memory and panel state', []],
+  ]);
+  assert.deepEqual([...expectedTestBudgets.keys()].sort(), [...expected.keys()].sort());
 
   /*
    * Keep the original 30s + sixteen 15s waits pinned separately. The equivalent
@@ -643,7 +664,8 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
           testBudgets.push(Number(child.arguments[0].text));
         }
       });
-      assert.deepEqual(testBudgets, compact ? [] : [120_000], key);
+      assert.ok(expectedTestBudgets.has(key), `Unreviewed diagnostic wrapper: ${key}`);
+      assert.deepEqual(testBudgets, expectedTestBudgets.get(key), key);
       actual.set(key, timeouts);
     });
   }
