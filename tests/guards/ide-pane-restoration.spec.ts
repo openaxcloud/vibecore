@@ -57,7 +57,10 @@ function openGit(state: ProjectEditorWindowState, paneId: string, tabId = 'tab-g
 describe('persisted pane identity and URL panel opening', () => {
   it('restores both pane IDs and the active pane selection', () => {
     const state = restoredWindow();
-    assert.deepEqual(collectPanes(state).map((pane) => pane.id), ['pane-main', 'pane']);
+    assert.deepEqual(
+      collectPanes(state).map((pane) => pane.id),
+      ['pane-main', 'pane'],
+    );
     assert.ok(collectPanes(state).some((pane) => pane.id === state.activePaneId));
   });
 
@@ -76,7 +79,10 @@ describe('persisted pane identity and URL panel opening', () => {
     const state = restoredWindow();
     const once = openGit(state, state.activePaneId);
     const twice = openGit(once, state.activePaneId, 'second-effect-tab');
-    const tabs = collectPanes(twice).flatMap((pane) => pane.tabs).filter((tab) => tab.panel === 'git');
+
+    const tabs = collectPanes(twice)
+      .flatMap((pane) => pane.tabs)
+      .filter((tab) => tab.panel === 'git');
     assert.equal(tabs.length, 1);
     assert.equal(tabs[0].id, 'tab-git');
   });
@@ -86,8 +92,16 @@ describe('persisted pane identity and URL panel opening', () => {
     const opened = openGit(state, state.activePaneId);
     const restored = { ...opened, root: normalize(JSON.parse(JSON.stringify(opened.root))) };
     const next = openGit(restored, restored.activePaneId, 'reload-tab');
-    assert.deepEqual(collectPanes(next).map((pane) => pane.id), ['pane-main', 'pane']);
-    assert.equal(collectPanes(next).flatMap((pane) => pane.tabs).filter((tab) => tab.panel === 'git').length, 1);
+    assert.deepEqual(
+      collectPanes(next).map((pane) => pane.id),
+      ['pane-main', 'pane'],
+    );
+    assert.equal(
+      collectPanes(next)
+        .flatMap((pane) => pane.tabs)
+        .filter((tab) => tab.panel === 'git').length,
+      1,
+    );
   });
 
   it('still permits intentionally opening Git in two distinct panes', () => {
@@ -104,15 +118,19 @@ describe('persisted pane identity and URL panel opening', () => {
     for (const invalidId of [undefined, null, 42, '', '   ']) {
       const state = restoredWindow();
       assert.equal(state.root?.type, 'split');
+
       const input = JSON.parse(JSON.stringify(state.root));
       input.first.id = invalidId;
       input.second.id = 'pane-main';
+
       const first = normalize(input);
       assert.equal(JSON.stringify(normalize(input)), JSON.stringify(first));
       assert.equal(first.type, 'split');
+
       if (first.type !== 'split') {
         throw new Error('Expected the restored split.');
       }
+
       assert.equal(first.first.id, 'pane-main-2');
       assert.equal(first.second.id, 'pane-main');
     }
@@ -122,13 +140,23 @@ describe('persisted pane identity and URL panel opening', () => {
     const state = restoredWindow();
     const input = JSON.parse(JSON.stringify(state.root));
     input.second.id = input.first.id;
+
     const root = normalize(input);
     const repaired = { ...state, root, activePaneId: 'pane-main' };
-    assert.deepEqual(collectPanes(repaired).map((pane) => pane.id), ['pane-main', 'pane-main-2']);
+    assert.deepEqual(
+      collectPanes(repaired).map((pane) => pane.id),
+      ['pane-main', 'pane-main-2'],
+    );
+
     const next = openGit(repaired, repaired.activePaneId);
     assert.equal(collectPanes(next)[0].activeTabId, 'tab-git');
     assert.equal(collectPanes(next)[1].activeTabId, 'tab-terminal');
-    assert.equal(collectPanes(next).flatMap((pane) => pane.tabs).filter((tab) => tab.panel === 'git').length, 1);
+    assert.equal(
+      collectPanes(next)
+        .flatMap((pane) => pane.tabs)
+        .filter((tab) => tab.panel === 'git').length,
+      1,
+    );
     assert.equal(JSON.stringify(normalize(root)), JSON.stringify(root));
   });
 
@@ -141,8 +169,12 @@ describe('persisted pane identity and URL panel opening', () => {
       first: { ...input.first },
       second: { ...input.second, id: 'pane-main-2' },
     };
+
     const repaired = { ...state, root: normalize(input) };
-    assert.deepEqual(collectPanes(repaired).map((pane) => pane.id), ['pane-main', 'pane-main-3', 'pane-main-2']);
+    assert.deepEqual(
+      collectPanes(repaired).map((pane) => pane.id),
+      ['pane-main', 'pane-main-3', 'pane-main-2'],
+    );
   });
 
   it('retains the legacy main-pane fallback when no ID was persisted', () => {
@@ -150,4 +182,28 @@ describe('persisted pane identity and URL panel opening', () => {
     assert.equal(normalize(input).id, 'pane-main');
   });
 
+  it('preserves intentionally repeated tabs and their active selection during ID repair', () => {
+    const input = {
+      type: 'leaf',
+      id: 'pane-main',
+      tabs: [
+        { id: 'git-first', panel: 'git' },
+        { id: 'git-second', panel: 'git' },
+      ],
+      activeTabId: 'git-second',
+    } as ProjectEditorPaneNode;
+
+    const restored = normalize(input);
+    assert.equal(restored.type, 'leaf');
+
+    if (restored.type !== 'leaf') {
+      throw new Error('Expected a leaf.');
+    }
+
+    assert.equal(restored.activeTabId, 'git-second');
+    assert.equal(
+      JSON.stringify(restored.tabs.filter((tab) => tab.panel === 'git')),
+      JSON.stringify(input.type === 'leaf' ? input.tabs : []),
+    );
+  });
 });

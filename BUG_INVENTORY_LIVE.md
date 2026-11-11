@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-621 entrées.
+625 entrées.
 
 ## Sans section
 
@@ -876,8 +876,21 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-E2E-WAIVER-RETIREMENT-2026-11-11](docs/bugs/BUG-E2E-WAIVER-RETIREMENT-2026-11-11.md) — 📤 Dispatché : ☑ 11/11/2026 — correctif proposé pour validation. · 💻 Codé : ☐ Non fusionné dans main ; correctif présent sur la branche de validation. · ✅ Testé live : ☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
-- [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — 📤 Dispatché : ☑ 11/11/2026 — correctif proposé pour validation. · 💻 Codé : ☐ Non fusionné dans main ; correctif présent sur la branche de validation. · ✅ Testé live : ☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
+
+## Promotion IDE locale du 11 novembre 2026
+
+- [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — Le formulaire Secrets et les champs non enregistrés disparaissaient quand la coquille de chargement était remplacée. — 📤 Dispatché : Correctifs préparés sur PR893 et portés sur main ; intégration de main dans la branche expérimentale préparée · 💻 Codé : Portage main publié au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada ; variante expérimentale publiée au com · ✅ Testé live : Non certifié live. Aucun déploiement ni recette complète n'est déduit des validations locales ou de la publica
+
+## Sans section
+
 - [BUG-RUNTIME-READ-STARTING-001](docs/bugs/BUG-RUNTIME-READ-STARTING-001.md) — 📤 Dispatché : Correctif préparé localement pour PR893. · 💻 Codé : Non fusionné et non déployé ; patch local uniquement. · ✅ Testé live : Non validé ; tests locaux contrôlés seulement.
+
+## Promotion IDE locale du 11 novembre 2026
+
+- [BUG-IDE-PANE-RESTORE-20261111](docs/bugs/BUG-IDE-PANE-RESTORE-20261111.md) — La normalisation remplaçait les identifiants des feuilles par pane-main, faisant perdre la cible active et l’identité distincte des panneaux restaurés. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+- [BUG-IDE-URL-MEMORY-HANDOFF-20261111](docs/bugs/BUG-IDE-URL-MEMORY-HANDOFF-20261111.md) — Une ouverture automatique depuis l’URL pouvait empêcher le retour de la disposition enregistrée, être rejouée dans un panneau nouvellement ciblé ou fuiter entre — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+- [BUG-SECRETS-MENU-SCROLL-20261111](docs/bugs/BUG-SECRETS-MENU-SCROLL-20261111.md) — Un défilement interne du menu ne doit pas le fermer; le déplacement de son bouton d’ancrage doit le fermer sans dérober le focus. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+- [BUG-WORKSPACE-ENV-METADATA-20261111](docs/bugs/BUG-WORKSPACE-ENV-METADATA-20261111.md) — Les neuf états internes \*\_STATE étaient projetés dans l’environnement du workspace, pouvant changer son manifeste lors d’une édition de panneau. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
 
 ## Résidus non tabulaires — reportés mot pour mot
 
