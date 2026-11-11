@@ -518,6 +518,9 @@ export function localizedInactivityWarningEmailContent(input: {
 }
 
 const PUBLIC_ERROR_CODES = [
+  'INVALID_PACKAGE_INSTALL_BUDGET',
+  'PACKAGE_INSTALL_CAPABILITY_REQUIRED',
+  'PACKAGE_INSTALL_DEADLINE',
   'VALIDATION_ERROR',
   'API_ERROR',
   'AUTH_REQUIRED',

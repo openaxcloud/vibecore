@@ -1,3 +1,5 @@
+import { transactionalMessage } from './transactional-i18n.js';
+
 type AgentHop = (path: string, init: RequestInit, attempts: number, timeoutMs: number) => Promise<unknown>;
 
 /** Read capability first; exactly one mutating hop, and never a fallback after any dispatch. */
@@ -11,7 +13,7 @@ export async function dedicatedPackageInstall<T>(
   },
 ): Promise<T> {
   if (!Number.isSafeInteger(body.timeoutMs) || body.timeoutMs <= 0 || body.timeoutMs > 300_000) {
-    throw Object.assign(new Error('Invalid package installation budget'), {
+    throw Object.assign(new Error(transactionalMessage({ key: 'errors.INVALID_PACKAGE_INSTALL_BUDGET' })), {
       statusCode: 400,
       code: 'INVALID_PACKAGE_INSTALL_BUDGET',
     });
@@ -37,7 +39,7 @@ export async function dedicatedPackageInstall<T>(
       throw error;
     }
 
-    throw Object.assign(new Error('Workspace agent upgrade required for package installation'), {
+    throw Object.assign(new Error(transactionalMessage({ key: 'errors.PACKAGE_INSTALL_CAPABILITY_REQUIRED' })), {
       statusCode: 409,
       code: 'PACKAGE_INSTALL_CAPABILITY_REQUIRED',
     });
@@ -46,7 +48,7 @@ export async function dedicatedPackageInstall<T>(
   const value = capability as { version?: unknown; maxBudgetMs?: unknown; validatedSpecs?: unknown } | null;
 
   if (!value || value.version !== 1 || value.maxBudgetMs !== 300_000 || value.validatedSpecs !== 1) {
-    throw Object.assign(new Error('Workspace agent upgrade required for package installation'), {
+    throw Object.assign(new Error(transactionalMessage({ key: 'errors.PACKAGE_INSTALL_CAPABILITY_REQUIRED' })), {
       statusCode: 409,
       code: 'PACKAGE_INSTALL_CAPABILITY_REQUIRED',
     });
@@ -55,9 +57,10 @@ export async function dedicatedPackageInstall<T>(
   const remainingMs = Math.ceil(deadline - performance.now());
 
   if (signal.aborted || remainingMs <= 0) {
-    throw Object.assign(new Error('Package installation deadline expired before dispatch'), {
+    throw Object.assign(new Error(transactionalMessage({ key: 'errors.PACKAGE_INSTALL_DEADLINE' })), {
       statusCode: 504,
       code: 'PACKAGE_INSTALL_DEADLINE',
+      publicMessage: transactionalMessage({ key: 'errors.PACKAGE_INSTALL_DEADLINE' }),
     });
   }
 

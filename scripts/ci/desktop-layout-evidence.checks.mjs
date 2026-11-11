@@ -534,18 +534,15 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
       [15_000, 15_000, 15_000, 15_000],
     ],
     ['responsive-ide.spec.ts:desktop opens terminal as a workspace panel from the panel URL', [15_000, 15_000]],
-    [
-      'dashboard.spec.ts:edit file workflow surfaces editor, files, terminal and preview affordances',
-      [15_000, 15_000],
-    ],
-    [
-      'dashboard.spec.ts:reopens project IDE with persisted agent memory and panel state',
-      Array(6).fill(15_000),
-    ],
+    ['dashboard.spec.ts:edit file workflow surfaces editor, files, terminal and preview affordances', [15_000, 15_000]],
+    ['dashboard.spec.ts:reopens project IDE with persisted agent memory and panel state', Array(6).fill(15_000)],
   ]);
-  // These two existing dashboard scenarios inherit their test budget. Wrapping
-  // diagnostics must not add setTimeout or relax any of their original waits.
-  // Every wrapped scenario has an explicit contract; no fallback accepts new ones.
+
+  /*
+   * These two existing dashboard scenarios inherit their test budget. Wrapping
+   * diagnostics must not add setTimeout or relax any of their original waits.
+   * Every wrapped scenario has an explicit contract; no fallback accepts new ones.
+   */
   const expectedTestBudgets = new Map([
     ['mobile-device-matrix.spec.ts:assertEveryCompactPanelForProfile', []],
     ['dashboard.spec.ts:IDE project services open as in-place panels instead of legacy project pages', [120_000]],
@@ -570,6 +567,9 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
   ]);
 
   const actualAddedServicesWaits = new Map();
+
+  let observerFixtureWrappers = 0;
+
   const actual = new Map();
   const directory = new URL('../../tests/e2e/', import.meta.url);
 
@@ -581,9 +581,32 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
         return;
       }
 
+      const assertSuccessCapture = () => {
+        assert.equal(node.arguments.length, 2);
+
+        const options = node.arguments[1];
+        assert.ok(ts.isObjectLiteralExpression(options));
+        assert.equal(options.properties.length, 1);
+
+        const capture = options.properties[0];
+        assert.ok(ts.isPropertyAssignment(capture));
+        assert.equal(capture.name.getText(tree), 'captureOnSuccess');
+        assert.equal(capture.initializer.kind, ts.SyntaxKind.TrueKeyword);
+      };
+
+      // The observer's own regression fixture is not an application readiness scenario.
+      if (filename === 'workspace-status-contract.spec.ts') {
+        assert.ok(ts.isVariableDeclaration(node.parent));
+        assert.equal(node.parent.name.getText(tree), 'run');
+        assert.ok(ts.isArrowFunction(node.arguments[0]));
+        assertSuccessCapture();
+        observerFixtureWrappers++;
+
+        return;
+      }
+
       const testCall = node.parent;
       assert.ok(ts.isCallExpression(testCall));
-      assert.equal(node.arguments.length, 1);
 
       const scenario = node.arguments[0];
       assert.ok(ts.isArrowFunction(scenario));
@@ -613,6 +636,12 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
         assert.match(testCall.arguments[1].getText(tree), /tag:\s*'@runtime'/);
         assert.equal(testCall.arguments[2], node);
         key = `${filename}:${testCall.arguments[0].text}`;
+      }
+
+      if (key === 'dashboard.spec.ts:edit file workflow surfaces editor, files, terminal and preview affordances') {
+        assertSuccessCapture();
+      } else {
+        assert.equal(node.arguments.length, 1);
       }
 
       assert.ok(!actual.has(key), 'No duplicate wrappers');
@@ -669,6 +698,7 @@ test('diagnostics wrap the reviewed desktop and compact runtime scenarios withou
       actual.set(key, timeouts);
     });
   }
+  assert.equal(observerFixtureWrappers, 1);
   assert.deepEqual(actual, expected);
   assert.deepEqual(actualAddedServicesWaits, addedServicesWaits);
 

@@ -1,3 +1,5 @@
+import { workspaceAgentError } from './public-i18n.js';
+
 /** Explicit install policy; never used for generic commands or background sessions. */
 export const PACKAGE_INSTALL_MAX_MS = 300_000;
 export const PACKAGE_INSTALL_CAPABILITY = Object.freeze({
@@ -8,7 +10,7 @@ export const PACKAGE_INSTALL_CAPABILITY = Object.freeze({
 
 export function packageInstallPlan(value: unknown) {
   const invalid = () =>
-    Object.assign(new Error('Invalid package installation request'), {
+    workspaceAgentError('invalidPackageInstallRequest', {
       statusCode: 400,
       code: 'INVALID_PACKAGE_INSTALL_REQUEST',
     });

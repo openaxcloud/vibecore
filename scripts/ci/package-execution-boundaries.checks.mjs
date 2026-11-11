@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { StringDecoder } from 'node:string_decoder';
 import test from 'node:test';
 import ts from 'typescript';
+import { loadPackageTestModule } from './package-test-loader.mjs';
 
 const api = ts.createSourceFile(
   'app.ts',
@@ -69,10 +70,7 @@ function route(path, dependencies) {
 }
 
 function helper(path, name) {
-  const exports = {};
-  new Function('exports', compile(readFileSync(path, 'utf8')))(exports);
-
-  return exports[name];
+  return loadPackageTestModule(path)[name];
 }
 
 const commandExecutionDiagnostic = helper(

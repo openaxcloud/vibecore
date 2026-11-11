@@ -1,5 +1,8 @@
 {
   "en": {
+    "errors.INVALID_PACKAGE_INSTALL_BUDGET": "Invalid package installation budget",
+    "errors.PACKAGE_INSTALL_CAPABILITY_REQUIRED": "Workspace agent upgrade required for package installation",
+    "errors.PACKAGE_INSTALL_DEADLINE": "Package installation deadline expired before dispatch",
     "internal.invalidCurrency": "Invalid ISO 4217 currency: {currency}",
     "internal.nonFiniteCurrencyAmount": "Currency amount must be finite.",
     "internal.invalidDate": "Date must be valid.",
@@ -92,6 +95,9 @@
     "notification.connection.body.withoutProvider": "This connection needs to be reconnected — its access was revoked or expired."
   },
   "fr": {
+    "errors.INVALID_PACKAGE_INSTALL_BUDGET": "Durée d’installation du paquet invalide",
+    "errors.PACKAGE_INSTALL_CAPABILITY_REQUIRED": "Une mise à jour de l’agent de l’espace de travail est nécessaire pour installer des paquets",
+    "errors.PACKAGE_INSTALL_DEADLINE": "Le délai d’installation des paquets a expiré avant le lancement",
     "internal.invalidCurrency": "Devise ISO 4217 invalide : {currency}",
     "internal.nonFiniteCurrencyAmount": "Le montant doit être un nombre fini.",
     "internal.invalidDate": "La date doit être valide.",

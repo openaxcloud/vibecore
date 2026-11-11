@@ -10,6 +10,7 @@ import {
   startSecretsLifecycleEvidence,
   withDesktopLayoutEvidence,
 } from './helpers/runtime-desktop-diagnostics';
+import { workspaceStatusAffordance } from './helpers/workspace-status-affordance';
 
 import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
 
@@ -2286,52 +2287,70 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
 test(
   'edit file workflow surfaces editor, files, terminal and preview affordances',
   { tag: '@runtime' },
-  withDesktopLayoutEvidence(async ({ page, isMobile }) => {
-    test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+  withDesktopLayoutEvidence(
+    async ({ page, isMobile }) => {
+      test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
-    const projectId = await createTestProject(page, 'E2E edit workflow project');
+      const projectId = await createTestProject(page, 'E2E edit workflow project');
 
-    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    // The palette color assertions below describe dark tokens, not the light default.
-    await forceDarkTheme(page);
-    await expect(
-      page.getByRole('button', { name: /^(Running|Building|Stopped|Crashed) workspace(?:\s*\||$)/i }),
-    ).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
-    await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
-    await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
-    await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+      await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
 
-    const commandPalette = page.getByRole('dialog', { name: 'Command palette', exact: true });
-    await expect(commandPalette).toBeVisible();
+      // The palette color assertions below describe dark tokens, not the light default.
+      await forceDarkTheme(page);
 
-    const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const style = window.getComputedStyle(element);
+      /*
+       * Starting is a supported, interactive shell state, not proof that the runtime is ready.
+       * Keep the separate Running assertions and real static/Vite preview preflights unchanged.
+       */
+      const workspaceButton = workspaceStatusAffordance(page);
+      await expect(workspaceButton).toBeVisible({ timeout: 15000 });
+      await workspaceButton.click();
 
-      return {
-        top: rect.top,
-        width: rect.width,
-        background: style.backgroundColor,
-        borderRadius: style.borderRadius,
-      };
-    });
-    expect(commandPaletteMetrics.top).toBe(120);
-    expect(commandPaletteMetrics.width).toBe(600);
-    expect(commandPaletteMetrics.background).toBe('rgb(26, 32, 48)');
-    expect(commandPaletteMetrics.borderRadius).toBe('12px');
-    await expect(page.locator('.bolt-project-command-section', { hasText: 'Files' })).toBeVisible();
-    await expect(page.locator('.bolt-project-command-section', { hasText: 'Tools' })).toBeVisible();
-    await expect(page.locator('.bolt-project-command-section', { hasText: 'Commands' })).toBeVisible();
-    await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
-  }),
+      const terminal = page.locator('.bolt-project-bottom-terminal-shell');
+      await expect(terminal).toBeVisible();
+      await expect(terminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+      await terminal.getByRole('button', { name: 'Close terminal panel', exact: true }).click();
+      await expect(terminal).toBeHidden();
+      await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
+      await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
+      await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
+      await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+
+      const commandPalette = page.getByRole('dialog', { name: 'Command palette', exact: true });
+      await expect(commandPalette).toBeVisible();
+
+      const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+
+        return {
+          top: rect.top,
+          width: rect.width,
+          background: style.backgroundColor,
+          borderRadius: style.borderRadius,
+        };
+      });
+      expect(commandPaletteMetrics.top).toBe(120);
+      expect(commandPaletteMetrics.width).toBe(600);
+      expect(commandPaletteMetrics.background).toBe('rgb(26, 32, 48)');
+      expect(commandPaletteMetrics.borderRadius).toBe('12px');
+      await expect(page.locator('.bolt-project-command-section', { hasText: 'Files' })).toBeVisible();
+      await expect(page.locator('.bolt-project-command-section', { hasText: 'Tools' })).toBeVisible();
+      await expect(page.locator('.bolt-project-command-section', { hasText: 'Commands' })).toBeVisible();
+      await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
+    },
+    { captureOnSuccess: true },
+  ),
 );
 
 test(

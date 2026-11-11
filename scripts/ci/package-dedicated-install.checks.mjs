@@ -5,17 +5,13 @@ import { readFileSync } from 'node:fs';
 import { StringDecoder } from 'node:string_decoder';
 import test from 'node:test';
 import ts from 'typescript';
+import { loadPackageTestModule } from './package-test-loader.mjs';
 
 const compile = (text) =>
   ts.transpileModule(text, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } })
     .outputText;
 
-function helper(path) {
-  const exports = {};
-  new Function('exports', compile(readFileSync(path, 'utf8')))(exports);
-
-  return exports;
-}
+const helper = loadPackageTestModule;
 
 const { packageInstallPlan, PACKAGE_INSTALL_CAPABILITY } = helper(
   'services/workspace-agent/src/package-install-contract.ts',
@@ -408,18 +404,16 @@ test('actual timeout composition keeps caller deadline alive after headers are r
 
 test('dedicated capability/write each receive explicit total-hop signals, including body lifetime', async () => {
   const signals = [];
-  const exports = {};
-  new Function(
-    'exports',
-    'AbortSignal',
-    compile(readFileSync('services/api/src/dedicated-package-install.ts', 'utf8')),
-  )(exports, {
-    any: (signals) => globalThis.AbortSignal.any(signals),
-    timeout(ms) {
-      const c = new AbortController();
-      signals.push({ ms, c });
 
-      return c.signal;
+  const exports = loadPackageTestModule('services/api/src/dedicated-package-install.ts', {
+    AbortSignal: {
+      any: (signals) => globalThis.AbortSignal.any(signals),
+      timeout(ms) {
+        const c = new AbortController();
+        signals.push({ ms, c });
+
+        return c.signal;
+      },
     },
   });
 
@@ -498,12 +492,9 @@ test('explicit null is not an omitted package list', () => {
 test('capability time is deducted from the total330s transport budget before POST', async () => {
   let now = 100;
 
-  const exports = {};
-  new Function(
-    'exports',
-    'performance',
-    compile(readFileSync('services/api/src/dedicated-package-install.ts', 'utf8')),
-  )(exports, { now: () => now });
+  const exports = loadPackageTestModule('services/api/src/dedicated-package-install.ts', {
+    performance: { now: () => now },
+  });
 
   const calls = [];
   await exports.dedicatedPackageInstall(async (...args) => {

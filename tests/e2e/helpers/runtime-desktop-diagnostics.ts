@@ -44,6 +44,13 @@ export function installDesktopBrowserProbe() {
       phases: Array<{ phase: string; at: number }>;
       changes: Array<{ surface: string; ids: number[]; at: number }>;
       clicks: Array<{ event: string; trusted: boolean; connected: boolean; at: number }>;
+      workspace: Array<{ at: number; state: string; visible: boolean; matchesLegacyAssertion: boolean }>;
+      workspaceTiming: {
+        startedAt: number;
+        stoppedAt: number | null;
+        firstVisibleAt: number | null;
+        firstRunningAt: number | null;
+      };
       dropped: number;
       id(element: Element): number;
       stop(): void;
@@ -69,6 +76,17 @@ export function installDesktopBrowserProbe() {
   const phases: Array<{ phase: string; at: number }> = [];
   const changes: Array<{ surface: string; ids: number[]; at: number }> = [];
   const clicks: Array<{ event: string; trusted: boolean; connected: boolean; at: number }> = [];
+  const workspace: Array<{ at: number; state: string; visible: boolean; matchesLegacyAssertion: boolean }> = [];
+
+  let lastWorkspace = '';
+
+  const workspaceTiming = {
+    startedAt: performance.now(),
+    stoppedAt: null as number | null,
+    firstVisibleAt: null as number | null,
+    firstRunningAt: null as number | null,
+  };
+
   const ids = new WeakMap<Element, number>();
   const last = new Map<string, string>();
 
@@ -85,6 +103,8 @@ export function installDesktopBrowserProbe() {
     phases,
     changes,
     clicks,
+    workspace,
+    workspaceTiming,
     dropped: 0,
     id(element: Element) {
       if (!ids.has(element)) {
@@ -95,6 +115,7 @@ export function installDesktopBrowserProbe() {
     },
     stop() {
       stopped = true;
+      workspaceTiming.stoppedAt ??= performance.now();
       observer.disconnect();
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerdown', onClick, true);
@@ -136,6 +157,40 @@ export function installDesktopBrowserProbe() {
       return;
     }
 
+    const button = document.querySelector('button.bolt-project-statusbar-workspace');
+    const label = button?.getAttribute('aria-label') ?? '';
+    const match = /^(Running|Building|Stopped|Crashed|Starting|Loading|Error) workspace(?:\s*\||$)/i.exec(label);
+    const state = !button ? 'absent' : match ? match[1].toLowerCase() : 'other';
+    const rect = button?.getBoundingClientRect();
+    const style = button ? getComputedStyle(button) : null;
+
+    const visible = Boolean(
+      rect && rect.width > 0 && rect.height > 0 && style?.visibility !== 'hidden' && style?.display !== 'none',
+    );
+
+    const matchesLegacyAssertion = /^(Running|Building|Stopped|Crashed) workspace(?:\s*\||$)/i.test(label);
+    const at = performance.now();
+
+    if (visible) {
+      workspaceTiming.firstVisibleAt ??= at;
+
+      if (state === 'running') {
+        workspaceTiming.firstRunningAt ??= at;
+      }
+    }
+
+    const signature = JSON.stringify([state, visible, matchesLegacyAssertion]);
+
+    if (signature !== lastWorkspace) {
+      lastWorkspace = signature;
+
+      if (workspace.length < 64) {
+        workspace.push({ at, state, visible, matchesLegacyAssertion });
+      } else {
+        probe.dropped += 1;
+      }
+    }
+
     for (const [surface, selector] of surfaces) {
       const currentIds = Array.from(document.querySelectorAll(selector)).slice(0, 4).map(probe.id);
       const signature = currentIds.join(',');
@@ -155,10 +210,15 @@ export function installDesktopBrowserProbe() {
   const trackedSelector = surfaces.map(([, selector]) => selector).join(',');
 
   const observer = new MutationObserver((records) => {
-    const relevant = records.some((record) =>
-      [...record.addedNodes, ...record.removedNodes].some(
-        (node) => node instanceof Element && (node.matches(trackedSelector) || node.querySelector(trackedSelector)),
-      ),
+    const relevant = records.some(
+      (record) =>
+        record.type === 'attributes' ||
+        [...record.addedNodes, ...record.removedNodes].some(
+          (node) =>
+            node instanceof Element &&
+            (node.matches(trackedSelector + ', .bolt-project-statusbar-workspace') ||
+              node.querySelector(trackedSelector + ', .bolt-project-statusbar-workspace')),
+        ),
     );
 
     if (relevant) {
@@ -169,7 +229,12 @@ export function installDesktopBrowserProbe() {
   target.__vibecoreStartupMark = mark;
   document.addEventListener('click', onClick, true);
   document.addEventListener('pointerdown', onClick, true);
-  observer.observe(document, { childList: true, subtree: true });
+  observer.observe(document, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['aria-label', 'class', 'style', 'hidden'],
+  });
   sample();
 }
 
@@ -180,6 +245,13 @@ export function collectDesktopBrowserEvidence() {
       phases: Array<{ phase: string; at: number }>;
       changes: Array<{ surface: string; ids: number[]; at: number }>;
       clicks: Array<{ event: string; trusted: boolean; connected: boolean; at: number }>;
+      workspace: Array<{ at: number; state: string; visible: boolean; matchesLegacyAssertion: boolean }>;
+      workspaceTiming: {
+        startedAt: number;
+        stoppedAt: number | null;
+        firstVisibleAt: number | null;
+        firstRunningAt: number | null;
+      };
       dropped: number;
       id(element: Element): number;
       stop(): void;
@@ -192,8 +264,24 @@ export function collectDesktopBrowserEvidence() {
   const panel = new URL(window.location.href).searchParams.get('panel');
   const allowedPanels = ['snapshots', 'deployments', 'editor', 'files', 'preview', 'terminal', 'agent', 'settings'];
 
+  const capturedAt = performance.now();
+  const timing = probe?.workspaceTiming;
+  const firstVisibleAt = timing?.firstVisibleAt ?? null;
+  const firstRunningAt = timing?.firstRunningAt ?? null;
+
   return {
-    capturedAt: performance.now(),
+    capturedAt,
+    timeOrigin: performance.timeOrigin,
+    workspace: probe?.workspace ?? [],
+
+    // Censored observation if Running was not seen. Never report an unobserved transition as zero.
+    workspaceTiming: {
+      observedMs: timing ? (timing.stoppedAt ?? capturedAt) - timing.startedAt : null,
+      firstVisibleAt,
+      firstRunningAt,
+      visibleToRunningMs: firstVisibleAt !== null && firstRunningAt !== null ? firstRunningAt - firstVisibleAt : null,
+      runningObserved: firstRunningAt !== null,
+    },
     probeInstalled: Boolean(probe),
     readyState: document.readyState,
     themeReady: document.documentElement.hasAttribute('data-ecode-theme-ready'),
@@ -266,7 +354,7 @@ function errorKind(name: string, message: string) {
   return ['TypeError', 'ReferenceError', 'SyntaxError', 'RangeError'].includes(name) ? name : 'other';
 }
 
-export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
+export function withDesktopLayoutEvidence(run: RuntimeCase, options: { captureOnSuccess?: boolean } = {}): RuntimeCase {
   // Destructuring is required by Playwright's fixture dependency discovery.
   return async ({ page, isMobile }, testInfo) => {
     const requests = Object.fromEntries(
@@ -323,14 +411,19 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
     // Starts at wrapper entry, not Playwright fixture setup. Remaining time is an estimate.
     runtimeServiceProgress(testInfo);
 
+    let failed = false;
+
     try {
       await page.addInitScript(installDesktopBrowserProbe).catch(() => undefined);
       await run({ page, isMobile }, testInfo);
     } catch (error) {
+      failed = true;
+      throw error;
+    } finally {
       let deadline: ReturnType<typeof setTimeout> | undefined;
 
       try {
-        if (testInfo.expectedStatus !== 'skipped') {
+        if ((failed || options.captureOnSuccess) && testInfo.expectedStatus !== 'skipped') {
           const browser = await Promise.race([
             page.evaluate(collectDesktopBrowserEvidence).catch(() => null),
             new Promise<null>((resolve) => {
@@ -364,13 +457,11 @@ export function withDesktopLayoutEvidence(run: RuntimeCase): RuntimeCase {
           );
         }
       } catch {
-        // Evidence failures cannot replace the scenario's original failure.
+        // Evidence failures cannot change the scenario verdict.
       } finally {
         clearTimeout(deadline);
       }
 
-      throw error;
-    } finally {
       secretsLifecycle.get(testInfo)?.stop();
       stopNetworkPhases();
       page.off('request', onRequest);

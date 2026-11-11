@@ -254,7 +254,7 @@ test('Packages requires successful installation and an installed row after real 
   const start = audit.indexOf("const packageName = 'is-odd'");
   const end = audit.indexOf("'create_package_install_plan_visible_after_backend_reload'", start);
   const source = audit.slice(start, end);
-  assert.ok(source.includes("waitForPanelResponse(page, 'packages', 'POST', 60_000)"));
+  assert.ok(source.includes("waitForPanelResponse(page, 'packages', 'POST', 360_000)"));
   assert.ok(source.includes('if (!installed.ok())'));
   assert.ok(source.includes("page.reload({ waitUntil: 'domcontentloaded' })"));
   assert.ok(source.includes('if (!reloaded.ok())'));
@@ -286,15 +286,25 @@ test('actual Packages audit callback rejects failed actions/reloads/missing inst
     { post: false, get: true, row: true, error: /Package installation did not succeed/, reloads: 0, rows: 0 },
     { post: true, get: false, row: true, error: /Installed packages could not be reloaded/, reloads: 1, rows: 0 },
     { post: true, get: true, row: false, error: /installed row absent/, reloads: 1, rows: 1 },
+    { post: true, get: true, row: true, error: /import failed/, reloads: 1, rows: 1, importFails: true },
     { post: true, get: true, row: true, error: null, reloads: 1, rows: 1 },
   ]) {
     let reloads = 0;
     let rows = 0;
+    let imports = 0;
 
-    const callback = new Function('waitForPanelResponse', 'packageInstallFailure', `return (${callbackSource});`)(
+    const callback = new Function(
+      'waitForPanelResponse',
+      'packageInstallFailure',
+      'verifyInstalledAuditPackage',
+      'apiBaseUrl',
+      'token',
+      'projectId',
+      `return (${callbackSource});`,
+    )(
       async (_page, panel, method, timeout) => {
         assert.equal(panel, 'packages');
-        assert.equal(timeout, method === 'POST' ? 60_000 : 20_000);
+        assert.equal(timeout, method === 'POST' ? 360_000 : 20_000);
 
         const ok = method === 'POST' ? scenario.post : scenario.get;
 
@@ -302,9 +312,26 @@ test('actual Packages audit callback rejects failed actions/reloads/missing inst
           ok: () => ok,
           status: () => (ok ? 200 : 422),
           text: async () => JSON.stringify({ code: 'PACKAGE_RUN_FAILED', run: { exitCode: 1 } }),
+          json: async () => ({ persisted: true }),
         };
       },
       packageInstallFailure,
+      async (input) => {
+        assert.deepEqual(input, {
+          apiBaseUrl: 'https://audit.invalid',
+          token: 'fixture',
+          projectId: 'project',
+          panel: { persisted: true },
+        });
+        imports++;
+
+        if (scenario.importFails) {
+          throw new Error('import failed');
+        }
+      },
+      'https://audit.invalid',
+      'fixture',
+      'project',
     );
     const page = {
       getByPlaceholder(value) {
@@ -355,6 +382,7 @@ test('actual Packages audit callback rejects failed actions/reloads/missing inst
       await callback(page);
     }
 
+    assert.equal(imports, scenario.post && scenario.get && scenario.row ? 1 : 0);
     assert.equal(reloads, scenario.reloads);
     assert.equal(rows, scenario.rows);
   }
