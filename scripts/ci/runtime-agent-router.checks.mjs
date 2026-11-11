@@ -233,3 +233,16 @@ test('unresponsive upstream terminates with bounded transport error', { timeout:
   const proxy = await listen(createRuntimeAgentRouter({ lookup: async () => target, timeoutMs: 30 }), t);
   assert.equal((await send(proxy, '/ws-valid/health')).status, 502);
 });
+
+test('only dedicated install POST receives330s response budget', async () => {
+  const { agentResponseTimeout } = await import('./runtime-agent-router.mjs');
+  assert.equal(agentResponseTimeout('POST', '/packages/v1/install', 120000), 330000);
+
+  for (const method of ['GET', 'HEAD', 'PUT', 'DELETE']) {
+    assert.equal(agentResponseTimeout(method, '/packages/v1/install', 120000), 120000);
+  }
+
+  for (const path of ['/commands/run', '/sessions/v1/start', '/packages/v1/install?x=1', '/packages/v1/install/']) {
+    assert.equal(agentResponseTimeout('POST', path, 120000), 120000);
+  }
+});

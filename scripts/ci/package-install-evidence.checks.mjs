@@ -34,16 +34,20 @@ test('malformed or oversized bodies remain explicitly unavailable and never beco
   }
 });
 
-test('audit still fails non-ok installs with the same wait budget and no replay', () => {
+test('audit uses the dedicated web budget, rejects non-ok installs and never replays', () => {
   const source = readFileSync('scripts/audit-ide-panels.mjs', 'utf8');
 
   const flow = source.slice(
     source.indexOf("const packageName = 'is-odd'"),
     source.indexOf("'create_package_install_plan_visible_after_backend_reload'"),
   );
-  assert.match(flow, /waitForPanelResponse\(page, 'packages', 'POST', 60_000\)/);
+  assert.match(flow, /waitForPanelResponse\(page, 'packages', 'POST', 360_000\)/);
   assert.match(flow, /if \(!installed.ok\(\)\) \{\s*throw await packageInstallFailure\(installed\);/);
   assert.equal((flow.match(/name: 'Install package'/g) ?? []).length, 1);
+  assert.match(
+    flow,
+    /await verifyInstalledAuditPackage\(\{ apiBaseUrl, token, projectId, panel: await reloaded.json\(\) \}\)/,
+  );
 });
 
 test('a lost diagnostic body cannot replace the failed response with a thrown transport error', async () => {

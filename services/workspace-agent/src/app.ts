@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
 import { commandExecutionDiagnostic } from './command-execution-diagnostic.js';
 import { registerDebuggerEngine } from './debugger-engine.js';
+import { PACKAGE_INSTALL_CAPABILITY, packageInstallPlan } from './package-install-contract.js';
 import { observePackageInstall } from './package-install-observation.js';
 import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
 import {
@@ -62,6 +63,7 @@ export interface ProcessRecord {
   timedOut?: boolean;
   /** Escalation for managed services/debuggers that may ignore SIGTERM. */
   forceStopAfterMs?: number;
+  stopConfirmationMs?: number;
 }
 
 interface TerminalProcessResult {
@@ -1247,6 +1249,22 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       pendingLaunches.delete(body.operationId);
     }
   };
+
+  // Same token/workspace auth hook, process slots, abuse gate, resource boundary and stop lifecycle.
+  app.get('/packages/v1/capabilities', async () => PACKAGE_INSTALL_CAPABILITY);
+  app.post('/packages/v1/install', async (request) => {
+    const plan = packageInstallPlan(request.body);
+    return runCommand(root, plan.command, plan.args, {
+      rememberTerminal,
+      timeoutMs: plan.timeoutMs,
+      forceStopAfterMs: 5_000,
+      stopConfirmationMs: 10_000,
+      reportCancellation: true,
+      maxOutputBytes,
+      maxProcesses,
+      processes,
+    });
+  });
   app.post('/commands/run', executeCommand);
   // Authenticated by the same agent-token hook as commands; never inferred
   // from image tags or liveness. Versioned launch cannot execute on old agents.
@@ -2421,7 +2439,7 @@ export async function stopTrackedProcess(record: ProcessRecord | undefined, id: 
       resolve({ killed, id, ...(code ? { code } : {}) });
     };
     const closed = () => finish(true);
-    const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), 5_000);
+    const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), record.stopConfirmationMs ?? 5_000);
     child.once('close', closed);
     if (child.exitCode !== null || child.signalCode !== null) return;
     try {
@@ -2449,6 +2467,9 @@ async function runCommand(
   command: string,
   args: string[],
   options: {
+    forceStopAfterMs?: number;
+    stopConfirmationMs?: number;
+    reportCancellation?: boolean;
     background?: boolean;
     operationId?: string;
     rememberTerminal: (record: ProcessRecord, code: number | null, signal: string | null) => void;
@@ -2478,6 +2499,16 @@ async function runCommand(
   // Idempotent restart: free the pinned port from a prior/orphan dev server, under a
   // per-port lock held across the spawn below (see runCommandStream + killStalePinnedDevServers).
   const releasePinnedLock = await killStalePinnedDevServers(options.processes, spawnArgs);
+
+  /*
+   * The await above yields even for installs without a pinned port. Recheck
+   * immediately before the synchronous spawn/map insertion so concurrent starts
+   * cannot both consume the last process slot.
+   */
+  if (options.processes.size >= options.maxProcesses) {
+    releasePinnedLock?.();
+    throw workspaceAgentError('processLimitReached', { statusCode: 429, code: 'PROCESS_LIMIT_REACHED' });
+  }
 
   // Release the port lock a beat after the spawn so this child claims the port before
   // a concurrent pinned start's port-free check runs. Scheduled now so it fires even if
@@ -2533,6 +2564,8 @@ async function runCommand(
     expiresAt: new Date(Date.now() + options.timeoutMs).toISOString(),
     process: child,
     output: '',
+    ...(options.forceStopAfterMs === undefined ? {} : { forceStopAfterMs: options.forceStopAfterMs }),
+    ...(options.stopConfirmationMs === undefined ? {} : { stopConfirmationMs: options.stopConfirmationMs }),
   };
   options.processes.set(id, record);
 
@@ -2650,6 +2683,7 @@ async function runCommand(
         code,
         signal,
         timedOut: record.timedOut === true,
+        ...(options.reportCancellation ? { cancelled: record.stopRequested === true } : {}),
         stdout,
         stderr,
         truncated,
@@ -2684,6 +2718,7 @@ async function runCommand(
         code: 1,
         signal: null,
         timedOut: record.timedOut === true,
+        ...(options.reportCancellation ? { cancelled: record.stopRequested === true } : {}),
         stdout,
         stderr: `${stderr}${error instanceof Error ? error.message : String(error)}`,
         truncated,

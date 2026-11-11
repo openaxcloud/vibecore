@@ -273,7 +273,7 @@ test('AI authorization and command-policy failures still prevent dispatch', asyn
   }
 });
 
-test('every synchronous API agent dispatch remains in the reviewed four-consumer inventory', () => {
+test('generic synchronous dispatch has three reviewed consumers and Packages one dedicated consumer', () => {
   const calls = [];
 
   const visit = (node) => {
@@ -288,7 +288,9 @@ test('every synchronous API agent dispatch remains in the reviewed four-consumer
     ts.forEachChild(node, visit);
   };
   visit(api);
-  assert.equal(calls.length, 4, 'Review public projection before adding or changing a command-response consumer');
+  assert.equal(calls.length, 3, 'Review public projection before adding or changing a command-response consumer');
+  assert.equal((api.text.match(/dedicatedPackageInstall<PackageInstallResponse>/g) ?? []).length, 1);
+  assert.match(readFileSync('services/api/src/dedicated-package-install.ts', 'utf8'), /'\/packages\/v1\/install'/);
 });
 
 test('AI transport failure still propagates without adding retries or a fallback', async () => {
@@ -365,6 +367,10 @@ test('Packages keeps its internal event but omits metadata from the public respo
 
   const handler = route('/projects/:projectId/packages/install', {
     ...runtimeDependencies(result, calls),
+    agentRequest: async (...args) => {
+      calls.push(args);
+      return args[1] === '/packages/v1/capabilities' ? { version: 1, maxBudgetMs: 300000, validatedSpecs: 1 } : result;
+    },
     projectParams: {},
     packagesInstallSchema: {},
     requireProject: async () => project,
@@ -375,6 +381,7 @@ test('Packages keeps its internal event but omits metadata from the public respo
     summarizeProjectPackages: () => ({ manifests: [] }),
     buildInstallCommand: () => ({ command: 'npm', args: ['install'] }),
     packageExecutionDiagnostic,
+    dedicatedPackageInstall: helper('services/api/src/dedicated-package-install.ts', 'dedicatedPackageInstall'),
     packageInstallResult,
     app: { log: { info: (event) => events.push(event) } },
   });
@@ -386,8 +393,41 @@ test('Packages keeps its internal event but omits metadata from the public respo
   assert.equal(events.length, 1);
   assert.equal(events[0].effectiveBudgetMs, 30_000);
 
-  const dispatches = calls.filter((call) => call[1] === '/commands/run');
+  const dispatches = calls.filter((call) => call[1] === '/packages/v1/install');
   assert.equal(dispatches.length, 1);
   assert.equal(dispatches[0][4], 1);
-  assert.equal(dispatches[0][5], 330_000);
+  assert.ok(dispatches[0][5] <= 330_000 && dispatches[0][5] > 329_000);
+});
+
+test('Packages permission, quota, workspace mismatch and terminal revocation reject before capability or mutation', async () => {
+  const denied = Object.assign(new Error('denied'), { code: 'DENIED' });
+
+  for (const overrides of [
+    {
+      requireProject: async () => {
+        throw denied;
+      },
+    },
+    {
+      authorizeRuntimeWorkspace: async () => {
+        throw denied;
+      },
+    },
+    { authorizeRuntimeWorkspace: async () => ({ ...authorized, projectId: 'other-project' }) },
+    { isTerminalAccessRevoked: async () => true },
+  ]) {
+    const calls = [];
+
+    const handler = route('/projects/:projectId/packages/install', {
+      ...runtimeDependencies({}, calls),
+      projectParams: {},
+      packagesInstallSchema: {},
+      store: {},
+      requireProject: async () => project,
+      appPublicEnglish: (key) => key,
+      ...overrides,
+    });
+    await assert.rejects(handler(request({ packageManager: 'npm', timeoutMs: 300000 }), reply()));
+    assert.equal(calls.length, 0);
+  }
 });

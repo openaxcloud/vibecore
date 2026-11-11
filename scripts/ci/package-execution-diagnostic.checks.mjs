@@ -155,8 +155,9 @@ test('diagnostic event stays out of public install response and no route policy 
     1,
   );
   assert.doesNotMatch(install.slice(install.indexOf('return reply.code(201)')), /executionDiagnostic/);
-  assert.match(install.replace(/\/\/[^\n]*/g, ''), /undefined,\s*1,\s*commandBody.timeoutMs! \+ 30_000/);
-  assert.match(install, /!localRuntimeFallbackEnabled\(\) \|\| !isRuntimeManagerUnavailable\(error\)/);
+  assert.match(install, /dedicatedPackageInstall<PackageInstallResponse>/);
+  assert.match(readFileSync('services/api/src/dedicated-package-install.ts', 'utf8'), /1,\s*remainingMs/);
+  assert.doesNotMatch(install, /runLocalRuntimeCommand/);
 
   const agent = readFileSync('services/workspace-agent/src/app.ts', 'utf8');
   assert.match(agent, /Math.min\(body.timeoutMs \?\? commandTimeoutMs, commandTimeoutMs\)/);

@@ -11,8 +11,9 @@ const installStart = api.indexOf("app.post('/projects/:projectId/packages/instal
 const install = api.slice(installStart, api.indexOf('\n  app.', installStart + 1));
 
 test('install dispatch uses one attempt and a command-specific deadline, never a fallback after uncertain dispatch', () => {
-  assert.match(install.replace(/\/\/[^\n]*/g, ''), /undefined,\s*1,\s*commandBody.timeoutMs! \+ 30_000/);
-  assert.match(install, /!localRuntimeFallbackEnabled\(\) \|\| !isRuntimeManagerUnavailable\(error\)/);
+  assert.match(install, /dedicatedPackageInstall<PackageInstallResponse>/);
+  assert.match(readFileSync('services/api/src/dedicated-package-install.ts', 'utf8'), /1,\s*remainingMs/);
+  assert.doesNotMatch(install, /runLocalRuntimeCommand/);
 });
 
 function harness(fetch) {

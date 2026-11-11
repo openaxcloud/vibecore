@@ -412,6 +412,7 @@ import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
 import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import { statutConnexion } from './database-connection-status.js';
 import { databaseRowSchema, insertPostgresRow } from './database-row-insert.js';
+import { dedicatedPackageInstall } from './dedicated-package-install.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -1746,7 +1747,7 @@ const packagesInstallSchema = z.object({
 
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
-  timeoutMs: z.number().int().positive().max(600_000).optional(),
+  timeoutMs: z.number().int().positive().max(300_000).optional(),
 
   /*
    * Target workspace. The Packages panel resolves and displays a specific
@@ -24270,8 +24271,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * workspace pod. This is the "install, not just plan" action for the IDE
    * Packages panel: it detects the package manager from the lockfile/manifest,
    * builds the install argv, and dispatches it through the SAME per-project
-   * runtime shell-exec (/commands/run) that Workflows and the terminal use —
-   * no new execution path, no shared pod. Scoped by projectId and gated with
+   * authenticated dedicated install route, reusing the same command runner
+   * and process/resource guards without changing the generic command ceiling. Scoped by projectId and gated with
    * the same 'projects:write' mutation permission as other project writes;
    * authorizeRuntimeWorkspace then resolves the caller's deterministic
    * per-user workspace id so the command lands only in this tenant's pod.
@@ -24401,7 +24402,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Déclarer `code: number` faisait passer ce cas pour impossible, et les
      * `?? 0` plus bas le transformaient en réussite.
      */
-    let result: {
+    type PackageInstallResponse = {
+      cancelled?: boolean;
       code: number | null;
       signal?: string | null;
       timedOut?: boolean;
@@ -24411,28 +24413,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       localRuntime?: boolean;
     };
 
-    try {
-      result = await agentRequest<typeof result>(
-        authorized.workspaceId,
-        '/commands/run',
-        { method: 'POST', body: JSON.stringify(commandBody) },
-        undefined,
-
-        // A timeout/reset can arrive AFTER the install started. Never replay it.
-        1,
-        commandBody.timeoutMs! + 30_000,
-      );
-    } catch (error) {
-      /*
-       * Only manager failure before agent dispatch permits local fallback. An
-       * agent transport failure has an unknown outcome and must not run twice.
-       */
-      if (!localRuntimeFallbackEnabled() || !isRuntimeManagerUnavailable(error)) {
-        throw error;
-      }
-
-      result = await runLocalRuntimeCommand(authorized, commandBody);
-    }
+    const result = await dedicatedPackageInstall<PackageInstallResponse>(
+      (path, init, attempts, timeoutMs) =>
+        agentRequest(authorized.workspaceId, path, init, undefined, attempts, timeoutMs, false),
+      { packageManager: manager, packages, dev: body.dev, timeoutMs: commandBody.timeoutMs! },
+    );
 
     // A fixed allowlisted projection only; raw agent output never enters this event.
     app.log.info(packageExecutionDiagnostic(commandBody.timeoutMs, result));

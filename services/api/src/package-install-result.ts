@@ -1,9 +1,14 @@
 /** Preserve observed termination separately from a process exit code. */
-export function packageInstallResult(result: { code?: number | null; signal?: string | null; timedOut?: boolean }) {
+export function packageInstallResult(result: {
+  code?: number | null;
+  signal?: string | null;
+  timedOut?: boolean;
+  cancelled?: boolean;
+}) {
   const termination =
     result.timedOut === true
       ? 'timeout'
-      : result.signal
+      : result.cancelled === true || result.signal
         ? 'interrupted'
         : !Number.isInteger(result.code)
           ? 'unknown'

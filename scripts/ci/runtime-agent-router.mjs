@@ -122,6 +122,10 @@ function rawResponse(socket, response, upgrade = false) {
   socket.write('\r\n');
 }
 
+export function agentResponseTimeout(method, path, ordinaryTimeoutMs) {
+  return method === 'POST' && path === '/packages/v1/install' ? 330000 : ordinaryTimeoutMs;
+}
+
 export function createRuntimeAgentRouter({ lookup, timeoutMs = 120000 } = {}) {
   if (typeof lookup !== 'function') {
     throw new Error('A Service lookup is required');
@@ -152,7 +156,9 @@ export function createRuntimeAgentRouter({ lookup, timeoutMs = 120000 } = {}) {
           incoming.pipe(response);
         },
       );
-      upstream.setTimeout(timeoutMs, () => upstream.destroy(new Error('Upstream timeout')));
+      upstream.setTimeout(agentResponseTimeout(request.method, targetRoute.path, timeoutMs), () =>
+        upstream.destroy(new Error('Upstream timeout')),
+      );
       upstream.on('error', () => {
         if (!response.headersSent) {
           response

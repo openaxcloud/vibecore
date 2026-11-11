@@ -11,6 +11,7 @@ import { chromium } from '@playwright/test';
 import { packageInstallFailure } from './ci/package-install-evidence.mjs';
 import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
 import { createBrowserHttpEvidence, createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
+import { verifyInstalledAuditPackage } from './ci/package-install-import.mjs';
 import { attachSecretsLifecycleEvidence, createSecretsLifecycleEvidence } from './ci/secrets-lifecycle-evidence.mjs';
 import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
@@ -743,7 +744,7 @@ async function auditCriticalUiInteractions(
       await page.getByPlaceholder('@scope/name, react-query, vite@latest').fill(packageName);
 
       const [installed] = await Promise.all([
-        waitForPanelResponse(page, 'packages', 'POST', 60_000),
+        waitForPanelResponse(page, 'packages', 'POST', 360_000),
         page.getByRole('button', { name: 'Install package' }).click(),
       ]);
 
@@ -764,6 +765,9 @@ async function auditCriticalUiInteractions(
         .locator('.bolt-project-package-list')
         .getByText(packageName, { exact: true })
         .waitFor({ state: 'visible', timeout: 20_000 });
+
+      // Persisted UI state alone is not proof that node_modules is importable.
+      await verifyInstalledAuditPackage({ apiBaseUrl, token, projectId, panel: await reloaded.json() });
     },
     'create_package_install_plan_visible_after_backend_reload',
   );
