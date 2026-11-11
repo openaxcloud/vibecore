@@ -1,3 +1,7 @@
+---
+id: BUG-E2E-WAIVER-RETIREMENT-2026-11-11
+---
+
 # Retire the expired Production E2E failure exemptions
 
 ## Observed failure
@@ -54,3 +58,15 @@ For a gate-only positive control, copies of those reports with exactly those six
 outcomes replaced by synthetic passing outcomes are accepted. This counterfactual
 is not evidence of a passing browser run. Full application build, typecheck, lint
 and remote CI on the composed commit remain required before merge or deployment.
+
+## 📤 Dispatché
+
+☑ 11/11/2026 — correctif proposé pour validation.
+
+## 💻 Codé
+
+☐ Non fusionné dans main ; correctif présent sur la branche de validation.
+
+## ✅ Testé live
+
+☐ Non certifié live ; les vérifications locales ci-dessus ne valent pas recette en conditions réelles.
