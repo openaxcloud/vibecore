@@ -117,3 +117,45 @@ ne libéreraient qu'environ 170 Mo ; aucune suppression n'est exécutée.
 
 Le correctif workflow reste partiel et local, aucune publication. Ces 22 tests
 ne remplacent aucun des 18 scénarios navigateur et ne valident pas la pile IDE.
+
+## Régression du menu Secrets : scroll capturé (10 novembre)
+
+Le run runtime `42870643535`, au commit
+`5c328adda5b2d21f75f13c6507e6251c18e0e4d9`, fournit cette séquence dans
+`desktop-layout-22.json` (temps écoulé enregistré côté Node) :
+
+- pointerdown/mousedown/click sur le déclencheur : 36 018 / 36 018 / 36 019 ms ;
+- menu présent : 36 063 ms ;
+- deux scrolls extérieurs au panneau Secrets : 36 063 et 36 064 ms ;
+- menu absent : 36 067 ms, sans remplacement du panneau ni clic sur un menuitem ;
+- entrée dans `edit-secret-select-edit` : 36 161 ms, puis expiration à 120 s.
+
+Le handler global de scroll fermait chaque menu, même pour un autre panneau ou
+un événement différé qui ne déplaçait plus son ancre. Le correctif conservateur
+compare les limites de l'ancre avec celles mesurées au positionnement : un
+scroll sans déplacement laisse le menu et son focus ouverts ; une ancre déplacée
+ou détachée ferme le menu. Resize, clic extérieur et Échap conservent leurs
+comportements, y compris le retour du focus à l'ancre sur Échap et le nettoyage
+des listeners. Aucun formulaire Secrets, timeout, retry, assertion ou scénario
+runtime n'est modifié.
+
+La trace ne mesure pas les coordonnées de l'ancre : elle prouve le scroll suivi
+de la disparition, mais pas l'absence de déplacement réel dans ce run précis.
+La nouvelle validation runtime reste donc nécessaire ; aucun succès live n'est
+revendiqué. L'audit Secrets réussit sur ce run, ce qui ne justifie aucun correctif
+spéculatif de son formulaire. Les tests suivis existants n'imposaient pas la
+fermeture sur chaque scroll ; l'ancienne sonde locale ignorée reproduisait le
+défaut sans définir un comportement souhaité.
+
+Validation locale du correctif : les régressions appliquées au composant original
+échouent sur cinq cas (neuf réussissent). Avec le correctif, les 26 tests ciblés
+passent : 14 cas de menu/focus, cinq de métadonnées Secrets et sept de diagnostic
+passif. Les nouveaux cas couvrent scroll extérieur/ancêtre/menu sans mouvement,
+clic Edit après les scrolls, déplacements vertical/horizontal, réouverture,
+ancre détachée, resize et nettoyage ; les cas Échap/clic extérieur sont conservés.
+Le typecheck ciblé et le script officiel `scripts/typecheck.mjs` passent, ainsi
+que le build officiel `pnpm run build` (React Router), exécuté après les types
+avec pnpm 9.14.4 et `NODE_OPTIONS=--max-old-space-size=6144`. Lint et formatage des
+deux fichiers modifiés, ainsi que `git diff --check`, passent. Aucun navigateur,
+serveur, suite unitaire globale ou nouveau run CI n'a été lancé pour cette
+validation locale ; elle ne remplace pas les 18 parcours runtime réels.

@@ -601,7 +601,8 @@ export function ProjectSecretsPanel({
  * Un menu flottant sous son bouton, aligné à droite, rendu hors du panneau
  * (racine du gabarit mobile, sinon le corps) : le panneau défile et borne
  * ses descendants. Se ferme au toucher dehors, à Échap (en capture — le
- * gestionnaire de raccourcis du projet consomme la touche), au défilement.
+ * gestionnaire de raccourcis du projet consomme la touche), au redimensionnement
+ * ou quand le défilement déplace son ancre. Un scroll sans rapport ne le ferme pas.
  */
 function MenuFlottant({
   ancre,
@@ -615,6 +616,7 @@ function MenuFlottant({
   children: React.ReactNode;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const ancrePositionneeRef = useRef<DOMRect | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -626,6 +628,7 @@ function MenuFlottant({
 
     const rect = ancre.getBoundingClientRect();
     const taille = menu.getBoundingClientRect();
+    ancrePositionneeRef.current = rect;
 
     setPosition(
       placerSousLeBouton(
@@ -666,15 +669,39 @@ function MenuFlottant({
       }
     };
 
+    const surDefilement = () => {
+      const origine = ancrePositionneeRef.current;
+
+      if (!ancre?.isConnected || !origine) {
+        onFermer();
+        return;
+      }
+
+      const actuelle = ancre.getBoundingClientRect();
+
+      /*
+       * Captured scrolls also come from unrelated panes and queued scroll restoration.
+       * Only dismiss when this menu's anchor no longer matches its positioned bounds.
+       */
+      if (
+        actuelle.left !== origine.left ||
+        actuelle.top !== origine.top ||
+        actuelle.right !== origine.right ||
+        actuelle.bottom !== origine.bottom
+      ) {
+        onFermer();
+      }
+    };
+
     document.addEventListener('pointerdown', surPointeur, true);
     window.addEventListener('keydown', surClavier, true);
-    window.addEventListener('scroll', onFermer, true);
+    window.addEventListener('scroll', surDefilement, true);
     window.addEventListener('resize', onFermer);
 
     return () => {
       document.removeEventListener('pointerdown', surPointeur, true);
       window.removeEventListener('keydown', surClavier, true);
-      window.removeEventListener('scroll', onFermer, true);
+      window.removeEventListener('scroll', surDefilement, true);
       window.removeEventListener('resize', onFermer);
     };
   }, [ancre, onFermer]);

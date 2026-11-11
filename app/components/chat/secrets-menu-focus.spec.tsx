@@ -71,3 +71,97 @@ it.each(['header', 'row'])('keeps outside keyboard focus when Escape closes the 
   expect(document.activeElement).toBe(outside);
   expect(view.submit).not.toHaveBeenCalled();
 });
+
+it.each(['header', 'row'])('keeps the %s menu and its focus during scrolling that does not move its anchor', (kind) => {
+  const view = mount();
+  const trigger = kind === 'header' ? view.getByTestId('secrets-menu') : view.getByTestId('secret-menu-SYNTHETIC_KEY');
+  const bounds = vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 80, 32, 32));
+  fireEvent.click(trigger);
+
+  const menu = view.getByRole('menu');
+  const focused = document.activeElement;
+
+  // A sibling, a queued ancestor scroll and scrolling inside the menu must not dismiss it.
+  for (const target of [view.getByTestId('outside'), view.container, document, window, menu]) {
+    fireEvent.scroll(target);
+    expect(view.getByRole('menu')).toBe(menu);
+    expect(document.activeElement).toBe(focused);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  }
+  expect(view.submit).not.toHaveBeenCalled();
+  bounds.mockRestore();
+});
+
+it('allows the actual Edit action after the exterior scroll sequence seen in runtime CI', () => {
+  const view = mount();
+  fireEvent.click(view.getByTestId('secret-menu-SYNTHETIC_KEY'));
+  fireEvent.scroll(view.container);
+  fireEvent.scroll(window);
+
+  const edit = view.getByRole('menuitem', { name: 'Edit' });
+  fireEvent.pointerDown(edit);
+  fireEvent.click(edit);
+  expect(view.queryByRole('menu')).toBeNull();
+  expect(view.getByTestId('secrets-form-key').getAttribute('value')).toBe('SYNTHETIC_KEY');
+  expect(document.activeElement).toBe(view.getByTestId('secrets-form-value'));
+  expect(view.submit).not.toHaveBeenCalled();
+});
+
+it.each(['header', 'row'])(
+  'closes the %s menu when scrolling moves its anchor, then measures a reopened menu afresh',
+  (kind) => {
+    const view = mount();
+
+    const trigger =
+      kind === 'header' ? view.getByTestId('secrets-menu') : view.getByTestId('secret-menu-SYNTHETIC_KEY');
+
+    let rect = new DOMRect(100, 80, 32, 32);
+
+    const bounds = vi.spyOn(trigger, 'getBoundingClientRect').mockImplementation(() => rect);
+    fireEvent.click(trigger);
+    rect = new DOMRect(100, 70, 32, 32);
+    fireEvent.scroll(view.container);
+    expect(view.queryByRole('menu')).toBeNull();
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(trigger);
+    fireEvent.scroll(view.container);
+    expect(view.getByRole('menu')).toBeTruthy();
+    rect = new DOMRect(90, 70, 32, 32);
+    fireEvent.scroll(window);
+    expect(view.queryByRole('menu')).toBeNull();
+    bounds.mockRestore();
+  },
+);
+
+it.each(['header', 'row'])('still dismisses the %s menu on resize', (kind) => {
+  const view = mount();
+  fireEvent.click(kind === 'header' ? view.getByTestId('secrets-menu') : view.getByTestId('secret-menu-SYNTHETIC_KEY'));
+  fireEvent.resize(window);
+  expect(view.queryByRole('menu')).toBeNull();
+});
+
+it('cleans up global menu listeners when unmounted', () => {
+  const added = vi.spyOn(window, 'addEventListener');
+  const removed = vi.spyOn(window, 'removeEventListener');
+  const view = mount();
+  fireEvent.click(view.getByTestId('secret-menu-SYNTHETIC_KEY'));
+
+  const registrations = added.mock.calls.filter(([type]) => ['scroll', 'resize', 'keydown'].includes(type));
+  view.unmount();
+
+  for (const registration of registrations) {
+    expect(removed.mock.calls).toContainEqual(registration);
+  }
+  expect(registrations).toHaveLength(3);
+  added.mockRestore();
+  removed.mockRestore();
+});
+
+it('dismisses a menu whose anchor is detached before a captured scroll', () => {
+  const view = mount();
+  const trigger = view.getByTestId('secret-menu-SYNTHETIC_KEY');
+  fireEvent.click(trigger);
+  trigger.remove();
+  fireEvent.scroll(window);
+  expect(view.queryByRole('menu')).toBeNull();
+});
