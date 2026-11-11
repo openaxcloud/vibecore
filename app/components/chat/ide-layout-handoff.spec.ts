@@ -37,6 +37,23 @@ describe('passe-plat de la disposition des panneaux (BUG-IDE-SPLIT-EFFACE-001)',
     expect(porteeDisposition(undefined, 'window-main')).toBe(':window-main');
   });
 
+  it('isolates projects, workspaces and windows without consuming another scope', () => {
+    const scope = porteeDisposition('project-a', 'window-main', 'workspace-a');
+    deposerDisposition(scope, partage);
+
+    for (const other of [
+      porteeDisposition('project-b', 'window-main', 'workspace-a'),
+      porteeDisposition('project-a', 'window-main', 'workspace-b'),
+      porteeDisposition('project-a', 'window-other', 'workspace-a'),
+      porteeDisposition('project-a', 'window-main'),
+    ]) {
+      expect(lireDispositionTransmise(other)).toBeNull();
+      consommerDispositionTransmise(other);
+    }
+
+    expect(lireDispositionTransmise(scope)).toEqual(partage);
+  });
+
   it('se périme : une bascule dure des dixièmes de seconde, un retour sur le projet non', () => {
     deposerDisposition('p1:window-main', partage, 1_000);
 

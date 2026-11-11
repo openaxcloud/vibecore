@@ -94,14 +94,16 @@ function ScopedPaletteProvider({ projectId, children }: { projectId: string; chi
 export function IdePaletteProvider({
   projectId,
   windowId,
+  workspaceId,
   children,
 }: {
   projectId: string;
   windowId: string;
+  workspaceId?: string;
   children: ReactNode;
 }) {
   return (
-    <ScopedPaletteProvider projectId={projectId} key={JSON.stringify([projectId, windowId])}>
+    <ScopedPaletteProvider projectId={projectId} key={JSON.stringify([projectId, workspaceId ?? null, windowId])}>
       {children}
     </ScopedPaletteProvider>
   );
