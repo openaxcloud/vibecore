@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-627 entrées.
+628 entrées.
 
 ## Sans section
 
@@ -899,6 +899,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Chargement des panneaux de l'IDE, 11 novembre 2026
 
 - [BUG-PANEL-CACHE-BUSY-HANDOFF-20261111](docs/bugs/BUG-PANEL-CACHE-BUSY-HANDOFF-20261111.md) — Le cache partagé peut être rempli ou évincé entre le rendu et l'effet initial. Le chargement silencieux doit suivre le contenu réellement commité par l'instance — 📤 Dispatché : Correction expérimentale revue sur 8335f9ba ; port main séparé après PR896 ; intégration normale de main vers · 💻 Codé : Correction expérimentale publiée dans PR893 ; port ciblé PR897 fusionné dans main `746cf2e7`. La résolution ve · ✅ Testé live : Pas de recette applicative ou production revendiquée par cette fiche. Les validations locales et CI ne prouven
+
+## Sans section
+
+- [BUG-QA-DATABASE-CAPTURE-001](docs/bugs/BUG-QA-DATABASE-CAPTURE-001.md) — 📤 Dispatché : Independent review and local correction of the Database response-capture oracle. · 💻 Codé : Local standalone patch prepared on `6084cb9fc3af80ad91d024031d029db9ff69681e`. Not pushed or merged. No produc · ✅ Testé live : Not verified live. Local unit, SDK serialization, type, lint, formatting, collection and guard results are dis
 
 ## Résidus non tabulaires — reportés mot pour mot
 
