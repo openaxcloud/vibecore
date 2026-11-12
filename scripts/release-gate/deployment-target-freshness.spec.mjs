@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { declencherCorrectifLivraison } from './declencher-correctif-livraison.mjs';
 
 const workflowPath = resolve('.github/workflows/deploy-main.yml');
 const workflow = parse(readFileSync(workflowPath, 'utf8'));
@@ -135,6 +136,7 @@ function executeGuard(guard, options = {}) {
         TARGET_SHA: normalize(options.targetSha ?? oldSha),
         EVENT_NAME: options.eventName ?? 'push',
         EXPLICIT_TARGET: normalize(options.explicitTarget ?? ''),
+        ALLOW_HISTORICAL_TARGET: options.allowHistoricalTarget ?? '',
         CAPTURE: capture,
         LOCAL_REPO: dir,
         OLD_SHA: target,
@@ -194,6 +196,7 @@ describe('obsolete automatic deployment guard wiring', () => {
         GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
         EVENT_NAME: '${{ github.event_name }}',
         EXPLICIT_TARGET: '${{ inputs.target_sha }}',
+        ALLOW_HISTORICAL_TARGET: '${{ toJSON(inputs.allow_historical_target) }}',
         TARGET_SHA: '${{ needs.resolve-target.outputs.target_sha }}',
       });
     }
@@ -291,10 +294,51 @@ describe.each(names.map((name, index) => ({ name, index })))('$name', ({ index }
     expect(executeGuard(guard, { eventName: 'workflow_dispatch', changedPaths: ['app/newer.ts'] }).status).toBe(1);
     expect(executeGuard(guard, { eventName: 'workflow_dispatch', changedPaths: ['docs/note.md'] }).status).toBe(0);
   });
+  it.each(['', 'null', '""', 'false'])(
+    'protects targeted automatic and legacy dispatches without opt-in: %s',
+    (allowHistoricalTarget) => {
+      for (const [path, expected] of [
+        ['app/newer.ts', 1],
+        ['docs/note.md', 0],
+      ]) {
+        const result = executeGuard(guard, {
+          eventName: 'workflow_dispatch',
+          explicitTarget: oldSha,
+          allowHistoricalTarget,
+          changedPaths: [path],
+        });
+        expect(result.status).toBe(expected);
+        expect(result.calls.some((call) => call.args[0] === 'diff')).toBe(true);
+      }
+    },
+  );
+  it.each(['TRUE', '1', 'yes', '"true"', '"false"', ' true', 'true\n', '{}', '[]'])(
+    'rejects malformed or nonboolean opt-in: %s',
+    (allowHistoricalTarget) => {
+      const result = executeGuard(guard, {
+        eventName: 'workflow_dispatch',
+        explicitTarget: oldSha,
+        allowHistoricalTarget,
+      });
+      expect(result.status).toBe(1);
+      expect(result.calls).toEqual([]);
+    },
+  );
+  it.each([
+    { eventName: 'workflow_dispatch' },
+    { eventName: 'workflow_dispatch', explicitTarget: 'main' },
+    { eventName: 'workflow_dispatch', explicitTarget: oldSha, targetSha: '' },
+    { eventName: 'push' },
+  ])('refuses historical opt-in without a valid explicit dispatch target: %j', (options) => {
+    const result = executeGuard(guard, { ...options, allowHistoricalTarget: 'true' });
+    expect(result.status).toBe(1);
+    expect(result.calls).toEqual([]);
+  });
   it('preserves an explicitly selected older dispatch under existing gates', () => {
     const result = executeGuard(guard, {
       eventName: 'workflow_dispatch',
       explicitTarget: oldSha,
+      allowHistoricalTarget: 'true',
       changedPaths: ['app/newer.ts'],
     });
     expect(result.status).toBe(0);
@@ -308,7 +352,12 @@ describe.each(names.map((name, index) => ({ name, index })))('$name', ({ index }
     ['transport failure', { fetchStatus: 1 }],
     ['missing read-only token', { missingToken: true }],
   ])('explicit dispatch still refuses %s at this guard', (_name, options) => {
-    const result = executeGuard(guard, { eventName: 'workflow_dispatch', explicitTarget: oldSha, ...options });
+    const result = executeGuard(guard, {
+      eventName: 'workflow_dispatch',
+      explicitTarget: oldSha,
+      allowHistoricalTarget: 'true',
+      ...options,
+    });
     expect(result.status).not.toBe(0);
   });
   it.each([
@@ -483,3 +532,56 @@ it.each(guards.map((guard, index) => ({ guard, index })))(
     }
   },
 );
+
+it('declares a safe boolean historical opt-in default', () => {
+  expect(workflow.on.workflow_dispatch.inputs.allow_historical_target).toMatchObject({
+    type: 'boolean',
+    default: false,
+    required: false,
+  });
+});
+it('keeps the actual automatic delivery-chain dispatch protected at both guards', async () => {
+  const calls = [];
+
+  const result = await declencherCorrectifLivraison({
+    depot: 'openaxcloud/vibecore',
+    sha: oldSha,
+    token: 'LOCAL_CANARY',
+    requete: async (url, options) => {
+      calls.push({ url, options });
+      return { ok: true, status: 204, json: async () => ({ workflow_runs: [] }) };
+    },
+  });
+  expect(result).toBe('demande');
+  expect(calls).toHaveLength(2);
+
+  const dispatch = calls[1];
+  expect(dispatch.url).toBe(
+    'https://api.github.com/repos/openaxcloud/vibecore/actions/workflows/deploy-main.yml/dispatches',
+  );
+  expect(dispatch.options.method).toBe('POST');
+
+  const payload = JSON.parse(dispatch.options.body);
+  expect(payload).toEqual({ ref: 'main', inputs: { target_sha: oldSha } });
+  expect(Object.keys(dispatch.options.headers).filter((key) => key.toLowerCase() === 'authorization')).toHaveLength(1);
+
+  const chain = parse(readFileSync('.github/workflows/deploy-chain-change.yml', 'utf8'));
+  expect(JSON.stringify(chain)).toContain('node scripts/release-gate/declencher-correctif-livraison.mjs');
+  expect(JSON.stringify(chain)).not.toContain('allow_historical_target');
+
+  for (const guard of guards) {
+    for (const [path, status] of [
+      ['app/newer.ts', 1],
+      ['docs/newer.md', 0],
+    ]) {
+      expect(
+        executeGuard(guard, {
+          eventName: 'workflow_dispatch',
+          explicitTarget: payload.inputs.target_sha,
+          allowHistoricalTarget: JSON.stringify(payload.inputs.allow_historical_target ?? false),
+          changedPaths: [path],
+        }).status,
+      ).toBe(status);
+    }
+  }
+});
