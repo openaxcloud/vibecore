@@ -248,6 +248,16 @@ jobs:
         timeout-minutes: 15
         run: node --import tsx scripts/qa/database-restore-ci.ts
 
+      # Fresh socket-only PostgreSQL clusters under /tmp inside the existing
+      # disposable service. Never its live PGDATA, a cloud DB, or production.
+      - name: Physical PostgreSQL backup and WAL recovery proof
+        timeout-minutes: 6
+        env:
+          RESTORE_CI_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          node --test scripts/qa/database-restore-physical-ci.checks.mjs
+          node scripts/qa/database-restore-physical-ci.mjs
+
       # Dedicated database_audit, full migrations, exactly twelve passing tests.
       # A new API/Prisma child reads over loopback HTTP; no browser claim.
       - name: PostgreSQL row-form persistence regressions
