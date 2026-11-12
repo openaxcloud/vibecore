@@ -2,8 +2,9 @@ import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon, type ISearchOptions } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal as XTerm } from '@xterm/xterm';
-import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, memo, useContext, useEffect, useImperativeHandle, useRef } from 'react';
 import { getTerminalTheme } from './theme';
+import { workspaceTerminalReadinessContext } from '~/lib/runtime/WorkspaceTerminalReadiness';
 import type { Theme } from '~/lib/stores/theme';
 import { createScopedLogger } from '~/utils/logger';
 import { isMac } from '~/utils/os';
@@ -31,6 +32,9 @@ export interface TerminalProps {
   theme: Theme;
   readonly?: boolean;
   id: string;
+
+  /** Local xterm exists; safe for loading feedback, not runtime attachment. */
+  onTerminalCreated?: (terminal: XTerm) => void;
   onTerminalReady?: (terminal: XTerm) => void;
   onTerminalResize?: (cols: number, rows: number) => void;
 
@@ -72,7 +76,21 @@ function getSearchDecorations(): ISearchOptions['decorations'] {
 
 export const Terminal = memo(
   forwardRef<TerminalRef, TerminalProps>(
-    ({ className, theme, readonly, id, onTerminalReady, onTerminalResize, onOpenSearch, onSearchResults }, ref) => {
+    (
+      {
+        className,
+        theme,
+        readonly,
+        id,
+        onTerminalCreated,
+        onTerminalReady,
+        onTerminalResize,
+        onOpenSearch,
+        onSearchResults,
+      },
+      ref,
+    ) => {
+      const workspaceReadiness = useContext(workspaceTerminalReadinessContext);
       const terminalElementRef = useRef<HTMLDivElement>(null);
       const terminalRef = useRef<XTerm>();
       const fitAddonRef = useRef<FitAddon>();
@@ -82,8 +100,8 @@ export const Terminal = memo(
       const recoveryTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
       // Mirror volatile props into a ref so the once-only init effect never sees stale values.
-      const callbacksRef = useRef({ readonly, onOpenSearch, onSearchResults });
-      callbacksRef.current = { readonly, onOpenSearch, onSearchResults };
+      const callbacksRef = useRef({ readonly, onOpenSearch, onSearchResults, onTerminalReady });
+      callbacksRef.current = { readonly, onOpenSearch, onSearchResults, onTerminalReady };
 
       useEffect(() => {
         const element = terminalElementRef.current!;
@@ -208,8 +226,7 @@ export const Terminal = memo(
         resizeObserver.observe(element);
 
         logger.debug(`Attach [${id}]`);
-
-        onTerminalReady?.(terminal);
+        onTerminalCreated?.(terminal);
 
         return () => {
           try {
@@ -231,6 +248,24 @@ export const Terminal = memo(
           }
         };
       }, []);
+
+      useEffect(() => {
+        const terminal = terminalRef.current;
+
+        if (!terminal) {
+          return undefined;
+        }
+
+        const attach = () => callbacksRef.current.onTerminalReady?.(terminal);
+
+        if (workspaceReadiness) {
+          return workspaceReadiness.subscribe(attach);
+        }
+
+        attach();
+
+        return undefined;
+      }, [workspaceReadiness]);
 
       useEffect(() => {
         const terminal = terminalRef.current;

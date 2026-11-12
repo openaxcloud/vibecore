@@ -1,12 +1,16 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
+  useState,
   type MutableRefObject,
   type ReactNode,
   type RefObject,
+  type SetStateAction,
 } from 'react';
 
 type Menu = 'sessions' | 'actions' | null;
@@ -22,10 +26,63 @@ interface Transfer {
 const Context = createContext<MutableRefObject<Map<string, Transfer>> | null>(null);
 const useClientLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
+const RuntimePanelsContext = createContext<{
+  open: ReadonlyMap<string, boolean>;
+  update: (paneId: string, value: SetStateAction<boolean>) => void;
+} | null>(null);
+
 function ScopedProvider({ children }: { children: ReactNode }) {
   const transfers = useRef(new Map<string, Transfer>());
+  const [open, setOpen] = useState<ReadonlyMap<string, boolean>>(() => new Map());
 
-  return <Context.Provider value={transfers}>{children}</Context.Provider>;
+  const update = useCallback((paneId: string, value: SetStateAction<boolean>) => {
+    setOpen((current) => {
+      const previous = current.get(paneId) ?? false;
+      const next = typeof value === 'function' ? value(previous) : value;
+
+      if (next === previous) {
+        return current;
+      }
+
+      const updated = new Map(current);
+
+      if (next) {
+        updated.set(paneId, true);
+      } else {
+        updated.delete(paneId);
+      }
+
+      return updated;
+    });
+  }, []);
+
+  const runtimePanels = useMemo(() => ({ open, update }), [open, update]);
+
+  return (
+    <Context.Provider value={transfers}>
+      <RuntimePanelsContext.Provider value={runtimePanels}>{children}</RuntimePanelsContext.Provider>
+    </Context.Provider>
+  );
+}
+
+/** Keep deliberate hub visibility above loading shells, independently for each IDE pane. */
+export function useTerminalRuntimePanels(paneId?: string) {
+  const shared = useContext(RuntimePanelsContext);
+  const [localOpen, setLocalOpen] = useState(false);
+  const update = shared?.update;
+
+  const setOpen = useCallback(
+    (value: SetStateAction<boolean>) => {
+      if (paneId && update) {
+        update(paneId, value);
+      } else {
+        setLocalOpen(value);
+      }
+    },
+    [paneId, update],
+  );
+
+  return [shared && paneId ? (shared.open.get(paneId) ?? false) : localOpen, setOpen] as const;
 }
 
 /** Route lifetime isolates transient interaction receipts from other projects and windows. */

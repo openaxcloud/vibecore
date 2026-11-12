@@ -1,6 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import JSZip from 'jszip';
 
+// Worker-scoped tracing must be configured at file scope, not inside describe.
+// Retain the failing attempt itself, including failures before any retry.
+test.use({ trace: 'retain-on-failure' });
+
 async function createProject(page: Page, appBase: string) {
   const api = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -57,7 +61,10 @@ async function openTool(page: Page, id: string) {
 
 for (const width of [390, 1180]) {
   test.describe(`panel visibility ${width}px`, () => {
-    test.use({ viewport: { width, height: width === 390 ? 844 : 757 }, hasTouch: width === 390 });
+    test.use({
+      viewport: { width, height: width === 390 ? 844 : 757 },
+      hasTouch: width === 390,
+    });
     for (const overlay of ['panels', 'tabs', 'tools'] as const) {
       test(`${overlay} closes with Escape and restores focus`, async ({ page, baseURL }, info) => {
         test.setTimeout(90_000);

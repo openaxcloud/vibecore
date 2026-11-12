@@ -1,7 +1,16 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 import { readIdeUiDetailStyles } from './helpers/ide-ui-detail-styles';
+import { reloadPanelJson } from './helpers/reload-panel-json';
+import {
+  runtimeServiceProgress,
+  startSecretsLifecycleEvidence,
+  withDesktopLayoutEvidence,
+} from './helpers/runtime-desktop-diagnostics';
+import { workspaceStatusAffordance } from './helpers/workspace-status-affordance';
 
 import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
 
@@ -186,21 +195,7 @@ async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
 }
 
 async function clickIdeToolMenuItem(toolMenu: import('@playwright/test').Locator, name: RegExp) {
-  const clicked = await toolMenu.evaluate((menu, pattern) => {
-    const matcher = new RegExp(pattern);
-    const buttons = Array.from(menu.querySelectorAll<HTMLButtonElement>('button'));
-    const button = buttons.find((item) => matcher.test(item.textContent?.replace(/\s+/g, ' ').trim() ?? ''));
-
-    if (!button) {
-      return false;
-    }
-
-    button.click();
-
-    return true;
-  }, name.source);
-
-  expect(clicked, `Tool menu item ${name.toString()} should exist`).toBeTruthy();
+  await toolMenu.getByRole('button', { name }).click();
 }
 
 async function createTestProject(page: import('@playwright/test').Page, name: string) {
@@ -382,11 +377,11 @@ test(
   async ({ page }) => {
     await authenticate(page);
     await page.goto('/dashboard/templates');
-    await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Templates', exact: true })).toBeVisible();
     await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
     await page.getByRole('button', { name: 'Use template' }).first().click();
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30000 });
-    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveURL(/\/@[^/?]+\/[^/?]+$/, { timeout: 30000 });
+    await expect(page.getByRole('button', { name: /^Running workspace(?:\s*\||$)/i })).toBeVisible({ timeout: 15000 });
   },
 );
 
@@ -1564,9 +1559,13 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
 test(
   'IDE project services open as in-place panels instead of legacy project pages',
   { tag: '@runtime' },
-  async ({ page, isMobile }) => {
+  withDesktopLayoutEvidence(async ({ page, isMobile }, testInfo) => {
     test.setTimeout(120_000);
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+
+    const progress = runtimeServiceProgress(testInfo);
+    progress.mark('setup');
+    await startSecretsLifecycleEvidence(page, testInfo);
 
     const auth = await authenticate(page);
     const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -1595,6 +1594,7 @@ test(
       await clickIdeToolMenuItem(toolMenu, name);
     }
 
+    progress.mark('snapshots');
     await openIdeTool(/Snapshots/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=snapshots$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
@@ -1612,13 +1612,14 @@ test(
     await page.getByRole('button', { name: /New checkpoint/ }).click();
     await expect(page.getByText('E2E checkpoint', { exact: true }).first()).toBeVisible({ timeout: 15000 });
 
-    await openIdeTool(/Deployments/);
+    progress.mark('publish');
+    await openIdeTool(/Publish/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=deployments$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]')).toBeVisible({
       timeout: 15000,
     });
     await expect(page.getByRole('tab', { name: /Snapshots/ })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Publish/ }).first()).toBeVisible();
 
     /*
      * The deployments panel was redesigned: it is a deployments list with an
@@ -1627,7 +1628,7 @@ test(
      * rendered any more). Assert the surface it actually ships.
      */
     const deploymentsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]');
-    await expect(deploymentsPanel.getByRole('heading', { name: 'Deployments' })).toBeVisible();
+    await expect(deploymentsPanel.getByRole('heading', { name: 'Publish', exact: true })).toBeVisible();
 
     for (const section of ['Overview', 'Logs', 'Domains', 'Manage']) {
       await expect(deploymentsPanel.getByRole('button', { name: section, exact: true })).toBeVisible();
@@ -1711,10 +1712,29 @@ test(
     // The trailing segment is now the active file's language, not 'Project'.
     await expect(statusbar).toContainText('Markdown');
 
-    const workspaceStatusButton = statusbar.getByRole('button', { name: /Running on|Building|Crashed|Stopped/ });
+    const workspaceStatusButton = statusbar.getByRole('button', {
+      name: /^(Running|Starting|Building|Crashed|Stopped) workspace(?:\s*\||$)/i,
+    });
     await expect(workspaceStatusButton).toBeVisible();
     await workspaceStatusButton.click();
+
+    // Status opens the pinned Shell, including while the workspace is still Starting.
+
+    const statusTerminal = page.locator('.bolt-project-bottom-terminal');
+    await expect(statusTerminal).toBeVisible();
+    await expect(statusTerminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await statusTerminal.getByRole('button', { name: 'Close terminal panel', exact: true }).click();
+    await expect(statusTerminal).toBeHidden();
     await expect(page.getByRole('tab', { name: /Webview/ }).first()).toBeVisible({ timeout: 15000 });
+
+    // Webview is a separate tool; the status control no longer navigates there.
+
+    const webviewTab = page.getByRole('tab', { name: /^(?:Pinned tab: )?Webview$/ });
+    await webviewTab.getByRole('button', { name: 'Webview', exact: true }).click();
+    await expect(webviewTab).toHaveAttribute('aria-selected', 'true');
 
     const webviewToolbar = page.locator('.bolt-project-webview-toolbar').first();
     await expect(webviewToolbar).toBeVisible();
@@ -1733,6 +1753,7 @@ test(
     await expect(webviewToolbar.getByRole('button', { name: 'Refresh preview' })).toBeVisible();
     await expect(webviewToolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
 
+    progress.mark('library');
     await openIdeTool(/Library/);
 
     const filesHeader = page.locator('.bolt-project-files-header');
@@ -1751,6 +1772,7 @@ test(
     await expect(filesHeader.getByRole('button', { name: 'Refresh files' })).toBeVisible();
     await expect(filesHeader.getByRole('button', { name: 'Collapse all files' })).toBeVisible();
 
+    progress.mark('logs');
     await openIdeTool(/Logs/);
 
     const consolePanel = page.locator('[data-testid="ide-service-panel"][data-panel="logs"]').first();
@@ -1767,32 +1789,124 @@ test(
     expect(consoleBodyMetrics.background).toBe('rgb(10, 15, 28)');
     expect(consoleBodyMetrics.fontSize).toBe('12px');
 
+    progress.mark('database');
     await openIdeTool(/Database/);
 
     const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
-    await expect(databasePanel.locator('.bolt-project-database-tool')).toBeVisible({ timeout: 15000 });
-    await expect(databasePanel.getByText('Database status')).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Connection' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Environment' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Activity' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Save DATABASE_URL' })).toBeVisible();
+    await expect(databasePanel.getByRole('heading', { name: 'All databases', exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(databasePanel.getByText('No database yet', { exact: true })).toBeVisible();
+    await expect(databasePanel.getByRole('button', { name: 'Create database', exact: true })).toBeVisible();
+
+    /*
+     * Before 11e1bfe9d, Connection saved DATABASE_URL, Environment showed key/date,
+     * and Activity showed backend env mutations. Preserve each via current secure controls.
+     */
+    const databaseValue = `postgres://audit.local/services-${Date.now()}`;
+
+    const panelResponse = (panel: string, method: string) =>
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === `/api/projects/${projectId}/ide-panel/${panel}` &&
+          response.request().method() === method,
+      );
+    progress.mark('create-secret');
+    await openIdeTool(/Secrets/);
+
+    const connectionSecretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]');
+    await connectionSecretsPanel.getByTestId('secrets-new').click();
+    await connectionSecretsPanel.getByTestId('secrets-form-key').fill('DATABASE_URL');
+    await connectionSecretsPanel.getByTestId('secrets-form-value').fill(databaseValue);
+
+    const [savedConnection] = await Promise.all([
+      panelResponse('secrets', 'POST'),
+      connectionSecretsPanel.getByTestId('secrets-form-add').click(),
+    ]);
+    expect(savedConnection.ok()).toBeTruthy();
+
+    const reloadedSecrets = await reloadPanelJson(page, projectId, 'secrets');
+    expect(reloadedSecrets.ok).toBeTruthy();
+
+    const secretMetadata = reloadedSecrets.body.data.secrets.find(
+      (secret: { key: string }) => secret.key === 'DATABASE_URL',
+    );
+    expect(secretMetadata).toBeTruthy();
+    expect(Number.isFinite(Date.parse(secretMetadata.updatedAt))).toBeTruthy();
+
+    const connectionRow = connectionSecretsPanel.getByTestId('secret-row-DATABASE_URL');
+    await expect(connectionRow.getByText('DATABASE_URL', { exact: true })).toBeVisible();
+    await expect(connectionRow.getByTestId('secret-updated-at')).toBeVisible();
+    await expect(connectionRow.getByTestId('secret-updated-at')).toHaveAttribute('datetime', secretMetadata.updatedAt);
+    await expect(connectionRow.getByText(databaseValue, { exact: true })).toHaveCount(0);
+    await connectionRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
+    await expect(connectionRow.getByText(databaseValue, { exact: true })).toBeVisible();
+
+    const [reloadedDatabase] = await Promise.all([panelResponse('database', 'GET'), openIdeTool(/Database/)]);
+    expect(reloadedDatabase.ok()).toBeTruthy();
+    expect(
+      (await reloadedDatabase.json()).data.connections.some(
+        (connection: { key: string }) => connection.key === 'DATABASE_URL',
+      ),
+    ).toBeTruthy();
+
+    // Stay on root: opening a card would initiate schema/connection requests to the synthetic URL.
+    await expect(databasePanel.getByTestId('db-carte').getByText('DATABASE_URL', { exact: true })).toBeVisible();
+
+    progress.mark('activity');
+
+    const [activityResponse] = await Promise.all([
+      panelResponse('activity', 'GET'),
+      (async () => {
+        const toolMenu = await openVisibleIdeToolMenu(page);
+        await toolMenu.getByTestId('feature-activity').click();
+      })(),
+    ]);
+    expect(activityResponse.ok()).toBeTruthy();
+
+    const connectionEvent = (await activityResponse.json()).data.activity.find(
+      (event: { action: string; metadata?: { key?: string } }) =>
+        event.action === 'project.secret.upsert' && event.metadata?.key === 'DATABASE_URL',
+    );
+    expect(connectionEvent).toBeTruthy();
+    expect(Number.isFinite(Date.parse(connectionEvent.createdAt))).toBeTruthy();
+
+    const activityPanel = page.locator('[data-testid="ide-service-panel"][data-panel="activity"]');
+    await activityPanel.getByRole('combobox', { name: 'Type', exact: true }).selectOption('project.secret.upsert');
+
+    const eventRow = activityPanel.locator('.bolt-project-activity-event');
+    await expect(eventRow).toHaveCount(1);
+    await expect(eventRow.locator('small')).toBeVisible();
+    await eventRow.locator('.bolt-project-activity-event-main').click();
+
+    const displayedEvent = JSON.parse(await eventRow.locator('.bolt-project-activity-payload').innerText());
+    expect(displayedEvent.id).toBe(connectionEvent.id);
+    expect(displayedEvent.action).toBe('project.secret.upsert');
+    expect(displayedEvent.createdAt).toBe(connectionEvent.createdAt);
+    expect(displayedEvent.metadata.key).toBe('DATABASE_URL');
 
     await openIdeTool(/Secrets/);
 
+    progress.mark('secrets-panel');
+
     const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]').first();
+
     // RP-SEC-01 : le panneau Replit — en-tête « Secrets », ⋮, « + New Secret », filtre.
     await expect(secretsPanel.getByTestId('secrets-panel')).toBeVisible({ timeout: 15000 });
     await expect(secretsPanel.getByTestId('secrets-new')).toBeVisible();
     await expect(secretsPanel.getByTestId('secrets-filter')).toBeVisible();
 
+    progress.mark('git');
     await openIdeTool(/Git/);
 
     const gitPanel = page.locator('[data-testid="ide-service-panel"][data-panel="git"]').first();
-    await expect(gitPanel.locator('.bolt-project-git-tool')).toBeVisible({ timeout: 15000 });
-    await expect(gitPanel.getByRole('heading', { name: 'Changes' })).toBeVisible();
+
+    // Canonical GitTab: Working tree lists changes; Commit graph contains history.
+    await expect(gitPanel.locator('.bolt-git-tab')).toBeVisible({ timeout: 15000 });
+    await expect(gitPanel.getByRole('heading', { name: 'Working tree' })).toBeVisible();
     await expect(gitPanel.getByRole('heading', { name: 'Staged' })).toBeVisible();
-    await expect(gitPanel.getByRole('heading', { name: 'History' })).toBeVisible();
-    await expect(gitPanel.getByRole('button', { name: 'Commit & Push' })).toBeVisible();
+    await expect(gitPanel.getByRole('heading', { name: 'Commit graph' })).toBeVisible();
+    await expect(gitPanel.getByRole('button', { name: 'Commit & push' })).toBeVisible();
 
     await expect(page.getByLabel('Split right')).toHaveCount(0);
     await expect(page.getByLabel('Split down')).toHaveCount(0);
@@ -1801,9 +1915,9 @@ test(
     await expect(page.locator('.bolt-project-context-menu')).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Move to new pane/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Move to existing pane/ })).toHaveCount(0);
-    await page.getByLabel('Tab actions').first().click();
-    await page.getByRole('button', { name: 'Close to right' }).first().click();
-    await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
+    await page.getByLabel('Options for Git').first().click();
+    await page.getByRole('menuitem', { name: 'Close to right' }).first().click();
+    await expect(page.getByRole('tab', { name: /Publish/ }).first()).toBeVisible();
 
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
 
@@ -1815,51 +1929,121 @@ test(
       const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
       const tabbar = element.querySelector('.bolt-project-bottom-terminal-tabs')!;
-      const tabbarRect = tabbar.getBoundingClientRect();
       const tabbarStyle = window.getComputedStyle(tabbar);
-      const status = element.querySelector('.bolt-project-bottom-terminal-status');
-      const terminalMeta = element.querySelector('.bolt-project-bottom-terminal-meta');
-      const activeTab = element.querySelector('.bolt-project-bottom-terminal-tabs button[aria-current="page"]');
-      const activeTabStyle = activeTab ? window.getComputedStyle(activeTab) : null;
+      const activeTab = element.querySelector('.bolt-project-bottom-terminal-tabs button[aria-current="page"]')!;
+      const activeTabStyle = window.getComputedStyle(activeTab);
+
+      /*
+       * Resolve semantic tokens independently, on a neutral probe in the same inheritance scope.
+       * No terminal class or computed terminal property is copied onto this probe.
+       */
+      const probe = document.createElement('span');
+      probe.style.cssText =
+        'position:absolute;visibility:hidden;border:1px solid var(--vc-ide-border-subtle);background:var(--vc-ide-bg-app);color:var(--vc-ide-accent-action)';
+      element.appendChild(probe);
+
+      const probeStyle = window.getComputedStyle(probe);
+      const expectedBorder = probeStyle.borderTopColor;
+      const expectedBackground = probeStyle.backgroundColor;
+      const expectedAccent = probeStyle.color;
+      probe.style.background = 'var(--vc-ide-bg-panel)';
+      probe.style.borderColor = 'var(--vc-ide-border-visible)';
+
+      const expectedTabbarBackground = window.getComputedStyle(probe).backgroundColor;
+      const expectedActiveBorder = window.getComputedStyle(probe).borderTopColor;
+      probe.remove();
 
       return {
         height: rect.height,
         borderTop: style.borderTopColor,
         background: style.backgroundColor,
-        tabbarHeight: tabbarRect.height,
+        tabbarHeight: tabbar.getBoundingClientRect().height,
         tabbarBackground: tabbarStyle.backgroundColor,
-        hasStatus: Boolean(status),
-        hasTerminalMeta: Boolean(terminalMeta),
-        activeTabBorder: activeTabStyle?.borderTopColor,
+        tabbarImage: tabbarStyle.backgroundImage,
+        hasStatus: Boolean(element.querySelector('.bolt-project-bottom-terminal-status')),
+        hasTerminalMeta: Boolean(element.querySelector('.bolt-project-bottom-terminal-meta')),
+        activeTabBorder: activeTabStyle.borderTopColor,
+        activeTabShadow: activeTabStyle.boxShadow,
+        expectedBorder,
+        expectedBackground,
+        expectedTabbarBackground,
+        expectedActiveBorder,
+        expectedAccent,
+        tokens: [
+          '--vc-ide-border-subtle',
+          '--vc-ide-bg-app',
+          '--vc-ide-bg-panel',
+          '--vc-ide-border-visible',
+          '--vc-ide-accent-action',
+        ].map((token) => style.getPropertyValue(token).trim()),
       };
     });
-    expect(terminalMetrics.height).toBe(240);
-    expect(terminalMetrics.borderTop).toBe('rgb(26, 32, 48)');
-    expect(terminalMetrics.background).toBe('rgb(10, 15, 28)');
+
+    /*
+     * Production readProjectBottomTerminalUiState defaults to 420, constrained to 320–720.
+     * This assertion deliberately requires real browser geometry, not an inline-style value.
+     */
+    expect(terminalMetrics.height).toBe(420);
+    expect(terminalMetrics.height).toBeGreaterThanOrEqual(320);
+    expect(terminalMetrics.height).toBeLessThanOrEqual(720);
+
+    for (const token of terminalMetrics.tokens) {
+      expect(token).not.toBe('');
+    }
+
+    for (const color of [terminalMetrics.expectedBackground, terminalMetrics.expectedTabbarBackground]) {
+      expect(color).not.toBe('rgba(0, 0, 0, 0)');
+    }
+    expect(terminalMetrics.borderTop).toBe(terminalMetrics.expectedBorder);
+    expect(terminalMetrics.background).toBe(terminalMetrics.expectedBackground);
     expect(terminalMetrics.tabbarHeight).toBe(38);
-    expect(terminalMetrics.tabbarBackground).toBe('rgb(14, 21, 37)');
+    expect(terminalMetrics.tabbarBackground).toBe(terminalMetrics.expectedTabbarBackground);
+
+    /*
+     * index.scss defines a gradient initially, but its later IDE-scoped !important
+     * background override uses --vc-ide-bg-panel and resets background-image to none.
+     */
+    expect(terminalMetrics.tabbarImage).toBe('none');
     expect(terminalMetrics.hasStatus).toBe(true);
     expect(terminalMetrics.hasTerminalMeta).toBe(true);
-    expect(terminalMetrics.activeTabBorder).toBe('rgb(43, 50, 69)');
-    await expect(pinnedTerminal.getByRole('button', { name: 'Terminal', exact: true })).toBeVisible();
+    expect(terminalMetrics.activeTabBorder).toBe(terminalMetrics.expectedActiveBorder);
+    expect(terminalMetrics.activeTabShadow).toBe(`${terminalMetrics.expectedAccent} 0px 2px 0px 0px inset`);
+    await expect(pinnedTerminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toBeVisible();
     await expect(pinnedTerminal.getByRole('button', { name: 'Output' })).toBeVisible();
-    await expect(pinnedTerminal.getByRole('button', { name: 'Problems' })).toBeVisible();
+    await expect(pinnedTerminal.getByRole('button', { name: /Open problems/i })).toBeVisible();
     await expect(pinnedTerminal.getByRole('button', { name: 'Debug Console' })).toBeVisible();
     await expect(pinnedTerminal.getByLabel('Refresh runtime logs')).toBeVisible();
-    await expect(pinnedTerminal.locator('.bolt-project-bottom-terminal-size')).toHaveText('240px');
-    await expect(pinnedTerminal.getByText('Vibecore Terminal')).toBeVisible({ timeout: 15000 });
+    await expect(pinnedTerminal.getByRole('status', { name: 'Pinned terminal', exact: true })).toHaveText(
+      `${terminalMetrics.height}px`,
+    );
+    await expect(
+      pinnedTerminal.locator('[data-testid="terminal-tabs-bar"][aria-label="Shell (Terminal)"]'),
+    ).toBeVisible({ timeout: 15000 });
     await pinnedTerminal.getByRole('button', { name: 'Output' }).click();
     await expect(pinnedTerminal.locator('[data-testid="ide-service-panel"][data-panel="logs"]')).toBeVisible({
       timeout: 15000,
     });
+    await pinnedTerminal.getByRole('button', { name: /Open problems/i }).click();
+    await expect(pinnedTerminal.locator('.bolt-project-problems-panel')).toBeVisible();
     await pinnedTerminal.getByRole('button', { name: 'Debug Console' }).click();
-    await expect(pinnedTerminal.locator('.bolt-project-monitoring-panel')).toBeVisible({ timeout: 15000 });
-    await page.getByLabel('Toggle terminal').click();
+    await expect(pinnedTerminal.locator('[data-testid="ide-service-panel"][data-panel="debugger"]')).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(pinnedTerminal.locator('.bolt-project-debugger-panel')).toBeVisible();
+    await pinnedTerminal.getByLabel('Refresh runtime logs').click();
+    await expect(pinnedTerminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(
+      pinnedTerminal.locator('[data-testid="terminal-tabs-bar"][aria-label="Shell (Terminal)"]'),
+    ).toBeVisible();
+    await page.getByLabel('Toggle Shell (Terminal)', { exact: true }).click();
     await expect(pinnedTerminal).toBeHidden();
-    await page.getByLabel('Toggle terminal').click();
+    await page.getByLabel('Toggle Shell (Terminal)', { exact: true }).click();
     await expect(pinnedTerminal).toBeVisible();
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
 
     await page.getByRole('tab', { name: /Snapshots/ }).click();
@@ -1874,7 +2058,7 @@ test(
       ['Packages', 'packages'],
       ['Monitoring', 'monitoring'],
       ['Extensions', 'extensions'],
-      ['Env vars', 'env'],
+      ['Environment variables', 'env'],
       ['Secrets', 'secrets'],
       ['Git', 'git'],
       ['Activity', 'activity'],
@@ -1883,20 +2067,58 @@ test(
       ['Domains', 'domains'],
     ] as const;
 
+    progress.mark('service-panels');
+
     for (const [label, panel] of inIdePanels) {
-      await openIdeTool(new RegExp(label));
-      await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${panel}$`));
-      await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first()).toBeVisible({
-        timeout: 15000,
-      });
+      // Domains keeps its backend API but opens the Domains view owned by Deployments.
+      const renderedPanel = panel === 'domains' ? resolveProjectEditorToolOpen(panel).panel : panel;
+
+      const domainsResponse =
+        panel === 'domains'
+          ? page.waitForResponse(
+              (response) =>
+                new URL(response.url()).pathname === `/api/projects/${projectId}/ide-panel/domains` &&
+                response.request().method() === 'GET',
+              { timeout: 15000 },
+            )
+          : undefined;
+
+      if (panel === 'domains') {
+        // Aliased tools are searchable shortcuts, not cards in the unfiltered palette.
+        const toolMenu = await openVisibleIdeToolMenu(page);
+        await toolMenu.getByRole('textbox', { name: 'Search commands, tools, or files', exact: true }).fill(label);
+        await toolMenu.getByTestId('feature-domains').click();
+      } else {
+        await openIdeTool(new RegExp(label));
+      }
+
+      await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${renderedPanel}$`));
+
+      const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${renderedPanel}"]`).first();
+      await expect(servicePanel).toBeVisible({ timeout: 15000 });
+
+      if (domainsResponse) {
+        expect((await domainsResponse).ok()).toBeTruthy();
+
+        const deployment = servicePanel.locator('.bolt-project-deploy-tool');
+        await expect(
+          deployment.locator('.bolt-project-tool-tabs').getByRole('button', { name: 'Domains', exact: true }),
+        ).toHaveAttribute('aria-current', 'page');
+        await expect(deployment.locator('.bolt-project-domains-panel input[name="domain"]')).toBeVisible({
+          timeout: 15000,
+        });
+        await expect(deployment.getByTestId('project-domains-scope-notice')).toBeVisible({ timeout: 15000 });
+      }
     }
 
+    progress.mark('settings');
     await openIdeTool(/Settings/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=settings$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="settings"]')).toBeVisible({
       timeout: 15000,
     });
 
+    progress.mark('environment');
     await openIdeTool(/Environment variables/);
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=env$`));
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="env"]')).toBeVisible();
@@ -1907,18 +2129,57 @@ test(
       page.locator('[data-testid="ide-service-panel"][data-panel="env"]').filter({ hasText: 'E2E_FLAG' }).last(),
     ).toBeVisible({ timeout: 15000 });
 
-    await openIdeTool(/Database/);
-    await page.getByPlaceholder('postgres://user:pass@host:5432/db').fill('postgres://local/test');
-    await page
-      .locator('[data-testid="ide-service-panel"][data-panel="database"]')
-      .getByRole('button', { name: 'Save DATABASE_URL' })
-      .click();
-    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]')).toContainText(
-      'DATABASE_URL',
-      {
-        timeout: 15000,
-      },
-    );
+    // Preserve the later connection update as a separate real edit, not just the initial creation above.
+    const updatedDatabaseValue = 'postgres://local/test';
+    progress.mark('edit-secret-open-panel');
+    await test.step('edit-secret-open-panel', async () => {
+      await openIdeTool(/Secrets/);
+    });
+    progress.mark('edit-secret-open-menu');
+    await test.step('edit-secret-open-menu', async () => {
+      await connectionSecretsPanel.getByTestId('secret-menu-DATABASE_URL').click();
+    });
+    progress.mark('edit-secret-select-edit');
+    await test.step('edit-secret-select-edit', async () => {
+      await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+    });
+    progress.mark('edit-secret-fill');
+    await expect(connectionSecretsPanel.getByTestId('secrets-form-key')).toHaveValue('DATABASE_URL');
+    await connectionSecretsPanel.getByTestId('secrets-form-value').fill(updatedDatabaseValue);
+
+    progress.mark('edit-secret-save');
+
+    const [updatedConnection] = await Promise.all([
+      panelResponse('secrets', 'POST'),
+      connectionSecretsPanel.getByTestId('secrets-form-add').click(),
+    ]);
+    expect(updatedConnection.ok()).toBeTruthy();
+
+    progress.mark('edit-secret-reload');
+
+    const updatedSecrets = await reloadPanelJson(page, projectId, 'secrets');
+    expect(updatedSecrets.ok).toBeTruthy();
+    expect(
+      updatedSecrets.body.data.secrets.some((secret: { key: string }) => secret.key === 'DATABASE_URL'),
+    ).toBeTruthy();
+    progress.mark('edit-secret-reveal');
+    await connectionRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
+    await expect(connectionRow.getByText(updatedDatabaseValue, { exact: true })).toBeVisible({ timeout: 15000 });
+
+    progress.mark('database-refresh');
+
+    const [updatedDatabase] = await Promise.all([panelResponse('database', 'GET'), openIdeTool(/Database/)]);
+    expect(updatedDatabase.ok()).toBeTruthy();
+    expect(
+      (await updatedDatabase.json()).data.connections.some(
+        (connection: { key: string }) => connection.key === 'DATABASE_URL',
+      ),
+    ).toBeTruthy();
+    await expect(databasePanel.getByTestId('db-carte').getByText('DATABASE_URL', { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+
+    progress.mark('export');
 
     const exportResponse = await page.request.get(`/api/projects/${projectId}/project-action?intent=export`);
     expect(exportResponse.ok(), await exportResponse.text()).toBeTruthy();
@@ -1927,7 +2188,8 @@ test(
     expect(page.url()).not.toContain('/snapshots');
     expect(page.url()).not.toContain('/deployments');
     expect(page.url()).not.toContain('/env-vars');
-  },
+    progress.mark('complete');
+  }),
 );
 
 test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMobile }) => {
@@ -2025,54 +2287,76 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
 test(
   'edit file workflow surfaces editor, files, terminal and preview affordances',
   { tag: '@runtime' },
-  async ({ page, isMobile }) => {
-    test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+  withDesktopLayoutEvidence(
+    async ({ page, isMobile }) => {
+      test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
-    const projectId = await createTestProject(page, 'E2E edit workflow project');
+      const projectId = await createTestProject(page, 'E2E edit workflow project');
 
-    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
-    await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+      await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
 
-    const commandPalette = page.getByLabel('Command palette');
-    await expect(commandPalette).toBeVisible();
+      // The palette color assertions below describe dark tokens, not the light default.
+      await forceDarkTheme(page);
 
-    const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const style = window.getComputedStyle(element);
+      /*
+       * Starting is a supported, interactive shell state, not proof that the runtime is ready.
+       * Keep the separate Running assertions and real static/Vite preview preflights unchanged.
+       */
+      const workspaceButton = workspaceStatusAffordance(page);
+      await expect(workspaceButton).toBeVisible({ timeout: 15000 });
+      await workspaceButton.click();
 
-      return {
-        top: rect.top,
-        width: rect.width,
-        background: style.backgroundColor,
-        borderRadius: style.borderRadius,
-      };
-    });
-    expect(commandPaletteMetrics.top).toBe(120);
-    expect(commandPaletteMetrics.width).toBe(600);
-    expect(commandPaletteMetrics.background).toBe('rgb(26, 32, 48)');
-    expect(commandPaletteMetrics.borderRadius).toBe('12px');
-    await expect(page.locator('.bolt-project-command-section', { hasText: 'Files' })).toBeVisible();
-    await expect(page.locator('.bolt-project-command-section', { hasText: 'Tools' })).toBeVisible();
-    await expect(page.locator('.bolt-project-command-section', { hasText: 'Commands' })).toBeVisible();
-    await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
-  },
+      const terminal = page.locator('.bolt-project-bottom-terminal-shell');
+      await expect(terminal).toBeVisible();
+      await expect(terminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+      await terminal.getByRole('button', { name: 'Close terminal panel', exact: true }).click();
+      await expect(terminal).toBeHidden();
+      await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
+      await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
+      await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
+      await expect(page.getByRole('dialog', { name: 'Command palette', exact: true })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+
+      const commandPalette = page.getByRole('dialog', { name: 'Command palette', exact: true });
+      await expect(commandPalette).toBeVisible();
+
+      const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+
+        return {
+          top: rect.top,
+          width: rect.width,
+          background: style.backgroundColor,
+          borderRadius: style.borderRadius,
+        };
+      });
+      expect(commandPaletteMetrics.top).toBe(120);
+      expect(commandPaletteMetrics.width).toBe(600);
+      expect(commandPaletteMetrics.background).toBe('rgb(26, 32, 48)');
+      expect(commandPaletteMetrics.borderRadius).toBe('12px');
+      await expect(page.locator('.bolt-project-command-section', { hasText: 'Files' })).toBeVisible();
+      await expect(page.locator('.bolt-project-command-section', { hasText: 'Tools' })).toBeVisible();
+      await expect(page.locator('.bolt-project-command-section', { hasText: 'Commands' })).toBeVisible();
+      await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
+    },
+    { captureOnSuccess: true },
+  ),
 );
 
 test(
   'reopens project IDE with persisted agent memory and panel state',
   { tag: '@runtime' },
-  async ({ page, isMobile }) => {
+  withDesktopLayoutEvidence(async ({ page, isMobile }) => {
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
     const auth = await authenticate(page);
@@ -2135,7 +2419,7 @@ test(
 
     expect(saveState.ok(), await saveState.text()).toBeTruthy();
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /^Running workspace(?:\s*\||$)/i })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(firstUserMessage)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(assistantMessage)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(secondUserMessage)).toBeVisible({ timeout: 15000 });
@@ -2211,9 +2495,15 @@ test(
         };
       });
       expect(persistedMetrics.agentWidth).toBe('520px');
-      expect(persistedMetrics.rightPanelWidth).toBe('300px');
+
+      /*
+       * Keep the oversized 512px seed: reload must clamp it to the current bound.
+       * MAX changed 300→260 in fc2bfb1846e936dbd3f9bfbe052798c0086c56ad,
+       * then 260→360 in c162ac3d86284bbc72e33237d6f1c109e3b100c8; this assertion was left at 300.
+       */
+      expect(persistedMetrics.rightPanelWidth).toBe('360px');
     }
-  },
+  }),
 );
 
 test('billing upgrade flow is reachable without frontend-only quota bypass', async ({ page }) => {
@@ -2372,3 +2662,6 @@ test('command palette entries navigate to real product routes', async ({ page })
    */
   await expect(page.getByRole('heading', { name: 'Import a Git repository' })).toBeVisible({ timeout: 30_000 });
 });
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

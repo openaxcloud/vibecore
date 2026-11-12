@@ -24,6 +24,8 @@ import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { totalAiUsage } from '~/lib/ai-usage-totals';
 import { latestTurnModelOutput } from '~/lib/model-output-evidence';
 import { SkillResources, type SkillResourceSnapshot } from './SkillResources';
+import { SnapshotCreateForm } from './SnapshotCreateForm';
+import { ProjectMetadataForm } from './ProjectMetadataForm';
 import settingsPanelStyles from './ProjectSettingsPanel.module.scss';
 import { useMobileOverlayFocus, useMobileTabSearchQuery } from './MobileOverlayFocus';
 import { useMobileModalFocus } from './useMobileModalFocus';
@@ -79,7 +81,7 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Bar } from 'react-chartjs-2';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
 import {
   bringFloatingPaneToFront as engineBringFloatingPaneToFront,
   dockPane as engineDockPane,
@@ -297,7 +299,10 @@ import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
-import { TerminalInteractionHandoffBoundary } from '~/components/workbench/terminal/TerminalInteractionHandoff';
+import {
+  TerminalInteractionHandoffBoundary,
+  useTerminalRuntimePanels,
+} from '~/components/workbench/terminal/TerminalInteractionHandoff';
 import { editorKindForLayout, useResponsiveLayout, EditorFocusHandoffBoundary } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
@@ -3048,7 +3053,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
     >(() =>
       projectIdeMode &&
-      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
+      (activeProjectPanel === 'search' ||
+        activeProjectPanel === 'editor' ||
+        activeProjectPanel === 'terminal' ||
+        activeProjectPanel === 'preview')
         ? activeProjectPanel
         : 'chat',
     );
@@ -3441,7 +3449,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState(() =>
       projectIdeMode &&
-      (activeProjectPanel === 'search' || activeProjectPanel === 'editor' || activeProjectPanel === 'terminal')
+      (activeProjectPanel === 'search' ||
+        activeProjectPanel === 'editor' ||
+        activeProjectPanel === 'terminal' ||
+        activeProjectPanel === 'preview')
         ? activeProjectPanel
         : 'agent',
     );
@@ -3698,9 +3709,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const DEFAULT_RIGHT_PANEL_WIDTH = 280;
     const MIN_RIGHT_PANEL_WIDTH = 272;
     const MAX_RIGHT_PANEL_WIDTH = 360;
-    const [rightPanelOpen, setRightPanelOpen] = useState(true);
+    const [rightPanelOpen, setRestoredRightPanelOpen] = useState(true);
+    const rightPanelVisibilityChanged = useRef(false);
+
+    const setRightPanelOpen = useCallback((nextOpen: React.SetStateAction<boolean>) => {
+      // A late memory response must not undo a newer files-panel interaction.
+      rightPanelVisibilityChanged.current = true;
+      setRestoredRightPanelOpen(nextOpen);
+    }, []);
+
     const [rightPanelMode, setRightPanelMode] = useState<'files' | 'preview-logs'>('files');
     const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
+    const rightPanelRef = useRef<ImperativePanelHandle>(null);
+    const rightPanelResizeActive = useRef(false);
+    const rightPanelWidthChanged = useRef(false);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
 
@@ -3832,9 +3854,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
     );
 
+    const agentPanelRef = useRef<ImperativePanelHandle>(null);
+    const agentPanelResizeActive = useRef(false);
+    const agentPanelWidthChanged = useRef(false);
+
     const initialBottomTerminalUiState = useMemo(readProjectBottomTerminalUiState, []);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState<boolean>(initialBottomTerminalUiState.open);
     const [terminalBottomHeight, setTerminalBottomHeight] = useState<number>(initialBottomTerminalUiState.height);
+
+    const lastBottomTerminalUiState = useRef({
+      height: initialBottomTerminalUiState.height,
+      open: initialBottomTerminalUiState.open,
+    });
+
     const [bottomTerminalView, setBottomTerminalView] = useState<ProjectBottomTerminalView>('terminal');
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
@@ -4994,6 +5026,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       gardeDeRestauration.current.oublier();
       restoredProjectSelectionScope.current = undefined;
       pendingProjectSelectedFile.current = undefined;
+      agentPanelWidthChanged.current = false;
+      rightPanelVisibilityChanged.current = false;
+      rightPanelResizeActive.current = false;
+      rightPanelWidthChanged.current = false;
+      setRightPanelWidth(DEFAULT_RIGHT_PANEL_WIDTH);
     }, [projectIdeMode, projectId]);
 
     useEffect(() => {
@@ -5423,15 +5460,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           const ui = memory.ui;
 
-          if (typeof ui?.rightPanelOpen === 'boolean') {
-            setRightPanelOpen(ui.rightPanelOpen);
+          if (typeof ui?.rightPanelOpen === 'boolean' && !rightPanelVisibilityChanged.current) {
+            setRestoredRightPanelOpen(ui.rightPanelOpen);
           }
 
           if (ui?.rightPanelMode === 'preview-logs') {
             setRightPanelMode('preview-logs');
           }
 
-          if (typeof ui?.rightPanelWidth === 'number') {
+          if (typeof ui?.rightPanelWidth === 'number' && !rightPanelWidthChanged.current) {
             setRightPanelWidth(Math.min(MAX_RIGHT_PANEL_WIDTH, Math.max(MIN_RIGHT_PANEL_WIDTH, ui.rightPanelWidth)));
           }
 
@@ -5512,7 +5549,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             );
           }
 
-          if (typeof ui?.agentWidth === 'number') {
+          if (typeof ui?.agentWidth === 'number' && !agentPanelWidthChanged.current) {
             setAgentWidth(clampProjectAgentPanelWidth(ui.agentWidth));
           }
 
@@ -5832,7 +5869,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectIdeMode, rightPanelOpen]);
 
     useEffect(() => {
-      if (!projectIdeMode || !projectFilesPanelRequest) {
+      if (!projectIdeMode || !projectFilesPanelRequest || projectFilesPanelRequest.projectId !== projectId) {
         return;
       }
 
@@ -5850,7 +5887,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         return nextOpen;
       });
-    }, [projectFilesPanelRequest, projectIdeMode, setProjectPanelSearchParam]);
+    }, [projectFilesPanelRequest, projectId, projectIdeMode, setProjectPanelSearchParam]);
 
     useEffect(() => {
       if (!projectIdeMode) {
@@ -5858,7 +5895,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const handleToggleFilesPanel = (event: Event) => {
-        const requestedOpen = (event as CustomEvent<{ open?: boolean }>).detail?.open;
+        const detail = (event as CustomEvent<{ projectId: string; open?: boolean }>).detail;
+
+        if (detail?.projectId !== projectId) {
+          return;
+        }
+
+        const requestedOpen = detail.open;
 
         setRightPanelOpen((currentOpen) => {
           const nextOpen = typeof requestedOpen === 'boolean' ? requestedOpen : !currentOpen;
@@ -5878,7 +5921,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.addEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
 
       return () => window.removeEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
-    }, [projectIdeMode, setProjectPanelSearchParam]);
+    }, [projectId, projectIdeMode, setProjectPanelSearchParam]);
 
     useEffect(() => {
       if (!projectIdeMode || !projectStateReady || selectedFile || !firstProjectFile) {
@@ -6766,6 +6809,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           nextHeight = Math.min(720, Math.max(320, startHeight + startY - moveEvent.clientY));
           terminalShell?.style.setProperty('--project-terminal-height', `${nextHeight}px`);
           mainPanes?.style.setProperty('--project-terminal-bottom-height', `${nextHeight}px`);
+
+          const sizeReadout = terminalShell?.querySelector('.bolt-project-bottom-terminal-size');
+
+          if (sizeReadout) {
+            sizeReadout.textContent = t('chat.terminal.heightPixels', { height: nextHeight });
+          }
         };
 
         const onUp = () => {
@@ -6777,7 +6826,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onUp);
       },
-      [terminalBottomHeight],
+      [terminalBottomHeight, t],
     );
 
     useEffect(() => {
@@ -6785,10 +6834,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      /*
+       * Untouched mount defaults are not a saved preference. Writing them before
+       * async project restoration would override the project's actual layout.
+       * Real changes still persist immediately, including during restoration.
+       */
+      if (
+        lastBottomTerminalUiState.current.height === terminalBottomHeight &&
+        lastBottomTerminalUiState.current.open === terminalBottomOpen
+      ) {
+        return;
+      }
+
       window.localStorage.setItem(
         PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY,
         JSON.stringify({ height: terminalBottomHeight, open: terminalBottomOpen }),
       );
+      lastBottomTerminalUiState.current = { height: terminalBottomHeight, open: terminalBottomOpen };
     }, [terminalBottomHeight, terminalBottomOpen]);
 
     const openBottomTerminal = useCallback(
@@ -9507,7 +9569,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const rightPanelDefaultSize = panelPixelsToPercent(rightPanelWidth);
     const rightPanelMinSize = panelPixelsToPercent(MIN_RIGHT_PANEL_WIDTH);
     const rightPanelMaxSize = panelPixelsToPercent(MAX_RIGHT_PANEL_WIDTH);
-    const agentPanelDefaultSize = 24;
+    const agentPanelDefaultSize = Math.min(36, Math.max(20, (agentWidth / getProjectPanelAvailableWidth()) * 100));
+
+    const finishRightPanelResize = useCallback(() => {
+      rightPanelResizeActive.current = false;
+
+      // Memory may have arrived while the pointer/key was held without moving.
+      rightPanelRef.current?.resize(rightPanelDefaultSize);
+    }, [rightPanelDefaultSize]);
+
+    /*
+     * defaultSize only applies when the panel mounts. Restore the preferred
+     * width into the live panel too, without treating its initial/programmatic
+     * resize notifications as a user preference. Narrow viewports may constrain
+     * the rendered width; that must not erase the saved width for a wider one.
+     */
+    useEffect(() => {
+      if (projectIdeMode && !useMobileIde && projectAgentPanelOpen && !agentPanelResizeActive.current) {
+        agentPanelRef.current?.resize(agentPanelDefaultSize);
+      }
+    }, [agentPanelDefaultSize, projectAgentPanelOpen, projectIdeMode, useMobileIde]);
+
+    /*
+     * Files also uses a mount-only defaultSize; later memory must resize the
+     * live panel without turning its layout notifications into preferences.
+     */
+    useEffect(() => {
+      if (!rightPanelOpen) {
+        rightPanelResizeActive.current = false;
+
+        return;
+      }
+
+      if (projectIdeMode && !useMobileIde && rightPanelOpen && !rightPanelResizeActive.current) {
+        rightPanelRef.current?.resize(rightPanelDefaultSize);
+      }
+    }, [projectIdeMode, rightPanelDefaultSize, rightPanelOpen, useMobileIde]);
 
     const workspacePanelDefaultSize = rightPanelOpen
       ? projectAgentPanelOpen
@@ -9546,209 +9643,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <div className="bolt-project-ide-rail-footer">{renderIdeRailAllToolsItem()}</div>
           </aside>
         </ZoneErrorBoundary>
+        {/* Resize handles follow DOM order, so it must match the panels' order props. */}
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
-          <Panel
-            id="project-workspace-panel"
-            order={projectAgentPanelOpen ? 2 : 1}
-            defaultSize={workspacePanelDefaultSize}
-            minSize={35}
-            className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
-          >
-            <ZoneErrorBoundary
-              zone="editor"
-              title={t('chat.copy.workspace_4ca0a75c')}
-              boundaryId={`project:${projectId}:workspace`}
-              projectId={projectId}
-              getSnapshot={() => ({
-                activeWorkspacePanel,
-                activePaneId,
-                terminalBottomOpen,
-                bottomTerminalView,
-                tabCount: flattenTabs(paneTree).length,
-              })}
-            >
-              <div className="bolt-project-workspace-shell">
-                <section className="bolt-project-ide-panel" aria-label={t('chat.copy.editorAndPreview_c279cf0b')}>
-                  <div className="bolt-project-main-stack">
-                    <div
-                      className="bolt-project-main-panes"
-                      data-window-id={projectEditorWindowId}
-                      style={
-                        {
-                          '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
-                        } as React.CSSProperties
-                      }
-                    >
-                      {renderPaneNode(paneTree)}
-                      {floatingPanes.map((floating) => {
-                        const activeTab =
-                          floating.pane.tabs.find((tab) => tab.id === floating.pane.activeTabId) ??
-                          floating.pane.tabs[0];
-
-                        return (
-                          <FloatingPaneFrame
-                            key={floating.id}
-                            paneId={floating.pane.id}
-                            title={activeTab ? panelTitle(activeTab.panel, t) : t('chat.copy.projectEditor_f0067be1')}
-                            bounds={floating.bounds}
-                            zIndex={20 + floating.zIndex}
-                            active={activePaneId === floating.pane.id}
-                            onBoundsChange={(bounds) => changeFloatingPaneBounds(floating.pane.id, bounds)}
-                            onDock={() => togglePaneFloating(floating.pane.id)}
-                            onFocus={() => focusFloatingPane(floating.pane.id)}
-                          >
-                            {renderPaneLeaf(floating.pane)}
-                          </FloatingPaneFrame>
-                        );
-                      })}
-                    </div>
-                    {terminalBottomOpen && (
-                      <div
-                        className="bolt-project-bottom-terminal-shell"
-                        style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
-                      >
-                        <div
-                          className="bolt-project-terminal-resize-handle"
-                          role="separator"
-                          aria-orientation="horizontal"
-                          aria-label={t('chat.copy.resizePinnedTerminal_a5c5a9c6')}
-                          onMouseDown={startTerminalResize}
-                        />
-                        <div className="bolt-project-bottom-terminal-frame">
-                          <ProjectBottomTerminal
-                            projectId={projectId}
-                            active={bottomTerminalView}
-                            runtimeWorkspace={projectRuntimeState.workspace}
-                            initialIdePanels={initialIdePanels}
-                            onActiveChange={setBottomTerminalView}
-                            onClose={() => setTerminalBottomOpen(false)}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              </div>
-            </ZoneErrorBoundary>
-          </Panel>
-          {rightPanelOpen && (
-            <>
-              <PanelResizeHandle
-                className="bolt-project-panel-resize-handle"
-                aria-label={t('chat.copy.resizeFilesPanel_95c3842c')}
-                title={t('chat.copy.resizeFilesPanel_95c3842c')}
-              />
-              <Panel
-                id="project-right-panel"
-                order={projectAgentPanelOpen ? 3 : 2}
-                defaultSize={rightPanelDefaultSize}
-                minSize={rightPanelMinSize}
-                maxSize={rightPanelMaxSize}
-                collapsible
-                collapsedSize={0}
-                className="bolt-project-panel-slot bolt-project-panel-slot-right"
-                onCollapse={() => {
-                  setRightPanelOpen(false);
-                  setProjectPanelSearchParam();
-                }}
-                onResize={(size) => {
-                  const nextWidth = Math.min(
-                    MAX_RIGHT_PANEL_WIDTH,
-                    Math.max(MIN_RIGHT_PANEL_WIDTH, panelPercentToPixels(size)),
-                  );
-                  setRightPanelWidth(nextWidth);
-                }}
-              >
-                <aside
-                  className="bolt-project-right-panel-shell"
-                  aria-label={
-                    rightPanelMode === 'files'
-                      ? t('chat.copy.projectLibraryPanel_03bdd26b')
-                      : t('chat.copy.previewLogsPanel_03bc2bda')
-                  }
-                  style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
-                >
-                  <div className="bolt-project-right-files-header">
-                    <span className={rightPanelMode === 'files' ? 'i-ph:files' : 'i-ph:terminal-window'} aria-hidden />
-                    <span>
-                      {rightPanelMode === 'files'
-                        ? t('chat.copy.library_b8100f5b')
-                        : t('chat.copy.previewLogs_d42e29e7')}
-                    </span>
-                    <button
-                      type="button"
-                      className="bolt-project-ide-icon-button ml-auto"
-                      aria-label={t('chat.copy.closeRightPanel_b31ffa0e')}
-                      onClick={() => {
-                        setRightPanelOpen(false);
-                        setProjectPanelSearchParam();
-                      }}
-                    >
-                      <span className="i-ph:x" aria-hidden />
-                    </button>
-                  </div>
-                  <div className="bolt-project-right-panel-content">
-                    <PanelErrorBoundary
-                      panel={
-                        rightPanelMode === 'files'
-                          ? t('baseChatAst.common.library')
-                          : t('baseChatAst.common.previewLogs')
-                      }
-                      boundaryId={`project:${projectId}:right:${rightPanelMode}`}
-                      projectId={projectId}
-                      getSnapshot={() => ({
-                        rightPanelMode,
-                        selectedFile,
-                        fileCount: projectFilePaths.length,
-                        changedFiles: statusbarChangedFiles,
-                      })}
-                    >
-                      {rightPanelMode === 'files' ? (
-                        <ProjectFilesTool
-                          files={projectFiles}
-                          selectedFile={selectedFile}
-                          unsavedFiles={unsavedFiles}
-                          openEditors={flattenTabs(paneTree)
-                            .filter((tab) => tab.filePath)
-                            .map((tab) => ({
-                              id: tab.id,
-                              filePath: tab.filePath,
-                              dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
-                              pinned: Boolean(tab.pinned),
-                            }))}
-                          changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
-                          onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-                          onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
-                        />
-                      ) : (
-                        <ProjectIdeServicePanel
-                          key={`${projectId ?? 'project'}:right:logs`}
-                          projectId={projectId}
-                          panel="logs"
-                          initialPayload={initialIdePanels?.logs}
-                        />
-                      )}
-                    </PanelErrorBoundary>
-                  </div>
-                </aside>
-              </Panel>
-            </>
-          )}
           {projectAgentPanelOpen && (
             <>
-              <PanelResizeHandle
-                className="bolt-project-panel-resize-handle bolt-project-agent-resize-handle"
-                aria-label={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
-                title={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
-              />
               <Panel
                 id="project-agent-panel"
+                ref={agentPanelRef}
                 order={1}
                 defaultSize={agentPanelDefaultSize}
                 minSize={20}
                 maxSize={36}
                 className="bolt-project-panel-slot bolt-project-panel-slot-agent"
-                onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
+                onResize={(size) => {
+                  if (agentPanelResizeActive.current) {
+                    agentPanelWidthChanged.current = true;
+                    setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)));
+                  }
+                }}
               >
                 <section
                   className="bolt-project-ide-panel bolt-project-agent-shell"
@@ -10006,6 +9918,231 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
                   </ZoneErrorBoundary>
                 </section>
+              </Panel>
+              <PanelResizeHandle
+                className="bolt-project-panel-resize-handle bolt-project-agent-resize-handle"
+                aria-label={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
+                title={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
+                onDragging={(dragging) => {
+                  agentPanelResizeActive.current = dragging;
+                }}
+                onKeyDownCapture={(event) => {
+                  agentPanelResizeActive.current = ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key);
+                }}
+                onKeyUpCapture={() => {
+                  agentPanelResizeActive.current = false;
+                }}
+                onBlur={() => {
+                  agentPanelResizeActive.current = false;
+                }}
+              />
+            </>
+          )}
+          <Panel
+            id="project-workspace-panel"
+            order={projectAgentPanelOpen ? 2 : 1}
+            defaultSize={workspacePanelDefaultSize}
+            minSize={35}
+            className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
+          >
+            <ZoneErrorBoundary
+              zone="editor"
+              title={t('chat.copy.workspace_4ca0a75c')}
+              boundaryId={`project:${projectId}:workspace`}
+              projectId={projectId}
+              getSnapshot={() => ({
+                activeWorkspacePanel,
+                activePaneId,
+                terminalBottomOpen,
+                bottomTerminalView,
+                tabCount: flattenTabs(paneTree).length,
+              })}
+            >
+              <div className="bolt-project-workspace-shell">
+                <section className="bolt-project-ide-panel" aria-label={t('chat.copy.editorAndPreview_c279cf0b')}>
+                  <div className="bolt-project-main-stack">
+                    <div
+                      className="bolt-project-main-panes"
+                      data-window-id={projectEditorWindowId}
+                      style={
+                        {
+                          '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
+                        } as React.CSSProperties
+                      }
+                    >
+                      {renderPaneNode(paneTree)}
+                      {floatingPanes.map((floating) => {
+                        const activeTab =
+                          floating.pane.tabs.find((tab) => tab.id === floating.pane.activeTabId) ??
+                          floating.pane.tabs[0];
+
+                        return (
+                          <FloatingPaneFrame
+                            key={floating.id}
+                            paneId={floating.pane.id}
+                            title={activeTab ? panelTitle(activeTab.panel, t) : t('chat.copy.projectEditor_f0067be1')}
+                            bounds={floating.bounds}
+                            zIndex={20 + floating.zIndex}
+                            active={activePaneId === floating.pane.id}
+                            onBoundsChange={(bounds) => changeFloatingPaneBounds(floating.pane.id, bounds)}
+                            onDock={() => togglePaneFloating(floating.pane.id)}
+                            onFocus={() => focusFloatingPane(floating.pane.id)}
+                          >
+                            {renderPaneLeaf(floating.pane)}
+                          </FloatingPaneFrame>
+                        );
+                      })}
+                    </div>
+                    {terminalBottomOpen && (
+                      <div
+                        className="bolt-project-bottom-terminal-shell"
+                        style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
+                      >
+                        <div
+                          className="bolt-project-terminal-resize-handle"
+                          role="separator"
+                          aria-orientation="horizontal"
+                          aria-label={t('chat.copy.resizePinnedTerminal_a5c5a9c6')}
+                          onMouseDown={startTerminalResize}
+                        />
+                        <div className="bolt-project-bottom-terminal-frame">
+                          <ProjectBottomTerminal
+                            projectId={projectId}
+                            active={bottomTerminalView}
+                            height={terminalBottomHeight}
+                            runtimeWorkspace={projectRuntimeState.workspace}
+                            initialIdePanels={initialIdePanels}
+                            onActiveChange={setBottomTerminalView}
+                            onClose={() => setTerminalBottomOpen(false)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
+            </ZoneErrorBoundary>
+          </Panel>
+          {rightPanelOpen && (
+            <>
+              <PanelResizeHandle
+                className="bolt-project-panel-resize-handle"
+                aria-label={t('chat.copy.resizeFilesPanel_95c3842c')}
+                title={t('chat.copy.resizeFilesPanel_95c3842c')}
+                onDragging={(dragging) => {
+                  rightPanelResizeActive.current = dragging;
+
+                  if (!dragging) {
+                    finishRightPanelResize();
+                  }
+                }}
+                onKeyDownCapture={(event) => {
+                  rightPanelResizeActive.current = ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key);
+                }}
+                onKeyUpCapture={finishRightPanelResize}
+                onBlur={finishRightPanelResize}
+              />
+              <Panel
+                id="project-right-panel"
+                ref={rightPanelRef}
+                order={projectAgentPanelOpen ? 3 : 2}
+                defaultSize={rightPanelDefaultSize}
+                minSize={rightPanelMinSize}
+                maxSize={rightPanelMaxSize}
+                collapsible
+                collapsedSize={0}
+                className="bolt-project-panel-slot bolt-project-panel-slot-right"
+                onCollapse={() => {
+                  rightPanelResizeActive.current = false;
+                  setRightPanelOpen(false);
+                  setProjectPanelSearchParam();
+                }}
+                onResize={(size) => {
+                  if (!rightPanelResizeActive.current || size === 0) {
+                    return;
+                  }
+
+                  rightPanelWidthChanged.current = true;
+
+                  const nextWidth = Math.min(
+                    MAX_RIGHT_PANEL_WIDTH,
+                    Math.max(MIN_RIGHT_PANEL_WIDTH, panelPercentToPixels(size)),
+                  );
+                  setRightPanelWidth(nextWidth);
+                }}
+              >
+                <aside
+                  className="bolt-project-right-panel-shell"
+                  aria-label={
+                    rightPanelMode === 'files'
+                      ? t('chat.copy.projectLibraryPanel_03bdd26b')
+                      : t('chat.copy.previewLogsPanel_03bc2bda')
+                  }
+                  style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
+                >
+                  <div className="bolt-project-right-files-header">
+                    <span className={rightPanelMode === 'files' ? 'i-ph:files' : 'i-ph:terminal-window'} aria-hidden />
+                    <span>
+                      {rightPanelMode === 'files'
+                        ? t('chat.copy.library_b8100f5b')
+                        : t('chat.copy.previewLogs_d42e29e7')}
+                    </span>
+                    <button
+                      type="button"
+                      className="bolt-project-ide-icon-button ml-auto"
+                      aria-label={t('chat.copy.closeRightPanel_b31ffa0e')}
+                      onClick={() => {
+                        setRightPanelOpen(false);
+                        setProjectPanelSearchParam();
+                      }}
+                    >
+                      <span className="i-ph:x" aria-hidden />
+                    </button>
+                  </div>
+                  <div className="bolt-project-right-panel-content">
+                    <PanelErrorBoundary
+                      panel={
+                        rightPanelMode === 'files'
+                          ? t('baseChatAst.common.library')
+                          : t('baseChatAst.common.previewLogs')
+                      }
+                      boundaryId={`project:${projectId}:right:${rightPanelMode}`}
+                      projectId={projectId}
+                      getSnapshot={() => ({
+                        rightPanelMode,
+                        selectedFile,
+                        fileCount: projectFilePaths.length,
+                        changedFiles: statusbarChangedFiles,
+                      })}
+                    >
+                      {rightPanelMode === 'files' ? (
+                        <ProjectFilesTool
+                          files={projectFiles}
+                          selectedFile={selectedFile}
+                          unsavedFiles={unsavedFiles}
+                          openEditors={flattenTabs(paneTree)
+                            .filter((tab) => tab.filePath)
+                            .map((tab) => ({
+                              id: tab.id,
+                              filePath: tab.filePath,
+                              dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
+                              pinned: Boolean(tab.pinned),
+                            }))}
+                          changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
+                          onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
+                          onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+                        />
+                      ) : (
+                        <ProjectIdeServicePanel
+                          key={`${projectId ?? 'project'}:right:logs`}
+                          projectId={projectId}
+                          panel="logs"
+                          initialPayload={initialIdePanels?.logs}
+                        />
+                      )}
+                    </PanelErrorBoundary>
+                  </div>
+                </aside>
               </Panel>
             </>
           )}
@@ -11879,7 +12016,9 @@ function ProjectIdeApiServicePanel({
 
   const [error, setError] = useState<string>();
   const [actionNotice, setActionNotice] = useState<string>();
-  const [busy, setBusy] = useState(false);
+
+  // A cold panel is already loading before its first fetch effect runs.
+  const [busy, setBusy] = useState(() => Boolean(projectId) && !(initialPayload ?? seededCache?.payload));
   const [slowLoad, setSlowLoad] = useState(false);
 
   // One-time share link returned by the share-link action; the raw token is never re-listed afterwards.
@@ -12097,8 +12236,9 @@ function ProjectIdeApiServicePanel({
      * payload or a cached payload from a previous visit to this tab — so the
      * refresh happens in the background instead of re-flashing the loader.
      *
-     * Another instance can warm or evict the shared cache after this render.
-     * Only content committed by this instance makes its initial load silent.
+     * A different instance can warm the shared cache between render and this
+     * effect. Only content committed by this instance makes its load silent;
+     * otherwise its initial busy state would never be cleared.
      */
     const seeded = Boolean(initialPayload) || hasCommittedPayloadRef.current;
 
@@ -12548,6 +12688,7 @@ function formatProjectPanelActionNotice(t: TFunction, intent: string) {
 function ProjectBottomTerminal({
   projectId,
   active,
+  height,
   runtimeWorkspace,
   initialIdePanels,
   onActiveChange,
@@ -12555,6 +12696,7 @@ function ProjectBottomTerminal({
 }: {
   projectId?: string;
   active: ProjectBottomTerminalView;
+  height: number;
   runtimeWorkspace?: ProjectIdeBackendState['workspace'];
   initialIdePanels?: Record<string, any>;
   onActiveChange: (view: ProjectBottomTerminalView) => void;
@@ -12634,6 +12776,9 @@ function ProjectBottomTerminal({
           ))}
         </div>
         <div className="bolt-project-bottom-terminal-meta">
+          <output className="bolt-project-bottom-terminal-size" aria-label={t('chat.copy.pinnedTerminal_c8fe22f6')}>
+            {t('chat.terminal.heightPixels', { height })}
+          </output>
           <span
             className="bolt-project-bottom-terminal-status"
             data-state={effectiveWorkspace ? runtimeUiState : 'offline'}
@@ -12919,7 +13064,7 @@ function ProjectProblemsPanel() {
 
 function ProjectInteractiveTerminalPanel({ projectId, paneId }: { projectId?: string; paneId?: string }) {
   const { t } = useTranslation();
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useTerminalRuntimePanels(paneId);
 
   return (
     <section className="bolt-project-terminal-direct-panel" aria-label={t('chat.copy.interactiveTerminal_a0b76f34')}>
@@ -15000,11 +15145,13 @@ function ProjectIdePanelContent({
             <h3>{t('chat.copy.checkpoints_a2b3a59a')}</h3>
             <p>{t('chat.copy.restoreAKnownGoodProjectState_ae594c01')}</p>
           </div>
-          <form onSubmit={onSubmit} className="bolt-project-snapshots-create">
-            <input name="intent" value="create" type="hidden" />
-            <PanelInput name="label" placeholder={t('chat.copy.manualCheckpoint_b29f671a')} />
-            <PanelButton disabled={busy}>{t('chat.copy.newCheckpoint_3480863c')}</PanelButton>
-          </form>
+          <SnapshotCreateForm
+            projectId={projectId}
+            paneId={paneId}
+            snapshots={snapshots}
+            onSubmit={onSubmit}
+            busy={busy}
+          />
         </div>
         {snapshots.length ? (
           <div className="bolt-project-snapshots-timeline">
@@ -16132,13 +16279,6 @@ function ProjectSettingsPanel({
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
 
-  const [draft, setDraft] = useState({
-    name: settings.name ?? '',
-    description: settings.description ?? '',
-    gitRepositoryUrl: settings.gitRepositoryUrl ?? '',
-    gitDefaultBranch: settings.gitDefaultBranch ?? 'main',
-  });
-
   const {
     settingsTab,
     setSettingsTab,
@@ -16344,19 +16484,6 @@ function ProjectSettingsPanel({
       .slice(0, 2)
       .toUpperCase() || 'VC';
 
-  useEffect(() => {
-    setDraft({
-      name: settings.name ?? '',
-      description: settings.description ?? '',
-      gitRepositoryUrl: settings.gitRepositoryUrl ?? '',
-      gitDefaultBranch: settings.gitDefaultBranch ?? 'main',
-    });
-  }, [settings.name, settings.description, settings.gitRepositoryUrl, settings.gitDefaultBranch]);
-
-  function updateDraft(key: keyof typeof draft) {
-    return (event: any) => setDraft((current) => ({ ...current, [key]: event.target.value }));
-  }
-
   function submitWithNotice(message: string) {
     return (event: React.FormEvent<HTMLFormElement>) => {
       const formData = donneesDuFormulaire(event);
@@ -16510,55 +16637,12 @@ function ProjectSettingsPanel({
           ) : null}
 
           {settingsTab === 'project' && (
-            <form
+            <ProjectMetadataForm
+              settings={settings}
+              paneId={paneId}
+              busy={busy}
               onSubmit={submitWithNotice(t('baseChatAst.settings.notice.projectSaved'))}
-              className="bolt-project-settings-card"
-            >
-              <div className="bolt-project-settings-card-title">
-                <h4>{t('chat.copy.projectMetadata_fca99c55')}</h4>
-                <small>{t('chat.copy.theseFieldsUpdateProjectsIdSettings_cd1c0bbf')}</small>
-              </div>
-              <label>
-                {t('chat.copy.projectName_ab9773fc')}
-                <PanelInput
-                  name="name"
-                  value={draft.name}
-                  onChange={updateDraft('name')}
-                  required
-                  aria-label={t('chat.copy.projectName_ab9773fc')}
-                />
-              </label>
-              <label>
-                {t('chat.copy.description_55f8ebc8')}
-                <PanelInput
-                  name="description"
-                  value={draft.description}
-                  onChange={updateDraft('description')}
-                  aria-label={t('chat.copy.projectDescription_f9e31cfd')}
-                />
-              </label>
-              <label>
-                {t('chat.copy.gitRepositoryUrl_fa85202a')}
-                <PanelInput
-                  name="gitRepositoryUrl"
-                  type="url"
-                  value={draft.gitRepositoryUrl}
-                  onChange={updateDraft('gitRepositoryUrl')}
-                  placeholder={t('chat.copy.httpsGithubComOrgRepo_c3460b93')}
-                  aria-label={t('chat.copy.gitRepositoryUrl_fa85202a')}
-                />
-              </label>
-              <label>
-                {t('chat.copy.defaultBranch_80f8aa6a')}
-                <PanelInput
-                  name="gitDefaultBranch"
-                  value={draft.gitDefaultBranch}
-                  onChange={updateDraft('gitDefaultBranch')}
-                  aria-label={t('chat.copy.defaultGitBranch_f6c17ffb')}
-                />
-              </label>
-              <PanelButton disabled={busy || !draft.name.trim()}>{t('chat.copy.saveSettings_913aba9f')}</PanelButton>
-            </form>
+            />
           )}
 
           {settingsTab === 'account' && (

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 
 async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) {
   const seconds = Number(responseText.match(/retry in (\d+) seconds/i)?.[1]);
@@ -74,7 +76,7 @@ async function expectPreviewIframe(page: import('@playwright/test').Page, timeou
 }
 
 async function expectWorkspaceRunning(page: import('@playwright/test').Page, timeout = 90_000) {
-  await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout });
+  await expect(page.getByRole('button', { name: /^Running workspace(?:\s*\||$)/i })).toBeVisible({ timeout });
 }
 
 async function expectProjectCreationForm(page: import('@playwright/test').Page) {
@@ -206,19 +208,25 @@ test(
 
     await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Use template' }).first().click();
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
+    await expect(page).toHaveURL(/\/@[^/?]+\/[^/?]+$/, { timeout: 120_000 });
     await expectWorkspaceRunning(page, 180_000);
 
     await page.getByRole('button', { name: 'Webview' }).click();
 
     await expectPreviewIframe(page, 120_000);
-    await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible(
-      {
-        timeout: 180_000,
-      },
-    );
     await expect(
-      page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
+      page
+        .frameLocator('iframe[title="preview"]')
+        .locator('[data-gallery-app-id="react-saas"]')
+        .getByRole('heading', { name: 'Good morning, Morgan.', exact: true }),
+    ).toBeVisible({
+      timeout: 180_000,
+    });
+    await expect(
+      page
+        .frameLocator('iframe[title="preview"]')
+        .locator('[data-gallery-app-id="react-saas"]')
+        .getByText('Here is what needs your attention today.', { exact: true }),
     ).toBeVisible();
   },
 );
@@ -231,16 +239,62 @@ test('AI-created project starts the agent with a valid default model', { tag: '@
   const prompt = 'Build a realtime kanban board with analytics';
   await expectProjectCreationForm(page);
 
-  const providerDropdown = page.getByTestId('agent-provider-dropdown');
-  const modelDropdown = page.getByTestId('agent-model-dropdown');
-  await expect(providerDropdown.getByRole('combobox', { name: 'AI provider' })).toContainText('Anthropic', {
-    timeout: 30_000,
-  });
-  await expect(modelDropdown.getByRole('combobox', { name: 'AI model' })).not.toContainText('No option available');
+  /*
+   * Creation now resolves the default on the server, rather than exposing dropdowns.
+   * Observe the real queued prompt on the IDE's initial project-state read.
+   * Chat.client consumes it only after getProjectIdeMemory resolves this GET.
+   * Register before creation and retain this response body, rather than re-reading
+   * mutable backend state after navigation. Workspace-scoped reads are unrelated.
+   */
+  const modelsResponse = await page.request.get('/api/models');
+
+  expect(modelsResponse.ok(), await modelsResponse.text()).toBeTruthy();
+
+  const catalog = (await modelsResponse.json()) as {
+    modelList: { name: string; provider?: string }[];
+    providers: { name: string; staticModels: { name: string }[] }[];
+  };
+
+  const initialIdeState = page.waitForResponse(
+    (response) =>
+      /\/api\/projects\/[^/]+\/ide-state$/.test(new URL(response.url()).pathname) &&
+      response.request().method() === 'GET' &&
+      response.ok(),
+    { timeout: 120_000 },
+  );
   await page.getByLabel('Describe your idea').fill(prompt);
   await page.getByRole('button', { name: 'Create project' }).click();
 
-  await expect(page).toHaveURL(/\/projects\/[^/]+\/ide(?:\?.*)?$/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/@[^/?]+\/[^/?]+(?:\?.*)?$/, { timeout: 30_000 });
+
+  const stateResponse = await initialIdeState;
+
+  const statePayload = (await stateResponse.json()) as {
+    ideState?: { state?: { chat?: { pendingPrompt?: { prompt: string; provider: string; model: string } } } };
+  };
+
+  const queuedPrompt = statePayload.ideState?.state?.chat?.pendingPrompt;
+
+  expect(queuedPrompt, 'The real creation flow must queue the initial agent prompt').toBeTruthy();
+  expect(queuedPrompt!.prompt).toContain(prompt);
+
+  /*
+   * Fresh project creation still defaults to Anthropic / claude-opus-5:
+   * constants.ts DEFAULT_MODEL and projects.new.tsx fallbackProvider/fallbackModel.
+   * Keep this explicit contract in addition to checking catalog membership.
+   */
+  expect(queuedPrompt).toMatchObject({ provider: 'Anthropic', model: 'claude-opus-5' });
+
+  const provider = catalog.providers.find((candidate) => candidate.name === queuedPrompt!.provider);
+
+  expect(provider, 'The queued default provider must exist').toBeTruthy();
+
+  const validModels = [
+    ...provider!.staticModels,
+    ...catalog.modelList.filter((model) => model.provider === queuedPrompt!.provider),
+  ];
+
+  expect(validModels.map((model) => model.name)).toContain(queuedPrompt!.model);
   await expect(page.getByText('Invalid model selected')).toHaveCount(0);
   await expect(page.getByText(prompt, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Realtime Kanban Board|Generating Response|Response Generated/).first()).toBeVisible({
@@ -359,3 +413,6 @@ test(
     await expect(menu.getByRole('button', { name: /Landscape mode/ })).toHaveAttribute('aria-pressed', 'true');
   },
 );
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

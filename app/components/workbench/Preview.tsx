@@ -3056,6 +3056,7 @@ export const Preview = memo(
 
         <div
           className="bolt-project-webview-frame flex-1 border-t border-bolt-elements-borderColor flex justify-center items-center overflow-auto"
+          data-testid="preview-device-frame"
           data-preview-device={previewDevice}
         >
           <div

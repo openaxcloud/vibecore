@@ -11,15 +11,15 @@ Une ouverture automatique depuis l’URL pouvait empêcher le retour de la dispo
 
 ## 📤 Dispatché
 
-Préparé localement le 11 novembre 2026. Publication non effectuée.
+Préparé le 11 novembre 2026, puis intégré dans main via PR895.
 
 ## 💻 Codé
 
-Candidat local uniquement. Ni commit publié, ni fusion dans main.
+Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche expérimentale préparée localement, non publiée.
 
 ## ✅ Testé live
 
-Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
+Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recette responsive.
 
 ## Correction et périmètre
 
@@ -32,3 +32,11 @@ Base exacte : `aea6e1dfbac93eb9da097a27d0ac8eb5ffbb7fc5` (PR894). Les résultats
 `app/components/chat/project-layout-url-restore.spec.tsx` : 22 cas sur les vrais blocs de production et la vraie mémoire main, plus 5 cas handoff et 5 cas restore. Les suites natives catalog (22) et search-startup (15) restent inchangées.
 
 Sources de produit revues : PR893 jusqu’à `014cf3a4790ef421936f0aaec92bdff6b2f158a0`; correction de câblage de test reprise de `16636768acb8365f4ec64ab6657b10eeaac42e7d` quand applicable. Aucun workflow k3s/gVisor, exemption de clé payante, seed temporaire ou audit GCS actif importé.
+
+## Déploiement
+
+Non confirmé. Aucun déploiement n’est déduit de la fusion dans main.
+
+## Historique de préparation
+
+Lors de la rédaction initiale, les états étaient « Préparé localement le 11 novembre 2026. Publication non effectuée. » et « Candidat local uniquement. Ni commit publié, ni fusion dans main. ». Ils décrivaient la préparation avant PR895, pas l’état actuel. Les preuves et limites locales ci-dessus sont conservées ; aucune recette live n’est ajoutée.

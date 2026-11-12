@@ -1,4 +1,5 @@
 import { isIdeMetadataEnvKey } from './workspace-env-metadata.js';
+import { captureRuntimeSocketInput } from './runtime-socket-input.js';
 import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
 import { EXPLICIT_EXTENSION_POLICY, matchesExplicitExtensionPolicy } from './explicit-budget-extension-policy.js';
 import { extensionPermit, explicitBudgetSnapshotDigest, stableExtensionApproval } from './explicit-budget-extension.js';
@@ -411,6 +412,7 @@ import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
 import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import { statutConnexion } from './database-connection-status.js';
 import { databaseRowSchema, insertPostgresRow } from './database-row-insert.js';
+import { dedicatedPackageInstall } from './dedicated-package-install.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -521,9 +523,16 @@ import {
   type ThumbnailLogger,
 } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { packageExecutionDiagnostic } from './package-execution-diagnostic.js';
+import { packageInstallResult } from './package-install-result.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import { RuntimeLogReplay, runtimeLogEvents } from './runtime-log-replay.js';
+import {
+  recoverStartingWorkspaceRead,
+  withRuntimeReadCancellation,
+  isEphemeralRelayTransportFailure,
+} from './runtime-read-recovery.js';
 import { monthlyUsagePeriodStart } from './usage-period.js';
 import { WorkspaceAdmissionClient, type WorkspaceAdmission } from './workspace-admission.js';
 import {
@@ -1195,6 +1204,39 @@ function mergeIdeMessages(existing: any[] | undefined, incoming: any[] | undefin
   return order.map((key) => byKey.get(key)).filter(Boolean);
 }
 
+async function readWorkspaceIdeStateWithLegacyUi(store: ApiStore, workspace: WorkspaceRecord) {
+  const existing = await store.getWorkspaceIdeState(workspace.id);
+
+  if (existing || (workspace.environment ?? 'development') !== 'development') {
+    return existing;
+  }
+
+  const primary = (await store.listWorkspaces(workspace.projectId))
+    .filter((candidate) => (candidate.environment ?? 'development') === 'development')
+    .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))[0];
+
+  if (primary?.id !== workspace.id) {
+    return undefined;
+  }
+
+  // Read at first use, not workspace creation: the original project-scoped
+  // editor can still save its layout after the runtime creates this workspace.
+  const legacy = await store.getProjectIdeState(workspace.projectId);
+  const ui = ideStateRecord(legacy?.state).ui;
+
+  if (!ui || typeof ui !== 'object' || Array.isArray(ui)) {
+    return undefined;
+  }
+
+  // Chat and other project-owned data stay at project scope. Return the actual
+  // stored winner so ETag and subsequent conditional writes use its version.
+  return store.createWorkspaceIdeStateIfAbsent({
+    workspaceId: workspace.id,
+    state: { ui },
+    updatedByUserId: legacy?.updatedByUserId,
+  });
+}
+
 function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
   const existing = ideStateRecord(existingState);
   const incoming = ideStateRecord(incomingState);
@@ -1701,11 +1743,11 @@ const runtimeDebuggerParams = workspaceParams.extend({ id: z.string().uuid() });
 const packagesInstallSchema = z.object({
   // Zero packages runs a plain lockfile install; otherwise these get added.
   packages: z.array(z.string().trim().min(1)).max(50).optional(),
-  dev: z.boolean().optional(),
+  dev: z.boolean().default(false),
 
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
-  timeoutMs: z.number().int().positive().max(600_000).optional(),
+  timeoutMs: z.number().int().positive().max(300_000).optional(),
 
   /*
    * Target workspace. The Packages panel resolves and displays a specific
@@ -15355,16 +15397,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    // Respect a caller-supplied signal too: aborting it aborts our fetch.
-    if (init.signal) {
-      if (init.signal.aborted) {
-        controller.abort();
-      } else {
-        init.signal.addEventListener('abort', () => controller.abort(), { once: true });
-      }
-    }
+    /*
+     * Native signal composition avoids retaining one explicit parent listener
+     * per manager poll. Caller cancellation must still reach response bodies
+     * after done() clears the header timeout.
+     */
+    const signal = init.signal ? AbortSignal.any([controller.signal, init.signal]) : controller.signal;
 
-    return { init: { ...init, signal: controller.signal }, done: () => clearTimeout(timer) };
+    return { init: { ...init, signal }, done: () => clearTimeout(timer) };
   };
 
   const managerRequest = async <T = unknown>(
@@ -15482,8 +15522,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     init: RequestInit = {},
     contexteRequete?: any,
     maxAttempts = AGENT_REQUEST_ATTEMPTS,
-  ) => {
-    const token = await agentToken(workspaceId);
+    timeoutMs?: number,
+    allowReadRecovery = true,
+  ): Promise<T> => {
+    const readDeadline = Date.now() + (timeoutMs ?? RUNTIME_PROXY_TIMEOUT_MS);
+
+    if (init.signal?.aborted) {
+      throw Object.assign(new Error(appPublicEnglish('STREAM_ABORTED')), { statusCode: 499, code: 'STREAM_ABORTED' });
+    }
+
+    const { token } = await managerRequest<{ token: string }>(
+      `/workspaces/${workspaceId}/agent-token`,
+      { signal: init.signal },
+      timeoutMs,
+    );
+
     const headers = new Headers(init.headers);
     headers.set('authorization', `Bearer ${token}`);
     headers.set('accept', headers.get('accept') ?? 'application/json');
@@ -15494,6 +15547,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const method = (init.method ?? 'GET').toUpperCase();
     const url = `${agentBaseUrl(workspaceId)}${path}`;
+
+    const recoverRead = () =>
+      recoverStartingWorkspaceRead<T>({
+        method,
+        deadline: readDeadline,
+        signal: init.signal,
+        observe: (signal) =>
+          managerRequest<{ status?: string }>(
+            `/workspaces/${workspaceId}`,
+            { signal },
+            Math.max(1, readDeadline - Date.now()),
+          ),
+        healthy: async (signal) => {
+          const fresh = await managerRequest<{ token: string }>(
+            `/workspaces/${workspaceId}/agent-token`,
+            { signal },
+            Math.max(1, readDeadline - Date.now()),
+          );
+
+          try {
+            const health = await fetch(`${agentBaseUrl(workspaceId)}/health`, {
+              headers: { authorization: `Bearer ${fresh.token}` },
+              signal,
+            });
+            await health.body?.cancel();
+
+            return health.ok;
+          } catch (error) {
+            if (signal.aborted) {
+              throw error;
+            }
+
+            return false;
+          }
+        },
+        read: (signal, remainingMs) =>
+          agentRequest<T>(workspaceId, path, { ...init, signal }, contexteRequete, 1, remainingMs, false),
+      });
 
     let lastError: unknown;
 
@@ -15506,7 +15597,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      const { init: timedInit, done } = withRequestTimeout({ ...init, headers });
+      const { init: timedInit, done } = withRequestTimeout({ ...init, headers }, timeoutMs);
 
       let response: Response;
 
@@ -15535,6 +15626,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           continue;
         }
 
+        if (allowReadRecovery && ['GET', 'HEAD'].includes(method)) {
+          const recovery = await recoverRead();
+
+          if (recovery.recovered) {
+            return recovery.value;
+          }
+        }
+
         /*
          * A DNS failure on the workspace Service name is NOT a server error: the
          * Service and its endpoints are created with the pod, and there is a
@@ -15557,7 +15656,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * `agentMutateEnsuring`, qui ATTEND le démarrage au lieu de le
            * déclencher en arrière-plan.
            */
-          if (method === 'GET' || method === 'HEAD') {
+          if (allowReadRecovery && (method === 'GET' || method === 'HEAD')) {
             declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
           }
 
@@ -15580,7 +15679,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * absent ou éteint », pas « fichier illisible ». Le pod ne se rallumera
          * jamais tout seul si personne ne le demande.
          */
-        if (method === 'GET' || method === 'HEAD') {
+        if (allowReadRecovery && (method === 'GET' || method === 'HEAD')) {
           declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
         }
 
@@ -15611,6 +15710,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await response.body?.cancel().catch(() => undefined);
           await agentSleep(agentRetryDelay(attempt));
           continue;
+        }
+
+        /*
+         * A genuine agent HTTP error is not a transport exception. Only the
+         * explicitly identified, non-spoofable CI relay transport failure may
+         * enter the same bounded STARTING recovery after existing HTTP retries.
+         */
+        if (
+          allowReadRecovery &&
+          ['GET', 'HEAD'].includes(method) &&
+          isEphemeralRelayTransportFailure(response, url, process.env)
+        ) {
+          await response.body?.cancel().catch(() => undefined);
+
+          const recovery = await recoverRead();
+
+          if (recovery.recovered) {
+            return recovery.value;
+          }
         }
 
         /*
@@ -16127,10 +16245,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const agentFileRead = async (workspaceId: string, path: string) => {
+  const agentFileRead = async (workspaceId: string, path: string, signal?: AbortSignal) => {
     return agentRequest<{ content: string; encoding?: 'utf8' | 'base64' }>(
       workspaceId,
       `/files/read?path=${encodeURIComponent(path)}`,
+      { signal },
     );
   };
 
@@ -17149,7 +17268,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const parsedTimeoutMs = Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000);
     const configuredTimeoutMs = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0 ? parsedTimeoutMs : 30_000;
     const timeoutMs = Math.min(body.timeoutMs ?? 30_000, configuredTimeoutMs);
-    const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
+
+    let timedOut = false;
+    let signal: string | null = null;
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+    }, timeoutMs);
 
     const append = (target: 'stdout' | 'stderr', chunk: Buffer) => {
       const value = chunk.toString('utf8');
@@ -17175,7 +17301,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         record.exitCode = 127;
         resolvePromise(127);
       });
-      child.on('close', (exitCode) => {
+      child.on('close', (exitCode, exitSignal) => {
+        signal = exitSignal;
         clearTimeout(timer);
         record.status = 'exited';
 
@@ -17193,7 +17320,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     });
 
-    return { code, stdout, stderr, localRuntime: true };
+    return { code, signal, timedOut, stdout, stderr, localRuntime: true };
   };
 
   /*
@@ -18333,6 +18460,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         method: 'POST',
         body: JSON.stringify({ command: input.command, args: input.args, timeoutMs: 120_000 }),
       });
+
+      /*
+       * Packages execution metadata is internal, not AI conversation/tool output.
+       * Preserve every existing command field and legacy non-object response.
+       */
+      if (output && typeof output === 'object' && !Array.isArray(output)) {
+        const { executionDiagnostic: _executionDiagnostic, ...publicOutput } = output as Record<string, unknown>;
+        output = publicOutput;
+      }
     } else if (toolName === 'get_terminal_output') {
       const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${workspaceId}/logs`);
       output = { logs: (logs?.logs ?? []).slice(-200) };
@@ -19025,7 +19161,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
-  app.get('/api/runtime/workspaces/:workspaceId/files', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/files', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
 
     const { path = '.', reparer } = parse(
@@ -19072,9 +19208,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ]);
     }
 
-    const nodes = await agentRequest<AgentNode[]>(
-      authorized.workspaceId,
-      `/files/tree?path=${encodeURIComponent(path)}`,
+    const nodes = await withRuntimeReadCancellation(request.raw, reply.raw, (signal) =>
+      agentRequest<AgentNode[]>(
+        authorized.workspaceId,
+        `/files/tree?path=${encodeURIComponent(path)}`,
+        { signal },
+        request,
+      ),
     );
 
     /*
@@ -19100,11 +19240,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return mapRuntimeNodes(nodes);
   });
-  app.get('/api/runtime/workspaces/:workspaceId/files/read', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/files/read', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const file = await agentFileRead(authorized.workspaceId, path);
+
+    const file = await withRuntimeReadCancellation(request.raw, reply.raw, (signal) =>
+      agentFileRead(authorized.workspaceId, path, signal),
+    );
 
     return { path, content: file.content, encoding: file.encoding };
   });
@@ -20277,9 +20420,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     agentPath: string,
     wrapMessages = true,
     locale: TransactionalLocale = 'en',
-    clientQuery?: unknown,
+    clientQuery: unknown,
+    input: ReturnType<typeof captureRuntimeSocketInput>,
   ) => {
+    if (input.closed) {
+      return;
+    }
+
     const token = await agentToken(workspaceId);
+
+    if (input.closed) {
+      return;
+    }
+
     const client = normalizeRuntimeApiWebSocket(rawSocket);
 
     const upstream = new WebSocket(
@@ -20289,16 +20442,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       { headers: { 'accept-language': locale } },
     );
 
-    const pendingMessages: string[] = [];
-
     let upstreamOpened = false;
 
     upstream.addEventListener('open', () => {
       upstreamOpened = true;
 
-      for (const message of pendingMessages.splice(0)) {
-        upstream.send(message);
-      }
+      input.activate((message) => upstream.send(message));
     });
     upstream.addEventListener('message', async (event) => {
       /*
@@ -20375,21 +20524,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     /*
-     * Bound the pre-open buffer: if the upstream never opens, an active client
-     * could otherwise push unbounded input into memory. Drop oldest past the cap.
-     */
-    const MAX_PENDING_MESSAGES = 1000;
-    client.onMessage((message) => {
-      const text = message.toString();
-
-      if (upstream.readyState === WebSocket.OPEN) {
-        upstream.send(text);
-      } else if (pendingMessages.length < MAX_PENDING_MESSAGES) {
-        pendingMessages.push(text);
-      }
-    });
-
-    /*
      * Long-lived runtime sockets (terminal/logs/watch) can sit idle for minutes
      * while a shell waits for input. The browser client only pings the
      * browser→API direction, so the API→browser leg stays silent and an idle
@@ -20424,7 +20558,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const stopKeepAlive = () => clearInterval(keepAlive);
 
     upstream.addEventListener('close', stopKeepAlive);
-    client.onClose(() => {
+    input.onClose(() => {
       stopKeepAlive();
       upstream.close();
     });
@@ -20491,136 +20625,167 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
-    const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const input = captureRuntimeSocketInput(socket);
 
-    // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
-    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
-      return;
+    let handedOff = false;
+
+    try {
+      const { workspaceId } = parse(workspaceParams, request.params);
+      const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+      // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
+      if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+        return;
+      }
+
+      await proxyRuntimeSocket(
+        socket,
+        authorized.workspaceId,
+        '/commands/stream',
+        false,
+        transactionalLocaleForRequest(request),
+        request.query,
+        input,
+      );
+      handedOff = true;
+    } finally {
+      if (!handedOff) {
+        input.dispose();
+      }
     }
-
-    await proxyRuntimeSocket(
-      socket,
-      authorized.workspaceId,
-      '/commands/stream',
-      false,
-      transactionalLocaleForRequest(request),
-      request.query,
-    );
   });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
-    const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const input = captureRuntimeSocketInput(socket);
 
-    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
-      return;
-    }
+    let handedOff = false;
 
-    /*
-     * The IDE's always-on managed shell (the "bolt" terminal running the dev
-     * server / installs / agent commands) is workspace infrastructure — like
-     * Replit's built-in Console — not a user-opened interactive terminal, so it
-     * must NOT consume the user-facing `terminals.concurrent` quota. Without this,
-     * a free-tier org (limit 1) has that single slot permanently taken by the
-     * managed shell, and every user-opened terminal is 429'd on connect and
-     * flaps forever ("terminal never connects"). User terminals stay metered.
-     */
-    const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
+    try {
+      const { workspaceId } = parse(workspaceParams, request.params);
+      const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
-    if (authorized.organizationId && !isManagedTerminal) {
-      const organizationId = authorized.organizationId;
+      if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+        return;
+      }
 
-      /*
-       * BUG-QUOTA-001 — le créneau appartient à la SESSION, pas au socket. Un
-       * rattachement du même panneau (même `?sessionId`) ne doit pas consommer
-       * un second créneau : sur l'offre gratuite (limite 1), c'est ce qui
-       * rejetait en 429 toute reconnexion — 26× sur un seul `sessionId`, jauge
-       * à 1, un seul shell dans le pod.
-       *
-       * Sans `sessionId`, on retombe sur le décompte par connexion : un
-       * appelant sans identité de panneau stable ne peut pas se rattacher de
-       * toute façon, et lui offrir un créneau gratuit ouvrirait un contournement
-       * du quota (il suffirait d'omettre le paramètre).
-       */
-      const terminalSessionId = (request.query as { sessionId?: unknown } | undefined)?.sessionId;
-      const sessionSlotKey = typeof terminalSessionId === 'string' && terminalSessionId ? terminalSessionId : undefined;
-      const chargeSlot = sessionSlotKey ? acquireTerminalSlot(organizationId, sessionSlotKey) : true;
-
-      /*
-       * Serialize the concurrency check + the +1 so two concurrent terminal opens
-       * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
-       */
-      if (chargeSlot) {
-        try {
-          await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
-            await ensureQuota(request, organizationId, 'terminals.concurrent');
-            await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
-              workspaceId: authorized.workspaceId,
-              sessionId: sessionSlotKey,
-            });
-          });
-        } catch (error) {
-          /*
-           * Le quota refuse : ce socket n'aura jamais de `onClose` qui rembourse,
-           * il faut donc rendre la prise du registre tout de suite. Sans ça, une
-           * session refusée resterait marquée vivante et la reconnexion suivante
-           * se croirait en rattachement — elle passerait SANS être facturée.
-           */
-          if (sessionSlotKey) {
-            releaseTerminalSlot(organizationId, sessionSlotKey);
-          }
-
-          throw error;
-        }
+      if (input.closed) {
+        return;
       }
 
       /*
-       * `terminals.concurrent` is a live-concurrency gauge, but usage is stored
-       * as a lifetime SUM of usageEvent.quantity (computeUsageForQuota falls
-       * through to sumUsage for this key). Without a compensating -1 when the
-       * socket closes, the gauge only ever climbs and every terminal open
-       * eventually 429s for the org — permanently. Record the release exactly
-       * once on close so the running sum tracks actual concurrency.
+       * The IDE's always-on managed shell (the "bolt" terminal running the dev
+       * server / installs / agent commands) is workspace infrastructure — like
+       * Replit's built-in Console — not a user-opened interactive terminal, so it
+       * must NOT consume the user-facing `terminals.concurrent` quota. Without this,
+       * a free-tier org (limit 1) has that single slot permanently taken by the
+       * managed shell, and every user-opened terminal is 429'd on connect and
+       * flaps forever ("terminal never connects"). User terminals stay metered.
        */
-      let released = false;
-      normalizeRuntimeApiWebSocket(socket).onClose(() => {
-        if (released) {
-          return;
+      const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
+
+      if (authorized.organizationId && !isManagedTerminal) {
+        const organizationId = authorized.organizationId;
+
+        /*
+         * BUG-QUOTA-001 — le créneau appartient à la SESSION, pas au socket. Un
+         * rattachement du même panneau (même `?sessionId`) ne doit pas consommer
+         * un second créneau : sur l'offre gratuite (limite 1), c'est ce qui
+         * rejetait en 429 toute reconnexion — 26× sur un seul `sessionId`, jauge
+         * à 1, un seul shell dans le pod.
+         *
+         * Sans `sessionId`, on retombe sur le décompte par connexion : un
+         * appelant sans identité de panneau stable ne peut pas se rattacher de
+         * toute façon, et lui offrir un créneau gratuit ouvrirait un contournement
+         * du quota (il suffirait d'omettre le paramètre).
+         */
+        const terminalSessionId = (request.query as { sessionId?: unknown } | undefined)?.sessionId;
+
+        const sessionSlotKey =
+          typeof terminalSessionId === 'string' && terminalSessionId ? terminalSessionId : undefined;
+
+        const chargeSlot = sessionSlotKey ? acquireTerminalSlot(organizationId, sessionSlotKey) : true;
+
+        /*
+         * Serialize the concurrency check + the +1 so two concurrent terminal opens
+         * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
+         */
+        if (chargeSlot) {
+          try {
+            await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
+              await ensureQuota(request, organizationId, 'terminals.concurrent');
+              await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
+                workspaceId: authorized.workspaceId,
+                sessionId: sessionSlotKey,
+              });
+            });
+          } catch (error) {
+            /*
+             * Le quota refuse : ce socket n'aura jamais de `onClose` qui rembourse,
+             * il faut donc rendre la prise du registre tout de suite. Sans ça, une
+             * session refusée resterait marquée vivante et la reconnexion suivante
+             * se croirait en rattachement — elle passerait SANS être facturée.
+             */
+            if (sessionSlotKey) {
+              releaseTerminalSlot(organizationId, sessionSlotKey);
+            }
+
+            throw error;
+          }
         }
 
-        released = true;
+        /*
+         * `terminals.concurrent` is a live-concurrency gauge, but usage is stored
+         * as a lifetime SUM of usageEvent.quantity (computeUsageForQuota falls
+         * through to sumUsage for this key). Without a compensating -1 when the
+         * socket closes, the gauge only ever climbs and every terminal open
+         * eventually 429s for the org — permanently. Record the release exactly
+         * once on close so the running sum tracks actual concurrency.
+         */
+        let released = false;
+        input.onClose(() => {
+          if (released) {
+            return;
+          }
 
-        /* Symétrique de la prise : on ne rembourse qu'au DERNIER socket de la session. */
-        const refund = sessionSlotKey ? releaseTerminalSlot(organizationId, sessionSlotKey) : true;
+          released = true;
 
-        if (!refund) {
-          return;
-        }
+          /* Symétrique de la prise : on ne rembourse qu'au DERNIER socket de la session. */
+          const refund = sessionSlotKey ? releaseTerminalSlot(organizationId, sessionSlotKey) : true;
 
-        void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
-          workspaceId: authorized.workspaceId,
-          sessionId: sessionSlotKey,
-        }).catch(() => {
-          // Releasing the quota gauge must never crash socket teardown.
+          if (!refund) {
+            return;
+          }
+
+          void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
+            workspaceId: authorized.workspaceId,
+            sessionId: sessionSlotKey,
+          }).catch(() => {
+            // Releasing the quota gauge must never crash socket teardown.
+          });
         });
-      });
-    }
+      }
 
-    /*
-     * The workspace agent's /terminal socket now frames its own output as JSON
-     * `CommandEvent`s (stdout frames), exactly like /commands/stream. Pass them
-     * through unwrapped — wrapping here would double-encode every frame, so the
-     * client would render the inner JSON as literal text instead of shell output.
-     */
-    await proxyRuntimeSocket(
-      socket,
-      authorized.workspaceId,
-      '/terminal',
-      false,
-      transactionalLocaleForRequest(request),
-      request.query,
-    );
+      /*
+       * The workspace agent's /terminal socket now frames its own output as JSON
+       * `CommandEvent`s (stdout frames), exactly like /commands/stream. Pass them
+       * through unwrapped — wrapping here would double-encode every frame, so the
+       * client would render the inner JSON as literal text instead of shell output.
+       */
+      await proxyRuntimeSocket(
+        socket,
+        authorized.workspaceId,
+        '/terminal',
+        false,
+        transactionalLocaleForRequest(request),
+        request.query,
+        input,
+      );
+      handedOff = true;
+    } finally {
+      if (!handedOff) {
+        input.dispose();
+      }
+    }
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -24106,8 +24271,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * workspace pod. This is the "install, not just plan" action for the IDE
    * Packages panel: it detects the package manager from the lockfile/manifest,
    * builds the install argv, and dispatches it through the SAME per-project
-   * runtime shell-exec (/commands/run) that Workflows and the terminal use —
-   * no new execution path, no shared pod. Scoped by projectId and gated with
+   * authenticated dedicated install route, reusing the same command runner
+   * and process/resource guards without changing the generic command ceiling. Scoped by projectId and gated with
    * the same 'projects:write' mutation permission as other project writes;
    * authorizeRuntimeWorkspace then resolves the caller's deterministic
    * per-user workspace id so the command lands only in this tenant's pod.
@@ -24237,37 +24402,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Déclarer `code: number` faisait passer ce cas pour impossible, et les
      * `?? 0` plus bas le transformaient en réussite.
      */
-    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
+    type PackageInstallResponse = {
+      cancelled?: boolean;
+      truncated?: boolean;
+      code: number | null;
+      signal?: string | null;
+      timedOut?: boolean;
+      executionDiagnostic?: unknown;
+      stdout?: string;
+      stderr?: string;
+      localRuntime?: boolean;
+    };
 
-    try {
-      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
-        authorized.workspaceId,
-        '/commands/run',
-        { method: 'POST', body: JSON.stringify(commandBody) },
-      );
-    } catch (error) {
-      if (!shouldUseLocalRuntimeFallback(error)) {
-        throw error;
-      }
+    const result = await dedicatedPackageInstall<PackageInstallResponse>(
+      (path, init, attempts, timeoutMs) =>
+        agentRequest(authorized.workspaceId, path, init, undefined, attempts, timeoutMs, false),
+      { packageManager: manager, packages, dev: body.dev, timeoutMs: commandBody.timeoutMs! },
+    );
 
-      result = await runLocalRuntimeCommand(authorized, commandBody);
-    }
+    // A fixed allowlisted projection only; raw agent output never enters this event.
+    app.log.info(packageExecutionDiagnostic(commandBody.timeoutMs, result));
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    /*
-     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
-     *
-     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
-     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
-     * `node_modules` à moitié installé : exactement le scénario que
-     * `foldCommandExitCode` documente déjà pour l'événement `error`.
-     *
-     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
-     * par des appelants qui attendent un nombre, et un `null` y serait retombé
-     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
-     * bout à l'autre de la chaîne.
-     */
-    const exitCode = result.code ?? 1;
+    const outcome = packageInstallResult(result);
+    const { exitCode } = outcome;
 
     return reply.code(201).send({
       projectId: authorized.projectId,
@@ -24276,7 +24434,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       packages,
       command: [command, ...args].join(' '),
       exitCode,
-      success: exitCode === 0,
+      success: outcome.success,
+      termination: outcome.termination,
       output,
       localRuntime: result.localRuntime === true,
       events: [
@@ -24492,7 +24651,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const ideState = (await store.getWorkspaceIdeState(workspace.id)) ?? null;
+    const ideState = (await readWorkspaceIdeStateWithLegacyUi(store, workspace)) ?? null;
 
     if (ideState) {
       reply.header('etag', `"${ideState.version}"`);
@@ -24509,7 +24668,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(projectIdeStateSchema, request.body ?? {});
-    const existingState = await store.getWorkspaceIdeState(workspace.id);
+    const existingState = await readWorkspaceIdeStateWithLegacyUi(store, workspace);
 
     /*
      * Same optimistic-concurrency contract as PUT /projects/:projectId/ide-state.

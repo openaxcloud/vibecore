@@ -486,10 +486,10 @@ function IdeProjectTopBar({
   };
 
   const toggleFilesPanel = (open: boolean) => {
-    const detail = { open };
+    const detail = { projectId, open };
 
     workbenchStore.projectFilesPanelOpen.set(open);
-    workbenchStore.requestProjectFilesPanel(open);
+    workbenchStore.requestProjectFilesPanel(projectId, open);
     window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
   };
 

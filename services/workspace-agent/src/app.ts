@@ -15,7 +15,10 @@ import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
+import { commandExecutionDiagnostic } from './command-execution-diagnostic.js';
 import { registerDebuggerEngine } from './debugger-engine.js';
+import { PACKAGE_INSTALL_CAPABILITY, packageInstallPlan } from './package-install-contract.js';
+import { observePackageInstall } from './package-install-observation.js';
 import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
 import {
   localizedWorkspaceAgentError,
@@ -60,6 +63,7 @@ export interface ProcessRecord {
   timedOut?: boolean;
   /** Escalation for managed services/debuggers that may ignore SIGTERM. */
   forceStopAfterMs?: number;
+  stopConfirmationMs?: number;
 }
 
 interface TerminalProcessResult {
@@ -1245,6 +1249,22 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       pendingLaunches.delete(body.operationId);
     }
   };
+
+  // Same token/workspace auth hook, process slots, abuse gate, resource boundary and stop lifecycle.
+  app.get('/packages/v1/capabilities', async () => PACKAGE_INSTALL_CAPABILITY);
+  app.post('/packages/v1/install', async (request) => {
+    const plan = packageInstallPlan(request.body);
+    return runCommand(root, plan.command, plan.args, {
+      rememberTerminal,
+      timeoutMs: plan.timeoutMs,
+      forceStopAfterMs: 5_000,
+      stopConfirmationMs: 10_000,
+      reportCancellation: true,
+      maxOutputBytes,
+      maxProcesses,
+      processes,
+    });
+  });
   app.post('/commands/run', executeCommand);
   // Authenticated by the same agent-token hook as commands; never inferred
   // from image tags or liveness. Versioned launch cannot execute on old agents.
@@ -2419,7 +2439,7 @@ export async function stopTrackedProcess(record: ProcessRecord | undefined, id: 
       resolve({ killed, id, ...(code ? { code } : {}) });
     };
     const closed = () => finish(true);
-    const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), 5_000);
+    const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), record.stopConfirmationMs ?? 5_000);
     child.once('close', closed);
     if (child.exitCode !== null || child.signalCode !== null) return;
     try {
@@ -2447,6 +2467,9 @@ async function runCommand(
   command: string,
   args: string[],
   options: {
+    forceStopAfterMs?: number;
+    stopConfirmationMs?: number;
+    reportCancellation?: boolean;
     background?: boolean;
     operationId?: string;
     rememberTerminal: (record: ProcessRecord, code: number | null, signal: string | null) => void;
@@ -2476,6 +2499,16 @@ async function runCommand(
   // Idempotent restart: free the pinned port from a prior/orphan dev server, under a
   // per-port lock held across the spawn below (see runCommandStream + killStalePinnedDevServers).
   const releasePinnedLock = await killStalePinnedDevServers(options.processes, spawnArgs);
+
+  /*
+   * The await above yields even for installs without a pinned port. Recheck
+   * immediately before the synchronous spawn/map insertion so concurrent starts
+   * cannot both consume the last process slot.
+   */
+  if (options.processes.size >= options.maxProcesses) {
+    releasePinnedLock?.();
+    throw workspaceAgentError('processLimitReached', { statusCode: 429, code: 'PROCESS_LIMIT_REACHED' });
+  }
 
   // Release the port lock a beat after the spawn so this child claims the port before
   // a concurrent pinned start's port-free check runs. Scheduled now so it fires even if
@@ -2508,7 +2541,13 @@ async function runCommand(
     detached: true,
   });
 
+  let closed = false;
+
   const killGroup = (sig: NodeJS.Signals) => {
+    if (options.reportCancellation && closed) {
+      return;
+    }
+
     if (child.pid === undefined) {
       return;
     }
@@ -2531,16 +2570,29 @@ async function runCommand(
     expiresAt: new Date(Date.now() + options.timeoutMs).toISOString(),
     process: child,
     output: '',
+    ...(options.forceStopAfterMs === undefined ? {} : { forceStopAfterMs: options.forceStopAfterMs }),
+    ...(options.stopConfirmationMs === undefined ? {} : { stopConfirmationMs: options.stopConfirmationMs }),
   };
   options.processes.set(id, record);
 
+  const installObservation = observePackageInstall(cwd, command, spawnArgs, child.pid);
+  child.once('exit', () => installObservation.stop(true));
+
+  let installDeadlineObservation: ReturnType<typeof installObservation.snapshot> | undefined;
+
+  const diagnosticStartedAt = performance.now();
+
+  let stdoutBytes = 0;
+  let stderrBytes = 0;
   let stdout = '';
   let stderr = '';
   let truncated = false;
+  let outputStopTimer: ReturnType<typeof setTimeout> | undefined;
 
   const timer = setTimeout(() => {
     record.timedOut = true;
     killGroup('SIGTERM');
+    installDeadlineObservation = installObservation.snapshot();
   }, options.timeoutMs);
 
   /*
@@ -2573,7 +2625,16 @@ async function runCommand(
         stderr = limited;
       }
 
+      // Decoder flushing may cross the byte cap after close; retain truncation without signalling a reused pid.
+      if (options.reportCancellation && closed) {
+        return;
+      }
+
       killGroup('SIGTERM');
+
+      if (options.reportCancellation && outputStopTimer === undefined) {
+        outputStopTimer = setTimeout(() => killGroup('SIGKILL'), 5_000);
+      }
 
       return;
     }
@@ -2587,8 +2648,14 @@ async function runCommand(
     record.output = `${stdout}\n${stderr}`.slice(-options.maxOutputBytes);
   };
 
-  child.stdout.on('data', (chunk: Buffer) => append('stdout', decoders.stdout.write(chunk)));
-  child.stderr.on('data', (chunk: Buffer) => append('stderr', decoders.stderr.write(chunk)));
+  child.stdout.on('data', (chunk: Buffer) => {
+    stdoutBytes = Math.min(1_073_741_824, stdoutBytes + chunk.length);
+    append('stdout', decoders.stdout.write(chunk));
+  });
+  child.stderr.on('data', (chunk: Buffer) => {
+    stderrBytes = Math.min(1_073_741_824, stderrBytes + chunk.length);
+    append('stderr', decoders.stderr.write(chunk));
+  });
 
   // Flush any incomplete multi-byte tail buffered in the decoders when the child exits.
   const flushDecoders = () => {
@@ -2621,12 +2688,35 @@ async function runCommand(
     }
 
     child.on('close', (code, signal) => {
+      closed = true;
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
+      clearTimeout(outputStopTimer);
+      installObservation.stop();
       flushDecoders();
       options.rememberTerminal(record, code, signal);
       options.processes.delete(id);
-      resolvePromise({ id, code, signal, stdout, stderr, truncated });
+      resolvePromise({
+        id,
+        code,
+        signal,
+        timedOut: record.timedOut === true,
+        ...(options.reportCancellation ? { cancelled: record.stopRequested === true } : {}),
+        stdout,
+        stderr,
+        truncated,
+        executionDiagnostic: {
+          ...commandExecutionDiagnostic({
+            effectiveBudgetMs: options.timeoutMs,
+            elapsedMs: performance.now() - diagnosticStartedAt,
+            stdoutBytes,
+            stderrBytes,
+            stdout,
+            stderr,
+          }),
+          installObservation: installDeadlineObservation ?? installObservation.snapshot(),
+        },
+      });
     });
 
     /*
@@ -2636,14 +2726,21 @@ async function runCommand(
      * hanging the request. Surface it as a normal failed-command result.
      */
     child.on('error', (error) => {
-      options.rememberTerminal(record, 1, null);
+      installObservation.stop();
+
+      // Packages must not invent a process exit code when spawning failed.
+      const code = options.reportCancellation ? null : 1;
+      options.rememberTerminal(record, code, null);
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
+      clearTimeout(outputStopTimer);
       options.processes.delete(id);
       resolvePromise({
         id,
-        code: 1,
+        code,
         signal: null,
+        timedOut: record.timedOut === true,
+        ...(options.reportCancellation ? { cancelled: record.stopRequested === true } : {}),
         stdout,
         stderr: `${stderr}${error instanceof Error ? error.message : String(error)}`,
         truncated,

@@ -89,12 +89,12 @@ describe('billing action feedback accessibility', () => {
       fireEvent.click(save);
 
       const error = await screen.findByRole('alert');
-      expect(document.activeElement).toBe(error);
+      await waitFor(() => expect(document.activeElement).toBe(error));
       expect(screen.getByRole('status')).toBe(status);
       expect(status.textContent).toBe('');
       expect(status.childElementCount).toBe(0);
     } else {
-      expect(document.activeElement).toBe(feedback);
+      await waitFor(() => expect(document.activeElement).toBe(feedback));
       expect(status.textContent).toBe('');
       expect(status.childElementCount).toBe(0);
     }

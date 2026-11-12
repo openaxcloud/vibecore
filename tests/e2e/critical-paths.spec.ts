@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
 
 const API_BASE_URL =
   process.env.PLAYWRIGHT_API_URL ?? process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -69,7 +71,7 @@ test('critical path: preview iframe loads imported app content', { tag: '@runtim
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: /^Running workspace(?:\s*\||$)/i })).toBeVisible({ timeout: 30_000 });
   await page.getByRole('button', { name: 'Webview' }).click();
 
   const previewIframe = page.locator('iframe[title="preview"]').first();
@@ -79,3 +81,6 @@ test('critical path: preview iframe loads imported app content', { tag: '@runtim
     { timeout: 90_000 },
   );
 });
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

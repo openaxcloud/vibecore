@@ -1,5 +1,9 @@
+import { writeFile } from 'node:fs/promises';
 import { expect, test, type APIRequestContext, type Browser, type Page, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
+// eslint-disable-next-line no-restricted-imports -- Test-only runner helper is outside the application alias.
+import { cleanupEphemeralRuntimeWorkspaces } from '../../scripts/ci/cleanup-runtime-workspaces';
+import { withDesktopLayoutEvidence } from './helpers/runtime-desktop-diagnostics';
 
 type AuthPayload = { token: string; organization: { id: string } };
 
@@ -487,6 +491,129 @@ async function assertCompactShellForProfile(
   }
 }
 
+// Keep failure evidence structural: never serialize URLs, input values, HTML, or browser errors.
+async function captureCompactLayoutEvidence(page: Page, testInfo: TestInfo, profileName: string) {
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    const capture = page.evaluate(
+      (allowedPanels: string[]) => {
+        const safePanel = (value: string | null) =>
+          value && (allowedPanels.includes(value) || value === 'chat' || value === 'deploy') ? value : null;
+        const selectors = [
+          '.bolt-responsive-ide-mobile',
+          '[data-testid="mobile-ide-header"]',
+          '[data-testid="mobile-bottom-navigation"]',
+          '[data-testid="tab-preview"]',
+          '[data-testid="mobile-workbench-keepalive"]',
+          '.bolt-workbench-mobile',
+          '.bolt-workbench-mobile > div.fixed',
+          '.bolt-project-webview-tool',
+          '.bolt-project-webview-toolbar',
+          '[data-testid="preview-splash-sequence"]',
+          '[data-testid="preview-not-running-state"]',
+          '[data-testid="ide-service-panel"]',
+          '[role="alert"]',
+        ];
+        const measure = (element: Element) => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+
+          return {
+            connected: element.isConnected,
+            tag: element.tagName,
+            classes: Array.from(element.classList)
+              .filter((name) => /^(bolt-[a-z0-9-]+|fixed|hidden|flex)$/.test(name))
+              .slice(0, 12)
+              .map((name) => name.slice(0, 80)),
+            rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+            area: rect.width * rect.height,
+            display: style.display,
+            visibility: style.visibility,
+            opacity: style.opacity,
+            active: element.getAttribute('data-active') === 'true',
+            ariaHidden: element.getAttribute('aria-hidden') === 'true',
+            mobilePanel: safePanel(element.getAttribute('data-mobile-panel')),
+            servicePanel: safePanel(element.getAttribute('data-panel')),
+            hasFrame: Boolean(element.querySelector('iframe')),
+            hasCanvas: Boolean(element.querySelector('canvas')),
+          };
+        };
+
+        const isVisible = (element: Element) => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+
+          return rect.width > 0 && rect.height > 0 && style.visibility === 'visible' && style.display !== 'none';
+        };
+
+        const visibleHeadings = Array.from(document.querySelectorAll('h1, h2, [role="heading"]')).filter(isVisible);
+
+        return {
+          fallbackState: {
+            rootErrorHeadingVisible: Array.from(document.querySelectorAll('#root-error-heading')).some(isVisible),
+            applicationErrorHeadingVisible: visibleHeadings.some((heading) =>
+              /^(?:Unexpected )?Application Error!?$/i.test((heading.textContent ?? '').trim()),
+            ),
+            routeErrorHeadingVisible: visibleHeadings.some((heading) =>
+              /^Route Error!?$/i.test((heading.textContent ?? '').trim()),
+            ),
+            signInFormVisible: Array.from(document.querySelectorAll('form')).some((form) => {
+              const email = form.querySelector('input[name="email"]');
+              const password = form.querySelector('input[name="password"][autocomplete="current-password"]');
+
+              return Boolean(email && password && isVisible(email) && isVisible(password));
+            }),
+          },
+          readyState: document.readyState,
+          selectedPanel: safePanel(new URL(window.location.href).searchParams.get('panel')),
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            visualWidth: window.visualViewport?.width ?? null,
+            visualHeight: window.visualViewport?.height ?? null,
+            coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+          },
+          surfaces: selectors.map((selector) => {
+            const elements = Array.from(document.querySelectorAll(selector));
+
+            return {
+              selector,
+              count: elements.length,
+              elements: elements.slice(0, 3).map((element) => ({
+                ...measure(element),
+                ancestors: [element.parentElement, element.parentElement?.parentElement]
+                  .filter((ancestor): ancestor is HTMLElement => Boolean(ancestor))
+                  .map(measure),
+              })),
+            };
+          }),
+        };
+      },
+      [...compactIdePanels],
+    );
+    const evidence = await Promise.race([
+      capture.catch(() => null),
+      new Promise<null>((resolve) => {
+        deadline = setTimeout(() => resolve(null), 3_000);
+      }),
+    ]);
+
+    const payload = JSON.stringify({ profile: profileName, evidence }, null, 2);
+
+    await writeFile(
+      testInfo.outputPath('mobile-layout-evidence.json'),
+      Buffer.byteLength(payload, 'utf8') <= 64 * 1024
+        ? payload
+        : JSON.stringify({ profile: profileName, evidence: null, omitted: 'size-limit' }),
+    );
+  } catch {
+    // Diagnostic capture must never replace the original test failure.
+  } finally {
+    clearTimeout(deadline);
+  }
+}
+
 async function assertEveryCompactPanelForProfile(
   browser: Browser,
   auth: AuthPayload,
@@ -515,24 +642,29 @@ async function assertEveryCompactPanelForProfile(
   const page = await context.newPage();
 
   try {
-    await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.bolt-responsive-ide-mobile'), `${profile.name} compact shell`).toBeVisible({
-      timeout: 90_000,
-    });
-
-    for (const panel of compactIdePanels) {
-      await test.step(`${profile.name} ${panel}`, async () => {
-        await openCompactPanel(page, panel);
-        await assertCompactPanelRendered(page, profile.name, panel);
-        await assertCompactPanelLayout(page, profile.name, panel);
-
-        const screenshotTarget = compactPanelScreenshotTarget(page, panel);
-        await testInfo.attach(`${profile.name}-${panel}`, {
-          body: await screenshotTarget.screenshot({ animations: 'disabled' }),
-          contentType: 'image/png',
-        });
+    await withDesktopLayoutEvidence(async () => {
+      await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('.bolt-responsive-ide-mobile'), `${profile.name} compact shell`).toBeVisible({
+        timeout: 90_000,
       });
-    }
+
+      for (const panel of compactIdePanels) {
+        await test.step(`${profile.name} ${panel}`, async () => {
+          await openCompactPanel(page, panel);
+          await assertCompactPanelRendered(page, profile.name, panel);
+          await assertCompactPanelLayout(page, profile.name, panel);
+
+          const screenshotTarget = compactPanelScreenshotTarget(page, panel);
+          await testInfo.attach(`${profile.name}-${panel}`, {
+            body: await screenshotTarget.screenshot({ animations: 'disabled' }),
+            contentType: 'image/png',
+          });
+        });
+      }
+    })({ page, isMobile: true }, testInfo);
+  } catch (error) {
+    await captureCompactLayoutEvidence(page, testInfo, profile.name);
+    throw error;
   } finally {
     await context.close();
   }
@@ -543,7 +675,8 @@ async function openCompactPanel(page: Page, panel: (typeof compactIdePanels)[num
   const visibleTab = bottomNav.getByTestId(`tab-${panel}`);
 
   if (await visibleTab.isVisible().catch(() => false)) {
-    await visibleTab.click({ force: true });
+    // The shell can change after isVisible; retain the click's actionability checks.
+    await visibleTab.click();
   } else {
     const toolsSheet = await openMobileToolsSheet(page, `panel ${panel}`);
     const toolItem = toolsSheet.getByTestId(`tool-item-${panel}`).first();
@@ -563,7 +696,7 @@ async function openCompactPanel(page: Page, panel: (typeof compactIdePanels)[num
         message: `${panel} should update the compact IDE panel URL`,
         timeout: 15_000,
       })
-      .toBe(panel);
+      .toBe(panel === 'domains' ? 'deployments' : panel);
   } else if (panel === 'editor') {
     await expect
       .poll(
@@ -587,7 +720,7 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
 
   if (panel === 'agent') {
     await expect(
-      page.getByPlaceholder(/Describe what you want the agent to build/i),
+      page.getByRole('textbox', { name: 'Agent prompt', exact: true }),
       `${profileName} agent input`,
     ).toBeVisible({
       timeout: 45_000,
@@ -611,16 +744,52 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
     await expect(previewSurface, `${profileName} preview surface`).toBeVisible({ timeout: 45_000 });
     await expect(previewControls, `${profileName} preview controls`).toBeVisible({ timeout: 45_000 });
 
-    const previewState = await previewSurface.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const textLength = (element.textContent ?? '').replace(/\s+/g, '').length;
+    /*
+     * Resolve :visible:first and measure in one turn. A shell handoff can detach
+     * a locator's resolved handle before evaluate runs; the exact CI interleaving
+     * is not known. A missing/hidden current surface must still fail immediately.
+     */
+    const previewState = await page.evaluate(() => {
+      for (const element of document.querySelectorAll<HTMLElement>('.bolt-workbench-mobile > div.fixed')) {
+        if (!element.isConnected) {
+          continue;
+        }
 
-      return {
-        area: rect.width * rect.height,
-        hasFrame: Boolean(element.querySelector('iframe')),
-        hasCanvas: Boolean(element.querySelector('canvas')),
-        textLength,
-      };
+        const style = getComputedStyle(element);
+
+        /*
+         * Playwright can count visible children of display:contents as :visible.
+         * Do not skip its zero-sized box and pass using a later matching surface.
+         */
+        if (style.display === 'contents') {
+          throw new Error('Expected the Preview surface to own a layout box');
+        }
+
+        if (
+          style.display === 'none' ||
+          style.visibility !== 'visible' ||
+          (typeof element.checkVisibility === 'function' && !element.checkVisibility())
+        ) {
+          continue;
+        }
+
+        const rect = element.getBoundingClientRect();
+
+        if (rect.width <= 0 || rect.height <= 0) {
+          continue;
+        }
+
+        const textLength = (element.textContent ?? '').replace(/\s+/g, '').length;
+
+        return {
+          area: rect.width * rect.height,
+          hasFrame: Boolean(element.querySelector('iframe')),
+          hasCanvas: Boolean(element.querySelector('canvas')),
+          textLength,
+        };
+      }
+
+      throw new Error('Expected a connected visible Preview surface');
     });
 
     expect(previewState.area, `${profileName} preview area`).toBeGreaterThan(80_000);
@@ -680,10 +849,22 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
     return;
   }
 
-  const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
+  // Domains is a shortcut into Publish's Domains view, not a second panel.
+  const servicePanelId = panel === 'domains' ? 'deployments' : panel;
+  const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${servicePanelId}"]`).first();
   await expect(servicePanel, `${profileName} ${panel} service panel`).toBeVisible({ timeout: 45_000 });
   await expect(servicePanel.getByText(/Loading .* from backend/i)).toHaveCount(0, { timeout: 45_000 });
   await expect(servicePanel.getByRole('alert')).toHaveCount(0);
+
+  if (panel === 'domains') {
+    const deployment = servicePanel.locator('.bolt-project-deploy-tool');
+    await expect(
+      deployment.locator('.bolt-project-tool-tabs').getByRole('button', { name: 'Domains', exact: true }),
+      `${profileName} Domains shortcut opens the Domains view`,
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(deployment.locator('.bolt-project-domains-panel input[name="domain"]')).toBeVisible();
+    await expect(deployment.getByTestId('project-domains-scope-notice')).toBeVisible();
+  }
 }
 
 function compactPanelScreenshotTarget(page: Page, panel: (typeof compactIdePanels)[number]) {
@@ -750,8 +931,10 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
     const statusRect = rect(status);
     const activeRect = rect(activeSurface);
 
+    const servicePanelId = panelName === 'domains' ? 'deployments' : panelName;
+
     const servicePanel =
-      Array.from(document.querySelectorAll(`[data-testid="ide-service-panel"][data-panel="${panelName}"]`)).find(
+      Array.from(document.querySelectorAll(`[data-testid="ide-service-panel"][data-panel="${servicePanelId}"]`)).find(
         isVisible,
       ) ?? null;
     const serviceContentViewport =
@@ -974,3 +1157,6 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
     expect(layout.managedPanelColumns, `${profileName} ${panel} managed panel columns`).not.toContain(2);
   }
 }
+
+// Reclaim only completed tests' pods in the explicitly isolated GitHub runtime.
+test.afterEach(cleanupEphemeralRuntimeWorkspaces);

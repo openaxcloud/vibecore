@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-624 entrées.
+628 entrées.
 
 ## Sans section
 
@@ -871,6 +871,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Déploiement et sécurité
 
 - [BUG-MANAGER-TERMINAL-PODS-READINESS-20261101](docs/bugs/BUG-MANAGER-TERMINAL-PODS-READINESS-20261101.md) — 📤 Dispatché : ☑ 01/11 — analyser le refus `STAGED_MANAGER_MANAGER_POD_COUNT` du déploiement · 💻 Codé : ☑ — correctif local préparé, pas encore livré. Exclure uniquement les pods · ✅ Testé live : ☐ — aucune mutation cluster ni recette production effectuée pour ce correctif.
+- [BUG-RUNTIME-CI-FALSE-SUCCESS-20261108](docs/bugs/BUG-RUNTIME-CI-FALSE-SUCCESS-20261108.md) — 📤 Dispatché : ☑ 08/11 — diagnostic demandé sur main af0ea860, run42446502089, · 💻 Codé : ☐ — correction locale seulement : retirer continue-on-error du job, tenter · ✅ Testé live : ☐ — trois contrats de configuration rouges avant, verts après ; aucune preuve
 
 ## Sans section
 
@@ -878,15 +879,30 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Promotion IDE locale du 11 novembre 2026
 
-- [BUG-IDE-PANE-RESTORE-20261111](docs/bugs/BUG-IDE-PANE-RESTORE-20261111.md) — La normalisation remplaçait les identifiants des feuilles par pane-main, faisant perdre la cible active et l’identité distincte des panneaux restaurés. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
-- [BUG-IDE-URL-MEMORY-HANDOFF-20261111](docs/bugs/BUG-IDE-URL-MEMORY-HANDOFF-20261111.md) — Une ouverture automatique depuis l’URL pouvait empêcher le retour de la disposition enregistrée, être rejouée dans un panneau nouvellement ciblé ou fuiter entre — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
-- [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — Le formulaire Secrets et les champs non enregistrés disparaissaient quand la coquille de chargement était remplacée. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
-- [BUG-SECRETS-MENU-SCROLL-20261111](docs/bugs/BUG-SECRETS-MENU-SCROLL-20261111.md) — Un défilement interne du menu ne doit pas le fermer; le déplacement de son bouton d’ancrage doit le fermer sans dérober le focus. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
-- [BUG-WORKSPACE-ENV-METADATA-20261111](docs/bugs/BUG-WORKSPACE-ENV-METADATA-20261111.md) — Les neuf états internes *_STATE étaient projetés dans l’environnement du workspace, pouvant changer son manifeste lors d’une édition de panneau. — 📤 Dispatché : Préparé localement le 11 novembre 2026. Publication non effectuée. · 💻 Codé : Candidat local uniquement. Ni commit publié, ni fusion dans main. · ✅ Testé live : Non validé live. CI complète, build, typecheck et recette responsive restent à vérifier.
+- [BUG-SECRETS-FORM-HANDOFF-001](docs/bugs/BUG-SECRETS-FORM-HANDOFF-001.md) — Le formulaire Secrets et les champs non enregistrés disparaissaient quand la coquille de chargement était remplacée. — 📤 Dispatché : Correctifs préparés sur PR893 et portés sur main ; intégration de main dans la branche expérimentale préparée · 💻 Codé : Portage main publié au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada ; variante expérimentale publiée au com · ✅ Testé live : Non certifié live. Aucun déploiement ni recette complète n'est déduit des validations locales ou de la publica
+
+## Sans section
+
+- [BUG-RUNTIME-READ-STARTING-001](docs/bugs/BUG-RUNTIME-READ-STARTING-001.md) — 📤 Dispatché : Correctif préparé localement pour PR893. · 💻 Codé : Non fusionné et non déployé ; patch local uniquement. · ✅ Testé live : Non validé ; tests locaux contrôlés seulement.
+
+## Promotion IDE locale du 11 novembre 2026
+
+- [BUG-IDE-PANE-RESTORE-20261111](docs/bugs/BUG-IDE-PANE-RESTORE-20261111.md) — La normalisation remplaçait les identifiants des feuilles par pane-main, faisant perdre la cible active et l’identité distincte des panneaux restaurés. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+- [BUG-IDE-URL-MEMORY-HANDOFF-20261111](docs/bugs/BUG-IDE-URL-MEMORY-HANDOFF-20261111.md) — Une ouverture automatique depuis l’URL pouvait empêcher le retour de la disposition enregistrée, être rejouée dans un panneau nouvellement ciblé ou fuiter entre — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+- [BUG-SECRETS-MENU-SCROLL-20261111](docs/bugs/BUG-SECRETS-MENU-SCROLL-20261111.md) — Un défilement interne du menu ne doit pas le fermer; le déplacement de son bouton d’ancrage doit le fermer sans dérober le focus. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+- [BUG-WORKSPACE-ENV-METADATA-20261111](docs/bugs/BUG-WORKSPACE-ENV-METADATA-20261111.md) — Les neuf états internes \*\_STATE étaient projetés dans l’environnement du workspace, pouvant changer son manifeste lors d’une édition de panneau. — 📤 Dispatché : Préparé le 11 novembre 2026, puis intégré dans main via PR895. · 💻 Codé : Fusionné dans main via PR895 au commit 4b96f9efffe2d66de22bf8cffe619f362da46ada. Intégration dans la branche e · ✅ Testé live : Recette live non validée. La fusion du code ne constitue pas une validation en conditions réelles ni une recet
+
+## Sans section
+
+- [BUG-RUNTIME-RELAY-TRANSPORT-001](docs/bugs/BUG-RUNTIME-RELAY-TRANSPORT-001.md) — Les erreurs de transport du relais CI échappent à la récupération des lectures. — 📤 Dispatché : Proposition locale sur le produit de 9e8e4db, inchangé par la correction trace da4bab7. · 💻 Codé : Patch local seulement, non publié. · ✅ Testé live : Non validé.
 
 ## Chargement des panneaux de l'IDE, 11 novembre 2026
 
-- [BUG-PANEL-CACHE-BUSY-HANDOFF-20261111](docs/bugs/BUG-PANEL-CACHE-BUSY-HANDOFF-20261111.md) — Un cache rempli après le rendu froid supprime le chargement et son Retry lent. Une éviction après rendu rend le contenu commité occupé, puis son échec peut l’ef — 📤 Dispatché : Port ciblé préparé et vérifié le 12 novembre 2026 sur le contenu exact de main après PR896. · 💻 Codé : Correctif local uniquement, non publié à la rédaction de cette fiche. · ✅ Testé live : Non validé. Pas de recette applicative ou production.
+- [BUG-PANEL-CACHE-BUSY-HANDOFF-20261111](docs/bugs/BUG-PANEL-CACHE-BUSY-HANDOFF-20261111.md) — Le cache partagé peut être rempli ou évincé entre le rendu et l'effet initial. Le chargement silencieux doit suivre le contenu réellement commité par l'instance — 📤 Dispatché : Correction expérimentale revue sur 8335f9ba ; port main séparé après PR896 ; intégration normale de main vers · 💻 Codé : Correction expérimentale publiée dans PR893 ; port ciblé PR897 fusionné dans main `746cf2e7`. La résolution ve · ✅ Testé live : Pas de recette applicative ou production revendiquée par cette fiche. Les validations locales et CI ne prouven
+
+## Sans section
+
+- [BUG-QA-DATABASE-CAPTURE-001](docs/bugs/BUG-QA-DATABASE-CAPTURE-001.md) — 📤 Dispatché : Independent review and local correction of the Database response-capture oracle. · 💻 Codé : Local standalone patch prepared on `6084cb9fc3af80ad91d024031d029db9ff69681e`. Not pushed or merged. No produc · ✅ Testé live : Not verified live. Local unit, SDK serialization, type, lint, formatting, collection and guard results are dis
 
 ## Résidus non tabulaires — reportés mot pour mot
 

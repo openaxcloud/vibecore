@@ -1202,12 +1202,27 @@ export class TestApiStore implements ApiStore {
     return record;
   }
 
+  async createWorkspaceIdeStateIfAbsent(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
+    const existing = this.workspaceIdeStates.get(input.workspaceId);
+
+    return existing ?? this.upsertWorkspaceIdeState(input);
+  }
+
   async getWorkspaceIdeState(workspaceId: string) {
     return this.workspaceIdeStates.get(workspaceId);
   }
 
-  async upsertWorkspaceIdeState(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
+  async upsertWorkspaceIdeState(input: {
+    workspaceId: string;
+    state: unknown;
+    updatedByUserId?: string;
+    expectedVersion?: number;
+  }) {
     const existing = this.workspaceIdeStates.get(input.workspaceId);
+
+    if (input.expectedVersion !== undefined && existing?.version !== input.expectedVersion) {
+      throw Object.assign(new Error('IDE state version conflict'), { code: 'IDE_STATE_VERSION_CONFLICT' });
+    }
 
     const record: WorkspaceIdeStateRecord = {
       workspaceId: input.workspaceId,

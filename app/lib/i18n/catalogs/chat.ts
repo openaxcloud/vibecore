@@ -1,4 +1,5 @@
 export const chatEn = {
+  'chat.terminal.heightPixels': '{height}px',
   'chat.skills.resourceInstallFailed':
     'This skill could not be installed: a required reference file is missing, unsupported, or exceeds the size limit. No skill was installed.',
   'chat.skills.resourcesTitle': 'Reference files',
@@ -1590,6 +1591,7 @@ export const chatEn = {
 } as const;
 
 export const chatFr = {
+  'chat.terminal.heightPixels': '{height} px',
   'chat.skills.resourceInstallFailed':
     'Cette compétence n’a pas pu être installée : un fichier de référence requis est absent, non pris en charge ou dépasse la taille autorisée. Aucune compétence n’a été installée.',
   'chat.skills.resourcesTitle': 'Fichiers de référence',

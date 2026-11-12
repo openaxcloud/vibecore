@@ -6,6 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import ts from 'typescript';
 import { afterAll, afterEach, it, vi } from 'vitest';
 import { IdePaletteProvider } from './IdePaletteState';
+import { ProjectMetadataForm } from './ProjectMetadataForm';
 import { ProjectSecretsPanel } from './ProjectSecretsPanel';
 import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
 import { panelActionFailureMessage } from '~/lib/panel-action-failure';
@@ -52,6 +53,7 @@ type Props = {
   show?: boolean;
   local?: boolean;
   strict?: boolean;
+  metadataName?: string;
   existingSecret?: boolean;
   submit?: (event: React.FormEvent<HTMLFormElement>) => void | boolean | Promise<void | boolean>;
 };
@@ -87,6 +89,12 @@ function tree(props: Props) {
               }
             />
           )}
+          <ProjectMetadataForm
+            paneId={pane}
+            settings={{ id: project, name: props.metadataName ?? 'Server name' }}
+            onSubmit={(event) => event.preventDefault()}
+            busy={false}
+          />
         </>
       )}
     </section>
@@ -178,10 +186,12 @@ it('preserves the actual just-opened form across immediate warm shell replacemen
 it('preserves actual user fields across a cold loading gap and a second replacement', async () => {
   const view = await mount({ strict: true });
   await draft(view);
+  await view.input('input[name=name]', 'Unsaved project name');
   await view.render({ shell: 'suspense-shell', show: false });
-  await view.render({ shell: 'loaded-chat', show: true });
+  await view.render({ shell: 'loaded-chat', show: true, metadataName: 'Refreshed server name' });
   assert.equal(view.get<HTMLInputElement>(key).value, 'SYNTHETIC_KEY');
   assert.equal(view.get<HTMLInputElement>(value).value, 'synthetic-unsaved-value');
+  assert.equal(view.get<HTMLInputElement>('input[name=name]').value, 'Unsaved project name');
 });
 
 it('resets password visibility on replacement without losing the user-entered value', async () => {
@@ -198,8 +208,10 @@ for (const change of [{ project: 'p2' }, { workspace: 'w2' }, { window: 'second'
   it(`clears fields on ${Object.keys(change)[0]} changes and does not resurrect on return`, async () => {
     const view = await mount();
     await draft(view);
+    await view.input('input[name=name]', 'Private metadata');
     await view.render(change);
     assert.equal(Boolean(view.query(key)), false);
+    assert.equal(view.get<HTMLInputElement>('input[name=name]').value, 'Server name');
     await view.render({ project: 'p1', workspace: 'w1', window: 'main' });
     assert.equal(Boolean(view.query(key)), false);
   });
@@ -316,6 +328,14 @@ it('does not close a canceled/reopened form on stale success even with identical
   await view.render({ shell: 'next' });
   await act(async () => pending.resolve(true));
   assert.equal(view.get<HTMLInputElement>(value).value, 'synthetic-unsaved-value');
+});
+
+it('keeps metadata server acknowledgement behavior across replacement', async () => {
+  const view = await mount();
+  await view.input('input[name=name]', 'Saved name');
+  await view.render({ shell: 'next', metadataName: 'Saved name' });
+  await view.render({ shell: 'third', metadataName: 'Later server name' });
+  assert.equal(view.get<HTMLInputElement>('input[name=name]').value, 'Later server name');
 });
 
 /** Execute the complete production callbacks, not a reconstructed success mock. */
@@ -538,6 +558,7 @@ it('preserves the edit-mode key and newly typed value, never the old revealed va
  * Execute the complete production outer terminal and both actual JSX prop hops.
  * The large terminal tool body's unrelated networking/views are isolated, not its
  * signature or Secrets call site; this catches a dropped pane at either boundary.
+ * The unrelated terminal-tools visibility hook uses local state in this fixture.
  */
 const terminalSource = readFileSync('app/components/chat/BaseChat.tsx', 'utf8');
 
@@ -602,6 +623,7 @@ const ActualTerminal = new Function(
   'LazyTerminalTabs',
   'SHELL_TERMINAL_LABEL',
   'ProjectSecretsPanel',
+  'useTerminalRuntimePanels',
   terminalCode,
 )(
   React,
@@ -615,6 +637,7 @@ const ActualTerminal = new Function(
   emptyLeaf,
   'Terminal',
   ProjectSecretsPanel,
+  () => React.useState(false),
 ) as React.ComponentType<{ projectId: string; paneId?: string }>;
 
 it('actual terminal prop chain retains the scoped Secrets draft after shell replacement', async () => {

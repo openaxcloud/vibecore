@@ -553,7 +553,7 @@ describe('panel cache arriving between render and effect', () => {
       headers: { 'content-type': 'application/json' },
     });
 
-  it('keeps a cold instance loading until its response despite another consumer warming the cache', async () => {
+  it('clears cold-instance busy after a successful load despite another consumer warming the cache', async () => {
     const response = deferredResponse();
     const transport = vi.fn<typeof fetch>(() => response.promise);
     const { Panel } = wrapper(transport);
@@ -724,6 +724,35 @@ describe('panel cache arriving between render and effect', () => {
   });
 
   it('keeps committed cached content usable when the shared cache is evicted before passive effects', async () => {
+    function EvictAfterRender({ children }: React.PropsWithChildren) {
+      React.useLayoutEffect(() => {
+        __resetProjectPanelCacheForTests();
+      }, []);
+      return <>{children}</>;
+    }
+
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    writeProjectPanelCache('fixture:security', cached('committed-before-eviction'));
+    await mount(
+      <EvictAfterRender>
+        <Panel projectId="fixture" panel="security" />
+      </EvictAfterRender>,
+    );
+    expect(readProjectPanelCache('fixture:security')).toBeUndefined();
+    expect(document.querySelector('[data-attempt="committed-before-eviction"]')?.getAttribute('data-busy')).toBe(
+      'false',
+    );
+    await act(async () => response.resolve(new Response('{}', { status: 400 })));
+    expect(document.querySelector('[data-attempt="committed-before-eviction"]')?.getAttribute('data-busy')).toBe(
+      'false',
+    );
+    expect(document.querySelector<HTMLButtonElement>('[role="alert"] button')?.disabled).toBe(false);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps committed cached content usable after normal capacity eviction before passive effects', async () => {
     function EvictAfterRender({ children }: React.PropsWithChildren) {
       React.useLayoutEffect(() => {
         for (let index = 0; index < PROJECT_PANEL_CACHE_MAX; index += 1) {

@@ -6,17 +6,21 @@ name: E2E Runtime
 # built web app, so those tests can never pass there — they were a permanent
 # red in a blocking gate, which is why Production E2E had never been green.
 #
-# They are split out here rather than deleted: the coverage is real and we want
-# it back in a blocking position once the runtime is provisioned in CI (see
-# docs/audit/E2E_SUITE_SPLIT.md). Until then this workflow is deliberately
-# NON-BLOCKING — nightly + on demand — so it reports the gap without pretending
-# the gap is fixed.
+# Runtime coverage remains separate from the production release gate while the
+# local workspace stack is completed. A failed runtime job MUST fail this
+# workflow: a green nightly result must never hide missing runtime coverage.
+# See docs/audit/E2E_SUITE_SPLIT.md for the unresolved provisioning prerequisites.
 
 on:
+  push:
+    branches: [test/ephemeral-runtime-kubernetes-20261108]
   workflow_dispatch:
   schedule:
     # 04:20 UTC daily — after the nightly parity collector, before EU morning.
     - cron: '20 4 * * *'
+
+permissions:
+  contents: read
 
 concurrency:
   group: e2e-runtime-${{ github.ref }}
@@ -24,15 +28,28 @@ concurrency:
 
 jobs:
   e2e-runtime:
-    name: Playwright @runtime (non-blocking)
-    runs-on: ubuntu-latest
+    name: Playwright @runtime
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
-    # Reporting-only until a workspace runtime is available in CI.
-    continue-on-error: true
 
     env:
       CI: true
       HUSKY: 0
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      VIBECORE_CI_EPHEMERAL_RUNTIME: '1'
+      VITE_RUNTIME_MODE: remote-kubernetes
+      RUNTIME_MODE: remote-kubernetes
+      VITE_RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+      API_CORS_ORIGINS: http://127.0.0.1:5173
+      PREVIEW_DOMAIN: localhost
+      PREVIEW_PROXY_PORT: 3020
+      PREVIEW_URL_TEMPLATE: http://{workspaceId}-{port}.localhost:3020/
+      WORKSPACE_RUNTIME_NAMESPACE: workspaces
+      WORKSPACE_STORAGE_CLASS: local-path
+      WORKSPACE_AGENT_IMAGE: vibecore/workspace-agent:ci-${{ github.sha }}
+      WORKSPACE_MANAGER_URL: http://127.0.0.1:3010
+      WORKSPACE_AGENT_URL_TEMPLATE: http://127.0.0.1:18081/{workspaceId}
+      IDE_PANEL_AUDIT_OUT: tmp/ide-panel-audit.json
       DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
       REDIS_URL: redis://127.0.0.1:56379
       POSTGRES_PORT: 55432
@@ -54,10 +71,6 @@ jobs:
       # comment says operators may lift it via this variable.
       AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
       AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -71,32 +84,142 @@ jobs:
           version: 9.14.4
           run_install: false
 
+      - name: Generate temporary internal credentials
+        run: |
+          echo "KUBECONFIG=$RUNNER_TEMP/vibecore-runtime/kubeconfig" >> "$GITHUB_ENV"
+          for key in WORKSPACE_AGENT_TOKEN_SECRET WORKSPACE_MANAGER_SHARED_SECRET PREVIEW_PROXY_SHARED_SECRET; do
+            value="$(openssl rand -hex 32)"
+            echo "::add-mask::$value"
+            echo "$key=$value" >> "$GITHUB_ENV"
+          done
+
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
+      - name: Validate runtime harness
         run: |
-          # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
-          # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
-          # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
-          # 2026-09-09 (run E2E 1828, sha dcfb310f, 49 s) : `Err:10
-          # https://dl.google.com/linux/chrome-stable/deb` — index publié à
-          # 09:41, run à 17:16. Rien ne le retentait.
-          #
-          # Les deux moitiés sont séparées pour ne retenter QUE celle qui dépend
-          # d'un miroir extérieur. Purger /var/lib/apt/lists est ce qui répare
-          # un Hash Sum mismatch : relancer sans purger réutilise l'index périmé.
-          # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
-          # dont on lit le résultat.
+          node --test scripts/ci/runtime-localhost-deadline.checks.mjs scripts/ci/package-termination.checks.mjs scripts/ci/package-dedicated-install.checks.mjs scripts/ci/package-install-i18n.checks.mjs scripts/ci/package-install-observation.checks.mjs scripts/ci/package-observation-review.checks.mjs scripts/ci/package-execution-diagnostic.checks.mjs scripts/ci/package-execution-boundaries.checks.mjs scripts/ci/runtime-browser-relay.checks.mjs scripts/ci/runtime-browser-isolation.checks.mjs
+          node --test scripts/ci/runtime-agent-router.checks.mjs
+          node --test scripts/ci/runtime-evidence-redaction.checks.mjs
+          node --test scripts/ci/runtime-api-evidence.checks.mjs
+          node --test scripts/ci/runtime-read-recovery.checks.mjs
+          node --test scripts/ci/workspace-env-metadata.checks.mjs
+          node --test scripts/ci/runtime-network-sentinel.checks.mjs
+          node --test scripts/ci/browser-network-evidence.checks.mjs scripts/ci/ide-cas-evidence.checks.mjs
+          node --test scripts/terminal-warning-diagnostics.checks.mjs
+          node --test scripts/audit-ide-panels-selectors.checks.mjs
+          node --test scripts/mcp-extension-audit.checks.mjs
+          node --test scripts/object-storage-audit.checks.mjs
+          node --test scripts/database-services-metadata.checks.mjs
+          node --test scripts/ci/reload-panel-json.checks.mjs
+          node --test scripts/ci/services-activity-selector.checks.mjs
+          node --test scripts/ci/package-install-lifecycle.checks.mjs
+          node --test scripts/ci/package-install-evidence.checks.mjs scripts/ci/package-install-import.checks.mjs
+          node --test scripts/ci/mobile-layout-evidence.checks.mjs
+          node --test scripts/ci/desktop-layout-evidence.checks.mjs
+          node --test scripts/panel-persistence-diagnostics.checks.mjs
+          python3 scripts/ci/stage-k3s-runtime.checks.py
+          python3 .github/scripts/preparer-miroir-ubuntu.checks.py
+          pnpm exec vitest run tests/guards/ubuntu-webkit-mirror.spec.ts tests/guards/browser-system-deps.spec.ts tests/guards/cache-navigateurs.spec.ts
+          pnpm exec vitest run tests/guards/runtime-ci-verdict.spec.ts tests/runtime-ci/server-backed-static-fixture.spec.ts tests/runtime-ci/preview-command-evidence.spec.ts
+          bash -n scripts/ci/provision-runtime-kubernetes.sh scripts/ci/probe-runtime-gvisor.sh
+
+      - name: Verify IDE persistence and interaction regressions
+        run: >-
+          pnpm exec vitest run
+          app/lib/persistence/projectIdeMemory*.spec.ts
+          app/components/chat/ProjectMetadataForm.spec.tsx
+          app/components/chat/SnapshotCreateForm.spec.tsx
+          app/components/chat/BaseChat.preview-startup.spec.tsx
+          app/components/chat/ProjectInteractiveTerminalPanel.handoff.spec.tsx
+          app/components/chat/ProjectSecretsPanel.metadata.spec.tsx
+          app/components/chat/ProjectIdeApiServicePanel.loading.spec.tsx
+          app/components/chat/project-right-width-restore.spec.tsx
+          app/components/chat/project-layout-url-restore.spec.tsx
+          app/components/database/DatabaseWorkbench.renders-databases.spec.tsx
+          app/components/git/GitTab.async.spec.tsx
+          'app/routes/api.projects.$projectId.ide-panel.execution-outcomes.spec.ts'
+          tests/guards/runtime-agent-geometry.spec.ts
+          tests/guards/runtime-preview-measurement.spec.ts
+          tests/guards/runtime-workspace-status-navigation.spec.ts
+          tests/guards/runtime-ui-panel-bounds.spec.ts
+          tests/guards/runtime-tool-menu-click.spec.tsx
+          tests/guards/runtime-services-tab-options.spec.tsx
+          tests/guards/runtime-services-command-palette.spec.tsx
+          tests/guards/runtime-services-terminal.spec.tsx
+
+      - name: Verify runtime recovery regressions
+        working-directory: packages/runtime-remote
+        run: pnpm exec vitest run --config vitest.config.ts
+
+      - name: Verify workspace startup diagnostics
+        working-directory: services/workspace-manager
+        run: pnpm exec vitest run --config vitest.config.ts src/manager.spec.ts src/pod-failure-diagnostic.spec.ts src/pod-change-diagnostic.spec.ts
+
+      - name: Provision temporary Kubernetes and gVisor
+        run: bash scripts/ci/provision-runtime-kubernetes.sh
+
+      - name: Build and load actual workspace agent
+        run: |
+          docker build -f services/workspace-agent/Dockerfile -t "$WORKSPACE_AGENT_IMAGE" .
+          docker save "$WORKSPACE_AGENT_IMAGE" -o "$RUNNER_TEMP/vibecore-runtime/agent.tar"
+          sudo k3s ctr images import "$RUNNER_TEMP/vibecore-runtime/agent.tar"
+          rm "$RUNNER_TEMP/vibecore-runtime/agent.tar"
+          bash scripts/ci/probe-runtime-gvisor.sh
+
+      - name: Prepare temporary Ubuntu sources
+        id: ubuntu_sources
+        if: runner.environment == 'github-hosted' && runner.arch == 'X64'
+        run: python3 .github/scripts/preparer-miroir-ubuntu.py --temporary
+
+      - name: Install Playwright browsers
+        timeout-minutes: 29
+        env:
+          CI_APT_CONFIG: ${{ steps.ubuntu_sources.outputs.apt_config }}
+        run: |
           for attempt in 1 2 3; do
-            if pnpm exec playwright install-deps chromium; then break; fi
-            echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
-            if [ "$attempt" = "3" ]; then exit 1; fi
-            sudo rm -rf /var/lib/apt/lists/*
-            sudo apt-get update || true
+            if [ -n "$CI_APT_CONFIG" ]; then
+              installer=(sudo env "PATH=$PATH" "APT_CONFIG=$CI_APT_CONFIG" timeout --kill-after=30s 5m)
+            else
+              installer=(timeout --kill-after=30s 5m)
+            fi
+            if "${installer[@]}" pnpm exec playwright install-deps chromium; then break; fi
+            echo "::warning::apt dependency installation failed ($attempt/3)."
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            # Clear stale index data only between failed attempts (Hash Sum mismatch).
+            sudo timeout --kill-after=5s 10s rm -rf /var/lib/apt/lists/*
             sleep 10
           done
-          pnpm exec playwright install chromium
+          timeout --kill-after=30s 10m pnpm exec playwright install chromium
+
+      # Apply only to this approved disposable GitHub runner, never production.
+      - name: Start isolated Chromium transport
+        id: browser-isolation
+        timeout-minutes: 6
+        env:
+          VIBECORE_CI_BROWSER_ISOLATION: '1'
+        run: |
+          export RUNTIME_BROWSER_OWNER="$(node --input-type=module -e "import {randomUUID} from 'node:crypto'; console.log(randomUUID())")"
+          echo "RUNTIME_BROWSER_OWNER=$RUNTIME_BROWSER_OWNER" >> "$GITHUB_ENV"
+          echo 'VIBECORE_CI_BROWSER_ISOLATION=1' >> "$GITHUB_ENV"
+          node scripts/ci/runtime-browser-isolation.mjs > /dev/null 2>&1 &
+          echo "$!" > /tmp/vibecore-browser-isolation.pid
+          root="$RUNNER_TEMP/runtime-browser-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          ready=false
+          for attempt in $(seq 1 120); do
+            if test -f "$root/started"; then ready=true; break; fi
+            kill -0 "$(cat /tmp/vibecore-browser-isolation.pid)" || exit 1
+            sleep 2
+          done
+          test "$ready" = true
+          export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser
+          node scripts/ci/runtime-browser-lifecycle.checks.mjs
+          echo 'VIBECORE_CI_BROWSER_ISOLATION=1' >> "$GITHUB_ENV"
+          echo 'PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser' >> "$GITHUB_ENV"
+
+      - name: Verify preview localhost browser routing
+        timeout-minutes: 1
+        run: node --test scripts/ci/runtime-localhost-browser.checks.mjs
 
       - name: Start local dependencies
         run: |
@@ -119,6 +242,24 @@ jobs:
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
 
+      - name: Verify workspace IDE migration on PostgreSQL
+        run: NODE_ENV=test WORKSPACE_IDE_POSTGRES_PROOF=1 pnpm --filter @vibecore/api exec vitest run --config vitest.config.ts src/workspace-ide-postgres.integration.spec.ts
+
+      - name: Start real workspace manager and local agent transport
+        run: |
+          node scripts/ci/runtime-agent-router.mjs > /tmp/vibecore-router.log 2>&1 &
+          pnpm --filter @vibecore/workspace-manager exec tsx src/server.ts > /tmp/vibecore-manager.log 2>&1 &
+          npx wait-on --timeout 180000 tcp:127.0.0.1:18081 http://127.0.0.1:3010/health
+          pnpm --filter @vibecore/preview-proxy exec tsx src/server.ts > /tmp/vibecore-preview.log 2>&1 &
+          npx wait-on --timeout 180000 http://127.0.0.1:3020/health
+          # The same production manager GC path reclaims workspaces left by closed test pages.
+          # Live IDE requests renew activity; no in-flight test workspace is force-deleted.
+          (while sleep 30; do
+            curl --silent --show-error --fail --max-time 25 -X POST http://127.0.0.1:3010/workspaces/gc \
+              -H "Authorization: Bearer $WORKSPACE_MANAGER_SHARED_SECRET" -H 'Content-Type: application/json' \
+              --data '{"inactiveMs":300000,"deleteMs":3600000}' > /dev/null || true
+          done) > /tmp/vibecore-gc.log 2>&1 &
+
       - name: Start API
         run: |
           pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
@@ -129,6 +270,7 @@ jobs:
         run: pnpm run build
 
       - name: Start web app
+        id: web
         run: |
           HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
           echo $! > /tmp/vibecore-web.pid
@@ -140,26 +282,100 @@ jobs:
           echo $! > /tmp/vibecore-admin.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
 
+      - name: Verify isolated browser service requests
+        timeout-minutes: 2
+        run: node scripts/ci/runtime-browser-lifecycle.checks.mjs --services
+
+      - name: Real static and Vite preview preflight
+        id: runtime-preflight
+        if: ${{ !cancelled() && steps.web.outcome == 'success' }}
+        run: pnpm exec playwright test --config=playwright.runtime-ci.config.ts --project=chromium --retries=0 --max-failures=0
+
+      - name: Collect early runtime diagnostics
+        if: ${{ !cancelled() && (steps.runtime-preflight.outcome == 'success' || steps.runtime-preflight.outcome == 'failure') }}
+        run: RUNTIME_EVIDENCE_PHASE=preflight node scripts/ci/collect-runtime-evidence.mjs
+
+      - name: Upload preflight evidence
+        if: ${{ !cancelled() && (steps.runtime-preflight.outcome == 'success' || steps.runtime-preflight.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: runtime-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tmp/runtime-preflight-evidence
+          retention-days: 1
+          compression-level: 9
+          if-no-files-found: error
+
+      - name: Observe runner network events read-only
+        if: ${{ !cancelled() && steps.web.outcome == 'success' }}
+        run: |
+          node scripts/ci/runtime-network-observer.mjs > /dev/null 2>&1 &
+          echo "$!" > /tmp/vibecore-network-observer.pid
+
+      # No provider credentials: this workflow must not spend AI credits.
       - name: Playwright @runtime suite
-        run: pnpm exec playwright test tests/e2e --project=chromium --grep @runtime
+        id: runtime-suite
+        if: ${{ !cancelled() && steps.web.outcome == 'success' }}
+        run: pnpm exec playwright test tests/e2e --project=chromium --grep @runtime --retries=0 --max-failures=0
 
       # Moved out of Production E2E for the same reason as the @runtime tests:
       # it audits IDE panels against live project data ("The requested panel
       # data was not found." for 16 panels in the gate stack), which needs a
       # provisioned workspace.
       - name: IDE panel live audit
+        if: ${{ !cancelled() && (steps.runtime-suite.outcome == 'success' || steps.runtime-suite.outcome == 'failure') }}
         run: |
-          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
+          set +e
+          timeout 12m pnpm run ide:panel-audit
+          audit_status=$?
           pnpm run ide:panel-audit:validate
+          validate_status=$?
+          test "$audit_status" -eq 0 && test "$validate_status" -eq 0
 
-      - name: Upload E2E traces
+      - name: Stop passive network observer
+        if: always()
+        run: |
+          if test -f /tmp/vibecore-network-observer.pid; then
+            pid=$(cat /tmp/vibecore-network-observer.pid)
+            if [[ "$pid" =~ ^[0-9]+$ ]]; then kill "$pid" 2>/dev/null || true; fi
+            sleep 1
+          fi
+
+      # Separate transport experiment; does not replace or relax runtime/audit verdicts.
+      - name: Diagnose runner network notifications
+        if: ${{ !cancelled() && (steps.runtime-suite.outcome == 'success' || steps.runtime-suite.outcome == 'failure') }}
+        timeout-minutes: 3
+        run: node scripts/ci/runtime-network-sentinel.mjs
+
+      - name: Stop isolated Chromium transport
+        # Partial or cancelled startup still needs cleanup; a skipped step created nothing.
+        if: ${{ always() && (steps.browser-isolation.outcome == 'success' || steps.browser-isolation.outcome == 'failure' || steps.browser-isolation.outcome == 'cancelled') }}
+        timeout-minutes: 1
+        run: |
+          set +e
+          node scripts/ci/runtime-browser-isolation.mjs --stop-supervisor
+          stop_status=$?
+          timeout 15s node scripts/ci/runtime-browser-isolation.mjs --cleanup
+          cleanup_status=$?
+          test "$stop_status" -eq 0 && test "$cleanup_status" -eq 0
+
+      - name: Collect bounded diagnostics
+        if: always()
+        run: node scripts/ci/collect-runtime-evidence.mjs
+
+      - name: Upload runtime evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-report-runtime
-          path: |
-            playwright-report
-            test-results
-            /tmp/vibecore-api.log
-            /tmp/vibecore-web.log
-          if-no-files-found: ignore
+          name: runtime-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tmp/runtime-evidence
+          retention-days: 1
+          compression-level: 9
+          if-no-files-found: error
+
+      - name: Remove disposable cluster resources
+        if: always()
+        run: |
+          if test -s "$KUBECONFIG"; then
+            kubectl delete namespace workspaces --wait=false || true
+          fi
+          docker compose --env-file .env -f docker-compose.dev.yml down -v || true

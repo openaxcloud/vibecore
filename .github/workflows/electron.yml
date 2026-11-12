@@ -9,6 +9,7 @@ on:
       - pnpm-lock.yaml
       - electron-builder.yml
       - .github/workflows/electron.yml
+      - .github/scripts/preparer-miroir-ubuntu.py
   workflow_dispatch:
     inputs:
       draft_release:
@@ -83,11 +84,19 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
+      - name: Prepare temporary Ubuntu sources
+        id: ubuntu_sources
+        if: matrix.platform == 'linux' && runner.environment == 'github-hosted' && runner.arch == 'X64'
+        run: python3 .github/scripts/preparer-miroir-ubuntu.py --temporary
+
       - name: Install Linux packaging dependencies
         if: matrix.platform == 'linux'
+        timeout-minutes: 11
+        env:
+          CI_APT_CONFIG: ${{ steps.ubuntu_sources.outputs.apt_config }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools
+          sudo env "APT_CONFIG=$CI_APT_CONFIG" timeout --kill-after=30s 5m apt-get -o APT::Update::Error-Mode=any update
+          sudo env "APT_CONFIG=$CI_APT_CONFIG" timeout --kill-after=30s 5m apt-get install -y rpm libarchive-tools
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

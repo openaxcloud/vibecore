@@ -1,10 +1,31 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
+import { createBrowserHttpEvidence, createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
+import { createIdeCasEvidence } from './ci/ide-cas-evidence.mjs';
+import { packageInstallFailure } from './ci/package-install-evidence.mjs';
+import { verifyInstalledAuditPackage } from './ci/package-install-import.mjs';
+import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
+import { attachSecretsLifecycleEvidence, createSecretsLifecycleEvidence } from './ci/secrets-lifecycle-evidence.mjs';
+import { auditMcpBackendInstallation, auditMcpUiLifecycle } from './mcp-extension-audit.mjs';
+import {
+  auditStorageBackendStatus,
+  auditStorageUiCapability,
+  StorageLifecycleUnverified,
+} from './object-storage-audit.mjs';
+import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
+import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
+
+const browserNetworkDiagnostics = createBrowserNetworkEvidence();
+const browserHttpDiagnostics = createBrowserHttpEvidence();
+const ideCasDiagnostics = createIdeCasEvidence();
+const ideCasCohort = {};
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
 let appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+
 const outFile = process.env.IDE_PANEL_AUDIT_OUT ?? 'tmp/ide-panel-audit.json';
 const explicitApiBaseUrl = Boolean(process.env.SAAS_API_URL || process.env.API_BASE_URL);
 const explicitAppBaseUrl = Boolean(process.env.PLAYWRIGHT_BASE_URL);
@@ -53,6 +74,7 @@ function localUrlPort(url) {
 
 function collectChildOutput(child, label) {
   const lines = [];
+
   const collect = (stream, prefix) => {
     stream?.on('data', (chunk) => {
       const text = chunk.toString();
@@ -82,6 +104,7 @@ function spawnLocalService(label, scriptName, extraEnv = {}) {
     detached: process.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+
   const logs = collectChildOutput(child, label);
   spawnedProcesses.push({ child, label, logs });
 
@@ -124,6 +147,7 @@ async function isReachable(url) {
 
 async function waitForReachable(url, label, logs, timeoutMs = 60_000) {
   const startedAt = Date.now();
+
   let lastError = '';
 
   while (Date.now() - startedAt < timeoutMs) {
@@ -159,6 +183,7 @@ function viteLocalUrlFromLogs(logs) {
 
 async function waitForWebReachable(initialUrl, logs) {
   const startedAt = Date.now();
+
   let targetUrl = initialUrl;
 
   while (Date.now() - startedAt < 90_000) {
@@ -250,6 +275,7 @@ async function stopSpawnedProcesses() {
 async function http(url, options = {}) {
   const response = await fetch(url, options);
   const text = await response.text();
+
   let body = null;
 
   try {
@@ -263,6 +289,7 @@ async function http(url, options = {}) {
 
 async function registerAuditUser() {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   const result = await http(`${apiBaseUrl}/auth/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -299,7 +326,7 @@ function form(values) {
   return new URLSearchParams(values);
 }
 
-async function auditBackendPanels(projectId, cookie) {
+async function auditBackendPanels(projectId, cookie, token) {
   const results = [];
 
   for (const panel of backendPanels) {
@@ -325,10 +352,12 @@ async function auditBackendPanels(projectId, cookie) {
       'deployments',
       form({ provider: 'static', environment: 'preview', buildCommand: 'npm run build', outputDirectory: 'dist' }),
     ],
-    ['database', form({ key: 'DATABASE_URL', value: 'postgres://audit.local/db' })],
-    ['object-storage', form({ key: 'OBJECT_STORAGE_BUCKET', value: 'audit-bucket' })],
+
+    // The database contract now saves connection URLs as encrypted secrets; default is deliberately rejected.
+    ['database', form({ intent: 'upsert-secret', key: 'DATABASE_URL', value: 'postgres://audit.local/db' })],
+    ['object-storage', form({ intent: 'status' })],
     ['packages', form({ packages: 'zod react-router-dom' })],
-    ['extensions', form({ extension: 'prettier' })],
+    ['extensions', null],
     [
       'integrations',
       form({ intent: 'connect', integrationId: 'slack', organization: 'audit', apiToken: 'slack-token' }),
@@ -342,11 +371,39 @@ async function auditBackendPanels(projectId, cookie) {
   ];
 
   for (const [panel, body] of safeActions) {
-    const result = await http(`${appBaseUrl}/api/projects/${projectId}/ide-panel/${panel}`, {
-      method: 'POST',
-      headers: { accept: 'application/json', cookie },
-      body,
-    });
+    let result;
+
+    if (panel === 'extensions') {
+      try {
+        result = await auditMcpBackendInstallation(
+          http,
+          `${appBaseUrl}/api/projects/${projectId}/ide-panel/extensions`,
+          { accept: 'application/json', cookie },
+        );
+      } catch (error) {
+        results.push({ kind: 'panel_action', panel, ok: false, error: String(error) });
+        continue;
+      }
+    } else if (panel === 'object-storage') {
+      try {
+        result = await auditStorageBackendStatus(
+          http,
+          `${appBaseUrl}/api/projects/${projectId}/ide-panel/object-storage`,
+          `${apiBaseUrl}/projects/${projectId}/object-storage/status`,
+          token,
+          cookie,
+        );
+      } catch (error) {
+        results.push({ kind: 'panel_action', panel, ok: false, error: String(error) });
+        continue;
+      }
+    } else {
+      result = await http(`${appBaseUrl}/api/projects/${projectId}/ide-panel/${panel}`, {
+        method: 'POST',
+        headers: { accept: 'application/json', cookie },
+        body,
+      });
+    }
 
     results.push({
       kind: 'panel_action',
@@ -374,15 +431,21 @@ async function auditBackendPanels(projectId, cookie) {
   return results;
 }
 
-async function auditPanelRender(projectId, token) {
-  const browser = await chromium.launch({ headless: true });
+async function auditPanelRender(projectId, token, terminalDiagnostics) {
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
 
   for (const panel of workspacePanels) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    browserNetworkDiagnostics.trackPage(page);
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, panel, ideCasCohort);
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
     page.on('pageerror', (error) => errors.push(`[${panel}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[${panel}] ${message.text()}`);
       }
@@ -417,6 +480,9 @@ async function auditPanelRender(projectId, token) {
     } else if (panel === 'locks') {
       locator = page.getByText(/Locked|lock/i).first();
       marker = 'locks';
+    } else if (panel === 'domains') {
+      locator = page.locator('[data-testid="ide-service-panel"][data-panel="deployments"] .bolt-project-domains-panel');
+      marker = 'service-panel:deployments/domains';
     } else {
       locator = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
       marker = `service-panel:${panel}`;
@@ -426,6 +492,7 @@ async function auditPanelRender(projectId, token) {
       .waitFor({ state: 'visible', timeout: panel === 'preview' || panel === 'terminal' ? 30_000 : 15_000 })
       .then(() => true)
       .catch(() => false);
+
     const applicationError = (await page.getByText('Application Error').count()) > 0;
 
     results.push({
@@ -436,6 +503,7 @@ async function auditPanelRender(projectId, token) {
       url: page.url(),
       applicationError,
     });
+    await terminalDiagnostics.flush();
     await page.close();
   }
 
@@ -444,17 +512,34 @@ async function auditPanelRender(projectId, token) {
   return { results, errors };
 }
 
-async function auditCriticalUiInteractions(projectId, token) {
-  const browser = await chromium.launch({ headless: true });
+async function auditCriticalUiInteractions(
+  projectId,
+  token,
+  terminalDiagnostics,
+  persistenceDiagnostics,
+  secretsDiagnostics,
+) {
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
 
   async function withPanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+
+    const secretsTrace =
+      panel === 'secrets' ? await attachSecretsLifecycleEvidence(page, secretsDiagnostics) : undefined;
+
+    browserNetworkDiagnostics.trackPage(page);
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, panel, ideCasCohort);
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
+
     const backendCalls = [];
 
     page.on('pageerror', (error) => errors.push(`[ui:${panel}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[ui:${panel}] ${message.text()}`);
       }
@@ -462,10 +547,17 @@ async function auditCriticalUiInteractions(projectId, token) {
     page.on('response', (response) => {
       const url = response.url();
 
-      if (!url.includes(`/api/projects/${projectId}/ide-panel/${panel}`)) {
+      // Database connection editing now lives in this project's Secrets panel.
+      const isPanelResponse = url.includes(`/api/projects/${projectId}/ide-panel/${panel}`);
+
+      const isDatabaseSecretResponse =
+        panel === 'database' && url.includes(`/api/projects/${projectId}/ide-panel/secrets`);
+
+      if (!isPanelResponse && !isDatabaseSecretResponse) {
         return;
       }
 
+      persistenceDiagnostics.capture(panel, response);
       backendCalls.push({
         method: response.request().method(),
         status: response.status(),
@@ -479,15 +571,23 @@ async function auditCriticalUiInteractions(projectId, token) {
 
     try {
       await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
-      await page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).waitFor({
+
+      const servicePanel =
+        panel === 'domains'
+          ? '[data-testid="ide-service-panel"][data-panel="deployments"] .bolt-project-domains-panel'
+          : `[data-testid="ide-service-panel"][data-panel="${panel}"]`;
+      await page.locator(servicePanel).waitFor({
         state: 'visible',
         timeout: 15_000,
       });
       await action(page);
 
       const applicationError = (await page.getByText('Application Error').count()) > 0;
+
       return { ok: !applicationError, applicationError, backendCalls };
     } finally {
+      secretsTrace?.stop();
+      await terminalDiagnostics.flush();
       await page.close();
     }
   }
@@ -505,6 +605,7 @@ async function auditCriticalUiInteractions(projectId, token) {
   async function run(panel, action, check, expectedBackendMethods = ['GET', 'POST']) {
     try {
       const result = await withPanel(panel, action);
+
       const missingBackendMethods = expectedBackendMethods.filter(
         (method) => !result.backendCalls.some((call) => call.method === method && call.status < 500),
       );
@@ -525,6 +626,7 @@ async function auditCriticalUiInteractions(projectId, token) {
         action: check,
         ok: false,
         error: error instanceof Error ? error.message : String(error),
+        ...(error instanceof StorageLifecycleUnverified ? { storageEvidence: error.evidence } : {}),
       });
     }
   }
@@ -551,15 +653,13 @@ async function auditCriticalUiInteractions(projectId, token) {
     async (page) => {
       const key = `PANEL_AUDIT_UI_SECRET_${Date.now()}`;
       const value = `secret-ui-${Date.now()}`;
-      await page.getByPlaceholder('STRIPE_SECRET_KEY').fill(key);
-      await page.getByPlaceholder('Secret value').fill(value);
-      await Promise.all([
-        waitForPanelResponse(page, 'secrets', 'POST'),
-        page.getByRole('button', { name: '+ New secret' }).click(),
-      ]);
+      await page.getByTestId('secrets-new').click();
+      await page.getByTestId('secrets-form-key').fill(key);
+      await page.getByTestId('secrets-form-value').fill(value);
+      await Promise.all([waitForPanelResponse(page, 'secrets', 'POST'), page.getByTestId('secrets-form-add').click()]);
       await page.getByText(key).waitFor({ state: 'visible', timeout: 10_000 });
       page.once('dialog', (dialog) => void dialog.accept());
-      await page.getByRole('button', { name: `Reveal ${key}` }).click();
+      await page.getByRole('button', { name: `Reveal the value of ${key}`, exact: true }).click();
       await page.getByText(value).waitFor({ state: 'visible', timeout: 10_000 });
     },
     'create_secret_and_reveal_after_explicit_confirmation',
@@ -569,6 +669,7 @@ async function auditCriticalUiInteractions(projectId, token) {
     'snapshots',
     async (page) => {
       const label = `Panel audit UI checkpoint ${Date.now()}`;
+      persistenceDiagnostics.expect('snapshots', label);
       await page.getByPlaceholder('Manual checkpoint').fill(label);
       await Promise.all([
         waitForPanelResponse(page, 'snapshots', 'POST'),
@@ -586,29 +687,73 @@ async function auditCriticalUiInteractions(projectId, token) {
     'database',
     async (page) => {
       const value = `postgres://audit.local/ui-${Date.now()}`;
-      const onboardingInput = page.getByPlaceholder('postgresql://user:password@host/db?sslmode=require');
 
-      if ((await onboardingInput.count()) > 0 && (await onboardingInput.first().isVisible())) {
-        await onboardingInput.first().fill(value);
-        await Promise.all([
-          waitForPanelResponse(page, 'database', 'POST'),
-          page.getByRole('button', { name: 'Add your first database' }).click(),
-        ]);
-      } else {
-        const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]');
-        await databasePanel.getByRole('button', { name: 'Secrets' }).click();
-        await databasePanel.locator('input[name="key"]:visible').last().fill('DATABASE_URL');
-        await databasePanel.locator('input[name="value"]:visible').last().fill(value);
-        await Promise.all([
-          waitForPanelResponse(page, 'database', 'POST'),
-          databasePanel.getByRole('button', { name: 'Save encrypted secret' }).click(),
-        ]);
+      // Same DATABASE_URL and synthetic value, now edited through the project's encrypted Secrets UI.
+      await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=secrets`, { waitUntil: 'domcontentloaded' });
+
+      const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]');
+      await secretsPanel.getByTestId('secret-menu-DATABASE_URL').click();
+      await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+
+      const keyInput = secretsPanel.getByTestId('secrets-form-key');
+
+      if ((await keyInput.inputValue()) !== 'DATABASE_URL') {
+        throw new Error('Database connection edit targeted the wrong secret key');
       }
 
-      await page.getByText('DATABASE_URL').first().waitFor({
-        state: 'visible',
-        timeout: 10_000,
-      });
+      await secretsPanel.getByTestId('secrets-form-value').fill(value);
+
+      const [saved] = await Promise.all([
+        waitForPanelResponse(page, 'secrets', 'POST'),
+        secretsPanel.getByTestId('secrets-form-add').click(),
+      ]);
+
+      if (!saved.ok()) {
+        throw new Error('Synthetic database connection save failed');
+      }
+
+      const [secretsReload] = await Promise.all([
+        waitForPanelResponse(page, 'secrets', 'GET'),
+        page.reload({ waitUntil: 'domcontentloaded' }),
+      ]);
+
+      if (!secretsReload.ok()) {
+        throw new Error('Saved database secret could not be reloaded');
+      }
+
+      await secretsPanel.getByText('DATABASE_URL', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+
+      // Explicitly reveal only the synthetic value written above, after a real Secrets reload.
+      const secretRow = secretsPanel.getByTestId('secret-row-DATABASE_URL');
+      await secretRow.getByRole('button', { name: 'Reveal the value of DATABASE_URL', exact: true }).click();
+      await secretRow.getByText(value, { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+
+      // The Database root lists configuration without opening a connection (which would request schema).
+      const [databaseReload] = await Promise.all([
+        waitForPanelResponse(page, 'database', 'GET'),
+        page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' }),
+      ]);
+
+      if (!databaseReload.ok()) {
+        throw new Error('Database connections could not be reloaded');
+      }
+
+      const databasePayload = await databaseReload.json();
+
+      if (!databasePayload.data?.connections?.some((connection) => connection.key === 'DATABASE_URL')) {
+        throw new Error('Saved DATABASE_URL is missing from Database connections');
+      }
+
+      const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]');
+
+      /*
+       * An unprefixed DATABASE_URL has environment shared, so its card displays the exact key.
+       * Do not open the card: configuration persistence does not require contacting audit.local.
+       */
+      await databasePanel
+        .getByTestId('db-carte')
+        .getByText('DATABASE_URL', { exact: true })
+        .waitFor({ state: 'visible', timeout: 10_000 });
     },
     'save_database_url_visible_after_backend_reload',
   );
@@ -618,14 +763,32 @@ async function auditCriticalUiInteractions(projectId, token) {
     async (page) => {
       const packageName = 'is-odd';
       await page.getByPlaceholder('@scope/name, react-query, vite@latest').fill(packageName);
-      await Promise.all([
-        waitForPanelResponse(page, 'packages', 'POST', 60_000),
+
+      const [installed] = await Promise.all([
+        waitForPanelResponse(page, 'packages', 'POST', 360_000),
         page.getByRole('button', { name: 'Install package' }).click(),
       ]);
+
+      if (!installed.ok()) {
+        throw await packageInstallFailure(installed);
+      }
+
+      const [reloaded] = await Promise.all([
+        waitForPanelResponse(page, 'packages', 'GET', 20_000),
+        page.reload({ waitUntil: 'domcontentloaded' }),
+      ]);
+
+      if (!reloaded.ok()) {
+        throw new Error('Installed packages could not be reloaded');
+      }
+
       await page
-        .getByText(/add package/i)
-        .first()
+        .locator('.bolt-project-package-list')
+        .getByText(packageName, { exact: true })
         .waitFor({ state: 'visible', timeout: 20_000 });
+
+      // Persisted UI state alone is not proof that node_modules is importable.
+      await verifyInstalledAuditPackage({ apiBaseUrl, token, projectId, panel: await reloaded.json() });
     },
     'create_package_install_plan_visible_after_backend_reload',
   );
@@ -634,6 +797,8 @@ async function auditCriticalUiInteractions(projectId, token) {
     'settings',
     async (page) => {
       const projectName = `IDE Panel Audit UI ${Date.now()}`;
+      persistenceDiagnostics.expect('settings', projectName);
+
       const panel = page.locator('[data-testid="ide-service-panel"][data-panel="settings"]');
       await panel.locator('input[name="name"]').fill(projectName);
       await panel.locator('input[name="description"]').fill('Updated by UI interaction audit');
@@ -642,6 +807,7 @@ async function auditCriticalUiInteractions(projectId, token) {
         panel.getByRole('button', { name: 'Save settings' }).click(),
       ]);
       await panel.locator('input[name="name"]').waitFor({ state: 'visible', timeout: 10_000 });
+
       const persistedName = await panel.locator('input[name="name"]').inputValue();
 
       if (persistedName !== projectName) {
@@ -654,35 +820,22 @@ async function auditCriticalUiInteractions(projectId, token) {
   await run(
     'object-storage',
     async (page) => {
-      const value = `audit-bucket-${Date.now()}`;
-      await page.getByPlaceholder('vibecore-project-assets').fill(value);
-      await Promise.all([
-        waitForPanelResponse(page, 'object-storage', 'POST'),
-        page.getByRole('button', { name: 'Save storage config' }).click(),
-      ]);
-      await page.locator('.text-sm.font-medium', { hasText: 'OBJECT_STORAGE_BUCKET' }).first().waitFor({
-        state: 'visible',
-        timeout: 10_000,
-      });
+      await auditStorageUiCapability(
+        page,
+        `${appBaseUrl}/api/projects/${projectId}/ide-panel/object-storage`,
+        `${apiBaseUrl}/projects/${projectId}/object-storage/status`,
+        token,
+      );
     },
-    'save_object_storage_config_visible_after_backend_reload',
+    'verify_storage_capability_ui_and_reload_active_lifecycle_unverified',
   );
 
   await run(
     'extensions',
     async (page) => {
-      await page.getByPlaceholder('Theme, language, linter, debugger...').fill('Material Icon Theme');
-      const extensionCard = page.locator('.bolt-project-extension-card', { hasText: 'Material Icon Theme' }).first();
-      await Promise.all([
-        waitForPanelResponse(page, 'extensions', 'POST'),
-        extensionCard.getByRole('button', { name: 'Install' }).click(),
-      ]);
-      await page
-        .locator('.bolt-project-installed-extensions', { hasText: 'Material Icon Theme' })
-        .first()
-        .waitFor({ state: 'visible', timeout: 10_000 });
+      await auditMcpUiLifecycle(page, `${appBaseUrl}/api/projects/${projectId}/ide-panel/extensions`);
     },
-    'persist_extension_visible_after_backend_reload',
+    'install_disable_enable_remove_mcp_extension_persisted_after_reload',
   );
 
   await run(
@@ -703,12 +856,16 @@ async function auditCriticalUiInteractions(projectId, token) {
         .locator('.bolt-project-integrations-tabs')
         .getByRole('button', { name: /Webhooks/ })
         .click();
-      await page.getByRole('button', { name: 'Create Webhook' }).click();
+      await page.getByTestId('card-webhooks-list').getByRole('button', { name: 'Create Webhook', exact: true }).click();
       await page.getByPlaceholder('Deployment Notifications').fill(`Integration Audit Webhook ${Date.now()}`);
       await page.getByPlaceholder('https://example.com/webhook').fill('https://example.com/integrations-audit');
       await Promise.all([
         waitForPanelResponse(page, 'integrations', 'POST'),
-        page.getByRole('button', { name: 'Create Webhook' }).last().click(),
+        page
+          .getByTestId('card-webhooks-list')
+          .locator('form')
+          .getByRole('button', { name: 'Create Webhook', exact: true })
+          .click(),
       ]);
       await page.getByText('https://example.com/integrations-audit').waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -720,6 +877,7 @@ async function auditCriticalUiInteractions(projectId, token) {
     async (page) => {
       const workflowName = `Workflow Audit ${Date.now()}`;
       await page.getByTestId('new-workflow-button').click();
+
       const createForm = page.getByTestId('create-workflow-form');
       await createForm.getByTestId('workflow-name-input').fill(workflowName);
       await createForm.getByPlaceholder('npm run dev').fill(`echo ${workflowName}`);
@@ -727,17 +885,62 @@ async function auditCriticalUiInteractions(projectId, token) {
         waitForPanelResponse(page, 'workflows', 'POST'),
         page.getByRole('button', { name: 'Create Workflow' }).click(),
       ]);
+
       const workflowCard = page.locator('.bolt-project-workflow-card', { hasText: workflowName }).first();
       await workflowCard.waitFor({ state: 'visible', timeout: 10_000 });
       await workflowCard.locator('header button').first().click();
       await Promise.all([
         waitForPanelResponse(page, 'workflows', 'POST'),
-        workflowCard.getByRole('button', { name: 'Run', exact: true }).click(),
+        workflowCard.locator('header').getByRole('button', { name: 'Run now', exact: true }).click(),
       ]);
       await workflowCard.locator('.bolt-project-workflow-runs').waitFor({ state: 'visible', timeout: 20_000 });
-      await workflowCard.getByRole('button', { name: 'Shell Command' }).click();
-      await waitForPanelResponse(page, 'workflows', 'POST');
-      await workflowCard.getByText('Shell Command').first().waitFor({ state: 'visible', timeout: 10_000 });
+
+      const taskCountBefore = await workflowCard.locator('[data-testid^="workflow-task-"]').count();
+
+      // Observe the real reload before clicking; an optimistic row alone is not persistence evidence.
+
+      const reloadedWorkflow = page.waitForResponse(
+        async (response) => {
+          if (
+            !response.url().includes(`/api/projects/${projectId}/ide-panel/workflows`) ||
+            response.request().method() !== 'GET' ||
+            response.status() >= 500
+          ) {
+            return false;
+          }
+
+          const payload = await response.json().catch(() => null);
+          const workflow = payload?.data?.workflowsState?.workflows?.find((item) => item.name === workflowName);
+
+          return (
+            workflow?.tasks?.length === taskCountBefore + 1 && workflow.tasks.some((task) => task.taskType === 'shell')
+          );
+        },
+        { timeout: 15_000 },
+      );
+      const [reloadResponse] = await Promise.all([
+        reloadedWorkflow,
+        waitForPanelResponse(page, 'workflows', 'POST'),
+        workflowCard.locator('[data-testid^="add-task-"]').click(),
+      ]);
+
+      const reloadPayload = await reloadResponse.json();
+
+      const persistedTasks = reloadPayload.data.workflowsState.workflows.find(
+        (item) => item.name === workflowName,
+      ).tasks;
+
+      const addedTask = workflowCard.locator('[data-testid^="workflow-task-"]').nth(taskCountBefore);
+      await addedTask.waitFor({ state: 'visible', timeout: 10_000 });
+
+      const addedTaskId = (await addedTask.getAttribute('data-testid'))?.replace('workflow-task-', '');
+
+      if (
+        (await addedTask.locator('select[name="taskType"]').inputValue()) !== 'shell' ||
+        !persistedTasks.some((task) => String(task.id) === addedTaskId && task.taskType === 'shell')
+      ) {
+        throw new Error('New workflow task did not persist as a shell task');
+      }
     },
     'create_run_workflow_and_add_task_visible_after_backend_reload',
   );
@@ -822,15 +1025,21 @@ async function auditCriticalUiInteractions(projectId, token) {
   return { results, errors };
 }
 
-async function auditWorkspaceUiInteractions(projectId, token) {
-  const browser = await chromium.launch({ headless: true });
+async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostics) {
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
 
   async function withWorkspacePanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    browserNetworkDiagnostics.trackPage(page);
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, panel, ideCasCohort);
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
     page.on('pageerror', (error) => errors.push(`[workspace:${panel}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[workspace:${panel}] ${message.text()}`);
       }
@@ -845,8 +1054,10 @@ async function auditWorkspaceUiInteractions(projectId, token) {
       await action(page);
 
       const applicationError = (await page.getByText('Application Error').count()) > 0;
+
       return { ok: !applicationError, applicationError };
     } finally {
+      await terminalDiagnostics.flush();
       await page.close();
     }
   }
@@ -893,7 +1104,7 @@ async function auditWorkspaceUiInteractions(projectId, token) {
       if ((await saveButton.count()) > 0 && (await saveButton.isEnabled().catch(() => false))) {
         await saveButton.click();
       } else {
-        await page.getByRole('button', { name: 'Open Files' }).click();
+        await page.getByTestId('ide-dock-files').click();
         await page.locator('.bolt-project-files-tool').first().waitFor({ state: 'visible', timeout: 10_000 });
       }
     },
@@ -908,8 +1119,11 @@ async function auditWorkspaceUiInteractions(projectId, token) {
       await filesPanel.waitFor({ state: 'visible', timeout: 15_000 });
       await page.getByLabel('Refresh files').click();
       await page.getByLabel('Collapse all files').click();
-      page.once('dialog', (dialog) => void dialog.accept(fileName));
       await page.getByLabel('New file').click();
+
+      const createFileDialog = page.getByRole('dialog', { name: 'New file', exact: true });
+      await createFileDialog.getByLabel('File path', { exact: true }).fill(fileName);
+      await createFileDialog.getByRole('button', { name: 'Create', exact: true }).click();
       await page
         .locator('[data-testid="responsive-code-editor"]')
         .first()
@@ -931,7 +1145,7 @@ async function auditWorkspaceUiInteractions(projectId, token) {
   await run(
     'locks',
     async (page) => {
-      await page.getByPlaceholder('Search...').fill('panel-audit');
+      await page.getByRole('textbox', { name: 'Search locked items', exact: true }).fill('panel-audit');
       await page.locator('select').selectOption('files');
       await page.getByText('No locked items found').waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -943,10 +1157,15 @@ async function auditWorkspaceUiInteractions(projectId, token) {
     async (page) => {
       await page.locator('.bolt-project-webview-tool').first().waitFor({ state: 'visible', timeout: 30_000 });
       await page.getByLabel('Preview device').selectOption('mobile');
-      await page.locator('.bolt-project-webview-frame[data-preview-device="mobile"]').waitFor({
+      await page.locator('[data-testid="preview-device-frame"][data-preview-device="mobile"]').waitFor({
         state: 'visible',
         timeout: 10_000,
       });
+
+      if ((await page.getByTestId('preview-device-frame').count()) !== 1) {
+        throw new Error('Expected exactly one canonical preview device frame');
+      }
+
       await page.getByTitle('Webview logs').click();
       await page.locator('.bolt-preview-logs-panel').first().waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -957,14 +1176,18 @@ async function auditWorkspaceUiInteractions(projectId, token) {
     'terminal',
     async (page) => {
       await page.locator('.bolt-project-terminal-direct-panel').first().waitFor({ state: 'visible', timeout: 30_000 });
-      await page.getByRole('button', { name: 'Vibecore Terminal' }).first().waitFor({
-        state: 'visible',
-        timeout: 30_000,
-      });
+      await page
+        .getByRole('button', { name: /^Open shell sessions\. Active session / })
+        .first()
+        .waitFor({
+          state: 'visible',
+          timeout: 30_000,
+        });
       await page.getByRole('button', { name: 'Runtime panels' }).click();
       await page.locator('[data-testid="terminal-hub-panel"]').first().waitFor({ state: 'visible', timeout: 30_000 });
       await page.getByTestId('tab-scripts').click();
       await page.getByTestId('button-create-script').click();
+
       const marker = `terminal-audit-${Date.now()}`;
       await page.getByTestId('input-script-name').fill('Terminal audit script');
       await page.getByTestId('textarea-script-content').fill(`echo ${marker}`);
@@ -974,15 +1197,18 @@ async function auditWorkspaceUiInteractions(projectId, token) {
       ]);
       await page.getByText('Terminal audit script').waitFor({ state: 'visible', timeout: 20_000 });
       await page.getByTestId('tab-environment').click();
-      await page.getByTestId('button-add-env-var').click();
+
+      const envPanel = page.getByTestId('card-env-vars');
+      await envPanel.getByRole('button', { name: 'New variable', exact: true }).click();
+
       const key = `TERMINAL_AUDIT_${Date.now()}`;
-      await page.getByTestId('input-env-key').fill(key);
-      await page.getByTestId('input-env-value').fill('enabled');
+      await envPanel.getByPlaceholder('VITE_API_URL', { exact: true }).fill(key);
+      await envPanel.locator('input[name="value"]').fill('enabled');
       await Promise.all([
-        waitForWorkspacePanelResponse(page, 'terminal', 'POST'),
-        page.getByTestId('button-save-env').click(),
+        waitForWorkspacePanelResponse(page, 'env', 'POST'),
+        envPanel.getByRole('button', { name: 'Save variable', exact: true }).click(),
       ]);
-      await page.getByText(key).waitFor({ state: 'visible', timeout: 10_000 });
+      await envPanel.getByText(key, { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
     },
     'reset_terminal_run_script_and_save_env',
   );
@@ -992,10 +1218,11 @@ async function auditWorkspaceUiInteractions(projectId, token) {
   return { results, errors };
 }
 
-async function auditResponsiveViewports(projectId, token) {
-  const browser = await chromium.launch({ headless: true });
+async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
+  const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
+
   const viewports = [
     { name: 'desktop', width: 1440, height: 900, mode: 'desktop' },
     { name: 'laptop', width: 1280, height: 800, mode: 'desktop' },
@@ -1039,8 +1266,14 @@ async function auditResponsiveViewports(projectId, token) {
 
   for (const viewport of viewports) {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
+    browserNetworkDiagnostics.trackPage(page);
+    page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, 'responsive', ideCasCohort);
+    page.on('response', (response) => browserHttpDiagnostics.capture(response, 'responsive'));
     page.on('pageerror', (error) => errors.push(`[responsive:${viewport.name}] ${error.message}`));
     page.on('console', (message) => {
+      terminalDiagnostics.capture(message);
+
       if (message.type() === 'error' && !/net::ERR_ABORTED/.test(message.text())) {
         errors.push(`[responsive:${viewport.name}] ${message.text()}`);
       }
@@ -1100,6 +1333,7 @@ async function auditResponsiveViewports(projectId, token) {
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
+      await terminalDiagnostics.flush();
       await page.close();
     }
   }
@@ -1140,14 +1374,27 @@ function networkEvidence(results) {
 }
 
 async function runAuditPass() {
+  const terminalDiagnostics = createTerminalWarningDiagnostics();
+  const persistenceDiagnostics = createPanelPersistenceDiagnostics();
+  const secretsDiagnostics = createSecretsLifecycleEvidence();
   const auth = await registerAuditUser();
   const project = await createAuditProject(auth.token, auth.organization.id);
   const cookie = `vc_session=${auth.token}`;
-  const endpointResults = await auditBackendPanels(project.id, cookie);
-  const renderAudit = await auditPanelRender(project.id, auth.token);
-  const interactionAudit = await auditCriticalUiInteractions(project.id, auth.token);
-  const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token);
-  const responsiveAudit = await auditResponsiveViewports(project.id, auth.token);
+  const endpointResults = await auditBackendPanels(project.id, cookie, auth.token);
+  const renderAudit = await auditPanelRender(project.id, auth.token, terminalDiagnostics);
+
+  const interactionAudit = await auditCriticalUiInteractions(
+    project.id,
+    auth.token,
+    terminalDiagnostics,
+    persistenceDiagnostics,
+    secretsDiagnostics,
+  );
+
+  const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token, terminalDiagnostics);
+  const responsiveAudit = await auditResponsiveViewports(project.id, auth.token, terminalDiagnostics);
+  await persistenceDiagnostics.flush();
+
   const pageErrors = [
     ...renderAudit.errors,
     ...interactionAudit.errors,
@@ -1180,6 +1427,12 @@ async function runAuditPass() {
     networkEvidence: networkEvidence(results),
     results,
     pageErrors,
+    terminalDiagnostics: terminalDiagnostics.snapshot(),
+    persistenceDiagnostics: persistenceDiagnostics.snapshot(),
+    secretsLifecycle: secretsDiagnostics.snapshot(),
+    browserNetworkDiagnostics: browserNetworkDiagnostics.snapshot(),
+    browserHttpDiagnostics: browserHttpDiagnostics.snapshot(),
+    ideCasDiagnostics: ideCasDiagnostics.snapshot(),
   };
 }
 

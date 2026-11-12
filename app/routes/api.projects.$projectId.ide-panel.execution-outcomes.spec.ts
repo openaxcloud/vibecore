@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toResponse } from '~/lib/test/rr7-data';
 
 const apiRequest = vi.fn();
+afterEach(() => vi.restoreAllMocks());
 vi.mock('~/lib/enterprise-api.server', async () => ({
   ...(await vi.importActual<typeof import('~/lib/enterprise-api.server')>('~/lib/enterprise-api.server')),
   apiRequest: (...args: unknown[]) => apiRequest(...args),
@@ -17,7 +18,7 @@ const workflow = {
 };
 
 let stored: Record<string, any>;
-let result: { exitCode?: number; output: string } | Error;
+let result: { exitCode?: number; output: string } | Error | Response;
 let commandIndex: number;
 let failureIndex: number;
 beforeEach(() => {
@@ -66,7 +67,7 @@ beforeEach(() => {
         };
       }
 
-      if (result instanceof Error) {
+      if (result instanceof Error || result instanceof Response) {
         throw result;
       }
 
@@ -102,7 +103,17 @@ async function execute(panel: string) {
     } as any),
   );
 
-  return { status: response.status, body: await response.json() };
+  if (!(response instanceof Response)) {
+    throw new Error('Expected a serialized route Response');
+  }
+
+  const body = (await response.json()) as {
+    ok: boolean;
+    run: { id: string; status: string };
+    scan: { id: string; status: string };
+  };
+
+  return { status: response.status, body };
 }
 
 for (const panel of ['terminal', 'workflows', 'security']) {
@@ -188,7 +199,7 @@ it('does not claim package install success without its exit status', async () =>
   result = { output: 'fixture incomplete response' };
   await expect(execute('packages')).rejects.toMatchObject({
     init: { status: 422 },
-    data: { code: 'PACKAGE_RUN_FAILED', run: { status: 'failed', exitCode: -1 } },
+    data: { code: 'PACKAGE_RUN_OUTCOME_UNKNOWN', run: { status: 'failed', exitCode: -1 } },
   });
   expect(stored.VIBECORE_PACKAGES_STATE.runs[0].status).toBe('failed');
   expect(stored.VIBECORE_PACKAGES_STATE.runs[0].exitCode).toBe(-1);
@@ -221,3 +232,81 @@ for (const panel of ['terminal', 'workflows', 'security', 'packages']) {
     }
   });
 }
+
+it('gives package installation its command budget plus response overhead without changing other calls', async () => {
+  const deadline = vi.spyOn(AbortSignal, 'timeout');
+  await execute('packages');
+  expect(deadline).toHaveBeenCalledExactlyOnceWith(360_000);
+
+  const install = apiRequest.mock.calls.find((call) => call[1].endsWith('/packages/install'))!;
+  expect(JSON.parse(install[2].body).timeoutMs).toBe(300_000);
+  expect(install[2].signal).toBeInstanceOf(AbortSignal);
+  expect(install[2].signal.aborted).toBe(false);
+  expect(apiRequest.mock.calls.filter((call) => call[2]?.signal)).toHaveLength(1);
+});
+
+for (const error of [new DOMException('timed out', 'TimeoutError'), new TypeError('fetch failed')]) {
+  it(`reports an unknown install outcome after ${error.name}, without retrying`, async () => {
+    result = error;
+    await expect(execute('packages')).rejects.toMatchObject({
+      init: { status: 422 },
+      data: { code: 'PACKAGE_RUN_OUTCOME_UNKNOWN', run: { exitCode: -1, status: 'failed' } },
+    });
+    expect(commandIndex).toBe(1);
+
+    const run = stored.VIBECORE_PACKAGES_STATE.runs[0];
+    expect(run.outcomeUnknown).toBe(true);
+    expect(run.output).toMatch(/outcome.*unknown/i);
+    expect(run.output).toMatch(/before.*retry/i);
+  });
+}
+
+for (const exitCode of [1, 127]) {
+  it(`preserves actual package failure exit ${exitCode}`, async () => {
+    result = { exitCode, output: 'registry rejected package' };
+    await expect(execute('packages')).rejects.toMatchObject({
+      init: { status: 422 },
+      data: { code: 'PACKAGE_RUN_FAILED', run: { exitCode } },
+    });
+    expect(commandIndex).toBe(1);
+    expect(stored.VIBECORE_PACKAGES_STATE.runs[0].outcomeUnknown).toBe(false);
+  });
+}
+
+for (const status of [408, 499, 502, 504]) {
+  it(`treats upstream ${status} as uncertain, not proof nothing installed`, async () => {
+    result = Response.json({ error: 'agent response lost' }, { status });
+    await expect(execute('packages')).rejects.toMatchObject({
+      data: { code: 'PACKAGE_RUN_OUTCOME_UNKNOWN' },
+    });
+    expect(commandIndex).toBe(1);
+  });
+}
+
+it('does not invent a command exit for an upstream validation rejection', async () => {
+  result = Response.json({ error: 'Invalid package spec' }, { status: 400 });
+  await expect(execute('packages')).rejects.toMatchObject({
+    data: { code: 'PACKAGE_RUN_FAILED', run: { exitCode: -1 } },
+  });
+  expect(stored.VIBECORE_PACKAGES_STATE.runs[0].outcomeUnknown).toBe(false);
+  expect(commandIndex).toBe(1);
+});
+
+for (const termination of ['timeout', 'interrupted'] as const) {
+  it(`preserves known ${termination} without reporting an unknown result or success`, async () => {
+    result = { exitCode: -1, success: false, termination, output: 'fixture' } as typeof result;
+    await expect(execute('packages')).rejects.toMatchObject({
+      data: { code: 'PACKAGE_RUN_FAILED', run: { exitCode: -1, termination, status: 'failed' } },
+    });
+    expect(stored.VIBECORE_PACKAGES_STATE.runs[0].outcomeUnknown).toBe(false);
+    expect(stored.VIBECORE_PACKAGES_STATE.runs[0].output).toMatch(/time limit|interrupted/);
+    expect(commandIndex).toBe(1);
+  });
+}
+
+it('does not accept a timeout that happened to exit zero as install success', async () => {
+  result = { exitCode: 0, success: false, termination: 'timeout', output: 'fixture' } as typeof result;
+  await expect(execute('packages')).rejects.toMatchObject({
+    data: { run: { termination: 'timeout', status: 'failed', exitCode: 0 } },
+  });
+});

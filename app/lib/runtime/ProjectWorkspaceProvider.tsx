@@ -2,6 +2,7 @@ import type { CommandEvent, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { useEffect, useMemo, useRef, type PropsWithChildren } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { createWorkspaceTerminalReadiness, workspaceTerminalReadinessContext } from './WorkspaceTerminalReadiness';
 import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import { formatEcrituresEnAttentePluriel, getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
@@ -86,6 +87,11 @@ export function ProjectWorkspaceProvider({
   const runtime = useMemo(
     () => adapter ?? createRuntimeAdapter(getRuntimeMode(), { projectId, workspaceId }),
     [adapter, projectId, workspaceId],
+  );
+
+  const terminalReadiness = useMemo(
+    () => createWorkspaceTerminalReadiness(),
+    [runtime, projectId, workspaceId, initialError],
   );
 
   useEffect(() => {
@@ -434,6 +440,12 @@ export function ProjectWorkspaceProvider({
           return;
         }
 
+        /*
+         * The adapter now has its real workspace ID and the project tree is seeded.
+         * Before this point terminal.openTerminal can throw WORKSPACE_NOT_STARTED.
+         */
+        terminalReadiness.open();
+
         void workbenchStore.startPreviewServer().catch((error) => {
           console.error('Preview auto-start failed:', error);
           workbenchStore.appendWorkspaceLog(
@@ -482,6 +494,8 @@ export function ProjectWorkspaceProvider({
 
         console.error('Workspace start failed:', error);
 
+        terminalReadiness.close();
+
         const message = clientStoresServicesText('clientRuntime.workspace.startFailed');
         workbenchStore.workspaceError.set(message);
 
@@ -516,6 +530,7 @@ export function ProjectWorkspaceProvider({
 
     return () => {
       cancelled = true;
+      terminalReadiness.close();
       stopLogs?.();
 
       if (heartbeat) {
@@ -553,11 +568,13 @@ export function ProjectWorkspaceProvider({
        */
       workbenchStore.configureProject(undefined);
     };
-  }, [initialError, projectId, workspaceId, runtime]);
+  }, [initialError, projectId, workspaceId, runtime, terminalReadiness]);
 
   return (
     <RuntimeAdapterProvider adapter={runtime} projectId={projectId}>
-      {children}
+      <workspaceTerminalReadinessContext.Provider value={terminalReadiness}>
+        {children}
+      </workspaceTerminalReadinessContext.Provider>
     </RuntimeAdapterProvider>
   );
 }

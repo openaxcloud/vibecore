@@ -254,13 +254,18 @@ async function startRuntimeServices(
     agentUnavailable?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
+    agentTokenDelayMs?: number;
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
+  const socketMessages: string[] = [];
   // Captures the parsed body of every POST /commands/run so tests can assert
   // the exact argv the API dispatched to the workspace pod.
   const commandBodies: Array<{ command: string; args?: string[]; timeoutMs?: number }> = [];
+
+  const packageInstallBodies: Array<{ packageManager: string; packages: string[]; dev: boolean; timeoutMs: number }> =
+    [];
 
   const agent = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://agent.local');
@@ -293,6 +298,13 @@ async function startRuntimeServices(
         files.set(payload.to, files.get(payload.from) ?? '');
         files.delete(payload.from);
         response.end(JSON.stringify({ ok: true }));
+      } else if (request.method === 'GET' && url.pathname === '/packages/v1/capabilities') {
+        response.end(JSON.stringify({ version: 1, maxBudgetMs: 300_000, validatedSpecs: 1 }));
+      } else if (request.method === 'POST' && url.pathname === '/packages/v1/install') {
+        packageInstallBodies.push(payload);
+        response.end(
+          JSON.stringify({ code: 0, stdout: options.commandStdout ?? '', stderr: options.commandStderr ?? '' }),
+        );
       } else if (request.method === 'POST' && url.pathname === '/commands/run') {
         commandBodies.push({ command: payload.command, args: payload.args, timeoutMs: payload.timeoutMs });
         response.end(
@@ -349,6 +361,7 @@ async function startRuntimeServices(
       socket.send(JSON.stringify({ type: 'stdout', data: 'hello from shell\r\n', timestamp: 'now' }));
       socket.on('message', (raw) => {
         const text = raw.toString();
+        socketMessages.push(text);
 
         // Echo back stdin the way a shell would, still JSON-framed.
         try {
@@ -378,7 +391,7 @@ async function startRuntimeServices(
       managerCalls.push({ pathname: url.pathname, body: body ? JSON.parse(body) : {} });
 
       if (url.pathname.endsWith('/agent-token')) {
-        response.end(JSON.stringify({ token: 'runtime-token' }));
+        setTimeout(() => response.end(JSON.stringify({ token: 'runtime-token' })), options.agentTokenDelayMs ?? 0);
       } else if (url.pathname.endsWith('/logs')) {
         response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
       } else if (
@@ -415,6 +428,8 @@ async function startRuntimeServices(
     files,
     calls,
     commandBodies,
+    packageInstallBodies,
+    socketMessages,
     managerCalls,
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
@@ -5610,6 +5625,102 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it.each(['commands/stream', 'terminal'])(
+    'retains immediate input during delayed agent token for %s',
+    async (route) => {
+      const runtime = await startRuntimeServices({ agentTokenDelayMs: 150 });
+      const app = await buildTestApiApp({ store: new TestApiStore() });
+
+      const auth = await register(app, {
+        email: `early-${route.replace('/', '-')}@example.com`,
+        organizationName: 'Early Input Org',
+      });
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Early input' },
+      });
+
+      const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
+      const socket = new WebSocket(
+        `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${project.json().project.id}/${route}?managed=1&token=${encodeURIComponent(auth.token)}`,
+      );
+
+      const hello = JSON.stringify({ type: 'hello', payload: { command: 'echo', args: ['early'] } });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket.once('error', reject);
+          socket.once('open', () => {
+            socket.send(hello);
+            resolve();
+          });
+        });
+        await vi.waitFor(() => expect(runtime.socketMessages).toEqual([hello]), { timeout: 2000 });
+      } finally {
+        socket.terminate();
+        await app.close();
+        await runtime.close();
+      }
+    },
+  );
+
+  it.each(['commands/stream', 'terminal'])(
+    'does not forward immediate input when terminal access is revoked for %s',
+    async (route) => {
+      const runtime = await startRuntimeServices({ agentTokenDelayMs: 150 });
+      const app = await buildTestApiApp({ store: new TestApiStore() });
+
+      const auth = await register(app, {
+        email: `early-${route.replace('/', '-')}@example.com`,
+        organizationName: 'Early Input Org',
+      });
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Early input' },
+      });
+
+      const permission = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.json().project.id}/collaboration/terminal-permissions`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { userId: auth.user.id, sessionId: 'revoked-session', allowed: false },
+      });
+      expect(permission.statusCode).toBe(200);
+      const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
+      const socket = new WebSocket(
+        `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${project.json().project.id}/${route}?managed=1&token=${encodeURIComponent(auth.token)}`,
+      );
+
+      const received: string[] = [];
+      socket.on('message', (raw) => received.push(raw.toString()));
+      const hello = JSON.stringify({ type: 'hello', payload: { command: 'echo', args: ['early'] } });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket.once('error', reject);
+          socket.once('open', () => {
+            socket.send(hello);
+            resolve();
+          });
+        });
+        await vi.waitFor(() => expect(received.join('')).toContain('TERMINAL_ACCESS_DENIED'), { timeout: 2000 });
+        expect(runtime.socketMessages).toEqual([]);
+        expect(runtime.calls.some((call) => call.startsWith('WS '))).toBe(false);
+        expect(runtime.managerCalls.some((call) => call.pathname.endsWith('/agent-token'))).toBe(false);
+      } finally {
+        socket.terminate();
+        await app.close();
+        await runtime.close();
+      }
+    },
+  );
+
   it('passes terminal output through the proxy as single, unwrapped CommandEvent frames', async () => {
     // Regression: the workspace-agent frames terminal output as JSON CommandEvents,
     // but the proxy still wrapped it again, double-encoding every frame so the IDE
@@ -6042,8 +6153,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       const payload = response.json();
 
-      // Reused the real runtime shell-exec (/commands/run) in this project's pod.
-      expect(runtime.calls).toContain('POST /commands/run');
+      // Fixture verifies the protocol, not a real package installation.
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.calls).not.toContain('POST /commands/run');
+      expect(runtime.commandBodies).toHaveLength(0);
       expect(payload.workspaceId).toBe(expectedWorkspaceId);
       expect(payload.projectId).toBe(projectId);
       expect(payload.packageManager).toBe('pnpm');
@@ -6051,12 +6167,76 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(payload.exitCode).toBe(0);
       expect(payload.output).toContain('added 1 package');
 
-      // The command builder picked pnpm and produced a well-formed argv.
-      expect(runtime.commandBodies).toHaveLength(1);
-      expect(runtime.commandBodies[0]).toMatchObject({
-        command: 'pnpm',
-        args: ['add', '-D', 'left-pad', '@scope/util@^1.2.0'],
+      // The agent receives validated structured fields, never an arbitrary command.
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.commandBodies).toHaveLength(0);
+      expect(runtime.packageInstallBodies).toHaveLength(1);
+      expect(runtime.packageInstallBodies[0]).toMatchObject({
+        packageManager: 'pnpm',
+        packages: ['left-pad', '@scope/util@^1.2.0'],
+        dev: true,
+        timeoutMs: 300_000,
       });
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('normalizes absent package dev to false, preserves booleans and rejects malformed dev before mutation', async () => {
+    const store = new TestApiStore();
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store });
+
+    const auth = await register(app, {
+      email: 'pkg-dev-contract@example.com',
+      organizationName: 'Package Dev Contract',
+    });
+
+    try {
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Package Dev Contract Project' },
+      });
+
+      const projectId = project.json().project.id as string;
+
+      for (const input of [{}, { dev: false }, { dev: true }]) {
+        const before = runtime.packageInstallBodies.length;
+
+        const response = await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/packages/install`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { packages: ['is-odd'], packageManager: 'npm', ...input },
+        });
+        expect(response.statusCode).toBe(201);
+        expect(runtime.packageInstallBodies).toHaveLength(before + 1);
+        expect(runtime.packageInstallBodies.at(-1)).toEqual({
+          packageManager: 'npm',
+          packages: ['is-odd'],
+          dev: 'dev' in input ? input.dev : false,
+          timeoutMs: 300_000,
+        });
+      }
+
+      for (const dev of [null, 'false', 'true', 0, 1, {}, []]) {
+        const before = runtime.packageInstallBodies.length;
+
+        const response = await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/packages/install`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { packages: ['is-odd'], packageManager: 'npm', dev },
+        });
+        expect(response.statusCode).toBe(400);
+        expect(runtime.packageInstallBodies).toHaveLength(before);
+      }
     } finally {
       await runtime.close();
       await app.close();
@@ -6109,8 +6289,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(201);
       expect(response.json().workspaceId).toBe(workspaceId);
-      expect(runtime.commandBodies).toHaveLength(1);
-      expect(runtime.commandBodies[0]).toMatchObject({ command: 'npm', args: ['install', 'lodash'] });
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.commandBodies).toHaveLength(0);
+      expect(runtime.packageInstallBodies).toHaveLength(1);
+      expect(runtime.packageInstallBodies[0]).toMatchObject({
+        packageManager: 'npm',
+        packages: ['lodash'],
+        dev: false,
+        timeoutMs: 300_000,
+      });
     } finally {
       await runtime.close();
       await app.close();
@@ -6160,7 +6350,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(403);
       expect(response.json().code).toBe('WORKSPACE_PROJECT_MISMATCH');
+      expect(runtime.packageInstallBodies).toHaveLength(0);
       expect(runtime.calls).not.toContain('POST /commands/run');
+      expect(runtime.commandBodies).toHaveLength(0);
     } finally {
       await runtime.close();
       await app.close();
@@ -6197,7 +6389,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(rejected.statusCode).toBe(400);
       expect(rejected.json().code).toBe('INVALID_PACKAGE_SPEC');
+      expect(runtime.packageInstallBodies).toHaveLength(0);
       expect(runtime.calls).not.toContain('POST /commands/run');
+      expect(runtime.commandBodies).toHaveLength(0);
 
       // A clean single package resolves to `npm install <pkg>`.
       const response = await app.inject({
@@ -6209,10 +6403,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(201);
       expect(response.json().packageManager).toBe('npm');
-      expect(runtime.commandBodies).toHaveLength(1);
-      expect(runtime.commandBodies[0]).toMatchObject({
-        command: 'npm',
-        args: ['install', 'react'],
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.commandBodies).toHaveLength(0);
+      expect(runtime.packageInstallBodies).toHaveLength(1);
+      expect(runtime.packageInstallBodies[0]).toMatchObject({
+        packageManager: 'npm',
+        packages: ['react'],
+        dev: false,
+        timeoutMs: 300_000,
       });
     } finally {
       await runtime.close();

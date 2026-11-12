@@ -137,6 +137,7 @@ export type PreviewServerState = {
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'git';
 export type ProjectFilesPanelRequest = {
+  projectId: string;
   open?: boolean;
   requestId: number;
 };
@@ -578,8 +579,8 @@ export class WorkbenchStore {
     });
   }
 
-  requestProjectFilesPanel(open?: boolean) {
-    this.projectFilesPanelRequest.set({ open, requestId: Date.now() });
+  requestProjectFilesPanel(projectId: string, open?: boolean) {
+    this.projectFilesPanelRequest.set({ projectId, open, requestId: Date.now() });
   }
 
   configureRuntime(runtime: RuntimeAdapter, projectId?: string) {
