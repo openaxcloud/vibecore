@@ -401,7 +401,7 @@ function backupProofError(): Error {
   return Object.assign(new Error('BACKUP_PROVENANCE_UNCONFIRMED'), { code: 'BACKUP_PROVENANCE_UNCONFIRMED' });
 }
 
-function validateProvenBackup(value: unknown, intent: BackupProvenanceRecord): string {
+export function validateProvenBackup(value: unknown, intent: BackupProvenanceRecord): string {
   const resource = backupRecord(value);
   const metadata = backupRecord(resource.metadata);
   const labels = backupRecord(metadata.labels);

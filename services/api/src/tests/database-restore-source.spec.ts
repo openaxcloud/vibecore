@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 // eslint-disable-next-line no-restricted-imports -- API service does not use the web ~/ alias.
-import { buildClusterManifest, buildOnDemandBackupManifest } from '../database-provisioner.js';
+import { buildClusterManifest, buildOnDemandBackupManifest, provenBackupName } from '../database-provisioner.js';
 // eslint-disable-next-line no-restricted-imports -- API service does not use the web ~/ alias.
-import { inspectCnpgRestoreSource } from '../database-restore-source.js';
+import { inspectCnpgRestoreSource, inspectProvenanceBoundCnpgRestoreSource } from '../database-restore-source.js';
 
 // Controlled Kubernetes metadata only. No CNPG, cloud or physical archive proof.
 function fixture() {
@@ -182,4 +182,100 @@ describe('CNPG restore source preflight — controlled metadata', () => {
       await expect(inspectCnpgRestoreSource(f.reader, f.input)).rejects.toThrow('RESTORE_SOURCE_IDENTITY_MISMATCH');
     },
   );
+});
+
+describe('provenance-bound v2 restore preflight', () => {
+  function provenFixture() {
+    const f = fixture();
+
+    const intent = {
+      ...f.input,
+      id: 'intent',
+      nonce: 'nonce',
+      instanceId: 'instance',
+      bindingVersion: 0,
+      sourceName: f.cluster.metadata.name,
+      sourceUid: f.cluster.metadata.uid,
+      backupName: provenBackupName(f.input.projectId, f.input.snapshotId, f.input.environment),
+      backupUid: f.backup.metadata.uid,
+      createdAt: '2026-10-25T09:59:00Z',
+    };
+    f.backup.metadata.name = intent.backupName;
+    f.backup.metadata.labels['vibecore.ai/org-id'] = intent.organizationId;
+    f.backup.metadata.annotations = {
+      'vibecore.ai/backup-intent-id': intent.id,
+      'vibecore.ai/backup-intent-nonce': intent.nonce,
+      'vibecore.ai/source-uid': intent.sourceUid,
+      'vibecore.ai/database-instance-id': intent.instanceId,
+      'vibecore.ai/database-binding-version': String(intent.bindingVersion),
+      'vibecore.ai/database-environment': intent.environment,
+    };
+
+    return { ...f, intent, repository: { get: async () => ({ ...intent }) } };
+  }
+  it('reads exact v2 resources and binds durable provenance without claiming physical verification', async () => {
+    const f = provenFixture();
+    const result = await inspectProvenanceBoundCnpgRestoreSource(f.reader, f.repository, f.input);
+    expect(result).toMatchObject({
+      provenanceLinked: true,
+      provenanceId: 'intent',
+      instanceId: 'instance',
+      bindingVersion: 0,
+      archiveVerified: false,
+      walContinuityVerified: false,
+    });
+    expect(f.reads).toEqual([
+      `Cluster/project-databases/${f.intent.sourceName}`,
+      `Backup/project-databases/${f.intent.backupName}`,
+    ]);
+    expect(JSON.stringify(result)).not.toContain('nonce');
+  });
+  it.each(['sourceUid', 'backupUid', 'nonce', 'instanceId', 'bindingVersion', 'environment', 'id'] as const)(
+    'rejects resource/journal mismatch in %s',
+    async (key) => {
+      const f = provenFixture();
+      Object.assign(f.intent, { [key]: key === 'bindingVersion' ? 1 : 'different' });
+      await expect(inspectProvenanceBoundCnpgRestoreSource(f.reader, f.repository, f.input)).rejects.toThrow(
+        'RESTORE_SOURCE_PROVENANCE_UNCONFIRMED',
+      );
+    },
+  );
+  it('refuses missing provenance before reading any Kubernetes resource', async () => {
+    const f = provenFixture();
+    await expect(
+      inspectProvenanceBoundCnpgRestoreSource(f.reader, { get: async () => undefined }, f.input),
+    ).rejects.toThrow('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
+    expect(f.reads).toEqual([]);
+  });
+  it('does not adopt an unbound backup UID', async () => {
+    const f = provenFixture();
+    await expect(
+      inspectProvenanceBoundCnpgRestoreSource(
+        f.reader,
+        { get: async () => ({ ...f.intent, backupUid: undefined }) },
+        f.input,
+      ),
+    ).rejects.toThrow('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
+    expect(f.reads).toEqual([]);
+  });
+  it.each(['removed', 'changed', 'error'])('rejects a journal %s during Kubernetes reads', async (kind) => {
+    const f = provenFixture();
+
+    let count = 0;
+
+    const get = async () => {
+      if (++count === 1) {
+        return { ...f.intent };
+      }
+
+      if (kind === 'error') {
+        throw new Error('private transport detail');
+      }
+
+      return kind === 'removed' ? undefined : { ...f.intent, bindingVersion: 1 };
+    };
+    await expect(inspectProvenanceBoundCnpgRestoreSource(f.reader, { get }, f.input)).rejects.toThrow(
+      'RESTORE_SOURCE_PROVENANCE_UNCONFIRMED',
+    );
+  });
 });
