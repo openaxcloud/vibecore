@@ -1,3 +1,4 @@
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {
   experimental_createMCPClient,
@@ -275,7 +276,11 @@ export class MCPService {
   }
 
   async updateConfig(config: MCPConfig) {
-    logger.debug('updating config', JSON.stringify(config));
+    /*
+     * Config, URLs, arguments and raw transport errors can contain credentials.
+     * Log bounded operational metadata/codes instead of provider-controlled values.
+     */
+    logger.debug('updating config', { serverCount: Object.keys(config.mcpServers).length });
     this._config = config;
     await this._createClients();
 
@@ -286,7 +291,7 @@ export class MCPService {
     serverName: string,
     config: StreamableHTTPServerConfig,
   ): Promise<MCPClient> {
-    logger.debug(`Creating Streamable-HTTP client for ${serverName} with URL: ${config.url}`);
+    logger.debug(`Creating Streamable-HTTP client for ${serverName}`);
 
     const client = await experimental_createMCPClient({
       transport: new StreamableHTTPClientTransport(new URL(config.url), {
@@ -300,19 +305,36 @@ export class MCPService {
   }
 
   private async _createSSEClient(serverName: string, config: SSEServerConfig): Promise<MCPClient> {
-    logger.debug(`Creating SSE client for ${serverName} with URL: ${config.url}`);
+    logger.debug(`Creating SSE client for ${serverName}`);
 
-    const client = await experimental_createMCPClient({
-      transport: config,
+    /*
+     * Use the patched SDK transport for both the SSE GET and message POSTs.
+     * The AI SDK's built-in SSE transport follows cross-origin redirects.
+     */
+    const transport = new SSEClientTransport(new URL(config.url), {
+      requestInit: {
+        headers: config.headers,
+      },
     });
 
-    return Object.assign(client, { serverName });
+    try {
+      const client = await experimental_createMCPClient({ transport });
+
+      return Object.assign(client, { serverName });
+    } catch (error) {
+      // AI SDK close is a no-op before start succeeds; own failed-start cleanup.
+      try {
+        await transport.close();
+      } catch {
+        logger.error(`Error closing failed MCP client for ${serverName}:`, 'MCP_CLOSE_FAILED');
+      }
+
+      throw error;
+    }
   }
 
   private async _createStdioClient(serverName: string, config: STDIOServerConfig): Promise<MCPClient> {
-    logger.debug(
-      `Creating STDIO client for '${serverName}' with command: '${config.command}' ${config.args?.join(' ') || ''}`,
-    );
+    logger.debug(`Creating STDIO client for '${serverName}'`);
 
     const client = await experimental_createMCPClient({ transport: new Experimental_StdioMCPTransport(config) });
 
@@ -367,8 +389,8 @@ export class MCPService {
             tools,
             config,
           };
-        } catch (error) {
-          logger.error(`Failed to get tools from server ${serverName}:`, error);
+        } catch {
+          logger.error(`Failed to get tools from server ${serverName}:`, MCP_UNAVAILABLE_CODE.toolsUnavailable);
           this._mcpToolsPerServer[serverName] = {
             status: 'unavailable',
             error: MCP_UNAVAILABLE_CODE.toolsUnavailable,
@@ -384,9 +406,12 @@ export class MCPService {
            * default stdio "memory" server saved doesn't spam an ERROR stack on
            * every chat request.
            */
-          logger.debug(`Skipping MCP server "${serverName}": ${error.message}`);
+          logger.debug(`Skipping MCP server "${serverName}":`, MCP_UNAVAILABLE_CODE.configurationRejected);
         } else {
-          logger.error(`Failed to initialize MCP client for server: ${serverName}`, error);
+          logger.error(
+            `Failed to initialize MCP client for server: ${serverName}`,
+            MCP_UNAVAILABLE_CODE.connectionFailed,
+          );
         }
 
         this._mcpToolsPerServer[serverName] = {
@@ -430,8 +455,8 @@ export class MCPService {
             tools,
             config: server.config,
           };
-        } catch (error) {
-          logger.error(`Failed to get tools from server ${serverName}:`, error);
+        } catch {
+          logger.error(`Failed to get tools from server ${serverName}:`, MCP_UNAVAILABLE_CODE.toolsUnavailable);
           this._mcpToolsPerServer[serverName] = {
             status: 'unavailable',
             error: MCP_UNAVAILABLE_CODE.toolsUnavailable,
@@ -441,8 +466,8 @@ export class MCPService {
         }
 
         logger.debug(`Checking MCP server "${serverName}" availability: end`);
-      } catch (error) {
-        logger.error(`Failed to connect to server ${serverName}:`, error);
+      } catch {
+        logger.error(`Failed to connect to server ${serverName}:`, MCP_UNAVAILABLE_CODE.connectionFailed);
         this._mcpToolsPerServer[serverName] = {
           status: 'unavailable',
           error: MCP_UNAVAILABLE_CODE.connectionFailed,
@@ -467,8 +492,8 @@ export class MCPService {
 
       try {
         await server.client.close();
-      } catch (error) {
-        logger.error(`Error closing client for ${serverName}:`, error);
+      } catch {
+        logger.error(`Error closing client for ${serverName}:`, 'MCP_CLOSE_FAILED');
       }
     });
 
@@ -533,15 +558,15 @@ export class MCPService {
           const toolInstance = this._tools[toolName];
 
           if (toolInstance && typeof toolInstance.execute === 'function') {
-            logger.debug(`calling tool "${toolName}" with args: ${JSON.stringify(toolInvocation.args)}`);
+            logger.debug(`calling tool "${toolName}"`);
 
             try {
               result = await toolInstance.execute(toolInvocation.args, {
                 messages: convertToCoreMessages(messages),
                 toolCallId,
               });
-            } catch (error) {
-              logger.error(`error while calling tool "${toolName}":`, error);
+            } catch {
+              logger.error(`error while calling tool "${toolName}":`, TOOL_EXECUTION_ERROR);
               result = TOOL_EXECUTION_ERROR;
             }
           } else {
