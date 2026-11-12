@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { installDatabaseResponseGate, withDatabaseCleanup } from './helpers/database-response-gate';
 
 // A real response is retained unchanged. No database cards or API success are fabricated.
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -43,39 +43,29 @@ for (const [locale, title] of [
     const projectId = (await created.json()).project.id as string;
 
     let bindingCreated = false;
-    let release!: () => void;
+    let capture: Awaited<ReturnType<typeof installDatabaseResponseGate>> | undefined;
 
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
+    async function attachCapture(phase: 'before-cleanup' | 'after-cleanup') {
+      if (!capture) {
+        return;
+      }
 
-    let released = false;
+      const body = JSON.stringify(capture.snapshot());
 
-    const pending = new Set<Promise<void>>();
-    const startedAt = Date.now();
+      try {
+        await testInfo.attach(`database-capture-${locale}-${phase}`, { body, contentType: 'application/json' });
+      } catch {
+        // A reporter failure must not replace the test failure or lose the safe diagnostic.
+        console.info(`DATABASE_CAPTURE_DIAGNOSTIC_FALLBACK ${body}`);
+      }
+    }
 
-    const responses: {
-      status: number;
-      bytes: number;
-      upstreamReadyMs: number;
-      deliveredMs?: number;
-      unchanged: boolean;
-    }[] = [];
-
-    let requestedAt = 0;
-    let initialRequests = 0;
-    let listRequests = 0;
-
-    const panelPath = `/api/projects/${projectId}/ide-panel/database`;
-
-    try {
+    await withDatabaseCleanup(async () => {
       await page.context().addCookies([
         { name: 'vc_session', value: auth.token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
         { name: 'vibecore-lang', value: locale, url: appBaseUrl, sameSite: 'Lax' },
         { name: 'ecode_theme', value: 'dark', url: appBaseUrl, sameSite: 'Lax' },
       ]);
-      await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-      await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
 
       const setup = await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
         headers,
@@ -97,73 +87,40 @@ for (const [locale, title] of [
         ),
       ).toBe(true);
 
-      await page.route('**/api/projects/*/ide-panel/database*', (route) => {
-        const url = new URL(route.request().url());
-
-        if (route.request().method() === 'GET' && url.pathname === panelPath && !url.searchParams.has('schemaKey')) {
-          listRequests += 1;
-        }
-
-        if (
-          released ||
-          route.request().method() !== 'GET' ||
-          url.pathname !== panelPath ||
-          url.searchParams.has('schemaKey')
-        ) {
-          return route.continue();
-        }
-
-        initialRequests += 1;
-        requestedAt ||= Date.now();
-
-        const handler = (async () => {
-          const response = await route.fetch({ timeout: 60_000, maxRetries: 0 });
-          expect(response.status()).toBe(200);
-
-          const bytes = await response.body();
-          const fingerprint = createHash('sha256').update(bytes).digest('hex');
-
-          const record: (typeof responses)[number] = {
-            status: response.status(),
-            bytes: bytes.length,
-            upstreamReadyMs: Date.now() - startedAt,
-            unchanged: false,
-          };
-          responses.push(record);
-          await gate;
-          expect(createHash('sha256').update(bytes).digest('hex')).toBe(fingerprint);
-          await route.fulfill({ response, body: bytes });
-          record.unchanged = true;
-          record.deliveredMs = Date.now() - startedAt;
-        })();
-        pending.add(handler);
-        void handler.finally(() => pending.delete(handler)).catch(() => undefined);
-
-        return handler;
-      });
+      // The real binding and both response barriers must exist before hydration can fetch.
+      capture = await installDatabaseResponseGate(page, projectId, appBaseUrl);
+      capture.mark('navigation');
+      await capture.guard(() => page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' }));
+      await capture.guard(() => expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 }));
+      capture.mark('open-panel');
       await page.getByTestId('button-add-tab').click();
       await page.getByTestId('tool-item-database').click();
 
       const panel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]:visible');
       await expect(page.getByTestId('tab-database')).toHaveAttribute('aria-pressed', 'true');
       await expect(panel.getByRole('heading', { name: title, exact: true })).toBeVisible({ timeout: 5_000 });
-      await expect.poll(() => responses.length, { timeout: 60_000 }).toBe(1);
+      await capture.waitForInitialResponse();
+      expect(capture.snapshot().responses).toHaveLength(1);
 
       // Keep the response pending past the historical heading assertion's five-second bound.
-      await expect.poll(() => Date.now() - requestedAt, { timeout: 8_000 }).toBeGreaterThan(6_000);
+      const requestedAt = capture.requestedAt;
+      await capture.guard(() => expect.poll(() => Date.now() - requestedAt, { timeout: 8_000 }).toBeGreaterThan(6_000));
       await expect(panel.getByRole('heading', { name: title, exact: true })).toBeVisible();
       await expect(panel.locator('[aria-busy="true"]')).toBeVisible();
       await expect(panel.getByTestId('db-carte')).toHaveCount(0);
       await expect(panel.locator('form')).toHaveCount(0);
       await expect(panel.getByText(/^(No database yet|Aucune base de données pour le moment)$/)).toHaveCount(0);
-      expect(initialRequests).toBe(1);
+      capture.assertHealthy();
+      expect(capture.snapshot().initialRequests).toBe(1);
+      expect(capture.snapshot().listRequests).toBe(1);
+      capture.mark('pending-verified');
       await testInfo.attach(`database-${locale}-pending`, {
         body: await page.screenshot({ mask: [page.locator('input, textarea, pre, code')] }),
         contentType: 'image/png',
       });
-      released = true;
-      release();
-      await Promise.all([...pending]);
+      capture.release();
+      await capture.settle();
+      capture.assertHealthy();
 
       const card = panel.getByTestId('db-carte').first();
       await expect(card).toBeVisible({ timeout: 30_000 });
@@ -172,53 +129,66 @@ for (const [locale, title] of [
         body: await page.screenshot({ mask: [page.locator('input, textarea, pre, code')] }),
         contentType: 'image/png',
       });
-      expect(responses.every((response) => response.unchanged)).toBe(true);
-      expect(listRequests, 'the child must reuse the parent response').toBe(1);
+      expect(capture.snapshot().responses.every((response) => response.unchanged)).toBe(true);
+      expect(capture.snapshot().listRequests, 'the child must reuse the parent response').toBe(1);
+      capture.mark('ready-verified');
       await card.click();
 
       const tables = panel.getByTestId('db-table');
       await expect(tables.first()).toBeVisible({ timeout: 30_000 });
       expect(await tables.count()).toBeGreaterThan(0);
+      capture.assertHealthy();
+      expect(capture.snapshot().listRequests, 'schema navigation must not reload the list').toBe(1);
+      expect(capture.snapshot().routeListRequests).toBe(1);
+      capture.mark('tables-verified');
       await testInfo.attach('real-response-evidence', {
         body: JSON.stringify({
-          initialRequests,
-          listRequests,
-          requestedMs: requestedAt - startedAt,
-          responses,
-          tablesReadyMs: Date.now() - startedAt,
+          ...capture.snapshot(),
+          tablesReadyMs: capture.snapshot().elapsedMs,
           tableCount: await tables.count(),
           locale,
         }),
         contentType: 'application/json',
       });
-    } finally {
-      released = true;
-      release();
-      await Promise.allSettled([...pending]);
+    }, [
+      // Save the first-attempt state before a pending handler can delay cleanup.
+      async () => {
+        await attachCapture('before-cleanup');
+      },
+      async () => {
+        await capture?.dispose();
+      },
+      async () => {
+        await attachCapture('after-cleanup');
+      },
+      async () => {
+        // Attempt both in order, even if withdrawing the binding has a network error.
+        const bindingStatus = bindingCreated
+          ? await request
+              .delete(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+                headers,
+                data: { key: 'DATABASE_URL', scope: 'production' },
+              })
+              .then(
+                (response) => response.status(),
+                () => 'request-failed',
+              )
+          : undefined;
+        const projectStatus = await request.delete(`${apiBaseUrl}/projects/${projectId}`, { headers }).then(
+          (response) => response.status(),
+          () => 'request-failed',
+        );
+        console.info(`DATABASE_CONTEXT_QA_CLEANUP ${JSON.stringify({ bindingStatus, projectStatus })}`);
 
-      // Attempt both in order, even if withdrawing the binding has a network error.
-      const bindingStatus = bindingCreated
-        ? await request
-            .delete(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
-              headers,
-              data: { key: 'DATABASE_URL', scope: 'production' },
-            })
-            .then(
-              (response) => response.status(),
-              () => 'request-failed',
-            )
-        : undefined;
-      const projectStatus = await request.delete(`${apiBaseUrl}/projects/${projectId}`, { headers }).then(
-        (response) => response.status(),
-        () => 'request-failed',
-      );
-      console.info(`DATABASE_CONTEXT_QA_CLEANUP ${JSON.stringify({ bindingStatus, projectStatus })}`);
+        if (bindingCreated) {
+          expect(bindingStatus).toBe(200);
+        }
 
-      if (bindingCreated) {
-        expect(bindingStatus).toBe(200);
-      }
-
-      expect(projectStatus).toBe(200);
-    }
+        expect(projectStatus).toBe(200);
+      },
+      async () => {
+        capture?.assertHealthy();
+      },
+    ]);
   });
 }
