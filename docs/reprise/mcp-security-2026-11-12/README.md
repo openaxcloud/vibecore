@@ -1,6 +1,6 @@
 # MCP : dépendance corrigée et transport SSE protégé
 
-Base indépendante : main `d9a23c1212208d353baa4fa8d48cce0af24a7d92`. Le lot xmldom PR907 est séparé.
+Base initiale indépendante : main `d9a23c1212208d353baa4fa8d48cce0af24a7d92`. Le lot xmldom PR907 est séparé.
 
 ## Exposition vérifiée
 
@@ -29,3 +29,11 @@ Le build web local est interrompu par exit137 pendant la transformation, avec he
 ## Audit candidat
 
 282 findings : 94 high,149 moderate,39 low,0 critical ; aucune entrée SDK MCP. La référence main en avait288. Ce lot indépendant conserve les alertes xmldom de main jusqu'à intégration séparée de PR907. Ne pas comparer282 à267 du lot xmldom comme s'il s'agissait du même arbre. Le statut audit reste1, les autres dépendances ne sont pas déclarées sûres.
+
+## Réconciliation après fusion de PR907
+
+Main `e7dc0c4d0fd2cbef3caf5a4a229a47c8b8532a19` intégré sans conflit. Lock régénéré avec pnpm9.14.4 puis installation frozen réussie. Relecture indépendante : code/tests MCP identiques au candidat initial, manifest API/test SAML identiques à main ; les deux corrections sont conservées. Résolutions installées : SDK1.32.2, parseur API0.9.12, parseur xml-crypto0.8.15.
+
+Sur cet arbre combiné : groupe MCP26/26, API/SAML132/132 et build API passent. La compilation web seule, heap4096MiB, reste interrompue137 pendant transformation ; aucun succès local revendiqué. Le premier audit combiné, concurrent au build, est également tué137 et n'a produit aucun résultat JSON exploitable. L’essai borné à1Go a atteint la limite V8 (exit134). Dernier essai seul à3Go réussi :261 findings,77 high145 moderate39 low0 critical, aucune entrée xmldom ou SDK MCP (exit1 attendu). Résumé combiné joint. Les hooks normaux vérifient typecheck/lint avant commit ; la CI de la nouvelle tête est impérative avant fusion.
+
+Les comptes d'audit ci-dessus restent ceux du candidat MCP initial ; ils ne constituent pas le résultat combiné.
