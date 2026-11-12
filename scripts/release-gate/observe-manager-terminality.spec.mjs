@@ -47,6 +47,67 @@ const pod = () => ({
   status: { phase: 'Failed', conditions: [{ type: 'Ready', status: 'False' }], containerStatuses: [stop()] },
 });
 
+const ownershipPath = '.github/scripts/observe-manager-ownership.mjs';
+const { projectOwnership } = await import(pathToFileURL(resolve(ownershipPath)).href);
+const namespace = 'vibecore';
+const managerName = 'vibecore-vibecore-platform-workspace-manager';
+const revisionKey = 'deployment.kubernetes.io/revision';
+const metadata = (name, uid) => ({ name, uid, namespace, resourceVersion: '1' });
+
+const ownerRef = (kind, value) => ({
+  apiVersion: 'apps/v1',
+  kind,
+  name: value.metadata.name,
+  uid: value.metadata.uid,
+  controller: true,
+});
+const deploymentFixture = {
+  apiVersion: 'apps/v1',
+  kind: 'Deployment',
+  metadata: { ...metadata(managerName, 'dep'), generation: 1, annotations: { [revisionKey]: '2' } },
+  spec: { replicas: 1, template: { metadata: { labels: {} }, spec: { containers: [{ image: 'private-canary' }] } } },
+  status: { observedGeneration: 1, updatedReplicas: 1, readyReplicas: 1, availableReplicas: 1 },
+};
+const rsFixture = {
+  apiVersion: 'apps/v1',
+  kind: 'ReplicaSet',
+  metadata: {
+    ...metadata('rs', 'rs-id'),
+    annotations: { [revisionKey]: '2' },
+    ownerReferences: [ownerRef('Deployment', deploymentFixture)],
+  },
+  spec: { replicas: 1, template: deploymentFixture.spec.template },
+};
+
+function ownershipFixture(items = [pod()]) {
+  const before = structuredClone(deploymentFixture);
+
+  const setsBefore = {
+    apiVersion: 'apps/v1',
+    kind: 'ReplicaSetList',
+    metadata: { resourceVersion: '2' },
+    items: [structuredClone(rsFixture)],
+  };
+
+  return {
+    before,
+    setsBefore,
+    pods: {
+      apiVersion: 'v1',
+      kind: 'PodList',
+      metadata: { resourceVersion: '3' },
+      items: items.map((item, i) => ({
+        ...item,
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: { ...metadata('pod-' + i, 'pod-id-' + i), ownerReferences: [ownerRef('ReplicaSet', rsFixture)] },
+      })),
+    },
+    setsAfter: structuredClone(setsBefore),
+    after: structuredClone(before),
+  };
+}
+
 const diagnosticError = 'TERMINAL_DIAGNOSTIC_UNAVAILABLE\n';
 
 function cli(input, args = []) {
@@ -417,7 +478,10 @@ function execute(options = {}) {
   try {
     put('scripts/ci/cluster.sh', readFileSync('scripts/ci/cluster.sh'), true);
     put(helperPath, readFileSync(helperPath));
-    put('payload.json', options.payload ?? JSON.stringify({ items: [pod()] }));
+    put(ownershipPath, options.ownershipSource ?? readFileSync(ownershipPath));
+    put('deployment.json', JSON.stringify(deploymentFixture));
+    put('sets.json', JSON.stringify(ownershipFixture().setsBefore));
+    put('payload.json', options.payload ?? JSON.stringify(ownershipFixture().pods));
     put(
       'bin/gcloud',
       `#!${process.execPath}
@@ -451,8 +515,8 @@ if (args[0] === 'config') {
   if (process.env.FAIL_AT === boundary) process.exit(1);
   process.stdout.write(boundary === 'context' ? process.env.CLUSTER : process.env.SERVER);
 } else {
-  process.stdout.write(fs.readFileSync(process.env.PAYLOAD));
-  if (process.env.FAIL_AT === 'pods') process.exit(1);
+  process.stdout.write(fs.readFileSync(args.includes('deployment') ? 'deployment.json' : args.includes('replicasets') ? 'sets.json' : process.env.PAYLOAD));
+  if (args.includes(process.env.FAIL_AT)) process.exit(1);
 }
 `,
       true,
@@ -511,65 +575,38 @@ if (args[0] === 'config') {
 }
 
 function assertCommands(capture) {
-  expect(capture).toEqual([
-    ['gcloud', 'components', 'install', 'gke-gcloud-auth-plugin', '--quiet'],
-    [
-      'gcloud',
-      'container',
-      'fleet',
-      'memberships',
-      'get-credentials',
-      'vibecore-prod-app',
-      '--project=vibecore-495216',
-      '--location=europe-west9',
-    ],
-    ['gcloud', 'projects', 'describe', 'vibecore-495216', '--format=value(projectNumber)'],
-    [
-      'gcloud',
-      'container',
-      'fleet',
-      'memberships',
-      'describe',
-      'vibecore-prod-app',
-      '--project=vibecore-495216',
-      '--location=europe-west9',
-      '--format=value(name)',
-    ],
-    [
-      'kubectl',
-      'config',
-      'view',
-      '-o',
-      "jsonpath={.contexts[?(@.name=='connectgateway_vibecore-495216_europe-west9_vibecore-prod-app')].context.cluster}",
-    ],
-    ['kubectl', 'config', 'view', '-o', "jsonpath={.clusters[?(@.name=='verified-cluster')].cluster.server}"],
-    [
+  const gets = capture.filter((command) => command.includes('get'));
+  expect(gets).toEqual(
+    ['deployment', 'replicasets', 'pods', 'replicasets', 'deployment'].map((kind) => [
       'kubectl',
       '--context=connectgateway_vibecore-495216_europe-west9_vibecore-prod-app',
       '-n',
       'vibecore',
       'get',
-      'pods',
-      '-l',
-      'app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=vibecore',
-      '--request-timeout=30s',
+      kind,
+      ...(kind === 'deployment'
+        ? [managerName]
+        : ['-l', 'app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=vibecore']),
+      '--request-timeout=15s',
       '-o',
       'json',
-    ],
-  ]);
+    ]),
+  );
+  expect(capture.filter((command) => command[0] === 'kubectl' && command[1] === 'config')).toHaveLength(10);
+  expect(capture.filter((command) => command[0] === 'gcloud')).toHaveLength(12);
 }
 
 describe('fixed read-only command and authoritative target checks', () => {
-  it('runs one list, after verified project/membership/context, and never leaks raw/stderr output', () => {
+  it('runs five bounded GETs, after verified project/membership/context, and never leaks raw/stderr output', () => {
     const result = execute();
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('');
     expect(result.stderr).toBe('');
     assertCommands(result.capture);
-    expect(JSON.parse(result.artifact)).toEqual(projectList({ items: [pod()] }));
+    expect(JSON.parse(result.artifact)).toEqual(projectOwnership(ownershipFixture()));
   });
 
-  it.each(['plugin', 'credentials', 'project', 'membership', 'context', 'server', 'pods'])(
+  it.each(['plugin', 'credentials', 'project', 'membership', 'context', 'server', 'deployment', 'replicasets', 'pods'])(
     'stops without retries or artifact when %s fails',
     (boundary) => {
       const result = execute({ env: { FAIL_AT: boundary } });
@@ -583,8 +620,7 @@ describe('fixed read-only command and authoritative target checks', () => {
       expect(result.artifact).toBeNull();
 
       const gets = result.capture.filter((command) => command.includes('get'));
-      expect(gets).toHaveLength(boundary === 'pods' ? 1 : 0);
-      expect(new Set(result.capture.map((command) => JSON.stringify(command))).size).toBe(result.capture.length);
+      expect(gets).toHaveLength({ deployment: 1, replicasets: 2, pods: 3 }[boundary] ?? 0);
     },
   );
 
@@ -647,19 +683,18 @@ describe('fixed read-only command and authoritative target checks', () => {
   });
 
   it.each([
-    ['namespace', '-n vibecore get pods', '-n other get pods'],
-    ['resource', 'get pods', 'get secrets'],
-    ['verb', 'get pods', 'delete pods'],
+    ['namespace', "const namespace = 'vibecore'", "const namespace = 'other'"],
+    ['name', "const name = 'vibecore-vibecore-platform-workspace-manager'", "const name = 'other'"],
+    ['verb', "'get',", "'delete',"],
     ['selector', 'app.kubernetes.io/instance=vibecore', 'app.kubernetes.io/instance=other'],
-    ['budget', '--request-timeout=30s', '--request-timeout=300s'],
-    ['format', '-o json', '-o yaml'],
-    ['wrapper', 'scripts/ci/cluster.sh prod-gateway kubectl', 'kubectl'],
-    ['target', 'prod-gateway kubectl', 'prod-direct kubectl'],
-    ['tool', 'prod-gateway kubectl', 'prod-gateway helm'],
+    ['budget', '--request-timeout=15s', '--request-timeout=300s'],
+    ['format', "'json',", "'yaml',"],
+    ['target', "'prod-gateway',", "'prod-direct',"],
   ])('negative control detects broadened %s command', (_name, before, after) => {
-    expect(steps[5].run).toContain(before);
+    const original = readFileSync(ownershipPath, 'utf8');
+    expect(original).toContain(before);
 
-    const result = execute({ script: [steps[0].run, steps[4].run, steps[5].run.replace(before, after)].join('\n') });
+    const result = execute({ ownershipSource: original.replace(before, after) });
     expect(() => assertCommands(result.capture)).toThrow();
   });
 
@@ -672,7 +707,7 @@ describe('fixed read-only command and authoritative target checks', () => {
 
 function assertWorkflow(value) {
   expect(Object.keys(value).sort()).toEqual(['jobs', 'name', 'on', 'permissions']);
-  expect(value.on).toEqual({ push: { branches: ['main'], paths: [workflowPath, helperPath] } });
+  expect(value.on).toEqual({ push: { branches: ['main'], paths: [workflowPath, helperPath, ownershipPath] } });
   expect(value.permissions).toEqual({ contents: 'read' });
   expect(Object.keys(value.jobs)).toEqual(['observe']);
 
@@ -799,7 +834,7 @@ describe('workflow security and deployment isolation', () => {
     }
   });
 
-  it('keeps all three additions ignored by deploy-main and outside exact chain paths', () => {
+  it('keeps every diagnostic path ignored by deploy-main and outside exact chain paths', () => {
     const delivery = parse(readFileSync('.github/workflows/deploy-main.yml', 'utf8'));
     const chain = parse(readFileSync('.github/workflows/deploy-chain-change.yml', 'utf8'));
     expect(delivery.on.push['paths-ignore']).toContain('.github/**');
@@ -810,7 +845,13 @@ describe('workflow security and deployment isolation', () => {
       'scripts/release-gate/declencher-correctif-livraison.mjs',
     ]);
 
-    for (const path of [workflowPath, helperPath, specPath]) {
+    for (const path of [
+      workflowPath,
+      helperPath,
+      ownershipPath,
+      '.github/scripts/MANAGER-OWNERSHIP-OBSERVATION.md',
+      specPath,
+    ]) {
       expect(path.startsWith('.github/') || path.endsWith('.spec.mjs')).toBe(true);
       expect(chain.on.push.paths).not.toContain(path);
     }
@@ -966,4 +1007,216 @@ describe('workflow security and deployment isolation', () => {
     change(mutant);
     expect(() => assertWorkflow(mutant)).toThrow();
   });
+});
+
+describe('anonymous controller bracket', () => {
+  it('reports the current UID chain without declaring a Failed pod terminal or historical', () => {
+    const input = ownershipFixture();
+    input.pods.items[0].status = { phase: 'Failed' };
+
+    const result = projectOwnership(input);
+    expect(result.ownership.currentControllerUnique).toBe(true);
+    expect(result.pods[0].ownership.relation).toBe('current-controller');
+    expect(result.pods[0].terminal).toBe(false);
+    expect(result.ownership.priorPodIdentityProven).toBe(false);
+    expect(result.ownership.atomicSnapshot).toBe(false);
+    expect(JSON.stringify(result)).not.toMatch(
+      /private-canary|rs-id|pod-id|resourceVersion|annotations|image|uid|\"name\"/,
+    );
+  });
+
+  it('distinguishes another owned revision but does not exclude any pod', () => {
+    const input = ownershipFixture();
+    const previous = structuredClone(rsFixture);
+    previous.metadata.uid = 'old-id';
+    previous.metadata.name = 'old';
+    previous.metadata.annotations[revisionKey] = '1';
+    previous.spec.template.spec.containers[0].image = 'old-image';
+    input.setsBefore.items.push(previous);
+    input.setsAfter = structuredClone(input.setsBefore);
+    input.pods.items[0].metadata.ownerReferences = [ownerRef('ReplicaSet', previous)];
+    input.pods.items[0].status = { phase: 'Failed' };
+
+    const result = projectOwnership(input);
+    expect(result.pods[0].ownership.relation).toBe('other-owned-controller');
+    expect(result.total).toBe(1);
+    expect(result.terminal).toBe(0);
+  });
+
+  it.each([
+    (x) => {
+      delete x.pods.items[0].metadata.ownerReferences;
+    },
+    (x) => {
+      x.pods.items[0].metadata.ownerReferences[0].uid = 'wrong';
+    },
+    (x) => {
+      x.pods.items[0].metadata.ownerReferences[0].name = 'wrong';
+    },
+    (x) => {
+      x.pods.items[0].metadata.ownerReferences[0].controller = false;
+    },
+    (x) => {
+      x.pods.items[0].metadata.ownerReferences.push(x.pods.items[0].metadata.ownerReferences[0]);
+    },
+    (x) => {
+      delete x.setsBefore.items[0].metadata.ownerReferences;
+    },
+    (x) => {
+      x.setsBefore.items[0].metadata.ownerReferences[0].uid = 'different-deployment';
+    },
+    (x) => {
+      x.setsBefore.items[0].metadata.annotations[revisionKey] = '3';
+    },
+    (x) => {
+      x.setsBefore.items[0].spec.template.spec.containers[0].image = 'different';
+    },
+    (x) => {
+      x.before.status.observedGeneration = 0;
+    },
+    (x) => {
+      delete x.before.metadata.annotations;
+    },
+    (x) => {
+      x.before.metadata.deletionTimestamp = 'now';
+    },
+    (x) => {
+      x.setsBefore.items[0].metadata.deletionTimestamp = 'now';
+    },
+    (x) => {
+      const second = structuredClone(x.setsBefore.items[0]);
+      second.metadata.uid = 'second';
+      second.metadata.name = 'second';
+      x.setsBefore.items.push(second);
+    },
+  ])('retains uncertainty for missing or conflicting identity/revision evidence %#', (mutate) => {
+    const input = ownershipFixture();
+    mutate(input);
+    input.after = structuredClone(input.before);
+    input.setsAfter = structuredClone(input.setsBefore);
+    expect(projectOwnership(input).pods[0].ownership.relation).toBe('unknown');
+  });
+
+  it.each([
+    (x) => {
+      x.after.metadata.uid = 'recreated';
+    },
+    (x) => {
+      x.after.metadata.resourceVersion = 'new';
+    },
+    (x) => {
+      x.after.metadata.generation++;
+    },
+    (x) => {
+      x.after.spec.replicas++;
+    },
+    (x) => {
+      x.setsAfter.items[0].metadata.resourceVersion = 'new';
+    },
+    (x) => {
+      x.setsAfter.items = [];
+    },
+    (x) => {
+      x.setsBefore.metadata.continue = 'page';
+    },
+    (x) => {
+      x.pods.metadata.continue = 'page';
+    },
+    (x) => {
+      x.pods.items[0].metadata.namespace = 'other';
+    },
+    (x) => {
+      x.before.metadata.name = 'other';
+    },
+    (x) => {
+      x.pods.items.push(structuredClone(x.pods.items[0]));
+    },
+    (x) => {
+      x.pods.items = Array.from({ length: 257 }, () => x.pods.items[0]);
+    },
+  ])('refuses temporal changes, incomplete lists, duplicate identities and wrong scope %#', (mutate) => {
+    const input = ownershipFixture();
+    mutate(input);
+    expect(() => projectOwnership(input)).toThrow('MANAGER_OWNERSHIP_UNAVAILABLE');
+  });
+
+  it('does not compare resourceVersions across distinct resource kinds or list snapshots', () => {
+    const input = ownershipFixture();
+    input.setsAfter.metadata.resourceVersion = '999';
+    expect(projectOwnership(input).ownership.controllerBracketStable).toBe(true);
+  });
+
+  it('ignores only the controller-injected template hash for template equality', () => {
+    const input = ownershipFixture();
+    input.setsBefore.items[0].spec.template.metadata.labels['pod-template-hash'] = 'hash';
+    input.setsAfter = structuredClone(input.setsBefore);
+    expect(projectOwnership(input).ownership.currentControllerUnique).toBe(true);
+  });
+
+  it('limits rows without dropping aggregate counts or claiming complete detail', () => {
+    const input = ownershipFixture(Array.from({ length: 17 }, pod));
+    const result = projectOwnership(input);
+    expect(result.pods).toHaveLength(16);
+    expect(result.omitted).toBe(1);
+    expect(result.ownership.counts['current-controller']).toBe(17);
+  });
+
+  it('stops at every refused GET without retry, provider text or partial output', async () => {
+    const { observeOwnership } = await import(pathToFileURL(resolve(ownershipPath)).href);
+
+    for (let failAt = 0; failAt < 5; failAt++) {
+      const input = ownershipFixture();
+      const replies = [input.before, input.setsBefore, input.pods, input.setsAfter, input.after];
+
+      let calls = 0;
+      expect(() =>
+        observeOwnership((_bin, _args, options) => {
+          expect(options.timeout).toBe(20000);
+          expect(options.maxBuffer).toBe(1024 * 1024);
+
+          const index = calls++;
+
+          if (index === failAt) {
+            throw new Error('PRIVATE_PROVIDER_CANARY');
+          }
+
+          return Buffer.from(JSON.stringify(replies[index]));
+        }),
+      ).toThrow();
+      expect(calls).toBe(failAt + 1);
+    }
+  });
+});
+
+describe('node assignment is observation only', () => {
+  it.each([
+    [undefined, 'absent'],
+    ['', 'empty'],
+    ['node.example', 'valid'],
+    ['node..example', 'invalid'],
+    ['a'.repeat(64), 'invalid'],
+    [42, 'invalid'],
+    ['PRIVATE_CANARY', 'invalid'],
+  ])('projects %j without inferring whether the pod ever ran', (value, expected) => {
+    const input = ownershipFixture();
+    input.pods.items[0].spec.nodeName = value;
+
+    const output = projectOwnership(input);
+    expect(output.pods[0].ownership.nodeName).toBe(expected);
+    expect(output.ownership.priorPodIdentityProven).toBe(false);
+    expect(JSON.stringify(output)).not.toContain('node.example');
+    expect(JSON.stringify(output)).not.toContain('PRIVATE_CANARY');
+  });
+});
+
+it('stops at the pod GET when terminality structure is malformed', async () => {
+  const { observeOwnership } = await import(pathToFileURL(resolve(ownershipPath)).href);
+  const input = ownershipFixture();
+  input.pods.items[0].status.conditions = [null];
+
+  const replies = [input.before, input.setsBefore, input.pods, input.setsAfter, input.after];
+
+  let calls = 0;
+  expect(() => observeOwnership(() => Buffer.from(JSON.stringify(replies[calls++])))).toThrow();
+  expect(calls).toBe(3);
 });
