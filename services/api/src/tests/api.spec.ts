@@ -6127,6 +6127,63 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('normalizes absent package dev to false, preserves booleans and rejects malformed dev before mutation', async () => {
+    const store = new TestApiStore();
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store });
+
+    const auth = await register(app, {
+      email: 'pkg-dev-contract@example.com',
+      organizationName: 'Package Dev Contract',
+    });
+
+    try {
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Package Dev Contract Project' },
+      });
+
+      const projectId = project.json().project.id as string;
+
+      for (const input of [{}, { dev: false }, { dev: true }]) {
+        const before = runtime.packageInstallBodies.length;
+
+        const response = await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/packages/install`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { packages: ['is-odd'], packageManager: 'npm', ...input },
+        });
+        expect(response.statusCode).toBe(201);
+        expect(runtime.packageInstallBodies).toHaveLength(before + 1);
+        expect(runtime.packageInstallBodies.at(-1)).toEqual({
+          packageManager: 'npm',
+          packages: ['is-odd'],
+          dev: 'dev' in input ? input.dev : false,
+          timeoutMs: 300_000,
+        });
+      }
+
+      for (const dev of [null, 'false', 'true', 0, 1, {}, []]) {
+        const before = runtime.packageInstallBodies.length;
+
+        const response = await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/packages/install`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { packages: ['is-odd'], packageManager: 'npm', dev },
+        });
+        expect(response.statusCode).toBe(400);
+        expect(runtime.packageInstallBodies).toHaveLength(before);
+      }
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
   it('installs into the workspace the caller names, not the deterministic per-user pod', async () => {
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();

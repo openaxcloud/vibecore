@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import test from 'node:test';
 import ts from 'typescript';
 import { WebSocketServer } from 'ws';
+import { z } from 'zod';
 import { loadPackageTestModule } from './package-test-loader.mjs';
 
 const { packageAgentHop } = loadPackageTestModule('services/api/src/package-agent-hop.ts');
@@ -60,7 +61,14 @@ async function harness({ stalled, status, malformed, lost = false } = {}) {
       return;
     }
 
-    response.end(malformed ?? JSON.stringify({ code: 0, signal: null, cancelled: false, timedOut: false }));
+    let requestBody = '';
+    request.on('data', (chunk) => {
+      requestBody += chunk;
+    });
+    request.on('end', () => {
+      calls.at(-1).body = JSON.parse(requestBody);
+      response.end(malformed ?? JSON.stringify({ code: 0, signal: null, cancelled: false, timedOut: false }));
+    });
   });
 
   const target = {
@@ -309,5 +317,52 @@ test('actual agent hook authenticates capability and install with workspace bind
         assert.equal(verifiedWorkspace, workspaceId);
       }
     }
+  }
+});
+
+test('real API schema defaults dev false and HTTP preserves false/true while rejecting malformed values', async () => {
+  const source = readFileSync('services/api/src/app.ts', 'utf8');
+  const ast = ts.createSourceFile('app.ts', source, ts.ScriptTarget.Latest, true);
+
+  const declaration = ast.statements.find(
+    (node) =>
+      ts.isVariableStatement(node) &&
+      node.declarationList.declarations.some((item) => item.name.getText(ast) === 'packagesInstallSchema'),
+  );
+  assert.ok(declaration);
+
+  const compiled = ts.transpileModule(declaration.getText(ast), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+
+  const schema = new Function('z', compiled + '\nreturn packagesInstallSchema;')(z);
+
+  for (const [input, expected] of [
+    [{}, false],
+    [{ dev: false }, false],
+    [{ dev: true }, true],
+  ]) {
+    const parsed = schema.parse({ packageManager: 'npm', packages: ['is-odd'], timeoutMs: 300000, ...input });
+    assert.equal(parsed.dev, expected);
+
+    const h = await harness();
+
+    try {
+      await dedicatedPackageInstall((...args) => packageAgentHop(h.target, ...args), parsed);
+      assert.equal(h.calls.filter((call) => call.method === 'POST').length, 1);
+      assert.deepEqual(h.calls.at(-1).body, { ...body, dev: expected });
+    } finally {
+      await h.close();
+    }
+  }
+
+  for (const dev of [null, 'false', 'true', 0, 1, {}, []]) {
+    assert.equal(schema.safeParse({ ...body, dev }).success, false);
+    assert.throws(() =>
+      loadPackageTestModule('services/workspace-agent/src/package-install-contract.ts').packageInstallPlan({
+        ...body,
+        dev,
+      }),
+    );
   }
 });
