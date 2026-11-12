@@ -949,6 +949,37 @@ run('restore repository (dedicated local PostgreSQL)', () => {
     });
   });
 
+  it.each(['acknowledge', 'resume'] as const)(
+    'does not resurrect acknowledged debt when acknowledgement races takeover, %s queued first',
+    async (first) => {
+      const execution = await repository.admit(await seed());
+      const id = execution.restore.id;
+      await prepared(execution, 'attempt-a');
+      await repository.resume(id, 'attempt-a', 'attempt-b');
+
+      const acknowledge = (candidate: PrismaDatabaseRestoreRepository) =>
+        candidate.acknowledgeFence(id, 'attempt-b', 'attempt-a');
+      const resume = (candidate: PrismaDatabaseRestoreRepository) => candidate.resume(id, 'attempt-b', 'attempt-c');
+
+      if (first === 'acknowledge') {
+        const [acknowledged, resumed] = await queuedJournalMutations(id, acknowledge, resume);
+        expect(acknowledged).toBe(true);
+        expect(resumed).toMatchObject({ runnerToken: 'attempt-c', pendingFenceTokens: ['attempt-b'] });
+      } else {
+        const [resumed, acknowledged] = await queuedJournalMutations(id, resume, acknowledge);
+        expect(resumed).toMatchObject({ runnerToken: 'attempt-c', pendingFenceTokens: ['attempt-a', 'attempt-b'] });
+        expect(acknowledged).toBe(false);
+      }
+
+      // A fresh repository observes durable debt, not an in-process cache.
+      const fresh = new PrismaDatabaseRestoreRepository(prisma);
+      expect((await fresh.get(id))?.pendingFenceTokens).toEqual(
+        first === 'acknowledge' ? ['attempt-b'] : ['attempt-a', 'attempt-b'],
+      );
+      await expect(fresh.cutover(id, 'attempt-c')).rejects.toMatchObject({ code: 'RESTORE_FENCE_UNCONFIRMED' });
+    },
+  );
+
   it.each(['fail', 'resume'] as const)(
     'preserves ownership and exclusion debt when fail(A) races resume(A to B), %s queued first',
     async (firstMutation) => {
