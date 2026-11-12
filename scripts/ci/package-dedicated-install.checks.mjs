@@ -166,7 +166,11 @@ function runner({ limit = 10, occupied = 0, abuse = false, reportCancellation = 
 
       return t;
     },
-    clearTimeout: () => {},
+    clearTimeout: (timer) => {
+      if (timer) {
+        timer.cleared = true;
+      }
+    },
     StringDecoder,
     workspaceAgentError: (_key, details) => Object.assign(new Error('rejected'), details),
   };
@@ -651,4 +655,36 @@ test('output-cap termination followed by graceful zero exit is never package suc
   assert.equal(outcome.success, false);
   assert.equal(outcome.exitCode, 0);
   assert.equal(outcome.termination, 'interrupted');
+});
+
+test('dedicated UTF-8 flush at the output limit cannot signal or schedule a kill after close', async () => {
+  const h = runner();
+  const pending = h.start();
+  await Promise.resolve();
+  h.children[0].stdout.emit('data', Buffer.from('x'.repeat(1024)));
+  h.children[0].stdout.emit('data', Buffer.from([0xe2]));
+  assert.deepEqual(h.kills, []);
+
+  const timersBeforeClose = h.timers.length;
+  h.children[0].emit('close', 0, null);
+
+  const result = await pending;
+  assert.equal(result.truncated, true);
+  assert.deepEqual(h.kills, [], 'a decoder tail must not signal a process that already closed');
+  assert.equal(h.timers.length, timersBeforeClose, 'flush must not create a post-close escalation timer');
+  assert.ok(
+    h.timers.every((timer) => timer.cleared),
+    'close must cancel every existing runner timer',
+  );
+  assert.deepEqual(helper('services/api/src/package-install-result.ts').packageInstallResult(result), {
+    exitCode: 0,
+    termination: 'interrupted',
+    success: false,
+  });
+
+  // Even an already queued timer callback must not target a reused process id.
+  for (const timer of h.timers) {
+    timer.fn();
+  }
+  assert.deepEqual(h.kills, []);
 });
