@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-625 entrées.
+626 entrées.
 
 ## Sans section
 
@@ -891,6 +891,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-QA-DATABASE-CAPTURE-001](docs/bugs/BUG-QA-DATABASE-CAPTURE-001.md) — 📤 Dispatché : Independent review and local correction of the Database response-capture oracle. · 💻 Codé : Local selective port prepared on `31ed1f1deefd85592f27b5fa1fe57465cf03b0ab`. Not pushed or merged. No product · ✅ Testé live : This main port is not verified live. Historical experimental evidence is recorded separately above. Local unit
+
+## Fiabilité E2E — transitions Workbench
+
+- [BUG-E2E-WORKBENCH-TRANSITION-20261112](docs/bugs/BUG-E2E-WORKBENCH-TRANSITION-20261112.md) — Le hit-test de toolbar observe un View encore en translation horizontale, malgré toBeVisible. Run 43161939282, main 27850e74, 1180 px : troisième Webview échoué — 📤 Dispatché : ☑ Diagnostic 12/11/2026 et revue indépendante ; source exacte 27850e74, artefacts existants uniquement. · 💻 Codé : ☐ main ; candidat local observationnel 5 s, identité DOM figée ; aucune action pointer/scroll, aucun retry ajo · ✅ Testé live : ☐ Navigateur/CI/production en attente. 10 unitaires, typecheck strict ciblé et lint des quatre fichiers TypeSc
 
 ## Résidus non tabulaires — reportés mot pour mot
 
