@@ -120,6 +120,11 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Dedicated package installation contracts
+        run: |
+          node --test scripts/ci/package-dedicated-install.checks.mjs scripts/ci/package-install-i18n.checks.mjs scripts/ci/package-transport.checks.mjs scripts/ci/package-install-import.checks.mjs
+          pnpm exec tsc --project tsconfig.package-install.json --noEmit --pretty false
+
       - name: Helm for installation regression checks
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:

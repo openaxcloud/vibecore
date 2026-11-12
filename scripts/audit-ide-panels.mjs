@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
+import { verifyInstalledAuditPackage } from './ci/package-install-import.mjs';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 let appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
@@ -618,14 +619,32 @@ async function auditCriticalUiInteractions(projectId, token) {
     async (page) => {
       const packageName = 'is-odd';
       await page.getByPlaceholder('@scope/name, react-query, vite@latest').fill(packageName);
-      await Promise.all([
-        waitForPanelResponse(page, 'packages', 'POST', 60_000),
+
+      const [installed] = await Promise.all([
+        waitForPanelResponse(page, 'packages', 'POST', 360_000),
         page.getByRole('button', { name: 'Install package' }).click(),
       ]);
+
+      if (!installed.ok()) {
+        throw new Error('Package installation did not return a successful response; it was not retried');
+      }
+
+      const [reloaded] = await Promise.all([
+        waitForPanelResponse(page, 'packages', 'GET', 20_000),
+        page.reload({ waitUntil: 'domcontentloaded' }),
+      ]);
+
+      if (!reloaded.ok()) {
+        throw new Error('Installed packages could not be reloaded');
+      }
+
       await page
-        .getByText(/add package/i)
-        .first()
+        .locator('.bolt-project-package-list')
+        .getByText(packageName, { exact: true })
         .waitFor({ state: 'visible', timeout: 20_000 });
+
+      // Persisted UI state alone is not proof that node_modules is importable.
+      await verifyInstalledAuditPackage({ apiBaseUrl, token, projectId, panel: await reloaded.json() });
     },
     'create_package_install_plan_visible_after_backend_reload',
   );

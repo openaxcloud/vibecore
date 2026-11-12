@@ -188,10 +188,21 @@ it('does not claim package install success without its exit status', async () =>
   result = { output: 'fixture incomplete response' };
   await expect(execute('packages')).rejects.toMatchObject({
     init: { status: 422 },
-    data: { code: 'PACKAGE_RUN_FAILED', run: { status: 'failed', exitCode: -1 } },
+    data: { code: 'PACKAGE_RUN_OUTCOME_UNKNOWN', run: { status: 'failed', exitCode: -1 } },
   });
   expect(stored.VIBECORE_PACKAGES_STATE.runs[0].status).toBe('failed');
   expect(stored.VIBECORE_PACKAGES_STATE.runs[0].exitCode).toBe(-1);
+  expect(commandIndex).toBe(1);
+});
+
+it('keeps a confirmed nonzero package exit distinct from an unknown outcome', async () => {
+  result = { exitCode: 7, output: 'fixture confirmed failure' };
+  await expect(execute('packages')).rejects.toMatchObject({
+    init: { status: 422 },
+    data: { code: 'PACKAGE_RUN_FAILED', run: { status: 'failed', exitCode: 7 } },
+  });
+  expect(stored.VIBECORE_PACKAGES_STATE.runs[0].exitCode).toBe(7);
+  expect(commandIndex).toBe(1);
 });
 
 it('rejects a scan with no enabled scanner without deleting prior findings', async () => {

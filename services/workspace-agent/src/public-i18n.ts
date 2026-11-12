@@ -4,6 +4,7 @@ export type WorkspaceAgentLocale = (typeof WORKSPACE_AGENT_LOCALES)[number];
 
 const copy = {
   en: {
+    invalidPackageInstallRequest: 'Invalid package installation request',
     pathControlCharacters: 'The path contains control characters.',
     workspaceIdentityNotConfigured: 'The workspace identity is not configured.',
     unauthorized: 'Unauthorized workspace agent request.',
@@ -37,6 +38,7 @@ const copy = {
     internalServerError: 'An internal workspace error occurred. Please try again.',
   },
   fr: {
+    invalidPackageInstallRequest: 'La demande d’installation de paquets est invalide',
     pathControlCharacters: 'Le chemin contient des caractères de contrôle.',
     workspaceIdentityNotConfigured: 'L’identité de l’espace de travail n’est pas configurée.',
     unauthorized: 'Requête non autorisée vers l’agent de l’espace de travail.',
