@@ -28,7 +28,7 @@ function fixture(bytes = Buffer.alloc(plan.walSegmentSizeBytes, 42)) {
 
   const object = {
     name: planRestoreWalInventory(plan).objects[0],
-    generation: '12345678901234567890',
+    generation: '9007199254740991',
     size: String(compressed.length),
     crc32c: crc.toString(),
   };
@@ -110,16 +110,19 @@ describe('isolated generation-pinned gzip bytes validation, NOT WAL record verif
       expect(inspected).toBe(false);
     },
   );
-  it.each([{ name: '../other' }, { generation: '0' }, { crc32c: 'AAAAAB==' }, { size: '9999999999' }])(
-    'rejects malformed inventory identity before opening storage: %j',
-    async (change) => {
-      const f = fixture();
-      await expect(
-        withVerifiedWalBytes(f.reader, plan, { ...f.object, ...change }, async () => undefined),
-      ).rejects.toThrow('RESTORE_WAL_BYTES_IDENTITY_INVALID');
-      expect(f.reads).toEqual([]);
-    },
-  );
+  it.each([
+    { name: '../other' },
+    { generation: '0' },
+    { generation: '9007199254740992' },
+    { crc32c: 'AAAAAB==' },
+    { size: '9999999999' },
+  ])('rejects malformed inventory identity before opening storage: %j', async (change) => {
+    const f = fixture();
+    await expect(
+      withVerifiedWalBytes(f.reader, plan, { ...f.object, ...change }, async () => undefined),
+    ).rejects.toThrow('RESTORE_WAL_BYTES_IDENTITY_INVALID');
+    expect(f.reads).toEqual([]);
+  });
   it('redacts provider details, does not retry a changed/missing generation', async () => {
     const f = fixture();
 
@@ -188,11 +191,67 @@ it('GCS adapter pins exact generation and raw gzip representation with checksum 
       };
     },
   } as unknown as Parameters<typeof gcsWalByteReader>[0];
-  expect(gcsWalByteReader(client).open('synthetic', 'object', '12345678901234567890')).toBe(stream);
+  expect(gcsWalByteReader(client).open('synthetic', 'object', '9007199254740991')).toBe(stream);
   expect(calls).toEqual([
     'synthetic',
     'object',
-    { generation: '12345678901234567890' },
+    { generation: '9007199254740991' },
     { validation: 'crc32c', decompress: false },
   ]);
+});
+
+it('refuses generations the installed SDK cannot represent exactly before calling it', () => {
+  const client = {
+    bucket: () => {
+      throw new Error('must not access provider');
+    },
+  } as unknown as Parameters<typeof gcsWalByteReader>[0];
+  expect(() => gcsWalByteReader(client).open('synthetic', 'object', '9007199254740992')).toThrow(
+    'RESTORE_WAL_BYTES_IDENTITY_INVALID',
+  );
+});
+
+it('refuses a late successful inspector result after cancellation and then cleans the copy', async () => {
+  const f = fixture();
+  const controller = new AbortController();
+
+  let path = '';
+  await expect(
+    withVerifiedWalBytes(
+      f.reader,
+      plan,
+      f.object,
+      async (p, signal) => {
+        path = p;
+        controller.abort();
+        expect(signal.aborted).toBe(true);
+
+        return 'late result';
+      },
+      controller.signal,
+    ),
+  ).rejects.toThrow('RESTORE_WAL_BYTES_CANCELLED');
+  await expect(stat(path)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+it('waits for a cooperating inspector to stop before cleanup after its cancellation rejection', async () => {
+  const f = fixture();
+  const controller = new AbortController();
+
+  let path = '';
+  await expect(
+    withVerifiedWalBytes(
+      f.reader,
+      plan,
+      f.object,
+      async (p, signal) => {
+        path = p;
+        controller.abort();
+        expect((await stat(p)).isFile()).toBe(true);
+        signal.throwIfAborted();
+      },
+      controller.signal,
+    ),
+  ).rejects.toThrow();
+  await expect(stat(path)).rejects.toMatchObject({ code: 'ENOENT' });
 });

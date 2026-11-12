@@ -17,6 +17,11 @@ export interface WalByteReader {
 export function gcsWalByteReader(storage: Pick<Storage, 'bucket'>): WalByteReader {
   return {
     open(bucket, name, generation) {
+      // Storage 7.x converts File generation to Number internally. Refuse rounding.
+      if (!/^[1-9][0-9]{0,19}$/.test(generation) || BigInt(generation) > BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw new RestoreWalBytesError('RESTORE_WAL_BYTES_IDENTITY_INVALID');
+      }
+
       return storage
         .bucket(bucket)
         .file(name, { generation })
@@ -39,8 +44,8 @@ export interface WalObjectIdentity {
 }
 
 /**
- * Materialize ONE bounded segment in an owned temporary directory, invoke an
- * isolated inspector, and always clean up. This verifies transfer/gzip integrity,
+ * Materialize ONE bounded segment in an owned temporary directory, invoke a
+ * trusted cooperative inspector, and always clean up. This verifies transfer/gzip integrity,
  * NOT PostgreSQL record CRCs, system identity, timeline history or PITR replay.
  * Nothing here can produce the coordinator's ArchiveReceipt or enable cutover.
  */
@@ -48,7 +53,7 @@ export async function withVerifiedWalBytes<T>(
   reader: WalByteReader,
   planInput: WalInventoryInput,
   objectInput: WalObjectIdentity,
-  inspect: (path: string) => Promise<T>,
+  inspect: (path: string, signal: AbortSignal) => Promise<T>,
   signal?: AbortSignal,
 ) {
   const input = { ...planInput };
@@ -59,6 +64,7 @@ export async function withVerifiedWalBytes<T>(
     input.walSegmentSizeBytes > 64 * 1024 * 1024 ||
     !plan.objects.includes(object.name) ||
     !/^[1-9][0-9]{0,19}$/.test(object.generation) ||
+    BigInt(object.generation) > BigInt(Number.MAX_SAFE_INTEGER) ||
     !/^[1-9][0-9]{0,9}$/.test(object.size) ||
     Number(object.size) > input.walSegmentSizeBytes * 2 ||
     !/^[A-Za-z0-9+/]{6}==$/.test(object.crc32c) ||
@@ -71,6 +77,8 @@ export async function withVerifiedWalBytes<T>(
 
   const directory = await mkdtemp(join(tmpdir(), 'vibecore-verified-wal-'));
   const path = join(directory, 'segment.wal');
+  const deadline = AbortSignal.timeout(120_000);
+  const cancellation = signal ? AbortSignal.any([signal, deadline]) : deadline;
   const checksum = new CRC32C();
   const compressedHash = createHash('sha256');
   const expandedHash = createHash('sha256');
@@ -108,14 +116,13 @@ export async function withVerifiedWalBytes<T>(
 
   try {
     try {
-      const deadline = AbortSignal.timeout(120_000);
       await pipeline(
         reader.open(plan.bucket, object.name, object.generation),
         compressed,
         createGunzip(),
         expanded,
         createWriteStream(path, { flags: 'wx', mode: 0o600 }),
-        { signal: signal ? AbortSignal.any([signal, deadline]) : deadline },
+        { signal: cancellation },
       );
     } catch (error) {
       if (error instanceof RestoreWalBytesError) {
@@ -133,9 +140,17 @@ export async function withVerifiedWalBytes<T>(
       throw new RestoreWalBytesError('RESTORE_WAL_BYTES_INTEGRITY_MISMATCH');
     }
 
-    signal?.throwIfAborted();
+    cancellation.throwIfAborted();
 
-    const result = await inspect(path);
+    /*
+     * Inspector must stop its own work and settle on cancellation. Never race
+     * cleanup against an inspector still using the file. This is not a sandbox.
+     */
+    const result = await inspect(path, cancellation);
+
+    if (cancellation.aborted) {
+      throw new RestoreWalBytesError('RESTORE_WAL_BYTES_CANCELLED');
+    }
 
     return {
       result,
