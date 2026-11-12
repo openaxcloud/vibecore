@@ -15,7 +15,7 @@
     "@vibecore/rbac": "workspace:*",
     "@vibecore/security": "workspace:*",
     "@vibecore/template-catalog": "workspace:*",
-    "@xmldom/xmldom": "^0.9.10",
+    "@xmldom/xmldom": "^0.9.12",
     "bullmq": "^5.76.2",
     "gpt-tokenizer": "^3.4.0",
     "ioredis": "^5.10.1",
