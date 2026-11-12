@@ -103,6 +103,9 @@ jobs:
           if ! node .github/scripts/observe-manager-ownership.mjs \
               > "${RUNNER_TEMP}/manager-observer-evidence/manager-terminality.json" 2>/dev/null; then
             rm -f "${RUNNER_TEMP}/manager-observer-evidence/manager-terminality.json"
+            if [[ -f "${RUNNER_TEMP}/manager-observer-evidence/manager-ownership-failure.json" ]]; then
+              echo 'failure_receipt=true' >> "${GITHUB_OUTPUT}"
+            fi
             echo 'TERMINAL_DIAGNOSTIC_UNAVAILABLE' >&2
             exit 1
           fi
@@ -123,3 +126,12 @@ jobs:
           set +x
           export KUBECONFIG="${RUNNER_TEMP}/manager-observer-kubeconfig"
           rm -f "${KUBECONFIG}"
+
+      - name: Upload fixed refusal receipt only
+        if: failure() && steps.observation.outcome == 'failure' && steps.observation.outputs.failure_receipt == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: manager-ownership-refusal-${{ github.sha }}
+          path: ${{ runner.temp }}/manager-observer-evidence/manager-ownership-failure.json
+          if-no-files-found: error
+          retention-days: 1
