@@ -423,6 +423,7 @@ function execute(options = {}) {
       `#!${process.execPath}
 const fs = require('node:fs');
 const args = process.argv.slice(2);
+if (process.env.KUBECONFIG !== process.env.RUNNER_TEMP + '/manager-observer-kubeconfig') process.exit(91);
 fs.appendFileSync(process.env.CAPTURE, JSON.stringify(['gcloud', ...args]) + '\\n');
 process.stderr.write('SECRET_STDERR_CANARY\\n');
 let boundary;
@@ -442,6 +443,7 @@ if (boundary === 'membership') process.stdout.write(process.env.MEMBERSHIP);
       `#!${process.execPath}
 const fs = require('node:fs');
 const args = process.argv.slice(2);
+if (process.env.KUBECONFIG !== process.env.RUNNER_TEMP + '/manager-observer-kubeconfig') process.exit(91);
 fs.appendFileSync(process.env.CAPTURE, JSON.stringify(['kubectl', ...args]) + '\\n');
 process.stderr.write('SECRET_STDERR_CANARY\\n');
 if (args[0] === 'config') {
@@ -456,6 +458,7 @@ if (args[0] === 'config') {
       true,
     );
     mkdirSync(join(dir, 'temp'));
+    put('temp/manager-observer-kubeconfig', 'SYNTHETIC_CREDENTIAL_CANARY');
     symlinkSync(process.execPath, join(dir, 'bin/node'));
 
     if (options.staleOutput) {
@@ -499,6 +502,7 @@ if (args[0] === 'config') {
             .split('\n')
             .map((line) => JSON.parse(line))
         : [],
+      kubeconfigExists: existsSync(join(dir, 'temp/manager-observer-kubeconfig')),
       artifact: existsSync(artifact) ? readFileSync(artifact, 'utf8') : null,
     };
   } finally {
@@ -695,7 +699,6 @@ function assertWorkflow(value) {
     GCP_PROJECT_ID: 'vibecore-495216',
     FLEET_MEMBERSHIP: 'vibecore-prod-app',
     FLEET_LOCATION: 'europe-west9',
-    KUBECONFIG: '${{ runner.temp }}/manager-observer-kubeconfig',
   });
   expect(current.steps).toHaveLength(8);
 
@@ -744,6 +747,43 @@ function assertWorkflow(value) {
 }
 
 describe('workflow security and deployment isolation', () => {
+  it('rejects runner expressions at job env, where GitHub cannot evaluate them', () => {
+    // https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability
+    const assertJobEnv = (value) => {
+      for (const expression of Object.values(value.env ?? {})) {
+        expect(String(expression)).not.toMatch(/\$\{\{[^}]*\brunner(?:\s*\.|\s*\[)/);
+      }
+    };
+    assertJobEnv(job);
+
+    const invalid = structuredClone(job);
+    invalid.env.KUBECONFIG = '${{ runner.temp }}/manager-observer-kubeconfig';
+    expect(() => assertJobEnv(invalid)).toThrow();
+  });
+
+  it.each([4, 5])('routes step %i independently through the exact private kubeconfig', (index) => {
+    const result = execute({ script: steps[index].run });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toBe('');
+    expect(result.capture.length).toBeGreaterThan(0);
+
+    const mutant = steps[index].run.replace('export KUBECONFIG="${RUNNER_TEMP}/manager-observer-kubeconfig"', '');
+    expect(execute({ script: mutant }).status).not.toBe(0);
+  });
+
+  it('removes the exact private kubeconfig in an independent cleanup shell', () => {
+    const result = execute({ script: steps[7].run });
+    expect(result.status).toBe(0);
+    expect(result.kubeconfigExists).toBe(false);
+    expect(result.capture).toEqual([]);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toBe('');
+
+    const mutant = steps[7].run.replace('export KUBECONFIG="${RUNNER_TEMP}/manager-observer-kubeconfig"', '');
+    expect(execute({ script: mutant }).kubeconfigExists).toBe(true);
+  });
+
   it('has only fixed main-push context, existing pins/identity, production approval and success-only upload', () => {
     assertWorkflow(workflow);
 

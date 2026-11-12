@@ -37,7 +37,6 @@ jobs:
       GCP_PROJECT_ID: vibecore-495216
       FLEET_MEMBERSHIP: vibecore-prod-app
       FLEET_LOCATION: europe-west9
-      KUBECONFIG: ${{ runner.temp }}/manager-observer-kubeconfig
     steps:
       - name: Assert trusted main push before cloud access
         id: context
@@ -76,6 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           set +x
+          export KUBECONFIG="${RUNNER_TEMP}/manager-observer-kubeconfig"
           umask 077
           if ! gcloud components install gke-gcloud-auth-plugin --quiet >/dev/null 2>&1 ||
              ! gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
@@ -90,6 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           set +x
+          export KUBECONFIG="${RUNNER_TEMP}/manager-observer-kubeconfig"
           umask 077
           # Refuse an existing output directory rather than reuse stale evidence.
           if ! mkdir -m 700 "${RUNNER_TEMP}/manager-observer-evidence" 2>/dev/null; then
@@ -123,4 +124,5 @@ jobs:
         run: |
           set -euo pipefail
           set +x
+          export KUBECONFIG="${RUNNER_TEMP}/manager-observer-kubeconfig"
           rm -f "${KUBECONFIG}"
