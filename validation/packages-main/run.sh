@@ -31,8 +31,19 @@ export API_CORS_ORIGINS=http://127.0.0.1:5173 PREVIEW_DOMAIN=localhost PREVIEW_P
 pids=()
 browser_attempted=false
 phase=setup
+dependencies_started=false
+dependencies_status=''
+dependency_observation_attempted=false
+dependency_observation_status=0
+observe_dependencies() {
+  dependency_observation_attempted=true
+  dependency_observation_status=0
+  DEPENDENCY_COMPOSE_EXIT="$dependencies_status" timeout --kill-after=2s 45s node "$HARNESS_DIR/dependencies.mjs" > "$RUNNER_TEMP/packages-main-private/dependency-observation.log" 2>&1 || dependency_observation_status=$?
+}
 cleanup() {
   result=$?; trap - EXIT INT TERM; set +e
+  if [[ $dependencies_started == true && $dependency_observation_attempted == false ]]; then observe_dependencies; fi
+  if [[ $result == 0 && $dependency_observation_status != 0 ]]; then result=$dependency_observation_status; fi
   browser_status=0
   if [[ $browser_attempted == true ]]; then
     timeout 20s node "$HARNESS_DIR/upstream/runtime-browser-isolation.mjs" --stop-supervisor >/dev/null 2>&1 || browser_status=1
@@ -54,10 +65,10 @@ cleanup() {
   runtime_status=$?
   bash "$HARNESS_DIR/verify-product.sh" >/dev/null 2>&1
   immutable_status=$?
-  printf '{"namespaceDeleteExit":%s,"composeDownExit":%s,"productVerificationExit":%s,"browserCleanupExit":%s,"runtimeStopExit":%s,"lastPhase":"%s","runExit":%s}\n' "$namespace_status" "$compose_status" "$immutable_status" "$browser_status" "$runtime_status" "$phase" "$result" > "$EVIDENCE_DIR/cleanup.json"
+  printf '{"namespaceDeleteExit":%s,"composeDownExit":%s,"productVerificationExit":%s,"browserCleanupExit":%s,"runtimeStopExit":%s,"lastPhase":"%s","runExit":%s,"dependencyObservationExit":%s}\n' "$namespace_status" "$compose_status" "$immutable_status" "$browser_status" "$runtime_status" "$phase" "$result" "$dependency_observation_status" > "$EVIDENCE_DIR/cleanup.json"
   rm -f "$RUNNER_TEMP/packages-main-private/container.env"
   find "$RUNNER_TEMP/vibecore-runtime/evidence" -maxdepth 1 -name 'runtime-browser-*.json' -exec cp {} "$EVIDENCE_DIR/" \; 2>/dev/null
-  if [[ $namespace_status != 0 || $compose_status != 0 || $immutable_status != 0 || $browser_status != 0 || $runtime_status != 0 ]]; then result=1; fi
+  if [[ $result == 0 && ( $namespace_status != 0 || $compose_status != 0 || $immutable_status != 0 || $browser_status != 0 || $runtime_status != 0 ) ]]; then result=1; fi
   exit "$result"
 }
 trap cleanup EXIT
@@ -68,7 +79,7 @@ phase=install
 pnpm install --frozen-lockfile > "$RUNNER_TEMP/packages-main-private/install.log" 2>&1
 ln -s "$PRODUCT_DIR/node_modules" "$HARNESS_DIR/node_modules"
 python3 "$HARNESS_DIR/stop-runtime.checks.py"
-node --test "$HARNESS_DIR/invariants.checks.mjs" "$HARNESS_DIR/diagnostics.checks.mjs" "$HARNESS_DIR/upstream/runtime-agent-router.checks.mjs" "$HARNESS_DIR/upstream/runtime-browser-relay.checks.mjs"
+node --test "$HARNESS_DIR/invariants.checks.mjs" "$HARNESS_DIR/diagnostics.checks.mjs" "$HARNESS_DIR/dependencies.checks.mjs" "$HARNESS_DIR/upstream/runtime-agent-router.checks.mjs" "$HARNESS_DIR/upstream/runtime-browser-relay.checks.mjs"
 # Exact product contracts include old-agent refusal/budget boundaries. They are
 # unit/integration coverage, not a claim of an old binary exercised in Kubernetes.
 node --test scripts/ci/package-dedicated-install.checks.mjs scripts/ci/package-transport.checks.mjs scripts/ci/package-install-import.checks.mjs
@@ -97,7 +108,17 @@ bash "$HARNESS_DIR/upstream/probe-runtime-gvisor.sh" > "$RUNNER_TEMP/packages-ma
 cp "$RUNNER_TEMP/vibecore-runtime/evidence/versions.txt" "$EVIDENCE_DIR/versions.txt"
 touch "$RUNNER_TEMP/packages-main-private/empty.env"
 phase=dependencies
-docker compose --env-file "$RUNNER_TEMP/packages-main-private/empty.env" -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit > "$RUNNER_TEMP/packages-main-private/dependencies.log" 2>&1
+dependencies_started=true
+touch "$RUNNER_TEMP/packages-main-private/dependencies-started"
+dependencies_status=''
+if docker compose --env-file "$RUNNER_TEMP/packages-main-private/empty.env" -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit > "$RUNNER_TEMP/packages-main-private/dependencies.log" 2>&1; then
+  dependencies_status=0
+else
+  dependencies_status=$?
+fi
+observe_dependencies
+if [[ $dependencies_status != 0 ]]; then exit "$dependencies_status"; fi
+if [[ $dependency_observation_status != 0 ]]; then exit "$dependency_observation_status"; fi
 phase=database
 pnpm --filter @vibecore/database db:deploy > "$RUNNER_TEMP/packages-main-private/migrate.log" 2>&1
 pnpm --filter @vibecore/database db:seed > "$RUNNER_TEMP/packages-main-private/seed.log" 2>&1

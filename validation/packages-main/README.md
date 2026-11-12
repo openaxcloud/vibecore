@@ -104,6 +104,7 @@ Local checks (from repository root):
 ```
 node --test validation/packages-main/invariants.checks.mjs \
   validation/packages-main/diagnostics.checks.mjs \
+  validation/packages-main/dependencies.checks.mjs \
   validation/packages-main/upstream/runtime-agent-router.checks.mjs \
   validation/packages-main/upstream/runtime-browser-relay.checks.mjs
 bash -n validation/packages-main/*.sh
@@ -121,7 +122,7 @@ export EVIDENCE_DIR="$GITHUB_WORKSPACE/evidence"
 bash "$HARNESS_DIR/run.sh"
 ```
 
-Current local checks:92 Node checks passed,0 failed,1 skipped; cleanup argument
+Current local checks: 131 Node checks passed, 0 failed, 1 skipped; cleanup argument
 identity checks and actual owned-subprocess pidfd shutdown passed. The full
 repository ESLint preset and Prettier apply to all harness-owned JS files;
 upstream blobs remain byte-identical. The real TCP-to-Unix-to-TCP test was
@@ -167,7 +168,7 @@ negative assertions; they are not substituted for the real runtime probe.
 
 ## Manager readiness prerequisite for the fresh workspace
 
-Run43134329124 (validation d9ed633d62a8c8148fab030ce0f5f781e1e5c471,
+Run 43134329124 (validation d9ed633d62a8c8148fab030ce0f5f781e1e5c471,
 product cd494729e00273d02e2c5a7e79eea1697824f1ca) reached authenticated
 capability status502,502,401 and failed the existing assertion that only502/503
 may retry. It made zero installs and all cleanup checks succeeded. The normal
@@ -196,3 +197,40 @@ It never copies IDs, URLs, bodies, tokens, secrets or arbitrary strings. This
 precondition narrows the acceptance scope to Packages on a ready, new derived
 workspace; it does not validate user operations during startup or alter manager
 behavior for existing legacy workspaces.
+
+## Bounded dependency startup observation
+
+Run 43137119721 (validation 259cb00115bb098d298ce31ea3102154a2cca016) stopped
+in dependencies: docker compose up -d --wait --wait-timeout 180 for postgres,
+redis and mailpit returned 1. Builds/provisioning and immutable-source checks
+completed, all cleanup exits were 0, but manager/browser/acceptance never started.
+There is no evidence that the readiness prerequisite passed or failed. The private
+Compose log was not uploaded; the exact dependency failure remains unknown.
+
+The harness now captures dependencies.json before tearing down resources, after
+the existing single startup command returns. It preserves that command's original
+exit code even if observation or later cleanup fails; individual cleanup failures
+remain recorded and still fail an otherwise successful run. Startup success with failed observation is
+still a failure. EXIT/INT/TERM cleanup attempts observation before teardown if
+startup was interrupted before normal observation; composeExit is null when the
+startup exit is unknown. The always-clean step has a scoped fallback only when a
+startup marker exists and the evidence file is absent. No retry or second startup
+is added, and the original 180 s startup health wait is unchanged.
+
+Only postgres, redis and mailpit in this run's exact packages-main project are
+selected. Each scoped Compose lookup and projected container inspect is limited
+to 5 s / 4096 output bytes, with a 45 s outer observation limit. Only one full container
+ID per service is accepted; ambiguous selections are not inspected. The inspect
+projection contains state, health, exitCode and two Compose ownership labels,
+which must match before state is accepted. Output retains only fixed service keys,
+presence/state/health/inspection categories and bounded numeric exit codes. IDs,
+labels, environment, addresses and raw inspect/error data are never published.
+
+At most the last 64 KiB of the private regular Compose log is read. Output contains
+only booleans for known pull-rate-limit, pull-access, missing-manifest, network-
+timeout, disk-full and unhealthy signatures. These are observed text signatures,
+not proven root causes; no match is inconclusive. No log excerpt, arbitrary error,
+secret or body is retained. Unknown/missing resources and inspection failures are
+explicit and never reported as healthy. A failed or refused observation never
+changes a failed startup into success. The product, auth, manager readiness and
+Packages acceptance criteria are unchanged.

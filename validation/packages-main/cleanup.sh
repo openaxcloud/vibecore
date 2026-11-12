@@ -9,6 +9,9 @@ export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser
 export KUBECONFIG="$RUNNER_TEMP/vibecore-runtime/kubeconfig"
 export COMPOSE_PROJECT_NAME="packages-main-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 status=0
+if [[ -f "$RUNNER_TEMP/packages-main-private/dependencies-started" && ! -f "$EVIDENCE_DIR/dependencies.json" ]]; then
+  DEPENDENCY_COMPOSE_EXIT='' timeout --kill-after=2s 45s node "$HARNESS_DIR/dependencies.mjs" > "$RUNNER_TEMP/packages-main-private/dependency-observation-cleanup.log" 2>&1 || status=1
+fi
 if [[ -f "$RUNNER_TEMP/packages-main-private/browser-owner" ]]; then
   export RUNTIME_BROWSER_OWNER=$(cat "$RUNNER_TEMP/packages-main-private/browser-owner")
   timeout 20s node "$HARNESS_DIR/upstream/runtime-browser-isolation.mjs" --stop-supervisor >/dev/null 2>&1 || status=1
