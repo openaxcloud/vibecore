@@ -1,18 +1,19 @@
 name: Observe manager terminality (read only)
 
 # This observation changes no deployment gate or terminal-pod predicate.
-# A new workflow_ref is NOT known to be allowed by live WIF policy. An OIDC
-# denial or required production approval stops here; never add a fallback identity.
+# An OIDC denial or required production approval stops here, even after a
+# previous observation succeeded; never add a fallback identity.
 # The artifact explains the current selection only, not the identity of earlier
 # Failed pods, safe deletion/exclusion, rollback success or overall service health.
-# All three additions (workflow, helper and spec) are ignored by deploy-main
-# and outside deploy-chain-change's three exact paths. Recheck the merged diff.
+# These diagnostic paths are ignored by deploy-main and outside the exact
+# deploy-chain-change paths. Recheck the merged diff.
 on:
   push:
     branches: [main]
     paths:
       - '.github/workflows/observe-manager-terminality.yml'
       - '.github/scripts/observe-manager-terminality.mjs'
+      - '.github/scripts/observe-manager-ownership.mjs'
 
 permissions:
   contents: read
@@ -97,13 +98,9 @@ jobs:
             echo 'TERMINAL_DIAGNOSTIC_UNAVAILABLE' >&2
             exit 1
           fi
-          # cluster.sh verifies the exact context, project number, membership and
-          # gateway endpoint. Missing metadata permissions are a refusal, not a
-          # reason to grant access. Raw JSON goes only into the bounded projector.
-          if ! scripts/ci/cluster.sh prod-gateway kubectl -n vibecore get pods \
-            -l 'app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=vibecore' \
-            --request-timeout=30s -o json 2>/dev/null | \
-            node .github/scripts/observe-manager-terminality.mjs \
+          # Five bounded GETs through the unchanged identity-verifying wrapper.
+          # Controller changes, denied reads and malformed output stop observation.
+          if ! node .github/scripts/observe-manager-ownership.mjs \
               > "${RUNNER_TEMP}/manager-observer-evidence/manager-terminality.json" 2>/dev/null; then
             rm -f "${RUNNER_TEMP}/manager-observer-evidence/manager-terminality.json"
             echo 'TERMINAL_DIAGNOSTIC_UNAVAILABLE' >&2
