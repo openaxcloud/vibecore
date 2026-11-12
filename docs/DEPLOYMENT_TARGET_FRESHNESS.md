@@ -26,15 +26,26 @@ vulnerability gates, readiness checks, rollout waits, or rollback conditions.
 
 ## Intentional redeploys
 
-The existing `workflow_dispatch` path with a nonempty, exact `target_sha` remains
-an explicit selection of that commit, even if main has since advanced. The
-resolved SHA must equal the input. Each guard fetches main and checks fresh
-ancestry even for an explicit target; a force-push removing that target or a
-transport failure still refuses. Only the material diff check is bypassed.
-The existing checks for commit existence,
-ancestry on main, main's workflow graph, exact-SHA required checks, and image
-provenance still apply. A default dispatch without a target has the same freshness
-requirement as an automatic push. A push cannot claim the explicit override.
+A `workflow_dispatch` with `target_sha` alone is **not** an intentional historical
+redeploy: the automatic delivery-chain workflow also uses that payload. Targeted
+automatic dispatches, older callers that omit the new option, default dispatches,
+and pushes all receive the same material freshness checks at both guards.
+
+To intentionally redeploy a historical commit, run `deploy-main.yml` on `main`,
+set `target_sha` to its full 40-hex SHA, and explicitly enable the boolean
+`allow_historical_target` input (default: `false`). For the GitHub dispatch API,
+include `"allow_historical_target": true` alongside `target_sha` in `inputs`.
+Do not enable this option in automatic callers. The delivery-chain trigger leaves
+it unset, so it cannot silently treat its selected SHA as a historical override.
+
+The resolved SHA must equal the input. Only boolean `true` enables the exception;
+malformed values and JSON strings such as `"true"` fail closed. Missing/null/empty
+inputs and boolean `false` do not enable it. Opt-in without a target is refused,
+and a push cannot claim the override. Each guard still fetches main and checks
+fresh ancestry before permitting an explicit historical target; a force-push
+removing it or a transport failure still refuses. Only the material diff check
+is bypassed. Commit existence, main's workflow graph, exact-SHA required checks,
+image provenance and all other release gates still apply.
 
 The freshness check is inline in the workflow, rather than loaded from the target
 checkout. This preserves intentional redeploys of historical commits that predate

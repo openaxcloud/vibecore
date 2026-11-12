@@ -100,6 +100,14 @@ on:
           origin/main and must pass the same release gate as a push. Leave empty
           to deploy the head of main.
         required: false
+      allow_historical_target:
+        description: >-
+          Intentionally redeploy target_sha even if main has newer deployable changes.
+          Requires an explicit target_sha; all ancestry and release gates still apply.
+          Never enable for automatic delivery-chain dispatches.
+        type: boolean
+        default: false
+        required: false
       force_tiers:
         description: >-
           Force which tiers to build (comma list of web/runtime/admin/wsagent, or 'all'),
@@ -369,6 +377,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           EXPLICIT_TARGET: ${{ inputs.target_sha }}
+          ALLOW_HISTORICAL_TARGET: ${{ toJSON(inputs.allow_historical_target) }}
           TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
         run: |
           set -euo pipefail
@@ -376,6 +385,14 @@ jobs:
             echo "::error::deployment target must be a full commit SHA"
             exit 1
           fi
+          # toJSON preserves boolean types; absent push/legacy inputs may serialize as null or an empty string.
+          case "${ALLOW_HISTORICAL_TARGET:-}" in
+            true|false|null|'""'|'') ;;
+            *)
+              echo "::error::historical target opt-in must be a boolean"
+              exit 1
+              ;;
+          esac
           EXPLICIT_REDEPLOY=0
           case "${EVENT_NAME}" in
             workflow_dispatch)
@@ -384,11 +401,17 @@ jobs:
                   echo "::error::explicit deployment target does not match the resolved SHA"
                   exit 1
                 fi
+              fi
+              if [ "${ALLOW_HISTORICAL_TARGET:-}" = "true" ]; then
+                if [ -z "${EXPLICIT_TARGET:-}" ]; then
+                  echo "::error::historical target opt-in requires an explicit target SHA"
+                  exit 1
+                fi
                 EXPLICIT_REDEPLOY=1
               fi
               ;;
             push)
-              if [ -n "${EXPLICIT_TARGET:-}" ]; then
+              if [ -n "${EXPLICIT_TARGET:-}" ] || [ "${ALLOW_HISTORICAL_TARGET:-}" = "true" ]; then
                 echo "::error::a push cannot claim an explicit deployment override"
                 exit 1
               fi
@@ -1672,6 +1695,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           EXPLICIT_TARGET: ${{ inputs.target_sha }}
+          ALLOW_HISTORICAL_TARGET: ${{ toJSON(inputs.allow_historical_target) }}
           TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
         run: |
           set -euo pipefail
@@ -1679,6 +1703,14 @@ jobs:
             echo "::error::deployment target must be a full commit SHA"
             exit 1
           fi
+          # toJSON preserves boolean types; absent push/legacy inputs may serialize as null or an empty string.
+          case "${ALLOW_HISTORICAL_TARGET:-}" in
+            true|false|null|'""'|'') ;;
+            *)
+              echo "::error::historical target opt-in must be a boolean"
+              exit 1
+              ;;
+          esac
           EXPLICIT_REDEPLOY=0
           case "${EVENT_NAME}" in
             workflow_dispatch)
@@ -1687,11 +1719,17 @@ jobs:
                   echo "::error::explicit deployment target does not match the resolved SHA"
                   exit 1
                 fi
+              fi
+              if [ "${ALLOW_HISTORICAL_TARGET:-}" = "true" ]; then
+                if [ -z "${EXPLICIT_TARGET:-}" ]; then
+                  echo "::error::historical target opt-in requires an explicit target SHA"
+                  exit 1
+                fi
                 EXPLICIT_REDEPLOY=1
               fi
               ;;
             push)
-              if [ -n "${EXPLICIT_TARGET:-}" ]; then
+              if [ -n "${EXPLICIT_TARGET:-}" ] || [ "${ALLOW_HISTORICAL_TARGET:-}" = "true" ]; then
                 echo "::error::a push cannot claim an explicit deployment override"
                 exit 1
               fi
