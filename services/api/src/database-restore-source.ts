@@ -1,4 +1,12 @@
-import { clusterName, DB_NAMESPACE, onDemandBackupName, type DatabaseEnvironment } from './database-provisioner.js';
+import type { BackupProvenanceRecord, DatabaseBackupProvenanceRepository } from './database-backup-provenance.js';
+import {
+  clusterName,
+  DB_NAMESPACE,
+  onDemandBackupName,
+  provenBackupName,
+  validateProvenBackup,
+  type DatabaseEnvironment,
+} from './database-provisioner.js';
 
 /** Read-only metadata port. A resource response is not an archive/WAL receipt. */
 export interface RestoreSourceReader {
@@ -28,9 +36,13 @@ export async function inspectCnpgRestoreSource(
     snapshotId: string;
     environment: DatabaseEnvironment;
   },
+  provenance?: BackupProvenanceRecord,
 ) {
   const sourceName = clusterName(input.projectId, input.environment);
-  const backupName = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
+
+  const backupName = provenance
+    ? provenBackupName(input.projectId, input.snapshotId, input.environment)
+    : onDemandBackupName(input.projectId, input.snapshotId, input.environment);
 
   if (
     !input.projectId ||
@@ -43,8 +55,30 @@ export async function inspectCnpgRestoreSource(
 
   const completeSourceName = `db-${input.projectId}${input.environment === 'production' ? '-prod' : ''}`;
 
-  if (sourceName !== completeSourceName || backupName !== `${completeSourceName}-${input.snapshotId}`) {
+  if (
+    sourceName !== completeSourceName ||
+    (!provenance && backupName !== `${completeSourceName}-${input.snapshotId}`)
+  ) {
     throw new RestoreSourceError('RESTORE_SOURCE_NAME_AMBIGUOUS');
+  }
+
+  if (
+    provenance &&
+    (provenance.projectId !== input.projectId ||
+      provenance.organizationId !== input.organizationId ||
+      provenance.environment !== input.environment ||
+      provenance.snapshotId !== input.snapshotId ||
+      provenance.sourceName !== sourceName ||
+      provenance.backupName !== backupName ||
+      !provenance.backupUid ||
+      !provenance.sourceUid ||
+      !provenance.instanceId ||
+      !provenance.id ||
+      !provenance.nonce ||
+      !Number.isSafeInteger(provenance.bindingVersion) ||
+      provenance.bindingVersion < 0)
+  ) {
+    throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
   }
 
   let source: unknown;
@@ -82,6 +116,18 @@ export async function inspectCnpgRestoreSource(
 
   const cluster = inspect(source, 'Cluster', sourceName);
   const snapshot = inspect(backup, 'Backup', backupName);
+
+  if (provenance) {
+    try {
+      validateProvenBackup(backup, provenance);
+
+      if (cluster.metadata.uid !== provenance.sourceUid) {
+        throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
+      }
+    } catch {
+      throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
+    }
+  }
 
   if (
     cluster.labels['vibecore.ai/org-id'] !== input.organizationId ||
@@ -148,5 +194,63 @@ export async function inspectCnpgRestoreSource(
     clusterGenerationLinked: clusterOwners.length === 1,
     archiveVerified: false as const,
     walContinuityVerified: false as const,
+  };
+}
+
+/**
+ * Read-only v2 preflight: bind Kubernetes metadata to the durable backup intent.
+ * Re-read the intent to reject concurrent transfer/rebinding. This is NOT a lock
+ * or an archive/WAL verification receipt; execution must revalidate under fencing.
+ * Never adopts a legacy/unbound resource or writes a missing UID into the journal.
+ */
+export async function inspectProvenanceBoundCnpgRestoreSource(
+  reader: RestoreSourceReader,
+  repository: Pick<DatabaseBackupProvenanceRepository, 'get'>,
+  input: Parameters<typeof inspectCnpgRestoreSource>[1],
+) {
+  const readIntent = async () => {
+    try {
+      const intent = await repository.get(input.projectId, input.environment, input.snapshotId);
+
+      if (!intent) {
+        throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
+      }
+
+      return { ...intent };
+    } catch {
+      throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
+    }
+  };
+
+  const before = await readIntent();
+  const source = await inspectCnpgRestoreSource(reader, input, before);
+  const after = await readIntent();
+
+  const fields = [
+    'id',
+    'nonce',
+    'projectId',
+    'organizationId',
+    'instanceId',
+    'environment',
+    'bindingVersion',
+    'snapshotId',
+    'sourceName',
+    'sourceUid',
+    'backupName',
+    'backupUid',
+    'createdAt',
+  ] as const;
+
+  if (fields.some((key) => before[key] !== after[key])) {
+    throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
+  }
+
+  return {
+    ...source,
+    provenanceId: before.id,
+    instanceId: before.instanceId,
+    bindingVersion: before.bindingVersion,
+    provenanceLinked: true as const,
   };
 }
