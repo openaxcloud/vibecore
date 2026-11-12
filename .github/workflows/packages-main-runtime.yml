@@ -1,0 +1,58 @@
+name: Exact main Packages runtime proof
+on:
+  push:
+    branches: [test/packages-main-runtime-20261112]
+permissions:
+  contents: read
+concurrency:
+  group: packages-main-runtime-proof
+  cancel-in-progress: false
+jobs:
+  packages-proof:
+    if: github.repository == 'openaxcloud/vibecore' && github.ref == 'refs/heads/test/packages-main-runtime-20261112'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      HUSKY: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      VIBECORE_CI_EPHEMERAL_RUNTIME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 05515deb61d2ff7a77c11243cb0d1bed58a08e69
+          path: product
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 9.15.9
+          run_install: false
+      - name: Run Packages-only proof against immutable product
+        run: |
+          export PRODUCT_DIR="$GITHUB_WORKSPACE/product"
+          export HARNESS_DIR="$GITHUB_WORKSPACE/harness/validation/packages-main"
+          export EVIDENCE_DIR="$GITHUB_WORKSPACE/evidence"
+          bash "$HARNESS_DIR/run.sh"
+      - name: Always clean the dedicated runner resources
+        if: always()
+        timeout-minutes: 5
+        run: |
+          export PRODUCT_DIR="$GITHUB_WORKSPACE/product"
+          export HARNESS_DIR="$GITHUB_WORKSPACE/harness/validation/packages-main"
+          export EVIDENCE_DIR="$GITHUB_WORKSPACE/evidence"
+          bash "$HARNESS_DIR/cleanup.sh"
+      - name: Upload bounded proof, including failure verdicts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: packages-main-05515de-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence
+          retention-days: 1
+          if-no-files-found: error

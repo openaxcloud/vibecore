@@ -1,0 +1,72 @@
+[
+  {
+    "path": "scripts/ci/provision-runtime-kubernetes.sh",
+    "sha": "f10c4da892d07c952fbe4e7d0f1d11b672198516",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/provision-runtime-kubernetes.sh"
+  },
+  {
+    "path": "scripts/ci/stage-k3s-runtime.py",
+    "sha": "142983a34275fa7c489f45896c3e989c397b2838",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/stage-k3s-runtime.py"
+  },
+  {
+    "path": "scripts/ci/probe-runtime-gvisor.sh",
+    "sha": "48ff184d6aa59299724c644e74c4bd710702273b",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/probe-runtime-gvisor.sh"
+  },
+  {
+    "path": "scripts/ci/runtime-agent-router.mjs",
+    "sha": "d565788bbfe799986709b2e6cf43f0c573a4c101",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-agent-router.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-agent-router.checks.mjs",
+    "sha": "3c7e6c3c66ed4063a2beb9c1f819c8e2059022ee",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-agent-router.checks.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-browser-isolation.mjs",
+    "sha": "642cd9f27b488a6418ab58374cffe25ee7d8fff0",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-browser-isolation.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-browser-container.mjs",
+    "sha": "4fa508d380e71343cab421b1b95c99f630429bc2",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-browser-container.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-browser-client.mjs",
+    "sha": "5f6c5cbab98a1b09e44c48640ae4be9264e731c3",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-browser-client.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-browser-relay.mjs",
+    "sha": "8567c3c136d09cc357a58aa6286aaa45eb27cce7",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-browser-relay.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-browser-evidence.mjs",
+    "sha": "a755a1ef83ee97baa1bfee41d95746e4e6cacca6",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-browser-evidence.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-network-sentinel.mjs",
+    "sha": "fef57b01c2c074b5eb3bb1c2740024d8eec6b13e",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-network-sentinel.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-evidence-redaction.mjs",
+    "sha": "12e161ca86c1f28a870f7aa2fcd9dd5f6700cd54",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-evidence-redaction.mjs"
+  },
+  {
+    "path": "scripts/ci/runtime-browser-relay.checks.mjs",
+    "sha": "7317162103684492168de8fa7b22a02a687161c6",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/runtime-browser-relay.checks.mjs"
+  },
+  {
+    "path": "scripts/ci/k3s-runtime-bundle.json",
+    "sha": "9fcd39fc00cc658595b0bf2975f877b05a29b77d",
+    "source": "https://github.com/openaxcloud/vibecore/blob/e3bdf79b0ac37338549e1019d3663d73dc46b74f/scripts/ci/k3s-runtime-bundle.json"
+  }
+]

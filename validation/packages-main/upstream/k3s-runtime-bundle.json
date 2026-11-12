@@ -1,0 +1,1889 @@
+{
+  "releaseSha256": "265b3ee6a3198ef14033c63ef46cbb32370d83795199fb6d1b01f21575eddbda",
+  "assetSha256": "342d21a06834327c49d125902586b5c58038e4decca01ba829aa819ce4d1b586",
+  "image": "docker.io/rancher/k3s@sha256:bc340b84540f351ae23a1cef63b93d05bab20e12318d8186d60ce127c10d2124",
+  "entries": {
+    "bin": {
+      "mode": 493,
+      "type": "directory"
+    },
+    "bin/.links": {
+      "mode": 420,
+      "type": "file",
+      "sha256": "956df8e121f05a9410541e17825f48195e9f2f8ecccd2b243c0af274a664abd5"
+    },
+    "bin/.sha256sums": {
+      "mode": 420,
+      "type": "file",
+      "sha256": "7943f5048546bb1380c39c389fdd59c6053eb79f4c77d07f5dd282b89bd59c35"
+    },
+    "bin/[": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/[[": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/addgroup": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/adduser": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ar": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/arch": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/arp": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/arping": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ash": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/aux": {
+      "mode": 493,
+      "type": "directory"
+    },
+    "bin/aux/arptables": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/arptables-nft": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/arptables-nft-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/arptables-nft-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/arptables-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/arptables-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/arptables-translate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtables": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtables-legacy": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "0b2cd5ff03d07f90146a4089a5683eeba0155e4ee64287b04e1a252c3720167e"
+    },
+    "bin/aux/ebtables-nft": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtables-nft-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtables-nft-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtables-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtables-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtables-translate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ebtablesd": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "dd363c3f87d0f93e2ec81c80dfa970b31ce072990783d8cc7f37eed5cdd677d6"
+    },
+    "bin/aux/ebtablesu": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "8b759ec303d8dba9247e130b9b66de997631b3e8d25ae96e4cdf0196e86386db"
+    },
+    "bin/aux/ip6tables": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "iptables-detect.sh"
+    },
+    "bin/aux/ip6tables-apply": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "iptables-apply"
+    },
+    "bin/aux/ip6tables-legacy": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-legacy-multi"
+    },
+    "bin/aux/ip6tables-legacy-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-legacy-multi"
+    },
+    "bin/aux/ip6tables-legacy-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-legacy-multi"
+    },
+    "bin/aux/ip6tables-nft": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ip6tables-nft-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ip6tables-nft-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ip6tables-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "iptables-detect.sh"
+    },
+    "bin/aux/ip6tables-restore-translate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/ip6tables-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "iptables-detect.sh"
+    },
+    "bin/aux/ip6tables-translate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/iptables": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "iptables-detect.sh"
+    },
+    "bin/aux/iptables-apply": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "76bca4f1bec8c7d46125d473cef3de3c8202799c14f5d14c608f25814db5e685"
+    },
+    "bin/aux/iptables-detect.sh": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "baf828389b1545c6867573daddd042df435b140ead8b2f758a3f3e3677fd4e80"
+    },
+    "bin/aux/iptables-legacy": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-legacy-multi"
+    },
+    "bin/aux/iptables-legacy-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-legacy-multi"
+    },
+    "bin/aux/iptables-legacy-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-legacy-multi"
+    },
+    "bin/aux/iptables-nft": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/iptables-nft-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/iptables-nft-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/iptables-restore": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "iptables-detect.sh"
+    },
+    "bin/aux/iptables-restore-translate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/iptables-save": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "iptables-detect.sh"
+    },
+    "bin/aux/iptables-translate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/modprobe": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "../busybox"
+    },
+    "bin/aux/mount": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "../busybox"
+    },
+    "bin/aux/nft": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "263e2a0e6bb1f2c3c81ccd9182fd0e89b607c7200e01d6a2489e10f165838a22"
+    },
+    "bin/aux/xtables-legacy-multi": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "e5b1cbf78b3580957969c7129fd31a1a34ec4c018df4bfcf26c888cc084eef0b"
+    },
+    "bin/aux/xtables-monitor": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "xtables-nft-multi"
+    },
+    "bin/aux/xtables-nft-multi": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "935e1de62e82514ad45e7ba29b177ccc15c68d3ddcc5ff07314df8e0623744f6"
+    },
+    "bin/aux/xtables-set-mode.sh": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "454dcddfe5d3ec102c60d7ac363a33e602c803b020acd9602acf5747ac1f77f0"
+    },
+    "bin/awk": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/b2sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/bandwidth": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "cni"
+    },
+    "bin/base32": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/base64": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/basename": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/basenc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/bc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/blkid": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "2d59334010451a929c6084a2bfbdd79b51520c9e04967a906738c1d096c086fd"
+    },
+    "bin/bridge": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "cni"
+    },
+    "bin/bunzip2": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/busybox": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "987cce87a34da98a6a71acc9bbd636f35ba32b348bee8593d1848f0cfcf1e964"
+    },
+    "bin/bzcat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/cat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/chattr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/chcon": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/check-config": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "6bcb732ad5185b8e6589d38b2d21a67c677b45336e418dddba027283ebfea5d4"
+    },
+    "bin/chgrp": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/chmod": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/chown": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/chroot": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/chrt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/chvt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/cksum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/clear": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/cmp": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/cni": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "57934863448164eac918e4954ad57911185c06f276d29b5095c6f67c48fa8a65"
+    },
+    "bin/comm": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/conntrack": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "4d9260362a1a0db9c93df4b6d3911c4f8f29089dc27ffb4b9d699724bd0ac66a"
+    },
+    "bin/containerd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/containerd-shim-runc-v2": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "ffdeb8d5a5055055cfe8dbd9ccb64e9ae41ac8b46ce9853e67fa2168763075aa"
+    },
+    "bin/coreutils": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "79d4d1ef9ebac80c8f6ba2b305b6a736d84d8d61914a7c8fac8ec94f7b3ef183"
+    },
+    "bin/cp": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/cpio": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/crictl": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/crond": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/crontab": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/csplit": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/ctr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/cut": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/date": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/dc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/dd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/deallocvt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/delgroup": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/deluser": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/devmem": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/df": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/diff": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/dir": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/dircolors": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/dirname": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/dnsd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/dnsdomainname": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/dos2unix": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/du": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/dumpkmap": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/echo": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/egrep": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/eject": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/env": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/ether-wake": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ethtool": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "967a42cfa611b1e50351b142ada6ba0a9d0ec115f1b1f1700bd0a53114155cea"
+    },
+    "bin/expand": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/expr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/factor": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/fallocate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/false": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/fbset": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/fdflush": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/fdformat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/fgrep": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/find": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "4136f10e259e95933545d78d52551b941e638befa31366d735a32e876a4fbcd5"
+    },
+    "bin/firewall": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "cni"
+    },
+    "bin/flannel": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "cni"
+    },
+    "bin/fmt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/fold": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/free": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/freeramdisk": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/fsck": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/fsfreeze": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/fuse-overlayfs": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "6df26c193fbbdf81ed20fea5cf814f63f94a953e5ef5138361e708478ab3749c"
+    },
+    "bin/fuser": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/getfattr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/getopt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/getty": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/grep": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/groups": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/gunzip": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/gzip": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/halt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/hdparm": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/head": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/hexedit": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/host-local": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "cni"
+    },
+    "bin/hostid": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/hostname": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/hwclock": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/i2cdetect": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/i2cdump": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/i2cget": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/i2cset": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/i2ctransfer": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/id": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/ifconfig": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ifdown": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ifup": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/inetd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/init": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/insmod": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/install": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/ip": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "d722ec60d224db87c666106afa93a96fab1ffe2131e3584f3957f2ed4868ef80"
+    },
+    "bin/ipaddr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ipcrm": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ipcs": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/iplink": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ipneigh": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/iproute": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/iprule": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ipset": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "c3c3727d30cb0cca5a41a6743ca13f8e597c08dcf3406cb07a918000c6e6c39d"
+    },
+    "bin/iptunnel": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/join": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/k3s": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "83aaf1cd78a0dd78ed398dc7007c73a7e6eabb5184af90224a8cf8c34dbc9a81"
+    },
+    "bin/k3s-agent": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/k3s-certificate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/k3s-completion": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/k3s-etcd-snapshot": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/k3s-secrets-encrypt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/k3s-server": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/k3s-token": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/kill": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/killall": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/killall5": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/klogd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/kubectl": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "k3s"
+    },
+    "bin/last": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/less": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/link": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/linux32": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/linux64": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/linuxrc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ln": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/loadfont": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/loadkmap": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/logger": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/login": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/logname": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/loopback": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "cni"
+    },
+    "bin/losetup": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "b2700d1a3e5f6a1b64cb3a20976510c124fb2851265b0e2ade378fa2da94b515"
+    },
+    "bin/ls": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/lsattr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lsmod": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lsof": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lspci": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lsscsi": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lsusb": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lzcat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lzma": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/lzopcat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/makedevs": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/md5sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/mdev": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mesg": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/microcom": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mim": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mkdir": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/mkdosfs": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mke2fs": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mkfifo": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/mknod": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/mkpasswd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mktemp": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/more": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mountpoint": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/mv": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/nameif": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/netstat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/nice": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/nl": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/nohup": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/nologin": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/nproc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/nsenter": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "fb9fd506c7f963065c76380b6a1ce6e975748ac08584a6b8ef670208a268307e"
+    },
+    "bin/nslookup": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/nuke": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/numfmt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/od": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/openvt": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/partprobe": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/passwd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/paste": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/patch": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/pathchk": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/pidof": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/pigz": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "017c623c807d944d649eeda4ee4958fee162ad8c5ec4cda77de38e13dd875b51"
+    },
+    "bin/ping": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/pinky": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/pipe_progress": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/pivot_root": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/portmap": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "cni"
+    },
+    "bin/poweroff": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/pr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/printenv": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/printf": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/ps": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/ptx": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/pwd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/rdate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/readlink": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/realpath": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/reboot": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/reset": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/resize": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/resume": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/rm": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/rmdir": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/rmmod": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/route": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/run-init": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/run-parts": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/runc": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "0bbf29f3d65586e0543e2dc31e0f7ccac41332554d6382ed0ab578e1fa180267"
+    },
+    "bin/runcon": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/runlevel": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/sed": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/seq": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/setarch": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/setconsole": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/setfattr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/setkeycodes": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/setlogcons": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/setpriv": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/setserial": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/sh": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/sha1sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/sha224sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/sha256sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/sha384sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/sha3sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/sha512sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/shred": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/shuf": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/sleep": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/slirp4netns": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "cae23c846ed44931b5d03153a4f02e0e655f1234ee8bb60410595a323f21ca44"
+    },
+    "bin/sort": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/split": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/start-stop-daemon": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/stat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/strings": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/stty": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/su": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/sulogin": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/sum": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/svc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/svok": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/switch_root": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/sync": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/sysctl": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/syslogd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/tac": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/tail": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/tar": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/tee": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/telnet": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/test": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/tftp": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/time": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/timeout": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/top": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/touch": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/tr": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/traceroute": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/true": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/truncate": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/ts": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/tsort": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/tty": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/ubirename": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/udhcpc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/uevent": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/umount": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/uname": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/unexpand": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/uniq": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/unix2dos": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/unlink": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/unlzma": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/unlzop": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/unpigz": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "pigz"
+    },
+    "bin/unxz": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/unzip": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/uptime": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/users": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/usleep": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/uudecode": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/uuencode": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/vconfig": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/vdir": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/vi": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/vlock": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/w": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/watch": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/watchdog": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/wc": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/wget": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/which": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/who": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/whoami": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/xargs": {
+      "mode": 493,
+      "type": "file",
+      "sha256": "cdd18e3cd93a094fd0839deb473567492c57055919235b8ced539748abe4595a"
+    },
+    "bin/xxd": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/xz": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/xzcat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "bin/yes": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "coreutils"
+    },
+    "bin/zcat": {
+      "mode": 511,
+      "type": "symlink",
+      "target": "busybox"
+    },
+    "etc": {
+      "mode": 493,
+      "type": "directory"
+    }
+  }
+}
