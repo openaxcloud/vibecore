@@ -1,0 +1,126 @@
+name: Observe manager terminality (read only)
+
+# This observation changes no deployment gate or terminal-pod predicate.
+# A new workflow_ref is NOT known to be allowed by live WIF policy. An OIDC
+# denial or required production approval stops here; never add a fallback identity.
+# The artifact explains the current selection only, not the identity of earlier
+# Failed pods, safe deletion/exclusion, rollback success or overall service health.
+# All three additions (workflow, helper and spec) are ignored by deploy-main
+# and outside deploy-chain-change's three exact paths. Recheck the merged diff.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/observe-manager-terminality.yml'
+      - '.github/scripts/observe-manager-terminality.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    if: >-
+      github.event_name == 'push' &&
+      github.repository == 'openaxcloud/vibecore' &&
+      github.ref == 'refs/heads/main' &&
+      github.workflow_ref == 'openaxcloud/vibecore/.github/workflows/observe-manager-terminality.yml@refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: bash
+    env:
+      GCP_PROJECT_ID: vibecore-495216
+      FLEET_MEMBERSHIP: vibecore-prod-app
+      FLEET_LOCATION: europe-west9
+      KUBECONFIG: ${{ runner.temp }}/manager-observer-kubeconfig
+    steps:
+      - name: Assert trusted main push before cloud access
+        id: context
+        run: |
+          set -euo pipefail
+          set +x
+          if [[ "${GITHUB_EVENT_NAME:-}" != 'push' ||
+                "${GITHUB_REPOSITORY:-}" != 'openaxcloud/vibecore' ||
+                "${GITHUB_REF:-}" != 'refs/heads/main' ||
+                "${GITHUB_WORKFLOW_REF:-}" != 'openaxcloud/vibecore/.github/workflows/observe-manager-terminality.yml@refs/heads/main' ||
+                ! "${GITHUB_SHA:-}" =~ ^[a-f0-9]{40}$ ]]; then
+            echo 'TERMINAL_OBSERVER_CONTEXT_REFUSED' >&2
+            exit 1
+          fi
+
+      - name: Check out the exact push commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Authenticate with existing delivery identity
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
+          cleanup_credentials: true
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get existing Connect Gateway credentials
+        id: gateway
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          if ! gcloud components install gke-gcloud-auth-plugin --quiet >/dev/null 2>&1 ||
+             ! gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
+               --project="${GCP_PROJECT_ID}" --location="${FLEET_LOCATION}" >/dev/null 2>&1; then
+            echo 'TERMINAL_OBSERVER_GATEWAY_UNAVAILABLE' >&2
+            exit 1
+          fi
+
+      - name: Observe once and retain only anonymous predicate facts
+        id: observation
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          # Refuse an existing output directory rather than reuse stale evidence.
+          if ! mkdir -m 700 "${RUNNER_TEMP}/manager-observer-evidence" 2>/dev/null; then
+            echo 'TERMINAL_DIAGNOSTIC_UNAVAILABLE' >&2
+            exit 1
+          fi
+          # cluster.sh verifies the exact context, project number, membership and
+          # gateway endpoint. Missing metadata permissions are a refusal, not a
+          # reason to grant access. Raw JSON goes only into the bounded projector.
+          if ! scripts/ci/cluster.sh prod-gateway kubectl -n vibecore get pods \
+            -l 'app.kubernetes.io/name=workspace-manager,app.kubernetes.io/instance=vibecore' \
+            --request-timeout=30s -o json 2>/dev/null | \
+            node .github/scripts/observe-manager-terminality.mjs \
+              > "${RUNNER_TEMP}/manager-observer-evidence/manager-terminality.json" 2>/dev/null; then
+            rm -f "${RUNNER_TEMP}/manager-observer-evidence/manager-terminality.json"
+            echo 'TERMINAL_DIAGNOSTIC_UNAVAILABLE' >&2
+            exit 1
+          fi
+
+      - name: Upload anonymous observation only on success
+        if: success() && steps.observation.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: manager-terminality-${{ github.sha }}
+          path: ${{ runner.temp }}/manager-observer-evidence/manager-terminality.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Remove ephemeral gateway configuration
+        if: always()
+        run: |
+          set -euo pipefail
+          set +x
+          rm -f "${KUBECONFIG}"
