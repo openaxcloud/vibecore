@@ -1743,7 +1743,7 @@ const runtimeDebuggerParams = workspaceParams.extend({ id: z.string().uuid() });
 const packagesInstallSchema = z.object({
   // Zero packages runs a plain lockfile install; otherwise these get added.
   packages: z.array(z.string().trim().min(1)).max(50).optional(),
-  dev: z.boolean().optional(),
+  dev: z.boolean().default(false),
 
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
@@ -24404,6 +24404,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     type PackageInstallResponse = {
       cancelled?: boolean;
+      truncated?: boolean;
       code: number | null;
       signal?: string | null;
       timedOut?: boolean;

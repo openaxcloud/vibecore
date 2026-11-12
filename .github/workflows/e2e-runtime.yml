@@ -105,7 +105,7 @@ jobs:
           node --test scripts/ci/runtime-read-recovery.checks.mjs
           node --test scripts/ci/workspace-env-metadata.checks.mjs
           node --test scripts/ci/runtime-network-sentinel.checks.mjs
-          node --test scripts/ci/browser-network-evidence.checks.mjs
+          node --test scripts/ci/browser-network-evidence.checks.mjs scripts/ci/ide-cas-evidence.checks.mjs
           node --test scripts/terminal-warning-diagnostics.checks.mjs
           node --test scripts/audit-ide-panels-selectors.checks.mjs
           node --test scripts/mcp-extension-audit.checks.mjs

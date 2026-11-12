@@ -2541,7 +2541,13 @@ async function runCommand(
     detached: true,
   });
 
+  let closed = false;
+
   const killGroup = (sig: NodeJS.Signals) => {
+    if (options.reportCancellation && closed) {
+      return;
+    }
+
     if (child.pid === undefined) {
       return;
     }
@@ -2581,6 +2587,7 @@ async function runCommand(
   let stdout = '';
   let stderr = '';
   let truncated = false;
+  let outputStopTimer: ReturnType<typeof setTimeout> | undefined;
 
   const timer = setTimeout(() => {
     record.timedOut = true;
@@ -2618,7 +2625,16 @@ async function runCommand(
         stderr = limited;
       }
 
+      // Decoder flushing may cross the byte cap after close; retain truncation without signalling a reused pid.
+      if (options.reportCancellation && closed) {
+        return;
+      }
+
       killGroup('SIGTERM');
+
+      if (options.reportCancellation && outputStopTimer === undefined) {
+        outputStopTimer = setTimeout(() => killGroup('SIGKILL'), 5_000);
+      }
 
       return;
     }
@@ -2672,8 +2688,10 @@ async function runCommand(
     }
 
     child.on('close', (code, signal) => {
+      closed = true;
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
+      clearTimeout(outputStopTimer);
       installObservation.stop();
       flushDecoders();
       options.rememberTerminal(record, code, signal);
@@ -2709,13 +2727,17 @@ async function runCommand(
      */
     child.on('error', (error) => {
       installObservation.stop();
-      options.rememberTerminal(record, 1, null);
+
+      // Packages must not invent a process exit code when spawning failed.
+      const code = options.reportCancellation ? null : 1;
+      options.rememberTerminal(record, code, null);
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
+      clearTimeout(outputStopTimer);
       options.processes.delete(id);
       resolvePromise({
         id,
-        code: 1,
+        code,
         signal: null,
         timedOut: record.timedOut === true,
         ...(options.reportCancellation ? { cancelled: record.stopRequested === true } : {}),

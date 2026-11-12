@@ -141,7 +141,10 @@ test('preserves exact bucket boundaries and bounded age without arbitrary phase 
     { time: 1000, type: 'address', count: 3, firstAt: 1100, lastAt: 1999 },
   ]);
 
-  const timed = { ...request('http://127.0.0.1:5173/api/private'), timing: () => ({ startTime: 100 }) };
+  const timed = {
+    ...request('http://127.0.0.1:5173/api/private'),
+    timing: () => ({ startTime: 100 }),
+  };
   assert.equal(projectRequestFailure(timed, 1234, 'loaded').ageMs, 1134);
   assert.equal(projectRequestFailure(timed, 1e12, 'PRIVATE').ageMs, 4500000);
   assert.equal(projectRequestFailure(timed, 99).ageMs, null);
@@ -250,4 +253,48 @@ test('HTTP evidence is bounded to 128 events and 32KiB with independent snapshot
   assert.ok(Buffer.byteLength(JSON.stringify(report)) <= 32768);
   report.events[0].route = 'tampered';
   assert.equal(evidence.snapshot().events[0].route, 'runtimeFileRead');
+});
+
+test('HTTP missing-file evidence distinguishes fixed targets without exposing paths or identities', async () => {
+  const { projectHttpFailure, classifyRuntimeFileTarget } = await import('./browser-network-evidence.mjs');
+
+  for (const [query, expected] of [
+    ['', 'omitted'],
+    ['path=.', 'root'],
+    ['path=%2F', 'root'],
+    ['path=', 'root'],
+    ['path=package.json', 'package-manifest'],
+    ['path=.%2Fpackage.json', 'package-manifest'],
+    ['path=pnpm-lock.yaml', 'package-lock'],
+    ['path=node_modules', 'dependencies-directory'],
+    ['path=PRIVATE', 'other'],
+    ['path=package.json&path=PRIVATE', 'multiple'],
+    ['path=%2FPRIVATE%2Fpackage.json', 'other'],
+    ['path=..%2Fpackage.json', 'other'],
+  ]) {
+    assert.equal(classifyRuntimeFileTarget(new URLSearchParams(query)), expected);
+
+    const response = {
+      status: () => 404,
+      request: () => ({
+        url: () =>
+          'http://127.0.0.1:3001/api/runtime/workspaces/ws-0123456789abcdef/files/read?' + query + '&token=PRIVATE',
+        method: () => 'GET',
+        resourceType: () => 'fetch',
+        failure: () => null,
+      }),
+      headers: () => {
+        throw new Error('No header reads');
+      },
+      body: () => {
+        throw new Error('No body reads');
+      },
+    };
+
+    const event = projectHttpFailure(response, 123, 'packages');
+    assert.equal(event.fileTarget, expected);
+    assert.equal(event.workspaceReference, 'canonical-shaped');
+    assert.equal(event.status, 404);
+    assert.doesNotMatch(JSON.stringify(event), /PRIVATE|0123456789abcdef|token/);
+  }
 });

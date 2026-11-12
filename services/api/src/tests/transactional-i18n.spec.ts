@@ -33,7 +33,14 @@ describe('transactional catalogue integrity', () => {
     const frenchKeys = Object.keys(TRANSACTIONAL_CATALOGUE.fr).sort();
 
     expect(frenchKeys).toEqual(englishKeys);
-    expect(englishKeys).toHaveLength(90);
+    expect(englishKeys).toHaveLength(93);
+    expect(englishKeys).toEqual(
+      expect.arrayContaining([
+        'errors.INVALID_PACKAGE_INSTALL_BUDGET',
+        'errors.PACKAGE_INSTALL_CAPABILITY_REQUIRED',
+        'errors.PACKAGE_INSTALL_DEADLINE',
+      ]),
+    );
 
     for (const key of englishKeys) {
       const messageKey = key as TransactionalMessageKey;

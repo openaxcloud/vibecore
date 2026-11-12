@@ -138,9 +138,44 @@ export function createBrowserNetworkEvidence() {
       events.push(projectRequestFailure(request, Date.now(), phase));
     },
     snapshot() {
-      return { total, omitted: Math.max(0, total - events.length), events: [...events] };
+      return {
+        total,
+        omitted: Math.max(0, total - events.length),
+        events: [...events],
+      };
     },
   };
+}
+
+/** Only fixed target categories leave the collector; filenames and query values never do. */
+export function classifyRuntimeFileTarget(params) {
+  const paths = params.getAll('path');
+
+  if (paths.length === 0) {
+    return 'omitted';
+  }
+
+  if (paths.length !== 1) {
+    return 'multiple';
+  }
+
+  if (paths[0] === '' || paths[0] === '.' || paths[0] === '/') {
+    return 'root';
+  }
+
+  if (paths[0] === 'package.json' || paths[0] === './package.json') {
+    return 'package-manifest';
+  }
+
+  if (['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb'].includes(paths[0])) {
+    return 'package-lock';
+  }
+
+  if (paths[0] === 'node_modules' || paths[0] === './node_modules') {
+    return 'dependencies-directory';
+  }
+
+  return 'other';
 }
 
 /** HTTP status evidence is separate from transport failures and never reads bodies/headers. */
@@ -155,7 +190,8 @@ export function projectHttpFailure(response, time = Date.now(), scenario = 'unkn
     const request = response.request();
     const projected = projectRequestFailure(request, time);
     const method = request.method();
-    const pathname = new URL(request.url()).pathname;
+    const url = new URL(request.url());
+    const pathname = url.pathname;
 
     let route = projected.route;
 
@@ -212,6 +248,16 @@ export function projectHttpFailure(response, time = Date.now(), scenario = 'unkn
       method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(method) ? method : 'other',
       origin: projected.origin,
       route,
+      ...(runtime
+        ? {
+            workspaceReference: /^\/api\/runtime\/workspaces\/ws-[a-f0-9]{16}\//.test(pathname)
+              ? 'canonical-shaped'
+              : 'other',
+          }
+        : {}),
+      ...(['runtimeFiles', 'runtimeFileRead'].includes(route)
+        ? { fileTarget: classifyRuntimeFileTarget(url.searchParams) }
+        : {}),
     };
   } catch {
     return null;
@@ -241,7 +287,11 @@ export function createBrowserHttpEvidence() {
       // Reserve the largest counter encoding even before omissions accumulate.
       while (
         Buffer.byteLength(
-          JSON.stringify({ total: Number.MAX_SAFE_INTEGER, omitted: Number.MAX_SAFE_INTEGER, events }),
+          JSON.stringify({
+            total: Number.MAX_SAFE_INTEGER,
+            omitted: Number.MAX_SAFE_INTEGER,
+            events,
+          }),
         ) >
         32 * 1024
       ) {
@@ -249,7 +299,11 @@ export function createBrowserHttpEvidence() {
       }
     },
     snapshot() {
-      return { total, omitted: total - events.length, events: events.map((event) => ({ ...event })) };
+      return {
+        total,
+        omitted: total - events.length,
+        events: events.map((event) => ({ ...event })),
+      };
     },
   };
 }

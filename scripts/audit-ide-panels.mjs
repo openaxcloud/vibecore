@@ -1,26 +1,31 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
+import { chromium } from '@playwright/test';
+import { createBrowserHttpEvidence, createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
+import { createIdeCasEvidence } from './ci/ide-cas-evidence.mjs';
+import { packageInstallFailure } from './ci/package-install-evidence.mjs';
+import { verifyInstalledAuditPackage } from './ci/package-install-import.mjs';
+import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
+import { attachSecretsLifecycleEvidence, createSecretsLifecycleEvidence } from './ci/secrets-lifecycle-evidence.mjs';
+import { auditMcpBackendInstallation, auditMcpUiLifecycle } from './mcp-extension-audit.mjs';
 import {
   auditStorageBackendStatus,
   auditStorageUiCapability,
   StorageLifecycleUnverified,
 } from './object-storage-audit.mjs';
-import { auditMcpBackendInstallation, auditMcpUiLifecycle } from './mcp-extension-audit.mjs';
-import path from 'node:path';
-import { spawn } from 'node:child_process';
-import { chromium } from '@playwright/test';
-import { packageInstallFailure } from './ci/package-install-evidence.mjs';
-import { launchRuntimeChromium } from './ci/runtime-browser-client.mjs';
-import { createBrowserHttpEvidence, createBrowserNetworkEvidence } from './ci/browser-network-evidence.mjs';
-import { verifyInstalledAuditPackage } from './ci/package-install-import.mjs';
-import { attachSecretsLifecycleEvidence, createSecretsLifecycleEvidence } from './ci/secrets-lifecycle-evidence.mjs';
 import { createPanelPersistenceDiagnostics } from './panel-persistence-diagnostics.mjs';
 import { createTerminalWarningDiagnostics } from './terminal-warning-diagnostics.mjs';
 
 const browserNetworkDiagnostics = createBrowserNetworkEvidence();
 const browserHttpDiagnostics = createBrowserHttpEvidence();
+const ideCasDiagnostics = createIdeCasEvidence();
+const ideCasCohort = {};
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
 let appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+
 const outFile = process.env.IDE_PANEL_AUDIT_OUT ?? 'tmp/ide-panel-audit.json';
 const explicitApiBaseUrl = Boolean(process.env.SAAS_API_URL || process.env.API_BASE_URL);
 const explicitAppBaseUrl = Boolean(process.env.PLAYWRIGHT_BASE_URL);
@@ -69,6 +74,7 @@ function localUrlPort(url) {
 
 function collectChildOutput(child, label) {
   const lines = [];
+
   const collect = (stream, prefix) => {
     stream?.on('data', (chunk) => {
       const text = chunk.toString();
@@ -98,6 +104,7 @@ function spawnLocalService(label, scriptName, extraEnv = {}) {
     detached: process.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+
   const logs = collectChildOutput(child, label);
   spawnedProcesses.push({ child, label, logs });
 
@@ -140,6 +147,7 @@ async function isReachable(url) {
 
 async function waitForReachable(url, label, logs, timeoutMs = 60_000) {
   const startedAt = Date.now();
+
   let lastError = '';
 
   while (Date.now() - startedAt < timeoutMs) {
@@ -175,6 +183,7 @@ function viteLocalUrlFromLogs(logs) {
 
 async function waitForWebReachable(initialUrl, logs) {
   const startedAt = Date.now();
+
   let targetUrl = initialUrl;
 
   while (Date.now() - startedAt < 90_000) {
@@ -266,6 +275,7 @@ async function stopSpawnedProcesses() {
 async function http(url, options = {}) {
   const response = await fetch(url, options);
   const text = await response.text();
+
   let body = null;
 
   try {
@@ -279,6 +289,7 @@ async function http(url, options = {}) {
 
 async function registerAuditUser() {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   const result = await http(`${apiBaseUrl}/auth/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -361,6 +372,7 @@ async function auditBackendPanels(projectId, cookie, token) {
 
   for (const [panel, body] of safeActions) {
     let result;
+
     if (panel === 'extensions') {
       try {
         result = await auditMcpBackendInstallation(
@@ -428,6 +440,7 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, panel, ideCasCohort);
     page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
     page.on('pageerror', (error) => errors.push(`[${panel}] ${error.message}`));
     page.on('console', (message) => {
@@ -479,6 +492,7 @@ async function auditPanelRender(projectId, token, terminalDiagnostics) {
       .waitFor({ state: 'visible', timeout: panel === 'preview' || panel === 'terminal' ? 30_000 : 15_000 })
       .then(() => true)
       .catch(() => false);
+
     const applicationError = (await page.getByText('Application Error').count()) > 0;
 
     results.push({
@@ -511,12 +525,15 @@ async function auditCriticalUiInteractions(
 
   async function withPanel(panel, action) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+
     const secretsTrace =
       panel === 'secrets' ? await attachSecretsLifecycleEvidence(page, secretsDiagnostics) : undefined;
 
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, panel, ideCasCohort);
     page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
+
     const backendCalls = [];
 
     page.on('pageerror', (error) => errors.push(`[ui:${panel}] ${error.message}`));
@@ -566,6 +583,7 @@ async function auditCriticalUiInteractions(
       await action(page);
 
       const applicationError = (await page.getByText('Application Error').count()) > 0;
+
       return { ok: !applicationError, applicationError, backendCalls };
     } finally {
       secretsTrace?.stop();
@@ -587,6 +605,7 @@ async function auditCriticalUiInteractions(
   async function run(panel, action, check, expectedBackendMethods = ['GET', 'POST']) {
     try {
       const result = await withPanel(panel, action);
+
       const missingBackendMethods = expectedBackendMethods.filter(
         (method) => !result.backendCalls.some((call) => call.method === method && call.status < 500),
       );
@@ -727,8 +746,10 @@ async function auditCriticalUiInteractions(
 
       const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]');
 
-      // An unprefixed DATABASE_URL has environment shared, so its card displays the exact key.
-      // Do not open the card: configuration persistence does not require contacting audit.local.
+      /*
+       * An unprefixed DATABASE_URL has environment shared, so its card displays the exact key.
+       * Do not open the card: configuration persistence does not require contacting audit.local.
+       */
       await databasePanel
         .getByTestId('db-carte')
         .getByText('DATABASE_URL', { exact: true })
@@ -786,6 +807,7 @@ async function auditCriticalUiInteractions(
         panel.getByRole('button', { name: 'Save settings' }).click(),
       ]);
       await panel.locator('input[name="name"]').waitFor({ state: 'visible', timeout: 10_000 });
+
       const persistedName = await panel.locator('input[name="name"]').inputValue();
 
       if (persistedName !== projectName) {
@@ -855,6 +877,7 @@ async function auditCriticalUiInteractions(
     async (page) => {
       const workflowName = `Workflow Audit ${Date.now()}`;
       await page.getByTestId('new-workflow-button').click();
+
       const createForm = page.getByTestId('create-workflow-form');
       await createForm.getByTestId('workflow-name-input').fill(workflowName);
       await createForm.getByPlaceholder('npm run dev').fill(`echo ${workflowName}`);
@@ -862,6 +885,7 @@ async function auditCriticalUiInteractions(
         waitForPanelResponse(page, 'workflows', 'POST'),
         page.getByRole('button', { name: 'Create Workflow' }).click(),
       ]);
+
       const workflowCard = page.locator('.bolt-project-workflow-card', { hasText: workflowName }).first();
       await workflowCard.waitFor({ state: 'visible', timeout: 10_000 });
       await workflowCard.locator('header button').first().click();
@@ -1010,6 +1034,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, panel, ideCasCohort);
     page.on('response', (response) => browserHttpDiagnostics.capture(response, panel));
     page.on('pageerror', (error) => errors.push(`[workspace:${panel}] ${error.message}`));
     page.on('console', (message) => {
@@ -1029,6 +1054,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
       await action(page);
 
       const applicationError = (await page.getByText('Application Error').count()) > 0;
+
       return { ok: !applicationError, applicationError };
     } finally {
       await terminalDiagnostics.flush();
@@ -1161,6 +1187,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
       await page.locator('[data-testid="terminal-hub-panel"]').first().waitFor({ state: 'visible', timeout: 30_000 });
       await page.getByTestId('tab-scripts').click();
       await page.getByTestId('button-create-script').click();
+
       const marker = `terminal-audit-${Date.now()}`;
       await page.getByTestId('input-script-name').fill('Terminal audit script');
       await page.getByTestId('textarea-script-content').fill(`echo ${marker}`);
@@ -1173,6 +1200,7 @@ async function auditWorkspaceUiInteractions(projectId, token, terminalDiagnostic
 
       const envPanel = page.getByTestId('card-env-vars');
       await envPanel.getByRole('button', { name: 'New variable', exact: true }).click();
+
       const key = `TERMINAL_AUDIT_${Date.now()}`;
       await envPanel.getByPlaceholder('VITE_API_URL', { exact: true }).fill(key);
       await envPanel.locator('input[name="value"]').fill('enabled');
@@ -1194,6 +1222,7 @@ async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
   const browser = await launchRuntimeChromium(chromium, { headless: true });
   const errors = [];
   const results = [];
+
   const viewports = [
     { name: 'desktop', width: 1440, height: 900, mode: 'desktop' },
     { name: 'laptop', width: 1280, height: 800, mode: 'desktop' },
@@ -1239,6 +1268,7 @@ async function auditResponsiveViewports(projectId, token, terminalDiagnostics) {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
     browserNetworkDiagnostics.trackPage(page);
     page.on('requestfailed', (request) => browserNetworkDiagnostics.capture(request));
+    ideCasDiagnostics.trackPage(page, 'responsive', ideCasCohort);
     page.on('response', (response) => browserHttpDiagnostics.capture(response, 'responsive'));
     page.on('pageerror', (error) => errors.push(`[responsive:${viewport.name}] ${error.message}`));
     page.on('console', (message) => {
@@ -1352,6 +1382,7 @@ async function runAuditPass() {
   const cookie = `vc_session=${auth.token}`;
   const endpointResults = await auditBackendPanels(project.id, cookie, auth.token);
   const renderAudit = await auditPanelRender(project.id, auth.token, terminalDiagnostics);
+
   const interactionAudit = await auditCriticalUiInteractions(
     project.id,
     auth.token,
@@ -1401,6 +1432,7 @@ async function runAuditPass() {
     secretsLifecycle: secretsDiagnostics.snapshot(),
     browserNetworkDiagnostics: browserNetworkDiagnostics.snapshot(),
     browserHttpDiagnostics: browserHttpDiagnostics.snapshot(),
+    ideCasDiagnostics: ideCasDiagnostics.snapshot(),
   };
 }
 

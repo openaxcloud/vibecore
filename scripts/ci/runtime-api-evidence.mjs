@@ -6,7 +6,9 @@ export function summarizeRuntimeApi(log) {
   const firstErrors = [];
   const recentErrors = [];
   const ideStateFailures = [];
+  const snapshotFailures = [];
 
+  let snapshotFailuresTotal = 0;
   let completed = 0;
   let failed = 0;
   let ungrouped = 0;
@@ -108,6 +110,21 @@ export function summarizeRuntimeApi(log) {
       });
     }
 
+    const snapshotRequest = pending.get(id);
+
+    if (
+      /^\/api\/runtime\/workspaces\/[^/]+\/logs\/snapshot$/.test(snapshotRequest?.path ?? '') &&
+      entry.msg === 'request failed with server error'
+    ) {
+      const codes = ['WORKSPACE_MANAGER_UNAVAILABLE', 'WORKSPACE_MANAGER_REQUEST_FAILED'];
+      const httpStatus = (value) => (Number.isInteger(value) && value >= 400 && value <= 599 ? value : null);
+      snapshotRequest.failure = {
+        category: codes.includes(entry.code) ? entry.code : 'other',
+        upstreamStatus: httpStatus(entry.err?.upstreamStatus),
+        managerStatus: httpStatus(entry.err?.managerStatus),
+      };
+    }
+
     const status = entry.statusCode ?? entry.res?.statusCode;
     const request = pending.get(id);
 
@@ -129,6 +146,24 @@ export function summarizeRuntimeApi(log) {
       continue;
     }
 
+    if (
+      /^\/api\/runtime\/workspaces\/[^/]+\/logs\/snapshot$/.test(request.path ?? '') &&
+      status >= 400 &&
+      status <= 599
+    ) {
+      snapshotFailuresTotal = Math.min(Number.MAX_SAFE_INTEGER, snapshotFailuresTotal + 1);
+      snapshotFailures.push({
+        status,
+        time: Number.isFinite(entry.time) ? entry.time : null,
+        ...(request.failure ?? { category: 'unobserved', upstreamStatus: null, managerStatus: null }),
+      });
+
+      if (snapshotFailures.length > 60) {
+        snapshotFailures.splice(30, 1);
+      }
+    }
+
+    delete request.failure;
     completed++;
 
     const key = `${request.method} ${request.path} ${status}`;
@@ -159,6 +194,9 @@ export function summarizeRuntimeApi(log) {
   return {
     packageExecutions,
     ideStateFailures,
+    snapshotFailures,
+    snapshotFailuresTotal,
+    snapshotFailuresOmitted: snapshotFailuresTotal - snapshotFailures.length,
     completed,
     failed,
     ungrouped,

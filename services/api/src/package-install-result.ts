@@ -4,11 +4,12 @@ export function packageInstallResult(result: {
   signal?: string | null;
   timedOut?: boolean;
   cancelled?: boolean;
+  truncated?: boolean;
 }) {
   const termination =
     result.timedOut === true
       ? 'timeout'
-      : result.cancelled === true || result.signal
+      : result.cancelled === true || result.truncated === true || result.signal
         ? 'interrupted'
         : !Number.isInteger(result.code)
           ? 'unknown'
