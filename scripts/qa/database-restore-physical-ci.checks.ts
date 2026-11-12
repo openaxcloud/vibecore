@@ -9,7 +9,19 @@ import {
 
 const env = { CI: 'true', RESTORE_CI_POSTGRES_CONTAINER: 'a'.repeat(64) };
 
+const walHeader = Buffer.alloc(40);
+walHeader.writeUInt16LE(0xd113, 0);
+walHeader.writeUInt16LE(2, 2);
+walHeader.writeUInt32LE(1, 4);
+walHeader.writeBigUInt64LE(42n, 24);
+walHeader.writeUInt32LE(1024 * 1024, 32);
+walHeader.writeUInt32LE(8192, 36);
+
 const receipt = {
+  walHeaderBase64: walHeader.toString('base64'),
+  walSegment: '000000010000000000000000',
+  walSegmentSizeBytes: 1024 * 1024,
+  systemIdentifier: '42',
   physicalBackupVerified: true,
   tamperedBackupRejected: true,
   walRecoveryVerified: true,
@@ -19,6 +31,7 @@ const receipt = {
   postTargetWriteExcluded: true,
   targetRestartVerified: true,
   networkListeners: false,
+  production: false,
   postgresVersion: '160004',
   manifestSha256: 'b'.repeat(64),
 };
@@ -69,11 +82,15 @@ test('checks every physical proof field and never promotes fixture evidence to p
     }
   }
   assert.throws(() => validatePhysicalReceipt({ ...receipt, networkListeners: true }));
+  assert.throws(() => validatePhysicalReceipt({ ...receipt, production: true }));
   assert.throws(() => validatePhysicalReceipt({ ...receipt, postgresVersion: '170001' }));
-  assert.deepEqual(validatePhysicalReceipt({ ...receipt, providerSecret: 'must not echo' }), {
-    ...receipt,
-    production: false,
-  });
+  assert.throws(() => validatePhysicalReceipt({ ...receipt, systemIdentifier: '43' }));
+
+  const proof = validatePhysicalReceipt({ ...receipt, providerSecret: 'must not echo' });
+  assert.equal(proof.production, false);
+  assert.equal(proof.walHeaderIdentityVerified, true);
+  assert.equal('providerSecret' in proof, false);
+  assert.equal('walHeaderBase64' in proof, false);
 });
 test('executes only the existing service as postgres, bounded, using socket-only synthetic recipe', async () => {
   const calls: string[][] = [];
