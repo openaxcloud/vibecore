@@ -28,3 +28,20 @@ It does not assert that the GCS archive contents, generation-pinned materializer
 production backup scheduling, distributed fencing or application cutover have
 been validated together. `server.ts`, restore endpoints and their 503 gate are
 unchanged. A successful fixture is not permission to activate production restore.
+
+## Archived WAL negative controls
+
+The fixture now closes an exact LSN interval around the post-backup writes,
+waits for archival and invokes PostgreSQL 16 `pg_waldump` on the archived files.
+A successful, nonempty native record parse is required before recovery. Two
+independent copies of the archive then prove failure when the starting segment
+has a destroyed first page or is missing. The original archive is never modified.
+All three flags are mandatory in the CI receipt, so legacy/missing/false evidence
+cannot silently pass. This checks native WAL parsing and segment availability
+for the synthetic range only, not arbitrary GCS archives or cross-timeline PITR.
+
+Still required before production activation: bind verified source archive and
+WAL generations to an isolated target; verify timeline history and actual replay
+to the requested timestamp; implement durable global attempt fencing and drain
+all API, runtime and deployed-app consumers; perform crash-recovery and cutover
+readback tests. The application cutover 503 gate remains unchanged.

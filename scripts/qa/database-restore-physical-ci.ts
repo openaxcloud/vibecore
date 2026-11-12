@@ -11,6 +11,9 @@ export interface PhysicalReceipt {
   physicalBackupVerified: true;
   tamperedBackupRejected: true;
   walRecoveryVerified: true;
+  archivedWalRecordsVerified: true;
+  corruptArchivedWalRejected: true;
+  missingArchivedWalRejected: true;
   postTargetWriteExcluded: true;
   targetRestartVerified: true;
   networkListeners: false;
@@ -35,6 +38,9 @@ export function validatePhysicalReceipt(input: unknown): PhysicalReceipt {
     'physicalBackupVerified',
     'tamperedBackupRejected',
     'walRecoveryVerified',
+    'archivedWalRecordsVerified',
+    'corruptArchivedWalRejected',
+    'missingArchivedWalRejected',
     'postTargetWriteExcluded',
     'targetRestartVerified',
   ]) {
@@ -50,6 +56,9 @@ export function validatePhysicalReceipt(input: unknown): PhysicalReceipt {
     physicalBackupVerified: true,
     tamperedBackupRejected: true,
     walRecoveryVerified: true,
+    archivedWalRecordsVerified: true,
+    corruptArchivedWalRejected: true,
+    missingArchivedWalRejected: true,
     postTargetWriteExcluded: true,
     targetRestartVerified: true,
     networkListeners: false,

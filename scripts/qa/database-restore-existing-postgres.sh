@@ -23,9 +23,12 @@ SYSTEM=$("${SQL[@]}" -c "SELECT system_identifier::text FROM pg_control_system()
 "$B/pg_basebackup" -h "$ROOT/socket-source" -p 55444 -D "$ROOT/backup" -Fp -X stream --checkpoint=fast --manifest-checksums=SHA256
 "$B/pg_verifybackup" "$ROOT/backup" > "$ROOT/verify.log"
 MANIFEST=$(sha256sum "$ROOT/backup/backup_manifest" | cut -d' ' -f1)
+WAL_START=$("${SQL[@]}" -c "SELECT pg_current_wal_insert_lsn()::text")
+WAL_SEGMENT=$("${SQL[@]}" -c "SELECT pg_walfile_name('$WAL_START'::pg_lsn + 1)")
 "${SQL[@]}" -c "INSERT INTO restore_probe VALUES ('target','included')" >/dev/null
 TARGET=$("${SQL[@]}" -c "SELECT clock_timestamp()::text")
 "${SQL[@]}" -c "INSERT INTO restore_probe VALUES ('post','must be excluded')" >/dev/null
+WAL_END=$("${SQL[@]}" -c "SELECT pg_current_wal_insert_lsn()::text")
 "${SQL[@]}" -c "SELECT pg_switch_wal()" >/dev/null
 for attempt in $(seq 1 150); do
   PENDING=$("${SQL[@]}" -c "SELECT count(*) FROM pg_ls_dir('pg_wal/archive_status') f WHERE f LIKE '%.ready'")
@@ -33,6 +36,17 @@ for attempt in $(seq 1 150); do
   sleep 0.1
 done
 [ "$PENDING" = 0 ]
+# Native record parsing/CRC checks over a closed range in the actual archive.
+# All negative tests mutate independent owned copies, never the recovery archive.
+[[ "$WAL_SEGMENT" =~ ^[0-9A-F]{24}$ ]]
+"$B/pg_waldump" --path="$ROOT/archive" --start="$WAL_START" --end="$WAL_END" > "$ROOT/waldump.log"
+[ -s "$ROOT/waldump.log" ]
+cp -a "$ROOT/archive" "$ROOT/archive-corrupt"
+dd if=/dev/zero of="$ROOT/archive-corrupt/$WAL_SEGMENT" bs=8192 count=1 conv=notrunc status=none
+if "$B/pg_waldump" --path="$ROOT/archive-corrupt" --start="$WAL_START" --end="$WAL_END" > "$ROOT/corrupt-wal.log" 2>&1; then exit 94; fi
+cp -a "$ROOT/archive" "$ROOT/archive-missing"
+rm -- "$ROOT/archive-missing/$WAL_SEGMENT"
+if "$B/pg_waldump" --path="$ROOT/archive-missing" --start="$WAL_START" --end="$WAL_END" > "$ROOT/missing-wal.log" 2>&1; then exit 95; fi
 # A damaged base backup must be rejected, then restore the owned fixture bytes.
 printf '00\n' > "$ROOT/backup/PG_VERSION"
 if "$B/pg_verifybackup" "$ROOT/backup" > "$ROOT/tamper.log" 2>&1; then exit 93; fi
@@ -58,4 +72,4 @@ OBSERVED=$("${READ[@]}" -c "SELECT string_agg(id,',' ORDER BY id) FROM restore_p
 [ "$("${READ[@]}" -c "SELECT system_identifier::text FROM pg_control_system()")" = "$SYSTEM" ]
 "$B/pg_ctl" -D "$ROOT/target" -m fast -w restart > "$ROOT/restart.log"
 [ "$("${READ[@]}" -c "SELECT string_agg(id,',' ORDER BY id) FROM restore_probe")" = 'base,target' ]
-printf '{"physicalBackupVerified":true,"tamperedBackupRejected":true,"walRecoveryVerified":true,"postTargetWriteExcluded":true,"targetRestartVerified":true,"networkListeners":false,"postgresVersion":"%s","manifestSha256":"%s"}\n' "$("${READ[@]}" -c 'SHOW server_version_num')" "$MANIFEST"
+printf '{"physicalBackupVerified":true,"tamperedBackupRejected":true,"walRecoveryVerified":true,"archivedWalRecordsVerified":true,"corruptArchivedWalRejected":true,"missingArchivedWalRejected":true,"postTargetWriteExcluded":true,"targetRestartVerified":true,"networkListeners":false,"postgresVersion":"%s","manifestSha256":"%s"}\n' "$("${READ[@]}" -c 'SHOW server_version_num')" "$MANIFEST"

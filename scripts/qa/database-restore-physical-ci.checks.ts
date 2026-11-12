@@ -13,6 +13,9 @@ const receipt = {
   physicalBackupVerified: true,
   tamperedBackupRejected: true,
   walRecoveryVerified: true,
+  archivedWalRecordsVerified: true,
+  corruptArchivedWalRejected: true,
+  missingArchivedWalRejected: true,
   postTargetWriteExcluded: true,
   targetRestartVerified: true,
   networkListeners: false,
@@ -60,6 +63,10 @@ test('checks every physical proof field and never promotes fixture evidence to p
     const copy: Record<string, unknown> = { ...receipt };
     delete copy[key];
     assert.throws(() => validatePhysicalReceipt(copy));
+
+    if (receipt[key as keyof typeof receipt] === true) {
+      assert.throws(() => validatePhysicalReceipt({ ...receipt, [key]: false }));
+    }
   }
   assert.throws(() => validatePhysicalReceipt({ ...receipt, networkListeners: true }));
   assert.throws(() => validatePhysicalReceipt({ ...receipt, postgresVersion: '170001' }));
