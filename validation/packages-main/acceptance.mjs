@@ -5,6 +5,7 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
+import { checkAgentCapability } from './diagnostics.mjs';
 import { launchRuntimeChromium } from './upstream/runtime-browser-client.mjs';
 
 const require = createRequire(`${process.env.PRODUCT_DIR}/package.json`);
@@ -21,8 +22,8 @@ await mkdir(output, { recursive: true });
 
 const proof = {
   scope: 'Packages-only',
-  product: '05515deb61d2ff7a77c11243cb0d1bed58a08e69',
-  tree: 'e3d7f51ea4c250e686cfb560876da9c25ebab899',
+  product: 'cd494729e00273d02e2c5a7e79eea1697824f1ca',
+  tree: '06d294858b1dc77c5ff72130093bf43fdcf1878c',
   passed: false,
   phase: 'register',
 };
@@ -30,7 +31,11 @@ const proof = {
 let browser;
 
 async function json(url, options = {}) {
-  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(20000) });
+  const response = await fetch(url, {
+    ...options,
+    signal: AbortSignal.timeout(20000),
+  });
+  proof.lastHttpStatus = response.status;
   assert(response.ok, `HTTP ${response.status} during ${proof.phase}`);
 
   return response.json();
@@ -53,8 +58,14 @@ try {
 
   const created = await json(`${api}/orgs/${auth.organization.id}/projects/from-template`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${auth.token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ name: 'Packages Test', templateName: 'react-basic-starter' }),
+    headers: {
+      authorization: `Bearer ${auth.token}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: 'Packages Test',
+      templateName: 'react-basic-starter',
+    }),
   });
 
   const projectId = created.project.id;
@@ -62,7 +73,10 @@ try {
   proof.phase = 'load-ui';
   browser = await launchRuntimeChromium(chromium, { headless: true });
 
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+  });
+
   const requests = [];
 
   let requestOverflow = false;
@@ -75,10 +89,19 @@ try {
       }
     }
   });
-  await page
-    .context()
-    .addCookies([{ name: 'vc_session', value: auth.token, url: app, httpOnly: true, sameSite: 'Lax' }]);
-  await page.goto(`${app}/projects/${projectId}/ide?panel=packages`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.context().addCookies([
+    {
+      name: 'vc_session',
+      value: auth.token,
+      url: app,
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  ]);
+  await page.goto(`${app}/projects/${projectId}/ide?panel=packages`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60000,
+  });
 
   const panel = page.locator('[data-testid="ide-service-panel"][data-panel="packages"]');
   await panel.waitFor({ state: 'visible', timeout: 60000 });
@@ -94,7 +117,9 @@ try {
   let workspaceId;
 
   do {
-    const initial = await json(`${app}${panelPath}`, { headers: { cookie: `vc_session=${auth.token}` } });
+    const initial = await json(`${app}${panelPath}`, {
+      headers: { cookie: `vc_session=${auth.token}` },
+    });
     workspaceId = initial?.data?.workspace?.id;
 
     if (workspaceId) {
@@ -106,44 +131,33 @@ try {
   assert.match(workspaceId ?? '', /^[a-zA-Z0-9_-]{1,128}$/);
   proof.phase = 'agent-capability';
 
+  proof.capabilityStep = 'manager-token';
+
   const tokenResponse = await json(`http://127.0.0.1:3010/workspaces/${workspaceId}/agent-token`, {
-    headers: { authorization: `Bearer ${process.env.WORKSPACE_MANAGER_SHARED_SECRET}` },
+    headers: {
+      authorization: `Bearer ${process.env.WORKSPACE_MANAGER_SHARED_SECRET}`,
+    },
   });
 
+  proof.capabilityStep = 'agent-probe';
+
   const agent = `http://127.0.0.1:18081/${workspaceId}`;
-  const headers = { authorization: `Bearer ${tokenResponse.token}`, 'content-type': 'application/json' };
-  const capabilityDeadline = performance.now() + 180000;
 
-  let cap;
+  const headers = {
+    authorization: `Bearer ${tokenResponse.token}`,
+    'content-type': 'application/json',
+  };
+  proof.capabilityDiagnostics = {};
 
-  do {
-    const response = await fetch(`${agent}/packages/v1/capabilities`, {
-      headers,
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (response.ok) {
-      cap = await response.json();
-      break;
-    }
-
-    await response.body?.cancel();
-    assert([502, 503].includes(response.status), `Capability refused HTTP ${response.status}`);
-    await delay(5000);
-  } while (performance.now() < capabilityDeadline);
-  assert(cap, 'Actual agent readiness deadline');
-  assert.deepEqual([cap.version, cap.maxBudgetMs, cap.validatedSpecs], [1, 300000, 1]);
-  proof.capability = { version: cap.version, maxBudgetMs: cap.maxBudgetMs, validatedSpecs: cap.validatedSpecs };
-
-  for (const authorization of [undefined, 'Bearer invalid']) {
-    const response = await fetch(`${agent}/packages/v1/capabilities`, {
-      headers: authorization ? { authorization } : {},
-      signal: AbortSignal.timeout(10000),
-    });
-    assert([401, 403].includes(response.status));
-    await response.body?.cancel();
-  }
+  const cap = await checkAgentCapability(agent, headers, proof.capabilityDiagnostics);
+  proof.capability = {
+    version: cap.version,
+    maxBudgetMs: cap.maxBudgetMs,
+    validatedSpecs: cap.validatedSpecs,
+  };
   proof.unauthenticatedRefused = true;
+
+  proof.capabilityStep = 'runtime-attestation';
 
   const pods = JSON.parse(
     execFileSync('kubectl', ['-n', 'workspaces', 'get', 'pods', '-o', 'json'], {
@@ -182,7 +196,12 @@ try {
     maxBuffer: 65536,
   });
   assert.match(dmesg, /gvisor/i);
-  proof.runtime = { runtimeClass: 'gvisor', image: process.env.WORKSPACE_AGENT_IMAGE, imageIDs, gvisorVerified: true };
+  proof.runtime = {
+    runtimeClass: 'gvisor',
+    image: process.env.WORKSPACE_AGENT_IMAGE,
+    imageIDs,
+    gvisorVerified: true,
+  };
   proof.phase = 'install-ui';
   await page.getByPlaceholder('@scope/name, react-query, vite@latest').fill('is-odd');
 
@@ -220,7 +239,12 @@ try {
   proof.phase = 'import';
   Object.assign(
     proof,
-    await verifyInstalledAuditPackage({ apiBaseUrl: api, token: auth.token, projectId, panel: state }),
+    await verifyInstalledAuditPackage({
+      apiBaseUrl: api,
+      token: auth.token,
+      projectId,
+      panel: state,
+    }),
   );
 
   const run = state.data.packagesState.runs[0];

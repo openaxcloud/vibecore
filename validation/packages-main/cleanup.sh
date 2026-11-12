@@ -3,7 +3,7 @@
 set -u
 [[ ${GITHUB_ACTIONS:-} == true && ${RUNNER_ENVIRONMENT:-} == github-hosted ]] || exit 1
 [[ ${GITHUB_REF:-} == refs/heads/test/packages-main-runtime-20261112 ]] || exit 1
-export WORKSPACE_AGENT_IMAGE=vibecore/workspace-agent:ci-05515deb61d2ff7a77c11243cb0d1bed58a08e69
+export WORKSPACE_AGENT_IMAGE=vibecore/workspace-agent:ci-cd494729e00273d02e2c5a7e79eea1697824f1ca
 export VIBECORE_CI_BROWSER_ISOLATION=1
 export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser
 export KUBECONFIG="$RUNNER_TEMP/vibecore-runtime/kubeconfig"

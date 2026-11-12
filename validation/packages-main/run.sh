@@ -19,8 +19,8 @@ export RUNTIME_BROWSER_OWNER=$(node -e 'console.log(require("crypto").randomUUID
 export VIBECORE_CI_BROWSER_ISOLATION=1
 export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:18082/runtime-browser
 export COMPOSE_PROJECT_NAME="packages-main-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-export WORKSPACE_AGENT_IMAGE="vibecore/workspace-agent:ci-05515deb61d2ff7a77c11243cb0d1bed58a08e69"
-export PROOF_IMAGE="vibecore/packages-proof:05515de-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+export WORKSPACE_AGENT_IMAGE="vibecore/workspace-agent:ci-cd494729e00273d02e2c5a7e79eea1697824f1ca"
+export PROOF_IMAGE="vibecore/packages-proof:cd49472-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 export DATABASE_URL=postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore REDIS_URL=redis://127.0.0.1:56379
 export POSTGRES_PORT=55432 REDIS_PORT=56379
 export RUNTIME_MODE=remote-kubernetes WORKSPACE_RUNTIME_NAMESPACE=workspaces WORKSPACE_STORAGE_CLASS=local-path
@@ -68,14 +68,14 @@ phase=install
 pnpm install --frozen-lockfile > "$RUNNER_TEMP/packages-main-private/install.log" 2>&1
 ln -s "$PRODUCT_DIR/node_modules" "$HARNESS_DIR/node_modules"
 python3 "$HARNESS_DIR/stop-runtime.checks.py"
-node --test "$HARNESS_DIR/invariants.checks.mjs" "$HARNESS_DIR/upstream/runtime-agent-router.checks.mjs" "$HARNESS_DIR/upstream/runtime-browser-relay.checks.mjs"
+node --test "$HARNESS_DIR/invariants.checks.mjs" "$HARNESS_DIR/diagnostics.checks.mjs" "$HARNESS_DIR/upstream/runtime-agent-router.checks.mjs" "$HARNESS_DIR/upstream/runtime-browser-relay.checks.mjs"
 # Exact product contracts include old-agent refusal/budget boundaries. They are
 # unit/integration coverage, not a claim of an old binary exercised in Kubernetes.
 node --test scripts/ci/package-dedicated-install.checks.mjs scripts/ci/package-transport.checks.mjs scripts/ci/package-install-import.checks.mjs
 bash "$HARNESS_DIR/verify-product.sh"
 context="$RUNNER_TEMP/packages-product-context"
 mkdir "$context"
-git archive 05515deb61d2ff7a77c11243cb0d1bed58a08e69 > "$RUNNER_TEMP/packages-main-private/product.tar"
+git archive cd494729e00273d02e2c5a7e79eea1697824f1ca > "$RUNNER_TEMP/packages-main-private/product.tar"
 tar -xf "$RUNNER_TEMP/packages-main-private/product.tar" -C "$context"
 python3 - <<'PYPROOF'
 import os,json,hashlib,subprocess
@@ -84,9 +84,9 @@ proof={'head':subprocess.check_output(['git','-C',root,'rev-parse','HEAD'],text=
 json.dump(proof,open(os.environ['EVIDENCE_DIR']+'/source.json','w'),indent=2)
 PYPROOF
 phase=build-images
-docker build --label org.opencontainers.image.revision=05515deb61d2ff7a77c11243cb0d1bed58a08e69 -f "$context/services/workspace-agent/Dockerfile" -t "$WORKSPACE_AGENT_IMAGE" "$context" > "$RUNNER_TEMP/packages-main-private/agent-build.log" 2>&1
+docker build --label org.opencontainers.image.revision=cd494729e00273d02e2c5a7e79eea1697824f1ca -f "$context/services/workspace-agent/Dockerfile" -t "$WORKSPACE_AGENT_IMAGE" "$context" > "$RUNNER_TEMP/packages-main-private/agent-build.log" 2>&1
 phase=build-images
-docker build --label org.opencontainers.image.revision=05515deb61d2ff7a77c11243cb0d1bed58a08e69 -f "$HARNESS_DIR/Proof.Dockerfile" -t "$PROOF_IMAGE" "$context" > "$RUNNER_TEMP/packages-main-private/app-build.log" 2>&1
+docker build --label org.opencontainers.image.revision=cd494729e00273d02e2c5a7e79eea1697824f1ca -f "$HARNESS_DIR/Proof.Dockerfile" -t "$PROOF_IMAGE" "$context" > "$RUNNER_TEMP/packages-main-private/app-build.log" 2>&1
 docker image inspect --format '{{.Id}} {{index .Config.Labels "org.opencontainers.image.revision"}}' "$WORKSPACE_AGENT_IMAGE" "$PROOF_IMAGE" > "$EVIDENCE_DIR/image-identities.txt"
 phase=provision
 bash "$HARNESS_DIR/upstream/provision-runtime-kubernetes.sh" > "$RUNNER_TEMP/packages-main-private/provision.log" 2>&1

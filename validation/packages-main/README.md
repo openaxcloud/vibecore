@@ -6,8 +6,8 @@ preparation. Production CI for PR899 remains independently mandatory.
 
 ## Immutable product and separate harness
 
-- Product SHA: `05515deb61d2ff7a77c11243cb0d1bed58a08e69`.
-- Product tree: `e3d7f51ea4c250e686cfb560876da9c25ebab899`.
+- Product SHA: `cd494729e00273d02e2c5a7e79eea1697824f1ca`.
+- Product tree: `06d294858b1dc77c5ff72130093bf43fdcf1878c`.
 - Proposed validation branch: `test/packages-main-runtime-20261112`, based on that
   product commit. This validation branch must never be merged into main. Only the new workflow and `validation/packages-main/` are added.
 - The push trigger matches only that exact branch. No PR, schedule, dispatch,
@@ -103,6 +103,7 @@ Local checks (from repository root):
 
 ```
 node --test validation/packages-main/invariants.checks.mjs \
+  validation/packages-main/diagnostics.checks.mjs \
   validation/packages-main/upstream/runtime-agent-router.checks.mjs \
   validation/packages-main/upstream/runtime-browser-relay.checks.mjs
 bash -n validation/packages-main/*.sh
@@ -120,10 +121,10 @@ export EVIDENCE_DIR="$GITHUB_WORKSPACE/evidence"
 bash "$HARNESS_DIR/run.sh"
 ```
 
-Independent review:29 Node checks passed,0 failed,1 skipped; cleanup argument
+Current local checks:71 Node checks passed,0 failed,1 skipped; cleanup argument
 identity checks and actual owned-subprocess pidfd shutdown passed. The full
-repository ESLint preset and Prettier were applied to the new JS files; upstream
-blobs remain byte-identical. Local result:29 passed,0 failed,1 skipped. The real TCP-to-Unix-to-TCP test was
+repository ESLint preset and Prettier apply to all harness-owned JS files;
+upstream blobs remain byte-identical. The real TCP-to-Unix-to-TCP test was
 skipped because local Unix socket binding returned EPERM; synthetic relay
 checks and real TCP test passed. YAML parsing and shell/JS syntax passed.
 The browser-isolation workflow-coupled suite is not transplanted: it references
@@ -135,3 +136,31 @@ provisioning and the exact-product live scenario are not locally executed.
 Before publication, independently review these boundaries, runner permissions
 and existing CI capacity. Runtime failures must be investigated, never excused
 by the source-level checks or historical experimental-branch proof.
+
+## First real execution and bounded diagnostics
+
+Validation commit c17afa975cb4c9fa6e1616fdd1c76e607d3fce4a tested product
+05515deb61d2ff7a77c11243cb0d1bed58a08e69 in run43130887364/job130894434427.
+It failed in agent-capability with assertion_failed:3 capability requests,
+0 dedicated installs and successful cleanup. The exact failing assertion and
+underlying cause are unknown because that artifact contained neither response
+statuses nor capability shape. Startup success is not Packages acceptance.
+The old genericCommands=0 evidence is invalid for actual POST /commands/run:
+the old observer watched /commands, which the product does not use for execution.
+The corrected observer counts /commands/run without changing any requests.
+Generic commands can legitimately occur during UI workspace startup or the
+post-install import helper, so the counter is descriptive, not a zero-command
+acceptance criterion. This change does not retroactively validate the old run.
+
+The next execution retains fixed capability substeps, HTTP statuses (at most64
+per status array), and fixed field types/boolean matches for version,
+maxBudgetMs and validatedSpecs. Additional fields, raw field values, bodies,
+headers, tokens, URLs, identities and exception text are never copied into these
+diagnostics. Generic JSON requests retain only the last HTTP status. The capability
+probe still requires exactly version1/maxBudgetMs300000/validatedSpecs1;
+only502/503 retry while the180s deadline has not elapsed between iterations.
+This is not a hard180s cutoff: a final fetch10s plus sleep5s can finish later,
+followed by two auth probes of up to10s each. Missing/invalid tokens must
+receive401/403. The existing global16min acceptance timeout is unchanged. Auth, quotas, routing, install replay policy and runtime
+attestation are unchanged. Fixtures in local tests only exercise diagnostics and
+negative assertions; they are not substituted for the real runtime probe.

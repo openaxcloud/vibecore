@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "${PRODUCT_DIR:?}"
-[[ $(git rev-parse HEAD) == 05515deb61d2ff7a77c11243cb0d1bed58a08e69 ]]
-[[ $(git rev-parse HEAD^{tree}) == e3d7f51ea4c250e686cfb560876da9c25ebab899 ]]
+[[ $(git rev-parse HEAD) == cd494729e00273d02e2c5a7e79eea1697824f1ca ]]
+[[ $(git rev-parse HEAD^{tree}) == 06d294858b1dc77c5ff72130093bf43fdcf1878c ]]
 git diff --exit-code HEAD --
 [[ -z $(git ls-files --others --exclude-standard) ]]
 python3 - <<'PY'

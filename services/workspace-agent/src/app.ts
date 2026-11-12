@@ -2538,7 +2538,13 @@ async function runCommand(
     detached: true,
   });
 
+  let closed = false;
+
   const killGroup = (sig: NodeJS.Signals) => {
+    if (options.reportCancellation && closed) {
+      return;
+    }
+
     if (child.pid === undefined) {
       return;
     }
@@ -2606,6 +2612,11 @@ async function runCommand(
         stderr = limited;
       }
 
+      // Decoder flushing may cross the byte cap after close; retain truncation without signalling a reused pid.
+      if (options.reportCancellation && closed) {
+        return;
+      }
+
       killGroup('SIGTERM');
 
       if (options.reportCancellation && outputStopTimer === undefined) {
@@ -2659,6 +2670,7 @@ async function runCommand(
     }
 
     child.on('close', (code, signal) => {
+      closed = true;
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
       clearTimeout(outputStopTimer);

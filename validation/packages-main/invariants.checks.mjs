@@ -10,10 +10,11 @@ const run = read('./run.sh'),
   workflow = read('../../.github/workflows/packages-main-runtime.yml');
 
 const acceptance = read('./acceptance.mjs');
+const diagnostics = read('./diagnostics.mjs');
 test('push is limited to a single validation branch, without PR, schedule or dispatch', () => {
   assert.match(workflow, /branches: \[test\/packages-main-runtime-20261112\]/);
   assert.doesNotMatch(workflow, /workflow_dispatch|pull_request:|schedule:|contents: write/);
-  assert.match(workflow, /ref: 05515deb61d2ff7a77c11243cb0d1bed58a08e69/);
+  assert.match(workflow, /ref: cd494729e00273d02e2c5a7e79eea1697824f1ca/);
   assert.match(workflow, /path: product/);
   assert.match(workflow, /path: harness/);
   assert.match(workflow, /Always clean[\s\S]*if: always\(\)/);
@@ -28,13 +29,13 @@ test('all upstream transport/provision files are byte-identical to pinned e3bdf 
 });
 test('product SHA and full tree bytes checked before and after; image context is only Git archive', () => {
   const verify = read('./verify-product.sh');
-  assert.match(verify, /e3d7f51ea4c250e686cfb560876da9c25ebab899/);
+  assert.match(verify, /06d294858b1dc77c5ff72130093bf43fdcf1878c/);
   assert.match(verify, /hashlib.sha1/);
   assert.match(verify, /git diff --exit-code HEAD/);
   assert(run.match(/verify-product.sh/g).length >= 4);
   assert.match(
     run,
-    /git archive 05515deb61d2ff7a77c11243cb0d1bed58a08e69 > "\$RUNNER_TEMP\/packages-main-private\/product.tar"/,
+    /git archive cd494729e00273d02e2c5a7e79eea1697824f1ca > "\$RUNNER_TEMP\/packages-main-private\/product.tar"/,
   );
   assert.match(run, /-f "\$context\/services\/workspace-agent\/Dockerfile"/);
   assert.match(run, /-f "\$HARNESS_DIR\/Proof.Dockerfile" -t "\$PROOF_IMAGE" "\$context"/);
@@ -69,8 +70,8 @@ test('acceptance uses real UI once and pinned main helper; reload/same workspace
   assert.match(acceptance, /state\?\.data\?\.workspace\?\.id, workspaceId/);
   assert.match(acceptance, /transport.installRequests, 1/);
   assert.match(acceptance, /pod.spec.runtimeClassName, 'gvisor'/);
-  assert.match(acceptance, /cap.version, cap.maxBudgetMs, cap.validatedSpecs/);
-  assert.match(acceptance, /\[401, 403\]/);
+  assert.match(diagnostics, /cap.version, cap.maxBudgetMs, cap.validatedSpecs/);
+  assert.match(diagnostics, /\[401, 403\]/);
   assert.match(acceptance, /imageIDs.every\(Boolean\)/);
   assert.doesNotMatch(acceptance, /route\(|routeFromHAR|fulfill\(|fallback\(/);
 });
@@ -96,8 +97,15 @@ test('runtime stop follows staged executable identity and propagates failure', (
 
 test('startup waits are bounded GET-only and do not retry installation', () => {
   assert.match(acceptance, /workspaceDeadline = performance.now\(\) \+ 180000/);
-  assert.match(acceptance, /capabilityDeadline = performance.now\(\) \+ 180000/);
-  assert.match(acceptance, /\[502, 503\].includes\(response.status\)/);
+  assert.match(diagnostics, /capabilityDeadline = now\(\) \+ 180000/);
+  assert.match(diagnostics, /\[502, 503\].includes\(response.status\)/);
   assert.match(acceptance, /requests.length < 256/);
   assert.match(acceptance, /requestOverflow, false/);
+});
+
+test('CI executes the capability diagnostics regression suite before runtime builds', () => {
+  const command = run.split('\n').find((line) => line.startsWith('node --test "$HARNESS_DIR/invariants.checks.mjs"'));
+  assert(command);
+  assert(command.includes('"$HARNESS_DIR/diagnostics.checks.mjs"'));
+  assert(run.indexOf(command) < run.indexOf('docker build --label'));
 });
