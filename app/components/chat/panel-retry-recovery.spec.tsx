@@ -12,6 +12,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { DatabaseHeading } from '~/components/database/DatabaseHeading';
 import {
   __resetProjectPanelCacheForTests,
+  PROJECT_PANEL_CACHE_MAX,
   readProjectPanelCache,
   writeProjectPanelCache,
 } from '~/lib/ide/panel-payload-cache';
@@ -748,6 +749,129 @@ describe('panel cache arriving between render and effect', () => {
       'false',
     );
     expect(document.querySelector<HTMLButtonElement>('[role="alert"] button')?.disabled).toBe(false);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps committed cached content usable after normal capacity eviction before passive effects', async () => {
+    function EvictAfterRender({ children }: React.PropsWithChildren) {
+      React.useLayoutEffect(() => {
+        for (let index = 0; index < PROJECT_PANEL_CACHE_MAX; index += 1) {
+          writeProjectPanelCache(`other-${index}:security`, cached(`unrelated-${index}`));
+        }
+      }, []);
+      return <>{children}</>;
+    }
+
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    writeProjectPanelCache('fixture:security', cached('committed-before-eviction'));
+    await mount(
+      <EvictAfterRender>
+        <Panel projectId="fixture" panel="security" />
+      </EvictAfterRender>,
+    );
+    expect(readProjectPanelCache('fixture:security')).toBeUndefined();
+    expect(document.querySelector('[data-attempt="committed-before-eviction"]')?.getAttribute('data-busy')).toBe(
+      'false',
+    );
+    await act(async () => response.resolve(new Response('{}', { status: 400 })));
+    expect(document.querySelector('[data-attempt="committed-before-eviction"]')?.getAttribute('data-busy')).toBe(
+      'false',
+    );
+    expect(document.querySelector<HTMLButtonElement>('[role="alert"] button')?.disabled).toBe(false);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves committed content after HTTP failure when normal cache capacity evicts its entry', async () => {
+    function EvictAfterRender({ children }: React.PropsWithChildren) {
+      React.useLayoutEffect(() => {
+        for (let index = 0; index < PROJECT_PANEL_CACHE_MAX; index += 1) {
+          writeProjectPanelCache(`other-${index}:security`, cached(`unrelated-${index}`));
+        }
+      }, []);
+      return <>{children}</>;
+    }
+
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    writeProjectPanelCache('fixture:security', cached('committed-before-failure'));
+    await mount(
+      <EvictAfterRender>
+        <Panel projectId="fixture" panel="security" />
+      </EvictAfterRender>,
+    );
+    expect(readProjectPanelCache('fixture:security')).toBeUndefined();
+    await act(async () => response.resolve(new Response('{}', { status: 400 })));
+    expect(document.querySelector('[data-attempt="committed-before-failure"]')?.getAttribute('data-busy')).toBe(
+      'false',
+    );
+    expect(document.querySelector<HTMLButtonElement>('[role="alert"] button')?.disabled).toBe(false);
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses newly committed content after cache eviction when its initial-load effect reruns', async () => {
+    const first = deferredResponse();
+    const refresh = deferredResponse();
+    const transport = vi.fn<typeof fetch>().mockReturnValueOnce(first.promise).mockReturnValueOnce(refresh.promise);
+    const { Panel } = wrapper(transport);
+    await mount(<Panel projectId="fixture" panel="security" />);
+    await act(async () => first.resolve(loaded('committed-after-mount')));
+
+    for (let index = 0; index < PROJECT_PANEL_CACHE_MAX; index += 1) {
+      writeProjectPanelCache(`other-${index}:security`, cached(`unrelated-${index}`));
+    }
+
+    expect(readProjectPanelCache('fixture:security')).toBeUndefined();
+    await act(async () => root!.render(<Panel projectId="fixture" panel="security" initialPayload={null} />));
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('[data-attempt="committed-after-mount"]')?.getAttribute('data-busy')).toBe('false');
+    await act(async () => refresh.resolve(new Response('{}', { status: 400 })));
+    expect(document.querySelector('[data-attempt="committed-after-mount"]')?.getAttribute('data-busy')).toBe('false');
+  });
+
+  it('returns to foreground loading after a failed Retry clears committed content but leaves stale cache', async () => {
+    const first = deferredResponse();
+    const retryResponse = deferredResponse();
+    const refresh = deferredResponse();
+
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(retryResponse.promise)
+      .mockReturnValueOnce(refresh.promise);
+
+    const { Panel } = wrapper(transport);
+    writeProjectPanelCache('fixture:security', cached('stale'));
+    await mount(<Panel projectId="fixture" panel="security" />);
+    await act(async () => first.resolve(new Response('{}', { status: 400 })));
+    await act(async () => document.querySelector<HTMLButtonElement>('[role="alert"] button')!.click());
+    await act(async () => retryResponse.resolve(new Response('{}', { status: 400 })));
+    expect(document.querySelector('[data-attempt="stale"]')).toBeNull();
+    expect(readProjectPanelCache('fixture:security')?.payload.data.attempt).toBe('stale');
+    await act(async () => root!.render(<Panel projectId="fixture" panel="security" initialPayload={null} />));
+    expect(transport).toHaveBeenCalledTimes(3);
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(document.querySelector('[data-panel-content]')).toBeNull();
+    await act(async () => refresh.resolve(loaded('recovered-after-clear')));
+    expect(document.querySelector('[data-attempt="recovered-after-clear"]')?.getAttribute('data-busy')).toBe('false');
+  });
+
+  it('keeps a null initial payload cold when another consumer warms the cache after render', async () => {
+    const response = deferredResponse();
+    const transport = vi.fn<typeof fetch>(() => response.promise);
+    const { Panel } = wrapper(transport);
+    await mount(
+      <SeedAfterRender cacheKey="fixture:security">
+        <Panel projectId="fixture" panel="security" initialPayload={null} />
+      </SeedAfterRender>,
+    );
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(document.querySelector('[data-panel-content]')).toBeNull();
+    await act(async () => response.resolve(loaded('fresh-after-null')));
+    expect(document.querySelector('[data-attempt="fresh-after-null"]')?.getAttribute('data-busy')).toBe('false');
     expect(transport).toHaveBeenCalledTimes(1);
   });
 

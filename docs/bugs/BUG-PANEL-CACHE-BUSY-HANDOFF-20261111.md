@@ -1,56 +1,68 @@
 ---
 id: BUG-PANEL-CACHE-BUSY-HANDOFF-20261111
+section: "Chargement des panneaux de l'IDE, 11 novembre 2026"
 ---
 
-# Un panneau froid reste occupé après le remplissage du cache partagé
+# Le chargement du panneau doit suivre son contenu commité, pas le cache partagé
 
-## Constat
+## Bug
 
-`ProjectIdeApiServicePanel` initialise `busy` depuis le cache lu pendant son rendu. Son effet initial relisait ensuite
-le cache partagé pour décider si le chargement était silencieux. Si un autre consommateur remplit le cache entre
-ces deux étapes, l'instance froide conserve `busy=true`, même après sa réponse réussie, car le `finally` d'un
-chargement silencieux ne modifie pas cet état. Une réponse en erreur laisse également le bouton Retry désactivé.
+Le cache partagé peut être rempli ou évincé entre le rendu et l'effet initial. Le chargement silencieux doit suivre le contenu réellement commité par l'instance.
 
-La contre-épreuve exécute le vrai composant extrait par AST, le cache et la coordination des requêtes. Un layout
-effect impose cette interférence avant les effets passifs. Trois cas échouent sur la source
-`da4bab705e1f5ddc3792c6d0d9f7ee19237d2613` : réponse réussie, erreur HTTP 400 et deux consommateurs dont un démonté.
-Le correctif choisit le mode silencieux depuis le contenu effectivement commité par l'instance, ou le payload SSR
-qu'elle reçoit. Il ne modifie ni les délais, ni les retries, ni le verrouillage des mutations concurrentes.
+## Constat et différences entre branches
+
+`ProjectIdeApiServicePanel` initialise son contenu depuis le cache pendant le rendu. Son effet initial relisait
+ensuite le cache partagé pour décider si le chargement était silencieux. Un autre consommateur peut modifier
+cette entrée entre les deux étapes sans modifier le contenu réellement affiché par cette instance.
+
+La branche expérimentale initialise `busy` depuis le cache au rendu. Si une autre instance réchauffe le cache
+avant l'effet passif, un chargement devenu silencieux à tort peut laisser `busy=true` après sa réponse, car son
+`finally` ne modifie pas cet état. Une erreur peut également laisser Retry désactivé. La contre-épreuve sur
+`da4bab705e1f5ddc3792c6d0d9f7ee19237d2613` reproduit le défaut avec succès, HTTP400 et deux consommateurs dont un démonté.
+
+Sur main avant PR897, notamment `1f617129d37495a36289b75c8280163c8427663a`, `busy` commence à `false`. Le même
+réchauffement masque alors le loader et son Retry lent alors que l'instance est froide. Une éviction après
+un rendu contenant déjà des données rend à tort le refresh occupant et son erreur peut effacer le contenu.
+Le blocage permanent propre à l'initialisation expérimentale n'est pas revendiqué sur cette version de main.
+
+Le correctif commun décide du mode silencieux depuis le contenu commité par l'instance ou le payload SSR
+entrant. Un ref est synchronisé par effet avant l'effet de chargement ; il suit aussi les réponses et les
+échecs de Retry qui effacent le contenu. Chaque branche conserve sa propre initialisation de busy. Délais,
+retries, requêtes partagées et verrouillage des mutations restent inchangés.
 
 ## Lien avec le signal CI
 
-Le run E2E [43101204189](https://github.com/openaxcloud/vibecore/actions/runs/43101204189) contient un premier essai
-expiré sur `security scan preserves timeout across history hydration`, puis un retry réussi. Le snapshot du premier
-essai montre `Run full scan` désactivé, des données affichées et aucun scan actif. Ces symptômes sont compatibles
-avec le défaut reproduit, mais **la causalité de cet échec CI reste non établie** : l'artefact conserve uniquement
-la trace du retry réussi. La première trace réseau et le déroulement des effets manquent. Aucun changement de
-l'horloge de test n'est présenté comme une correction prouvée.
+Le premier essai du run E2E [43101204189](https://github.com/openaxcloud/vibecore/actions/runs/43101204189) a expiré
+avec `Run full scan` désactivé, des données affichées et aucun scan actif, puis son retry a réussi. La trace
+conservée appartient au retry. **La causalité de cet échec CI reste non établie**. Aucun changement d'horloge,
+d'assertion ou de retry E2E n'est présenté comme sa correction prouvée.
 
 ## 📤 Dispatché
 
-Diagnostic et correctif local préparés le 11 novembre 2026, revus indépendamment sur la base 8335f9ba.
+Correction expérimentale revue sur 8335f9ba ; port main séparé après PR896 ; intégration normale de main vers la branche expérimentale préparée après PR897.
 
 ## 💻 Codé
 
-Correctif local uniquement, non publié à la rédaction de cette fiche.
+Correction expérimentale publiée dans PR893 ; port ciblé PR897 fusionné dans main `746cf2e7`. La résolution vers la branche expérimentale conserve son BaseChat exact et enrichit ses tests.
 
 ## ✅ Testé live
 
-Non validé. Pas de recette applicative ou production.
+Pas de recette applicative ou production revendiquée par cette fiche. Les validations locales et CI ne prouvent pas la cause du premier essai E2E.
 
-## Vérification locale et limites
+## Vérifications et conservation des contrats
 
-Les 71 tests ciblés passent : récupération de panneaux sur HTTP loopback, quatorze contrôles du cache concurrent,
-session de scan, timeout/annulation, provider, cache et requêtes partagées. Les contrôles couvrent aussi le
-changement de projet ou de panneau avec la clé de montage utilisée par l'application, les réponses tardives et
-un contenu réellement initialisé depuis un cache ancien. La revue indépendante sur la base
-`8335f9ba0f7632fcaca9a630cac2b862df3d721e` ajoute huit cas : StrictMode avec consommateurs SSR/froid, Retry après
-HTTP 400 ou enveloppe erreur HTTP 200, éviction après rendu, transport obsolète ignorant son annulation et
-retour entre scopes projet/panneau/workspace. En restaurant uniquement le composant d'origine, huit des
-quatorze cas de cache échouent et les six témoins de continuité passent. Les deux versions de base du composant
-sont identiques. Les six contrats de l'inventaire passent aussi après génération officielle à 627 fiches, les
-626 fiches préexistantes restant strictement identiques. Le premier essai E2E CI n'est pas reproduit dans
-l'application complète.
+Les tests exécutent le vrai composant extrait par AST, ses vrais hooks, cache et coordinateur, et des réponses
+différées. Un layout effect impose le remplissage ou l'éviction avant les effets passifs sans sommeil arbitraire.
+Les témoins couvrent succès, HTTP400, enveloppe erreur HTTP200, Retry, StrictMode, consommateurs doublons,
+démontage, contenu ancien, remplacement latest-wins, transport ignorant l'annulation et navigation keyée entre
+projets, panneaux et clés workspace. Ils n'affirment pas une recette Deployments complète.
 
-Lint avec le preset du dépôt, format et TypeScript strict ciblé sont vérifiés. Le build complet, le typecheck
-global, les contrôles requis du futur commit et la recette navigateur authentifiée restent nécessaires.
+La fusion vers la branche expérimentale conserve ses tests existants, y compris l'éviction par remise à zéro.
+Elle ajoute l'éviction normale par la capacité réelle du cache, sa réponse en erreur, un payload initial null,
+le contenu acquis après montage puis évincé et le contenu effacé après un Retry échoué. Aucun test antérieur
+n'est supprimé. Le code de BaseChat expérimental n'est pas remplacé par celui de main.
+
+Les contre-épreuves rétablissent la décision depuis le cache partagé ou retirent seulement la synchronisation
+du ref. Le générateur officiel reconstruit l'index depuis toutes les fiches expérimentales ; les autres fiches
+restent byte-identiques. Le preset lint complet, le format et les types ciblés complètent les tests locaux.
+Le build/typecheck globaux, les contrôles du futur commit et la recette navigateur authentifiée restent nécessaires.

@@ -895,7 +895,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-RUNTIME-RELAY-TRANSPORT-001](docs/bugs/BUG-RUNTIME-RELAY-TRANSPORT-001.md) — Les erreurs de transport du relais CI échappent à la récupération des lectures. — 📤 Dispatché : Proposition locale sur le produit de 9e8e4db, inchangé par la correction trace da4bab7. · 💻 Codé : Patch local seulement, non publié. · ✅ Testé live : Non validé.
-- [BUG-PANEL-CACHE-BUSY-HANDOFF-20261111](docs/bugs/BUG-PANEL-CACHE-BUSY-HANDOFF-20261111.md) — `ProjectIdeApiServicePanel` initialise `busy` depuis le cache lu pendant son rendu. Son effet initial relisait ensuite — 📤 Dispatché : Diagnostic et correctif local préparés le 11 novembre 2026, revus indépendamment sur la base 8335f9ba. · 💻 Codé : Correctif local uniquement, non publié à la rédaction de cette fiche. · ✅ Testé live : Non validé. Pas de recette applicative ou production.
+
+## Chargement des panneaux de l'IDE, 11 novembre 2026
+
+- [BUG-PANEL-CACHE-BUSY-HANDOFF-20261111](docs/bugs/BUG-PANEL-CACHE-BUSY-HANDOFF-20261111.md) — Le cache partagé peut être rempli ou évincé entre le rendu et l'effet initial. Le chargement silencieux doit suivre le contenu réellement commité par l'instance — 📤 Dispatché : Correction expérimentale revue sur 8335f9ba ; port main séparé après PR896 ; intégration normale de main vers · 💻 Codé : Correction expérimentale publiée dans PR893 ; port ciblé PR897 fusionné dans main `746cf2e7`. La résolution ve · ✅ Testé live : Pas de recette applicative ou production revendiquée par cette fiche. Les validations locales et CI ne prouven
 
 ## Résidus non tabulaires — reportés mot pour mot
 
