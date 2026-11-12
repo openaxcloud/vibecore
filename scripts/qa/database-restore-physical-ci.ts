@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+// eslint-disable-next-line no-restricted-imports -- Isolated CI reuses the API native header verifier, not the web alias.
+import { verifyPostgres16WalHeader } from '../../services/api/src/database-restore-wal-header.js';
 
 export const expectedImage =
   'pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b';
 export type CommandRunner = (args: string[], input?: string) => Promise<string>;
 export interface PhysicalReceipt {
   physicalBackupVerified: true;
+  walHeaderIdentityVerified: true;
   tamperedBackupRejected: true;
   walRecoveryVerified: true;
   archivedWalRecordsVerified: true;
@@ -47,13 +50,41 @@ export function validatePhysicalReceipt(input: unknown): PhysicalReceipt {
     assert.equal(value[key], true, 'PHYSICAL_RESTORE_PROOF_MISSING');
   }
   assert.equal(value.networkListeners, false, 'PHYSICAL_RESTORE_NETWORK_UNEXPECTED');
+  assert.equal(value.production, false, 'PHYSICAL_RESTORE_PRODUCTION_FORBIDDEN');
   assert.ok(typeof value.postgresVersion === 'string', 'PHYSICAL_RESTORE_VERSION_INVALID');
   assert.ok(typeof value.manifestSha256 === 'string', 'PHYSICAL_RESTORE_MANIFEST_INVALID');
   assert.match(value.postgresVersion, /^16[0-9]{4}$/, 'PHYSICAL_RESTORE_VERSION_INVALID');
   assert.match(value.manifestSha256, /^[a-f0-9]{64}$/, 'PHYSICAL_RESTORE_MANIFEST_INVALID');
 
+  assert.ok(typeof value.walHeaderBase64 === 'string', 'PHYSICAL_RESTORE_HEADER_MISSING');
+  assert.match(value.walHeaderBase64, /^[A-Za-z0-9+/]{54}==$/, 'PHYSICAL_RESTORE_HEADER_INVALID');
+  assert.ok(typeof value.walSegment === 'string', 'PHYSICAL_RESTORE_SEGMENT_MISSING');
+  assert.match(value.walSegment, /^[0-9A-F]{24}$/, 'PHYSICAL_RESTORE_SEGMENT_INVALID');
+  assert.ok(typeof value.walSegmentSizeBytes === 'number', 'PHYSICAL_RESTORE_SEGMENT_SIZE_INVALID');
+  assert.ok(typeof value.systemIdentifier === 'string', 'PHYSICAL_RESTORE_SYSTEM_MISSING');
+  verifyPostgres16WalHeader(
+    Buffer.from(value.walHeaderBase64, 'base64'),
+    {
+      bucket: 'synthetic-backups',
+      projectId: 'synthetic',
+      environment: 'development',
+      sourceName: 'db-synthetic',
+      sourceUid: 'isolated-ci',
+      provenanceId: 'isolated-ci',
+      firstSegment: value.walSegment,
+      lastSegment: value.walSegment,
+      walSegmentSizeBytes: value.walSegmentSizeBytes,
+    },
+    `db/synthetic/db-synthetic/wals/${value.walSegment.slice(0, 16)}/${value.walSegment}.gz`,
+    {
+      systemIdentifier: value.systemIdentifier,
+      walBlockSizeBytes: 8192,
+    },
+  );
+
   return {
     physicalBackupVerified: true,
+    walHeaderIdentityVerified: true,
     tamperedBackupRejected: true,
     walRecoveryVerified: true,
     archivedWalRecordsVerified: true,

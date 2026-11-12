@@ -36,6 +36,8 @@ for attempt in $(seq 1 150); do
   sleep 0.1
 done
 [ "$PENDING" = 0 ]
+WAL_HEADER=$(head -c 40 "$ROOT/archive/$WAL_SEGMENT" | base64 -w0)
+WAL_SIZE=$("${SQL[@]}" -c "SELECT pg_size_bytes(current_setting('wal_segment_size'))")
 # Native record parsing/CRC checks over a closed range in the actual archive.
 # All negative tests mutate independent owned copies, never the recovery archive.
 [[ "$WAL_SEGMENT" =~ ^[0-9A-F]{24}$ ]]
@@ -72,4 +74,4 @@ OBSERVED=$("${READ[@]}" -c "SELECT string_agg(id,',' ORDER BY id) FROM restore_p
 [ "$("${READ[@]}" -c "SELECT system_identifier::text FROM pg_control_system()")" = "$SYSTEM" ]
 "$B/pg_ctl" -D "$ROOT/target" -m fast -w restart > "$ROOT/restart.log"
 [ "$("${READ[@]}" -c "SELECT string_agg(id,',' ORDER BY id) FROM restore_probe")" = 'base,target' ]
-printf '{"physicalBackupVerified":true,"tamperedBackupRejected":true,"walRecoveryVerified":true,"archivedWalRecordsVerified":true,"corruptArchivedWalRejected":true,"missingArchivedWalRejected":true,"postTargetWriteExcluded":true,"targetRestartVerified":true,"networkListeners":false,"postgresVersion":"%s","manifestSha256":"%s"}\n' "$("${READ[@]}" -c 'SHOW server_version_num')" "$MANIFEST"
+printf '{"physicalBackupVerified":true,"tamperedBackupRejected":true,"walRecoveryVerified":true,"archivedWalRecordsVerified":true,"corruptArchivedWalRejected":true,"missingArchivedWalRejected":true,"postTargetWriteExcluded":true,"targetRestartVerified":true,"networkListeners":false,"production":false,"walHeaderBase64":"%s","walSegment":"%s","walSegmentSizeBytes":%s,"systemIdentifier":"%s","postgresVersion":"%s","manifestSha256":"%s"}\n' "$WAL_HEADER" "$WAL_SEGMENT" "$WAL_SIZE" "$SYSTEM" "$("${READ[@]}" -c 'SHOW server_version_num')" "$MANIFEST"
