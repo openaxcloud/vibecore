@@ -6,13 +6,29 @@ import { fileURLToPath } from 'node:url';
 
 export const expectedImage =
   'pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b';
-export function validatePhysicalCiTarget(env) {
-  assert.equal(env.CI, 'true', 'PHYSICAL_RESTORE_CI_REQUIRED');
-  assert.match(env.RESTORE_CI_POSTGRES_CONTAINER ?? '', /^[a-f0-9]{64}$/, 'PHYSICAL_RESTORE_SERVICE_REQUIRED');
-
-  return env.RESTORE_CI_POSTGRES_CONTAINER;
+export type CommandRunner = (args: string[], input?: string) => Promise<string>;
+export interface PhysicalReceipt {
+  physicalBackupVerified: true;
+  tamperedBackupRejected: true;
+  walRecoveryVerified: true;
+  postTargetWriteExcluded: true;
+  targetRestartVerified: true;
+  networkListeners: false;
+  postgresVersion: string;
+  manifestSha256: string;
+  production: false;
 }
-export function validatePhysicalReceipt(value) {
+
+export function validatePhysicalCiTarget(env: NodeJS.ProcessEnv): string {
+  assert.equal(env.CI, 'true', 'PHYSICAL_RESTORE_CI_REQUIRED');
+
+  const container = env.RESTORE_CI_POSTGRES_CONTAINER ?? '';
+  assert.match(container, /^[a-f0-9]{64}$/, 'PHYSICAL_RESTORE_SERVICE_REQUIRED');
+
+  return container;
+}
+export function validatePhysicalReceipt(input: unknown): PhysicalReceipt {
+  const value = input as Record<string, unknown>;
   assert.ok(value && typeof value === 'object' && !Array.isArray(value), 'PHYSICAL_RESTORE_RECEIPT_INVALID');
 
   for (const key of [
@@ -25,8 +41,10 @@ export function validatePhysicalReceipt(value) {
     assert.equal(value[key], true, 'PHYSICAL_RESTORE_PROOF_MISSING');
   }
   assert.equal(value.networkListeners, false, 'PHYSICAL_RESTORE_NETWORK_UNEXPECTED');
-  assert.match(value.postgresVersion ?? '', /^16[0-9]{4}$/, 'PHYSICAL_RESTORE_VERSION_INVALID');
-  assert.match(value.manifestSha256 ?? '', /^[a-f0-9]{64}$/, 'PHYSICAL_RESTORE_MANIFEST_INVALID');
+  assert.ok(typeof value.postgresVersion === 'string', 'PHYSICAL_RESTORE_VERSION_INVALID');
+  assert.ok(typeof value.manifestSha256 === 'string', 'PHYSICAL_RESTORE_MANIFEST_INVALID');
+  assert.match(value.postgresVersion, /^16[0-9]{4}$/, 'PHYSICAL_RESTORE_VERSION_INVALID');
+  assert.match(value.manifestSha256, /^[a-f0-9]{64}$/, 'PHYSICAL_RESTORE_MANIFEST_INVALID');
 
   return {
     physicalBackupVerified: true,
@@ -42,7 +60,7 @@ export function validatePhysicalReceipt(value) {
 }
 
 /** No shell interpolation, inherited credentials or unbounded child output. */
-function docker(args, input = '') {
+const docker: CommandRunner = (args, input = '') => {
   return new Promise((resolve, reject) => {
     const child = spawn('docker', args, { stdio: ['pipe', 'pipe', 'ignore'], env: { PATH: process.env.PATH } });
 
@@ -78,9 +96,12 @@ function docker(args, input = '') {
     });
     child.stdin.end(input);
   });
-}
+};
 
-export async function runPhysicalCi(env = process.env, run = docker) {
+export async function runPhysicalCi(
+  env: NodeJS.ProcessEnv = process.env,
+  run: CommandRunner = docker,
+): Promise<PhysicalReceipt> {
   const container = validatePhysicalCiTarget(env);
   const image = await run(['inspect', '--format', '{{.Config.Image}}', container]);
   assert.equal(image, expectedImage, 'PHYSICAL_RESTORE_SERVICE_IDENTITY_MISMATCH');

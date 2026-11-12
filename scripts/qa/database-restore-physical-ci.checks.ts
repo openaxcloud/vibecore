@@ -5,7 +5,7 @@ import {
   runPhysicalCi,
   validatePhysicalCiTarget,
   validatePhysicalReceipt,
-} from './database-restore-physical-ci.mjs';
+} from './database-restore-physical-ci.js';
 
 const env = { CI: 'true', RESTORE_CI_POSTGRES_CONTAINER: 'a'.repeat(64) };
 
@@ -25,6 +25,7 @@ test('fails before any command outside exact CI service target', async () => {
     await assert.rejects(
       runPhysicalCi(target, async () => {
         calls++;
+        return '';
       }),
     );
     assert.equal(calls, 0);
@@ -42,8 +43,21 @@ test('refuses a different image before executing the recipe', async () => {
   assert.equal(calls, 1);
 });
 test('checks every physical proof field and never promotes fixture evidence to production', () => {
+  for (const invalid of [
+    null,
+    undefined,
+    [],
+    true,
+    'receipt',
+    1,
+    { ...receipt, postgresVersion: 160004 },
+    { ...receipt, manifestSha256: 123 },
+  ]) {
+    assert.throws(() => validatePhysicalReceipt(invalid));
+  }
+
   for (const key of Object.keys(receipt)) {
-    const copy = { ...receipt };
+    const copy: Record<string, unknown> = { ...receipt };
     delete copy[key];
     assert.throws(() => validatePhysicalReceipt(copy));
   }
@@ -55,7 +69,7 @@ test('checks every physical proof field and never promotes fixture evidence to p
   });
 });
 test('executes only the existing service as postgres, bounded, using socket-only synthetic recipe', async () => {
-  const calls = [];
+  const calls: string[][] = [];
 
   const proof = await runPhysicalCi(env, async (args, script) => {
     calls.push(args);
@@ -64,9 +78,9 @@ test('executes only the existing service as postgres, bounded, using socket-only
       return expectedImage;
     }
 
-    assert.ok(script.includes("listen_addresses=''"));
-    assert.ok(script.includes('pg_verifybackup'));
-    assert.ok(script.includes('recovery_target_time'));
+    assert.ok(script?.includes("listen_addresses=''"));
+    assert.ok(script?.includes('pg_verifybackup'));
+    assert.ok(script?.includes('recovery_target_time'));
 
     return JSON.stringify(receipt);
   });
