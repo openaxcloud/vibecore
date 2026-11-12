@@ -122,7 +122,7 @@ export async function inspectCnpgRestoreSource(
       validateProvenBackup(backup, provenance);
 
       if (cluster.metadata.uid !== provenance.sourceUid) {
-        throw new Error('source changed');
+        throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
       }
     } catch {
       throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
@@ -213,7 +213,7 @@ export async function inspectProvenanceBoundCnpgRestoreSource(
       const intent = await repository.get(input.projectId, input.environment, input.snapshotId);
 
       if (!intent) {
-        throw new Error('missing');
+        throw new RestoreSourceError('RESTORE_SOURCE_PROVENANCE_UNCONFIRMED');
       }
 
       return { ...intent };
