@@ -411,6 +411,7 @@ import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
 import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import { statutConnexion } from './database-connection-status.js';
 import { databaseRowSchema, insertPostgresRow } from './database-row-insert.js';
+import { dedicatedPackageInstall } from './dedicated-package-install.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -521,6 +522,8 @@ import {
   type ThumbnailLogger,
 } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { packageAgentHop } from './package-agent-hop.js';
+import { packageInstallResult } from './package-install-result.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import { RuntimeLogReplay, runtimeLogEvents } from './runtime-log-replay.js';
@@ -1705,7 +1708,7 @@ const packagesInstallSchema = z.object({
 
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
-  timeoutMs: z.number().int().positive().max(600_000).optional(),
+  timeoutMs: z.number().int().positive().max(300_000).optional(),
 
   /*
    * Target workspace. The Packages panel resolves and displays a specific
@@ -24106,8 +24109,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * workspace pod. This is the "install, not just plan" action for the IDE
    * Packages panel: it detects the package manager from the lockfile/manifest,
    * builds the install argv, and dispatches it through the SAME per-project
-   * runtime shell-exec (/commands/run) that Workflows and the terminal use —
-   * no new execution path, no shared pod. Scoped by projectId and gated with
+   * process runner that Workflows and the terminal use, via the versioned
+   * Packages route and its bounded install-only budget. No shared pod. Scoped by projectId and gated with
    * the same 'projects:write' mutation permission as other project writes;
    * authorizeRuntimeWorkspace then resolves the caller's deterministic
    * per-user workspace id so the command lands only in this tenant's pod.
@@ -24230,44 +24233,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    /*
-     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
-     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
-     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
-     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
-     * `?? 0` plus bas le transformaient en réussite.
-     */
-    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
-
-    try {
-      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
-        authorized.workspaceId,
-        '/commands/run',
-        { method: 'POST', body: JSON.stringify(commandBody) },
-      );
-    } catch (error) {
-      if (!shouldUseLocalRuntimeFallback(error)) {
-        throw error;
-      }
-
-      result = await runLocalRuntimeCommand(authorized, commandBody);
-    }
+    const result = await dedicatedPackageInstall<{
+      code?: number | null;
+      signal?: string | null;
+      timedOut?: boolean;
+      cancelled?: boolean;
+      truncated?: boolean;
+      stdout?: string;
+      stderr?: string;
+    }>(
+      (path, init, attempts, timeoutMs) =>
+        packageAgentHop(
+          {
+            workspaceId: authorized.workspaceId,
+            managerUrl: workspaceManagerUrl(),
+            agentUrl: agentBaseUrl(authorized.workspaceId),
+            managerSecret: process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim(),
+          },
+          path,
+          init,
+          attempts,
+          timeoutMs,
+        ),
+      { packageManager: manager, packages, dev: body.dev ?? false, timeoutMs: commandBody.timeoutMs! },
+    );
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    /*
-     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
-     *
-     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
-     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
-     * `node_modules` à moitié installé : exactement le scénario que
-     * `foldCommandExitCode` documente déjà pour l'événement `error`.
-     *
-     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
-     * par des appelants qui attendent un nombre, et un `null` y serait retombé
-     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
-     * bout à l'autre de la chaîne.
-     */
-    const exitCode = result.code ?? 1;
+    const outcome = packageInstallResult(result);
+    const { exitCode } = outcome;
 
     return reply.code(201).send({
       projectId: authorized.projectId,
@@ -24276,9 +24269,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       packages,
       command: [command, ...args].join(' '),
       exitCode,
-      success: exitCode === 0,
+      success: outcome.success,
+      termination: outcome.termination,
       output,
-      localRuntime: result.localRuntime === true,
+      localRuntime: false,
       events: [
         ...(result.stdout ? [{ type: 'stdout', data: result.stdout, timestamp: new Date().toISOString() }] : []),
         ...(result.stderr ? [{ type: 'stderr', data: result.stderr, timestamp: new Date().toISOString() }] : []),

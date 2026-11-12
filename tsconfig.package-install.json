@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "files": [
+    "services/api/src/dedicated-package-install.ts",
+    "services/api/src/package-agent-hop.ts",
+    "services/api/src/package-install-result.ts",
+    "services/workspace-agent/src/package-install-contract.ts"
+  ]
+}

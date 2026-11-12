@@ -252,6 +252,7 @@ async function startRuntimeServices(
     commandStdout?: string;
     commandStderr?: string;
     agentUnavailable?: boolean;
+    packageCapabilityMissing?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
   } = {},
@@ -261,6 +262,9 @@ async function startRuntimeServices(
   // Captures the parsed body of every POST /commands/run so tests can assert
   // the exact argv the API dispatched to the workspace pod.
   const commandBodies: Array<{ command: string; args?: string[]; timeoutMs?: number }> = [];
+
+  const packageInstallBodies: Array<{ packageManager: string; packages: string[]; dev: boolean; timeoutMs: number }> =
+    [];
 
   const agent = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://agent.local');
@@ -293,6 +297,18 @@ async function startRuntimeServices(
         files.set(payload.to, files.get(payload.from) ?? '');
         files.delete(payload.from);
         response.end(JSON.stringify({ ok: true }));
+      } else if (request.method === 'GET' && url.pathname === '/packages/v1/capabilities') {
+        if (options.packageCapabilityMissing) {
+          response.writeHead(404).end(JSON.stringify({ error: 'not found' }));
+          return;
+        }
+
+        response.end(JSON.stringify({ version: 1, maxBudgetMs: 300_000, validatedSpecs: 1 }));
+      } else if (request.method === 'POST' && url.pathname === '/packages/v1/install') {
+        packageInstallBodies.push(payload);
+        response.end(
+          JSON.stringify({ code: 0, stdout: options.commandStdout ?? '', stderr: options.commandStderr ?? '' }),
+        );
       } else if (request.method === 'POST' && url.pathname === '/commands/run') {
         commandBodies.push({ command: payload.command, args: payload.args, timeoutMs: payload.timeoutMs });
         response.end(
@@ -415,6 +431,7 @@ async function startRuntimeServices(
     files,
     calls,
     commandBodies,
+    packageInstallBodies,
     managerCalls,
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
@@ -6042,8 +6059,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       const payload = response.json();
 
-      // Reused the real runtime shell-exec (/commands/run) in this project's pod.
-      expect(runtime.calls).toContain('POST /commands/run');
+      // Fixture verifies the protocol, not a real package installation.
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.calls).not.toContain('POST /commands/run');
+      expect(runtime.commandBodies).toHaveLength(0);
       expect(payload.workspaceId).toBe(expectedWorkspaceId);
       expect(payload.projectId).toBe(projectId);
       expect(payload.packageManager).toBe('pnpm');
@@ -6051,12 +6073,54 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(payload.exitCode).toBe(0);
       expect(payload.output).toContain('added 1 package');
 
-      // The command builder picked pnpm and produced a well-formed argv.
-      expect(runtime.commandBodies).toHaveLength(1);
-      expect(runtime.commandBodies[0]).toMatchObject({
-        command: 'pnpm',
-        args: ['add', '-D', 'left-pad', '@scope/util@^1.2.0'],
+      // The agent receives validated structured fields, never an arbitrary command.
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.commandBodies).toHaveLength(0);
+      expect(runtime.packageInstallBodies).toHaveLength(1);
+      expect(runtime.packageInstallBodies[0]).toEqual({
+        packageManager: 'pnpm',
+        packages: ['left-pad', '@scope/util@^1.2.0'],
+        dev: true,
+        timeoutMs: 300_000,
       });
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('refuses an older package agent before mutation without generic or local fallback', async () => {
+    const store = new TestApiStore();
+    const runtime = await startRuntimeServices({ packageCapabilityMissing: true });
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'pkg-old-agent@example.com', organizationName: 'Package Old Agent Org' });
+
+    try {
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Package Old Agent Project' },
+      });
+
+      const projectId = project.json().project.id as string;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['is-odd'] },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json().code).toBe('PACKAGE_INSTALL_CAPABILITY_REQUIRED');
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual(['GET /packages/v1/capabilities']);
+      expect(runtime.packageInstallBodies).toEqual([]);
+      expect(runtime.commandBodies).toEqual([]);
+      expect(runtime.calls).not.toContain('POST /commands/run');
     } finally {
       await runtime.close();
       await app.close();
@@ -6109,8 +6173,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(201);
       expect(response.json().workspaceId).toBe(workspaceId);
-      expect(runtime.commandBodies).toHaveLength(1);
-      expect(runtime.commandBodies[0]).toMatchObject({ command: 'npm', args: ['install', 'lodash'] });
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.commandBodies).toHaveLength(0);
+      expect(runtime.packageInstallBodies).toHaveLength(1);
+      expect(runtime.packageInstallBodies[0]).toEqual({
+        packageManager: 'npm',
+        packages: ['lodash'],
+        dev: false,
+        timeoutMs: 300_000,
+      });
     } finally {
       await runtime.close();
       await app.close();
@@ -6160,7 +6234,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(403);
       expect(response.json().code).toBe('WORKSPACE_PROJECT_MISMATCH');
+      expect(runtime.packageInstallBodies).toHaveLength(0);
       expect(runtime.calls).not.toContain('POST /commands/run');
+      expect(runtime.commandBodies).toHaveLength(0);
     } finally {
       await runtime.close();
       await app.close();
@@ -6197,7 +6273,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(rejected.statusCode).toBe(400);
       expect(rejected.json().code).toBe('INVALID_PACKAGE_SPEC');
+      expect(runtime.packageInstallBodies).toHaveLength(0);
       expect(runtime.calls).not.toContain('POST /commands/run');
+      expect(runtime.commandBodies).toHaveLength(0);
 
       // A clean single package resolves to `npm install <pkg>`.
       const response = await app.inject({
@@ -6209,10 +6287,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(201);
       expect(response.json().packageManager).toBe('npm');
-      expect(runtime.commandBodies).toHaveLength(1);
-      expect(runtime.commandBodies[0]).toMatchObject({
-        command: 'npm',
-        args: ['install', 'react'],
+      expect(runtime.calls.filter((call) => call.includes('/packages/v1/'))).toEqual([
+        'GET /packages/v1/capabilities',
+        'POST /packages/v1/install',
+      ]);
+      expect(runtime.commandBodies).toHaveLength(0);
+      expect(runtime.packageInstallBodies).toHaveLength(1);
+      expect(runtime.packageInstallBodies[0]).toEqual({
+        packageManager: 'npm',
+        packages: ['react'],
+        dev: false,
+        timeoutMs: 300_000,
       });
     } finally {
       await runtime.close();
