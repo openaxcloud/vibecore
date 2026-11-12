@@ -85,3 +85,76 @@ export async function checkAgentCapability(
 
   return cap;
 }
+
+export async function waitForWorkspaceRunning(
+  manager,
+  workspaceId,
+  headers,
+  diagnostics,
+  { request = fetch, sleep = delay, now = () => performance.now() } = {},
+) {
+  const deadline = now() + 180000;
+  diagnostics.statuses = [];
+  diagnostics.states = [];
+
+  do {
+    const remaining = Math.floor(deadline - now());
+
+    if (remaining <= 0) {
+      break;
+    }
+
+    diagnostics.stage = 'manager-fetch';
+
+    const response = await request(`${manager}/workspaces/${workspaceId}`, {
+      headers,
+      signal: AbortSignal.timeout(Math.min(20000, remaining)),
+    });
+    recordStatus(diagnostics.statuses, response.status);
+    diagnostics.stage = 'manager-status';
+
+    if (!response.ok) {
+      await response.body?.cancel();
+    }
+
+    assert(response.ok, 'Manager readiness request refused');
+    diagnostics.stage = 'manager-json';
+
+    const workspace = await response.json();
+
+    if (now() >= deadline) {
+      break;
+    }
+
+    const state = ['STARTING', 'RUNNING', 'STOPPED', 'FAILED', 'DELETED'].includes(workspace?.status)
+      ? workspace.status
+      : 'unknown';
+
+    if (diagnostics.states.length < 64) {
+      diagnostics.states.push(state);
+    }
+
+    diagnostics.stage = 'manager-identity';
+    diagnostics.identityMatches = workspace?.id === workspaceId;
+    assert(diagnostics.identityMatches, 'Manager workspace identity mismatch');
+    diagnostics.stage = 'manager-state';
+    assert(['STARTING', 'RUNNING'].includes(state), 'Workspace is not starting or running');
+
+    if (state === 'RUNNING') {
+      diagnostics.stage = 'manager-scheme';
+      diagnostics.derivedScheme = workspace.agentTokenScheme === 'derived-v1';
+      assert(diagnostics.derivedScheme, 'Fresh workspace must use derived token scheme');
+      diagnostics.stage = 'complete';
+
+      return;
+    }
+
+    const sleepBudget = deadline - now();
+
+    if (sleepBudget > 0) {
+      await sleep(Math.min(5000, sleepBudget));
+    }
+  } while (now() < deadline);
+  diagnostics.stage = 'manager-deadline';
+  assert.fail('Manager readiness deadline');
+}

@@ -5,7 +5,7 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
-import { checkAgentCapability } from './diagnostics.mjs';
+import { checkAgentCapability, waitForWorkspaceRunning } from './diagnostics.mjs';
 import { launchRuntimeChromium } from './upstream/runtime-browser-client.mjs';
 
 const require = createRequire(`${process.env.PRODUCT_DIR}/package.json`);
@@ -129,6 +129,13 @@ try {
     await delay(5000);
   } while (performance.now() < workspaceDeadline);
   assert.match(workspaceId ?? '', /^[a-zA-Z0-9_-]{1,128}$/);
+  proof.managerReadiness = {};
+  await waitForWorkspaceRunning(
+    'http://127.0.0.1:3010',
+    workspaceId,
+    { authorization: `Bearer ${process.env.WORKSPACE_MANAGER_SHARED_SECRET}` },
+    proof.managerReadiness,
+  );
   proof.phase = 'agent-capability';
 
   proof.capabilityStep = 'manager-token';

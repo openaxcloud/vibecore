@@ -121,7 +121,7 @@ export EVIDENCE_DIR="$GITHUB_WORKSPACE/evidence"
 bash "$HARNESS_DIR/run.sh"
 ```
 
-Current local checks:71 Node checks passed,0 failed,1 skipped; cleanup argument
+Current local checks:92 Node checks passed,0 failed,1 skipped; cleanup argument
 identity checks and actual owned-subprocess pidfd shutdown passed. The full
 repository ESLint preset and Prettier apply to all harness-owned JS files;
 upstream blobs remain byte-identical. The real TCP-to-Unix-to-TCP test was
@@ -164,3 +164,35 @@ followed by two auth probes of up to10s each. Missing/invalid tokens must
 receive401/403. The existing global16min acceptance timeout is unchanged. Auth, quotas, routing, install replay policy and runtime
 attestation are unchanged. Fixtures in local tests only exercise diagnostics and
 negative assertions; they are not substituted for the real runtime probe.
+
+## Manager readiness prerequisite for the fresh workspace
+
+Run43134329124 (validation d9ed633d62a8c8148fab030ce0f5f781e1e5c471,
+product cd494729e00273d02e2c5a7e79eea1697824f1ca) reached authenticated
+capability status502,502,401 and failed the existing assertion that only502/503
+may retry. It made zero installs and all cleanup checks succeeded. The normal
+60s token TTL cannot explain the16.094s interval from browser readiness through
+cleanup under consistent clocks. No token, signing scheme at mint, or manager
+state was persisted in that run, so the precise live authentication cause is not
+proven. A deterministic source-level reproduction shows that minting while a
+fresh workspace is STARTING without a scheme uses the legacy root secret while
+its new pod holds a derived secret. RUNNING commits derived-v1; a newly minted
+token then verifies. This is a possible startup race, not a proven live diagnosis
+or a product correction. Existing legacy workspaces are a separate case.
+
+For this fresh-workspace Packages test, the harness now authenticates read-only
+GETs to the manager and requires the same workspace identity, RUNNING and
+derived-v1 before obtaining its agent token once. STARTING alone keeps waiting;
+unknown/terminal state, wrong identity/scheme, non-2xx (including401/403), malformed
+JSON and deadline expiry remain failures. No lifecycle/start/stop/install request
+is added. No401 retry or token regeneration is added. Each fetch/body is capped
+at the smaller of20s and the remaining180s total readiness budget; sleeps use the
+smaller of5s and the remaining budget, and late successful responses are refused.
+The existing16min acceptance-process timeout remains the outer bound.
+
+The readiness artifact records only fixed stages, up to64 HTTP statuses, up to64
+fixed state names (unknown values become unknown), and identity/scheme booleans.
+It never copies IDs, URLs, bodies, tokens, secrets or arbitrary strings. This
+precondition narrows the acceptance scope to Packages on a ready, new derived
+workspace; it does not validate user operations during startup or alter manager
+behavior for existing legacy workspaces.

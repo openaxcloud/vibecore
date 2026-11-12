@@ -109,3 +109,13 @@ test('CI executes the capability diagnostics regression suite before runtime bui
   assert(command.includes('"$HARNESS_DIR/diagnostics.checks.mjs"'));
   assert(run.indexOf(command) < run.indexOf('docker build --label'));
 });
+
+test('fresh workspace manager readiness is checked before obtaining an agent token', () => {
+  const readinessPosition = acceptance.indexOf('await waitForWorkspaceRunning(');
+  assert(readinessPosition >= 0);
+  assert(readinessPosition < acceptance.indexOf('const tokenResponse = await json'));
+  assert.equal((acceptance.match(/agent-token/g) ?? []).length, 1);
+  assert.match(acceptance, /proof.managerReadiness/);
+  assert.match(diagnostics, /workspace.agentTokenScheme === 'derived-v1'/);
+  assert.match(diagnostics, /workspace\?\.id === workspaceId/);
+});

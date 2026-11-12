@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
-import { capabilityShape, checkAgentCapability, recordStatus } from './diagnostics.mjs';
+import { capabilityShape, checkAgentCapability, recordStatus, waitForWorkspaceRunning } from './diagnostics.mjs';
 import { createTransportEvidence, observeRequest } from './router.mjs';
 
 const valid = { version: 1, maxBudgetMs: 300000, validatedSpecs: 1 };
@@ -239,3 +239,197 @@ for (const body of [null, false, 0, '', [], {}]) {
     assert.equal(s.calls.length, 1);
   });
 }
+
+function readinessScenario(replies, elapsed = 0) {
+  const calls = [];
+  const diagnostics = {};
+
+  let time = 0;
+  let sleeps = 0;
+
+  return {
+    calls,
+    diagnostics,
+    sleeps: () => sleeps,
+    run: () =>
+      waitForWorkspaceRunning(
+        'http://manager',
+        'local-workspace',
+        { authorization: 'Bearer local-fixture' },
+        diagnostics,
+        {
+          now: () => {
+            const previous = time;
+            time += elapsed;
+
+            return previous;
+          },
+          sleep: async (ms) => {
+            assert.equal(ms, 5000);
+            sleeps++;
+          },
+          request: async (url, options) => {
+            calls.push({ url, options });
+
+            const reply = replies.shift();
+            assert(reply, 'Unexpected additional readiness request');
+
+            return { status: reply.status ?? 200, ok: (reply.status ?? 200) === 200, json: async () => reply.body };
+          },
+        },
+      ),
+  };
+}
+
+test('manager RUNNING and derived scheme must precede the single token mint', async () => {
+  const s = readinessScenario([
+    { body: { id: 'local-workspace', status: 'STARTING' } },
+    { body: { id: 'local-workspace', status: 'STARTING', agentTokenScheme: 'derived-v1' } },
+    { body: { id: 'local-workspace', status: 'RUNNING', agentTokenScheme: 'derived-v1' } },
+  ]);
+
+  let minted = 0;
+  await s.run();
+  minted++;
+  assert.equal(minted, 1);
+  assert.equal(s.calls.length, 3);
+  assert.equal(s.sleeps(), 2);
+  assert.deepEqual(s.diagnostics.states, ['STARTING', 'STARTING', 'RUNNING']);
+  assert.equal(s.diagnostics.stage, 'complete');
+  assert.equal(s.diagnostics.derivedScheme, true);
+
+  for (const call of s.calls) {
+    assert.equal(call.url, 'http://manager/workspaces/local-workspace');
+    assert.equal(call.options.method, undefined);
+    assert.deepEqual(call.options.headers, { authorization: 'Bearer local-fixture' });
+  }
+  assert.doesNotMatch(JSON.stringify(s.diagnostics), /local-workspace|local-fixture/);
+});
+
+for (const status of [401, 403, 404, 429, 500]) {
+  test(`manager readiness HTTP ${status} fails closed without minting or retry`, async () => {
+    const s = readinessScenario([{ status }]);
+    await assert.rejects(s.run(), { code: 'ERR_ASSERTION' });
+    assert.equal(s.diagnostics.stage, 'manager-status');
+    assert.equal(s.calls.length, 1);
+    assert.equal(s.sleeps(), 0);
+  });
+}
+
+for (const body of [
+  { id: 'other-private-identity', status: 'RUNNING', agentTokenScheme: 'derived-v1' },
+  { id: 'local-workspace', status: 'RUNNING' },
+  { id: 'local-workspace', status: 'RUNNING', agentTokenScheme: 'legacy' },
+  { id: 'local-workspace', status: 'RUNNING', agentTokenScheme: 'private-value' },
+  ...['FAILED', 'STOPPED', 'DELETED', 'private-value'].map((status) => ({ id: 'local-workspace', status })),
+  null,
+]) {
+  test('manager refuses incorrect identity, legacy/new scheme ambiguity or terminal/unknown state', async () => {
+    const s = readinessScenario([{ body }]);
+    await assert.rejects(s.run(), { code: 'ERR_ASSERTION' });
+    assert.equal(s.calls.length, 1);
+    assert.doesNotMatch(JSON.stringify(s.diagnostics), /other-private-identity|private-value/);
+  });
+}
+
+test('manager STARTING deadline fails before token issuance', async () => {
+  const s = readinessScenario([{ body: { id: 'local-workspace', status: 'STARTING' } }], 180001);
+  await assert.rejects(s.run(), { code: 'ERR_ASSERTION' });
+  assert.equal(s.diagnostics.stage, 'manager-deadline');
+});
+
+test('manager late RUNNING response cannot pass the total deadline', async () => {
+  let time = 0;
+
+  const diagnostics = {};
+  await assert.rejects(
+    waitForWorkspaceRunning('http://manager', 'local-workspace', {}, diagnostics, {
+      now: () => time,
+      sleep: async () => assert.fail('No sleep after late response'),
+      request: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => {
+          time = 180001;
+          return { id: 'local-workspace', status: 'RUNNING', agentTokenScheme: 'derived-v1' };
+        },
+      }),
+    }),
+    { code: 'ERR_ASSERTION' },
+  );
+  assert.equal(diagnostics.stage, 'manager-deadline');
+});
+
+test('manager final sleep uses only remaining deadline budget', async () => {
+  let time = 0;
+  let calls = 0;
+
+  const sleeps = [];
+  const diagnostics = {};
+  await assert.rejects(
+    waitForWorkspaceRunning('http://manager', 'local-workspace', {}, diagnostics, {
+      now: () => time,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+        time += ms;
+      },
+      request: async () => {
+        calls++;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => {
+            time = 179999;
+            return { id: 'local-workspace', status: 'STARTING' };
+          },
+        };
+      },
+    }),
+    { code: 'ERR_ASSERTION' },
+  );
+  assert.deepEqual(sleeps, [1]);
+  assert.equal(calls, 1);
+  assert.equal(diagnostics.stage, 'manager-deadline');
+});
+
+test('manager refusal cancels response body before rejecting', async () => {
+  let cancelled = false;
+  await assert.rejects(
+    waitForWorkspaceRunning(
+      'http://manager',
+      'local-workspace',
+      {},
+      {},
+      {
+        request: async () => ({
+          ok: false,
+          status: 401,
+          body: {
+            cancel: async () => {
+              cancelled = true;
+            },
+          },
+        }),
+      },
+    ),
+    { code: 'ERR_ASSERTION' },
+  );
+  assert.equal(cancelled, true);
+});
+
+test('manager fractional remaining milliseconds yield a valid integer AbortSignal timeout', async () => {
+  const times = [0.5, 179999.2, 180000.1];
+  const diagnostics = {};
+  await waitForWorkspaceRunning('http://manager', 'local-workspace', {}, diagnostics, {
+    now: () => times.shift(),
+    request: async (_url, options) => {
+      assert(options.signal instanceof AbortSignal);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'local-workspace', status: 'RUNNING', agentTokenScheme: 'derived-v1' }),
+      };
+    },
+  });
+  assert.equal(diagnostics.stage, 'complete');
+});
