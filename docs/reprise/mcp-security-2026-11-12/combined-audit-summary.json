@@ -1,0 +1,19 @@
+{
+  "integratedMain": "e7dc0c4d0fd2cbef3caf5a4a229a47c8b8532a19",
+  "mcpHead": "aea05ad77ec40a28dc4491d56512bda99829c0e4",
+  "auditExitCode": 1,
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 39,
+      "moderate": 145,
+      "high": 77,
+      "critical": 0
+    },
+    "dependencies": 2268,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 2268
+  },
+  "targetAdvisories": []
+}

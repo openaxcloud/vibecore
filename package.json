@@ -152,7 +152,7 @@
     "@heroicons/react": "^2.2.0",
     "@iconify-json/svg-spinners": "^1.2.1",
     "@lezer/highlight": "^1.2.1",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@nanostores/react": "^0.7.3",
     "@noble/hashes": "1.8.0",
     "@octokit/rest": "^21.0.2",
@@ -343,7 +343,7 @@
     "overrides": {
       "@grpc/grpc-js": "^1.14.4",
       "shell-quote": "1.11.0",
-      "@modelcontextprotocol/sdk": "^1.29.0",
+      "@modelcontextprotocol/sdk": "^1.32.0",
       "fast-xml-parser": "^5.7.3",
       "fast-jwt": "^6.3.4",
       "immutable": "^5.1.5",

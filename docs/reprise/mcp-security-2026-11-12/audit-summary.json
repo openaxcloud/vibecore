@@ -1,0 +1,19 @@
+{
+  "base": "d9a23c1212208d353baa4fa8d48cce0af24a7d92",
+  "sdkVersion": "1.32.2",
+  "auditExitCode": 1,
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 39,
+      "moderate": 149,
+      "high": 94,
+      "critical": 0
+    },
+    "dependencies": 2268,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 2268
+  },
+  "mcpAdvisories": []
+}
