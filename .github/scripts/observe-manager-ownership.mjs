@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { projectList } from './observe-manager-terminality.mjs';
 
@@ -15,33 +17,102 @@ const canonical = (value) =>
   JSON.stringify(value, (_key, item) =>
     record(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item,
   );
-const refuse = () => {
-  throw new Error('MANAGER_OWNERSHIP_UNAVAILABLE');
+
+const failureEvidence = new WeakMap();
+
+const stages = [
+  'setup',
+  'deployment-before',
+  'replicasets-before',
+  'pods',
+  'replicasets-after',
+  'deployment-after',
+  'projection',
+];
+
+const categories = new Set(['command', 'access-denied', 'parse', 'shape', 'scope', 'change']);
+
+const refuse = (category = 'shape', stage = 'setup') => {
+  const error = new Error('MANAGER_OWNERSHIP_UNAVAILABLE');
+  failureEvidence.set(error, { category, stage });
+  throw error;
 };
+
+/** Only errors made here can supply categories; provider messages cannot supply fields. */
+export function failureReceipt(error) {
+  const evidence = failureEvidence.get(error);
+  const stage = stages.includes(evidence?.stage) ? evidence.stage : 'setup';
+
+  return {
+    schemaVersion: 1,
+    outcome: 'refused',
+    stage,
+    index: stages.indexOf(stage),
+    category: categories.has(evidence?.category) ? evidence.category : 'shape',
+  };
+}
+
+function atStage(stage, action) {
+  try {
+    return action();
+  } catch (error) {
+    return refuse(failureReceipt(error).category, stage);
+  }
+}
+
+/** Recognize only complete standard single-line denial formats, never retain their text. */
+function accessDenied(error) {
+  if (
+    !Number.isInteger(error?.status) ||
+    error.status < 1 ||
+    error.status > 255 ||
+    !(typeof error.stderr === 'string' || Buffer.isBuffer(error.stderr)) ||
+    Buffer.byteLength(error.stderr) > 4096
+  ) {
+    return false;
+  }
+
+  try {
+    const stderr = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.from(error.stderr));
+    return (
+      /^Error from server \((?:Forbidden|Unauthorized)\): [^\r\n]{1,4000}\r?\n?$/.test(stderr) ||
+      /^ERROR: \(gcloud\.[a-zA-Z0-9_.-]{1,120}\) PERMISSION_DENIED: [^\r\n]{1,3800}\r?\n?$/.test(stderr)
+    );
+  } catch {
+    return false;
+  }
+}
 
 function object(value, kind, apiVersion) {
   if (
     !record(value) ||
     value.kind !== kind ||
     value.apiVersion !== apiVersion ||
-    value.metadata?.namespace !== namespace ||
     !text(value.metadata?.uid) ||
     !text(value.metadata?.name) ||
     !text(value.metadata?.resourceVersion)
   ) {
     refuse();
   }
+
+  if (value.metadata.namespace !== namespace) {
+    refuse('scope');
+  }
 }
 
 function list(value, kind, apiVersion) {
+  // kubectl printGeneric recomposes typed API responses as v1/List with an empty RV.
+  const generic = value?.kind === 'List' && value?.apiVersion === 'v1';
+
   if (
     !record(value) ||
-    value.kind !== `${kind}List` ||
-    value.apiVersion !== apiVersion ||
+    (!generic && (value.kind !== `${kind}List` || value.apiVersion !== apiVersion)) ||
+    !record(value.metadata) ||
     !Array.isArray(value.items) ||
     value.items.length > 256 ||
-    value.metadata?.continue ||
-    !text(value.metadata?.resourceVersion)
+    (value.metadata.continue !== undefined && value.metadata.continue !== '') ||
+    (value.metadata.remainingItemCount !== undefined && value.metadata.remainingItemCount !== 0) ||
+    !(text(value.metadata.resourceVersion) || (generic && value.metadata.resourceVersion === ''))
   ) {
     refuse();
   }
@@ -111,14 +182,18 @@ export function projectOwnership({ before, setsBefore, pods, setsAfter, after })
   list(setsAfter, 'ReplicaSet', 'apps/v1');
   list(pods, 'Pod', 'v1');
 
-  if (before.metadata.name !== name || after.metadata.name !== name || canonical(before) !== canonical(after)) {
-    refuse();
+  if (before.metadata.name !== name || after.metadata.name !== name) {
+    refuse('scope');
+  }
+
+  if (canonical(before) !== canonical(after)) {
+    refuse('change');
   }
 
   const sorted = (value) => [...value.items].sort((a, b) => a.metadata.uid.localeCompare(b.metadata.uid));
 
   if (canonical(sorted(setsBefore)) !== canonical(sorted(setsAfter))) {
-    refuse();
+    refuse('change');
   }
 
   const depRevision = revision(before.metadata.annotations?.[revisionKey]);
@@ -210,55 +285,69 @@ export function projectOwnership({ before, setsBefore, pods, setsAfter, after })
 
 /** Fixed GETs only; every failure stops, no retries, fallback identities or raw output. */
 export function observeOwnership(command = execFileSync) {
-  const get = (resource, target) => {
-    const args = [
-      'prod-gateway',
-      'kubectl',
-      '-n',
-      namespace,
-      'get',
-      resource,
-      ...target,
-      '--request-timeout=15s',
-      '-o',
-      'json',
-    ];
-    const output = command('scripts/ci/cluster.sh', args, {
-      timeout: 20000,
-      maxBuffer: 1024 * 1024,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+  const get = (stage, resource, target) =>
+    atStage(stage, () => {
+      const args = [
+        'prod-gateway',
+        'kubectl',
+        '-n',
+        namespace,
+        'get',
+        resource,
+        ...target,
+        '--request-timeout=15s',
+        '-o',
+        'json',
+      ];
 
-    if (!(typeof output === 'string' || Buffer.isBuffer(output)) || Buffer.byteLength(output) > 1024 * 1024) {
-      refuse();
-    }
+      let output;
 
-    const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.from(output)));
+      try {
+        output = command('scripts/ci/cluster.sh', args, {
+          timeout: 20000,
+          maxBuffer: 1024 * 1024,
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      } catch (error) {
+        refuse(accessDenied(error) ? 'access-denied' : 'command');
+      }
 
-    if (resource === 'deployment') {
-      object(value, 'Deployment', 'apps/v1');
-
-      if (value.metadata.name !== name) {
+      if (!(typeof output === 'string' || Buffer.isBuffer(output)) || Buffer.byteLength(output) > 1024 * 1024) {
         refuse();
       }
-    } else {
-      list(value, resource === 'pods' ? 'Pod' : 'ReplicaSet', resource === 'pods' ? 'v1' : 'apps/v1');
 
-      if (resource === 'pods') {
-        projectList(value);
+      let value;
+
+      try {
+        value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.from(output)));
+      } catch {
+        refuse('parse');
       }
-    }
 
-    return value;
-  };
+      if (resource === 'deployment') {
+        object(value, 'Deployment', 'apps/v1');
 
-  const before = get('deployment', [name]);
-  const setsBefore = get('replicasets', ['-l', selector]);
-  const pods = get('pods', ['-l', selector]);
-  const setsAfter = get('replicasets', ['-l', selector]);
-  const after = get('deployment', [name]);
+        if (value.metadata.name !== name) {
+          refuse('scope');
+        }
+      } else {
+        list(value, resource === 'pods' ? 'Pod' : 'ReplicaSet', resource === 'pods' ? 'v1' : 'apps/v1');
 
-  return projectOwnership({ before, setsBefore, pods, setsAfter, after });
+        if (resource === 'pods') {
+          projectList(value);
+        }
+      }
+
+      return value;
+    });
+
+  const before = get('deployment-before', 'deployment', [name]);
+  const setsBefore = get('replicasets-before', 'replicasets', ['-l', selector]);
+  const pods = get('pods', 'pods', ['-l', selector]);
+  const setsAfter = get('replicasets-after', 'replicasets', ['-l', selector]);
+  const after = get('deployment-after', 'deployment', [name]);
+
+  return atStage('projection', () => projectOwnership({ before, setsBefore, pods, setsAfter, after }));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -268,7 +357,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     }
 
     process.stdout.write(`${JSON.stringify(observeOwnership())}\n`);
-  } catch {
+  } catch (error) {
+    try {
+      /*
+       * The workflow creates this exact directory fresh before invoking the helper.
+       * A failed write must not replace the original refusal or create any partial data artifact.
+       */
+      writeFileSync(
+        join(process.env.RUNNER_TEMP, 'manager-observer-evidence', 'manager-ownership-failure.json'),
+        `${JSON.stringify(failureReceipt(error))}\n`,
+        { flag: 'wx', mode: 0o600 },
+      );
+    } catch {
+      // No fallback destination or raw error text.
+    }
     process.stderr.write('MANAGER_OWNERSHIP_UNAVAILABLE\n');
     process.exitCode = 1;
   }

@@ -17,11 +17,60 @@ has a 15-second request timeout, a 20-second process timeout and a 1 MiB output
 limit. Each list has at most 256 objects. A continued/incomplete list is refused.
 There are no retries or fallback credentials. A denied GET, process error, bad
 UTF-8/JSON, invalid resource identity or changed controller bracket stops the
-observation; the shell removes partial output and success-only upload is retained.
+observation; the shell removes partial output and the observation is uploaded
+only on success. A separate fixed refusal receipt may be uploaded on failure.
 Raw responses and stderr are never persisted or emitted by the helper. The
 artifact contains at most 16 pod rows and 16 ReplicaSet rows, aggregate counts and
 explicit omitted counts; names, UIDs, resourceVersions, revisions, labels,
 annotations, images, node names and provider messages are not emitted.
+
+## kubectl list compatibility and completeness limits
+
+Official kubectl v1.34 `printGeneric` flattens API list responses, recomposes them
+as `kind: List`, `apiVersion: v1`, and may emit an empty list resourceVersion.
+The upstream JSON-output tests explicitly expect that shape. Both this generic
+envelope and the original typed PodList/ReplicaSetList envelopes are accepted;
+only the generic envelope may have `metadata.resourceVersion: ""`. Metadata must
+still be an object, items must be an array, and every item must retain its exact
+expected API kind/version, namespace, name, UID and nonempty resourceVersion.
+Missing/duplicate identities and oversized lists remain refusals.
+
+A visible nonempty or malformed `continue`, or a nonzero/malformed
+`remainingItemCount`, is rejected. Kubectl's generic recomposition drops list
+pagination metadata, so absence of these fields is **not an independent proof of
+completeness**. The fixed command's successful exit remains mandatory. Upstream
+selector traversal follows continuation pages; `printGeneric` can write a list
+and still return an aggregated error. Any nonzero exit is therefore refused,
+even with perfectly valid complete-looking JSON stdout. No retries or partial
+stdout are accepted. This corrects client rendering compatibility, not trust in
+unknown list sources.
+
+The prior observer run on 24db failed without an attributable category. This
+compatibility defect is reproduced from upstream code and fixtures, but is not
+claimed as the proven cause of that run. Neither the resolved kubectl client
+version nor server version was captured. No version query or extra cluster
+invocation is added by this correction.
+
+## Fixed refusal receipt
+
+The helper may write `manager-ownership-failure.json` only inside the exact fresh
+private evidence directory. It contains schemaVersion=1, outcome=`refused`, one
+fixed stage (`setup`, `deployment-before`, `replicasets-before`, `pods`,
+`replicasets-after`, `deployment-after`, `projection`), the corresponding index
+0–6, and one category: `command`, `access-denied`, `parse`, `shape`, `scope`, or
+`change`. Error object messages/fields never supply arbitrary receipt values.
+Raw stdout/stderr, exception strings, resource data and credentials are excluded.
+No observation data is uploaded on failure. A separate upload targets only this
+receipt when the observation step failed and explicitly marked its creation.
+Failure before helper invocation or a stale directory never enables that upload.
+
+`access-denied` means a nonzero command exit with one recognized complete standard
+single-line kubectl Forbidden/Unauthorized or gcloud PERMISSION_DENIED signature.
+It is not exhaustive denial detection: the unchanged wrapper may suppress stderr,
+and unrecognized/multiline errors remain `command`. No missing diagnosis is a
+permission grant. Every category stops immediately without a retry, fallback,
+new identity or IAM/RBAC change. Cleanup runs independently. Failure to write the
+receipt leaves only the existing fixed error, never a fallback destination.
 
 ## What the projection means
 
@@ -64,7 +113,8 @@ cluster version, admission behavior or historical binding from these fields.
 Changes remain local until independently reviewed and published by the owner of
 the deployment task. A successful observer run explains only its present sample.
 If reads are denied, stop rather than broadening RBAC/IAM or changing identities.
-If controllers change during the sample, no artifact is published. A later
+If controllers change during the sample, no observation artifact is published;
+only the fixed refusal receipt may be published. A later
 observation requires a separately authorized invocation through the same trusted
 workflow; the helper does not poll or monitor in the background.
 
@@ -80,3 +130,7 @@ References:
 - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#pod-template-hash-label
 - https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodename
 - https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-lifetime
+
+- https://github.com/kubernetes/kubectl/blob/v0.34.0/pkg/cmd/get/get.go
+- https://github.com/kubernetes/kubectl/blob/v0.34.0/pkg/cmd/get/get_test.go
+- https://github.com/kubernetes/cli-runtime/blob/v0.34.0/pkg/resource/selector.go

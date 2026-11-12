@@ -48,7 +48,7 @@ const pod = () => ({
 });
 
 const ownershipPath = '.github/scripts/observe-manager-ownership.mjs';
-const { projectOwnership } = await import(pathToFileURL(resolve(ownershipPath)).href);
+const { projectOwnership, observeOwnership, failureReceipt } = await import(pathToFileURL(resolve(ownershipPath)).href);
 const namespace = 'vibecore';
 const managerName = 'vibecore-vibecore-platform-workspace-manager';
 const revisionKey = 'deployment.kubernetes.io/revision';
@@ -106,6 +106,19 @@ function ownershipFixture(items = [pod()]) {
     setsAfter: structuredClone(setsBefore),
     after: structuredClone(before),
   };
+}
+
+// Exact kubectl printGeneric envelope, unlike the typed API response fixtures above.
+function genericFixture() {
+  const input = ownershipFixture();
+
+  for (const key of ['setsBefore', 'pods', 'setsAfter']) {
+    input[key].kind = 'List';
+    input[key].apiVersion = 'v1';
+    input[key].metadata = { resourceVersion: '' };
+  }
+
+  return input;
 }
 
 const diagnosticError = 'TERMINAL_DIAGNOSTIC_UNAVAILABLE\n';
@@ -480,8 +493,8 @@ function execute(options = {}) {
     put(helperPath, readFileSync(helperPath));
     put(ownershipPath, options.ownershipSource ?? readFileSync(ownershipPath));
     put('deployment.json', JSON.stringify(deploymentFixture));
-    put('sets.json', JSON.stringify(ownershipFixture().setsBefore));
-    put('payload.json', options.payload ?? JSON.stringify(ownershipFixture().pods));
+    put('sets.json', JSON.stringify(genericFixture().setsBefore));
+    put('payload.json', options.payload ?? JSON.stringify(genericFixture().pods));
     put(
       'bin/gcloud',
       `#!${process.execPath}
@@ -532,6 +545,7 @@ if (args[0] === 'config') {
     const env = {
       PATH: `${join(dir, 'bin')}:/usr/bin:/bin`,
       RUNNER_TEMP: join(dir, 'temp'),
+      GITHUB_OUTPUT: join(dir, 'output.txt'),
       KUBECONFIG: join(dir, 'temp/kubeconfig'),
       CAPTURE: join(dir, 'capture.jsonl'),
       PAYLOAD: join(dir, 'payload.json'),
@@ -568,6 +582,10 @@ if (args[0] === 'config') {
         : [],
       kubeconfigExists: existsSync(join(dir, 'temp/manager-observer-kubeconfig')),
       artifact: existsSync(artifact) ? readFileSync(artifact, 'utf8') : null,
+      failure: existsSync(join(dir, 'temp/manager-observer-evidence/manager-ownership-failure.json'))
+        ? JSON.parse(readFileSync(join(dir, 'temp/manager-observer-evidence/manager-ownership-failure.json'), 'utf8'))
+        : null,
+      outputs: existsSync(env.GITHUB_OUTPUT) ? readFileSync(env.GITHUB_OUTPUT, 'utf8') : '',
     };
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -735,9 +753,9 @@ function assertWorkflow(value) {
     FLEET_MEMBERSHIP: 'vibecore-prod-app',
     FLEET_LOCATION: 'europe-west9',
   });
-  expect(current.steps).toHaveLength(8);
+  expect(current.steps).toHaveLength(9);
 
-  const [guard, checkout, auth, sdk, gateway, observation, upload, cleanup] = current.steps;
+  const [guard, checkout, auth, sdk, gateway, observation, upload, cleanup, refusalUpload] = current.steps;
   expect(guard.id).toBe('context');
   expect(checkout.uses).toBe('actions/checkout@11d5960a326750d5838078e36cf38b85af677262');
   expect(checkout.with).toEqual({ ref: '${{ github.sha }}', 'persist-credentials': false });
@@ -761,6 +779,16 @@ function assertWorkflow(value) {
     'retention-days': 1,
   });
   expect(cleanup.if).toBe('always()');
+  expect(refusalUpload.if).toBe(
+    "failure() && steps.observation.outcome == 'failure' && steps.observation.outputs.failure_receipt == 'true'",
+  );
+  expect(refusalUpload.uses).toBe(upload.uses);
+  expect(refusalUpload.with).toEqual({
+    name: 'manager-ownership-refusal-${{ github.sha }}',
+    path: '${{ runner.temp }}/manager-observer-evidence/manager-ownership-failure.json',
+    'if-no-files-found': 'error',
+    'retention-days': 1,
+  });
 
   for (const step of current.steps) {
     const allowed = ['name', ...(step.run ? ['run'] : ['uses', 'with'])];
@@ -773,7 +801,7 @@ function assertWorkflow(value) {
       allowed.push('timeout-minutes');
     }
 
-    if (step === upload || step === cleanup) {
+    if (step === upload || step === cleanup || step === refusalUpload) {
       allowed.push('if');
     }
 
@@ -1219,4 +1247,214 @@ it('stops at the pod GET when terminality structure is malformed', async () => {
   let calls = 0;
   expect(() => observeOwnership(() => Buffer.from(JSON.stringify(replies[calls++])))).toThrow();
   expect(calls).toBe(3);
+});
+
+describe('kubectl generic envelope and fixed refusal receipts', () => {
+  const sequence = (input) => [input.before, input.setsBefore, input.pods, input.setsAfter, input.after];
+
+  const run = (input, mutate) => {
+    let calls = 0;
+
+    try {
+      const output = observeOwnership((_bin, _args, _options) => {
+        const index = calls++;
+        return mutate ? mutate(index, sequence(input)[index]) : Buffer.from(JSON.stringify(sequence(input)[index]));
+      });
+      return { output, calls };
+    } catch (error) {
+      return { failure: failureReceipt(error), calls };
+    }
+  };
+
+  it('accepts the official List/v1/empty-RV rendering while preserving all item checks', () => {
+    const generic = genericFixture();
+    expect(projectOwnership(generic)).toEqual(projectOwnership(ownershipFixture()));
+    expect(run(generic).calls).toBe(5);
+    expect(run(generic).output.ownership.currentControllerUnique).toBe(true);
+
+    const shell = execute();
+    expect(shell.status).toBe(0);
+    expect(shell.failure).toBeNull();
+    expect(shell.outputs).toBe('');
+    expect(JSON.parse(shell.artifact)).toEqual(projectOwnership(generic));
+  });
+
+  it.each([
+    (x) => {
+      x.setsBefore.apiVersion = 'apps/v1';
+    },
+    (x) => {
+      x.setsBefore.kind = 'OtherList';
+    },
+    (x) => {
+      x.setsBefore.metadata = null;
+    },
+    (x) => {
+      delete x.setsBefore.metadata.resourceVersion;
+    },
+    (x) => {
+      x.setsBefore.metadata.resourceVersion = 0;
+    },
+    (x) => {
+      x.setsBefore.metadata.continue = 'page';
+    },
+    (x) => {
+      x.setsBefore.metadata.continue = false;
+    },
+    (x) => {
+      x.setsBefore.metadata.remainingItemCount = 1;
+    },
+    (x) => {
+      x.setsBefore.metadata.remainingItemCount = '0';
+    },
+    (x) => {
+      x.setsBefore.items[0].kind = 'Pod';
+    },
+    (x) => {
+      x.setsBefore.items[0].apiVersion = 'v1';
+    },
+    (x) => {
+      delete x.setsBefore.items[0].metadata.uid;
+    },
+    (x) => {
+      x.setsBefore.items[0].metadata.resourceVersion = '';
+    },
+    (x) => {
+      x.setsBefore.items.push(structuredClone(x.setsBefore.items[0]));
+    },
+  ])('refuses malformed generic envelopes and items at GET2 %#', (mutate) => {
+    const input = genericFixture();
+    mutate(input);
+    expect(run(input)).toEqual({
+      calls: 2,
+      failure: { schemaVersion: 1, outcome: 'refused', stage: 'replicasets-before', index: 2, category: 'shape' },
+    });
+  });
+
+  it('retains the typed API-list nonempty resourceVersion requirement', () => {
+    const input = ownershipFixture();
+    input.setsBefore.metadata.resourceVersion = '';
+    expect(run(input).failure.category).toBe('shape');
+  });
+
+  it('accepts complete zero continuation and zero remaining metadata, not partial pages', () => {
+    const input = genericFixture();
+    input.setsBefore.metadata.continue = '';
+    input.setsBefore.metadata.remainingItemCount = 0;
+    expect(run(input).output).toBeDefined();
+  });
+
+  it.each(['setsBefore', 'pods'])('keeps wrong namespace classified as scope for %s', (key) => {
+    const input = genericFixture();
+    input[key].items[0].metadata.namespace = 'private-canary';
+    expect(run(input).failure.category).toBe('scope');
+    expect(JSON.stringify(run(input))).not.toContain('private-canary');
+  });
+
+  it.each([0, 1, 2, 3, 4])('retains stage/index for every parse failure at GET%i without continuing', (failAt) => {
+    const result = run(genericFixture(), (index, value) =>
+      index === failAt ? Buffer.from('PRIVATE_BAD_JSON') : Buffer.from(JSON.stringify(value)),
+    );
+    expect(result.calls).toBe(failAt + 1);
+    expect(result.failure.index).toBe(failAt + 1);
+    expect(result.failure.category).toBe('parse');
+    expect(JSON.stringify(result)).not.toContain('PRIVATE_BAD_JSON');
+  });
+
+  it.each([0, 1, 2, 3, 4])('refuses nonzero exit even with complete valid JSON stdout at GET%i', (failAt) => {
+    const result = run(genericFixture(), (index, value) => {
+      if (index === failAt) {
+        throw Object.assign(new Error('PRIVATE_PROVIDER'), {
+          status: 1,
+          stdout: Buffer.from(JSON.stringify(value)),
+          stderr: Buffer.from('PRIVATE_STDERR'),
+        });
+      }
+
+      return Buffer.from(JSON.stringify(value));
+    });
+    expect(result.calls).toBe(failAt + 1);
+    expect(result.failure.category).toBe('command');
+    expect(result.failure.index).toBe(failAt + 1);
+    expect(JSON.stringify(result)).not.toMatch(/PRIVATE_|stdout|stderr/);
+  });
+
+  it.each([
+    ['Error from server (Forbidden): PRIVATE_CANARY\n', 1, 'access-denied'],
+    ['Error from server (Unauthorized): PRIVATE_CANARY\n', 1, 'access-denied'],
+    ['ERROR: (gcloud.container.fleet.memberships.describe) PERMISSION_DENIED: PRIVATE_CANARY\n', 1, 'access-denied'],
+    ['prefix Error from server (Forbidden): PRIVATE_CANARY\n', 1, 'command'],
+    ['Error from server (Forbidden): PRIVATE_CANARY\nsecond line', 1, 'command'],
+    ['Error from server (NotFound): PRIVATE_CANARY\n', 1, 'command'],
+    ['PERMISSION_DENIED PRIVATE_CANARY', 1, 'command'],
+    ['Error from server (Forbidden): PRIVATE_CANARY\n', 0, 'command'],
+  ])('classifies only exact denial forms without retaining text %#', (stderr, status, category) => {
+    const result = run(genericFixture(), () => {
+      throw { status, stderr, message: 'PRIVATE_MESSAGE' };
+    });
+    expect(result.failure.category).toBe(category);
+    expect(result.calls).toBe(1);
+    expect(JSON.stringify(result)).not.toMatch(/PRIVATE_|stderr|message/);
+  });
+
+  it('reports controller bracket changes without identities or versions', () => {
+    const input = genericFixture();
+    input.after.metadata.resourceVersion = 'PRIVATE_CHANGED';
+    expect(run(input).failure).toEqual({
+      schemaVersion: 1,
+      outcome: 'refused',
+      stage: 'projection',
+      index: 6,
+      category: 'change',
+    });
+  });
+
+  it('writes only a fixed failure receipt, deletes partial observation and signals the dedicated upload', () => {
+    const result = execute({ payload: '{PRIVATE_JSON' });
+    expect(result.status).not.toBe(0);
+    expect(result.artifact).toBeNull();
+    expect(result.failure).toEqual({
+      schemaVersion: 1,
+      outcome: 'refused',
+      stage: 'pods',
+      index: 3,
+      category: 'parse',
+    });
+    expect(result.outputs).toBe('failure_receipt=true\n');
+    expect(JSON.stringify(result.failure)).not.toContain('PRIVATE');
+  });
+
+  it('does not mark a stale directory or pre-helper failure for refusal upload', () => {
+    for (const options of [{ staleOutput: true }, { env: { FAIL_AT: 'credentials' } }]) {
+      const result = execute(options);
+      expect(result.outputs).toBe('');
+      expect(result.failure).toBeNull();
+    }
+  });
+
+  it('cannot fabricate receipt categories from thrown provider objects', () => {
+    expect(failureReceipt({ stage: 'pods', category: 'access-denied', message: 'PRIVATE_CANARY' })).toEqual({
+      schemaVersion: 1,
+      outcome: 'refused',
+      stage: 'setup',
+      index: 0,
+      category: 'shape',
+    });
+  });
+
+  it.each([
+    (w) => {
+      w.jobs.observe.steps[8].if = 'always()';
+    },
+    (w) => {
+      w.jobs.observe.steps[8].with.path = '${{ runner.temp }}/*';
+    },
+    (w) => {
+      w.jobs.observe.steps[8].with.path = '${{ runner.temp }}/manager-observer-evidence/manager-terminality.json';
+    },
+  ])('detects broadened failure upload %#', (mutate) => {
+    const changed = structuredClone(workflow);
+    mutate(changed);
+    expect(() => assertWorkflow(changed)).toThrow();
+  });
 });
