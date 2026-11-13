@@ -23,11 +23,3 @@ RUN pnpm install --frozen-lockfile --filter '!@vibecore/mobile' \
     && pnpm --filter @vibecore/database db:generate
 USER node
 
-# Functional test profile: real agent sources with the same frozen monorepo lock.
-# Node 22/glibc here is not parity validation of the production Node 24/musl image.
-FROM platform AS agent
-WORKDIR /app/services/workspace-agent
-RUN node -e "require('node-pty'); console.log('node-pty native module loaded OK')"
-ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080 WORKSPACE_ROOT=/workspace
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/app/node_modules/.bin/tsx", "src/server.ts"]
