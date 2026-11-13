@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { observePostgresRestoreDrain } from '../database-restore-drain.js';
 
 const url = process.env.RESTORE_TEST_DATABASE_URL;
 const run = url ? describe : describe.skip;
@@ -293,6 +294,14 @@ run('restore handoff across real local PostgreSQL participants', () => {
       participant.child.kill('SIGKILL');
       await participant.exited;
       expect(await fenced).toMatchObject({ message: 'TEST_PARTICIPANT_EXITED' });
+      const observation = await observePostgresRestoreDrain(url!, {
+        systemIdentifier: identity,
+        databaseName: new URL(url!).pathname.slice(1),
+      });
+      // Admin + blocked orphan: process death did not drain the database.
+      expect(observation.otherSessions).toBeGreaterThanOrEqual(2);
+      expect(observation.observedEmpty).toBe(false);
+      expect(observation.globalFence).toBe(false);
       await expect(participant.call({ action: 'fence', previous, next })).rejects.toThrow('TEST_PARTICIPANT_EXITED');
 
       /*

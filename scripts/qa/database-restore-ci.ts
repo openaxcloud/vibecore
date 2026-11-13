@@ -23,6 +23,7 @@ export const requiredSpecs = [
   'src/tests/database-provisioning-transfer.prisma.spec.ts',
   'src/tests/database-restore-consumer.spec.ts',
   'src/tests/database-restore-distributed.spec.ts',
+  'src/tests/database-restore-drain.postgres.spec.ts',
   'src/tests/database-backup-provenance.spec.ts',
   'src/tests/database-backup-workflows.spec.ts',
 ] as const;
