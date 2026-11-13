@@ -258,8 +258,10 @@ async function main() {
 
     for (const [service, image] of Object.entries(dependencyImages)) {
       await docker(['pull', image], true);
+
       // Docker save by digest may omit RepoTags. Give kind an explicit local name.
       await docker(['tag', image, `vc-private-${service}:${name}`]);
+
       const imageID = (await docker(['image', 'inspect', '--format', '{{.Id}}', image])).trim();
       console.log(
         JSON.stringify({
