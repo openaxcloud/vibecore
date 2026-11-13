@@ -13,6 +13,7 @@ export function recipeManifests(
   tokenSecret: string,
   managerSecret: string,
   jwtSecret: string,
+  browser = false,
 ) {
   assertRecipeClusterName(name);
 
@@ -208,7 +209,18 @@ export function recipeManifests(
       storage: 'project-storage',
       mountPath: '/data/projects',
       probePath: '/health',
-      environment: { ...common, API_HOST: '0.0.0.0', API_PORT: '3001', RATE_LIMIT_FORCE_SHARED: '1' },
+      environment: {
+        ...common,
+        API_HOST: '0.0.0.0',
+        API_PORT: '3001',
+        RATE_LIMIT_FORCE_SHARED: '1',
+        ...(browser
+          ? {
+              API_CORS_ORIGINS: 'http://127.0.0.1:5173',
+              PREVIEW_URL_TEMPLATE: 'http://127.0.0.1:3001/api/runtime/workspaces/{workspaceId}/preview/{port}/proxy/',
+            }
+          : {}),
+      },
     }),
   ];
 }

@@ -1,0 +1,67 @@
+name: Private Runtime Browser Recipe (functional only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [validation/private-runtime-browser-20261113]
+
+permissions:
+  contents: read
+
+jobs:
+  private-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      HUSKY: '0'
+      CI: 'true'
+      PRIVATE_RUNTIME_BROWSER_RECIPE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 9.14.4
+          run_install: false
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install pinned kind and kubectl clients
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/private-runtime-bin"
+          cd "$RUNNER_TEMP/private-runtime-bin"
+          curl -fsSLo kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64
+          curl -fsSLo kind.sha256 https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64.sha256sum
+          echo "$(cut -d ' ' -f 1 kind.sha256)  kind" | sha256sum -c -
+          curl -fsSLo kubectl https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl
+          curl -fsSLo kubectl.sha256 https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl.sha256
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c -
+          chmod 0755 kind kubectl
+          echo "$RUNNER_TEMP/private-runtime-bin" >> "$GITHUB_PATH"
+      - name: Validate recipe contracts
+        run: |
+          pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts scripts/private-runtime-recipe/browser/guards.test.ts
+          pnpm exec tsc -p scripts/private-runtime-recipe/tsconfig.json
+      - name: Install real Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Real API to manager to pod and browser recipe
+        run: pnpm exec tsx scripts/private-runtime-recipe/run.ts
+      - name: Remove only the generated local cluster (also on cancellation)
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/vibecore-private-runtime-state.json"; then
+            node_modules/.bin/tsx scripts/private-runtime-recipe/run.ts --cleanup
+          fi
+      - name: Upload sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: private-runtime-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: private-runtime-evidence/
+          if-no-files-found: ignore
+          retention-days: 7

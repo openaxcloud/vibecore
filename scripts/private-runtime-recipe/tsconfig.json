@@ -10,5 +10,5 @@
     "types": ["node"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["./*.ts", "../validate-runtime-api-kubernetes.ts"]
+  "include": ["./*.ts", "./browser/**/*.ts", "../validate-runtime-api-kubernetes.ts"]
 }

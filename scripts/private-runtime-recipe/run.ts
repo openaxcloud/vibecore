@@ -3,13 +3,22 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { assertBrowserRecipeEnvironment, browserBuildEnvironment } from './browser/guards.js';
 import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
 import { podEvidence, type EvidencePod } from './evidence.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+
+const browserRecipe = process.env.PRIVATE_RUNTIME_BROWSER_RECIPE === '1';
+
+if (browserRecipe) {
+  assertBrowserRecipeEnvironment(process.env);
+} else {
+  assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
+}
+
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);
@@ -207,9 +216,16 @@ async function main() {
   assert.ok(!(await run('kind', ['get', 'clusters'])).split(/\s+/).includes(name));
   writeFileSync(statePath, JSON.stringify(state), { flag: 'wx', mode: 0o600 });
 
-  let stage = 'create-local-cluster';
+  let stage = browserRecipe ? 'build-real-web-app' : 'create-local-cluster';
 
   try {
+    if (browserRecipe) {
+      Object.assign(process.env, browserBuildEnvironment);
+      process.env.NODE_OPTIONS ??= '--max-old-space-size=6144';
+      await run('node_modules/.bin/react-router', ['build'], { timeout: 900_000, stream: true });
+    }
+
+    stage = 'create-local-cluster';
     await run(
       'kind',
       [
@@ -327,6 +343,7 @@ async function main() {
     const resources = recipeManifests(
       name,
       ...(Array.from({ length: 4 }, () => randomBytes(32).toString('hex')) as [string, string, string, string]),
+      browserRecipe,
     );
     const late = resources.filter(
       (resource) =>
@@ -375,6 +392,24 @@ async function main() {
       progressFile: join(evidence, 'validation-progress.txt'),
     });
     writeFileSync(join(evidence, 'checks.txt'), result);
+
+    if (browserRecipe) {
+      stage = 'real-browser-ui-validation';
+      await run(
+        'node_modules/.bin/playwright',
+        ['test', '--config', 'scripts/private-runtime-recipe/browser/playwright.config.ts'],
+        { timeout: 720_000, progressFile: join(evidence, 'browser-run.txt') },
+      );
+
+      const browserResult = JSON.parse(readFileSync(join(evidence, 'browser-result.json'), 'utf8')) as {
+        status: string;
+        tests: { status: string }[];
+      };
+      assert.equal(browserResult.status, 'passed');
+      assert.equal(browserResult.tests.length, 1);
+      assert.equal(browserResult.tests[0].status, 'passed');
+    }
+
     writeFileSync(
       join(evidence, 'result.json'),
       JSON.stringify(
@@ -384,6 +419,7 @@ async function main() {
           cluster: name,
           commit: process.env.GITHUB_SHA,
           scope: 'functional-local-only',
+          browserUI: browserRecipe ? 'passed' : 'not-tested',
           aiGeneration: 'not-tested',
           productionIsolation: 'not-tested',
           publication: 'not-tested',
