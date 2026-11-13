@@ -125,6 +125,14 @@ jobs:
           echo $! > /tmp/vibecore-api.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
 
+      - name: Runtime preflight contracts
+        run: pnpm exec vitest run scripts/qa/runtime-e2e-preflight.spec.ts
+
+      - name: Require real local runtime services before browser tests
+        run: |
+          set -o pipefail
+          node --import tsx scripts/qa/runtime-e2e-preflight.ts 2>&1 | tee /tmp/vibecore-runtime-preflight.log
+
       - name: Build web app
         run: pnpm run build
 
@@ -151,6 +159,19 @@ jobs:
         run: |
           PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
           pnpm run ide:panel-audit:validate
+
+      # Keep actionable evidence downloadable even when traces exceed connector limits.
+      - name: Collect bounded runtime service diagnostics
+        if: always()
+        run: node --import tsx scripts/qa/runtime-e2e-diagnostics.ts
+
+      - name: Upload lightweight runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: runtime-diagnostics-light
+          path: runtime-diagnostics
+          if-no-files-found: warn
 
       - name: Upload E2E traces
         if: always()
