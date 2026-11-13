@@ -1,3 +1,4 @@
+import { admitDatabaseWrite, type DatabaseWriteAdmission } from './database-write-admission.js';
 import { isIdeMetadataEnvKey } from './workspace-env-metadata.js';
 import { transcriptTerminalSchema, readTranscriptTerminal } from './transcript-terminal.js';
 import { EXPLICIT_EXTENSION_POLICY, matchesExplicitExtensionPolicy } from './explicit-budget-extension-policy.js';
@@ -654,6 +655,9 @@ export interface ApiAppOptions {
 
   /** Absent by default: cluster readiness never enables application recovery. */
   databaseRestoreCoordinator?: DatabaseRestoreCoordinator;
+
+  /** Dormant integration: SQL/row tickets only; no production enrolment by default. */
+  databaseWriteAdmission?: DatabaseWriteAdmission;
 
   /*
    * Les trois démontages ajoutés le 2026-09-07, injectables pour que les tests
@@ -25986,6 +25990,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    await admitDatabaseWrite(options.databaseWriteAdmission, store, project, connection);
+
     const client = new PgClient({ connectionString: connection.value, connectionTimeoutMillis: 5000 });
 
     let result;
@@ -26024,6 +26030,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(databaseQuerySchema, request.body ?? {});
     const connection = await requireDatabaseConnection(store, project.id, body.key);
+    await admitDatabaseWrite(options.databaseWriteAdmission, store, project, connection);
     const result = await runDatabaseQuery(connection, body.query, body.collection, body.limit);
 
     await store.recordProjectActivity({
