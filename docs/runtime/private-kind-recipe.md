@@ -1,12 +1,20 @@
 # Recette privée kind — validation fonctionnelle uniquement
 
-État au 13 novembre 2026 : **recette fonctionnelle réelle passée sur runner GitHub**,
+État au 13 novembre 2026 : **recette fonctionnelle passée avec l'agent construit
+par le Dockerfile de production inchangé (Node 24/musl)**,
+[run 43442951559](https://github.com/openaxcloud/vibecore/actions/runs/43442951559),
+SHA `1e46bd9bdb82c0b8125664eb6d99a549bd00a452`.
+[Preuve et inventaire de dépendances](./private-kind-production-agent-evidence-2026-11-13.json) :
+Node 24.22.3, Alpine 3.24.4, node-pty chargé, même imageID inspecté puis exécuté dans
+les deux pods. Toutes les assertions fonctionnelles ci-dessous et le nettoyage passent.
+
+La [preuve antérieure Node 22/glibc](./private-kind-evidence-2026-11-13.json),
 [run 43440753492](https://github.com/openaxcloud/vibecore/actions/runs/43440753492),
-SHA `942c4869499566cc869d8ff66fb2957fff626169`. La preuve structurée issue des journaux
-est conservée dans [private-kind-evidence-2026-11-13.json](./private-kind-evidence-2026-11-13.json).
-Ce run utilisait le profil agent Node 22/glibc. Une extension au Dockerfile agent
-de production Node 24/musl est en cours de validation ; le résultat historique
-ne vaut pas preuve de cette extension. Les checks requis de PR restent séparés.
+reste distincte. Le troisième run ajoute la compatibilité du Dockerfile agent de
+production ; il ne prouve pas qu'une image déjà déployée en production a ce digest.
+API/manager restent des images de recette. Les checks requis de PR restent séparés ;
+[la voie CI proposée](./private-kind-required-ci-next-step.md) n'a pas été exécutée
+ni mise en œuvre pour E2E.
 
 Le [premier run 43439209442](https://github.com/openaxcloud/vibecore/actions/runs/43439209442)
 a échoué après construction du cluster et des images. Les références locales des
@@ -52,8 +60,8 @@ contexte cloud ou kubeconfig utilisateur n'est réutilisé.
 - API et workspace-manager du dépôt, dans le cluster, avec DNS/service réel vers
   les pods agents. Le manager utilise son store Prisma et un ServiceAccount dont
   les droits sont limités au namespace éphémère.
-- Image workspace-agent construite depuis ses sources réelles avec le lockfile
-  monorepo figé (profil de test Node 22/glibc), sans bridge synthétique. Le code exécuté dans le workspace est un petit serveur HTTP Node
+- Image workspace-agent construite avec `services/workspace-agent/Dockerfile`
+  inchangé (Node 24/Alpine musl), sans bridge synthétique. Le code exécuté dans le workspace est un petit serveur HTTP Node
   contrôlé par la recette et des commandes de test, sans génération IA.
 - Stockage projet de l'API sur un PVC distinct ; archives projet également
   persistées dans PostgreSQL.
@@ -136,10 +144,17 @@ workflows push/pull_request existants qui injectent des clés IA. Les checks res
 en attente et la PR n'est pas prête à fusionner. Le contrôle de titre existant
 `pull_request_target`, limité à la lecture des métadonnées PR avec le token GitHub
 éphémère, n'est pas couvert par ce mécanisme. Après revue et autorisation, seuls
-les deux runs de recette cités ci-dessus ont été déclenchés sur la branche dédiée,
+les trois runs de recette cités ci-dessus ont été déclenchés sur la branche dédiée,
 sans PR. L'audit des 30 workflows et les runs associés à chaque SHA confirment
 l'absence d'autre workflow déclenché par ces pushes.
 
 Validation bootstrap permits push only on `validation/private-runtime-20261113-7b970996`, with no PR on that branch. Other pushes are refused. PR925 commits retain `[skip ci]` to prevent existing E2E workflows from receiving provider secrets. This recipe does not replace required PR checks.
 
-The test agent uses real source and frozen monorepo dependencies in a Node 22/glibc image with native node-pty verified at build time. It does not validate parity with the production Node 24/musl Dockerfile. Public base images are digest pinned; OS packages remain resolved by apt at build time. Actual Kubernetes imageIDs are captured in sanitized evidence.
+L'agent utilise maintenant le Dockerfile de production inchangé. Sa base Node 24
+est tirée par digest, retaguée localement pour le `FROM` existant et les couches
+racines résultantes sont comparées à cette base. Le test exige que les pods aient
+exactement l'imageID inspecté. Le build garde le `npm install` du Dockerfile : les
+versions résolues et l'empreinte du package-lock sont enregistrées, sans promettre
+la reproductibilité des futurs builds. Les dépendances API/manager restent figées
+par le lockfile pnpm. Les paquets OS sont résolus à la construction. Aucun
+Dockerfile de production ni garde de sécurité n'a été modifié.
