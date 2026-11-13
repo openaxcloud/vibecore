@@ -151,14 +151,14 @@ export function recipeManifests(
     pvc('postgres'),
     pvc('project-storage'),
     service('postgres', 5432),
-    deployment('postgres', dependencyImages.postgres, 5432, {
+    deployment('postgres', `vc-private-postgres:${name}`, 5432, {
       secret: true,
       storage: 'postgres',
       mountPath: '/var/lib/postgresql/data',
       environment: { POSTGRES_USER: 'vibecore', POSTGRES_DB: 'vibecore', PGDATA: '/var/lib/postgresql/data/pgdata' },
     }),
     service('redis', 6379),
-    deployment('redis', dependencyImages.redis, 6379),
+    deployment('redis', `vc-private-redis:${name}`, 6379),
     {
       apiVersion: 'batch/v1',
       kind: 'Job',

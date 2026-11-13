@@ -256,8 +256,21 @@ async function main() {
       true,
     );
 
-    for (const image of Object.values(dependencyImages)) {
+    for (const [service, image] of Object.entries(dependencyImages)) {
       await docker(['pull', image], true);
+
+      // Docker save by digest may omit RepoTags. Give kind an explicit local name.
+      await docker(['tag', image, `vc-private-${service}:${name}`]);
+
+      const imageID = (await docker(['image', 'inspect', '--format', '{{.Id}}', image])).trim();
+      console.log(
+        JSON.stringify({
+          dependency: service,
+          pinnedSource: image,
+          localImage: `vc-private-${service}:${name}`,
+          imageID,
+        }),
+      );
     }
     await run(
       'kind',
@@ -268,7 +281,7 @@ async function main() {
         name,
         `vc-private-platform:${name}`,
         `vc-private-agent:${name}`,
-        ...Object.values(dependencyImages),
+        ...Object.keys(dependencyImages).map((service) => `vc-private-${service}:${name}`),
       ],
       { stream: true, timeout: 600_000 },
     );
@@ -344,6 +357,7 @@ async function main() {
     );
     console.log(result);
   } catch (error) {
+    console.log(JSON.stringify({ ok: false, stage, cluster: name }));
     writeFileSync(
       join(evidence, 'result.json'),
       JSON.stringify(
@@ -359,7 +373,9 @@ async function main() {
       await assertLocalCluster();
 
       const pods = JSON.parse(await kubectl(['get', 'pods', '-A', '-o', 'json'])) as { items: EvidencePod[] };
-      writeFileSync(join(evidence, 'pod-status.json'), JSON.stringify(pods.items.map(podEvidence), null, 2));
+      const statuses = pods.items.map(podEvidence);
+      writeFileSync(join(evidence, 'pod-status.json'), JSON.stringify(statuses, null, 2));
+      console.log(JSON.stringify({ podStatuses: statuses }));
     } catch {
       // No trusted local cluster exists; never probe a fallback context.
     }
