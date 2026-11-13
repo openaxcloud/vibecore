@@ -2277,10 +2277,28 @@ model DatabaseInstance {
   snapshots      DatabaseSnapshot[]
   restores       DatabaseRestore[]
   backupProvenance DatabaseBackupProvenance[]
+  admittedWork DatabaseRestoreAdmittedWork[]
 
   @@unique([projectId, environment])
   @@index([organizationId])
   @@index([status])
+}
+
+/// Durable debt for cooperating consumers. Never expires on process/lease loss.
+model DatabaseRestoreAdmittedWork {
+  id                String @id @default(uuid())
+  instanceId        String
+  projectId         String
+  organizationId    String
+  environment       String
+  bindingVersion    Int
+  targetRef         String?
+  ownerIncarnation  String
+  createdAt         DateTime @default(now())
+  settledAt         DateTime?
+  instance          DatabaseInstance @relation(fields: [instanceId], references: [id], onDelete: Restrict)
+
+  @@index([instanceId, settledAt])
 }
 
 /// Immutable provenance reserved before creating a CNPG Backup. Snapshot IDs also
