@@ -60,6 +60,7 @@ function joue(options: {
   candidats: number[];
   fichierDuDernierCommit: string;
   fichiersSupplementaires?: string[];
+
   /**
    * Index du commit qui touche `pnpm-lock.yaml`, c'est-à-dire la base partagée.
    * C'est lui qui rend la conséquence VISIBLE : une base choisie avant ce
@@ -95,6 +96,7 @@ function joue(options: {
 
   for (let i = 0; i < options.profondeur; i += 1) {
     const dernier = i === options.profondeur - 1;
+
     let fichier = dernier ? options.fichierDuDernierCommit : `docs/remplissage-${i}.md`;
 
     if (i === options.commitDeBasePartagee) {
@@ -103,19 +105,23 @@ function joue(options: {
 
     mkdirSync(join(depot, fichier.split('/').slice(0, -1).join('/') || '.'), { recursive: true });
     writeFileSync(join(depot, fichier), `commit ${i}\n`);
+
     if (dernier) {
       for (const supplementaire of options.fichiersSupplementaires ?? []) {
         mkdirSync(join(depot, supplementaire.split('/').slice(0, -1).join('/') || '.'), { recursive: true });
         writeFileSync(join(depot, supplementaire), 'modification');
       }
     }
+
     git('add', '-A');
     git('commit', '-q', '-m', `commit ${i}`);
     sha.push(git('rev-parse', 'HEAD').trim());
   }
 
-  // Le faux `gh` : il rend les candidats demandés, un par ligne, dans l'ordre
-  // donné. C'est lui qui joue la fraîcheur capricieuse de l'index GitHub.
+  /*
+   * Le faux `gh` : il rend les candidats demandés, un par ligne, dans l'ordre
+   * donné. C'est lui qui joue la fraîcheur capricieuse de l'index GitHub.
+   */
   const lignes = options.candidats.map((i) => sha[i]).join('\n');
   const gh = join(binaires, 'gh');
   writeFileSync(gh, `#!/bin/sh\ncat <<'FIN'\n${lignes}\nFIN\n`);
@@ -222,9 +228,11 @@ describe('la base de comparaison des tiers est le déploiement réussi le PLUS P
       fichierDuDernierCommit: 'app/composant.tsx',
     });
 
-    // Les deux candidats sont des ancêtres ici : le compteur doit le dire, ce
-    // qui est la seule façon de distinguer « aucun candidat retenu » de
-    // « la boucle n'a pas tourné ».
+    /*
+     * Les deux candidats sont des ancêtres ici : le compteur doit le dire, ce
+     * qui est la seule façon de distinguer « aucun candidat retenu » de
+     * « la boucle n'a pas tourné ».
+     */
     expect(journal, 'le compte des candidats doit être journalisé').toContain(
       'Candidats de base : 2 rendus, 2 ancetres de HEAD',
     );
@@ -272,6 +280,26 @@ describe('la base de comparaison des tiers est le déploiement réussi le PLUS P
       candidats: [0],
       fichierDuDernierCommit: 'services/screenshotter/src/browser.ts',
       fichiersSupplementaires: ['apps/admin/app.tsx'],
+    });
+    expect(sorties).toMatchObject({ runtime: 'true', admin: 'true', web: 'false', wsagent: 'false' });
+  });
+
+  it('ne perd aucun tier lorsque grep trouve un fichier avant la fin d’un grand diff', () => {
+    /*
+     * Larger than a pipe buffer: grep -q exits on apps/admin before printf has
+     * finished, so pipefail turns a matching path into a false negative.
+     */
+    const { sorties } = joue({
+      profondeur: 2,
+      candidats: [0],
+      fichierDuDernierCommit: 'services/screenshotter/src/browser.ts',
+      fichiersSupplementaires: [
+        'apps/admin/app.tsx',
+        ...Array.from(
+          { length: 4000 },
+          (_, index) => `docs/filler-${String(index).padStart(8, '0')}-long-path-padding-to-fill-pipe.md`,
+        ),
+      ],
     });
     expect(sorties).toMatchObject({ runtime: 'true', admin: 'true', web: 'false', wsagent: 'false' });
   });

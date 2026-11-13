@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseClient, Prisma } from '@vibecore/database';
+import { decryptJson } from '@vibecore/security';
 import { DatabaseRestoreError } from './database-restore-contract.js';
 
 export type RestoreWorkScope = {
@@ -24,8 +25,21 @@ export class PrismaRestoreWorkAdmission {
   constructor(readonly prisma: DatabaseClient) {}
 
   async admit(input: RestoreWorkScope): Promise<RestoreWorkTicket> {
-    const scope = { ...input };
+    return this._admit({ ...input });
+  }
 
+  /** Bind the selected secret to the ticket under the same admission locks. */
+  async admitConnection(
+    input: RestoreWorkScope,
+    connection: { key: string; value: string },
+  ): Promise<RestoreWorkTicket> {
+    return this._admit({ ...input }, { ...connection });
+  }
+
+  private async _admit(
+    scope: RestoreWorkScope,
+    connection?: { key: string; value: string },
+  ): Promise<RestoreWorkTicket> {
     if (!scope.ownerIncarnation || !Number.isSafeInteger(scope.bindingVersion) || scope.bindingVersion < 0) {
       throw new DatabaseRestoreError('RESTORE_WORK_SCOPE_INVALID');
     }
@@ -57,6 +71,32 @@ export class PrismaRestoreWorkAdmission {
 
         if (restore) {
           throw new DatabaseRestoreError('RESTORE_WORK_ADMISSION_CLOSED');
+        }
+
+        if (connection) {
+          const expectedKey = scope.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL';
+
+          if (connection.key !== expectedKey || !connection.value) {
+            throw new DatabaseRestoreError('RESTORE_WORK_CONNECTION_CHANGED');
+          }
+
+          const secret = await tx.projectSecret.findUnique({
+            where: { projectId_key: { projectId: scope.projectId, key: expectedKey } },
+          });
+
+          let current: unknown;
+
+          try {
+            current = secret?.valueEncrypted
+              ? decryptJson<{ value?: unknown }>(secret.valueEncrypted)?.value
+              : undefined;
+          } catch {
+            throw new DatabaseRestoreError('RESTORE_WORK_CONNECTION_CHANGED');
+          }
+
+          if (typeof current !== 'string' || current !== connection.value) {
+            throw new DatabaseRestoreError('RESTORE_WORK_CONNECTION_CHANGED');
+          }
         }
 
         const ticket = { ...scope, id: randomUUID() };
