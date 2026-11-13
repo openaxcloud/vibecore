@@ -744,8 +744,9 @@ run('restore repository (dedicated local PostgreSQL)', () => {
         });
         child.send(workScope(input));
       });
-      child.kill('SIGKILL');
+      expect(child.kill('SIGKILL')).toBe(true);
       await exited;
+      expect(child.signalCode).toBe('SIGKILL');
       expect(await prisma.databaseRestoreAdmittedWork.findUnique({ where: { id: ticket.id } })).toMatchObject({
         settledAt: null,
         ownerIncarnation: ticket.ownerIncarnation,
@@ -761,6 +762,138 @@ run('restore repository (dedicated local PostgreSQL)', () => {
       await exited;
     }
   });
+
+  async function writeRouteFixture() {
+    const input = await seed();
+    await store.upsertProjectSecret({
+      projectId: input.project.id,
+      key: 'DATABASE_URL',
+      valueEncrypted: encryptJson({ value: dedicatedUrl! }),
+    });
+    const user = await store.createUser({
+      email: `write-admission-${randomUUID()}@example.invalid`,
+      passwordHash: 'disabled-fixture',
+    });
+    users.push(user.id);
+    await store.addMember({ organizationId: input.expectedOrganizationId, userId: user.id, roleKey: 'owner' });
+    await store.upsertSubscription({ organizationId: input.expectedOrganizationId, planKey: 'team', status: 'ACTIVE' });
+    const session = `write-admission-${randomUUID()}`;
+    await store.createSession({ userId: user.id, token: session, expiresAt: new Date(Date.now() + 60000) });
+    const admission = new PrismaRestoreWorkAdmission(prisma);
+    const routeApp = await buildApiApp({
+      store,
+      databaseWriteAdmission: admission,
+      emailProvider: {
+        async send() {
+          throw new Error('No email in write fixture');
+        },
+      },
+    });
+    return { input, admission, routeApp, headers: { authorization: `Bearer ${session}` } };
+  }
+
+  for (const path of ['query', 'rows'] as const) {
+    it(`admits the actual HTTP ${path} write before effects and rejects it after restore admission`, async () => {
+      const { input, routeApp, headers } = await writeRouteFixture();
+      const table = `write_admission_${randomUUID().replaceAll('-', '')}`;
+      await prisma.$executeRawUnsafe(`CREATE TABLE "${table}" (value text NOT NULL)`);
+      const payload =
+        path === 'query'
+          ? { key: 'DATABASE_URL', query: `INSERT INTO "${table}" VALUES ('written')` }
+          : {
+              key: 'DATABASE_URL',
+              schema: 'public',
+              table,
+              values: [{ column: 'value', mode: 'value', value: 'written' }],
+            };
+      try {
+        const first = await routeApp.inject({
+          method: 'POST',
+          url: `/projects/${input.project.id}/databases/${path}`,
+          headers,
+          payload,
+        });
+        expect(first.statusCode).toBe(200);
+        expect(
+          await prisma.databaseRestoreAdmittedWork.count({ where: { instanceId: input.instance.id, settledAt: null } }),
+        ).toBe(1);
+        expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual([{ value: 'written' }]);
+        await repository.admit(input);
+        const second = await routeApp.inject({
+          method: 'POST',
+          url: `/projects/${input.project.id}/databases/${path}`,
+          headers,
+          payload,
+        });
+        expect(second.statusCode).toBe(409);
+        expect(second.json().code).toBe('RESTORE_WORK_ADMISSION_CLOSED');
+        expect(second.body).not.toContain(dedicatedUrl!);
+        expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual([{ value: 'written' }]);
+      } finally {
+        await routeApp.close();
+        await prisma.$executeRawUnsafe(`DROP TABLE "${table}"`);
+      }
+    });
+  }
+
+  it('retains HTTP query debt after a real PostgreSQL error rather than settling in finally', async () => {
+    const { input, routeApp, headers } = await writeRouteFixture();
+    try {
+      const response = await routeApp.inject({
+        method: 'POST',
+        url: `/projects/${input.project.id}/databases/query`,
+        headers,
+        payload: { key: 'DATABASE_URL', query: 'SELECT nonexistent_restore_admission_column' },
+      });
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+      expect(
+        await prisma.databaseRestoreAdmittedWork.count({ where: { instanceId: input.instance.id, settledAt: null } }),
+      ).toBe(1);
+      expect(response.body).not.toContain(dedicatedUrl!);
+    } finally {
+      await routeApp.close();
+    }
+  });
+
+  it.each([false, true])(
+    'checks a selected secret under lock before SQL writes (value changed=%s)',
+    async (changed) => {
+      const { input, admission, routeApp, headers } = await writeRouteFixture();
+      const table = `write_race_${randomUUID().replaceAll('-', '')}`;
+      await prisma.$executeRawUnsafe(`CREATE TABLE "${table}" (value text NOT NULL)`);
+      const realAdmission = admission.admitConnection.bind(admission);
+      vi.spyOn(admission, 'admitConnection').mockImplementationOnce(async (scope, selected) => {
+        await store.upsertProjectSecret({
+          projectId: input.project.id,
+          key: 'DATABASE_URL',
+          valueEncrypted: encryptJson({
+            value: changed ? `${dedicatedUrl}?application_name=changed-binding` : dedicatedUrl!,
+          }),
+        });
+        return realAdmission(scope, selected);
+      });
+      try {
+        const response = await routeApp.inject({
+          method: 'POST',
+          url: `/projects/${input.project.id}/databases/query`,
+          headers,
+          payload: { key: 'DATABASE_URL', query: `INSERT INTO "${table}" VALUES ('sentinel')` },
+        });
+        expect(response.statusCode).toBe(changed ? 409 : 200);
+        if (changed) expect(response.json().code).toBe('RESTORE_WORK_CONNECTION_CHANGED');
+        expect(await prisma.databaseRestoreAdmittedWork.count({ where: { instanceId: input.instance.id } })).toBe(
+          changed ? 0 : 1,
+        );
+        expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual(
+          changed ? [] : [{ value: 'sentinel' }],
+        );
+        expect(response.body).not.toContain(dedicatedUrl!);
+      } finally {
+        await routeApp.close();
+        await prisma.$executeRawUnsafe(`DROP TABLE "${table}"`);
+      }
+    },
+  );
 
   it('serializes work admission with restore admission on the same scope', async () => {
     const input = await seed();
