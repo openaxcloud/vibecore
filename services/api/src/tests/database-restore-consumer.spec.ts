@@ -101,10 +101,10 @@ run('participating restore consumer — real dedicated PostgreSQL, no physical r
     await expect
       .poll(async () => {
         try {
-          await c.query('SELECT 1');
+          await c.release(attempt, binding);
           return false;
         } catch (error) {
-          return error instanceof Error && error.message === 'RESTORE_APPLICATION_QUIESCED';
+          return error instanceof Error && error.message === 'RESTORE_CONSUMER_POOL_FAILED';
         }
       })
       .toBe(true);
