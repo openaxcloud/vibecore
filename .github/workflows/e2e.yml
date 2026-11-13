@@ -140,11 +140,8 @@ jobs:
     # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
     # borné ci-dessous. Épinglé par tests/guards/ci-canari-borne.spec.ts.
     timeout-minutes: 90
-    # Forked PRs can't read the AI provider secrets (so the run would hard-fail
-    # on the secret-validation step anyway), and same-repo PR branches run
-    # arbitrary code with the real prod keys injected. Restrict to non-fork
-    # events so external contributors aren't blocked by an unsatisfiable gate
-    # and prod keys aren't exposed to untrusted fork code.
+    # Existing event scope stays unchanged. This non-runtime suite receives no
+    # provider credentials and does not claim live AI generation coverage.
     if: needs.perimetre.outputs.code == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
     env:
@@ -177,10 +174,6 @@ jobs:
       # comment says operators may lift it via this variable.
       AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
       AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
       # LA PRÉPARATION EST PARTAGÉE, PAS DUPLIQUÉE.
@@ -199,6 +192,7 @@ jobs:
 
       - uses: ./.github/actions/preparer-pile-e2e
         with:
+          provider-mode: absent
           navigateurs: chromium
 
       # `@runtime` tests need a live workspace pod + dev server + preview iframe,
@@ -361,10 +355,6 @@ jobs:
       # comment says operators may lift it via this variable.
       AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
       AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
     steps:
       # Le dépôt doit être sorti AVANT l'appel d'une action locale, sinon GitHub
       # ne trouve pas son `action.yml`. Voir le commentaire en tête de l'action.
@@ -372,6 +362,7 @@ jobs:
 
       - uses: ./.github/actions/preparer-pile-e2e
         with:
+          provider-mode: absent
           navigateurs: chromium,webkit
 
       - name: Canari iOS — Playwright WebKit iPhone (non bloquant)
