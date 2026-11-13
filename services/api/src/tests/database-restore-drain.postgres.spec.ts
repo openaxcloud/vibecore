@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { observePostgresRestoreDrain } from '../database-restore-drain.js';
@@ -47,5 +48,63 @@ run('database-wide drain observation on real disposable PostgreSQL', () => {
     await expect(observePostgresRestoreDrain(url!, { ...identity, systemIdentifier: '1' })).rejects.toThrow(
       'RESTORE_DRAIN_IDENTITY_MISMATCH',
     );
+  });
+  it('refuses an empty-session drain while a disconnected client has a prepared transaction', async () => {
+    // No skip: the mandatory CI recipe must configure the disposable service.
+    const setting = await client.query('SHOW max_prepared_transactions');
+    expect(Number(setting.rows[0].max_prepared_transactions)).toBeGreaterThan(0);
+
+    const gid = `restore_drain_${randomBytes(12).toString('hex')}`;
+    const writer = new Client({ connectionString: url });
+
+    let prepared = false;
+
+    try {
+      await writer.connect();
+
+      try {
+        await writer.query('BEGIN');
+        await writer.query('SELECT 1');
+
+        // Identifier is generated locally from hex only; no user SQL is accepted.
+        await writer.query(`PREPARE TRANSACTION '${gid}'`);
+        prepared = true;
+      } finally {
+        await writer.end();
+      }
+
+      /*
+       * Close the suite's control client too: neither connection may explain
+       * observedEmpty=false. Only the prepared transaction survives.
+       */
+      await client.end();
+
+      let observation = await observePostgresRestoreDrain(url!, identity);
+
+      const deadline = Date.now() + 5000;
+
+      while (observation.otherSessions !== 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        observation = await observePostgresRestoreDrain(url!, identity);
+      }
+
+      // The deadline never certifies drainage; only the actual zero count does.
+      expect(observation.otherSessions).toBe(0);
+      expect(observation.preparedTransactions).toBe(1);
+      expect(observation.observedEmpty).toBe(false);
+      expect(observation.globalFence).toBe(false);
+    } finally {
+      // Reconnect even when writer closure fails; clean only our random owned GID.
+      await client.end().catch(() => undefined);
+      client = new Client({ connectionString: url });
+      await client.connect();
+
+      if (prepared) {
+        await client.query(`ROLLBACK PREPARED '${gid}'`);
+      }
+    }
+
+    const remaining = await client.query('SELECT count(*)::int AS count FROM pg_prepared_xacts WHERE gid = $1', [gid]);
+    expect(remaining.rows[0].count).toBe(0);
   });
 });

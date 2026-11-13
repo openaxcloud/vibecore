@@ -163,6 +163,28 @@ jobs:
           node --import tsx scripts/validate-github-actions-pinned.ts --allow-temporary-exceptions
           node --import tsx scripts/build-github-actions-validator.ts --check
 
+      # Test-only dedicated service: exercise transactions surviving their client.
+      # This changes neither a production database nor its admission settings.
+      - name: Enable prepared transactions in disposable PostgreSQL
+        env:
+          POSTGRES_SERVICE: ${{ job.services.postgres.id }}
+        run: |
+          docker exec --user postgres "$POSTGRES_SERVICE" sh -ceu '
+            printf "\nmax_prepared_transactions = 10\n" >> "$PGDATA/postgresql.conf"
+          '
+          # Restart from the host: stopping PID 1 inside the container would
+          # terminate docker exec before pg_ctl could start PostgreSQL again.
+          docker restart "$POSTGRES_SERVICE"
+          for attempt in $(seq 1 30); do
+            if docker exec --user postgres "$POSTGRES_SERVICE" sh -ceu '
+              test "$(psql -U vibecore -d vibecore -X -At -c "SHOW max_prepared_transactions")" = 10
+            '; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
       - name: Prisma validate and generate
         run: |
           pnpm exec prisma validate --schema packages/database/prisma/schema.prisma
