@@ -463,7 +463,19 @@ async function podIdentity(workspaceId: string) {
   };
 
   if (privateRecipe) {
-    console.log(JSON.stringify({ workspacePod: podEvidence(JSON.parse(stdout) as EvidencePod) }));
+    const evidence = podEvidence(JSON.parse(stdout) as EvidencePod);
+    const expectedImageID = process.env.PRIVATE_RUNTIME_EXPECTED_AGENT_IMAGE_ID;
+
+    if (expectedImageID) {
+      assert(
+        evidence.containers.some(
+          (container) => container.name === 'workspace-agent' && container.imageID === expectedImageID,
+        ),
+        'Workspace did not execute the exact inspected production agent image',
+      );
+    }
+
+    console.log(JSON.stringify({ workspacePod: evidence }));
   }
 
   const claim = pod.spec.volumes.find((volume) => volume.persistentVolumeClaim)?.persistentVolumeClaim?.claimName;

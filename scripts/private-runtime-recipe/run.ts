@@ -242,19 +242,56 @@ async function main() {
       ],
       true,
     );
+
+    // Build the unchanged production Dockerfile, with a pinned local FROM image.
+    const agentBase = 'node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5';
+    await docker(['pull', agentBase], true);
+    await docker(['tag', agentBase, 'node:24-alpine']);
     await docker(
-      [
-        'build',
-        '--target',
-        'agent',
-        '-f',
-        'scripts/private-runtime-recipe/Dockerfile',
-        '-t',
-        `vc-private-agent:${name}`,
-        '.',
-      ],
+      ['build', '--pull=false', '-f', 'services/workspace-agent/Dockerfile', '-t', `vc-private-agent:${name}`, '.'],
       true,
     );
+
+    const baseLayers = JSON.parse(
+      await docker(['image', 'inspect', '--format', '{{json .RootFS.Layers}}', agentBase]),
+    ) as string[];
+    const agentLayers = JSON.parse(
+      await docker(['image', 'inspect', '--format', '{{json .RootFS.Layers}}', `vc-private-agent:${name}`]),
+    ) as string[];
+    assert.deepEqual(
+      agentLayers.slice(0, baseLayers.length),
+      baseLayers,
+      'Production agent base differs from pinned base',
+    );
+
+    const agentImageID = (await docker(['image', 'inspect', '--format', '{{.Id}}', `vc-private-agent:${name}`])).trim();
+
+    const probe = `
+      const fs = require('node:fs');
+      const assert = require('node:assert/strict');
+      const crypto = require('node:crypto');
+      assert.equal(Number(process.versions.node.split('.')[0]), 24);
+      assert.equal(process.report.getReport().header.glibcVersionRuntime, undefined);
+      const alpine = fs.readFileSync('/etc/alpine-release', 'utf8').trim();
+      require('node-pty');
+      const lock = fs.readFileSync('package-lock.json');
+      const dependencies = Object.entries(JSON.parse(lock).packages)
+        .filter(([path, pkg]) => path.includes('node_modules/') && pkg.version)
+        .map(([path, pkg]) => ({ path, version: pkg.version, integrity: pkg.integrity }));
+      console.log(JSON.stringify({ node: process.versions.node, alpine, libc: 'musl', nodePtyLoaded: true,
+        lockSha256: crypto.createHash('sha256').update(lock).digest('hex'), dependencies }));
+    `;
+    const agentBuild = {
+      dockerfile: 'services/workspace-agent/Dockerfile',
+      base: agentBase,
+      imageID: agentImageID,
+      ...JSON.parse(
+        await docker(['run', '--rm', '--network=none', '--entrypoint=node', `vc-private-agent:${name}`, '-e', probe]),
+      ),
+    };
+    writeFileSync(join(evidence, 'production-agent-build.json'), JSON.stringify(agentBuild, null, 2));
+    console.log(JSON.stringify({ productionAgentBuild: agentBuild }));
+    process.env.PRIVATE_RUNTIME_EXPECTED_AGENT_IMAGE_ID = agentImageID;
 
     for (const [service, image] of Object.entries(dependencyImages)) {
       await docker(['pull', image], true);
