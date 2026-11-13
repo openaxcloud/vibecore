@@ -114,7 +114,7 @@ describe('migration admission precedes every new external effect', () => {
       input.beforeEffects = vi.fn();
       if (mode === 'wrong journal identity') {
         store.createMigrationExecution.mockResolvedValue({ id: 'wrong', state: 'LOCK_ACQUIRED' });
-        await expect(runPublishMigration(input)).rejects.toThrow('MIGRATION_ADMISSION_ID_MISMATCH');
+        await expect(runPublishMigration(input)).rejects.toMatchObject({ code: 'MIGRATION_ADMISSION_ID_MISMATCH' });
       } else {
         store.createMigrationExecution.mockRejectedValue(
           Object.assign(new Error('uncertain'), { code: mode === 'lock conflict' ? 'P2002' : undefined }),

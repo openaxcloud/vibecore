@@ -359,7 +359,9 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
 
   // An adapter that ignores the reserved identity cannot safely start effects.
   if (admittedExecutionId && execution.id !== admittedExecutionId) {
-    throw new Error('MIGRATION_ADMISSION_ID_MISMATCH');
+    throw Object.assign(new Error(appPublicEnglish('MIGRATION_ADMISSION_ID_MISMATCH')), {
+      code: 'MIGRATION_ADMISSION_ID_MISMATCH',
+    });
   }
 
   state = 'LOCK_ACQUIRED';
