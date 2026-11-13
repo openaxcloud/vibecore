@@ -2029,6 +2029,8 @@ export class TestApiStore implements ApiStore {
    * la production — c'est précisément l'invariant I-MIG-2 qu'ils doivent prouver.
    */
   async createMigrationExecution(input: {
+    /** Preallocated only by dormant admission; absent preserves legacy IDs. */
+    id?: string;
     projectId: string;
     organizationId: string;
     environment: string;
@@ -2054,7 +2056,7 @@ export class TestApiStore implements ApiStore {
 
     const row = {
       ...input,
-      id: id('dbmig'),
+      id: input.id ?? id('dbmig'),
       appliedStatements: 0,
       startedAt: now(),
       error: undefined,

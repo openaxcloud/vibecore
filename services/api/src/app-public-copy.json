@@ -2930,5 +2930,9 @@
   "MIGRATION_TRANSACTION_CONTROL_REFUSED": {
     "en": "Transaction control or ambiguous SQL is not allowed in migrations.",
     "fr": "Le contrôle de transaction ou le SQL ambigu est interdit dans les migrations."
+  },
+  "MIGRATION_ADMISSION_ID_MISMATCH": {
+    "en": "Migration journal identity does not match its admission. No backup or SQL was started.",
+    "fr": "L’identité du journal de migration ne correspond pas à son admission. Aucune sauvegarde ni instruction SQL n’a été lancée."
   }
 }
