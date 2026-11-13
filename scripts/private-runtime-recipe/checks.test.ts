@@ -3,15 +3,18 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { test } from 'node:test';
 import JSZip from 'jszip';
+import { test } from 'vitest';
 import { verifyArchiveBytes } from './archive-checks.js';
 import {
   assertRecipeKubeconfig,
+  assertRecipeEvent,
+  validationRef,
   privatePreviewUrl,
   verifyPrivatePreview,
   verifyRuntimeSnapshotRefused,
 } from './checks.js';
+import { podEvidence } from './evidence.js';
 import { recipeManifests } from './manifests.js';
 
 const name = 'vc-private-0123456789abcdef';
@@ -154,7 +157,7 @@ test('sandbox opt-out belongs only to the test manager; services have no ingress
     'utf8',
   );
   assert.match(workflow, /on:\n  workflow_dispatch:/);
-  assert.ok(!/pull_request:|push:|schedule:|secrets\.|id-token:|environment:/.test(workflow));
+  assert.ok(!/pull_request:|schedule:|secrets\.|id-token:|environment:/.test(workflow));
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /persist-credentials: false/);
 });
@@ -177,4 +180,46 @@ test('actual ZIP bytes, not the inventory, must match the saved runtime file', a
   await assert.rejects(verifyArchiveBytes(object, 'missing.txt', expected));
   await assert.rejects(verifyArchiveBytes(object, 'proof.txt', '0'.repeat(64)));
   await assert.rejects(verifyArchiveBytes({ ...object, contentHash: '0'.repeat(64) }, 'proof.txt', expected));
+});
+
+test('automatic runs accept only the exact dedicated branch and push event', () => {
+  assertRecipeEvent('workflow_dispatch', 'refs/heads/main');
+  assertRecipeEvent('push', validationRef);
+
+  for (const event of ['pull_request', 'pull_request_target', 'workflow_run', undefined]) {
+    assert.throws(() => assertRecipeEvent(event, validationRef));
+  }
+
+  for (const ref of ['refs/heads/main', validationRef + '-other', validationRef.replace('heads', 'tags'), undefined]) {
+    assert.throws(() => assertRecipeEvent('push', ref));
+  }
+
+  const workflow = readFileSync('.github/workflows/private-runtime-recipe.yml', 'utf8');
+  assert.match(workflow, /push:\n    branches: \[validation\/private-runtime-20261113-7b970996\]/);
+});
+
+test('evidence retains runtime image IDs and exit codes without arbitrary messages', () => {
+  const pod = {
+    metadata: { name: 'test', namespace: name },
+    status: {
+      containerStatuses: [
+        {
+          name: 'agent',
+          image: 'local:unique',
+          imageID: 'sha256:actual',
+          ready: false,
+          restartCount: 1,
+          state: {
+            waiting: { reason: 'CrashLoopBackOff', message: 'SECRET' },
+            terminated: { reason: 'Error', exitCode: 1, message: 'SECRET' },
+          },
+        },
+      ],
+    },
+  };
+
+  const evidence = JSON.stringify(podEvidence(pod));
+  assert.ok(!evidence.includes('SECRET'));
+  assert.match(evidence, /sha256:actual/);
+  assert.match(evidence, /"exitCode":1/);
 });

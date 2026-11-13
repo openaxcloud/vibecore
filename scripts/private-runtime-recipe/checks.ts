@@ -91,3 +91,11 @@ export function assertRecipeKubeconfig(value: unknown, cluster: string) {
   assert.ok(user['client-certificate-data'] && user['client-key-data']);
   assert.deepEqual(Object.keys(user).sort(), ['client-certificate-data', 'client-key-data']);
 }
+
+export const validationRef = 'refs/heads/validation/private-runtime-20261113-7b970996';
+export function assertRecipeEvent(event: string | undefined, ref: string | undefined) {
+  assert.ok(
+    event === 'workflow_dispatch' || (event === 'push' && ref === validationRef),
+    'Only manual runs or the exact isolated validation branch are permitted',
+  );
+}

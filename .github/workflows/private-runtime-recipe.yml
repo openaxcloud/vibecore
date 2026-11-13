@@ -1,7 +1,9 @@
-name: Private Runtime Recipe (manual, functional only)
+name: Private Runtime Recipe (functional only)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [validation/private-runtime-20261113-7b970996]
 
 permissions:
   contents: read
@@ -42,7 +44,7 @@ jobs:
           echo "$RUNNER_TEMP/private-runtime-bin" >> "$GITHUB_PATH"
       - name: Validate recipe contracts
         run: |
-          pnpm exec tsx --test scripts/private-runtime-recipe/checks.test.ts
+          pnpm exec vitest run scripts/private-runtime-recipe/checks.test.ts
           pnpm exec tsc -p scripts/private-runtime-recipe/tsconfig.json
       - name: Real API to manager to pod recipe
         run: pnpm exec tsx scripts/private-runtime-recipe/run.ts

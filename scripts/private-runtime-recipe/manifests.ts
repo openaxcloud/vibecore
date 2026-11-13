@@ -2,8 +2,8 @@
 import { assertRecipeClusterName } from './checks.js';
 
 export const dependencyImages = {
-  postgres: 'pgvector/pgvector:pg16',
-  redis: 'redis:7-alpine',
+  postgres: 'pgvector/pgvector:pg16@sha256:484e838076e04939d27d3e176e91c86eea96236126023be8d3059761122e579f',
+  redis: 'redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe',
 } as const;
 
 /** Only local, generated credentials enter these manifests. Never log the result. */

@@ -3,12 +3,13 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { assertRecipeClusterName, assertRecipeKubeconfig } from './checks.js';
+import { assertRecipeClusterName, assertRecipeKubeconfig, assertRecipeEvent } from './checks.js';
+import { podEvidence, type EvidencePod } from './evidence.js';
 import { dependencyImages, recipeManifests } from './manifests.js';
 
 // No target/namespace/credential inputs. Refuse reusable/self-hosted executors.
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
-assert.equal(process.env.GITHUB_EVENT_NAME, 'workflow_dispatch');
+assertRecipeEvent(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF);
 assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
 assert.equal(process.env.RUNNER_OS, 'Linux');
 assert.ok(process.env.RUNNER_TEMP);
@@ -217,7 +218,7 @@ async function main() {
         '--name',
         name,
         '--image',
-        'kindest/node:v1.34.0',
+        'kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a',
         '--kubeconfig',
         state.kubeconfig,
         '--wait',
@@ -229,10 +230,31 @@ async function main() {
     await kubectl(['get', 'storageclass', 'standard']);
     stage = 'build-local-images';
     await docker(
-      ['build', '-f', 'scripts/private-runtime-recipe/Dockerfile', '-t', `vc-private-platform:${name}`, '.'],
+      [
+        'build',
+        '--target',
+        'platform',
+        '-f',
+        'scripts/private-runtime-recipe/Dockerfile',
+        '-t',
+        `vc-private-platform:${name}`,
+        '.',
+      ],
       true,
     );
-    await docker(['build', '-f', 'services/workspace-agent/Dockerfile', '-t', `vc-private-agent:${name}`, '.'], true);
+    await docker(
+      [
+        'build',
+        '--target',
+        'agent',
+        '-f',
+        'scripts/private-runtime-recipe/Dockerfile',
+        '-t',
+        `vc-private-agent:${name}`,
+        '.',
+      ],
+      true,
+    );
 
     for (const image of Object.values(dependencyImages)) {
       await docker(['pull', image], true);
@@ -331,34 +353,16 @@ async function main() {
       ),
     );
 
-    // Read metadata only: never dump kubeconfig, Secret manifests, process env or raw logs.
+    throw error;
+  } finally {
     try {
       await assertLocalCluster();
 
-      const pods = JSON.parse(await kubectl(['get', 'pods', '-A', '-o', 'json'])) as {
-        items: {
-          metadata: { name: string; namespace: string };
-          status: { phase: string; conditions?: { type: string; status: string; reason?: string }[] };
-        }[];
-      };
-      writeFileSync(
-        join(evidence, 'pod-status.json'),
-        JSON.stringify(
-          pods.items.map((pod) => ({
-            name: pod.metadata.name,
-            namespace: pod.metadata.namespace,
-            phase: pod.status.phase,
-            conditions: pod.status.conditions?.map(({ type, status, reason }) => ({ type, status, reason })),
-          })),
-          null,
-          2,
-        ),
-      );
+      const pods = JSON.parse(await kubectl(['get', 'pods', '-A', '-o', 'json'])) as { items: EvidencePod[] };
+      writeFileSync(join(evidence, 'pod-status.json'), JSON.stringify(pods.items.map(podEvidence), null, 2));
     } catch {
-      /* No trusted local cluster exists; do not probe any fallback target. */
+      // No trusted local cluster exists; never probe a fallback context.
     }
-    throw error;
-  } finally {
     await cleanup();
   }
 }

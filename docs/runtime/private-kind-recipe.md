@@ -7,8 +7,9 @@ pas une preuve de bon fonctionnement du parcours Kubernetes.
 
 ## Exécution après revue
 
-Le workflow `private-runtime-recipe.yml` est exclusivement manuel
-(`workflow_dispatch`), sans paramètre de cible ou de secret. Une fois le workflow
+Le workflow `private-runtime-recipe.yml` accepte le lancement manuel
+(`workflow_dispatch`) et le push sur la seule branche de validation
+`validation/private-runtime-20261113-7b970996`, sans PR, sans paramètre de cible ou de secret. Une fois le workflow
 disponible sur la branche par défaut et la revue terminée, sélectionner la révision
 à vérifier dans GitHub Actions et lancer **Private Runtime Recipe**. Ne pas lancer
 `e2e-runtime.yml` ou `staging-runtime-validation.yml` pour cette recette : ils ont
@@ -21,7 +22,7 @@ sélectionnée et les charge directement dans kind. Les dépendances publiques s
 téléchargées normalement. Le workflow n'utilise ni OIDC ni secret de dépôt ; ses
 permissions sont `contents: read`, et checkout ne persiste pas son credential.
 
-Le script refuse un événement autre que `workflow_dispatch` et un runner qui
+Le script refuse tout événement autre que `workflow_dispatch` ou ce push exact, et un runner qui
 n'est pas hébergé par GitHub/Linux. Il crée un nom aléatoire, un répertoire privé,
 un kubeconfig neuf et un namespace propre à cette exécution. Avant application,
 il vérifie le contexte unique `kind-<nom>`, le serveur Kubernetes HTTPS en loopback,
@@ -36,8 +37,8 @@ contexte cloud ou kubeconfig utilisateur n'est réutilisé.
 - API et workspace-manager du dépôt, dans le cluster, avec DNS/service réel vers
   les pods agents. Le manager utilise son store Prisma et un ServiceAccount dont
   les droits sont limités au namespace éphémère.
-- Image workspace-agent construite avec son Dockerfile existant, sans bridge
-  synthétique. Le code exécuté dans le workspace est un petit serveur HTTP Node
+- Image workspace-agent construite depuis ses sources réelles avec le lockfile
+  monorepo figé (profil de test Node 22/glibc), sans bridge synthétique. Le code exécuté dans le workspace est un petit serveur HTTP Node
   contrôlé par la recette et des commandes de test, sans génération IA.
 - Stockage projet de l'API sur un PVC distinct ; archives projet également
   persistées dans PostgreSQL.
@@ -103,7 +104,7 @@ dernier filet si GitHub tue le job avant de laisser finir le nettoyage.
 Vérifications locales indépendantes du cluster :
 
 ```sh
-node_modules/.bin/tsx --test scripts/private-runtime-recipe/checks.test.ts
+node_modules/.bin/vitest run scripts/private-runtime-recipe/checks.test.ts
 node_modules/.bin/tsc -p scripts/private-runtime-recipe/tsconfig.json
 node_modules/.bin/eslint scripts/private-runtime-recipe/*.ts scripts/validate-runtime-api-kubernetes.ts
 cd services/api
@@ -121,3 +122,7 @@ en attente et la PR n'est pas prête à fusionner. Le contrôle de titre existan
 `pull_request_target`, limité à la lecture des métadonnées PR avec le token GitHub
 éphémère, n'est pas couvert par ce mécanisme. Aucun workflow de recette n'a été
 déclenché pendant sa préparation.
+
+Validation bootstrap permits push only on `validation/private-runtime-20261113-7b970996`, with no PR on that branch. Other pushes are refused. PR925 commits retain `[skip ci]` to prevent existing E2E workflows from receiving provider secrets. This recipe does not replace required PR checks.
+
+The test agent uses real source and frozen monorepo dependencies in a Node 22/glibc image with native node-pty verified at build time. It does not validate parity with the production Node 24/musl Dockerfile. Public base images are digest pinned; OS packages remain resolved by apt at build time. Actual Kubernetes imageIDs are captured in sanitized evidence.

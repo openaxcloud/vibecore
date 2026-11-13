@@ -9,6 +9,7 @@ import {
   verifyPrivatePreview,
   verifyRuntimeSnapshotRefused,
 } from './private-runtime-recipe/checks.js';
+import { podEvidence, type EvidencePod } from './private-runtime-recipe/evidence.js';
 
 const execFile = promisify(execFileCallback);
 
@@ -460,6 +461,10 @@ async function podIdentity(workspaceId: string) {
     metadata: { uid: string };
     spec: { volumes: { name: string; persistentVolumeClaim?: { claimName: string } }[] };
   };
+
+  if (privateRecipe) {
+    console.log(JSON.stringify({ workspacePod: podEvidence(JSON.parse(stdout) as EvidencePod) }));
+  }
 
   const claim = pod.spec.volumes.find((volume) => volume.persistentVolumeClaim)?.persistentVolumeClaim?.claimName;
   assert(claim && pod.metadata.uid, 'Workspace is missing its PVC or pod UID');

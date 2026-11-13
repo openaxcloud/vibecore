@@ -1,9 +1,9 @@
 # Test harness image only. Real API/manager sources run via their existing tsx entrypoints.
 # No production Dockerfile, guard, published image or remote registry is changed.
-FROM node:22-bookworm-slim
+FROM node:22-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee AS platform
 ENV HUSKY=0 CI=true COREPACK_HOME=/opt/corepack
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git python3 make g++ \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git python3 make g++ tini \
     && rm -rf /var/lib/apt/lists/*
 ARG KUBECTL_VERSION=v1.34.0
 RUN curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
@@ -22,3 +22,12 @@ COPY infra/package.json ./infra/package.json
 RUN pnpm install --frozen-lockfile --filter '!@vibecore/mobile' \
     && pnpm --filter @vibecore/database db:generate
 USER node
+
+# Functional test profile: real agent sources with the same frozen monorepo lock.
+# Node 22/glibc here is not parity validation of the production Node 24/musl image.
+FROM platform AS agent
+WORKDIR /app/services/workspace-agent
+RUN node -e "require('node-pty'); console.log('node-pty native module loaded OK')"
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080 WORKSPACE_ROOT=/workspace
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/app/node_modules/.bin/tsx", "src/server.ts"]
