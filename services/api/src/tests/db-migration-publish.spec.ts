@@ -13,6 +13,9 @@ import { encryptJson } from '@vibecore/security';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
+import type { DatabaseWriteAdmission } from '../database-write-admission.js';
+import type { RestoreWorkScope } from '../database-restore-work-admission.js';
+import { DatabaseRestoreError } from '../database-restore-contract.js';
 import type { DatabaseProvisioner } from '../database-provisioner.js';
 import type { EmailProvider } from '../email.js';
 import type { ProjectFile, ProjectStorage } from '../project-storage.js';
@@ -78,7 +81,9 @@ const provisionerWithPhase = (phase: string, applied = true): DatabaseProvisione
 
 const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 
-async function setup(options: { provisioner?: DatabaseProvisioner; withMigrations?: boolean } = {}) {
+async function setup(
+  options: { provisioner?: DatabaseProvisioner; withMigrations?: boolean; admission?: DatabaseWriteAdmission } = {},
+) {
   const store = new TestApiStore();
   const projectStorage = new MemoryStorage();
   const applySql = vi.fn(async (input: any) => ({
@@ -92,6 +97,7 @@ async function setup(options: { provisioner?: DatabaseProvisioner; withMigration
     emailProvider: new QuietEmailProvider(),
     databaseProvisioner: options.provisioner ?? provisionerWithPhase('completed'),
     migrationApplier: applySql,
+    databaseWriteAdmission: options.admission,
   });
 
   const user = await store.createUser({
@@ -119,6 +125,16 @@ async function setup(options: { provisioner?: DatabaseProvisioner; withMigration
     valueEncrypted: encryptJson({ value: 'postgres://user:pw@prod-host:5432/appdb' }),
   });
 
+  if (options.admission) {
+    const instance = await store.createDatabaseInstance({
+      projectId: project.id,
+      organizationId: org.id,
+      environment: 'production',
+      retentionDays: 7,
+    });
+    await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' });
+  }
+
   const deployment = await store.createDeployment({
     projectId: project.id,
     organizationId: org.id,
@@ -138,6 +154,50 @@ const publish = (app: any, projectId: string, deploymentId: string) =>
   });
 
 describe('P0-V3-11 — migration au publish', () => {
+  it('routes publish through confirmed durable admission before backup and SQL', async () => {
+    let admitted = false;
+    const admission = {
+      admitConnection: vi.fn(async (scope: RestoreWorkScope) => {
+        admitted = true;
+        return { ...scope, id: 'fixture-ticket' };
+      }),
+    };
+    const provider = provisionerWithPhase('completed');
+    const snapshot = vi.spyOn(provider, 'takeSnapshot').mockImplementation(async () => {
+      expect(admitted).toBe(true);
+      return { applied: true };
+    });
+    const { app, project, deployment, applySql } = await setup({ admission, provisioner: provider });
+    try {
+      const response = await publish(app, project.id, deployment.id);
+      expect(response.statusCode).toBe(201);
+      expect(admission.admitConnection).toHaveBeenCalledOnce();
+      expect(snapshot).toHaveBeenCalledOnce();
+      expect(applySql).toHaveBeenCalledOnce();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('refuses publish on closed admission before backup, journal or SQL effects', async () => {
+    const admission = {
+      admitConnection: vi.fn().mockRejectedValue(new DatabaseRestoreError('RESTORE_WORK_ADMISSION_CLOSED')),
+    };
+    const provider = provisionerWithPhase('completed');
+    const snapshot = vi.spyOn(provider, 'takeSnapshot');
+    const { app, store, project, deployment, applySql } = await setup({ admission, provisioner: provider });
+    try {
+      const response = await publish(app, project.id, deployment.id);
+      expect(response.statusCode).toBe(409);
+      expect(response.json().code).toBe('RESTORE_WORK_ADMISSION_CLOSED');
+      expect(snapshot).not.toHaveBeenCalled();
+      expect(applySql).not.toHaveBeenCalled();
+      expect(store.migrationExecutions.size).toBe(0);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('publie APRÈS avoir verrouillé, vérifié le backup et appliqué', async () => {
     const { app, store, project, deployment } = await setup();
 
@@ -203,7 +263,7 @@ describe('P0-V3-11 — migration au publish', () => {
     expect(res.json().code).toBe('MIGRATION_LOCK_HELD');
   });
 
-  it("NÉGATIF : migrations déclarées mais base production injoignable → refus", async () => {
+  it('NÉGATIF : migrations déclarées mais base production injoignable → refus', async () => {
     const store = new TestApiStore();
     const projectStorage = new MemoryStorage();
     const app = await buildApiApp({
@@ -238,7 +298,7 @@ describe('P0-V3-11 — migration au publish', () => {
     expect(res.json().code).toBe('MIGRATION_TARGET_UNAVAILABLE');
   });
 
-  it("un projet SANS migration publie normalement (aucune pénalité)", async () => {
+  it('un projet SANS migration publie normalement (aucune pénalité)', async () => {
     const { app, store, project, deployment } = await setup({ withMigrations: false });
 
     const res = await publish(app, project.id, deployment.id);
@@ -276,7 +336,7 @@ describe('P0-V3-11 — migration au publish', () => {
    * le publish serait alors déjà acté quand la migration échoue, et la v2 —
    * branchée sur un schéma non préparé — deviendrait la version servie.
    */
-  it("NÉGATIF : migration en échec sur la v2 → publish REFUSÉ et la v1 reste la version SERVIE", async () => {
+  it('NÉGATIF : migration en échec sur la v2 → publish REFUSÉ et la v1 reste la version SERVIE', async () => {
     const { app, store, project, org, deployment } = await setup();
 
     // --- v1 : publication nominale, migration appliquée ---

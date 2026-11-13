@@ -3,6 +3,10 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import { Client } from 'pg';
+import { encryptJson } from '@vibecore/security';
+import { PrismaRestoreWorkAdmission } from '../database-restore-work-admission.js';
+import { PrismaDatabaseRestoreRepository } from '../database-restore-repository.js';
+import { admitDatabaseWrite } from '../database-write-admission.js';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildWorkspaceManagerApp } from '../../../workspace-manager/src/app.js';
 import { WorkspaceManager } from '../../../workspace-manager/src/manager.js';
@@ -136,6 +140,7 @@ run('current backup workflows with durable local provenance and controlled CNPG 
       }
 
       if (prisma) {
+        await prisma.databaseRestoreAdmittedWork.deleteMany({ where: { organizationId: { in: organizations } } });
         await prisma.organization.deleteMany({ where: { id: { in: organizations } } });
       }
     } finally {
@@ -278,6 +283,68 @@ run('current backup workflows with durable local provenance and controlled CNPG 
     expect(await runPublishMigration(request)).toMatchObject({ ok: true, replayed: true });
     expect(created).toBe(before);
   });
+  it.each(['open', 'closed', 'sql-error'] as const)(
+    'durably admits production migration before backup/DDL and preserves debt: %s',
+    async (mode) => {
+      const { project, organization } = await seed();
+      const schema = `admitted_migration_${randomUUID().replaceAll('-', '')}`;
+      schemas.push(schema);
+      await admin.query(`CREATE SCHEMA "${schema}"`);
+      const uri = new URL(url!);
+      uri.searchParams.set('options', `-c search_path=${schema}`);
+      const connection = { key: 'PROD_DATABASE_URL', source: 'secret', kind: 'postgres', value: uri.toString() };
+      await store.upsertProjectSecret({
+        projectId: project.id,
+        key: connection.key,
+        valueEncrypted: encryptJson({ value: connection.value }),
+      });
+      const instance = await store.getDatabaseInstanceByProject(project.id, 'production');
+      expect(instance).toBeDefined();
+      if (mode === 'closed') {
+        await new PrismaDatabaseRestoreRepository(prisma).admit({
+          instance: instance!,
+          expectedOrganizationId: organization.id,
+          targetTimestamp: new Date(Date.now() - 60000).toISOString(),
+        });
+      }
+      const backupCount = created;
+      const admission = new PrismaRestoreWorkAdmission(prisma);
+      const request = {
+        store,
+        provisioner: resolveDefaultDatabaseProvisioner(store.backupProvenance),
+        projectId: project.id,
+        organizationId: organization.id,
+        environment: 'production',
+        idempotencyKey: randomUUID(),
+        connectionString: connection.value,
+        migrations: [
+          {
+            name: '001.sql',
+            sql: mode === 'sql-error' ? 'SELECT nonexistent_admission_column' : 'CREATE TABLE admitted_probe(id int)',
+          },
+        ],
+        beforeEffects: async () => admitDatabaseWrite(admission, store, project, connection),
+        applySql: createPostgresMigrationApplier({ sha256: (text) => createHash('sha256').update(text).digest('hex') }),
+        sleep: async () => {},
+        backupTimeoutMs: 1000,
+      };
+      if (mode === 'closed') {
+        await expect(runPublishMigration(request)).rejects.toMatchObject({ code: 'RESTORE_WORK_ADMISSION_CLOSED' });
+        expect(created).toBe(backupCount);
+        expect(await prisma.dBMigrationExecution.count({ where: { projectId: project.id } })).toBe(0);
+      } else {
+        expect(await runPublishMigration(request)).toMatchObject({ ok: mode === 'open' });
+        expect(created).toBe(backupCount + 1);
+      }
+      expect(
+        await prisma.databaseRestoreAdmittedWork.count({ where: { instanceId: instance!.id, settledAt: null } }),
+      ).toBe(mode === 'closed' ? 0 : 1);
+      expect((await admin.query('SELECT to_regclass($1) AS name', [`${schema}.admitted_probe`])).rows[0].name).toBe(
+        mode === 'open' ? `${schema}.admitted_probe` : null,
+      );
+    },
+  );
+
   it('reconciles lost acknowledgement and concurrent creation, then rejects UID replacement and legacy adoption', async () => {
     const { project } = await seed();
 

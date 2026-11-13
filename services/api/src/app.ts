@@ -39703,6 +39703,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         deploymentId: source.id,
         createdByUserId: request.currentUser?.id,
         applySql: options.migrationApplier ?? postgresMigrationApplier,
+        beforeEffects: options.databaseWriteAdmission
+          ? async ({ connectionString }) =>
+              admitDatabaseWrite(options.databaseWriteAdmission, store, project, {
+                ...prodConnection,
+                value: connectionString,
+              })
+          : undefined,
       });
 
       await audit(request, store, {
