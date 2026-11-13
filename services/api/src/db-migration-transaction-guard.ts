@@ -62,6 +62,14 @@ export function assertMigrationOwnsNoTransaction(sql: string): void {
 
       plain += ' quoted ';
     } else if (sql[i] === '$') {
+      /*
+       * PostgreSQL permits dollar signs inside unquoted identifiers. They are
+       * not string delimiters there; conservatively refuse rather than hide SQL.
+       */
+      if (i > 0 && /[A-Za-z0-9_$\u0080-\uFFFF]/.test(sql[i - 1])) {
+        refuse();
+      }
+
       const tag = sql.slice(i).match(/^\$(?:[a-zA-Z_][a-zA-Z_0-9]*)?\$/)?.[0];
 
       if (!tag) {

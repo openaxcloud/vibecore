@@ -67,19 +67,19 @@ it.each([
 it('accepts ordinary DDL and dollar-quoted function bodies', async () => {
   const apply = createPostgresMigrationApplier({
     sha256: () => 'hash',
-    createClient: () => ({connect: async () => {},
+    createClient: () => ({
+      connect: async () => {},
       end: async () => {},
-      query: async (sql) => ({ rows: [], command: sql }),
-    }),
+      query: async (sql) => ({ rows: [], command: sql }),}),
   });
   expect(
-    await apply({connectionString: 'unused',
+    await apply({
+      connectionString: 'unused',
       migrations: [
-        {name: 'function',
-          sql: "/* outer /* inner */ comment */ CREATE FUNCTION f() RETURNS void AS $body$ BEGIN RAISE NOTICE 'hello'; END; $body$ LANGUAGE plpgsql; CREATE TABLE t (id int, label text DEFAULT 'COMMIT;')",
-        },
-      ],
-    }),
+        {
+          name: 'function',
+          sql: "/* outer /* inner */ comment */ CREATE FUNCTION f() RETURNS void AS $body$ BEGIN RAISE NOTICE 'hello'; END; $body$ LANGUAGE plpgsql; CREATE TABLE t (id int, label text DEFAULT 'COMMIT;')",},
+      ],}),
   ).toMatchObject({ committed: true });
 });
 
@@ -96,3 +96,18 @@ it('refuses a COMMIT answered with a ROLLBACK command tag', async () => {
     MigrationRolledBackError,
   );
 });
+
+it.each(['table$x$', 'table$$', 'é$x$'])(
+  'refuses dollar signs embedded in identifiers before connection: %s',
+  async (identifier) => {
+    const createClient = vi.fn();
+    const apply = createPostgresMigrationApplier({ sha256: () => 'hash', createClient });
+    await expect(
+      apply({
+        connectionString: 'unused',
+        migrations: [{ name: 'identifier', sql: `CREATE TABLE ${identifier} (id int); -- $x$ $$` }],
+      }),
+    ).rejects.toThrow();
+    expect(createClient).not.toHaveBeenCalled();
+  },
+);
