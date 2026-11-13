@@ -4,8 +4,9 @@
 [run 43440753492](https://github.com/openaxcloud/vibecore/actions/runs/43440753492),
 SHA `942c4869499566cc869d8ff66fb2957fff626169`. La preuve structurée issue des journaux
 est conservée dans [private-kind-evidence-2026-11-13.json](./private-kind-evidence-2026-11-13.json).
-Les sources exécutables de ce SHA correspondent à la PR925 ; son dernier changement
-ultérieur documente seulement la preuve. Cela ne remplace pas les checks requis de PR.
+Ce run utilisait le profil agent Node 22/glibc. Une extension au Dockerfile agent
+de production Node 24/musl est en cours de validation ; le résultat historique
+ne vaut pas preuve de cette extension. Les checks requis de PR restent séparés.
 
 Le [premier run 43439209442](https://github.com/openaxcloud/vibecore/actions/runs/43439209442)
 a échoué après construction du cluster et des images. Les références locales des

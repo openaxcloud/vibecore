@@ -22,4 +22,3 @@ COPY infra/package.json ./infra/package.json
 RUN pnpm install --frozen-lockfile --filter '!@vibecore/mobile' \
     && pnpm --filter @vibecore/database db:generate
 USER node
-
