@@ -414,6 +414,12 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
 
   async resume(operationId: string, previousToken: string, nextToken: string) {
     return this.prisma.$transaction(async (tx) => {
+      /*
+       * Serialize the debt snapshot with acknowledgeFence: an ownership CAS alone
+       * cannot detect a concurrent acknowledgement that leaves owner/phase intact.
+       */
+      await tx.$queryRaw`SELECT "restoreId" FROM "DatabaseRestoreExecution" WHERE "restoreId" = ${operationId} FOR UPDATE`;
+
       const row = await tx.databaseRestoreExecution.findUnique({ where: { restoreId: operationId } });
 
       if (!row || !row.activeLock || row.runnerToken !== previousToken || previousToken === nextToken) {
@@ -450,6 +456,7 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
   async acknowledgeFence(operationId: string, attemptToken: string, excludedToken: string) {
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "restoreId" FROM "DatabaseRestoreExecution" WHERE "restoreId" = ${operationId} FOR UPDATE`;
+
       const row = await tx.databaseRestoreExecution.findUnique({ where: { restoreId: operationId } });
 
       if (!row || !row.activeLock || row.runnerToken !== attemptToken || excludedToken === attemptToken) {
