@@ -28,6 +28,7 @@ export class RestoreConsumerError extends Error {
 export class PostgresRestoreConsumer {
   private pool: Pool | undefined;
   private accepting = false;
+  private readonly _failedPools = new WeakSet<Pool>();
   private admissionGeneration = 0;
   private closed = false;
   private attempt: ConsumerAttempt | undefined;
@@ -49,6 +50,7 @@ export class PostgresRestoreConsumer {
     const pool = consumer.newPool(connectionUri);
     try {
       await pool.query('SELECT 1');
+      consumer._assertPoolHealthy(pool);
       consumer.pool = pool;
       consumer.accepting = true;
       return consumer;
@@ -62,9 +64,15 @@ export class PostgresRestoreConsumer {
     const pool = new Pool({ connectionString, max: 2, connectionTimeoutMillis: 5000 });
     // Idle socket errors must not crash the application or leave it accepting.
     pool.on('error', () => {
+      this._failedPools.add(pool);
       this.accepting = false;
+      this.admissionGeneration += 1;
     });
     return pool;
+  }
+
+  private _assertPoolHealthy(pool: Pool) {
+    if (this._failedPools.has(pool)) throw new RestoreConsumerError('RESTORE_CONSUMER_POOL_FAILED');
   }
 
   query<Row extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]) {
@@ -281,6 +289,7 @@ export class PostgresRestoreConsumer {
         if (generation !== this.admissionGeneration) {
           throw new RestoreConsumerError('RESTORE_CONSUMER_ADMISSION_CHANGED');
         }
+        this._assertPoolHealthy(next);
         this.pool = next;
         this.verified = result;
         return { ...result };
@@ -306,6 +315,9 @@ export class PostgresRestoreConsumer {
       ) {
         throw new RestoreConsumerError('RESTORE_CONSUMER_BINDING_MISMATCH');
       }
+      // An error permanently invalidates this pool, including releases queued
+      // after the error. Only a drained, freshly verified pool may admit work.
+      this._assertPoolHealthy(this.pool);
       this.binding = { ...binding };
       this.accepting = true;
     });

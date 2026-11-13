@@ -89,6 +89,32 @@ run('participating restore consumer — real dedicated PostgreSQL, no physical r
     expect((await c.query(`SELECT value FROM "${table}"`)).rows).toEqual(rows);
     await expect(c.quiesce(attempt)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_ALREADY_RELEASED' });
   });
+  it('requires fresh verification after PostgreSQL terminates an idle backend', async () => {
+    const c = await consumer();
+    await c.quiesce(attempt);
+    await c.verify(input());
+    await c.release(attempt, binding);
+    const pid = (await c.query<{ pid: number }>('SELECT pg_backend_pid() AS pid')).rows[0].pid;
+    await admin.query('SELECT pg_terminate_backend($1)', [pid]);
+    // Wait for the real idle socket error without issuing another query that
+    // could turn it into an active-query error instead.
+    await expect
+      .poll(async () => {
+        try {
+          await c.release(attempt, binding);
+          return false;
+        } catch (error) {
+          return error instanceof Error && error.message === 'RESTORE_CONSUMER_POOL_FAILED';
+        }
+      })
+      .toBe(true);
+    await expect(c.release(attempt, binding)).rejects.toMatchObject({ code: 'RESTORE_CONSUMER_POOL_FAILED' });
+    await c.pauseVerified(attempt);
+    await c.reconnectVerified(input());
+    await c.release(attempt, binding);
+    expect((await c.query(`SELECT value FROM "${table}"`)).rows).toEqual(rows);
+  });
+
   it('does not let an older queued release reopen admission after a newer pause request', async () => {
     const c = await consumer();
     await c.quiesce(attempt);
