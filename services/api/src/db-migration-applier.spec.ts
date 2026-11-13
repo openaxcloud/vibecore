@@ -70,7 +70,8 @@ it('accepts ordinary DDL and dollar-quoted function bodies', async () => {
     createClient: () => ({
       connect: async () => {},
       end: async () => {},
-      query: async (sql) => ({ rows: [], command: sql }),}),
+      query: async (sql) => ({ rows: [], command: sql }),
+    }),
   });
   expect(
     await apply({
@@ -78,8 +79,10 @@ it('accepts ordinary DDL and dollar-quoted function bodies', async () => {
       migrations: [
         {
           name: 'function',
-          sql: "/* outer /* inner */ comment */ CREATE FUNCTION f() RETURNS void AS $body$ BEGIN RAISE NOTICE 'hello'; END; $body$ LANGUAGE plpgsql; CREATE TABLE t (id int, label text DEFAULT 'COMMIT;')",},
-      ],}),
+          sql: "/* outer /* inner */ comment */ CREATE FUNCTION f() RETURNS void AS $body$ BEGIN RAISE NOTICE 'hello'; END; $body$ LANGUAGE plpgsql; CREATE TABLE t (id int, label text DEFAULT 'COMMIT;')",
+        },
+      ],
+    }),
   ).toMatchObject({ committed: true });
 });
 
